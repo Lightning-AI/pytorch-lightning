@@ -125,47 +125,47 @@ def test_topk_accuracy(preds, target, exp_result, k, subset_accuracy):
 
     assert topk.compute() == exp_result
 
-    # Test functional	
-    total_samples = target.shape[0] * target.shape[1]	
+    # Test functional
+    total_samples = target.shape[0] * target.shape[1]
 
-    preds = preds.view(total_samples, 4, -1)	
-    target = target.view(total_samples, -1)	
+    preds = preds.view(total_samples, 4, -1)
+    target = target.view(total_samples, -1)
 
-    assert accuracy(preds, target, top_k=k, subset_accuracy=subset_accuracy) == exp_result	
-
-
-# Only MC and MDMC with probs input type should be accepted for top_k	
-@pytest.mark.parametrize(	
-    "preds, target",	
-    [	
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target),	
-        (_binary_inputs.preds, _binary_inputs.target),	
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target),	
-        (_multilabel_inputs.preds, _multilabel_inputs.target),	
-        (_multiclass_inputs.preds, _multiclass_inputs.target),	
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target),	
-        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target),	
-        (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target),	
-    ],	
-)	
-def test_topk_accuracy_wrong_input_types(preds, target):	
-    topk = Accuracy(top_k=1)	
-
-    with pytest.raises(ValueError):	
-        topk(preds[0], target[0])	
-
-    with pytest.raises(ValueError):	
-        accuracy(preds[0], target[0], top_k=1)	
+    assert accuracy(preds, target, top_k=k, subset_accuracy=subset_accuracy) == exp_result
 
 
-@pytest.mark.parametrize("top_k, threshold", [(0, 0.5), (None, 1.5)])	
-def test_wrong_params(top_k, threshold):	
-    preds, target = _multiclass_prob_inputs.preds, _multiclass_prob_inputs.target	
+# Only MC and MDMC with probs input type should be accepted for top_k
+@pytest.mark.parametrize(
+    "preds, target",
+    [
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target),
+        (_binary_inputs.preds, _binary_inputs.target),
+        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target),
+        (_multilabel_inputs.preds, _multilabel_inputs.target),
+        (_multiclass_inputs.preds, _multiclass_inputs.target),
+        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target),
+        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target),
+        (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target),
+    ],
+)
+def test_topk_accuracy_wrong_input_types(preds, target):
+    topk = Accuracy(top_k=1)
 
-    with pytest.raises(ValueError):	
-        acc = Accuracy(threshold=threshold, top_k=top_k)	
-        acc(preds, target)	
-        acc.compute()	
+    with pytest.raises(ValueError):
+        topk(preds[0], target[0])
 
-    with pytest.raises(ValueError):	
+    with pytest.raises(ValueError):
+        accuracy(preds[0], target[0], top_k=1)
+
+
+@pytest.mark.parametrize("top_k, threshold", [(0, 0.5), (None, 1.5)])
+def test_wrong_params(top_k, threshold):
+    preds, target = _multiclass_prob_inputs.preds, _multiclass_prob_inputs.target
+
+    with pytest.raises(ValueError):
+        acc = Accuracy(threshold=threshold, top_k=top_k)
+        acc(preds, target)
+        acc.compute()
+
+    with pytest.raises(ValueError):
         accuracy(preds, target, threshold=threshold, top_k=top_k)
