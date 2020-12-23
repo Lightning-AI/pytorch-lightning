@@ -287,14 +287,10 @@ class ModelCheckpoint(Callback):
             "max": (-torch_inf, "max"),
         }
 
-        # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
         if mode not in mode_dict and mode != 'auto':
-            rank_zero_warn(
-                f"ModelCheckpoint mode {mode} is unknown, fallback to auto mode",
-                RuntimeWarning,
-            )
-            mode = "auto"
+            raise MisconfigurationException(f'ModelCheckpoint mode={mode} is unknown.')
 
+        # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
         if mode == 'auto':
             rank_zero_warn(
                 "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
