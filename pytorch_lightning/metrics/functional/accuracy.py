@@ -79,7 +79,8 @@ def accuracy(
         target: Ground truth labels
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            `(0,1)` predictions, in the case of binary or multi-label inputs.
+            (0,1) predictions, in the case of binary or multi-label inputs. If not set it
+            defaults to 0.5.
         top_k:
             Number of highest probability predictions considered to find the correct label, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The

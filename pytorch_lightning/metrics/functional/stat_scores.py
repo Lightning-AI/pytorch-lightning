@@ -147,7 +147,7 @@ def _stat_scores_compute(tp: torch.Tensor, fp: torch.Tensor, tn: torch.Tensor, f
         tp.unsqueeze(-1) + fn.unsqueeze(-1),  # support
     ]
     outputs = torch.cat(outputs, -1).long()
-    outputs = torch.where(outputs < 0, -1, outputs)
+    outputs = torch.where(outputs < 0, torch.tensor(-1, device=outputs.device), outputs)
 
     return outputs
 
