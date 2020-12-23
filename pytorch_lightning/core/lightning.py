@@ -114,7 +114,7 @@ class LightningModule(
 
     def optimizers(self, lightning_optimizer=True):
         if lightning_optimizer:
-            opts = [*self.trainer.lightning_optimizers.values()]
+            opts = [*self.trainer._lightning_optimizers.values()]
         else:
             opts = self.trainer.optimizers
 

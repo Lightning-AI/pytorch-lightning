@@ -20,7 +20,10 @@ class OptimizerConnector:
         self.trainer = trainer
 
     def on_trainer_init(self, enable_pl_optimizer):
-        self.trainer._enable_pl_optimizer = enable_pl_optimizer
+        if enable_pl_optimizer is not None:
+            rank_zero_warn(
+                "Trainer argument `enable_pl_optimizer` will be depreacted on 1.3. "
+                "This argument won't be used internally.", DeprecationWarning)
         self.trainer.lr_schedulers = []
         self.trainer.optimizers = []
         self.trainer.optimizer_frequencies = []

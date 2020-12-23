@@ -17,7 +17,7 @@ from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import TPU_AVAILABLE
+from pytorch_lightning.utilities import AMPType, TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if TPU_AVAILABLE:
@@ -102,11 +102,12 @@ class LightningOptimizer:
                 break
 
     @classmethod
-    def to_lightning_optimizer(cls, optimizer, trainer):
-        if isinstance(optimizer, LightningOptimizer):
-            return optimizer
-        optimizer = cls(optimizer)
-        optimizer._on_trainer_init(trainer)
+    def to_lightning_optimizer(cls, optimizer, opt_idx, trainer):
+        if trainer.amp_backend == AMPType.APEX:
+            optimizer = cls(optimizer)
+            optimizer._on_trainer_init(trainer)
+        else:
+            optimizer = trainer._lightning_optimizers[opt_idx]
         return optimizer
 
     def _accumulated_batches_reached(self):

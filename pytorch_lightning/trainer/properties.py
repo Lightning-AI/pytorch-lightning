@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
-import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import List, Optional, Type, TypeVar, Union, cast
+import inspect
+import os
+from typing import cast, List, Optional, Type, TypeVar, Union
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBarBase
@@ -27,7 +27,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import HOROVOD_AVAILABLE, TPU_AVAILABLE, argparse_utils, rank_zero_warn
+from pytorch_lightning.utilities import argparse_utils, HOROVOD_AVAILABLE, rank_zero_warn, TPU_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_utils import is_overridden
 
@@ -239,8 +239,8 @@ class TrainerProperties(ABC):
         return self.model_connector.get_model()
 
     def __getstate__(self):
-        # unwrap optimizer
-        self.optimizers = [opt._optimizer if is_lightning_optimizer(opt) else opt for opt in self.optimizers]
+        # remove lightning_optimizers
+        self._lightning_optimizers = None
         return self.__dict__
 
     def __setstate__(self, d):

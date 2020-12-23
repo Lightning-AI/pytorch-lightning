@@ -248,7 +248,8 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         assert mock_sgd_zero_grad.call_count == mock_adam_zero_grad.call_count
         assert mock_sgd_zero_grad.call_count == mock_adamw_zero_grad.call_count
 
-def train_with_restore(tmpdir, model_cls, restore_from=None, enable_pl_optimizer=True):
+
+def train_with_restore(tmpdir, model_cls, restore_from=None):
     # init model
     if restore_from is not None:
         seed_everything(42)
@@ -257,13 +258,12 @@ def train_with_restore(tmpdir, model_cls, restore_from=None, enable_pl_optimizer
     # Initialize a trainer
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
-        max_epochs=3 + bool(restore_from),
+        max_epochs=1 + bool(restore_from),
         limit_train_batches=8,
         callbacks=[ckpt_saver] if restore_from is None else [],
         checkpoint_callback=not restore_from,
         resume_from_checkpoint=restore_from,
         num_sanity_val_steps=0,
-        enable_pl_optimizer=enable_pl_optimizer
     )
 
     # Train the model
@@ -274,41 +274,30 @@ def train_with_restore(tmpdir, model_cls, restore_from=None, enable_pl_optimizer
 def test_parity_checkpointing(tmpdir, model_cls=BaseParityAutomaticOptimizationModel):
     # Initial train run of the model.
     seed_everything(0)
-    ckpt_path, first_no_pl_optimizer_model = train_with_restore(
+    ckpt_path, first_epoch_pl_optimizer_model = train_with_restore(
         tmpdir,
         model_cls=BaseParityAutomaticOptimizationModel,
-        restore_from=None,
-        enable_pl_optimizer=False)
+        restore_from=None)
 
     assert "last" in ckpt_path
-    _, pl_optimizer_model = train_with_restore(
+    _, second_epoch_pl_optimizer_model = train_with_restore(
         tmpdir,
         model_cls=BaseParityAutomaticOptimizationModel,
-        restore_from=ckpt_path,
-        enable_pl_optimizer=True)
-
-    _, no_pl_optimizer_model = train_with_restore(
-        tmpdir,
-        model_cls=BaseParityAutomaticOptimizationModel,
-        restore_from=ckpt_path,
-        enable_pl_optimizer=False)
+        restore_from=ckpt_path)
 
     seed_everything(0)
-    ckpt_path, second_no_pl_optimizer_model = train_with_restore(
+    ckpt_path, first_epoch_pure_pytorch_optimizer_model = train_with_restore(
         tmpdir,
         model_cls=AutomaticOptimizationPurePytorchOptimizerModel,
-        restore_from=None,
-        enable_pl_optimizer=False)
+        restore_from=None)
 
-    _, pure_pytorch_optimizer_model = train_with_restore(
+    _, second_epoch_pure_pytorch_optimizer_model = train_with_restore(
         tmpdir,
         model_cls=AutomaticOptimizationPurePytorchOptimizerModel,
-        restore_from=ckpt_path,
-        enable_pl_optimizer=False)
+        restore_from=ckpt_path)
 
-    assert second_no_pl_optimizer_model.losses == first_no_pl_optimizer_model.losses
-    assert pure_pytorch_optimizer_model.losses == no_pl_optimizer_model.losses
-    assert pure_pytorch_optimizer_model.losses == pl_optimizer_model.losses
+    assert first_epoch_pl_optimizer_model.losses == first_epoch_pure_pytorch_optimizer_model.losses
+    assert second_epoch_pl_optimizer_model.losses == second_epoch_pure_pytorch_optimizer_model.losses
 
 
 def run_lightning_optimizer_equality(
@@ -330,16 +319,6 @@ def run_lightning_optimizer_equality(
         torch.optim.SGD,
         expected_num_batches=expected_num_batches,
         optimizer_is_mocked=optimizer_is_mocked,
-        enable_pl_optimizer=True,
-        **trainer_kwargs,
-    )
-
-    no_pl_optimizer_initial_model_weights, no_pl_optimizer_model = train_specific_optimizer_model(
-        lightning_model_cls,
-        torch.optim.Adam if optimizer_is_mocked else torch.optim.SGD,
-        expected_num_batches=expected_num_batches,
-        optimizer_is_mocked=optimizer_is_mocked,
-        enable_pl_optimizer=False,  # Disable pl optimizer
         **trainer_kwargs,
     )
 
@@ -357,8 +336,6 @@ def run_lightning_optimizer_equality(
         assert_model_equality(
             pl_optimizer_initial_model_weights=pl_optimizer_initial_model_weights,
             pl_optimizer_model=pl_optimizer_model,
-            no_pl_optimizer_initial_model_weights=no_pl_optimizer_initial_model_weights,
-            no_pl_optimizer_model=no_pl_optimizer_model,
             pure_pytorch_optimizer_initial_model_weights=pure_pytorch_optimizer_initial_model_weights,
             pure_pytorch_optimizer_model=pure_pytorch_optimizer_model,
             expected_num_batches=expected_num_batches,
@@ -369,32 +346,23 @@ def run_lightning_optimizer_equality(
 def assert_model_equality(
         pl_optimizer_initial_model_weights,
         pl_optimizer_model,
-        no_pl_optimizer_initial_model_weights,
-        no_pl_optimizer_model,
         pure_pytorch_optimizer_initial_model_weights,
         pure_pytorch_optimizer_model,
         expected_num_batches,
         precision,
 ):
 
-    assert torch.equal(pl_optimizer_initial_model_weights, no_pl_optimizer_initial_model_weights)
     assert torch.equal(pl_optimizer_initial_model_weights, pure_pytorch_optimizer_initial_model_weights)
     assert len(pl_optimizer_model.losses) == expected_num_batches
     assert pure_pytorch_optimizer_model.grad_checked
-    assert pure_pytorch_optimizer_model.losses == no_pl_optimizer_model.losses
-    assert not torch.isnan(torch.FloatTensor(no_pl_optimizer_model.losses)).any()
-
-    assert torch.equal(torch.FloatTensor(no_pl_optimizer_model.losses), torch.FloatTensor(pl_optimizer_model.losses))
-    assert no_pl_optimizer_model.on_before_zero_grad_count == pl_optimizer_model.on_before_zero_grad_count
+    assert not torch.isnan(torch.FloatTensor(pl_optimizer_model.losses)).any()
 
     for pytorch_grad, no_pl_optim_grad, pl_optim_grad in zip(pure_pytorch_optimizer_model.grads,
-                                                             no_pl_optimizer_model.grads,
                                                              pl_optimizer_model.grads):
         assert torch.equal(no_pl_optim_grad, pl_optim_grad), 'Grad parameters are different'
         assert torch.equal(pytorch_grad, no_pl_optim_grad), 'Grad parameters are different'
 
     for pytorch_weight, no_pl_optim_weight, pl_optim_weight in zip(pure_pytorch_optimizer_model.parameters(),
-                                                                   no_pl_optimizer_model.parameters(),
                                                                    pl_optimizer_model.parameters()):
         assert torch.equal(no_pl_optim_weight, pl_optim_weight), 'Model parameters are different'
         assert torch.equal(pytorch_weight, no_pl_optim_weight), 'Model parameters are different'
@@ -405,7 +373,6 @@ def train_specific_optimizer_model(
         model_cls,
         optimizer_cls,
         expected_num_batches,
-        enable_pl_optimizer=False,
         optimizer_is_mocked=False,
         replace_optimizer_step_with_pure_pytorch=False,
         **trainer_kwargs,
@@ -431,7 +398,6 @@ def train_specific_optimizer_model(
     model.training_epoch_end = None
 
     trainer = Trainer(
-        enable_pl_optimizer=enable_pl_optimizer,
         **trainer_kwargs
     )
     trainer.fit(model)

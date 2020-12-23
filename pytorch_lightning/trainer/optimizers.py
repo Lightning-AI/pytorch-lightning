@@ -87,7 +87,7 @@ class TrainerOptimizersMixin(ABC):
             optimizer._on_trainer_init(trainer)
             return optimizer
 
-        self.lightning_optimizers = OrderedDict({
+        self._lightning_optimizers = OrderedDict({
             opt_idx: _convert_to_lightning_optimizer(self, opt)
             for opt_idx, opt in enumerate(self.optimizers)
         })

@@ -11,29 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from argparse import Namespace
 import os
+from pathlib import Path
 import pickle
 import platform
 import re
-from argparse import Namespace
-from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
 import cloudpickle
+from omegaconf import Container, OmegaConf
 import pytest
 import torch
 import yaml
-from omegaconf import Container, OmegaConf
 
 import pytorch_lightning as pl
-import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
+import tests.base.develop_utils as tutils
 
 
 class LogInTwoMethods(BoringModel):
@@ -636,8 +636,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
+def test_checkpoint_repeated_strategy(tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callbacks list
     """
@@ -657,7 +656,6 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         callbacks=[checkpoint_callback],
-        enable_pl_optimizer=enable_pl_optimizer,
         weights_summary=None,
         progress_bar_refresh_rate=0,
     )
@@ -674,7 +672,6 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
             limit_val_batches=2,
             limit_test_batches=2,
             resume_from_checkpoint=checkpoint_callback.best_model_path,
-            enable_pl_optimizer=enable_pl_optimizer,
             weights_summary=None,
             progress_bar_refresh_rate=0,
         )
@@ -685,8 +682,7 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
+def test_checkpoint_repeated_strategy_extended(tmpdir):
     """
     This test validates checkpoint can be called several times without
     increasing internally its global step if nothing run.
@@ -731,7 +727,6 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=3,
         limit_test_batches=4,
-        enable_pl_optimizer=enable_pl_optimizer,
         callbacks=[checkpoint_cb],
     )
     trainer = pl.Trainer(**trainer_config)
