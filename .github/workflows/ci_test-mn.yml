@@ -40,8 +40,7 @@ env:
   CHECK_SPEEP: 2
 
 jobs:
-  setup-build-test-publish:
-    name: multi-nodes-gpu-testing
+  multi-nodes-gpu-testing:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -66,17 +65,27 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    # Note: This uses an internal pip API and may not always work
+    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-multi-node
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        pip install awscli coverage
+        pip install git+https://${{ secrets.GITHUB_TOKEN }}@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.2 -v --no-cache-dir
+
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCES_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-2
-
-    - name: Install AWS Client
-      shell: bash
-      run: |
-        sudo apt-get install awscli -y
 
     - name: Get Current Sha Commit
       id: vars
@@ -127,6 +136,7 @@ jobs:
         kubectl apply -f https://raw.githubusercontent.com/pytorch/elastic/master/kubernetes/config/samples/etcd.yaml
 
     - name: Wait
+      # todo: this shall be dynamic
       if: always()
       shell: bash
       run: |
@@ -149,6 +159,7 @@ jobs:
       shell: bash
 
     - name: Wait
+      # todo: this shall be dynamic
       if: always()
       shell: bash
       run: |
@@ -168,7 +179,6 @@ jobs:
       if: success()
       run: |
         cat ./xx01  | tail -n +2 | base64 --decode > /home/runner/work/pytorch-lightning/pytorch-lightning/.coverage
-        python -m pip install coverage
         cd /home/runner/work/pytorch-lightning/pytorch-lightning && coverage report && coverage xml
 
     - name: Upload coverage to Codecov
