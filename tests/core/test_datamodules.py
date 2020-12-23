@@ -25,7 +25,7 @@ from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
 
