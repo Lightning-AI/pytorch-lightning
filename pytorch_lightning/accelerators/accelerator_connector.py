@@ -18,7 +18,7 @@ import torch
 
 from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator, NewAccelerator, NewGPUAccelerator
 from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
-    DataParallelPlugin
+    DataParallelPlugin, DDP2Plugin
 from pytorch_lightning.accelerators.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, device_parser
 from pytorch_lightning.utilities import rank_zero_only
@@ -59,6 +59,7 @@ class BackendConnector(object):
         precision,
         amp_type, 
         amp_level,
+        cluster_environment,
     ):
 
         # initialization
@@ -81,6 +82,7 @@ class BackendConnector(object):
         self.precision = precision
         self.amp_type = None if amp_type is None else amp_type.lower()
         self.amp_level = amp_level
+        self.cluster_environment = cluster_environment
         self.is_slurm_managing_tasks = False
 
         # init the default rank if exists
@@ -152,6 +154,11 @@ class BackendConnector(object):
             devices = [torch.device("cpu")] * self.num_processes
         return devices
 
+    @property
+    def is_using_torchelastic(self):
+        te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
+        return te_flags_passed
+
     def select_precision_plugin(self):
         if self.precision == 32:
             self.amp_type = None
@@ -182,26 +189,43 @@ class BackendConnector(object):
 
     def select_training_type_plugin(self):
         cluster_environment = self.select_cluster_environment()
-        if self.use_dp and self.distributed_backend == "dp":
+        if self.use_ddp2:
+            plugin = DDP2Plugin(
+                parallel_devices=self.parallel_devices,
+                cluster_environment=cluster_environment
+            )
+        elif self.use_ddp:
+            use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
+            use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
+            use_ddp_spawn = self.use_ddp and self.distributed_backend == "ddp_spawn"
+            use_ddp_cpu_spawn = self.use_ddp and self.distributed_backend == "ddp_cpu"
+            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self.is_using_torchelastic
+            use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
+
+            # ddp script mode uses the same flags as TE
+            # TODO: decouple from TE
+            if os.environ.get('PL_IN_DDP_SUBPROCESS', False):
+                use_torchelastic_ddp = False
+
+            if use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
+                ddp_plugin_cls = DDPPlugin
+            elif use_ddp_spawn or use_ddp_cpu_spawn:
+                ddp_plugin_cls = DDPSpawnPlugin
+            else:
+                ddp_plugin_cls = DDPPlugin
+
+            plugin = ddp_plugin_cls(
+                parallel_devices=self.parallel_devices,
+                num_nodes=self.num_nodes,
+                cluster_environment=cluster_environment,
+                is_slurm_managing_tasks=self.is_slurm_managing_tasks,
+                sync_batchnorm=self.sync_batchnorm,
+            )
+        elif self.use_dp:
             plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
-        elif self.use_ddp and self.distributed_backend == "ddp":
-            plugin = DDPPlugin(
-                parallel_devices=self.parallel_devices,
-                num_nodes=self.num_nodes,
-                cluster_environment=cluster_environment,
-                is_slurm_managing_tasks=self.is_slurm_managing_tasks,
-                sync_batchnorm=self.sync_batchnorm,
-            )
-        elif self.use_ddp and self.distributed_backend in ("ddp_spawn", "ddp_spawn_cpu", "ddp_cpu"):
-            plugin = DDPSpawnPlugin(
-                parallel_devices=self.parallel_devices,
-                num_nodes=self.num_nodes,
-                cluster_environment=cluster_environment,
-                is_slurm_managing_tasks=self.is_slurm_managing_tasks,
-                sync_batchnorm=self.sync_batchnorm,
-            )
+        elif self.use_horovod:
+            raise NotImplementedError
         else:
-            # TODO: cover all other cases
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{self.root_gpu}" if self.on_gpu else "cpu"))
         return plugin
 
@@ -221,21 +245,15 @@ class BackendConnector(object):
         )
 
     def select_cluster_environment(self):
-        # TODO: support the cloud environment set by the plugin connector!
-        # if self.trainer.plugin_connector.cloud_environment:
-        #     env = self.trainer.plugin_connector.cloud_environment
-        # elif self.is_slurm_managing_tasks:
+        if self.cluster_environment is not None:
+            return self.cluster_environment
         if self.is_slurm_managing_tasks:
             env = SLURMEnvironment()
-        elif self._is_using_torchelastic():
+        elif self.is_using_torchelastic:
             env = TorchElasticEnvironment()
         else:
             env = TorchElasticEnvironment()
         return env
-
-    def _is_using_torchelastic(self):
-        te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
-        return te_flags_passed
 
     def set_distributed_mode(self):
 

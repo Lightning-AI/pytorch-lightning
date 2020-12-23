@@ -87,6 +87,10 @@ class TrainerProperties(ABC):
         return self.accelerator.training_type_plugin
 
     @property
+    def precision_plugin(self):
+        return self.accelerator.precision_plugin
+
+    @property
     def global_rank(self):
         return self.accelerator.training_type_plugin.global_rank
 
