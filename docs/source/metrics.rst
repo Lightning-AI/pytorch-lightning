@@ -292,6 +292,12 @@ FBeta
 .. autoclass:: pytorch_lightning.metrics.classification.FBeta
     :noindex:
 
+Hamming Distance
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.HammingDistance
+    :noindex:
+
 Precision
 ~~~~~~~~~
 
@@ -323,9 +329,8 @@ Functional Metrics (Classification)
 accuracy [func]
 ~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.accuracy
+.. autofunction:: pytorch_lightning.metrics.functional.accuracy
     :noindex:
-
 
 auc [func]
 ~~~~~~~~~~
@@ -382,6 +387,11 @@ fbeta [func]
 .. autofunction:: pytorch_lightning.metrics.functional.fbeta
     :noindex:
 
+hamming_distance [func]
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.hamming_distance
+    :noindex:
 
 iou [func]
 ~~~~~~~~~~

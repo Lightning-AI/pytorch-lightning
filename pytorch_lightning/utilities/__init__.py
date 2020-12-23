@@ -29,7 +29,7 @@ from pytorch_lightning.utilities.distributed import (  # noqa: F401
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
-from pytorch_lightning.utilities.xla_device_utils import _XLA_AVAILABLE, XLADeviceUtils  # noqa: F401
+from pytorch_lightning.utilities.xla_device import _XLA_AVAILABLE, XLADeviceUtils  # noqa: F401
 
 
 def _module_available(module_path: str) -> bool:

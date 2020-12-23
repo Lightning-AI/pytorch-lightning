@@ -11,15 +11,46 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional
+from typing import Tuple, Optional
 
 import torch
-
-from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.accuracy import _accuracy_update, _accuracy_compute
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 
 
-class Accuracy(Metric):
+def _accuracy_update(
+    preds: torch.Tensor, target: torch.Tensor, threshold: float, top_k: Optional[int], subset_accuracy: bool
+) -> Tuple[torch.Tensor, torch.Tensor]:
+
+    preds, target, mode = _input_format_classification(preds, target, threshold=threshold, top_k=top_k)
+
+    if mode == "binary" or (mode == "multi-label" and subset_accuracy):
+        correct = (preds == target).all(dim=1).sum()
+        total = torch.tensor(target.shape[0], device=target.device)
+    elif mode == "multi-label" and not subset_accuracy:
+        correct = (preds == target).sum()
+        total = torch.tensor(target.numel(), device=target.device)
+    elif mode == "multi-class" or (mode == "multi-dim multi-class" and not subset_accuracy):
+        correct = (preds * target).sum()
+        total = target.sum()
+    elif mode == "multi-dim multi-class" and subset_accuracy:
+        sample_correct = (preds * target).sum(dim=(1, 2))
+        correct = (sample_correct == target.shape[2]).sum()
+        total = torch.tensor(target.shape[0], device=target.device)
+
+    return correct, total
+
+
+def _accuracy_compute(correct: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
+    return correct.float() / total
+
+
+def accuracy(
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    threshold: float = 0.5,
+    top_k: Optional[int] = None,
+    subset_accuracy: bool = False,
+) -> torch.Tensor:
     r"""
     Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
 
@@ -41,6 +72,8 @@ class Accuracy(Metric):
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
+        preds: Predictions from model (probabilities, or labels)
+        target: Ground truth labels
         threshold:
             Threshold probability value for transforming probability predictions to binary
             `(0,1)` predictions, in the case of binary or multi-label inputs.
@@ -65,83 +98,23 @@ class Accuracy(Metric):
             in the case of label predictions, to flattening the inputs beforehand (i.e.
             ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
             still applies in both cases, if set.
-        compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False.
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
-        process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
-        dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
-            will be used to perform the allgather. default: None
 
     Example:
 
-        >>> from pytorch_lightning.metrics import Accuracy
+        >>> from pytorch_lightning.metrics.functional import accuracy
         >>> target = torch.tensor([0, 1, 2, 3])
         >>> preds = torch.tensor([0, 2, 1, 3])
-        >>> accuracy = Accuracy()
         >>> accuracy(preds, target)
         tensor(0.5000)
 
         >>> target = torch.tensor([0, 1, 2])
         >>> preds = torch.tensor([[0.1, 0.9, 0], [0.3, 0.1, 0.6], [0.2, 0.5, 0.3]])
-        >>> accuracy = Accuracy(top_k=2)
-        >>> accuracy(preds, target)
+        >>> accuracy(preds, target, top_k=2)
         tensor(0.6667)
-
     """
 
-    def __init__(
-        self,
-        threshold: float = 0.5,
-        top_k: Optional[int] = None,
-        subset_accuracy: bool = False,
-        compute_on_step: bool = True,
-        dist_sync_on_step: bool = False,
-        process_group: Optional[Any] = None,
-        dist_sync_fn: Callable = None,
-    ):
-        super().__init__(
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
+    if top_k is not None and top_k <= 0:
+        raise ValueError("The `top_k` should be an integer larger than 1.")
 
-        self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
-
-        if not 0 <= threshold <= 1:
-            raise ValueError("The `threshold` should lie in the [0,1] interval.")
-
-        if top_k is not None and top_k <= 0:
-            raise ValueError("The `top_k` should be an integer larger than 1.")
-
-        self.threshold = threshold
-        self.top_k = top_k
-        self.subset_accuracy = subset_accuracy
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
-        """
-        Update state with predictions and targets. See :ref:`metrics:Input types` for more information
-        on input types.
-
-        Args:
-            preds: Predictions from model (probabilities, or labels)
-            target: Ground truth labels
-        """
-
-        correct, total = _accuracy_update(
-            preds, target, threshold=self.threshold, top_k=self.top_k, subset_accuracy=self.subset_accuracy
-        )
-
-        self.correct += correct
-        self.total += total
-
-    def compute(self) -> torch.Tensor:
-        """
-        Computes accuracy based on inputs passed in to ``update`` previously.
-        """
-        return _accuracy_compute(self.correct, self.total)
+    correct, total = _accuracy_update(preds, target, threshold, top_k, subset_accuracy)
+    return _accuracy_compute(correct, total)

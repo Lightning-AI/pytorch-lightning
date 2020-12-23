@@ -24,7 +24,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel._functions import Gather
 
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities.warning_utils import WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 def _find_tensors(obj):  # pragma: no-cover

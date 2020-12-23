@@ -229,47 +229,6 @@ def stat_scores_multiple_classes(
     return tps.float(), fps.float(), tns.float(), fns.float(), sups.float()
 
 
-def accuracy(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        class_reduction: str = 'micro',
-        return_state: bool = False
-) -> torch.Tensor:
-    """
-    Computes the accuracy classification score
-
-    Args:
-        pred: predicted labels
-        target: ground truth labels
-        num_classes: number of classes
-        class_reduction: method to reduce metric score over labels
-
-            - ``'micro'``: calculate metrics globally (default)
-            - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
-            - ``'none'``: returns calculated metric per class
-        return_state: returns a internal state that can be ddp reduced
-            before doing the final calculation
-
-    Return:
-         A Tensor with the accuracy score.
-
-    Example:
-
-        >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
-        >>> accuracy(x, y)
-        tensor(0.7500)
-
-    """
-    tps, fps, tns, fns, sups = stat_scores_multiple_classes(
-        pred=pred, target=target, num_classes=num_classes)
-    if return_state:
-        return {'tps': tps, 'sups': sups}
-    return class_reduce(tps, sups, sups, class_reduction=class_reduction)
-
-
 def _confmat_normalize(cm):
     """ Normalization function for confusion matrix """
     cm = cm / cm.sum(-1, keepdim=True)

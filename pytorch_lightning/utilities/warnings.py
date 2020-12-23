@@ -11,26 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.metric import Metric  # noqa: F401
+from pytorch_lightning.utilities.distributed import rank_zero_warn
 
-from pytorch_lightning.metrics.classification import (  # noqa: F401
-    Accuracy,
-    HammingDistance,
-    Precision,
-    Recall,
-    ConfusionMatrix,
-    PrecisionRecallCurve,
-    AveragePrecision,
-    ROC,
-    FBeta,
-    F1,
-)
 
-from pytorch_lightning.metrics.regression import (  # noqa: F401
-    MeanSquaredError,
-    MeanAbsoluteError,
-    MeanSquaredLogError,
-    ExplainedVariance,
-    PSNR,
-    SSIM,
-)
+class WarningCache:
+
+    def __init__(self):
+        self.warnings = set()
+
+    def warn(self, m):
+        if m not in self.warnings:
+            self.warnings.add(m)
+            rank_zero_warn(m)
