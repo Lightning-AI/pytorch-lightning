@@ -489,8 +489,8 @@ class TrainLoop:
                 'native PyTorch amp and lbfgs are not compatible.'
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli')
 
-        # wraps into LightingOptimizer only for running step
-        optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+        # retrieve the associated lightning optimizer
+        optimizer = self.trainer.lightning_optimizers[opt_idx]
 
         # model hook
         model_ref.optimizer_step(
