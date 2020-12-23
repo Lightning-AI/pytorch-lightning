@@ -23,15 +23,15 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import TORCHVISION_AVAILABLE, DALI_AVAILABLE, cli_lightning_logo
+from pl_examples import _TORCHVISION_AVAILABLE, _DALI_AVAILABLE, cli_lightning_logo
 
-if TORCHVISION_AVAILABLE:
+if _TORCHVISION_AVAILABLE:
     from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
 else:
     from tests.base.datasets import MNIST
 
-if DALI_AVAILABLE:
+if _DALI_AVAILABLE:
     from nvidia.dali import ops
     from nvidia.dali.pipeline import Pipeline
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
@@ -166,7 +166,7 @@ class LitClassifier(pl.LightningModule):
 
 
 def cli_main():
-    if not DALI_AVAILABLE:
+    if not _DALI_AVAILABLE:
         return
 
     pl.seed_everything(1234)

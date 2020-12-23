@@ -67,8 +67,8 @@ class KITTI(Dataset):
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
 
-    >>> from pl_examples import DATASETS_PATH
-    >>> dataset_path = os.path.join(DATASETS_PATH, "Kitti")
+    >>> from pl_examples import _DATASETS_PATH
+    >>> dataset_path = os.path.join(_DATASETS_PATH, "Kitti")
     >>> _create_synth_kitti_dataset(dataset_path, image_dims=(1024, 512))
     >>> KITTI(dataset_path, 'train')  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     <...semantic_segmentation.KITTI object at ...>
@@ -161,8 +161,8 @@ class SegModel(pl.LightningModule):
 
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
 
-    >>> from pl_examples import DATASETS_PATH
-    >>> dataset_path = os.path.join(DATASETS_PATH, "Kitti")
+    >>> from pl_examples import _DATASETS_PATH
+    >>> dataset_path = os.path.join(_DATASETS_PATH, "Kitti")
     >>> _create_synth_kitti_dataset(dataset_path, image_dims=(1024, 512))
     >>> SegModel(dataset_path)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     SegModel(

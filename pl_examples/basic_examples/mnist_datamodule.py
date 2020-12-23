@@ -16,10 +16,10 @@ from typing import Optional
 
 from torch.utils.data import DataLoader, random_split
 
-from pl_examples import DATASETS_PATH, TORCHVISION_AVAILABLE
+from pl_examples import _DATASETS_PATH, _TORCHVISION_AVAILABLE
 from pytorch_lightning import LightningDataModule
 
-if TORCHVISION_AVAILABLE:
+if _TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib
     from torchvision.datasets import MNIST
 else:
@@ -38,7 +38,7 @@ class MNISTDataModule(LightningDataModule):
 
     def __init__(
         self,
-        data_dir: str = DATASETS_PATH,
+        data_dir: str = _DATASETS_PATH,
         val_split: int = 5000,
         num_workers: int = 16,
         normalize: bool = False,
@@ -123,7 +123,7 @@ class MNISTDataModule(LightningDataModule):
 
     @property
     def default_transforms(self):
-        if not TORCHVISION_AVAILABLE:
+        if not _TORCHVISION_AVAILABLE:
             return None
         if self.normalize:
             mnist_transforms = transform_lib.Compose(

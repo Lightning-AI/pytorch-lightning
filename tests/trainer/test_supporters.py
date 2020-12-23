@@ -22,7 +22,6 @@ from pytorch_lightning.trainer.supporters import (
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-
 def test_tensor_running_accum_reset():
     """ Test that reset would set all attributes to the initialization state """
 

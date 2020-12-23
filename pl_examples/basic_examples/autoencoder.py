@@ -21,9 +21,9 @@ from torch.utils.data import DataLoader
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import TORCHVISION_AVAILABLE, cli_lightning_logo
+from pl_examples import _TORCHVISION_AVAILABLE, cli_lightning_logo
 
-if TORCHVISION_AVAILABLE:
+if _TORCHVISION_AVAILABLE:
     from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
 else:

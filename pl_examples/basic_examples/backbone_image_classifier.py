@@ -19,9 +19,9 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
-from pl_examples import DATASETS_PATH, TORCHVISION_AVAILABLE, cli_lightning_logo
+from pl_examples import _DATASETS_PATH, _TORCHVISION_AVAILABLE, cli_lightning_logo
 
-if TORCHVISION_AVAILABLE:
+if _TORCHVISION_AVAILABLE:
     from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
 else:
@@ -111,8 +111,8 @@ def cli_main():
     # ------------
     # data
     # ------------
-    dataset = MNIST(DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
-    mnist_test = MNIST(DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
+    dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
+    mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
     mnist_train, mnist_val = random_split(dataset, [55000, 5000])
 
     train_loader = DataLoader(mnist_train, batch_size=args.batch_size)
