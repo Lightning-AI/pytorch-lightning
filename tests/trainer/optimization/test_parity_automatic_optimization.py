@@ -218,10 +218,8 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
 
     with patch("torch.optim.SGD.step") as mock_sgd_step, \
             patch("torch.optim.Adam.step") as mock_adam_step, \
-            patch("torch.optim.AdamW.step") as mock_adamw_step, \
             patch("torch.optim.SGD.zero_grad") as mock_sgd_zero_grad, \
-            patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad, \
-            patch("torch.optim.AdamW.zero_grad") as mock_adamw_zero_grad:
+            patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad: 
 
         max_epochs = 2
         limit_train_batches = 10
@@ -245,8 +243,6 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         assert mock_sgd_zero_grad.call_count == (expected_num_batches // accumulate_grad_batches)
         assert mock_sgd_step.call_count == mock_adam_step.call_count
         assert mock_sgd_step.call_count == mock_adam_step.call_count
-        assert mock_sgd_zero_grad.call_count == mock_adam_zero_grad.call_count
-        assert mock_sgd_zero_grad.call_count == mock_adamw_zero_grad.call_count
 
 
 def train_with_restore(tmpdir, model_cls, restore_from=None):
@@ -324,7 +320,7 @@ def run_lightning_optimizer_equality(
 
     pure_pytorch_optimizer_initial_model_weights, pure_pytorch_optimizer_model = train_specific_optimizer_model(
         vanilla_model_cls,
-        torch.optim.AdamW if optimizer_is_mocked else torch.optim.SGD,
+        torch.optim.Adam if optimizer_is_mocked else torch.optim.SGD,
         expected_num_batches=expected_num_batches,
         optimizer_is_mocked=optimizer_is_mocked,
         replace_optimizer_step_with_pure_pytorch=True,
@@ -357,15 +353,13 @@ def assert_model_equality(
     assert pure_pytorch_optimizer_model.grad_checked
     assert not torch.isnan(torch.FloatTensor(pl_optimizer_model.losses)).any()
 
-    for pytorch_grad, no_pl_optim_grad, pl_optim_grad in zip(pure_pytorch_optimizer_model.grads,
+    for pytorch_grad, pl_optim_grad in zip(pure_pytorch_optimizer_model.grads,
                                                              pl_optimizer_model.grads):
-        assert torch.equal(no_pl_optim_grad, pl_optim_grad), 'Grad parameters are different'
-        assert torch.equal(pytorch_grad, no_pl_optim_grad), 'Grad parameters are different'
+        assert torch.equal(pytorch_grad, pl_optim_grad), 'Grad parameters are different'
 
-    for pytorch_weight, no_pl_optim_weight, pl_optim_weight in zip(pure_pytorch_optimizer_model.parameters(),
+    for pytorch_weight, pl_optim_weight in zip(pure_pytorch_optimizer_model.parameters(),
                                                                    pl_optimizer_model.parameters()):
-        assert torch.equal(no_pl_optim_weight, pl_optim_weight), 'Model parameters are different'
-        assert torch.equal(pytorch_weight, no_pl_optim_weight), 'Model parameters are different'
+        assert torch.equal(pytorch_weight, pl_optim_weight), 'Model parameters are different'
 
 
 # train function
