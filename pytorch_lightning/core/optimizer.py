@@ -103,6 +103,8 @@ class LightningOptimizer:
 
     @classmethod
     def to_lightning_optimizer(cls, optimizer, trainer):
+        if isinstance(optimizer, LightningOptimizer):
+            return optimizer
         optimizer = cls(optimizer)
         optimizer._on_trainer_init(trainer)
         return optimizer
