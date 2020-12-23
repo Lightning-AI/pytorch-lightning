@@ -187,11 +187,12 @@ def test_usual_cases(inputs, num_classes, is_multiclass, top_k, exp_mode, post_p
 
 # Test that default threshold is indeed 0.5
 def test_default_threshold():
-    preds_default, target_default, _ = _input_format_classification(_ml_prob.preds[0], _ml_prob.target[0]) 
+    preds_default, target_default, _ = _input_format_classification(_ml_prob.preds[0], _ml_prob.target[0])
     preds, target, _ = _input_format_classification(_ml_prob.preds[0], _ml_prob.target[0], threshold=0.5)
 
     assert torch.equal(preds_default, preds)
     assert torch.equal(target_default, target)
+
 
 # Test that threshold is correctly applied
 def test_threshold():
@@ -296,7 +297,6 @@ def test_incorrect_inputs(preds, target, num_classes, is_multiclass):
         (_ml_prob.preds[0], _ml_prob.target[0], None, True, 2),
         # top_k = num_classes for ml prob inputs
         (_ml_prob.preds[0], _ml_prob.target[0], None, True, NUM_CLASSES),
-
     ],
 )
 def test_incorrect_inputs_topk(preds, target, num_classes, is_multiclass, top_k):

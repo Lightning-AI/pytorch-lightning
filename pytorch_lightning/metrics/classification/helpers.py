@@ -222,7 +222,7 @@ def _check_classification_inputs(
     When ``num_classes`` is not specified in these cases, consistency of the highest target
     value against ``C`` dimension is checked for (multi-dimensional) multi-class cases.
 
-    If ``top_k`` is set (not None) for inputs which do not have probability predictions (and 
+    If ``top_k`` is set (not None) for inputs which do not have probability predictions (and
     are not binary), then an error is raised. Similarly if ``top_k`` is set to a number that
     is higher than or equal to the ``C`` dimension of ``preds``.
 

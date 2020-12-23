@@ -504,7 +504,7 @@ stat_scores [func]
 
 
 stat_scores_multiple_classes [func]
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores_multiple_classes
     :noindex:
