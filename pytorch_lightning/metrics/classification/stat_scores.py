@@ -84,7 +84,7 @@ class StatScores(Metric):
 
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be (see :ref:`metrics: Input types` documentation section for
+            than what they appear to be (see :ref:`metrics:Input types` documentation section for
             input classification and examples of the use of this parameter). Should be left at default
             value (``None``) in most cases.
 
