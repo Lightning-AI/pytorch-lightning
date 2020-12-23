@@ -286,9 +286,8 @@ Out:
    torch.tensor([[1, 1, 1, 0, 1]],
                 [[1, 0, 1, 1, 2]], dtype=torch.int32)
 
-As expected, the metric interpreted the inputs as 2 class multi-class inputs (note that if
-change ``num_classes`` above to anything but 2 we would get an error). Now let's see what
-happens when we set ``is_multiclass=False``:
+As expected, the metric interpreted the inputs as 2 class multi-class inputs. 
+Now let's see what happens when we set ``is_multiclass=False``:
 
 .. testcode::
    :skipif: True
@@ -305,7 +304,7 @@ Out:
 
    torch.tensor([[1, 0, 1, 1, 2]], dtype=torch.int32)
 
-Now the metric correctly interpreted the inputs as binary, and thus returned result
+Here the metric interpreted the inputs as binary, and thus returned result
 only for one class.
 
 Class Metrics (Classification)
@@ -501,6 +500,13 @@ stat_scores [func]
 ~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.stat_scores
+    :noindex:
+
+
+stat_scores_multiple_classes [func]
+~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores_multiple_classes
     :noindex:
 
 

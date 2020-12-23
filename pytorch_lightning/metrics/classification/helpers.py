@@ -234,7 +234,7 @@ def _check_classification_inputs(
         target: Tensor with ground truth labels, always integers (labels)
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0,1) predictions, in the case of binary or multi-label inputs.
         num_classes:
             Number of classes. If not explicitly set, the number of classes will be infered
             either from the shape of inputs, or the maximum label in the ``target`` and ``preds``
@@ -245,7 +245,7 @@ def _check_classification_inputs(
             interepreted as 1 for these inputs. If this parameter is set for multi-label inputs,
             it will take precedence over threshold.
 
-            Should be left unset (``None``) for all other types of inputs.
+            Should be left unset (``None``) for inputs with label predictions.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be (see :ref:`metrics: Input types` documentation section for
@@ -371,7 +371,8 @@ def _input_format_classification(
         target: Tensor with ground truth labels, always integers (labels)
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0,1) predictions, in the case of binary or multi-label inputs. If not set it
+            defaults to 0.5.
         num_classes:
             Number of classes. If not explicitly set, the number of classes will be infered
             either from the shape of inputs, or the maximum label in the ``target`` and ``preds``
