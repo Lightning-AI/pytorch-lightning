@@ -28,44 +28,25 @@ from pytorch_lightning.utilities.distributed import (  # noqa: F401
     rank_zero_only,
     rank_zero_warn,
 )
+from pytorch_lightning.utilities.imports import (  # noqa: F401
+    _APEX_AVAILABLE,
+    _NATIVE_AMP_AVAILABLE,
+    _OMEGACONF_AVAILABLE,
+    _HYDRA_AVAILABLE,
+    _HOROVOD_AVAILABLE,
+    _TORCHTEXT_AVAILABLE,
+    _FAIRSCALE_AVAILABLE,
+    _RPC_AVAILABLE,
+    _GROUP_AVAILABLE,
+    _FAIRSCALE_PIPE_AVAILABLE,
+    _BOLTS_AVAILABLE,
+    _module_available,
+)
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
-from pytorch_lightning.utilities.xla_device import _XLA_AVAILABLE, XLADeviceUtils  # noqa: F401
+from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: F401
 
-
-def _module_available(module_path: str) -> bool:
-    """Testing if given module is avalaible in your env
-
-    >>> _module_available('os')
-    True
-    >>> _module_available('bla.bla')
-    False
-    """
-    # todo: find a better way than try / except
-    try:
-        mods = module_path.split('.')
-        assert mods, 'nothing given to test'
-        # it has to be tested as per partets
-        for i in range(len(mods)):
-            module_path = '.'.join(mods[:i + 1])
-            if importlib.util.find_spec(module_path) is None:
-                return False
-        return True
-    except AttributeError:
-        return False
-
-
-_APEX_AVAILABLE = _module_available("apex.amp")
-_NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
-_OMEGACONF_AVAILABLE = _module_available("omegaconf")
-_HYDRA_AVAILABLE = _module_available("hydra")
-_HOROVOD_AVAILABLE = _module_available("horovod.torch")
 
 _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
-_FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')
-_RPC_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.rpc')
-_GROUP_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.group')
-_FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
-_BOLTS_AVAILABLE = _module_available('pl_bolts')
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
