@@ -34,6 +34,7 @@ def _main():
         if os.path.isfile(path_csv):
             df_time = pd.read_csv(path_csv, index_col=0)
         else:
+            # todo: kind="Vanilla PT" -> use_lightning=False
             vanilla = measure_loops(cls_model, kind="Vanilla PT", num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
             lightning = measure_loops(cls_model, kind="PT Lightning", num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
 
