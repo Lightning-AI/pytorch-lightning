@@ -77,7 +77,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install awscli coverage
-        pip install git+https://${{ secrets.GITHUB_TOKEN }}@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.2 -v --no-cache-dir
+        pip install git+https://${{ secrets.PL_GHOST_TOKEN }}@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.2 -v --no-cache-dir
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
