@@ -23,13 +23,13 @@ def _r2score_update(
         target: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     _check_same_shape(preds, target)
-    if len(preds.shape)>2:
-        raise ValueError('Expected both prediction and target to 1D or 2D tensors,'
+    if preds.ndim > 2:
+        raise ValueError('Expected both prediction and target to be 1D or 2D tensors,'
                          f' but recevied tensors with dimension {preds.shape}')
 
     sum_error = torch.sum(target, dim=0)
     sum_squared_error = torch.sum(torch.pow(target, 2.0), dim=0)
-    residual = torch.sum(torch.pow(target-preds, 2.0), dim=0)
+    residual = torch.sum(torch.pow(target - preds, 2.0), dim=0)
     total = torch.sum(torch.ones_like(target), dim=0)
 
     return sum_squared_error, sum_error, residual, total
@@ -55,13 +55,20 @@ def _r2score_compute(sum_squared_error: torch.Tensor,
     raise ValueError('Argument `multioutput` must be either `raw_values`,'
                      f' `uniform_average` or `variance_weighted`. Received {multioutput}.')
 
+
 def r2score(
         preds: torch.Tensor,
         target: torch.Tensor,
         multioutput: str = "uniform_average",
 ) -> torch.Tensor:
-    """
-    Computes r2 score also known as coefficient of determination
+    r"""
+    Computes r2 score also known as `coefficient of determination
+    <https://en.wikipedia.org/wiki/Coefficient_of_determination>`_:
+
+    .. math:: R^2 = 1 - \frac{SS_res}{SS_tot}
+
+    where :math:`SS_res=\sum_i (y_i - f(x_i))^2` is the sum of residual squares, and
+    :math:`SS_tot=\sum_i (y_i - \bar{y})^2` is total sum of squares.
 
     Args:
         pred: estimated labels

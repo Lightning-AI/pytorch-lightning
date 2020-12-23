@@ -21,9 +21,16 @@ from pytorch_lightning.metrics.functional.r2score import (
     _r2score_compute
 )
 
+
 class R2Score(Metric):
-    """
-    Computes r2 score also known as coefficient of determination
+    r"""
+    Computes r2 score also known as `coefficient of determination
+    <https://en.wikipedia.org/wiki/Coefficient_of_determination>`_:
+
+    .. math:: R^2 = 1 - \frac{SS_res}{SS_tot}
+
+    where :math:`SS_res=\sum_i (y_i - f(x_i))^2` is the sum of residual squares, and
+    :math:`SS_tot=\sum_i (y_i - \bar{y})^2` is total sum of squares.
 
     Forward accepts
 
@@ -118,4 +125,3 @@ class R2Score(Metric):
         """
         return _r2score_compute(self.sum_squared_error, self.sum_error, self.residual,
                                 self.total, self.multioutput)
-

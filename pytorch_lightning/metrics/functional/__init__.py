@@ -30,8 +30,8 @@ from pytorch_lightning.metrics.functional.classification import (
     to_categorical,
     to_onehot,
 )
-from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
 # TODO: unify metrics between class and functional, add below
+from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance
 from pytorch_lightning.metrics.functional.f_beta import fbeta, f1
 from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolute_error
@@ -43,5 +43,4 @@ from pytorch_lightning.metrics.functional.psnr import psnr
 from pytorch_lightning.metrics.functional.roc import roc
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity
 from pytorch_lightning.metrics.functional.ssim import ssim
-from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
 from pytorch_lightning.metrics.functional.r2score import r2score
