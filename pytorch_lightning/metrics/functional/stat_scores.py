@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Tuple, Union, Optional
+from typing import Tuple, Optional
 
 import torch
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
@@ -98,7 +98,7 @@ def _stat_scores_update(
         raise ValueError(f"The `ignore_index` {ignore_index} is not valid for inputs with {preds.shape[0]} classes")
 
     if ignore_index is not None and preds.shape[1] == 1:
-        raise ValueError(f"You are using `ignore_index` with binary data.")
+        raise ValueError("You are using `ignore_index` with binary data.")
 
     if len(preds.shape) == 3:
         if not mdmc_reduce:

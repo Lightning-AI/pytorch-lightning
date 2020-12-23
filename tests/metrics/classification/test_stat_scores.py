@@ -18,7 +18,7 @@ from tests.metrics.classification.inputs import (
     _multidim_multiclass_inputs as _mdmc,
     _multidim_multiclass_prob_inputs as _mdmc_prob,
 )
-from tests.metrics.utils import NUM_CLASSES, THRESHOLD, EXTRA_DIM, MetricTester
+from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
 
 torch.manual_seed(42)
 

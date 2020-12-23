@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Callable, Union, List
+from typing import Optional, Any, Callable
 
 import torch
-from pytorch_lightning.metrics.utils import dim_zero_cat
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_update, _stat_scores_compute
 
