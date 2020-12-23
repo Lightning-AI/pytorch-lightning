@@ -103,6 +103,7 @@ class LightningOptimizer:
 
     @classmethod
     def to_lightning_optimizer(cls, optimizer, opt_idx, trainer):
+        # apex overrides .step function and need to be wrapped on each step
         if trainer.amp_backend == AMPType.APEX:
             optimizer = cls(optimizer)
             optimizer._on_trainer_init(trainer)
