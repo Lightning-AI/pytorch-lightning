@@ -42,10 +42,10 @@ def _multi_target_sk_metric(preds, target, multioutput):
         (_multi_target_inputs.preds, _multi_target_inputs.target, _multi_target_sk_metric, num_targets),
     ],
 )
-class TestExplainedVariance(MetricTester):
+class TestR2Score(MetricTester):
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-    def test_explained_variance(self, multioutput, preds, target, sk_metric, num_outputs, ddp, dist_sync_on_step):
+    def test_r2(self, multioutput, preds, target, sk_metric, num_outputs, ddp, dist_sync_on_step):
         self.run_class_metric_test(
             ddp,
             preds,
@@ -57,7 +57,7 @@ class TestExplainedVariance(MetricTester):
                              num_outputs=num_outputs),
         )
 
-    def test_explained_variance_functional(self, multioutput, preds, target, sk_metric, num_outputs):
+    def test_r2_functional(self, multioutput, preds, target, sk_metric, num_outputs):
         self.run_functional_metric_test(
             preds,
             target,
