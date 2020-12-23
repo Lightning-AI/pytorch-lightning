@@ -181,7 +181,7 @@ def _load_long_description(path_dir: str) -> str:
     skip_begin = r'<!-- following section will be skipped from PyPI description -->'
     skip_end = r'<!-- end skipping PyPI description -->'
     # todo: wrap content as commented description
-    text = re.sub(rf'{skip_begin}.+?{skip_end}', '<!--  -->', text, flags=re.IGNORECASE+re.DOTALL)
+    text = re.sub(rf"{skip_begin}.+?{skip_end}", '<!--  -->', text, flags=re.IGNORECASE + re.DOTALL)
 
     # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
     # github_release_url = os.path.join(__homepage__, "releases", "download", __version__)
