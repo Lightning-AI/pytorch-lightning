@@ -23,12 +23,11 @@ name: Multi Nodes GPU Tests
 #  20. Upload coverage to Codecov
 #  21. Delete Group Node
 
-on:
-  pull_request:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
-    types: [closed]
+#on:  # todo
+#  push:
+#    branches: [master, "release/*"]  # include release branches like release/1.0.x
 
-#on: push
+on: push
 
 env:
   AWS_CLUSTER: lightning-torchelastic
