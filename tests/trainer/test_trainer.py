@@ -316,9 +316,11 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
             self.on_train_batch_start_end_dict = self.state_dict()
             for key in self.on_train_batch_start_end_dict.keys():
                 if (batch_idx + 1) == self.trainer.num_training_batches:
-                    assert torch.equal(self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key])
+                    assert torch.equal(self.on_train_batch_start_state_dict[key],
+                                       self.on_train_batch_start_end_dict[key])
                 else:
-                    assert not torch.equal(self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key])
+                    assert not torch.equal(self.on_train_batch_start_state_dict[key],
+                                           self.on_train_batch_start_end_dict[key])
 
     model = CurrentModel()
 

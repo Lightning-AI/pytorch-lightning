@@ -172,7 +172,8 @@ def _load_long_description(path_dir: str) -> str:
 
     # readthedocs badge
     text = text.replace('badge/?version=stable', f'badge/?version={__version__}')
-    text = text.replace('pytorch-lightning.readthedocs.io/en/stable/', f'pytorch-lightning.readthedocs.io/en/{__version__}')
+    text = text.replace('pytorch-lightning.readthedocs.io/en/stable/',
+                        f'pytorch-lightning.readthedocs.io/en/{__version__}')
     # codecov badge
     text = text.replace('/branch/master/graph/badge.svg', f'/release/{__version__}/graph/badge.svg')
     # replace github badges for release ones

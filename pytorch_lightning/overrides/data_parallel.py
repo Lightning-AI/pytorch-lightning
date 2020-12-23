@@ -24,7 +24,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel._functions import Gather
 
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities.warning_utils import WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 def _find_tensors(obj):  # pragma: no-cover
@@ -257,7 +257,6 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
 
     def _worker(i, module, input, kwargs, device=None):
         torch.set_grad_enabled(grad_enabled)
-        fx_called: str = ''
         if device is None:
             device = get_a_var(input).get_device()
         try:

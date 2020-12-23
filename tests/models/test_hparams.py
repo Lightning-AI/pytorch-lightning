@@ -354,8 +354,8 @@ class LocalVariableModelSuperLast(EvalModelTemplate):
 
     def __init__(self, arg1, arg2, *args, **kwargs):
         self.argument1 = arg1  # arg2 intentionally not set
-        arg1 = 'overwritten'
-        local_var = 1234
+        arg1 = 'overwritten'  # noqa: F841
+        local_var = 1234  # noqa: F841
         super().__init__(*args, **kwargs)  # this is intentionally here at the end
 
 
@@ -365,8 +365,8 @@ class LocalVariableModelSuperFirst(EvalModelTemplate):
     def __init__(self, arg1, arg2, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.argument1 = arg1  # arg2 intentionally not set
-        arg1 = 'overwritten'
-        local_var = 1234
+        arg1 = 'overwritten'  # noqa: F841
+        local_var = 1234  # noqa: F841
         self.save_hyperparameters()  # this is intentionally here at the end
 
 

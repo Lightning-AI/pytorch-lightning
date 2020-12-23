@@ -33,7 +33,6 @@ import yaml
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
-from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -350,6 +349,7 @@ class ModelCheckpoint(Callback):
             log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, filepath: str, trainer, pl_module):
+        # Todo: required argument `pl_module` is not used
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
@@ -461,6 +461,7 @@ class ModelCheckpoint(Callback):
         The base path gets extended with logger name and version (if these are available)
         and subfolder "checkpoints".
         """
+        # Todo: required argument `pl_module` is not used
         if self.dirpath is not None:
             return  # short circuit
 

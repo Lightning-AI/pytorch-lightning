@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.metrics.metric import Metric  # noqa: F401
 
-from pytorch_lightning.metrics.classification import (
+from pytorch_lightning.metrics.classification import (  # noqa: F401
     Accuracy,
+    HammingDistance,
     Precision,
     Recall,
     ConfusionMatrix,
@@ -25,7 +26,7 @@ from pytorch_lightning.metrics.classification import (
     F1,
 )
 
-from pytorch_lightning.metrics.regression import (
+from pytorch_lightning.metrics.regression import (  # noqa: F401
     MeanSquaredError,
     MeanAbsoluteError,
     MeanSquaredLogError,

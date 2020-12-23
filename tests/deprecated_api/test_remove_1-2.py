@@ -20,7 +20,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def test_tbd_remove_in_v1_2_0():
+def test_v1_2_0_deprecated_arguments():
     with pytest.deprecated_call(match='will be removed in v1.2'):
         ModelCheckpoint(filepath='..')
 
@@ -31,7 +31,7 @@ def test_tbd_remove_in_v1_2_0():
         ModelCheckpoint(filepath='..', dirpath='.')
 
 
-def test_tbd_remove_in_v1_2_0_metrics():
+def test_v1_2_0_deprecated_metrics():
     from pytorch_lightning.metrics.classification import Fbeta
     from pytorch_lightning.metrics.functional.classification import f1_score, fbeta_score
 
