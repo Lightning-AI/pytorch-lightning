@@ -219,7 +219,7 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
     with patch("torch.optim.SGD.step") as mock_sgd_step, \
             patch("torch.optim.Adam.step") as mock_adam_step, \
             patch("torch.optim.SGD.zero_grad") as mock_sgd_zero_grad, \
-            patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad: 
+            patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad:
 
         max_epochs = 2
         limit_train_batches = 10
@@ -354,11 +354,11 @@ def assert_model_equality(
     assert not torch.isnan(torch.FloatTensor(pl_optimizer_model.losses)).any()
 
     for pytorch_grad, pl_optim_grad in zip(pure_pytorch_optimizer_model.grads,
-                                                             pl_optimizer_model.grads):
+                                           pl_optimizer_model.grads):
         assert torch.equal(pytorch_grad, pl_optim_grad), 'Grad parameters are different'
 
     for pytorch_weight, pl_optim_weight in zip(pure_pytorch_optimizer_model.parameters(),
-                                                                   pl_optimizer_model.parameters()):
+                                               pl_optimizer_model.parameters()):
         assert torch.equal(pytorch_weight, pl_optim_weight), 'Model parameters are different'
 
 
