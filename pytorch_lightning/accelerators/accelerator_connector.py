@@ -251,7 +251,11 @@ class BackendConnector(object):
             env = SLURMEnvironment()
         elif self.is_using_torchelastic:
             env = TorchElasticEnvironment()
+            # TODO: decouple DDP from TE
+            #   maybe introduce a DefaultEnvironment?
+            os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
         else:
+            # TODO: maybe introduce a DefaultEnvironment?
             env = TorchElasticEnvironment()
         return env
 

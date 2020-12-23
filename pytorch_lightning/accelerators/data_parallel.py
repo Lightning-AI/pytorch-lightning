@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import re
 from contextlib import contextmanager
 
+from pytorch_lightning.cluster_environments import TorchElasticEnvironment
 from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.accelerators.base_plugin import Plugin
 
@@ -335,6 +336,7 @@ class DDPPlugin(ParallelPlugin):
         self._model = model
 
         # start the other scripts
+        # TODO: make sure this works, in torchelastic we should not launch child processes!
         if os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
             self._call_children_scripts()
 
