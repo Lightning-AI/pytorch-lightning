@@ -222,9 +222,9 @@ def _check_classification_inputs(
     When ``num_classes`` is not specified in these cases, consistency of the highest target
     value against ``C`` dimension is checked for (multi-dimensional) multi-class cases.
 
-    If ``top_k`` is set (not None) for inputs which are not (multi-dimensional) multi class
-    with probabilities, then an error is raised. Similarly if ``top_k`` is set to a number
-    that is higher than or equal to the ``C`` dimension of ``preds``.
+    If ``top_k`` is set (not None) for inputs which do not have probability predictions (and 
+    are not binary), then an error is raised. Similarly if ``top_k`` is set to a number that
+    is higher than or equal to the ``C`` dimension of ``preds``.
 
     Preds and target tensors are expected to be squeezed already - all dimensions should be
     greater than 1, except perhaps the first one (N).
@@ -241,8 +241,9 @@ def _check_classification_inputs(
             tensor, where applicable.
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
-            only for (multi-dimensional) multi-class inputs with probability predictions. The
-            default value (``None``) will be interepreted as 1 for these inputs.
+            only for inputs with probability predictions. The default value (``None``) will be
+            interepreted as 1 for these inputs. If this parameter is set for multi-label inputs,
+            it will take precedence over threshold.
 
             Should be left unset (``None``) for all other types of inputs.
         is_multiclass:
