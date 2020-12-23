@@ -5,12 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.1.2rc1] - 2020-12-17
+## [1.1.2] - 2020-12-23
 
 ### Added
 
 - Support number for logging with `sync_dist=True` ([#5080](https://github.com/PyTorchLightning/pytorch-lightning/pull/5080)
-
+- Added offset logging step when resuming for Wandb logger ([#5050](https://github.com/PyTorchLightning/pytorch-lightning/pull/5050)
 
 ### Changed
 
@@ -22,25 +22,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - `enable_pl_optimizer=False` by default to temporarily fix AMP issues ([#5163](https://github.com/PyTorchLightning/pytorch-lightning/pull/5163)
 
-
 ### Fixed
 
 - Metric reduction with Logging ([#5150](https://github.com/PyTorchLightning/pytorch-lightning/pull/5150)
-
-
 - Remove nan loss in manual optimization ([#5121](https://github.com/PyTorchLightning/pytorch-lightning/pull/5121)
-
-
 - Un-balanced logging properly supported ([#5119](https://github.com/PyTorchLightning/pytorch-lightning/pull/5119)
-
-
 - Fix hanging in DDP HPC accelerators ([#5157](https://github.com/PyTorchLightning/pytorch-lightning/pull/5157)
-
-
 - Fix saved filename in `ModelCheckpoint` if it already exists ([#4861](https://github.com/PyTorchLightning/pytorch-lightning/pull/4861)
-
-
 - Fix reset `TensorRunningAccum` ([#5106](https://github.com/PyTorchLightning/pytorch-lightning/pull/5106)
+- Updated `DALIClassificationLoader` to not use deprecated arguments ([#4925](https://github.com/PyTorchLightning/pytorch-lightning/pull/4925)
+- Corrected call to `torch.no_grad` ([#5124](https://github.com/PyTorchLightning/pytorch-lightning/pull/5124)
 
 
 ## [1.1.1] - 2020-12-15
