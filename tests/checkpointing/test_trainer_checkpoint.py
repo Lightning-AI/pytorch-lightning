@@ -37,7 +37,7 @@ from tests.base import BoringModel
 import tests.base.develop_utils as tutils
 
 
-def test_finetunning_with_resume_from_checkpoint(tmpdir):
+def test_finetuning_with_resume_from_checkpoint(tmpdir):
     """
     This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test
     """
