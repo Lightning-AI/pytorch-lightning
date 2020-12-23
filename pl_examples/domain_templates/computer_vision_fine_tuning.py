@@ -240,7 +240,7 @@ class TransferLearningModel(pl.LightningModule):
 
     def on_epoch_start(self):
         """Use `on_epoch_start` to unfreeze layers progressively."""
-        optimizer = self.trainer.optimizers[0]
+        optimizer = self.optimizers[0]
         if self.current_epoch == self.milestones[0]:
             _unfreeze_and_add_param_group(
                 module=self.feature_extractor[-2:], optimizer=optimizer, train_bn=self.train_bn
