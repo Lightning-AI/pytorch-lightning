@@ -302,7 +302,7 @@ def test_parity_checkpointing(tmpdir, model_cls=BaseParityAutomaticOptimizationM
 
     _, pure_pytorch_optimizer_model = train_with_restore(
         tmpdir,
-        model_cls=BaseParityAutomaticOptimizationModel,
+        model_cls=AutomaticOptimizationPurePytorchOptimizerModel,
         restore_from=ckpt_path,
         enable_pl_optimizer=False)
 
