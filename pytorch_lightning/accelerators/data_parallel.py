@@ -480,10 +480,10 @@ class DDPPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        # TODO: CHeck is_slurm_managing_tasks
         self.init_ddp_connection(self.global_rank, self.world_size)
 
-        # TODO: Move this somewhere else
+        # TODO: we moved it to the trainer.fit after calling pre_training
+        #   ... need to double check that it is the correct place
         # self.trainer.call_setup_hook(self.model)
 
         # on world_size=0 let everyone know training is starting
@@ -603,10 +603,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        # TODO: CHeck is_slurm_managing_tasks
         self.init_ddp_connection(self.global_rank, self.world_size)
 
-        # TODO: Move this somewhere else
+        # TODO: we moved it to the trainer.fit after calling pre_training
+        #   ... need to double check that it is the correct place
         # self.trainer.call_setup_hook(self.model)
 
         # on world_size=0 let everyone know training is starting

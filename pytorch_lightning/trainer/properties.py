@@ -259,6 +259,10 @@ class TrainerProperties(ABC):
         return add_argparse_args(cls, parent_parser)
 
     @property
+    def gpus(self) -> Optional[Union[List[int], str, int]]:
+        return self.accelerator_connector.gpus
+
+    @property
     def num_gpus(self) -> int:
         return self.accelerator_connector.num_gpus
 
@@ -357,15 +361,20 @@ class TrainerProperties(ABC):
     def lightning_module(self):
         return self.training_type_plugin.lightning_module
 
-    def __getstate__(self):
-        # unwrap optimizer
-        self.optimizers = [opt._optimizer if is_lightning_optimizer(opt) else opt for opt in self.optimizers]
-        return self.__dict__
+    @property
+    def optimizers(self):
+        return self.accelerator.optimizers
 
-    def __setstate__(self, d):
-        self.__dict__ = d
-        # wrap optimizers in enable_pl_optimzer is True
-        self.convert_to_lightning_optimizers()
+    # TODO: Do we need getstate / setstate?
+    # def __getstate__(self):
+    #     # unwrap optimizer
+    #     self.optimizers = [opt._optimizer if is_lightning_optimizer(opt) else opt for opt in self.optimizers]
+    #     return self.__dict__
+    #
+    # def __setstate__(self, d):
+    #     self.__dict__ = d
+    #     # wrap optimizers in enable_pl_optimzer is True
+    #     self.convert_to_lightning_optimizers()
 
     @property
     def require_distributed_sampler(self):

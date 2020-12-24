@@ -356,8 +356,8 @@ def test_trainer_model_hook_system(tmpdir):
 
     expected = [
         'on_fit_start',
-        'on_pretrain_routine_start',
-        'on_pretrain_routine_end',
+        # 'on_pretrain_routine_start',
+        # 'on_pretrain_routine_end',
         'on_test_model_eval',
         'on_test_start',
         'on_test_epoch_start',
