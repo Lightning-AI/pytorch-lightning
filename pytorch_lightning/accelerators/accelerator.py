@@ -194,10 +194,6 @@ class NewAccelerator(object):
     def on_train_end(self):
         pass
 
-    # TODO: Check if we can change logic for early stopping to accelerator/trainer completely or have a separate connector (should be self contained)
-    def early_stopping_should_stop(self, pl_module):
-        return self.trainer.should_stop
-
     def setup_optimizers(self, trainer, model):
         if trainer.testing is True:
             return

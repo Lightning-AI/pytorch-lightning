@@ -188,6 +188,7 @@ class EarlyStopping(Callback):
             return  # short circuit if metric not present
 
         current = logs.get(self.monitor)
+        should_stop = False
 
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
@@ -204,5 +205,5 @@ class EarlyStopping(Callback):
                 trainer.should_stop = True
 
         # stop every ddp process if any world process decides to stop
-        should_stop = trainer.accelerator_backend.early_stopping_should_stop(pl_module)
+        should_stop = trainer.training_type_plugin.reduce_early_stopping_decision(should_stop)
         trainer.should_stop = should_stop
