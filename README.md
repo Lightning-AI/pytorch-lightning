@@ -101,7 +101,7 @@ Lightning can automatically export to ONNX or TorchScript for those cases.
 
 ## How To Use
 
-#### Step 0: Install
+### Step 0: Install
 
 Simple installation from PyPI
 ```bash
@@ -114,12 +114,30 @@ From Conda
 conda install pytorch-lightning -c conda-forge
 ```
 
-Install bleeding-edge (no guarantees)   
+<!-- following section will be skipped from PyPI description -->
+
+#### Install bleeding-edge - future 1.2
+
+the actual status of 1.2 [nightly] is following:
+
+![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
+![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
+![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.2-dev&event=push)
+![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.2-dev&event=push)
+![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.2-dev&event=push)
+
+Install future release from the source (no guarantees)   
 ```bash
-pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master --upgrade
+pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.2-dev --upgrade
+```
+or nightly from testing PyPI
+```bash
+pip install -iU https://test.pypi.org/simple/ pytorch-lightning
 ```
 
-#### Step 0: Add these imports
+<!-- end skipping PyPI description -->
+
+### Step 1: Add these imports
 
 ```python
 import os
@@ -132,7 +150,7 @@ from torchvision import transforms
 import pytorch_lightning as pl
 ```
 
-#### Step 1: Define a LightningModule (nn.Module subclass)
+### Step 2: Define a LightningModule (nn.Module subclass)
 A LightningModule defines a full *system* (ie: a GAN, autoencoder, BERT or a simple Image Classifier).
 
 ```python
@@ -163,9 +181,9 @@ class LitAutoEncoder(pl.LightningModule):
         return optimizer
 ```
 
-###### Note: Training_step defines the training loop. Forward defines how the LightningModule behaves during inference/prediction.
+**Note: Training_step defines the training loop. Forward defines how the LightningModule behaves during inference/prediction.**
 
-#### Step 2: Train!
+### Step 3: Train!
 
 ```python
 dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
