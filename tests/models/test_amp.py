@@ -20,6 +20,8 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.cluster_environments import SLURMEnvironment
+from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -138,10 +140,11 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.state == TrainerState.FINISHED, 'amp + ddp model failed to complete'
 
     # test root model address
-    assert trainer.slurm_connector.resolve_root_node_address('abc') == 'abc'
-    assert trainer.slurm_connector.resolve_root_node_address('abc[23]') == 'abc23'
-    assert trainer.slurm_connector.resolve_root_node_address('abc[23-24]') == 'abc23'
-    assert trainer.slurm_connector.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
+    assert isinstance(trainer.accelerator_connector.cluster_environment, SLURMEnvironment)
+    assert trainer.accelerator_connector.cluster_environment.resolve_root_node_address('abc') == 'abc'
+    assert trainer.accelerator_connector.cluster_environment.resolve_root_node_address('abc[23]') == 'abc23'
+    assert trainer.accelerator_connector.cluster_environment.resolve_root_node_address('abc[23-24]') == 'abc23'
+    assert trainer.accelerator_connector.cluster_environment.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
 
 @pytest.mark.parametrize("enable_pl_optimizer", [False, True])
