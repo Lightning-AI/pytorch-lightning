@@ -646,13 +646,13 @@ def mean_average_precision(
     using AUC.
 
     Args:
-        pred: Tensor containing predictions, where each row is of the following format:
-              [image_idx, class_pred, class_prob, x_min, y_min, x_max, y_max]
-        target: Tensor containing ground truths, where each row is of the follwing format:
-                [image_idx, class_label, x_min, y_min, x_max, y_max]
+        preds: an Nx7 batch of predictions with representation
+               ``[image_idx, class_pred, class_prob, x_min, y_min, x_max, y_max]``
+        target: an Nx6 batch of targets with representation
+                ``[image_idx, class_label, x_min, y_min, x_max, y_max]``
         iou_threshold: threshold for IoU score for determining true positive and
                        false positive predictions.
-        num_classes: number of total classes
+        ap_calculation: one of "step", "VOC", or "COCO"
 
     Returns:
         mean of the average precision for each class in object detection task.
@@ -660,47 +660,58 @@ def mean_average_precision(
     if box_iou is None:
         raise ImportError('You want to use `torchvision` which is not installed yet,'
                           ' install it with `pip install torchvision`.')
-    average_precisions = torch.zeros(num_classes)
-    for c in range(num_classes):
-        c_pred = [p for p in pred if p[1] == c]
-        c_target = [t for t in target if t[1] == c]
-        if len(c_target) == 0:
-            continue
-        # Sort c_pred in descending order w.r.t. confidence score
-        c_pred = sorted(c_pred, key=lambda x: x[2], reverse=True)
-        num_targets_per_image = Counter(t[0].item() for t in c_target)
+    classes = torch.cat([preds[:, 1], target[:, 1]]).unique()
+    average_precisions = torch.zeros(len(classes))
+    for class_idx, c in enumerate(classes):
+        c_preds = sorted(preds[preds[:, 1] == c], key=lambda x: x[2], reverse=True)
+        c_target = target[target[:, 1] == c]
+        targets_per_images = Counter([t[0].item() for t in c_target])
         targets_tracker = {
-            image_idx: torch.zeros(count)
-            for image_idx, count in num_targets_per_image.items()
+            image_idx: torch.zeros(count) for image_idx, count in targets_per_images.items()
         }
-        tps, fps = torch.zeros(len(c_pred)), torch.zeros(len(c_pred))
-        for i, p in enumerate(c_pred):
-            # Get the targets that correspond to the same image as the prediction
-            ground_truths = [t for t in c_target if t[0] == p[0]]
+        tps = torch.zeros(len(c_preds))
+        fps = torch.zeros(len(c_preds))
+        if len(c_preds) == 0:
+            continue
+        for i, p in enumerate(c_preds):
+            image_idx = p[0].item()
+            ground_truths = c_target[c_target[:, 0] == image_idx]
             best_iou = 0
             best_target_idx = 0
             for j, t in enumerate(ground_truths):
-                curr_iou = box_iou(p[None, 3:], t[None, 2:])
-                if curr_iou > best_iou:
-                    best_iou = curr_iou
+                iou = box_iou(p[None, 3:], t[None, 2:])
+                if iou > best_iou:
+                    best_iou = iou
                     best_target_idx = j
-            image_idx = int(p[0].item())
-            if (
-                best_iou > iou_threshold
-                and targets_tracker[image_idx][best_target_idx] == 0
-            ):
+            if best_iou > iou_threshold and targets_tracker[image_idx][best_target_idx] == 0:
                 targets_tracker[image_idx][best_target_idx] = 1
                 tps[i] = 1
             else:
                 fps[i] = 1
         tps_cum, fps_cum = torch.cumsum(tps, dim=0), torch.cumsum(fps, dim=0)
         precision = tps_cum / (tps_cum + fps_cum)
-        recall = tps_cum / len(c_target)
+        recall = tps_cum / len(c_target) if len(c_target) else tps_cum
         precision = torch.cat([reversed(precision), torch.tensor([1])])
         recall = torch.cat([reversed(recall), torch.tensor([0])])
-        average_precision = -torch.sum((recall[1:] - recall[:-1]) * precision[:-1])
-        average_precisions[c] = average_precision
-    return torch.mean(average_precisions)
+        if ap_calculation == "step":
+            average_precision = -torch.sum((recall[1:] - recall[:-1]) * precision[:-1])
+        elif ap_calculation == "VOC":
+            average_precision = 0
+            recall_thresholds = torch.linspace(0, 1, 11)
+            for threshold in recall_thresholds:
+                points = precision[:-1][recall[:-1] >= threshold]
+                average_precision += torch.max(points) / 11 if len(points) else 0
+        elif ap_calculation == "COCO":
+            average_precision = 0
+            recall_thresholds = torch.linspace(0, 1, 101)
+            for threshold in recall_thresholds:
+                points = precision[:-1][recall[:-1] >= threshold]
+                average_precision += torch.max(points) / 101 if len(points) else 0
+        else:
+            raise NotImplementedError(f"'{ap_calculation}' is not supported.")
+        average_precisions[class_idx] = average_precision
+    mean_average_precision = torch.mean(average_precisions)
+    return mean_average_precision
 
 
 def dice_score(
