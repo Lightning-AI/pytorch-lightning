@@ -116,7 +116,7 @@ class Accuracy(Metric):
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
         if threshold is not None and not 0 < threshold < 1:
-            raise ValueError("The `threshold` should lie in the (0,1) interval.")
+            raise ValueError(f"The `threshold` should be a float in the (0,1) interval, got {threshold}")
 
         if top_k is not None and (not isinstance(top_k, int) or top_k <= 0):
             raise ValueError(f"The `top_k` should be an integer larger than 0, got {top_k}")

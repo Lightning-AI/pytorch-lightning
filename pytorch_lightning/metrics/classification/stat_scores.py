@@ -146,7 +146,7 @@ class StatScores(Metric):
         self.top_k = top_k
 
         if threshold is not None and not 0 < threshold < 1:
-            raise ValueError("The `threshold` should lie in the (0,1) interval.")
+            raise ValueError(f"The `threshold` should be a float in the (0,1) interval, got {threshold}")
 
         if reduce not in ["micro", "macro", "samples"]:
             raise ValueError(f"The `reduce` {reduce} is not valid.")
