@@ -21,7 +21,7 @@ trained for 15 epochs.
 
 The training consists in three stages.
 
-From epoch 0 to 4, the feature extractor (the pre-trained network) is frozen except 
+From epoch 0 to 4, the feature extractor (the pre-trained network) is frozen except
 maybe for the BatchNorm layers (depending on whether `train_bn = True`). The BatchNorm
 layers (if `train_bn = True`) and the parameters of the classifier are trained as a
 single parameters group with lr = 1e-2.
