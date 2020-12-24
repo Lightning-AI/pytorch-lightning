@@ -66,7 +66,7 @@ class Accuracy(Metric):
               in the case of label predictions, to flattening the inputs beforehand (i.e.
               ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
               still applies in both cases, if set.
-        
+
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False.
         dist_sync_on_step:
@@ -97,7 +97,7 @@ class Accuracy(Metric):
 
     def __init__(
         self,
-        threshold: float = 0.5,
+        threshold: Optional[float] = None,
         top_k: Optional[int] = None,
         subset_accuracy: bool = False,
         compute_on_step: bool = True,
@@ -115,8 +115,8 @@ class Accuracy(Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
-        if not 0 <= threshold <= 1:
-            raise ValueError("The `threshold` should lie in the [0,1] interval.")
+        if threshold is not None and not 0 < threshold < 1:
+            raise ValueError("The `threshold` should lie in the (0,1) interval.")
 
         if top_k is not None and (not isinstance(top_k, int) or top_k <= 0):
             raise ValueError(f"The `top_k` should be an integer larger than 0, got {top_k}")

@@ -20,7 +20,7 @@ from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_update
 
 class StatScores(Metric):
     """Computes the number of true positives, false positives, true negatives, false negatives.
-    Related to `Type I and Type II errors <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`__ 
+    Related to `Type I and Type II errors <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`__
     and the `confusion matrix <https://en.wikipedia.org/wiki/Confusion_matrix#Table_of_confusion>`__.
 
     The reduction method (how the statistics are aggregated) is controlled by the
@@ -62,7 +62,7 @@ class StatScores(Metric):
 
         ignore_index:
             Specify a class (label) to ignore. If given, this class index does not contribute
-            to the returned score, regardless of reduction method. If an index is ignored, and 
+            to the returned score, regardless of reduction method. If an index is ignored, and
             ``reduce='macro'``, the class statistics for the ignored class will all be returned
             as ``-1``.
 
@@ -85,7 +85,7 @@ class StatScores(Metric):
 
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be. See the parameter's 
+            than what they appear to be. See the parameter's
             :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
             for a more detailed explanation and examples.
 
@@ -118,7 +118,7 @@ class StatScores(Metric):
 
     def __init__(
         self,
-        threshold: float = 0.5,
+        threshold: Optional[float] = None,
         top_k: Optional[int] = None,
         reduce: str = "micro",
         num_classes: Optional[int] = None,
@@ -144,6 +144,9 @@ class StatScores(Metric):
         self.is_multiclass = is_multiclass
         self.ignore_index = ignore_index
         self.top_k = top_k
+
+        if threshold is not None and not 0 < threshold < 1:
+            raise ValueError("The `threshold` should lie in the (0,1) interval.")
 
         if reduce not in ["micro", "macro", "samples"]:
             raise ValueError(f"The `reduce` {reduce} is not valid.")

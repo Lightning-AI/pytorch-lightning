@@ -39,8 +39,8 @@ def _basic_input_validation(preds: torch.Tensor, target: torch.Tensor, threshold
     if preds_float and (preds.min() < 0 or preds.max() > 1):
         raise ValueError("The `preds` should be probabilities, but values were detected outside of [0,1] range.")
 
-    if threshold > 1 or threshold < 0:
-        raise ValueError("The `threshold` should be a probability in [0,1].")
+    if not 0 < threshold < 1:
+        raise ValueError("The `threshold` should lie in the (0,1) interval.")
 
     if is_multiclass is False and target.max() > 1:
         raise ValueError("If you set `is_multiclass=False`, then `target` should not exceed 1.")

@@ -209,9 +209,11 @@ def test_threshold():
 ########################################################################
 
 
-def test_incorrect_threshold():
+@pytest.mark.parametrize("threshold", [-0.5, 0.0, 1.0, 1.5])
+def test_incorrect_threshold(threshold):
+    preds, target = rand(size=(7,)), randint(high=2, size=(7,))
     with pytest.raises(ValueError):
-        _input_format_classification(preds=rand(size=(7,)), target=randint(high=2, size=(7,)), threshold=1.5)
+        _input_format_classification(preds, target, threshold=threshold)
 
 
 @pytest.mark.parametrize(

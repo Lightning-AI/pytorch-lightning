@@ -156,12 +156,12 @@ def stat_scores(
     mdmc_reduce: Optional[str] = None,
     num_classes: Optional[int] = None,
     top_k: Optional[int] = None,
-    threshold: float = 0.5,
+    threshold: Optional[float] = None,
     is_multiclass: Optional[bool] = None,
     ignore_index: Optional[int] = None,
 ) -> torch.Tensor:
     """Computes the number of true positives, false positives, true negatives, false negatives.
-    Related to `Type I and Type II errors <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`__ 
+    Related to `Type I and Type II errors <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`__
     and the `confusion matrix <https://en.wikipedia.org/wiki/Confusion_matrix#Table_of_confusion>`__.
 
     The reduction method (how the statistics are aggregated) is controlled by the
@@ -203,7 +203,7 @@ def stat_scores(
 
         ignore_index:
             Specify a class (label) to ignore. If given, this class index does not contribute
-            to the returned score, regardless of reduction method. If an index is ignored, and 
+            to the returned score, regardless of reduction method. If an index is ignored, and
             ``reduce='macro'``, the class statistics for the ignored class will all be returned
             as ``-1``.
 
@@ -226,7 +226,7 @@ def stat_scores(
 
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be. See the parameter's 
+            than what they appear to be. See the parameter's
             :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
             for a more detailed explanation and examples.
 

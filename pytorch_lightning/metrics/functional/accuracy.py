@@ -50,12 +50,12 @@ def _accuracy_compute(correct: torch.Tensor, total: torch.Tensor) -> torch.Tenso
 def accuracy(
     preds: torch.Tensor,
     target: torch.Tensor,
-    threshold: float = 0.5,
+    threshold: Optional[float] = None,
     top_k: Optional[int] = None,
     subset_accuracy: bool = False,
 ) -> torch.Tensor:
     r"""Computes the number of true positives, false positives, true negatives, false negatives.
-    Related to `Type I and Type II errors <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`__ 
+    Related to `Type I and Type II errors <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`__
     and the `confusion matrix <https://en.wikipedia.org/wiki/Confusion_matrix#Table_of_confusion>`__.
 
     .. math::
