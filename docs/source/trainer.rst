@@ -155,7 +155,7 @@ Once you're done training, feel free to run the test set!
 
 .. code-block:: python
 
-    trainer.test(test_dataloader=test_dataloader)
+    trainer.test(test_dataloaders=test_dataloader)
 
 ------------
 
