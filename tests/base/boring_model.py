@@ -11,13 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest.mock import MagicMock
+
 import torch
 from pytorch_lightning import LightningModule
 from torch.utils.data import Dataset
 
 
-class RandomDictDataset(Dataset):
+class RandomDictDataset(Dataset, MagicMock):
     def __init__(self, size, length):
+        super().__init__()
         self.len = length
         self.data = torch.randn(length, size)
 
@@ -30,8 +33,9 @@ class RandomDictDataset(Dataset):
         return self.len
 
 
-class RandomDictStringDataset(Dataset):
+class RandomDictStringDataset(Dataset, MagicMock):
     def __init__(self, size, length):
+        super().__init__()
         self.len = length
         self.data = torch.randn(length, size)
 
@@ -42,8 +46,9 @@ class RandomDictStringDataset(Dataset):
         return self.len
 
 
-class RandomDataset(Dataset):
+class RandomDataset(Dataset, MagicMock):
     def __init__(self, size, length):
+        super().__init__()
         self.len = length
         self.data = torch.randn(length, size)
 
@@ -54,7 +59,7 @@ class RandomDataset(Dataset):
         return self.len
 
 
-class BoringModel(LightningModule):
+class BoringModel(LightningModule, MagicMock):
 
     def __init__(self):
         """
