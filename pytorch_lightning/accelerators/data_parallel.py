@@ -107,6 +107,9 @@ class TrainingTypePlugin(Plugin, ABC):
         rank_zero_info(f"Using environment variable {k} for node rank ({rank}).")
         return int(rank)
 
+    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
+        return should_stop
+
     @property
     def model(self):
         return self._model
@@ -216,6 +219,12 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         )
         return distributed_sampler_kwargs
 
+    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
+        should_stop = torch.tensor(int(should_stop), device=self.lightning_module.device)
+        should_stop = self.reduce(should_stop, reduce_op=ReduceOp.SUM)
+        should_stop = bool(should_stop == self.world_size)
+        return should_stop
+
     @staticmethod
     def configure_sync_batchnorm(model: LightningModule) -> LightningModule:
         """
@@ -277,6 +286,9 @@ class DataParallelPlugin(ParallelPlugin):
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
+
+    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
+        return should_stop
 
 
 class DDPPlugin(ParallelPlugin):
