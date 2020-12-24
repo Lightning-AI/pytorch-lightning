@@ -539,6 +539,8 @@ class Trainer(
         # plugin will setup training (e.g. ddp will launch child processes)
         self.training_type_plugin.pre_training()
 
+        self.call_setup_hook(self.lightning_module)
+
         # double dispatch: let the plugin initiate the training/test loop.
         if self.testing:
             self.training_type_plugin.start_testing(self)
