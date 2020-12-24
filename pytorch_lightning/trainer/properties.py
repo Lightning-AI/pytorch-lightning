@@ -365,16 +365,17 @@ class TrainerProperties(ABC):
     def optimizers(self):
         return self.accelerator.optimizers
 
-    # TODO: Do we need getstate / setstate?
-    # def __getstate__(self):
-    #     # unwrap optimizer
-    #     self.optimizers = [opt._optimizer if is_lightning_optimizer(opt) else opt for opt in self.optimizers]
-    #     return self.__dict__
-    #
-    # def __setstate__(self, d):
-    #     self.__dict__ = d
-    #     # wrap optimizers in enable_pl_optimzer is True
-    #     self.convert_to_lightning_optimizers()
+    # TODO: refactor this so that it can be done in LightningOptimizer
+    def __getstate__(self):
+        # unwrap optimizer
+        self.accelerator.optimizers = [opt._optimizer if is_lightning_optimizer(opt) else opt for opt in self.optimizers]
+        return self.__dict__
+
+    # TODO: refactor this so that it can be done in LightningOptimizer
+    def __setstate__(self, d):
+        self.__dict__ = d
+        # wrap optimizers if enable_pl_optimzer is True
+        self.accelerator.optimizers = self.convert_to_lightning_optimizers(self.optimizers)
 
     @property
     def require_distributed_sampler(self):
