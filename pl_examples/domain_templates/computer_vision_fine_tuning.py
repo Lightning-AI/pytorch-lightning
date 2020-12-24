@@ -17,18 +17,23 @@ This computer vision example illustrates how one could fine-tune a pre-trained
 network (by default, a ResNet50 is used) using pytorch-lightning. For the sake
 of this example, the 'cats and dogs dataset' (~60MB, see `DATA_URL` below) and
 the proposed network (denoted by `TransferLearningModel`, see below) is
-trained for 15 epochs. The training consists in three stages. From epoch 0 to
-4, the feature extractor (the pre-trained network) is frozen except maybe for
-the BatchNorm layers (depending on whether `train_bn = True`). The BatchNorm
-layers (if `train_bn = True`) and the parameters of the classifier are trained
-as a single parameters group with lr = 1e-2. From epoch 5 to 9, the last two
-layer groups of the pre-trained network are unfrozen and added to the
-optimizer as a new parameter group with lr = 1e-4 (while lr = 1e-3 for the
-first parameter group in the optimizer). Eventually, from epoch 10, all the
-remaining layer groups of the pre-trained network are unfrozen and added to
-the optimizer as a third parameter group. From epoch 10, the parameters of the
-pre-trained network are trained with lr = 1e-5 while those of the classifier
-are trained with lr = 1e-4.
+trained for 15 epochs.
+
+The training consists in three stages.
+
+From epoch 0 to 4, the feature extractor (the pre-trained network) is frozen except 
+maybe for the BatchNorm layers (depending on whether `train_bn = True`). The BatchNorm
+layers (if `train_bn = True`) and the parameters of the classifier are trained as a
+single parameters group with lr = 1e-2.
+
+From epoch 5 to 9, the last two layer groups of the pre-trained network are unfrozen
+and added to the optimizer as a new parameter group with lr = 1e-4 (while lr = 1e-3
+for the first parameter group in the optimizer).
+
+Eventually, from epoch 10, all the remaining layer groups of the pre-trained network
+are unfrozen and added to the optimizer as a third parameter group. From epoch 10,
+the parameters of the pre-trained network are trained with lr = 1e-5 while those of
+the classifier are trained with lr = 1e-4.
 
 Note:
     See: https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
@@ -193,6 +198,10 @@ class TransferLearningModel(pl.LightningModule):
         self.dl_path = dl_path
         self.__build_model()
 
+        self.train_acc = pl.metrics.Accuracy()
+        self.valid_acc = pl.metrics.Accuracy()
+        self.save_hyperparameters()
+
     def __build_model(self):
         """Define model layers & loss."""
 
@@ -240,7 +249,7 @@ class TransferLearningModel(pl.LightningModule):
 
     def on_epoch_start(self):
         """Use `on_epoch_start` to unfreeze layers progressively."""
-        optimizer = self.optimizers[0]
+        optimizer = self.trainer.optimizers[0]
         if self.current_epoch == self.milestones[0]:
             _unfreeze_and_add_param_group(
                 module=self.feature_extractor[-2:], optimizer=optimizer, train_bn=self.train_bn
@@ -257,16 +266,15 @@ class TransferLearningModel(pl.LightningModule):
         x, y = batch
         y_logits = self.forward(x)
         y_true = y.view((-1, 1)).type_as(x)
-        y_bin = torch.ge(y_logits, 0)
 
         # 2. Compute loss & accuracy:
         train_loss = self.loss(y_logits, y_true)
-        num_correct = torch.eq(y_bin.view(-1), y_true.view(-1)).sum()
+        accuracy = self.train_acc(y_logits, y_true)
 
         # 3. Outputs:
         tqdm_dict = {"train_loss": train_loss}
         self.log_dict(tqdm_dict, prog_bar=True)
-        output = OrderedDict({"loss": train_loss, "num_correct": num_correct})
+        output = OrderedDict({"loss": train_loss, "accuracy": accuracy})
 
         return output
 
@@ -274,8 +282,7 @@ class TransferLearningModel(pl.LightningModule):
         """Compute and log training loss and accuracy at the epoch level."""
 
         train_loss_mean = torch.stack([output["loss"] for output in outputs]).mean()
-        train_acc_mean = torch.stack([output["num_correct"] for output in outputs]).sum().float()
-        train_acc_mean /= len(outputs) * self.batch_size
+        train_acc_mean = self.train_acc.compute()
         self.log_dict({"train_loss": train_loss_mean, "train_acc": train_acc_mean, "step": self.current_epoch})
 
     def validation_step(self, batch, batch_idx):
@@ -284,21 +291,21 @@ class TransferLearningModel(pl.LightningModule):
         x, y = batch
         y_logits = self.forward(x)
         y_true = y.view((-1, 1)).type_as(x)
-        y_bin = torch.ge(y_logits, 0)
 
         # 2. Compute loss & accuracy:
         val_loss = self.loss(y_logits, y_true)
-        num_correct = torch.eq(y_bin.view(-1), y_true.view(-1)).sum()
+        accuracy = self.valid_acc(y_logits, y_true)
 
-        return {"val_loss": val_loss, "num_correct": num_correct}
+        return {"val_loss": val_loss, "num_correct": accuracy}
 
     def validation_epoch_end(self, outputs):
         """Compute and log validation loss and accuracy at the epoch level."""
 
         val_loss_mean = torch.stack([output["val_loss"] for output in outputs]).mean()
-        val_acc_mean = torch.stack([output["num_correct"] for output in outputs]).sum().float()
-        val_acc_mean /= len(outputs) * self.batch_size
-        self.log_dict({"val_loss": val_loss_mean, "val_acc": val_acc_mean, "step": self.current_epoch})
+        train_acc_mean = self.valid_acc.compute()
+        log_dict = {"val_loss": val_loss_mean, "val_acc": train_acc_mean}
+        self.log_dict(log_dict, prog_bar=True)
+        self.log_dict({"step": self.current_epoch})
 
     def configure_optimizers(self):
         optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=self.lr)
@@ -343,13 +350,11 @@ class TransferLearningModel(pl.LightningModule):
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
 
-    def __dataloader(self, train):
+    def __dataloader(self, train: bool):
         """Train/validation loaders."""
 
         _dataset = self.train_dataset if train else self.valid_dataset
-        loader = DataLoader(
-            dataset=_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True if train else False
-        )
+        loader = DataLoader(dataset=_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=train)
 
         return loader
 
