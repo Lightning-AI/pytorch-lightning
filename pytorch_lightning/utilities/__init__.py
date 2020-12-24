@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _XLA_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _HYDRA_AVAILABLE,
     _HOROVOD_AVAILABLE,
