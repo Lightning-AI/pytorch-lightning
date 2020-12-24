@@ -264,7 +264,7 @@ def test_auc(x, y, expected):
 
 
 @pytest.mark.parametrize(
-    ['pred', 'target', 'iou_threshold', 'num_classes', 'expected'],
+    ["pred", "target", "iou_threshold"],
     [
         pytest.param(
             torch.tensor([
@@ -284,9 +284,25 @@ def test_auc(x, y, expected):
                 [0, 0, 210., 80., 295., 90.],
             ]),
             0.5,
-            1,
-            torch.tensor([2 / 3])
         ),
+    ]
+)
+@pytest.mark.parametrize(
+    "ap_calculation, expected_map",
+    [
+        pytest.param("step", torch.tensor([2 / 3])),
+        pytest.param("VOC", torch.tensor([7 / 11])),
+        pytest.param("COCO", torch.tensor([67 / 101]))
+    ]
+)
+def test_object_detection_mean_average_precision_0(pred, target, iou_threshold, ap_calculation, expected_map):
+    mean_average_precision = object_detection_mean_average_precision(pred, target, iou_threshold, ap_calculation)
+    assert torch.allclose(mean_average_precision, expected_map)
+
+
+@pytest.mark.parametrize(
+    ["pred", "target", "iou_threshold"],
+    [
         pytest.param(
             torch.tensor([
                 [0, 1, 0.9, 100, 100, 200, 200],
@@ -301,13 +317,49 @@ def test_auc(x, y, expected):
                 [2, 1, 100., 100., 200., 200.],
             ]),
             0.5,
-            3,
-            torch.tensor([1.])
         )
     ]
 )
-def test_object_detection_mean_average_precision(pred, target, iou_threshold, num_classes, expected):
-    assert torch.allclose(object_detection_mean_average_precision(pred, target, iou_threshold, num_classes), expected)
+@pytest.mark.parametrize(
+    "ap_calculation, expected_map",
+    [
+        pytest.param("step", torch.tensor([1.])),
+        pytest.param("VOC", torch.tensor([1.])),
+        pytest.param("COCO", torch.tensor([1.]))
+    ]
+)
+def test_object_detection_mean_average_precision_1(pred, target, iou_threshold, ap_calculation, expected_map):
+    mean_average_precision = object_detection_mean_average_precision(pred, target, iou_threshold, ap_calculation)
+    assert torch.allclose(mean_average_precision, expected_map)
+
+
+@pytest.mark.parametrize(
+    ["pred", "target", "iou_threshold"],
+    [
+        pytest.param(
+            torch.tensor([
+                [0, 1, 0.9, 100, 100, 200, 200],
+                [1, 0, 0.9, 100, 100, 200, 200],
+                [0, 2, 0.9, 100, 100, 200, 200],
+                [2, 1, 0.9, 100, 100, 200, 200],
+            ]),
+            torch.tensor([[0, 3, 100, 100, 200, 200]]),
+            0.5,
+        )
+    ]
+)
+@pytest.mark.parametrize(
+    "ap_calculation, expected_map",
+    [
+        pytest.param("step", torch.tensor([0.])),
+        pytest.param("VOC", torch.tensor([0.])),
+        pytest.param("COCO", torch.tensor([0.]))
+    ]
+)
+def test_object_detection_mean_average_precision_no_target(pred, target, iou_threshold, ap_calculation, expected_map):
+    mean_average_precision = object_detection_mean_average_precision(pred, target, iou_threshold, ap_calculation)
+    assert torch.allclose(mean_average_precision, expected_map)
+
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
