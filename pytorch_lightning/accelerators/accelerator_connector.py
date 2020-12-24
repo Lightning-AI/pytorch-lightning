@@ -118,6 +118,19 @@ class BackendConnector(object):
         # NVIDIA setup
         # self.set_nvidia_flags(self.trainer.is_slurm_managing_tasks, self.trainer.data_parallel_device_ids)
 
+        # benchmarking
+        # TODO: should this be moved to GPU accelerator?
+        torch.backends.cudnn.benchmark = self.benchmark
+
+        # determinism for cudnn
+        # TODO: should this be moved to GPU accelerator?
+        torch.backends.cudnn.deterministic = deterministic
+        if deterministic:
+            # fixing non-deterministic part of horovod
+            # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
+            os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
+
+        # TODO: move this to TPU accelerator/plugin
         self.on_colab_kaggle = os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE")
 
         self.replace_sampler_ddp = replace_sampler_ddp
