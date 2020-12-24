@@ -21,7 +21,7 @@ from pytorch_lightning.metrics.functional.accuracy import _accuracy_update, _acc
 
 class Accuracy(Metric):
     r"""
-    Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
+    Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`__:
 
     .. math::
         \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y}_i)
@@ -55,17 +55,18 @@ class Accuracy(Metric):
             Whether to compute subset accuracy for multi-label and multi-dimensional
             multi-class inputs (has no effect for other input types).
 
-            For multi-label inputs, if the parameter is set to `True`, then all labels for
-            each sample must be correctly predicted for the sample to count as correct. If it
-            is set to `False`, then all labels are counted separately - this is equivalent to
-            flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
+            - For multi-label inputs, if the parameter is set to ``True``, then all labels for
+              each sample must be correctly predicted for the sample to count as correct. If it
+              is set to ``False``, then all labels are counted separately - this is equivalent to
+              flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
 
-            For multi-dimensional multi-class inputs, if the parameter is set to `True`, then all
-            sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
-            If it is set to `False`, then all sub-samples are counter separately - this is equivalent,
-            in the case of label predictions, to flattening the inputs beforehand (i.e.
-            ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
-            still applies in both cases, if set.
+            - For multi-dimensional multi-class inputs, if the parameter is set to ``True``, then all
+              sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
+              If it is set to ``False``, then all sub-samples are counter separately - this is equivalent,
+              in the case of label predictions, to flattening the inputs beforehand (i.e.
+              ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
+              still applies in both cases, if set.
+        
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False.
         dist_sync_on_step:
@@ -117,9 +118,8 @@ class Accuracy(Metric):
         if not 0 <= threshold <= 1:
             raise ValueError("The `threshold` should lie in the [0,1] interval.")
 
-        if top_k is not None:
-            if not isinstance(top_k, int) or top_k <= 0:
-                raise ValueError(f"The `top_k` should be an integer larger than 0, got {top_k}")
+        if top_k is not None and (not isinstance(top_k, int) or top_k <= 0):
+            raise ValueError(f"The `top_k` should be an integer larger than 0, got {top_k}")
 
         self.threshold = threshold
         self.top_k = top_k

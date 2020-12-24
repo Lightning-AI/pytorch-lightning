@@ -251,61 +251,72 @@ the possible class labels are 0, 1, 2, 3, etc. Below are some examples of differ
     ml_preds  = torch.tensor([[0.2, 0.8, 0.9], [0.5, 0.6, 0.1], [0.3, 0.1, 0.1]])
     ml_target = torch.tensor([[0, 1, 1], [1, 0, 0], [0, 0, 0]])
 
-In some rare cases, you might have inputs which appear to be (multi-dimensional) multi-class
-but are actually binary/multi-label. For example, if both predictions and targets are 1d
-binary tensors. Or it could be the other way around, you want to treat binary/multi-label
-inputs as 2-class (multi-dimensional) multi-class inputs.
+
+Using the ``is_multiclass`` parameter
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In some cases, you might have inputs which appear to be (multi-dimensional) multi-class
+but are actually binary/multi-label - for example, if both predictions and targets are
+integer (binary) tensors. Or it could be the other way around, you want to treat 
+binary/multi-label inputs as 2-class (multi-dimensional) multi-class inputs.
 
 For these cases, the metrics where this distinction would make a difference, expose the
-``is_multiclass`` argument. Let's see how this is used with the 
+``is_multiclass`` argument. Let's see how this is used on the example of 
 :class:`~pytorch_lightning.metrics.classification.StatScores` metric.
 
-.. testcode::
-   :skipif: True
+First, let's consider the case with label predictions with 2 classes, which we want to
+treat as binary.
 
-   from pytorch_lightning.metrics import StatScores
+.. code-block:: python
+
+   from pytorch_lightning.metrics.functional import stat_scores
 
    # These inputs are supposed to be binary, but appear as multi-class
-   mc_binary_preds  = torch.tensor([0,1,0])
-   mc_binary_target = torch.tensor([1,1,0])
+   preds  = torch.tensor([0, 1, 0])
+   target = torch.tensor([1, 1, 0])
 
-First, let's check that what happens usually - without setting ``is_multiclass`` flag.
+As you can see in the first snippet below, by default the inputs are treated
+as multi-class. We can set ``is_multiclass=False`` to treat the inputs as binary - 
+which is the same as converting the predictions to float beforehand, as the second
+and third snippets show.
 
-.. testcode::
-   :skipif: True
+.. doctest:: python
 
-    # Treating inputs as they appear (multi-class)
-    stat_scores_mc = StatScores(average='none', num_classes=2)
-    stat_scores_mc(mc_binary_preds, mc_binary_target)
+    >>> stat_scores(preds, target, reduce='macro', num_classes=2)
+    torch.tensor([[1, 1, 1, 0, 1]],
+                 [[1, 0, 1, 1, 2]])
 
-Out:
+.. doctest:: python
 
-.. testoutput::
-   :skipif: True
+    >>> stat_scores(preds, target, reduce='macro', num_classes=1, is_multiclass=False)
+    torch.tensor([[1, 0, 1, 1, 2]])
 
-   torch.tensor([[1, 1, 1, 0, 1]],
-                [[1, 0, 1, 1, 2]], dtype=torch.int32)
+.. doctest:: python
 
-As expected, the metric interpreted the inputs as 2 class multi-class inputs. 
-Now let's see what happens when we set ``is_multiclass=False``:
+    >>> stat_scores(preds.float(), target, reduce='macro', num_classes=1)
+    torch.tensor([[1, 0, 1, 1, 2]])
 
-.. testcode::
-   :skipif: True
+Next, consider the opposite example: inputs are binary (as predictions are probabilities),
+but we would like to treat them as 2-class multi-class, to obtain the metric for both classes.
 
-    # Treating inputs as binary
-    stat_scores_binary = StatScores(average='none', num_classes=1, 
-                                    is_multiclass=False)
-    stat_scores_binary(mc_binary_preds, mc_binary_target)
+.. code-block:: python
 
-Out:
+   preds  = torch.tensor([0.2, 0.7, 0.3])
+   target = torch.tensor([1, 1, 0])
 
-.. testoutput::
-   :skipif: True
+In this case we can set ``is_multiclass=True``, to treat the inputs as multi-class.
 
-   torch.tensor([[1, 0, 1, 1, 2]], dtype=torch.int32)
+.. doctest:: python
 
-Here the metric interpreted the inputs as binary, and thus returned result
-only for one class.
+    >>> stat_scores(preds, target, reduce='macro', num_classes=1)
+    torch.tensor([[1, 0, 1, 1, 2]])
+
+.. doctest:: python
+
+    >>> stat_scores(preds, target, reduce='macro', num_classes=2, is_multiclass=True)
+    torch.tensor([[1, 1, 1, 0, 1]],
+                 [[1, 0, 1, 1, 2]])
+
 
 Class Metrics (Classification)
 ------------------------------

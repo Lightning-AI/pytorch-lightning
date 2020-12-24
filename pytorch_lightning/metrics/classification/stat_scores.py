@@ -20,6 +20,8 @@ from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_update
 
 class StatScores(Metric):
     """Computes the number of true positives, false positives, true negatives, false negatives.
+    Related to `Type I and Type II errors <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`__ 
+    and the `confusion matrix <https://en.wikipedia.org/wiki/Confusion_matrix#Table_of_confusion>`__.
 
     The reduction method (how the statistics are aggregated) is controlled by the
     ``reduce`` parameter, and additionally by the ``mdmc_reduce`` parameter in the
@@ -59,11 +61,10 @@ class StatScores(Metric):
             Number of classes. Necessary for (multi-dimensional) multi-class or multi-label data.
 
         ignore_index:
-            Specify a class (laber) to ignore. If given, this class index does not contribute
-            to the returned score, regardless of reduction method.
-
-            If an index is ignored, and ``reduce='macro'``, the class statistics for the ignored
-            class will all be returned as ``-1``.
+            Specify a class (label) to ignore. If given, this class index does not contribute
+            to the returned score, regardless of reduction method. If an index is ignored, and 
+            ``reduce='macro'``, the class statistics for the ignored class will all be returned
+            as ``-1``.
 
         mdmc_reduce:
             Defines how the multi-dimensional multi-class inputs are handeled. Should be
@@ -84,20 +85,9 @@ class StatScores(Metric):
 
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be (see :ref:`metrics:Input types` documentation section for
-            input classification and examples of the use of this parameter). Should be left at default
-            value (``None``) in most cases.
-
-            The special cases where this parameter should be set are:
-
-            - When you want to treat binary or multi-label inputs as multi-class or multi-dimensional
-              multi-class with 2 classes, respectively. The probabilities are interpreted as the
-              probability of the "1" class, and thresholding still applies as usual. In this case
-              the parameter should be set to ``True``.
-            - When you want to treat multi-class or multi-dimensional mulit-class inputs with 2 classes
-              as binary or multi-label inputs, respectively. This is mainly meant for the case when
-              inputs are labels, but will work if they are probabilities as well. For this case the
-              parameter should be set to ``False``.
+            than what they appear to be. See the parameter's 
+            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            for a more detailed explanation and examples.
 
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False.

@@ -99,6 +99,13 @@ def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_mul
     ],
 )
 def test_wrong_params(reduce, mdmc_reduce, num_classes, inputs, ignore_index):
+    """Test a combination of parameters that are invalid and should raise an error.
+
+    This includes invalid ``reduce`` and ``mdmc_reduce`` parameter values, not setting
+    ``num_classes`` when ``reduce='macro'`, not setting ``mdmc_reduce`` when inputs
+    are multi-dim multi-class``, setting ``ignore_index`` when inputs are binary, as well
+    as setting ``ignore_index`` to a value higher than the number of classes.
+    """
     with pytest.raises(ValueError):
         stat_scores(
             inputs.preds[0], inputs.target[0], reduce, mdmc_reduce, num_classes=num_classes, ignore_index=ignore_index

@@ -28,35 +28,32 @@ def _stat_scores(
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Calculate the number of tp, fp, tn, fn.
 
-    The shape of the returned tensors depnds on the shape of the inputs
-    and the `reduce` parameter:
+    Args:
+        preds:
+            An (N, C) or (N, C, X) tensor of predictions (0 or 1)
+        target:
+            An (N, C) or (N, C, X) tensor of true labels (0 or 1)
+        reduce:
+            One of 'micro', 'macro', 'samples'
 
-        * If inputs are of the shape (N, C), then
+    Return:
+        Returns a list of 4 tensors; tp, fp, tn, fn.
+        The shape of the returned tensors depnds on the shape of the inputs
+        and the `reduce` parameter:
+
+        If inputs are of the shape (N, C), then
 
             * If reduce is 'micro', the returned tensors are 1 element tensors
             * If reduce is one of 'macro', 'weighted', 'none' or None, the returned
               tensors are (C,) 1d tensors
             * If reduce is 'samples, the returned tensors are 1d (N,) tensors
 
-        * If inputs are of the shape (N, C, X), then
+        If inputs are of the shape (N, C, X), then
 
             * If reduce is 'micro', the returned tensors are (N,) 1d tensors
             * If reduce is one of 'macro', 'weighted', 'none' or None, the returned
               tensors are (N,C) 2d tensors
             * If reduce is 'samples, the returned tensors are 1d (N,X) 2d tensors
-
-    Parameters
-    ----------
-    labels
-        An (N, C) or (N, C, X) tensor of true labels (0 or 1)
-    preds
-        An (N, C) or (N, C, X) tensor of predictions (0 or 1)
-    reduce
-        One of 'micro', 'macro', 'samples'
-
-    Returns
-    -------
-    tp, fp, tn, fn
     """
     is_multidim = len(preds.shape) == 3
 
@@ -164,6 +161,8 @@ def stat_scores(
     ignore_index: Optional[int] = None,
 ) -> torch.Tensor:
     """Computes the number of true positives, false positives, true negatives, false negatives.
+    Related to `Type I and Type II errors <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`__ 
+    and the `confusion matrix <https://en.wikipedia.org/wiki/Confusion_matrix#Table_of_confusion>`__.
 
     The reduction method (how the statistics are aggregated) is controlled by the
     ``reduce`` parameter, and additionally by the ``mdmc_reduce`` parameter in the
@@ -203,11 +202,10 @@ def stat_scores(
             Number of classes. Necessary for (multi-dimensional) multi-class or multi-label data.
 
         ignore_index:
-            Specify a class (laber) to ignore. If given, this class index does not contribute
-            to the returned score, regardless of reduction method.
-
-            If an index is ignored, and ``reduce='macro'``, the class statistics for the ignored
-            class will all be returned as ``-1``.
+            Specify a class (label) to ignore. If given, this class index does not contribute
+            to the returned score, regardless of reduction method. If an index is ignored, and 
+            ``reduce='macro'``, the class statistics for the ignored class will all be returned
+            as ``-1``.
 
         mdmc_reduce:
             Defines how the multi-dimensional multi-class inputs are handeled. Should be
@@ -228,21 +226,9 @@ def stat_scores(
 
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be (see :ref:`metrics:Input types` documentation section for
-            input classification and examples of the use of this parameter). Should be left at default
-            value (``None``) in most cases.
-
-            The special cases where this parameter should be set are:
-
-            - When you want to treat binary or multi-label inputs as multi-class or multi-dimensional
-              multi-class with 2 classes, respectively. The probabilities are interpreted as the
-              probability of the "1" class, and thresholding still applies as usual. In this case
-              the parameter should be set to ``True``.
-            - When you want to treat multi-class or multi-dimensional mulit-class inputs with 2 classes
-              as binary or multi-label inputs, respectively. This is mainly meant for the case when
-              inputs are labels, but will work if they are probabilities as well. For this case the
-              parameter should be set to ``False``.
-
+            than what they appear to be. See the parameter's 
+            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            for a more detailed explanation and examples.
 
     Return:
         The metric returns a tensor of shape ``(..., 5)``, where the last dimension corresponds

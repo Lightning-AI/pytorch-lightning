@@ -54,8 +54,9 @@ def accuracy(
     top_k: Optional[int] = None,
     subset_accuracy: bool = False,
 ) -> torch.Tensor:
-    r"""
-    Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
+    r"""Computes the number of true positives, false positives, true negatives, false negatives.
+    Related to `Type I and Type II errors <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`__ 
+    and the `confusion matrix <https://en.wikipedia.org/wiki/Confusion_matrix#Table_of_confusion>`__.
 
     .. math::
         \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y}_i)
@@ -91,17 +92,17 @@ def accuracy(
             Whether to compute subset accuracy for multi-label and multi-dimensional
             multi-class inputs (has no effect for other input types).
 
-            For multi-label inputs, if the parameter is set to `True`, then all labels for
-            each sample must be correctly predicted for the sample to count as correct. If it
-            is set to `False`, then all labels are counted separately - this is equivalent to
-            flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
+            - For multi-label inputs, if the parameter is set to ``True``, then all labels for
+              each sample must be correctly predicted for the sample to count as correct. If it
+              is set to ``False``, then all labels are counted separately - this is equivalent to
+              flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
 
-            For multi-dimensional multi-class inputs, if the parameter is set to `True`, then all
-            sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
-            If it is set to `False`, then all sub-samples are counter separately - this is equivalent,
-            in the case of label predictions, to flattening the inputs beforehand (i.e.
-            ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
-            still applies in both cases, if set.
+            - For multi-dimensional multi-class inputs, if the parameter is set to ``True``, then all
+              sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
+              If it is set to ``False``, then all sub-samples are counter separately - this is equivalent,
+              in the case of label predictions, to flattening the inputs beforehand (i.e.
+              ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
+              still applies in both cases, if set.
 
     Example:
 
