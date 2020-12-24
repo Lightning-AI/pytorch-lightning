@@ -32,7 +32,7 @@ class SLURMEnvironment(ClusterEnvironment):
         else:
             root_node = "127.0.0.1"
 
-        root_node = self._resolve_root_node_address(root_node)
+        root_node = self.resolve_root_node_address(root_node)
         os.environ["MASTER_ADDR"] = root_node
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
         return root_node
@@ -70,7 +70,7 @@ class SLURMEnvironment(ClusterEnvironment):
     def local_rank(self):
         return int(os.environ['SLURM_LOCALID'])
 
-    def _resolve_root_node_address(self, root_node):
+    def resolve_root_node_address(self, root_node):
         if '[' in root_node:
             name, numbers = root_node.split('[', maxsplit=1)
             number = numbers.split(',', maxsplit=1)[0]
