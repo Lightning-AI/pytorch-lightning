@@ -67,7 +67,7 @@ Under the hood Lightning does the following:
 .. code-block:: python
 
     for epoch in epochs:
-        for batch id data:
+        for batch in data:
             loss = model.training_step(batch, batch_idx, ...)
             loss.backward()
             optimizer.step()
