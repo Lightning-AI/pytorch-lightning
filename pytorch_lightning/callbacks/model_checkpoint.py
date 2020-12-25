@@ -664,6 +664,9 @@ class ModelCheckpoint(Callback):
         the internal state to diverge between ranks.
         """
         exists = self._fs.exists(filepath)
+        print(trainer.global_rank, trainer.accelerator_backend)
         if trainer.accelerator_backend is not None:
             exists = trainer.accelerator_backend.broadcast(exists)
+        print(trainer.global_rank, "exists:", exists, filepath)
+        SystemExit()
         return exists
