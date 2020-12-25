@@ -301,7 +301,7 @@ def _check_classification_inputs(
             _check_num_classes_ml(num_classes, is_multiclass, implied_classes)
 
     # Check that top_k is consistent
-    if top_k:
+    if top_k is not None:
         _check_top_k(top_k, case, implied_classes, is_multiclass, preds.is_floating_point())
 
     return case

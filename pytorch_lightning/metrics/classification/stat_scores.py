@@ -166,9 +166,9 @@ class StatScores(Metric):
             elif reduce == "macro":
                 default, reduce_fn = torch.zeros((num_classes,), dtype=torch.int), "sum"
             elif reduce == "samples":
-                default, reduce_fn = torch.empty(0, dtype=torch.int), None
+                default, reduce_fn = torch.empty(0, dtype=torch.int), "cat"
         else:
-            default, reduce_fn = torch.empty(0, dtype=torch.int), None
+            default, reduce_fn = torch.empty(0, dtype=torch.int), "cat"
 
         for s in ("tp", "fp", "tn", "fn"):
             self.add_state(s, default=default.clone(), dist_reduce_fx=reduce_fn)
@@ -240,15 +240,5 @@ class StatScores(Metric):
               - If ``reduce='samples'``, the shape will be ``(N, X, 5)``
 
         """
-        if isinstance(self.tp, list):
-            tp = torch.cat(self.tp)
-            fp = torch.cat(self.fp)
-            tn = torch.cat(self.tn)
-            fn = torch.cat(self.fn)
-        else:
-            tp = self.tp
-            fp = self.fp
-            tn = self.tn
-            fn = self.fn
 
-        return _stat_scores_compute(tp, fp, tn, fn)
+        return _stat_scores_compute(self.tp, self.fp, self.tn, self.fn)

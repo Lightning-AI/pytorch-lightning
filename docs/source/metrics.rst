@@ -275,24 +275,17 @@ treat as binary.
    preds  = torch.tensor([0, 1, 0])
    target = torch.tensor([1, 1, 0])
 
-As you can see in the first snippet below, by default the inputs are treated
+As you can see below, by default the inputs are treated
 as multi-class. We can set ``is_multiclass=False`` to treat the inputs as binary - 
-which is the same as converting the predictions to float beforehand, as the second
-and third snippets show.
+which is the same as converting the predictions to float beforehand.
 
 .. doctest:: python
 
     >>> stat_scores(preds, target, reduce='macro', num_classes=2)
     torch.tensor([[1, 1, 1, 0, 1]],
                  [[1, 0, 1, 1, 2]])
-
-.. doctest:: python
-
     >>> stat_scores(preds, target, reduce='macro', num_classes=1, is_multiclass=False)
     torch.tensor([[1, 0, 1, 1, 2]])
-
-.. doctest:: python
-
     >>> stat_scores(preds.float(), target, reduce='macro', num_classes=1)
     torch.tensor([[1, 0, 1, 1, 2]])
 
@@ -310,9 +303,6 @@ In this case we can set ``is_multiclass=True``, to treat the inputs as multi-cla
 
     >>> stat_scores(preds, target, reduce='macro', num_classes=1)
     torch.tensor([[1, 0, 1, 1, 2]])
-
-.. doctest:: python
-
     >>> stat_scores(preds, target, reduce='macro', num_classes=2, is_multiclass=True)
     torch.tensor([[1, 1, 1, 0, 1]],
                  [[1, 0, 1, 1, 2]])

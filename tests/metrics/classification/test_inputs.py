@@ -291,6 +291,10 @@ def test_incorrect_inputs(preds, target, num_classes, is_multiclass):
         (_ml.preds[0], _ml.target[0], None, None, 2),
         (_mlmd.preds[0], _mlmd.target[0], None, None, 2),
         (_mdmc.preds[0], _mdmc.target[0], None, None, 2),
+        # top_k = 0
+        (_mc_prob_2cls.preds[0], _mc_prob_2cls.target[0], None, None, 0),
+        # top_k = float
+        (_mc_prob_2cls.preds[0], _mc_prob_2cls.target[0], None, None, 0.123),
         # top_k =2 with 2 classes, is_multiclass=False
         (_mc_prob_2cls.preds[0], _mc_prob_2cls.target[0], None, False, 2),
         # top_k = number of classes (C dimension)
