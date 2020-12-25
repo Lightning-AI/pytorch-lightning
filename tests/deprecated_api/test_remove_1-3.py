@@ -21,7 +21,6 @@ import torch
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.profiler.profilers import PassThroughProfiler, SimpleProfiler
-from tests.deprecated_api import _soft_unimport_module
 
 
 def test_v1_3_0_deprecated_arguments(tmpdir):
