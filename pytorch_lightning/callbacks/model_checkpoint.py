@@ -668,5 +668,5 @@ class ModelCheckpoint(Callback):
         if trainer.accelerator_backend is not None:
             exists = trainer.accelerator_backend.broadcast(exists)
         print(trainer.global_rank, "exists:", exists, filepath)
-        SystemExit()
+        raise SystemExit()
         return exists
