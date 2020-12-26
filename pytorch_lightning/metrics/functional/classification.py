@@ -15,7 +15,6 @@ from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
-from torch.nn import functional as F
 from distutils.version import LooseVersion
 
 from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
@@ -574,35 +573,32 @@ def auroc(
                          ' target tensor contains value different from 0 and 1.'
                          ' Use `multiclass_auroc` for multi class classification.')
 
-    def _auroc(pred, target, sample_weight, pos_label, max_fpr):
-        if max_fpr is None or max_fpr == 1:
-            fpr, tpr, _ = __roc(pred, target, sample_weight, pos_label)
-            return auc(fpr, tpr)
-        if not (isinstance(max_fpr, float) and 0 < max_fpr <= 1):
-            raise ValueError(f"`max_fpr` should be a float in range (0, 1], got: {max_fpr}")
-        if LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
-            raise RuntimeError('`max_fpr` argument requires `torch.bucketize` which'
-                               ' is not available below PyTorch version 1.6')
-
+    if max_fpr is None or max_fpr == 1:
         fpr, tpr, _ = __roc(pred, target, sample_weight, pos_label)
-        max_fpr = torch.tensor(max_fpr, device=fpr.device)
-        # Add a single point at max_fpr and interpolate its tpr value
-        stop = torch.bucketize(max_fpr, fpr, out_int32=True, right=True)
-        weight = (max_fpr - fpr[stop - 1]) / (fpr[stop] - fpr[stop - 1])
-        interp_tpr = torch.lerp(tpr[stop - 1], tpr[stop], weight)
-        tpr = torch.cat([tpr[:stop], interp_tpr.view(1)])
-        fpr = torch.cat([fpr[:stop], max_fpr.view(1)])
+        return auc(fpr, tpr)
+    if not (isinstance(max_fpr, float) and 0 < max_fpr <= 1):
+        raise ValueError(f"`max_fpr` should be a float in range (0, 1], got: {max_fpr}")
+    if LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
+        raise RuntimeError('`max_fpr` argument requires `torch.bucketize` which'
+                           ' is not available below PyTorch version 1.6')
 
-        # Compute partial AUC
-        partial_auc = auc(fpr, tpr)
+    fpr, tpr, _ = __roc(pred, target, sample_weight, pos_label)
+    max_fpr = torch.tensor(max_fpr, device=fpr.device)
+    # Add a single point at max_fpr and interpolate its tpr value
+    stop = torch.bucketize(max_fpr, fpr, out_int32=True, right=True)
+    weight = (max_fpr - fpr[stop - 1]) / (fpr[stop] - fpr[stop - 1])
+    interp_tpr = torch.lerp(tpr[stop - 1], tpr[stop], weight)
+    tpr = torch.cat([tpr[:stop], interp_tpr.view(1)])
+    fpr = torch.cat([fpr[:stop], max_fpr.view(1)])
 
-        # McClish correction: standardize result to be 0.5 if non-discriminant
-        # and 1 if maximal
-        min_area = 0.5 * max_fpr**2
-        max_area = max_fpr
-        return 0.5 * (1 + (partial_auc - min_area) / (max_area - min_area))
+    # Compute partial AUC
+    partial_auc = auc(fpr, tpr)
 
-    return _auroc(pred=pred, target=target, sample_weight=sample_weight, pos_label=pos_label, max_fpr=max_fpr)
+    # McClish correction: standardize result to be 0.5 if non-discriminant
+    # and 1 if maximal
+    min_area = 0.5 * max_fpr**2
+    max_area = max_fpr
+    return 0.5 * (1 + (partial_auc - min_area) / (max_area - min_area))
 
 
 def multiclass_auroc(
