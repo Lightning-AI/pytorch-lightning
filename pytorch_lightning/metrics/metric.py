@@ -20,7 +20,7 @@ from typing import Any, Callable, Optional, Union
 import torch
 from torch import nn
 
-from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
+from pytorch_lightning.metrics.utils import _flatten, dim_zero_unroll, dim_zero_mean, dim_zero_sum
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import gather_all_tensors
 
@@ -131,7 +131,7 @@ class Metric(nn.Module, ABC):
         elif dist_reduce_fx == "mean":
             dist_reduce_fx = dim_zero_mean
         elif dist_reduce_fx == "cat":
-            dist_reduce_fx = dim_zero_cat
+            dist_reduce_fx = dim_zero_unroll
         elif dist_reduce_fx is not None and not isinstance(dist_reduce_fx, Callable):
             raise ValueError(
                 "`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]"

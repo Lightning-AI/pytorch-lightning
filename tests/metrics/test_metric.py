@@ -32,15 +32,16 @@ def test_inherit():
 
 def test_add_state():
     a = Dummy()
+    stacked_inputs = torch.stack([torch.tensor(1), torch.tensor(2)]).float()
 
     a.add_state("a", torch.tensor(0), "sum")
-    assert a._reductions["a"](torch.tensor([1, 1])) == 2
+    assert a._reductions["a"](stacked_inputs) == 3
 
     a.add_state("b", torch.tensor(0), "mean")
-    assert np.allclose(a._reductions["b"](torch.tensor([1.0, 2.0])).numpy(), 1.5)
+    assert np.allclose(a._reductions["b"](stacked_inputs).numpy(), 1.5)
 
     a.add_state("c", torch.tensor(0), "cat")
-    assert a._reductions["c"]([torch.tensor([1]), torch.tensor([1])]).shape == (2,)
+    assert a._reductions["c"](stacked_inputs).shape == (2,)
 
     with pytest.raises(ValueError):
         a.add_state("d1", torch.tensor(0), 'xyz')

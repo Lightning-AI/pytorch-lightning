@@ -20,9 +20,8 @@ from pytorch_lightning.utilities import rank_zero_warn
 METRIC_EPS = 1e-6
 
 
-def dim_zero_cat(x):
-    x = x if isinstance(x, (list, tuple)) else [x]
-    return torch.cat(x, dim=0)
+def dim_zero_unroll(x):
+    return x.reshape(-1, *x.shape[2:])
 
 
 def dim_zero_sum(x):
