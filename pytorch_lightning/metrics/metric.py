@@ -93,8 +93,9 @@ class Metric(nn.Module, ABC):
             default: Default value of the state; can either be a ``torch.Tensor`` or an empty list. The state will be
                 reset to this value when ``self.reset()`` is called.
             dist_reduce_fx (Optional): Function to reduce state accross mutliple processes in distributed mode.
-                If value is ``"sum"``, ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``,
-                and ``torch.cat`` respectively, each with argument ``dim=0``. The user can also pass a custom
+                If value is ``"sum"`` or ``"mean"``, we will use ``torch.sum`` and ``torch.mean``,
+                respectively, each with argument ``dim=0``. If the value if ``"cat"``, the returned state will be
+                a concatenation of the states from each process along ``dim=0``. The user can also pass a custom
                 function in this parameter.
             persistent (Optional): whether the state will be saved as part of the modules ``state_dict``.
                 Default is ``False``.
