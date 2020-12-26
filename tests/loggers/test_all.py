@@ -20,7 +20,6 @@ from unittest.mock import ANY, call
 
 import pytest
 
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import (
     CometLogger,
@@ -32,6 +31,7 @@ from pytorch_lightning.loggers import (
 )
 from pytorch_lightning.loggers.base import DummyExperiment
 from tests.base import BoringModel, EvalModelTemplate
+import tests.base.develop_utils as tutils
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
@@ -114,9 +114,9 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     trainer = Trainer(
         max_epochs=1,
         logger=logger,
-        limit_train_batches=0.2,
-        limit_val_batches=0.5,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        log_every_n_steps=1,
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
