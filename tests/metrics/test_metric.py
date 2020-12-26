@@ -100,7 +100,7 @@ def test_reset():
 
     b = B()
     assert isinstance(b.x, list) and len(b.x) == 0
-    b.x.append(torch.tensor(5))
+    b.x = torch.tensor(5)
     b.reset()
     assert isinstance(b.x, list) and len(b.x) == 0
 
