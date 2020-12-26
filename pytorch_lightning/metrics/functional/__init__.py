@@ -41,7 +41,7 @@ from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squ
 from pytorch_lightning.metrics.functional.nlp import bleu_score  # noqa: F401
 from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve  # noqa: F401
 from pytorch_lightning.metrics.functional.psnr import psnr  # noqa: F401
-from pytorch_lightning.metrics.functional.r2score import r2score
+from pytorch_lightning.metrics.functional.r2score import r2score  # noqa: F401
 from pytorch_lightning.metrics.functional.roc import roc  # noqa: F401
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity  # noqa: F401
 from pytorch_lightning.metrics.functional.ssim import ssim  # noqa: F401

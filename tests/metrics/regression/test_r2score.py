@@ -22,18 +22,25 @@ _multi_target_inputs = Input(
 )
 
 
-def _single_target_sk_metric(preds, target, multioutput):
+def _single_target_sk_metric(preds, target, adjusted, multioutput):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
-    return sk_r2score(sk_target, sk_preds, multioutput=multioutput)
+    r2_score = sk_r2score(sk_target, sk_preds, multioutput=multioutput)
+    if adjusted != 0:
+        r2_score = 1 - (1 - r2_score) * (sk_preds.shape[0] - 1) / (sk_preds.shape[0] - adjusted - 1)
+    return r2_score
 
 
-def _multi_target_sk_metric(preds, target, multioutput):
+def _multi_target_sk_metric(preds, target, adjusted, multioutput):
     sk_preds = preds.view(-1, num_targets).numpy()
     sk_target = target.view(-1, num_targets).numpy()
-    return sk_r2score(sk_target, sk_preds, multioutput=multioutput)
+    r2_score = sk_r2score(sk_target, sk_preds, multioutput=multioutput)
+    if adjusted != 0:
+        r2_score = 1 - (1 - r2_score) * (sk_preds.shape[0] - 1) / (sk_preds.shape[0] - adjusted - 1)
+    return r2_score
 
 
+@pytest.mark.parametrize("adjusted", [0, 5, 10])
 @pytest.mark.parametrize("multioutput", ['raw_values', 'uniform_average', 'variance_weighted'])
 @pytest.mark.parametrize(
     "preds, target, sk_metric, num_outputs",
@@ -45,23 +52,25 @@ def _multi_target_sk_metric(preds, target, multioutput):
 class TestR2Score(MetricTester):
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-    def test_r2(self, multioutput, preds, target, sk_metric, num_outputs, ddp, dist_sync_on_step):
+    def test_r2(self, adjusted, multioutput, preds, target, sk_metric, num_outputs, ddp, dist_sync_on_step):
         self.run_class_metric_test(
             ddp,
             preds,
             target,
             R2Score,
-            partial(sk_metric, multioutput=multioutput),
+            partial(sk_metric, adjusted=adjusted, multioutput=multioutput),
             dist_sync_on_step,
-            metric_args=dict(multioutput=multioutput,
+            metric_args=dict(adjusted=adjusted,
+                             multioutput=multioutput,
                              num_outputs=num_outputs),
         )
 
-    def test_r2_functional(self, multioutput, preds, target, sk_metric, num_outputs):
+    def test_r2_functional(self, adjusted, multioutput, preds, target, sk_metric, num_outputs):
         self.run_functional_metric_test(
             preds,
             target,
             r2score,
-            partial(sk_metric, multioutput=multioutput),
-            metric_args=dict(multioutput=multioutput),
+            partial(sk_metric, adjusted=adjusted, multioutput=multioutput),
+            metric_args=dict(adjusted=adjusted,
+                             multioutput=multioutput),
         )

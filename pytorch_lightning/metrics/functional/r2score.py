@@ -26,6 +26,8 @@ def _r2score_update(
     if preds.ndim > 2:
         raise ValueError('Expected both prediction and target to be 1D or 2D tensors,'
                          f' but recevied tensors with dimension {preds.shape}')
+    if len(preds) < 2:
+        raise ValueError('Needs atleast two samples to calculate r2 score.')
 
     sum_error = torch.sum(target, dim=0)
     sum_squared_error = torch.sum(torch.pow(target, 2.0), dim=0)
@@ -39,26 +41,36 @@ def _r2score_compute(sum_squared_error: torch.Tensor,
                      sum_error: torch.Tensor,
                      residual: torch.Tensor,
                      total: torch.Tensor,
+                     adjusted: int = 0,
                      multioutput: str = "uniform_average") -> torch.Tensor:
     mean_error = sum_error / total
     diff = sum_squared_error - sum_error * mean_error
     raw_scores = 1 - (residual / diff)
 
     if multioutput == "raw_values":
-        return raw_scores
-    if multioutput == "uniform_average":
-        return torch.mean(raw_scores)
-    if multioutput == "variance_weighted":
+        r2score = raw_scores
+    elif multioutput == "uniform_average":
+        r2score = torch.mean(raw_scores)
+    elif multioutput == "variance_weighted":
         diff_sum = torch.sum(diff)
-        return torch.sum(diff / diff_sum * raw_scores)
+        r2score = torch.sum(diff / diff_sum * raw_scores)
+    else:
+        raise ValueError('Argument `multioutput` must be either `raw_values`,'
+                         f' `uniform_average` or `variance_weighted`. Received {multioutput}.')
 
-    raise ValueError('Argument `multioutput` must be either `raw_values`,'
-                     f' `uniform_average` or `variance_weighted`. Received {multioutput}.')
+    if adjusted < 0 or not isinstance(adjusted, int):
+        raise ValueError('`adjusted` parameter should be an integer larger or'
+                         ' equal to 0.')
+
+    if adjusted != 0:
+        r2score = 1 - (1 - r2score) * (total - 1) / (total - adjusted - 1)
+    return r2score
 
 
 def r2score(
         preds: torch.Tensor,
         target: torch.Tensor,
+        adjusted: int = 0,
         multioutput: str = "uniform_average",
 ) -> torch.Tensor:
     r"""
@@ -68,11 +80,19 @@ def r2score(
     .. math:: R^2 = 1 - \frac{SS_res}{SS_tot}
 
     where :math:`SS_res=\sum_i (y_i - f(x_i))^2` is the sum of residual squares, and
-    :math:`SS_tot=\sum_i (y_i - \bar{y})^2` is total sum of squares.
+    :math:`SS_tot=\sum_i (y_i - \bar{y})^2` is total sum of squares. Can also calculate
+    adjusted r2 score given by
+
+    .. math:: R^2_adj = 1 - \frac{(1-R^2)(n-1)}{n-k-1}
+
+    where the parameter :math:`k` (the number of independent regressors) should
+    be provided as the `adjusted` argument.
 
     Args:
         pred: estimated labels
         target: ground truth labels
+        adjusted: number of independent regressors for calculating adjusted r2 score.
+            Default 0 (standard r2 score).
         multioutput: Defines aggregation in the case of multiple output scores. Can be one
             of the following strings (default is `'uniform_average'`.):
 
@@ -94,4 +114,4 @@ def r2score(
         tensor([0.9654, 0.9082])
     """
     sum_squared_error, sum_error, residual, total = _r2score_update(preds, target)
-    return _r2score_compute(sum_squared_error, sum_error, residual, total, multioutput)
+    return _r2score_compute(sum_squared_error, sum_error, residual, total, adjusted, multioutput)

@@ -30,7 +30,13 @@ class R2Score(Metric):
     .. math:: R^2 = 1 - \frac{SS_res}{SS_tot}
 
     where :math:`SS_res=\sum_i (y_i - f(x_i))^2` is the sum of residual squares, and
-    :math:`SS_tot=\sum_i (y_i - \bar{y})^2` is total sum of squares.
+    :math:`SS_tot=\sum_i (y_i - \bar{y})^2` is total sum of squares. Can also calculate
+    adjusted r2 score given by
+
+    .. math:: R^2_adj = 1 - \frac{(1-R^2)(n-1)}{n-k-1}
+
+    where the parameter :math:`k` (the number of independent regressors) should
+    be provided as the `adjusted` argument.
 
     Forward accepts
 
@@ -44,6 +50,9 @@ class R2Score(Metric):
     Args:
         num_outputs:
             Number of outputs in multioutput setting (default is 1)
+        adjusted:
+            number of independent regressors for calculating adjusted r2 score.
+            Default 0 (standard r2 score).
         multioutput:
             Defines aggregation in the case of multiple output scores. Can be one
             of the following strings (default is `'uniform_average'`.):
@@ -78,6 +87,7 @@ class R2Score(Metric):
     def __init__(
         self,
         num_outputs: int = 1,
+        adjusted: int = 0,
         multioutput: str = "uniform_average",
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
@@ -92,6 +102,12 @@ class R2Score(Metric):
         )
 
         self.num_outputs = num_outputs
+
+        if adjusted < 0 or not isinstance(adjusted, int):
+            raise ValueError('`adjusted` parameter should be an integer larger or'
+                             ' equal to 0.')
+        self.adjusted = adjusted
+
         allowed_multioutput = ('raw_values', 'uniform_average', 'variance_weighted')
         if multioutput not in allowed_multioutput:
             raise ValueError(
@@ -124,4 +140,4 @@ class R2Score(Metric):
         Computes r2 score over the metric states.
         """
         return _r2score_compute(self.sum_squared_error, self.sum_error, self.residual,
-                                self.total, self.multioutput)
+                                self.total, self.adjusted, self.multioutput)
