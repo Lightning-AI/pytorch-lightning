@@ -18,6 +18,7 @@ import os
 import warnings
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
+import warnings
 
 import torch
 from torch.utils.data import DataLoader
@@ -561,9 +562,6 @@ class Trainer(
 
                 if self.max_steps and self.max_steps <= self.global_step:
                     return
-
-                # update LR schedulers
-                self.optimizer_connector.update_learning_rates(interval='epoch')
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1

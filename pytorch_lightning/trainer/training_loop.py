@@ -509,7 +509,6 @@ class TrainLoop:
         return splits
 
     def run_training_epoch(self):
-
         # get model
         model = self.trainer.get_model()
 
@@ -605,6 +604,9 @@ class TrainLoop:
             self.early_stopping_accumulator,
             self.num_optimizers
         )
+
+        # update LR schedulers
+        self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         if should_check_val:
