@@ -73,7 +73,7 @@ Under the hood Lightning does the following:
             optimizer.step()
             optimizer.zero_grad()
 
-        for scheduler in scheduler:
+        for scheduler in schedulers:
             scheduler.step()
 
 In the case of multiple optimizers, Lightning does the following:
@@ -87,7 +87,7 @@ In the case of multiple optimizers, Lightning does the following:
             train_step(opt)
             opt.step()
 
-      for scheduler in scheduler:
+      for scheduler in schedulers:
          scheduler.step()
 
 
@@ -179,7 +179,7 @@ Lightning will call each optimizer sequentially:
             train_step(opt)
             opt.step()
 
-      for scheduler in scheduler:
+      for scheduler in schedulers:
          scheduler.step()
 
 ----------
