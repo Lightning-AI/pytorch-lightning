@@ -25,6 +25,7 @@ class Dummy(Metric):
     def compute(self):
         pass
 
+
 class DummyList(Metric):
     name = "DummyList"
 
@@ -37,6 +38,7 @@ class DummyList(Metric):
 
     def compute(self):
         pass
+
 
 def test_inherit():
     a = Dummy()
@@ -91,7 +93,7 @@ def test_reset():
 
     class B(DummyList):
         pass
-        
+
     a = A()
     assert a.x == 0
     a.x = torch.tensor(5)
@@ -103,6 +105,7 @@ def test_reset():
     b.x = torch.tensor(5)
     b.reset()
     assert isinstance(b.x, list) and len(b.x) == 0
+
 
 def test_update():
     class A(Dummy):
