@@ -66,6 +66,8 @@ class LightningModule(
         "on_gpu",
         "current_epoch",
         "global_step",
+        "global_rank",
+        "local_rank",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
