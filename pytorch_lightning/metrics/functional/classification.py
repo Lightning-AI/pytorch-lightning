@@ -638,8 +638,8 @@ def multiclass_auroc(
     return torch.mean(class_aurocs)
 
 
-def mean_average_precision(
-    pred: torch.Tensor, target: torch.Tensor, iou_threshold: float, num_classes: int
+def object_detection_mean_average_precision(
+        preds: torch.Tensor, target: torch.Tensor, iou_threshold: float, ap_calculation: str
 ) -> torch.Tensor:
     """
     Compute mean average precision for object detection task. Calculates average precision
