@@ -691,8 +691,8 @@ def object_detection_mean_average_precision(
         tps_cum, fps_cum = torch.cumsum(tps, dim=0), torch.cumsum(fps, dim=0)
         precision = tps_cum / (tps_cum + fps_cum)
         recall = tps_cum / len(c_target) if len(c_target) else tps_cum
-        precision = torch.cat([reversed(precision), torch.tensor([1])])
-        recall = torch.cat([reversed(recall), torch.tensor([0])])
+        precision = torch.cat([reversed(precision), torch.tensor([1.])])
+        recall = torch.cat([reversed(recall), torch.tensor([0.])])
         if ap_calculation == "step":
             average_precision = -torch.sum((recall[1:] - recall[:-1]) * precision[:-1])
         elif ap_calculation == "VOC":
