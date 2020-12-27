@@ -15,17 +15,16 @@ if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
     from torch.multiprocessing import start_processes
 else:
     # Adapted from torch/multiprocessing/spawn
-    from torch import multiprocessing as mp
-    from torch.multiprocessing import SpawnContext, get_context
+    from torch import multiprocessing
 
     def start_processes(fn, args=(), nprocs=1, join=True, daemon=False, start_method="spawn"):
-        mp = get_context(start_method)
+        mp = multiprocessing.get_context(start_method)
         error_queues = []
         processes = []
         for i in range(nprocs):
             error_queue = mp.SimpleQueue()
             process = mp.Process(
-                target=_wrap,
+                target=multiprocessing.spawn._wrap,
                 args=(fn, i, args, error_queue),
                 daemon=daemon,
             )
@@ -33,7 +32,7 @@ else:
             error_queues.append(error_queue)
             processes.append(process)
 
-        context = SpawnContext(processes, error_queues)
+        context = multiprocessing.spawn.SpawnContext(processes, error_queues)
         while not context.join():
             pass
 
