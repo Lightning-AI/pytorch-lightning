@@ -652,7 +652,7 @@ def object_detection_mean_average_precision(
                 ``[image_idx, class_label, x_min, y_min, x_max, y_max]``
         iou_threshold: threshold for IoU score for determining true positive and
                        false positive predictions.
-        ap_calculation: one of "step", "VOC", or "COCO"
+        ap_calculation: one of "step", "VOC2007", "VOC2012", or "COCO"
 
     Returns:
         mean of the average precision for each class in object detection task.
@@ -695,12 +695,17 @@ def object_detection_mean_average_precision(
         recall = torch.cat([reversed(recall), torch.tensor([0.])])
         if ap_calculation == "step":
             average_precision = -torch.sum((recall[1:] - recall[:-1]) * precision[:-1])
-        elif ap_calculation == "VOC":
+        elif ap_calculation == "VOC2007":
             average_precision = 0
             recall_thresholds = torch.linspace(0, 1, 11)
             for threshold in recall_thresholds:
                 points = precision[:-1][recall[:-1] >= threshold]
                 average_precision += torch.max(points) / 11 if len(points) else 0
+        elif ap_calculation == "VOC2012":
+            average_precision = 0
+            for i in range(len(precision)):
+                precision[i] = torch.max(precision[:i + 1])
+            average_precision = -torch.sum((recall[1:]  - recall[:-1]) * precision[:-1])
         elif ap_calculation == "COCO":
             average_precision = 0
             recall_thresholds = torch.linspace(0, 1, 101)
