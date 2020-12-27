@@ -666,8 +666,8 @@ def object_detection_mean_average_precision(
         c_preds = sorted(preds[preds[:, 1] == c], key=lambda x: x[2], reverse=True)
         c_target = target[target[:, 1] == c]
         targets_per_images = Counter([t[0].item() for t in c_target])
-        targets_tracker = {
-            image_idx: torch.zeros(count) for image_idx, count in targets_per_images.items()
+        targets_assigned = {
+            image_idx: torch.zeros(count, dtype=torch.bool) for image_idx, count in targets_per_images.items()
         }
         tps = torch.zeros(len(c_preds))
         fps = torch.zeros(len(c_preds))
@@ -683,8 +683,8 @@ def object_detection_mean_average_precision(
                 if iou > best_iou:
                     best_iou = iou
                     best_target_idx = j
-            if best_iou > iou_threshold and targets_tracker[image_idx][best_target_idx] == 0:
-                targets_tracker[image_idx][best_target_idx] = 1
+            if best_iou > iou_threshold and targets_assigned[image_idx][best_target_idx] == 0:
+                targets_assigned[image_idx][best_target_idx] = 1
                 tps[i] = 1
             else:
                 fps[i] = 1
@@ -705,7 +705,7 @@ def object_detection_mean_average_precision(
             average_precision = 0
             for i in range(len(precision)):
                 precision[i] = torch.max(precision[:i + 1])
-            average_precision = -torch.sum((recall[1:]  - recall[:-1]) * precision[:-1])
+            average_precision = -torch.sum((recall[1:] - recall[:-1]) * precision[:-1])
         elif ap_calculation == "COCO":
             average_precision = 0
             recall_thresholds = torch.linspace(0, 1, 101)
