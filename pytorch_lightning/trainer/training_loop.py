@@ -18,7 +18,7 @@ import numpy as np
 import torch
 import torch.distributed as torch_distrib
 
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -156,12 +156,6 @@ class TrainLoop:
 
         self._teardown_already_run = True
 
-        # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
-        # when a checkpoint was saved at the last step
-        self.trainer.global_step -= 1
-        self.check_checkpoint_callback(should_save=True, is_last=True)
-        self.trainer.global_step += 1
-
         # hook
         self.trainer.call_hook("on_train_end")
 
@@ -181,19 +175,6 @@ class TrainLoop:
             model = self.trainer.get_model()
             model.cpu()
             torch.cuda.empty_cache()
-
-    def check_checkpoint_callback(self, should_save, is_last=False):
-        # TODO bake this logic into the checkpoint callback
-        if should_save and self.trainer.checkpoint_connector.has_trained:
-            checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
-
-            if is_last and any(c.save_last for c in checkpoint_callbacks):
-                rank_zero_info("Saving latest checkpoint...")
-
-            model = self.trainer.get_model()
-
-            for callback in checkpoint_callbacks:
-                callback.on_validation_end(self.trainer, model)
 
     def on_train_epoch_start(self, epoch):
 
@@ -594,10 +575,8 @@ class TrainLoop:
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
 
-        # epoch end hook
-        self.run_on_epoch_end_hook(epoch_output)
-
-        # log epoch metrics
+        # inform logger the batch loop has finished and log epoch metrics
+        self.trainer.logger_connector.on_train_epoch_end()
         self.trainer.logger_connector.log_train_epoch_end_metrics(
             epoch_output,
             self.checkpoint_accumulator,
@@ -608,14 +587,14 @@ class TrainLoop:
         # update LR schedulers
         self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
+        # epoch end hook
+        self.run_on_epoch_end_hook(epoch_output)
+
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         if should_check_val:
             self.trainer.run_evaluation(test_mode=False)
             # reset stage to train
             self.trainer.logger_connector.set_stage("train")
-
-        should_train_check = not self.trainer.enable_validation and (sum(self.trainer.num_val_batches) == 0)
-        self.check_checkpoint_callback(should_train_check)
 
         # increment the global step once
         # progress global step according to grads progress
@@ -834,9 +813,6 @@ class TrainLoop:
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
     def run_on_epoch_end_hook(self, epoch_output):
-        # inform logger the batch loop has finished
-        self.trainer.logger_connector.on_train_epoch_end()
-
         self.trainer.call_hook('on_epoch_end')
         self.trainer.call_hook('on_train_epoch_end', epoch_output)
 
