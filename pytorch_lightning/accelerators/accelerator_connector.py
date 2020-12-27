@@ -20,6 +20,7 @@ from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator, NewAcc
 from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
     DataParallelPlugin, DDP2Plugin
 from pytorch_lightning.accelerators.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, device_parser
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
@@ -91,18 +92,16 @@ class BackendConnector(object):
         if "LOCAL_RANK" in os.environ:
             rank_zero_only.rank = int(os.environ["LOCAL_RANK"])
 
-        # TODO: Move autoselect GPUS to other place
         # for gpus allow int, string and gpu list
-        # if auto_select_gpus and isinstance(gpus, int):
-        #     self.trainer.gpus = self.trainer.tuner.pick_multiple_gpus(gpus)
+        if auto_select_gpus and isinstance(gpus, int):
+            self.gpus = pick_multiple_gpus(gpus)
+
         self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
         self.root_gpu = device_parser.determine_root_gpu_device(self.parallel_device_ids)
-        # self.root_device = torch.device("cpu")
 
         self.set_distributed_mode()
         self.configure_slurm_ddp()
 
-        # todo: select accelerator based on trainer flags
         self.accelerator = self.select_accelerator()
 
         # override dist backend when using tpus
