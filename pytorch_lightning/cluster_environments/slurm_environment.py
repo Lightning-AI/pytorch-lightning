@@ -70,6 +70,9 @@ class SLURMEnvironment(ClusterEnvironment):
     def local_rank(self):
         return int(os.environ['SLURM_LOCALID'])
 
+    def node_rank(self):
+        return int(os.environ['SLURM_NODEID'])
+
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
             name, numbers = root_node.split('[', maxsplit=1)

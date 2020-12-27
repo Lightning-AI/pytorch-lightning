@@ -100,6 +100,11 @@ class TrainerProperties(ABC):
         return getattr(self.accelerator.training_type_plugin, "local_rank", 0)
 
     @property
+    def node_rank(self):
+        # some training types define a local rank
+        return getattr(self.accelerator.training_type_plugin, "node_rank", 0)
+
+    @property
     def world_size(self):
         # some training types define a world size
         return getattr(self.accelerator.training_type_plugin, "world_size", 1)
