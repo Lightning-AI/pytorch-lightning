@@ -19,7 +19,7 @@ of this example, the 'cats and dogs dataset' (~60MB, see `DATA_URL` below) and
 the proposed network (denoted by `TransferLearningModel`, see below) is
 trained for 15 epochs.
 
-The training consists in three stages.
+The training consists of three stages.
 
 From epoch 0 to 4, the feature extractor (the pre-trained network) is frozen except
 maybe for the BatchNorm layers (depending on whether `train_bn = True`). The BatchNorm
@@ -33,7 +33,7 @@ for the first parameter group in the optimizer).
 Eventually, from epoch 10, all the remaining layer groups of the pre-trained network
 are unfrozen and added to the optimizer as a third parameter group. From epoch 10,
 the parameters of the pre-trained network are trained with lr = 1e-5 while those of
-the classifier are trained with lr = 1e-4.
+the classifier is trained with lr = 1e-4.
 
 Note:
     See: https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
@@ -274,9 +274,7 @@ class TransferLearningModel(pl.LightningModule):
         # 3. Outputs:
         tqdm_dict = {"train_loss": train_loss}
         self.log_dict(tqdm_dict, prog_bar=True)
-        output = OrderedDict({"loss": train_loss, "accuracy": accuracy})
-
-        return output
+        return {"loss": train_loss}
 
     def training_epoch_end(self, outputs):
         """Compute and log training loss and accuracy at the epoch level."""
@@ -296,7 +294,7 @@ class TransferLearningModel(pl.LightningModule):
         val_loss = self.loss(y_logits, y_true)
         accuracy = self.valid_acc(y_logits, y_true)
 
-        return {"val_loss": val_loss, "num_correct": accuracy}
+        return {"val_loss": val_loss}
 
     def validation_epoch_end(self, outputs):
         """Compute and log validation loss and accuracy at the epoch level."""
