@@ -7,14 +7,9 @@ from typing import Callable
 import numpy as np
 import pytest
 import torch
-from torch.multiprocessing import Pool, set_start_method
+from torch.multiprocessing import start_processes
 
 from pytorch_lightning.metrics import Metric
-
-try:
-    set_start_method("spawn")
-except RuntimeError:
-    pass
 
 NUM_PROCESSES = 2
 NUM_BATCHES = 10
@@ -25,6 +20,9 @@ THRESHOLD = 0.5
 
 
 def setup_ddp(rank, world_size):
+    if world_size == 1:
+        return
+
     """ Setup ddp enviroment """
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "8088"
@@ -34,8 +32,8 @@ def setup_ddp(rank, world_size):
 
 
 def _assert_allclose(pl_result, sk_result, atol: float = 1e-8):
-    """ Utility function for recursively asserting that two results are within
-        a certain tolerance
+    """Utility function for recursively asserting that two results are within
+    a certain tolerance
     """
     # single output compare
     if isinstance(pl_result, torch.Tensor):
@@ -45,12 +43,12 @@ def _assert_allclose(pl_result, sk_result, atol: float = 1e-8):
         for pl_res, sk_res in zip(pl_result, sk_result):
             _assert_allclose(pl_res, sk_res, atol=atol)
     else:
-        raise ValueError('Unknown format for comparison')
+        raise ValueError("Unknown format for comparison")
 
 
 def _assert_tensor(pl_result):
-    """ Utility function for recursively checking that some input only consist of
-        torch tensors
+    """Utility function for recursively checking that some input only consist of
+    torch tensors
     """
     if isinstance(pl_result, (list, tuple)):
         for plr in pl_result:
@@ -90,6 +88,9 @@ def _class_test(
         check_batch: bool, if true will check if the metric is also correctly
             calculated across devices for each batch (and not just at the end)
     """
+    torch.set_num_threads(1)
+    setup_ddp(rank, worldsize)
+
     # Instanciate lightning metric
     metric = metric_class(compute_on_step=True, dist_sync_on_step=dist_sync_on_step, **metric_args)
 
@@ -166,20 +167,6 @@ class MetricTester:
 
     atol = 1e-8
 
-    def setup_class(self):
-        """Setup the metric class. This will spawn the pool of workers that are
-        used for metric testing and setup_ddp
-        """
-
-        self.poolSize = NUM_PROCESSES
-        self.pool = Pool(processes=self.poolSize)
-        self.pool.starmap(setup_ddp, [(rank, self.poolSize) for rank in range(self.poolSize)])
-
-    def teardown_class(self):
-        """ Close pool of workers """
-        self.pool.close()
-        self.pool.join()
-
     def run_functional_metric_test(
         self,
         preds: torch.Tensor,
@@ -240,9 +227,11 @@ class MetricTester:
             if sys.platform == "win32":
                 pytest.skip("DDP not supported on windows")
 
-            self.pool.starmap(
+            torch.set_num_threads(1)
+            start_processes(
                 partial(
                     _class_test,
+                    worldsize=NUM_PROCESSES,
                     preds=preds,
                     target=target,
                     metric_class=metric_class,
@@ -253,7 +242,8 @@ class MetricTester:
                     check_batch=check_batch,
                     atol=self.atol,
                 ),
-                [(rank, self.poolSize) for rank in range(self.poolSize)],
+                nprocs=NUM_PROCESSES,
+                start_method="fork",
             )
         else:
             _class_test(
