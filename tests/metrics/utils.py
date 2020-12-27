@@ -15,10 +15,11 @@ if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
     from torch.multiprocessing import start_processes
 else:
     # Adapted from torch/multiprocessing/spawn
-    from torch.multiprocessing import SpawnContext
+    from torch import multiprocessing as mp
+    from torch.multiprocessing import SpawnContext, get_context
 
     def start_processes(fn, args=(), nprocs=1, join=True, daemon=False, start_method="spawn"):
-        mp = multiprocessing.get_context(start_method)
+        mp = get_context(start_method)
         error_queues = []
         processes = []
         for i in range(nprocs):
@@ -46,10 +47,11 @@ THRESHOLD = 0.5
 
 
 def setup_ddp(rank, world_size):
+    """ Setup ddp enviroment """
+
     if world_size == 1:
         return
 
-    """ Setup ddp enviroment """
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "8088"
 
