@@ -379,6 +379,38 @@ class TrainerProperties(ABC):
     def optimizers(self):
         return self.accelerator.optimizers
 
+    @optimizers.setter
+    def optimizers(self, new_optims):
+        self.accelerator.optimizers = new_optims
+
+    @property
+    def lr_schedulers(self):
+        return self.accelerator.lr_schedulers
+
+    @lr_schedulers.setter
+    def lr_schedulers(self, new_schedulers):
+        self.accelerator.lr_schedulers = new_schedulers
+
+    @property
+    def optimizer_frequencies(self):
+        return self.accelerator.optimizer_frequencies
+
+    @optimizer_frequencies.setter
+    def optimizer_frequencies(self, new_freqs):
+        self.accelerator.optimizer_frequencies = new_freqs
+
+    @property
+    def amp_backend(self):
+        return self.accelerator.amp_backend
+
+    @property
+    def precision(self):
+        return self.accelerator.precision
+
+    @property
+    def scaler(self):
+        return self.accelerator.scaler
+
     # TODO: refactor this so that it can be done in LightningOptimizer
     def __getstate__(self):
         # unwrap optimizer
