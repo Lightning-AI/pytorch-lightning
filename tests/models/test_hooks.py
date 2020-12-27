@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
 import torch
+from unittest.mock import PropertyMock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
@@ -90,7 +92,8 @@ def test_training_epoch_end_metrics_collection(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_transfer_batch_hook():
+@mock.patch("pytorch_lightning.accelerators.accelerator.NewAccelerator.lightning_module", new_callable=PropertyMock)
+def test_transfer_batch_hook(model_getter_mock):
 
     class CustomBatch:
 
@@ -116,7 +119,7 @@ def test_transfer_batch_hook():
 
     trainer = Trainer(gpus=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
-    trainer.get_model = MagicMock(return_value=model)
+    model_getter_mock.return_value = model
     batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
     assert model.hook_called
