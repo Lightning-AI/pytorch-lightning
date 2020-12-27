@@ -160,18 +160,17 @@ class StatScores(Metric):
         if num_classes and ignore_index is not None and (not 0 <= ignore_index < num_classes or num_classes == 1):
             raise ValueError(f"The `ignore_index` {ignore_index} is not valid for inputs with {num_classes} classes")
 
-        if mdmc_reduce != "samplewise":
+        if mdmc_reduce != "samplewise" and reduce != "samples":
             if reduce == "micro":
-                default, reduce_fn = torch.tensor(0), "sum"
+                zeros_shape = []
             elif reduce == "macro":
-                default, reduce_fn = torch.zeros((num_classes,), dtype=torch.int), "sum"
-            elif reduce == "samples":
-                default, reduce_fn = torch.empty(0, dtype=torch.int), "cat"
+                zeros_shape = (num_classes,)
+            default, reduce_fn = lambda: torch.zeros(zeros_shape, dtype=torch.int), "sum"
         else:
-            default, reduce_fn = torch.empty(0, dtype=torch.int), "cat"
+            default, reduce_fn = lambda: [], None
 
         for s in ("tp", "fp", "tn", "fn"):
-            self.add_state(s, default=default.clone(), dist_reduce_fx=reduce_fn)
+            self.add_state(s, default=default(), dist_reduce_fx=reduce_fn)
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -202,10 +201,10 @@ class StatScores(Metric):
             self.tn += tn
             self.fn += fn
         else:
-            self.tp = torch.cat((self.tp, tp))
-            self.fp = torch.cat((self.fp, fp))
-            self.tn = torch.cat((self.tn, tn))
-            self.fn = torch.cat((self.fn, fn))
+            self.tp.append(tp)
+            self.fp.append(fp)
+            self.tn.append(tn)
+            self.fn.append(fn)
 
     def compute(self) -> torch.Tensor:
         """
@@ -240,5 +239,12 @@ class StatScores(Metric):
               - If ``reduce='samples'``, the shape will be ``(N, X, 5)``
 
         """
+        if isinstance(self.tp, list):
+            tp = torch.cat(self.tp)
+            fp = torch.cat(self.fp)
+            tn = torch.cat(self.tn)
+            fn = torch.cat(self.fn)
+        else:
+            tp, fp, tn, fn = self.tp, self.fp, self.tn, self.fn
 
-        return _stat_scores_compute(self.tp, self.fp, self.tn, self.fn)
+        return _stat_scores_compute(tp, fp, tn, fn)
