@@ -672,8 +672,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # todo, pass also best score
 
         # load last weights
-        # TODO: How to get self.trainer.testing?
-        if last_path is not None: # and not self.trainer.testing:
+        if last_path is not None and not self.lightning_module.trainer.testing:
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             self.lightning_module.load_state_dict(ckpt)
 
