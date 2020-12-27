@@ -283,14 +283,12 @@ class DDPPlugin(ParallelPlugin):
             parallel_devices,
             num_nodes=1,
             cluster_environment=None,
-            is_slurm_managing_tasks=False,
             sync_batchnorm=False,
             **kwargs: Dict[str, Any],
     ) -> None:
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.interactive_ddp_procs = []
         self.num_nodes = num_nodes
-        self.is_slurm_managing_tasks = is_slurm_managing_tasks
         self.sync_batchnorm = sync_batchnorm
         self.dist = LightningDistributed()
         self._ddp_kwargs = kwargs
@@ -510,13 +508,11 @@ class DDPSpawnPlugin(ParallelPlugin):
         parallel_devices,
         num_nodes=1,
         cluster_environment=None,
-        is_slurm_managing_tasks=False,
         sync_batchnorm=False,
         **kwargs: Dict[str, Any]
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.num_nodes = num_nodes
-        self.is_slurm_managing_tasks = is_slurm_managing_tasks
         self.sync_batchnorm = sync_batchnorm
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
