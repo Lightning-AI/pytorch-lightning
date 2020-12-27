@@ -276,12 +276,12 @@ def test_auc(x, y, expected):
                 [0, 0, 0.7, 210, 80, 295, 90]
             ], dtype=torch.float),
             torch.tensor([
-                [0, 0, 100., 50., 205., 200.],
-                [0, 0, 85., 83., 225., 195.],
-                [0, 0, 117., 192., 127., 244.],
-                [0, 0, 10., 200., 15., 254.],
-                [0, 0, 30., 40., 234., 150.],
-                [0, 0, 210., 80., 295., 90.],
+                [0, 0, 100, 50, 205, 200],
+                [0, 0, 85, 83, 225, 195],
+                [0, 0, 117, 192, 127, 244],
+                [0, 0, 10, 200, 15, 254],
+                [0, 0, 30, 40, 234, 150],
+                [0, 0, 210, 80, 295, 90],
             ], dtype=torch.float),
             0.5,
         ),
@@ -291,7 +291,8 @@ def test_auc(x, y, expected):
     "ap_calculation, expected_map",
     [
         pytest.param("step", torch.tensor([2 / 3])),
-        pytest.param("VOC", torch.tensor([7 / 11])),
+        pytest.param("VOC2007", torch.tensor([7 / 11])),
+        pytest.param("VOC2012", torch.tensor([2 / 3])),
         pytest.param("COCO", torch.tensor([67 / 101]))
     ]
 )
@@ -324,7 +325,8 @@ def test_object_detection_mean_average_precision_0(pred, target, iou_threshold, 
     "ap_calculation, expected_map",
     [
         pytest.param("step", torch.tensor([1.])),
-        pytest.param("VOC", torch.tensor([1.])),
+        pytest.param("VOC2007", torch.tensor([1.])),
+        pytest.param("VOC2012", torch.tensor([1.])),
         pytest.param("COCO", torch.tensor([1.]))
     ]
 )
@@ -352,7 +354,8 @@ def test_object_detection_mean_average_precision_1(pred, target, iou_threshold, 
     "ap_calculation, expected_map",
     [
         pytest.param("step", torch.tensor([0.])),
-        pytest.param("VOC", torch.tensor([0.])),
+        pytest.param("VOC2007", torch.tensor([0.])),
+        pytest.param("VOC2012", torch.tensor([0.])),
         pytest.param("COCO", torch.tensor([0.]))
     ]
 )
