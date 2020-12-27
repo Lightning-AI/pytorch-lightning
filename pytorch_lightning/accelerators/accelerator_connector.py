@@ -148,7 +148,8 @@ class BackendConnector(object):
 
     @property
     def on_gpu(self):
-        return self.parallel_device_ids and torch.cuda.is_available()
+        gpus = self.parallel_device_ids
+        return gpus is not None and len(gpus) > 0 and torch.cuda.is_available()
 
     @property
     def num_gpus(self) -> int:
@@ -335,6 +336,7 @@ class BackendConnector(object):
                 rank_zero_warn(
                     "You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs."
                 )
+            self.parallel_device_ids = None
             self.use_ddp = True
 
         # HOROVOD
