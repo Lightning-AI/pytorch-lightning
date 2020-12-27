@@ -202,28 +202,6 @@ class ModelCheckpoint(Callback):
         """
         self.save_checkpoint(trainer, pl_module)
 
-    def on_train_epoch_end(self, trainer, pl_module, outputs):
-        """
-        checkpoints can be saved at the end of the train loop if no validation is done
-        """
-        should_train_check = not trainer.enable_validation and (sum(trainer.num_val_batches) == 0)
-        if should_train_check and trainer.checkpoint_connector.has_trained:
-            self.save_checkpoint(trainer, pl_module)
-
-    def on_train_end(self, trainer, pl_module):
-        """
-        checkpoints to be saved when training ends
-        """
-        # when a checkpoint was saved at the last step
-        if trainer.checkpoint_connector.has_trained:
-            if self.save_last:
-                rank_zero_info('Saving latest checkpoint...')
-
-            # need to temporarily decrease the global step to avoid saving duplicates
-            trainer.global_step -= 1
-            self.save_checkpoint(trainer, pl_module)
-            trainer.global_step += 1
-
     def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
         return {
             "monitor": self.monitor,
