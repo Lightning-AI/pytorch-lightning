@@ -231,7 +231,6 @@ class BackendConnector(object):
                 parallel_devices=self.parallel_devices,
                 num_nodes=self.num_nodes,
                 cluster_environment=cluster_environment,
-                is_slurm_managing_tasks=self.is_slurm_managing_tasks,
                 sync_batchnorm=self.sync_batchnorm,
             )
         elif self.use_dp:
