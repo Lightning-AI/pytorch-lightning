@@ -3,13 +3,39 @@ import pickle
 import sys
 from functools import partial
 from typing import Callable
+from distutils.version import LooseVersion
 
 import numpy as np
 import pytest
 import torch
-from torch.multiprocessing import start_processes
 
 from pytorch_lightning.metrics import Metric
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
+    from torch.multiprocessing import start_processes
+else:
+    # Adapted from torch/multiprocessing/spawn
+    from torch.multiprocessing import SpawnContext
+
+    def start_processes(fn, args=(), nprocs=1, join=True, daemon=False, start_method="spawn"):
+        mp = multiprocessing.get_context(start_method)
+        error_queues = []
+        processes = []
+        for i in range(nprocs):
+            error_queue = mp.SimpleQueue()
+            process = mp.Process(
+                target=_wrap,
+                args=(fn, i, args, error_queue),
+                daemon=daemon,
+            )
+            process.start()
+            error_queues.append(error_queue)
+            processes.append(process)
+
+        context = SpawnContext(processes, error_queues)
+        while not context.join():
+            pass
+
 
 NUM_PROCESSES = 2
 NUM_BATCHES = 10
