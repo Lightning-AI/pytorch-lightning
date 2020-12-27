@@ -357,6 +357,15 @@ class TrainerProperties(ABC):
     def save_checkpoint(self, filepath, weights_only: bool = False):
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
 
+    @property
+    def model(self):
+        """
+        The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
+        To access the pure LightningModule, use
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.lightning_module` instead.
+        """
+        return self.accelerator.model
+
     def get_model(self):
         # TODO: rename this to lightning_module (see training type plugin)
         # backward compatible
