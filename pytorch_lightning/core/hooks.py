@@ -279,6 +279,7 @@ class ModelHooks:
         This is the ideal place to inspect or log gradient information.
 
         Example::
+
             def on_after_backward(self):
                 # example to inspect gradient information in tensorboard
                 if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
