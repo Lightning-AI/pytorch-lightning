@@ -150,7 +150,7 @@ class LightningOptimizer:
                     **kwargs
                 )
 
-        trainer.train_loop.on_before_zero_grad(self)
+        trainer.train_loop.on_before_zero_grad(optimizer)
 
         model.optimizer_zero_grad(
             trainer.current_epoch,
