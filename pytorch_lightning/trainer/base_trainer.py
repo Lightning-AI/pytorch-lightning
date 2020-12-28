@@ -159,11 +159,11 @@ class BaseTrainer:
     min_steps: int
     max_steps: int
 
-    ###########################
-    #                         #
-    #    Trainer Functions    #
-    #                         #
-    ###########################
+    ###############################
+    #                             #
+    #    Trainer API Functions    #
+    #                             #
+    ###############################
 
     def fit(self, *_, **__):
         raise NotImplementedError
@@ -173,6 +173,293 @@ class BaseTrainer:
 
     def test(self, *_, **__):
         raise NotImplementedError
+
+    ################################
+    #   TrainerInternalLogicMixin  #
+    ################################
+
+    def run_evaluation(self, test_mode: bool = False, max_batches=None):
+
+        # used to know if we are logging for val, test + reset cached results
+        self.logger_connector.set_stage(test_mode, reset=True)
+
+        # bookkeeping
+        self.evaluation_loop.testing = test_mode
+
+        # prepare dataloaders
+        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
+
+        # check if we want to skip this evaluation
+        if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
+            return [], []
+
+        # ref model
+        model = self.get_model()
+
+        # enable eval mode + no grads
+        self.evaluation_loop.on_evaluation_model_eval()
+        model.zero_grad()
+        torch.set_grad_enabled(False)
+
+        # hook
+        self.evaluation_loop.on_evaluation_start()
+
+        # set up the eval loop
+        self.evaluation_loop.setup(model, max_batches, dataloaders)
+
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_start()
+
+        # run validation/testing
+        for dataloader_idx, dataloader in enumerate(dataloaders):
+            # bookkeeping
+            dl_outputs = []
+            dataloader = self.accelerator_backend.process_dataloader(dataloader)
+            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
+
+            for batch_idx, batch in enumerate(dataloader):
+                if batch is None:
+                    continue
+
+                # stop short when running on limited batches
+                if batch_idx >= dl_max_batches:
+                    break
+
+                # hook
+                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
+
+                # lightning module methods
+                with self.profiler.profile("evaluation_step_and_end"):
+                    output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                    output = self.evaluation_loop.evaluation_step_end(output)
+
+                # hook + store predictions
+                self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
+
+                # log batch metrics
+                self.evaluation_loop.log_evaluation_step_metrics(output, batch_idx)
+
+                # track epoch level outputs
+                dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
+
+            # store batch level output per dataloader
+            self.evaluation_loop.outputs.append(dl_outputs)
+
+        # lightning module method
+        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
+
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_end()
+
+        # hook
+        self.evaluation_loop.on_evaluation_end()
+
+        # log epoch metrics
+        eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
+
+        # save predictions to disk
+        self.evaluation_loop.predictions.to_disk()
+
+        # enable train mode again
+        self.evaluation_loop.on_evaluation_model_train()
+        torch.set_grad_enabled(True)
+
+        return eval_loop_results, deprecated_eval_results
+
+    def run_test(self):
+        # only load test dataloader for testing
+        # self.reset_test_dataloader(ref_model)
+        with self.profiler.profile("run_test_evaluation"):
+            eval_loop_results, _ = self.run_evaluation(test_mode=True)
+
+        if len(eval_loop_results) == 0:
+            return 1
+
+        # remove the tensors from the eval results
+        for i, result in enumerate(eval_loop_results):
+            if isinstance(result, dict):
+                for k, v in result.items():
+                    if isinstance(v, torch.Tensor):
+                        result[k] = v.cpu().item()
+
+        return eval_loop_results
+
+    def track_output_for_epoch_end(self, outputs, output):
+        if output is not None:
+            if isinstance(output, Result):
+                output.detach()
+                if self.move_metrics_to_cpu:
+                    output.cpu()
+            elif isinstance(output, dict):
+                output = recursive_detach(output, to_cpu=self.move_metrics_to_cpu)
+            elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:
+                output = output.cpu()
+            outputs.append(output)
+        return outputs
+
+    def run_sanity_check(self, ref_model):
+        using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
+        should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
+
+        # run tiny validation (if validation defined)
+        # to make sure program won't crash during val
+        if should_sanity_check:
+            self.reset_val_dataloader(ref_model)
+            self.num_sanity_val_batches = [
+                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
+            ]
+
+            # hook and callback
+            self.running_sanity_check = True
+            self.on_sanity_check_start()
+
+            # run eval step
+            _, eval_results = self.run_evaluation(test_mode=False, max_batches=self.num_sanity_val_batches)
+
+            # allow no returns from eval
+            if eval_results is not None and len(eval_results) > 0:
+                # when we get a list back, used only the last item
+                if isinstance(eval_results, list):
+                    eval_results = eval_results[-1]
+
+                if isinstance(eval_results, EvalResult):
+                    callback_metrics = eval_results.callback_metrics
+                else:
+                    _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
+                self.logger_connector.callback_metrics = callback_metrics
+
+            self.on_sanity_check_end()
+            self.running_sanity_check = False
+
+    def _test_using_best_weights(self, ckpt_path, test_dataloaders):
+        model = self.get_model()
+
+        # if user requests the best checkpoint but we don't have it, error
+        if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
+            raise MisconfigurationException(
+                'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
+            )
+
+        # load best weights
+        if ckpt_path is not None:
+            # ckpt_path is 'best' so load the best model
+            if ckpt_path == 'best':
+                ckpt_path = self.checkpoint_callback.best_model_path
+
+            if len(ckpt_path) == 0:
+                rank_zero_warn(
+                    f'.test() found no path for the best weights, {ckpt_path}. Please '
+                    f'specify a path for a checkpoint .test(ckpt_path=PATH)'
+                )
+                return {}
+            if self.accelerator_backend is not None and not self.use_tpu:
+                self.accelerator_backend.barrier()
+
+            ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
+            model.load_state_dict(ckpt['state_dict'])
+
+        # attach dataloaders
+        if test_dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+
+        # run tests
+        self.tested_ckpt_path = ckpt_path
+        self.testing = True
+        os.environ['PL_TESTING_MODE'] = '1'
+        self.model = model
+        results = self.fit(model)
+        self.testing = False
+        del os.environ['PL_TESTING_MODE']
+
+        # teardown
+        if self.is_function_implemented('teardown'):
+            model_ref = self.get_model()
+            model_ref.teardown('test')
+
+        return results
+
+    def _test_given_model(self, model, test_dataloaders):
+
+        # attach data
+        if test_dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+
+        # run test
+        # sets up testing so we short circuit to eval
+        self.testing = True
+        self.model = model
+        results = self.fit(model)
+        self.testing = False
+
+        # teardown
+        if self.is_function_implemented('teardown'):
+            model.teardown('test')
+
+        return results
+
+    def call_setup_hook(self, model):
+        # call setup after the ddp process has connected
+        stage_name = 'test' if self.testing else 'fit'
+        if self.datamodule is not None:
+            called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
+            if not called:
+                self.datamodule.setup(stage_name)
+        self.setup(model, stage_name)
+        model.setup(stage_name)
+
+    def _reset_result_and_set_hook_fx_name(self, hook_name):
+        # on_before_zero_grad is called within training_step
+        if "batch_start" in hook_name or "on_before_zero_grad" in hook_name:
+            return True
+        model_ref = self.get_model()
+        if model_ref is not None:
+            # used to track current hook name called
+            model_ref._results = Result()
+            model_ref._current_hook_fx_name = hook_name
+        return False
+
+    def _cache_logged_metrics(self):
+        model_ref = self.get_model()
+        if model_ref is not None:
+            # capture logging for this hook
+            self.logger_connector.cache_logged_metrics()
+
+    def call_hook(self, hook_name, *args, **kwargs):
+        # set hook_name to model + reset Result obj
+        skip = self._reset_result_and_set_hook_fx_name(hook_name)
+
+        # always profile hooks
+        with self.profiler.profile(hook_name):
+
+            # first call trainer hook
+            if hasattr(self, hook_name):
+                trainer_hook = getattr(self, hook_name)
+                trainer_hook(*args, **kwargs)
+
+            # next call hook in lightningModule
+            output = None
+            model_ref = self.get_model()
+            if is_overridden(hook_name, model_ref):
+                hook_fx = getattr(model_ref, hook_name)
+                output = hook_fx(*args, **kwargs)
+
+            # if the PL module doesn't have the hook then call the accelator
+            # used to auto-reduce things for the user with Results obj
+            elif hasattr(self.accelerator_backend, hook_name):
+                accelerator_hook = getattr(self.accelerator_backend, hook_name)
+                output = accelerator_hook(*args, **kwargs)
+
+        if not skip:
+            self._cache_logged_metrics()
+        return output
+
+    @staticmethod
+    def available_plugins():
+        """
+            List of all available plugins that can be string arguments to the trainer.
+            Returns: List of all available plugins that are supported as string arguments.
+        """
+        return PluginConnector.available_plugins()
 
     ###########################
     #                         #
@@ -396,293 +683,6 @@ class BaseTrainer:
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
 
         return kwargs
-
-    ################################
-    #   TrainerInternalLogicMixin  #
-    ################################
-
-    def run_evaluation(self, test_mode: bool = False, max_batches=None):
-
-        # used to know if we are logging for val, test + reset cached results
-        self.logger_connector.set_stage(test_mode, reset=True)
-
-        # bookkeeping
-        self.evaluation_loop.testing = test_mode
-
-        # prepare dataloaders
-        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
-
-        # check if we want to skip this evaluation
-        if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
-            return [], []
-
-        # ref model
-        model = self.get_model()
-
-        # enable eval mode + no grads
-        self.evaluation_loop.on_evaluation_model_eval()
-        model.zero_grad()
-        torch.set_grad_enabled(False)
-
-        # hook
-        self.evaluation_loop.on_evaluation_start()
-
-        # set up the eval loop
-        self.evaluation_loop.setup(model, max_batches, dataloaders)
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_start()
-
-        # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            # bookkeeping
-            dl_outputs = []
-            dataloader = self.accelerator_backend.process_dataloader(dataloader)
-            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
-
-            for batch_idx, batch in enumerate(dataloader):
-                if batch is None:
-                    continue
-
-                # stop short when running on limited batches
-                if batch_idx >= dl_max_batches:
-                    break
-
-                # hook
-                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
-
-                # lightning module methods
-                with self.profiler.profile("evaluation_step_and_end"):
-                    output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
-                    output = self.evaluation_loop.evaluation_step_end(output)
-
-                # hook + store predictions
-                self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
-
-                # log batch metrics
-                self.evaluation_loop.log_evaluation_step_metrics(output, batch_idx)
-
-                # track epoch level outputs
-                dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
-
-            # store batch level output per dataloader
-            self.evaluation_loop.outputs.append(dl_outputs)
-
-        # lightning module method
-        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_end()
-
-        # hook
-        self.evaluation_loop.on_evaluation_end()
-
-        # log epoch metrics
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
-
-        # save predictions to disk
-        self.evaluation_loop.predictions.to_disk()
-
-        # enable train mode again
-        self.evaluation_loop.on_evaluation_model_train()
-        torch.set_grad_enabled(True)
-
-        return eval_loop_results, deprecated_eval_results
-
-    def track_output_for_epoch_end(self, outputs, output):
-        if output is not None:
-            if isinstance(output, Result):
-                output.detach()
-                if self.move_metrics_to_cpu:
-                    output.cpu()
-            elif isinstance(output, dict):
-                output = recursive_detach(output, to_cpu=self.move_metrics_to_cpu)
-            elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:
-                output = output.cpu()
-            outputs.append(output)
-        return outputs
-
-    def run_test(self):
-        # only load test dataloader for testing
-        # self.reset_test_dataloader(ref_model)
-        with self.profiler.profile("run_test_evaluation"):
-            eval_loop_results, _ = self.run_evaluation(test_mode=True)
-
-        if len(eval_loop_results) == 0:
-            return 1
-
-        # remove the tensors from the eval results
-        for i, result in enumerate(eval_loop_results):
-            if isinstance(result, dict):
-                for k, v in result.items():
-                    if isinstance(v, torch.Tensor):
-                        result[k] = v.cpu().item()
-
-        return eval_loop_results
-
-    def run_sanity_check(self, ref_model):
-        using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
-        should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
-
-        # run tiny validation (if validation defined)
-        # to make sure program won't crash during val
-        if should_sanity_check:
-            self.reset_val_dataloader(ref_model)
-            self.num_sanity_val_batches = [
-                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
-            ]
-
-            # hook and callback
-            self.running_sanity_check = True
-            self.on_sanity_check_start()
-
-            # run eval step
-            _, eval_results = self.run_evaluation(test_mode=False, max_batches=self.num_sanity_val_batches)
-
-            # allow no returns from eval
-            if eval_results is not None and len(eval_results) > 0:
-                # when we get a list back, used only the last item
-                if isinstance(eval_results, list):
-                    eval_results = eval_results[-1]
-
-                if isinstance(eval_results, EvalResult):
-                    callback_metrics = eval_results.callback_metrics
-                else:
-                    _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
-                self.logger_connector.callback_metrics = callback_metrics
-
-            self.on_sanity_check_end()
-            self.running_sanity_check = False
-
-    def _test_using_best_weights(self, ckpt_path, test_dataloaders):
-        model = self.get_model()
-
-        # if user requests the best checkpoint but we don't have it, error
-        if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
-            raise MisconfigurationException(
-                'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
-            )
-
-        # load best weights
-        if ckpt_path is not None:
-            # ckpt_path is 'best' so load the best model
-            if ckpt_path == 'best':
-                ckpt_path = self.checkpoint_callback.best_model_path
-
-            if len(ckpt_path) == 0:
-                rank_zero_warn(
-                    f'.test() found no path for the best weights, {ckpt_path}. Please '
-                    f'specify a path for a checkpoint .test(ckpt_path=PATH)'
-                )
-                return {}
-            if self.accelerator_backend is not None and not self.use_tpu:
-                self.accelerator_backend.barrier()
-
-            ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt['state_dict'])
-
-        # attach dataloaders
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
-
-        # run tests
-        self.tested_ckpt_path = ckpt_path
-        self.testing = True
-        os.environ['PL_TESTING_MODE'] = '1'
-        self.model = model
-        results = self.fit(model)
-        self.testing = False
-        del os.environ['PL_TESTING_MODE']
-
-        # teardown
-        if self.is_function_implemented('teardown'):
-            model_ref = self.get_model()
-            model_ref.teardown('test')
-
-        return results
-
-    def _test_given_model(self, model, test_dataloaders):
-
-        # attach data
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
-
-        # run test
-        # sets up testing so we short circuit to eval
-        self.testing = True
-        self.model = model
-        results = self.fit(model)
-        self.testing = False
-
-        # teardown
-        if self.is_function_implemented('teardown'):
-            model.teardown('test')
-
-        return results
-
-    def call_setup_hook(self, model):
-        # call setup after the ddp process has connected
-        stage_name = 'test' if self.testing else 'fit'
-        if self.datamodule is not None:
-            called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
-            if not called:
-                self.datamodule.setup(stage_name)
-        self.setup(model, stage_name)
-        model.setup(stage_name)
-
-    def _reset_result_and_set_hook_fx_name(self, hook_name):
-        # on_before_zero_grad is called within training_step
-        if "batch_start" in hook_name or "on_before_zero_grad" in hook_name:
-            return True
-        model_ref = self.get_model()
-        if model_ref is not None:
-            # used to track current hook name called
-            model_ref._results = Result()
-            model_ref._current_hook_fx_name = hook_name
-        return False
-
-    def _cache_logged_metrics(self):
-        model_ref = self.get_model()
-        if model_ref is not None:
-            # capture logging for this hook
-            self.logger_connector.cache_logged_metrics()
-
-    def call_hook(self, hook_name, *args, **kwargs):
-        # set hook_name to model + reset Result obj
-        skip = self._reset_result_and_set_hook_fx_name(hook_name)
-
-        # always profile hooks
-        with self.profiler.profile(hook_name):
-
-            # first call trainer hook
-            if hasattr(self, hook_name):
-                trainer_hook = getattr(self, hook_name)
-                trainer_hook(*args, **kwargs)
-
-            # next call hook in lightningModule
-            output = None
-            model_ref = self.get_model()
-            if is_overridden(hook_name, model_ref):
-                hook_fx = getattr(model_ref, hook_name)
-                output = hook_fx(*args, **kwargs)
-
-            # if the PL module doesn't have the hook then call the accelator
-            # used to auto-reduce things for the user with Results obj
-            elif hasattr(self.accelerator_backend, hook_name):
-                accelerator_hook = getattr(self.accelerator_backend, hook_name)
-                output = accelerator_hook(*args, **kwargs)
-
-        if not skip:
-            self._cache_logged_metrics()
-        return output
-
-    @staticmethod
-    def available_plugins():
-        """
-            List of all available plugins that can be string arguments to the trainer.
-            Returns: List of all available plugins that are supported as string arguments.
-        """
-        return PluginConnector.available_plugins()
 
     #################################
     #                               #
