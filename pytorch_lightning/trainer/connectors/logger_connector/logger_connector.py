@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from typing import Any, Iterable, Union
+from typing import Any, Iterable, Union, Dict
 
 import torch
 
@@ -42,42 +42,42 @@ class LoggerConnector:
         self._current_stage = None
 
     @property
-    def callback_metrics(self):
+    def callback_metrics(self) -> Dict:
         return self.get_metrics("callback_metrics")
 
     @callback_metrics.setter
-    def callback_metrics(self, callback_metrics):
+    def callback_metrics(self, callback_metrics: Dict) -> None:
         self.set_metrics("callback_metrics", callback_metrics)
 
     @property
-    def evaluation_callback_metrics(self):
+    def evaluation_callback_metrics(self) -> Dict:
         return self.get_metrics("evaluation_callback_metrics")
 
     @evaluation_callback_metrics.setter
-    def evaluation_callback_metrics(self, evaluation_callback_metrics):
+    def evaluation_callback_metrics(self, evaluation_callback_metrics: Dict) -> None:
         self.set_metrics("evaluation_callback_metrics", evaluation_callback_metrics)
 
     @property
-    def logged_metrics(self):
+    def logged_metrics(self) -> Dict:
         return self.get_metrics("logged_metrics")
 
     @logged_metrics.setter
-    def logged_metrics(self, logged_metrics):
+    def logged_metrics(self, logged_metrics: Dict) -> None:
         self.set_metrics("logged_metrics", logged_metrics)
 
     @property
-    def progress_bar_metrics(self):
+    def progress_bar_metrics(self) -> Dict:
         return self.get_metrics("progress_bar_metrics")
 
     @progress_bar_metrics.setter
-    def progress_bar_metrics(self, progress_bar_metrics):
+    def progress_bar_metrics(self, progress_bar_metrics: Dict) -> None:
         self.set_metrics("progress_bar_metrics", progress_bar_metrics)
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
         return self._cached_results.get(self._current_stage)    # type: ignore
 
-    def get_metrics(self, key):
+    def get_metrics(self, key: str) -> Dict:
         metrics_holder = getattr(self, f"_{key}", None)
         model_ref = self.trainer.get_model()
         metrics_holder.convert(
@@ -86,7 +86,7 @@ class LoggerConnector:
         )
         return metrics_holder.metrics
 
-    def set_metrics(self, key: str, val: Any):
+    def set_metrics(self, key: str, val: Any) -> None:
         metrics_holder = getattr(self, f"_{key}", None)
         metrics_holder.reset(val)
 

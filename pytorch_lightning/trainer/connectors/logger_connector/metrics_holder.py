@@ -31,9 +31,7 @@ class MetricsHolder:
 
     def __init__(self, to_float: bool = False):
         self.metrics = {}
-        self._convert = self._convert_to_tensor
-        if to_float:
-            self._convert = self._convert_to_float
+        self._to_float = to_float
 
     def update(self, metrics):
         self.metrics.update(metrics)
@@ -47,6 +45,11 @@ class MetricsHolder:
     def convert(self, use_tpu: bool, device: torch.device):
         for key, value in self.metrics.items():
             self.metrics[key] = self._convert(value, use_tpu, device)
+
+    def _convert(self, current: Any, use_tpu: bool, device: torch.device):
+        if self._to_float:
+            return self._convert_to_float(current, use_tpu, device)
+        return self._convert_to_tensor(current, use_tpu, device)
 
     def _convert_to_float(self, current, use_tpu: bool, device: torch.device):
         if isinstance(current, Metric):

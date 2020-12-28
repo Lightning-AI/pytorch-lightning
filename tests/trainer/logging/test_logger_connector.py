@@ -26,6 +26,8 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDataset
+from pytorch_lightning.metrics import Accuracy
+from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 
 
 def decorator_with_arguments(fx_name='', hook_fx_name=None):
@@ -425,3 +427,26 @@ def test_epoch_results_cache_dp(tmpdir):
     )
     trainer.fit(model)
     trainer.test(model, ckpt_path=None)
+
+
+@pytest.mark.parametrize('to_float', [False, True])
+def test_metrics_holder(to_float, tmpdir):
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    preds = torch.tensor([[0.9, 0.1]], device=device)
+    def is_float(value):
+        return isinstance(value, float)
+    excepted_function = is_float if to_float else torch.is_tensor
+    targets = torch.tensor([1], device=device)
+    acc = Accuracy().to(device)
+    metric_holder = MetricsHolder(to_float=to_float)
+    metric_holder.update({
+        "x": 1, 
+        "y": torch.tensor(2),
+        "z": acc(preds, targets),
+    })
+    metric_holder.convert(False, device)
+    metrics = metric_holder.metrics
+    assert excepted_function(metrics["x"])
+    assert excepted_function(metrics["y"])
+    assert excepted_function(metrics["z"])
