@@ -59,6 +59,7 @@ class TrainerProperties(ABC):
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
     callbacks: List[Callback]
+    _lightning_optimizers = None
 
     @property
     def log_dir(self):
