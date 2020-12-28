@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from argparse import Namespace
-from copy import deepcopy
 import os
 from pathlib import Path
 import pickle
@@ -67,11 +66,12 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
         limit_val_batches=6,
         limit_test_batches=12,
         callbacks=[checkpoint_callback],
+        logger=False,
     )
     trainer.fit(model)
     assert os.listdir(tmpdir) == ['epoch=00.ckpt']
 
-    best_model_paths = [deepcopy(checkpoint_callback.best_model_path)]
+    best_model_paths = [checkpoint_callback.best_model_path]
     results = []
 
     for idx in range(3, 6):
@@ -87,10 +87,13 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
         )
         trainer.fit(model)
         results.append(trainer.test()[0])
-        best_model_paths.append(deepcopy(trainer.callbacks[0].best_model_path))
+        best_model_paths.append(trainer.callbacks[0].best_model_path)
 
     for idx in range(len(results) - 1):
         assert results[idx]["val_loss"] > results[idx + 1]["val_loss"]
 
-    for idx, best_model_path in enumerate(best_model_paths[1:]):
-        assert f"epoch={idx + 2}" in best_model_path
+    for idx, best_model_path in enumerate(best_model_paths):
+        if idx == 0:
+            best_model_path.endswith(f"epoch={idx}.ckpt")
+        else:
+            best_model_path.endswith(f"epoch={idx + 2}.ckpt")

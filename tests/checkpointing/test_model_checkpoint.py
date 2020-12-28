@@ -680,7 +680,7 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
         )
         trainer.fit(model)
         trainer.test(model, verbose=False)
-    assert set(os.listdir(tmpdir)) == {'epoch=00.ckpt', 'lightning_logs'}
+    assert os.listdir(tmpdir) == ['epoch=00.ckpt', 'lightning_logs']
     assert set(os.listdir(tmpdir.join("lightning_logs"))) == {f'version_{i}' for i in range(4)}
 
 

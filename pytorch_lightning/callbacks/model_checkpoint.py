@@ -214,7 +214,10 @@ class ModelCheckpoint(Callback):
     def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
-        self.dirpath = checkpointed_state.get("dirpath", self.dirpath)
+        dirpath = checkpointed_state.get("dirpath", self.dirpath)
+        # If the dirpath exists, checkpoints should be grouped together.
+        if dirpath is not None and os.path.exists(dirpath):
+            self.dirpath = dirpath
 
     def save_checkpoint(self, trainer, pl_module):
         """
