@@ -113,7 +113,7 @@ class LightningModule(
         self._current_dataloader_idx = None
 
     def optimizers(self, use_pl_optimizer: bool = True):
-        if lightning_optimizer:
+        if use_pl_optimizer:
             opts = [*self.trainer._lightning_optimizers.values()]
         else:
             opts = self.trainer.optimizers
