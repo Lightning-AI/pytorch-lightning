@@ -76,7 +76,7 @@ class BaseParityManualOptimizationModel(BoringModel):
 class ManualOptimizationPurePytorchOptimizerModel(BaseParityManualOptimizationModel):
 
     def training_step(self, batch, batch_idx):
-        optimizer = self.optimizers(lightning_optimizer=False)
+        optimizer = self.optimizers(use_pl_optimizer=False)
         output = self.layer(batch)
         loss = self.loss(batch, output)
         self.losses.append(loss.detach().item())
@@ -104,7 +104,7 @@ class ManualOptimizationPurePytorchAMPOptimizerModel(BaseParityManualOptimizatio
         self.scaler = torch.cuda.amp.GradScaler()
 
     def training_step(self, batch, batch_idx):
-        optimizer = self.optimizers(lightning_optimizer=False)
+        optimizer = self.optimizers(use_pl_optimizer=False)
         with torch.cuda.amp.autocast():
             output = self.layer(batch)
             loss = self.loss(batch, output)
