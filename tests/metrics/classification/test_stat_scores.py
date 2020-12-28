@@ -116,6 +116,7 @@ def test_wrong_params(reduce, mdmc_reduce, num_classes, inputs, ignore_index):
         sts = StatScores(reduce=reduce, mdmc_reduce=mdmc_reduce, num_classes=num_classes, ignore_index=ignore_index)
         sts(inputs.preds[0], inputs.target[0])
 
+
 def test_wrong_threshold():
     with pytest.raises(ValueError):
         StatScores(threshold=1.5)
