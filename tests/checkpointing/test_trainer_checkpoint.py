@@ -69,7 +69,7 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
         callbacks=[checkpoint_callback],
     )
     trainer.fit(model)
-    assert set(os.listdir(tmpdir)) == {'epoch=00.ckpt', 'lightning_logs'}
+    assert os.listdir(tmpdir) == ['epoch=00.ckpt']
 
     best_model_paths = [deepcopy(checkpoint_callback.best_model_path)]
     results = []
