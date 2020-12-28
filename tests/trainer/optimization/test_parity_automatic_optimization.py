@@ -37,11 +37,13 @@ from tests.base.boring_model import BoringModel
 
 class BaseParityAutomaticOptimizationModel(BoringModel):
 
-    def __init__(self,
-                 optimizer_cls,
-                 optimizer_is_mocked=False,
-                 accumulate_grad_batches=None,
-                 lr=0.1):
+    def __init__(
+            self,
+            optimizer_cls,
+            optimizer_is_mocked=False,
+            accumulate_grad_batches=None,
+            lr=0.1,
+    ):
         super().__init__()
         self.optimizer_cls = optimizer_cls
         self.losses = []
