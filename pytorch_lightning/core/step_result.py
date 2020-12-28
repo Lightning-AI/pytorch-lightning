@@ -248,7 +248,7 @@ class Result(Dict):
     def extract_batch_size(batch):
         try:
             batch_size = Result.unpack_batch_size(batch)
-        except RecursionError as re:
+        except RecursionError:
             batch_size = 1
         return batch_size
 
@@ -527,7 +527,7 @@ class Result(Dict):
                         result[k] = torch.tensor(result[k]).float()
                     try:
                         reduced_val = weighted_mean(result[k], batch_sizes)
-                    except Exception as e:
+                    except Exception:
                         reduced_val = torch.mean(result[k])
                 else:
                     reduced_val = fx(result[k])

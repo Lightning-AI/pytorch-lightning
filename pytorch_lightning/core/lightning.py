@@ -23,7 +23,7 @@ import tempfile
 from abc import ABC
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -37,13 +37,10 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
-
-if TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
 
 
 class LightningModule(
@@ -990,7 +987,7 @@ class LightningModule(
             - List or Tuple - List of optimizers.
             - Two lists - The first list has multiple optimizers, the second a list of LR schedulers (or lr_dict).
             - Dictionary, with an 'optimizer' key, and (optionally) a 'lr_scheduler'
-              key which value is a single LR scheduler or lr_dict.
+              key whose value is a single LR scheduler or lr_dict.
             - Tuple of dictionaries as described, with an optional 'frequency' key.
             - None - Fit will run without any optimizer.
 
@@ -1002,21 +999,22 @@ class LightningModule(
             In the former case, all optimizers will operate on the given batch in each optimization step.
             In the latter, only one optimizer will operate on the given batch at every step.
 
-            The lr_dict is a dictionary which contains scheduler and its associated configuration.
-            It has five keys. The default configuration is shown below.
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
+            The default configuration is shown below.
 
             .. code-block:: python
 
                 {
-                    'scheduler': lr_scheduler, # The LR schduler
+                    'scheduler': lr_scheduler, # The LR scheduler instance (required)
                     'interval': 'epoch', # The unit of the scheduler's step size
                     'frequency': 1, # The frequency of the scheduler
                     'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
                     'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
-                    'strict': True # Whether to crash the training if `monitor` is not found
+                    'strict': True, # Whether to crash the training if `monitor` is not found
+                    'name': None, # Custom name for LearningRateMonitor to use
                 }
 
-            If user only provides LR schedulers, then their configuration will set to default as shown above.
+            Only the ``scheduler`` key is required, the rest will be set to the defaults above.
 
         Examples:
             .. code-block:: python
@@ -1162,6 +1160,7 @@ class LightningModule(
             optimizer:
             optimizer_idx:
         """
+        # Todo: required argument `optimizer_idx` is not used
         for param in self.parameters():
             param.requires_grad = False
 
@@ -1186,7 +1185,8 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer.
 
-        .. tip:: With `Trainer(enable_pl_optimizer=True)`, you can user `optimizer.step()` directly and it will handle zero_grad, accumulated gradients, AMP, TPU and more automatically for you.
+        .. tip:: With `Trainer(enable_pl_optimizer=True)`, you can user `optimizer.step()` directly
+         and it will handle zero_grad, accumulated gradients, AMP, TPU and more automatically for you.
 
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
@@ -1452,7 +1452,6 @@ class LightningModule(
             args: single object of `dict`, `NameSpace` or `OmegaConf`
              or string names or argumenst from class `__init__`
 
-        >>> from collections import OrderedDict
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()

@@ -18,7 +18,10 @@ import torch
 
 from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
 from pytorch_lightning.metrics.functional.f_beta import fbeta as __fb, f1 as __f1
-from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve, precision_recall_curve as __prc
+from pytorch_lightning.metrics.functional.precision_recall_curve import (
+    _binary_clf_curve,
+    precision_recall_curve as __prc
+)
 from pytorch_lightning.metrics.functional.roc import roc as __roc
 from pytorch_lightning.metrics.utils import (
     to_categorical as __tc,
@@ -188,7 +191,6 @@ def stat_scores_multiple_classes(
 
         tps = torch.zeros((num_classes + 1,), device=pred.device)
         fps = torch.zeros((num_classes + 1,), device=pred.device)
-        tns = torch.zeros((num_classes + 1,), device=pred.device)
         fns = torch.zeros((num_classes + 1,), device=pred.device)
         sups = torch.zeros((num_classes + 1,), device=pred.device)
 
@@ -225,47 +227,6 @@ def stat_scores_multiple_classes(
             sups /= num_classes
 
     return tps.float(), fps.float(), tns.float(), fns.float(), sups.float()
-
-
-def accuracy(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        class_reduction: str = 'micro',
-        return_state: bool = False
-) -> torch.Tensor:
-    """
-    Computes the accuracy classification score
-
-    Args:
-        pred: predicted labels
-        target: ground truth labels
-        num_classes: number of classes
-        class_reduction: method to reduce metric score over labels
-
-            - ``'micro'``: calculate metrics globally (default)
-            - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
-            - ``'none'``: returns calculated metric per class
-        return_state: returns a internal state that can be ddp reduced
-            before doing the final calculation
-
-    Return:
-         A Tensor with the accuracy score.
-
-    Example:
-
-        >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
-        >>> accuracy(x, y)
-        tensor(0.7500)
-
-    """
-    tps, fps, tns, fns, sups = stat_scores_multiple_classes(
-        pred=pred, target=target, num_classes=num_classes)
-    if return_state:
-        return {'tps': tps, 'sups': sups}
-    return class_reduce(tps, sups, sups, class_reduction=class_reduction)
 
 
 def _confmat_normalize(cm):
@@ -822,7 +783,8 @@ def precision_recall_curve(
     """
     Computes precision-recall pairs for different thresholds.
 
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
     """
     rank_zero_warn(
         "This `precision_recall_curve` was deprecated in v1.1.0 in favor of"
@@ -842,7 +804,8 @@ def multiclass_precision_recall_curve(
     """
     Computes precision-recall pairs for different thresholds given a multiclass scores.
 
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
     """
     rank_zero_warn(
         "This `multiclass_precision_recall_curve` was deprecated in v1.1.0 in favor of"
@@ -864,7 +827,8 @@ def average_precision(
     """
     Compute average precision from prediction scores.
 
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.average_precision.average_precision`
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.average_precision.average_precision`
     """
     rank_zero_warn(
         "This `average_precision` was deprecated in v1.1.0 in favor of"

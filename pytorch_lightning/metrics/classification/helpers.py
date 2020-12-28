@@ -127,7 +127,8 @@ def _check_num_classes_binary(num_classes: int, is_multiclass: bool):
     if num_classes == 1 and is_multiclass:
         raise ValueError(
             "You have binary data and have set `is_multiclass=True`, but `num_classes` is 1."
-            " Either set `is_multiclass=None`(default) or set `num_classes=2` to transform binary data to multi-class format."
+            " Either set `is_multiclass=None`(default) or set `num_classes=2`"
+            " to transform binary data to multi-class format."
         )
 
 
@@ -403,6 +404,11 @@ def _input_format_classification(
         preds, target = preds.squeeze().unsqueeze(0), target.squeeze().unsqueeze(0)
     else:
         preds, target = preds.squeeze(), target.squeeze()
+
+    # Convert half precision tensors to full precision, as not all ops are supported
+    # for example, min() is not supported
+    if preds.dtype == torch.float16:
+        preds = preds.float()
 
     case = _check_classification_inputs(
         preds,

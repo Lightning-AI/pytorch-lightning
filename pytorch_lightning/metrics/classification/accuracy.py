@@ -16,35 +16,57 @@ from typing import Any, Callable, Optional
 import torch
 
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.utils import _input_format_classification
+from pytorch_lightning.metrics.functional.accuracy import _accuracy_update, _accuracy_compute
 
 
 class Accuracy(Metric):
     r"""
     Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
 
-    .. math:: \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y_i})
+    .. math::
+        \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y}_i)
 
     Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a
-    tensor of predictions.  Works with binary, multiclass, and multilabel
-    data.  Accepts logits from a model output or integer class values in
-    prediction.  Works with multi-dimensional preds and target.
+    tensor of predictions.
 
-    Forward accepts
+    For multi-class and multi-dimensional multi-class data with probability predictions, the
+    parameter ``top_k`` generalizes this metric to a Top-K accuracy metric: for each sample the
+    top-K highest probability items are considered to find the correct label.
 
-    - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
-    - ``target`` (long tensor): ``(N, ...)``
+    For multi-label and multi-dimensional multi-class inputs, this metric computes the "global"
+    accuracy by default, which counts all labels or sub-samples separately. This can be
+    changed to subset accuracy (which requires all labels or sub-samples in the sample to
+    be correctly predicted) by setting ``subset_accuracy=True``.
 
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
-
-    If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
+    Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
+            Threshold probability value for transforming probability predictions to binary
+            `(0,1)` predictions, in the case of binary or multi-label inputs.
+        top_k:
+            Number of highest probability predictions considered to find the correct label, relevant
+            only for (multi-dimensional) multi-class inputs with probability predictions. The
+            default value (``None``) will be interpreted as 1 for these inputs.
+
+            Should be left at default (``None``) for all other types of inputs.
+        subset_accuracy:
+            Whether to compute subset accuracy for multi-label and multi-dimensional
+            multi-class inputs (has no effect for other input types).
+
+            For multi-label inputs, if the parameter is set to `True`, then all labels for
+            each sample must be correctly predicted for the sample to count as correct. If it
+            is set to `False`, then all labels are counted separately - this is equivalent to
+            flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
+
+            For multi-dimensional multi-class inputs, if the parameter is set to `True`, then all
+            sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
+            If it is set to `False`, then all sub-samples are counter separately - this is equivalent,
+            in the case of label predictions, to flattening the inputs beforehand (i.e.
+            ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
+            still applies in both cases, if set.
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
+            Forward only calls ``update()`` and return None if this is set to False.
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
             before returning the value at the step. default: False
@@ -63,10 +85,19 @@ class Accuracy(Metric):
         >>> accuracy(preds, target)
         tensor(0.5000)
 
+        >>> target = torch.tensor([0, 1, 2])
+        >>> preds = torch.tensor([[0.1, 0.9, 0], [0.3, 0.1, 0.6], [0.2, 0.5, 0.3]])
+        >>> accuracy = Accuracy(top_k=2)
+        >>> accuracy(preds, target)
+        tensor(0.6667)
+
     """
+
     def __init__(
         self,
         threshold: float = 0.5,
+        top_k: Optional[int] = None,
+        subset_accuracy: bool = False,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -82,24 +113,35 @@ class Accuracy(Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
+        if not 0 <= threshold <= 1:
+            raise ValueError("The `threshold` should lie in the [0,1] interval.")
+
+        if top_k is not None and top_k <= 0:
+            raise ValueError("The `top_k` should be an integer larger than 1.")
+
         self.threshold = threshold
+        self.top_k = top_k
+        self.subset_accuracy = subset_accuracy
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets.
+        Update state with predictions and targets. See :ref:`metrics:Input types` for more information
+        on input types.
 
         Args:
-            preds: Predictions from model
-            target: Ground truth values
+            preds: Predictions from model (probabilities, or labels)
+            target: Ground truth labels
         """
-        preds, target = _input_format_classification(preds, target, self.threshold)
-        assert preds.shape == target.shape
 
-        self.correct += torch.sum(preds == target)
-        self.total += target.numel()
+        correct, total = _accuracy_update(
+            preds, target, threshold=self.threshold, top_k=self.top_k, subset_accuracy=self.subset_accuracy
+        )
 
-    def compute(self):
+        self.correct += correct
+        self.total += total
+
+    def compute(self) -> torch.Tensor:
         """
-        Computes accuracy over state.
+        Computes accuracy based on inputs passed in to ``update`` previously.
         """
-        return self.correct.float() / self.total
+        return _accuracy_compute(self.correct, self.total)

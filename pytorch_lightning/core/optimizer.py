@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import types
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if TPU_AVAILABLE:
+if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 
@@ -51,7 +51,8 @@ class LightningOptimizer:
 
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
-            self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {})
+            self.__class__ = type("Lightning" + optimizer.__class__.__name__,
+                                  (self.__class__, optimizer.__class__.__bases__[0]), {})
             self.skip_synchronize = optimizer.skip_synchronize
             self.synchronize = optimizer.synchronize
         else:
@@ -267,7 +268,6 @@ class LightningOptimizer:
 
         if closure is None:
             closure = do_nothing_closure
-            profile_name = f"optimizer_step_{self._optimizer_idx}"
         else:
             if not isinstance(closure, types.FunctionType):
                 raise MisconfigurationException("When closure is provided, it should be a function")

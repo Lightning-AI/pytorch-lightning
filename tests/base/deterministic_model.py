@@ -181,7 +181,7 @@ class DeterministicModel(LightningModule):
 
     def validation_step_no_return(self, batch, batch_idx):
         self.validation_step_called = True
-        acc = self.step(batch, batch_idx)
+        self.step(batch, batch_idx)
 
     def validation_step_scalar_return(self, batch, batch_idx):
         self.validation_step_called = True

@@ -15,7 +15,6 @@ from typing import Any, Callable, Optional, Union
 
 import torch
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.distributed.dist import LightningDistributed
