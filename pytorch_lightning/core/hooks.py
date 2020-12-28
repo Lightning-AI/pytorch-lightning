@@ -533,6 +533,24 @@ class DataHooks:
 
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 
+        Note:
+            This hook should only transfer the data and not modify it, nor should it move the data to
+            any other device than the one passed in as argument (unless you know what you are doing).
+
+        Note:
+            This hook only runs on single GPU training (no data-parallel) or with sharded plugin.
+            If you need multi-GPU support for your custom batch objects, you need to define your custom
+            :class:`~torch.nn.parallel.DistributedDataParallel` or
+            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
+            override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
+
+        Args:
+            batch: A batch of data that needs to be transferred to a new device.
+            device: The target device as defined in PyTorch.
+
+        Returns:
+            A reference to the data on the new device.
+
         Example::
 
             def transfer_batch_to_device(self, batch, device):
@@ -544,23 +562,6 @@ class DataHooks:
                     batch = super().transfer_batch_to_device(data, device)
                 return batch
 
-        Args:
-            batch: A batch of data that needs to be transferred to a new device.
-            device: The target device as defined in PyTorch.
-
-        Returns:
-            A reference to the data on the new device.
-
-        Note:
-            This hook should only transfer the data and not modify it, nor should it move the data to
-            any other device than the one passed in as argument (unless you know what you are doing).
-
-        Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
-            If you need multi-GPU support for your custom batch objects in ``dp`` or ``ddp2``,
-            you need to define your custom :class:`~torch.nn.parallel.DistributedDataParallel` or
-            override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
-
         See Also:
             - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
             - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
@@ -570,13 +571,50 @@ class DataHooks:
 
     def on_before_batch_transfer(self, batch):
         """
-        Called before batch is transferred to the device
+        Override to alter or apply batch augmentations to your batch before it is transferred to the device.
+
+        Note:
+            This hook only runs on single gpu training (no data-parallel) or with sharded plugin.
+
+        Args:
+            batch: A batch of data that needs to be altered or augmented.
+
+        Returns:
+            A batch of data
+
+        Example::
+
+            def on_before_batch_transfer(self, batch):
+                batch['x'] = transforms(batch['x'])
+                return batch
+
+        See Also:
+            - :func:`~pytorch_lightning.core.on_after_batch_transfer`
+            - :func:`~pytorch_lightning.core.transfer_batch_to_device`
         """
         return batch
 
     def on_after_batch_transfer(self, batch):
         """
-        Called after batch is transferred to the device
+        Override to alter or apply batch augmentations to your batch after it is transferred to the device.
+
+        Note:
+            This hook only runs on single gpu training (no data-parallel) or with sharded plugin.
+
+        Args:
+            batch: A batch of data that needs to be altered or augmented.
+
+        Returns:
+            A batch of data
+
+        Example::
+            def on_after_batch_transfer(self, batch):
+                batch['x'] = gpu_transforms(batch['x'])
+                return batch
+
+        See Also:
+            - :func:`~pytorch_lightning.core.on_before_batch_transfer`
+            - :func:`~pytorch_lightning.core.transfer_batch_to_device`
         """
         return batch
 
