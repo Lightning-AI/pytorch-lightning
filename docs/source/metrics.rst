@@ -141,7 +141,7 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
 Metrics and devices
 *******************
 
-Metrics are simple subclasses of ``torch.nn.Module`` and their metric states behave
+Metrics are simple subclasses of :class:`~torch.nn.Module` and their metric states behave
 similar to buffers and parameters of modules. This means that metrics states should
 be moved to the same device as the input of the metric:
 
@@ -159,13 +159,14 @@ be moved to the same device as the input of the metric:
     out = confmat(preds, target)
     print(out.device) # cuda:0
 
-However, when **properly defined** inside a ``LightningModule``, lightning will
+However, when **properly defined** inside a :class:`~pytorch_lightning.core.lightning.LightningModule`
+, Lightning will
 automatically move the metrics to the same device as the data. Being **properly defined**
 means that the metric is correctly identified as a child module of the model 
 (check ``.children()`` attribute of the model). Therefore, metrics cannot be placed 
 in native python ``list`` and ``dict``, as they will not be correctly identified
-as child modules. Instead of ``list`` use ``torch.nn.ModuleList`` and instead of
-``dict`` use ``torch.nn.ModuleDict``.
+as child modules. Instead of ``list`` use :class:`~torch.nn.ModuleList` and instead of
+``dict`` use :class:`~torch.nn.ModuleDict`.
 
 .. code-block::
 
