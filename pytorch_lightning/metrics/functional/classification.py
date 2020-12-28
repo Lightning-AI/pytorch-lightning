@@ -676,13 +676,9 @@ def object_detection_mean_average_precision(
         for i, p in enumerate(c_preds):
             image_idx = p[0].item()
             ground_truths = c_target[c_target[:, 0] == image_idx]
-            best_iou = 0
-            best_target_idx = 0
-            for j, t in enumerate(ground_truths):
-                iou = box_iou(p[None, 3:], t[None, 2:])
-                if iou > best_iou:
-                    best_iou = iou
-                    best_target_idx = j
+            ious = box_iou(p[None, 3:], ground_truths[:, 2:])
+            best_iou = 0 if len(ground_truths) == 0 else torch.max(ious)
+            best_target_idx = -1 if len(ground_truths) == 0 else torch.argmax(ious)
             if best_iou > iou_threshold and not targets_assigned[image_idx][best_target_idx]:
                 targets_assigned[image_idx][best_target_idx] = True
                 tps[i] = 1
