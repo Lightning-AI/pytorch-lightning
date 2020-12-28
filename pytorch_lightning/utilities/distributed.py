@@ -206,7 +206,7 @@ def all_gather_ddp_if_available(
         A tensor of shape (world_size, batch, ...)
     """
     if group is None:
-        group = globals()["group"].WORLD
+        group = torch.distributed.group.WORLD
         if group is None:
             raise MisConfigurationException(
                 "The provided group was None and `torch.distributed.group` isn't available. "
