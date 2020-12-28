@@ -267,7 +267,7 @@ For these cases, the metrics where this distinction would make a difference, exp
 First, let's consider the case with label predictions with 2 classes, which we want to
 treat as binary.
 
-.. code-block:: python
+.. testcode::
 
    from pytorch_lightning.metrics.functional import stat_scores
 
@@ -279,7 +279,7 @@ As you can see below, by default the inputs are treated
 as multi-class. We can set ``is_multiclass=False`` to treat the inputs as binary - 
 which is the same as converting the predictions to float beforehand.
 
-.. doctest:: python
+.. doctest::
 
     >>> stat_scores(preds, target, reduce='macro', num_classes=2)
     torch.tensor([[1, 1, 1, 0, 1]],
@@ -292,14 +292,14 @@ which is the same as converting the predictions to float beforehand.
 Next, consider the opposite example: inputs are binary (as predictions are probabilities),
 but we would like to treat them as 2-class multi-class, to obtain the metric for both classes.
 
-.. code-block:: python
+.. testcode::
 
    preds  = torch.tensor([0.2, 0.7, 0.3])
    target = torch.tensor([1, 1, 0])
 
 In this case we can set ``is_multiclass=True``, to treat the inputs as multi-class.
 
-.. doctest:: python
+.. doctest::
 
     >>> stat_scores(preds, target, reduce='macro', num_classes=1)
     torch.tensor([[1, 0, 1, 1, 2]])

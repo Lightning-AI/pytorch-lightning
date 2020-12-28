@@ -136,7 +136,8 @@ def test_wrong_params(reduce, mdmc_reduce, num_classes, inputs, ignore_index):
     ],
 )
 class TestStatScores(MetricTester):
-    @pytest.mark.parametrize("ddp", [True, False])
+    # DDP tests temporarily disabled due to hanging issues
+    @pytest.mark.parametrize("ddp", [False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_stat_scores_class(
         self,
