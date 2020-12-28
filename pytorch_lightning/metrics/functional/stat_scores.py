@@ -56,7 +56,7 @@ def _stat_scores(
     if reduce == "micro":
         dim = [0, 1] if preds.ndim == 2 else [1, 2]
     elif reduce == "macro":
-        dim = 0 if not preds.ndim == 2 else 2
+        dim = 0 if preds.ndim == 2 else 2
     elif reduce == "samples":
         dim = 1
 
