@@ -154,6 +154,10 @@ class BaseTrainer:
     fast_dev_run: Union[bool, int]
     profiler: Union[BaseProfiler, bool, str]
     datamodule: LightningDataModule
+    min_epochs: int
+    max_epochs: int
+    min_steps: int
+    max_steps: int
 
     ###########################
     #                         #
