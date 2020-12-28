@@ -44,35 +44,32 @@ def _stat_scores(
         If inputs are of the shape (N, C), then
 
             * If reduce is 'micro', the returned tensors are 1 element tensors
-            * If reduce is one of 'macro', 'weighted', 'none' or None, the returned
-              tensors are (C,) 1d tensors
-            * If reduce is 'samples, the returned tensors are 1d (N,) tensors
+            * If reduce is 'macro', the returned tensors are (C,) 1d tensors
+            * If reduce is 'samples', the returned tensors are 1d (N,) tensors
 
         If inputs are of the shape (N, C, X), then
 
             * If reduce is 'micro', the returned tensors are (N,) 1d tensors
-            * If reduce is one of 'macro', 'weighted', 'none' or None, the returned
-              tensors are (N,C) 2d tensors
-            * If reduce is 'samples, the returned tensors are 1d (N,X) 2d tensors
+            * If reduce is 'macro' the returned tensors are (N,C) 2d tensors
+            * If reduce is 'samples', the returned tensors are 1d (N,X) 2d tensors
     """
-    is_multidim = len(preds.shape) == 3
-
     if reduce == "micro":
-        dim = [0, 1] if not is_multidim else [1, 2]
+        dim = [0, 1] if preds.ndim == 2 else [1, 2]
     elif reduce == "macro":
-        dim = 0 if not is_multidim else 2
+        dim = 0 if not preds.ndim == 2 else 2
     elif reduce == "samples":
         dim = 1
 
     true_pred, false_pred = target == preds, target != preds
+    pos_pred, neg_pred = preds == 1, preds == 0
 
-    tp = (true_pred * (preds == 1)).sum(dim=dim)
-    fp = (false_pred * (preds == 1)).sum(dim=dim)
+    tp = (true_pred * pos_pred).sum(dim=dim)
+    fp = (false_pred * pos_pred).sum(dim=dim)
 
-    tn = (true_pred * (preds == 0)).sum(dim=dim)
-    fn = (false_pred * (preds == 0)).sum(dim=dim)
+    tn = (true_pred * neg_pred).sum(dim=dim)
+    fn = (false_pred * neg_pred).sum(dim=dim)
 
-    return tp.int(), fp.int(), tn.int(), fn.int()
+    return tp.long(), fp.long(), tn.long(), fn.long()
 
 
 def _stat_scores_update(
@@ -95,12 +92,12 @@ def _stat_scores_update(
         raise ValueError(f"The `ignore_index` {ignore_index} is not valid for inputs with {preds.shape[0]} classes")
 
     if ignore_index is not None and preds.shape[1] == 1:
-        raise ValueError("You are using `ignore_index` with binary data.")
+        raise ValueError("You can not use `ignore_index` with binary data.")
 
     if len(preds.shape) == 3:
         if not mdmc_reduce:
             raise ValueError(
-                "When your inputs are multi-dimensional multi-class," "you have to set the mdmc_reduce parameter"
+                "When your inputs are multi-dimensional multi-class, you have to set the `mdmc_reduce` parameter"
             )
         if mdmc_reduce == "global":
             # Equivalent of torch.movedim(preds, 1, -1)
@@ -112,7 +109,7 @@ def _stat_scores_update(
             target = target.permute(*shape_permute).reshape(-1, target.shape[1])
 
     # Delete what is in ignore_index, if applicable (and classes don't matter):
-    if ignore_index and reduce != "macro" and preds.shape[1] > 1:
+    if ignore_index and reduce != "macro":
         preds = _del_column(preds, ignore_index)
         target = _del_column(target, ignore_index)
 
@@ -120,7 +117,7 @@ def _stat_scores_update(
 
     # Take care of ignore_index
     if ignore_index and reduce == "macro":
-        if mdmc_reduce == "global" or not mdmc_reduce:
+        if mdmc_reduce in ["global", None]:
             tp[ignore_index] = -1
             fp[ignore_index] = -1
             tn[ignore_index] = -1
@@ -143,7 +140,7 @@ def _stat_scores_compute(tp: torch.Tensor, fp: torch.Tensor, tn: torch.Tensor, f
         fn.unsqueeze(-1),
         tp.unsqueeze(-1) + fn.unsqueeze(-1),  # support
     ]
-    outputs = torch.cat(outputs, -1).long()
+    outputs = torch.cat(outputs, -1)
     outputs = torch.where(outputs < 0, torch.tensor(-1, device=outputs.device), outputs)
 
     return outputs
