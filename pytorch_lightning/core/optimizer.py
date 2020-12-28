@@ -108,7 +108,7 @@ class LightningOptimizer:
             optimizer = cls(optimizer)
             optimizer._on_trainer_init(trainer)
         else:
-            optimizer = trainer._lightning_optimizers[opt_idx]
+            optimizer = trainer.lightning_optimizers[opt_idx]
         return optimizer
 
     def _accumulated_batches_reached(self):

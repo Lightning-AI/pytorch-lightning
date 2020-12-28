@@ -27,7 +27,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
@@ -166,8 +166,6 @@ class DDPSpawnAccelerator(Accelerator):
 
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
-
-        self.trainer.convert_to_lightning_optimizers()
 
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()

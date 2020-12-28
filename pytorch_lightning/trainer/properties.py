@@ -238,6 +238,12 @@ class TrainerProperties(ABC):
     def get_model(self):
         return self.model_connector.get_model()
 
+    @property
+    def lightning_optimizers(self):
+        if self._lightning_optimizers is None:
+            self.convert_to_lightning_optimizers()
+        return self._lightning_optimizers
+
     def __getstate__(self):
         # remove lightning_optimizers
         self._lightning_optimizers = None
