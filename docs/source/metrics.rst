@@ -159,7 +159,7 @@ be moved to the same device as the input of the metric:
     out = confmat(preds, target)
     print(out.device) # cuda:0
 
-However, when **properly defined** inside an ``LightningModule``, lightning will
+However, when **properly defined** inside a ``LightningModule``, lightning will
 automatically move the metrics to the same device as the data. By **properly defined**
 it is meant that the metric is correctly identified as a child module of the model 
 (check ``.children()`` attribute of the model). Therefore, metrics cannot be placed 
