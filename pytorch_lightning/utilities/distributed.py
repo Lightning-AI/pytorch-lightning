@@ -15,16 +15,15 @@
 import os
 import warnings
 from functools import wraps
+from typing import Any, Optional, Union
 
 import torch
+
 from pytorch_lightning import _logger as log
-from typing import Union, Optional, Any
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-
 if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-    from torch.distributed import group
+    from torch.distributed import ReduceOp, group
 else:
     class ReduceOp:
         SUM = None
@@ -208,7 +207,7 @@ def all_gather_ddp_if_available(
     if group is None:
         group = torch.distributed.group.WORLD
         if group is None:
-            raise MisConfigurationException(
+            raise MisconfigurationException(
                 "The provided group was None and `torch.distributed.group` isn't available. "
                 "Gathering tensor accross processes won't be possible. "
             )
