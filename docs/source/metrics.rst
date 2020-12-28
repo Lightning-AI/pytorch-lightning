@@ -164,7 +164,7 @@ automatically move the metrics to the same device as the data. By **properly def
 it is meant that the metric is correctly identified as a child module of the model 
 (check ``.children()`` attribute of the model). Therefore, metrics cannot be placed 
 in native python ``list`` and ``dict``, as they will not be correctly identified
-as a child modules. Instead of ``list`` use ``torch.nn.ModuleList`` and instead of
+as child modules. Instead of ``list`` use ``torch.nn.ModuleList`` and instead of
 ``dict`` use ``torch.nn.ModuleDict``.
 
 .. code-block::
