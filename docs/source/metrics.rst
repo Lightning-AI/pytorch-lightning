@@ -168,7 +168,7 @@ in native python ``list`` and ``dict``, as they will not be correctly identified
 as child modules. Instead of ``list`` use :class:`~torch.nn.ModuleList` and instead of
 ``dict`` use :class:`~torch.nn.ModuleDict`.
 
-.. code-block::
+.. testcode::
 
     class MyModule(pl.LightningModule):
         def __init__(self):
