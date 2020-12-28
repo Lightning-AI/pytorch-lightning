@@ -239,23 +239,6 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
     to be in "exclusive mode", such that only one process at a time can access them.
     For more details see the :ref:`Trainer guide <trainer>`.
 
-
-Remove CUDA flags
-^^^^^^^^^^^^^^^^^
-
-CUDA flags make certain GPUs visible to your script.
-Lightning sets these for you automatically, there's NO NEED to do this yourself.
-
-.. testcode::
-
-    # lightning will set according to what you give the trainer
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-However, when using a cluster, Lightning will NOT set these flags (and you should not either).
-SLURM will set these for you.
-For more details see the :ref:`SLURM cluster guide <slurm>`.
-
 ----------
 
 Distributed modes
