@@ -138,4 +138,5 @@ def test_trainer_cli_profiler_remove_in_v1_3_0(cli_args, expected_parsed_arg, ex
 
 
 def test_trainer_enable_pl_optimizer(tmpdir):
-    Trainer(enable_pl_optimizer=True)
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        Trainer(enable_pl_optimizer=True)
