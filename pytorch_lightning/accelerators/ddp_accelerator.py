@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
+from os.path import abspath
 import subprocess
 import sys
-from os.path import abspath
 from time import sleep
 from typing import Any, List, Optional, Union
 
@@ -23,6 +23,7 @@ import torch
 import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
+import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
@@ -30,7 +31,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
 from pytorch_lightning.utilities.distributed import (
     all_gather_ddp_if_available,
     find_free_network_port,
@@ -48,7 +49,7 @@ if HYDRA_AVAILABLE:
 class DDPAccelerator(Accelerator):
 
     def __init__(self,
-                 trainer: Optional = None,
+                 trainer: Optional['pl.Trainer'] = None,
                  cluster_environment: Optional[ClusterEnvironment] = None,
                  ddp_plugin: Optional[DDPPlugin] = None):
         """

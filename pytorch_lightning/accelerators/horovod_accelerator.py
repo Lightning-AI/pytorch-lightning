@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, Optional, Union, Callable
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
-from pytorch_lightning.utilities import HOROVOD_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType, HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
 if HOROVOD_AVAILABLE:

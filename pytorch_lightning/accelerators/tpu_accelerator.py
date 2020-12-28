@@ -24,13 +24,12 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import (
-    TPU_AVAILABLE,
     move_data_to_device,
     rank_zero_info,
     rank_zero_only,
     rank_zero_warn,
+    TPU_AVAILABLE,
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
