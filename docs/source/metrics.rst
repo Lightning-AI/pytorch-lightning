@@ -161,7 +161,7 @@ be moved to the same device as the input of the metric:
 
 However, when **properly defined** inside a ``LightningModule``, lightning will
 automatically move the metrics to the same device as the data. Being **properly defined**
-it is meant that the metric is correctly identified as a child module of the model 
+means that the metric is correctly identified as a child module of the model 
 (check ``.children()`` attribute of the model). Therefore, metrics cannot be placed 
 in native python ``list`` and ``dict``, as they will not be correctly identified
 as child modules. Instead of ``list`` use ``torch.nn.ModuleList`` and instead of
