@@ -219,168 +219,19 @@ class BaseTrainer:
     def test(self, *_, **__):
         pass
 
-    ########################
-    #                      #
-    #    TRAIN FUNCTION    #
-    #                      #
-    ########################
+    @abstractclassmethod
+    def train(self, *_, **__):
+        pass
 
-    def train(self):
-        self.run_sanity_check(self.get_model())
+    @abstractclassmethod
+    def run_evaluation(self, *_, **__):
+        pass
 
-        # set stage for logging
-        self.logger_connector.set_stage("train")
-
-        self.checkpoint_connector.has_trained = False
-
-        # enable train mode
-        model = self.get_model()
-        model.train()
-        torch.set_grad_enabled(True)
-
-        # reload data when needed
-        self.train_loop.reset_train_val_dataloaders(model)
-
-        # hook
-        self.train_loop.on_train_start()
-
-        try:
-            if self.train_loop.should_skip_training():
-                return
-            # run all epochs
-            for epoch in range(self.current_epoch, self.max_epochs):
-
-                # hook
-                self.train_loop.on_train_epoch_start(epoch)
-
-                with self.profiler.profile("run_training_epoch"):
-                    # run train epoch
-                    self.train_loop.run_training_epoch()
-
-                if self.max_steps and self.max_steps <= self.global_step:
-                    return
-
-                # update LR schedulers
-                self.optimizer_connector.update_learning_rates(interval='epoch')
-
-                # early stopping
-                met_min_epochs = epoch >= self.min_epochs - 1
-                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
-
-                if self.should_stop:
-                    if met_min_epochs and met_min_steps:
-                        return
-                    log.info(
-                        'Trainer was signaled to stop but required minimum epochs'
-                        f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                        ' not been met. Training will continue...'
-                    )
-
-        except KeyboardInterrupt:
-            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
-
-            # user could press ctrl+c many times... only shutdown once
-            if not self.interrupted:
-                self.interrupted = True
-                self._state = TrainerState.INTERRUPTED
-                self.on_keyboard_interrupt()
-        finally:
-            # hook
-            self.train_loop.on_train_end()
-
-    ########################
-    #                      #
-    #    TEST FUNCTIONS    #
-    #                      #
-    ########################
-
-    def run_evaluation(self, test_mode: bool = False, max_batches=None):
-
-        # used to know if we are logging for val, test + reset cached results
-        self.logger_connector.set_stage(test_mode, reset=True)
-
-        # bookkeeping
-        self.evaluation_loop.testing = test_mode
-
-        # prepare dataloaders
-        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
-
-        # check if we want to skip this evaluation
-        if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
-            return [], []
-
-        # ref model
-        model = self.get_model()
-
-        # enable eval mode + no grads
-        self.evaluation_loop.on_evaluation_model_eval()
-        model.zero_grad()
-        torch.set_grad_enabled(False)
-
-        # hook
-        self.evaluation_loop.on_evaluation_start()
-
-        # set up the eval loop
-        self.evaluation_loop.setup(model, max_batches, dataloaders)
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_start()
-
-        # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            # bookkeeping
-            dl_outputs = []
-            dataloader = self.accelerator_backend.process_dataloader(dataloader)
-            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
-
-            for batch_idx, batch in enumerate(dataloader):
-                if batch is None:
-                    continue
-
-                # stop short when running on limited batches
-                if batch_idx >= dl_max_batches:
-                    break
-
-                # hook
-                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
-
-                # lightning module methods
-                with self.profiler.profile("evaluation_step_and_end"):
-                    output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
-                    output = self.evaluation_loop.evaluation_step_end(output)
-
-                # hook + store predictions
-                self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
-
-                # log batch metrics
-                self.evaluation_loop.log_evaluation_step_metrics(output, batch_idx)
-
-                # track epoch level outputs
-                dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
-
-            # store batch level output per dataloader
-            self.evaluation_loop.outputs.append(dl_outputs)
-
-        # lightning module method
-        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_end()
-
-        # hook
-        self.evaluation_loop.on_evaluation_end()
-
-        # log epoch metrics
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
-
-        # save predictions to disk
-        self.evaluation_loop.predictions.to_disk()
-
-        # enable train mode again
-        self.evaluation_loop.on_evaluation_model_train()
-        torch.set_grad_enabled(True)
-
-        return eval_loop_results, deprecated_eval_results
+    ###################################
+    #                                 #
+    #    TrainerInternalLogicMixin    #
+    #                                 #
+    ###################################
 
     def run_test(self):
         # only load test dataloader for testing
@@ -399,12 +250,6 @@ class BaseTrainer:
                         result[k] = v.cpu().item()
 
         return eval_loop_results
-
-    ###################################
-    #                                 #
-    #    TrainerInternalLogicMixin    #
-    #                                 #
-    ###################################
 
     def track_output_for_epoch_end(self, outputs, output):
         if output is not None:
