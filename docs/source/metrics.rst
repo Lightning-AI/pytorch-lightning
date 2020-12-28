@@ -145,7 +145,7 @@ Metrics are simple subclasses of :class:`~torch.nn.Module` and their metric stat
 similar to buffers and parameters of modules. This means that metrics states should
 be moved to the same device as the input of the metric:
 
-.. code-block:: python
+.. testcode::
 
     import torch
     from pytorch_lightning.metrics import Accuracy
