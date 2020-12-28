@@ -85,56 +85,25 @@ class BaseTrainer:
     #                         #
     ###########################
 
+    # model and datamodule
+    model: LightningModule
+    datamodule: LightningDataModule
+
+    # loops
+    evaluation_loop: EvaluationLoop
+    train_loop: TrainLoop
+
+    # loop state
     current_epoch: int
-    on_gpu: bool
-    log_gpu_memory: ...
-    logger: Union[LightningLoggerBase, bool]
     global_step: int
     global_rank: int
-    use_dp: bool
-    use_ddp: bool
-    use_horovod: bool
-    use_ddp2: bool
-    use_tpu: bool
-    num_sanity_val_steps: float
-    precision: int
-    should_stop: bool
-    move_metrics_to_cpu: bool
-    logger_connector: LoggerConnector
-    _state: TrainerState
-    fast_dev_run: Union[int, bool]
-    model: LightningModule
-    data_parallel_device_ids: Optional[List[int]]
-    _progress_bar_callback: ProgressBarBase
-    _default_root_dir: str
-    _weights_save_path: str
-    model_connector: ModelConnector
-    checkpoint_connector: CheckpointConnector
-    callbacks: List[Callback]
-    val_check_interval: float
-    tpu_local_core_rank: int
-    train_dataloader: DataLoader
-    overfit_batches: Union[int, float]
-    num_training_batches: Union[int, float]
-    val_check_batch: Union[int, float]
-    val_dataloaders: List[DataLoader]
-    num_val_batches: List[Union[int, float]]
-    test_dataloaders: List[DataLoader]
-    num_test_batches: List[Union[int, float]]
-    limit_train_batches: Union[int, float]
-    limit_val_batches: Union[int, float]
-    limit_test_batches: Union[int, float]
-    replace_sampler_ddp: bool
-    accelerator_backend: Accelerator
-    num_nodes: int
-    num_processes: int
-    distributed_backend: Optional[str]
-    dev_debugger: InternalDebugger
-    _distrib_type: DistributedType
-    _device_type: DeviceType
-    shown_warnings: set
-    dev_debugger: InternalDebugger
-    config_validator: ConfigValidator
+    min_epochs: int
+    max_epochs: int
+    min_steps: int
+    max_steps: int
+
+    # connectors
+    plugin_connector: PluginConnector
     data_connector: DataConnector
     optimizer_connector: OptimizerConnector
     accelerator_connector: AcceleratorConnector
@@ -147,17 +116,76 @@ class BaseTrainer:
     profile_connector: ProfilerConnector
     checkpoint_connector: CheckpointConnector
     slurm_connector: SLURMConnector
+    logger_connector: LoggerConnector
+
+    # helpers
+    dev_debugger: InternalDebugger
+    config_validator: ConfigValidator
+
+    # accelerator and distrubuted backend
+    accelerator_backend: Accelerator
+    distributed_backend: Optional[str]
+
+    # logic attributes for accelerator and distrubuted backend
+    on_gpu: bool
+
+    use_dp: bool
+    data_parallel_device_ids: Optional[List[int]]
+
+    use_ddp: bool
+    use_horovod: bool
+    use_ddp2: bool
+    num_nodes: int
+    num_processes: int
+    global_rank: int
+    replace_sampler_ddp: bool
+
+    use_tpu: bool
+    tpu_local_core_rank: int
+
+    callbacks: List[Callback]
+    _progress_bar_callback: ProgressBarBase
+
+    logger: Union[LightningLoggerBase, bool]
+    log_gpu_memory: bool
+
+    precision: int
+
+    # dataloders attributes
+    train_dataloader: DataLoader
+    num_training_batches: Union[int, float]
+    overfit_batches: Union[int, float]
+
+    val_dataloaders: List[DataLoader]
+    num_val_batches: List[Union[int, float]]
+    val_check_batch: Union[int, float]
+    val_check_interval: float
+    num_sanity_val_steps: float
+
+    test_dataloaders: List[DataLoader]
+    num_test_batches: List[Union[int, float]]
+
+    limit_train_batches: Union[int, float]
+    limit_val_batches: Union[int, float]
+    limit_test_batches: Union[int, float]
+
+    fast_dev_run: Union[int, bool]
+
+    should_stop: bool
+    move_metrics_to_cpu: bool
+
+    _default_root_dir: str
+    _weights_save_path: str
+
+    _distrib_type: DistributedType
+    _device_type: DeviceType
+    _state: TrainerState
+
+    shown_warnings: set
+
     tuner: Tuner
-    evaluation_loop: EvaluationLoop
-    train_loop: TrainLoop
-    plugin_connector: PluginConnector
-    fast_dev_run: Union[bool, int]
+
     profiler: Union[BaseProfiler, bool, str]
-    datamodule: LightningDataModule
-    min_epochs: int
-    max_epochs: int
-    min_steps: int
-    max_steps: int
 
     ###############################
     #                             #
