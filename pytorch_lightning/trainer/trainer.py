@@ -53,8 +53,6 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
 warnings.filterwarnings(

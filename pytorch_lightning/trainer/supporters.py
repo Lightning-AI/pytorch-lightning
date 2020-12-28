@@ -15,10 +15,10 @@
 import os
 from typing import Optional
 
-import fsspec
 import torch
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from torch import Tensor
+
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 class TensorRunningAccum(object):

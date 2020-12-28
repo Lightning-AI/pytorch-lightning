@@ -14,17 +14,16 @@
 
 """Profiler to check if there are any bottlenecks in your code."""
 
+from abc import ABC, abstractmethod
+from collections import defaultdict
+from contextlib import contextmanager
 import cProfile
 import io
 import os
 import pstats
 import time
-from abc import ABC, abstractmethod
-from collections import defaultdict
-from contextlib import contextmanager
 from typing import Optional, Union
 
-import fsspec
 import numpy as np
 
 from pytorch_lightning import _logger as log
