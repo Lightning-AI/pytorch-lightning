@@ -88,7 +88,6 @@ class BaseTrainer:
     """
     This class regroups the following Mixins:
         - TrainerInternalLogicMixin:
-            Functions used by fit, train
         - TrainerProperties
         - TrainerCallbackHookMixin
         - TrainerModelHooksMixin
