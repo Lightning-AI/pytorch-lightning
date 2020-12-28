@@ -141,9 +141,9 @@ So you can run it like so:
 
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
-    The trainer will catch the `KeyboardInterrupt` and attempt a graceful shutdown, including
-    running callbacks such as `on_train_end`. The trainer object will also set an attribute
-    `interrupted` to `True` in such cases. If you have a callback which shuts down compute
+    The trainer will catch the ``KeyboardInterrupt`` and attempt a graceful shutdown, including
+    running callbacks such as ``on_train_end``. The trainer object will also set an attribute
+    ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
     resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs.
 
 ------------
@@ -155,7 +155,7 @@ Once you're done training, feel free to run the test set!
 
 .. code-block:: python
 
-    trainer.test(test_dataloader=test_dataloader)
+    trainer.test(test_dataloaders=test_dataloader)
 
 ------------
 
@@ -220,13 +220,13 @@ accelerator
 
 The accelerator backend to use (previously known as distributed_backend).
 
-- (```dp```) is DataParallel (split batch among GPUs of same machine)
-- (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
-- (```ddp_cpu```) is DistributedDataParallel on CPU (same as `ddp`, but does not use GPUs.
+- (``'dp'``) is DataParallel (split batch among GPUs of same machine)
+- (``'ddp'``) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
+- (``'ddp_cpu'``) is DistributedDataParallel on CPU (same as ``'ddp'``, but does not use GPUs.
   Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
   a speedup on a single node, since Torch already makes efficient use of multiple CPUs on a single
   machine.)
-- (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
+- (``'ddp2'``) dp on node, ddp across nodes. Useful for things like increasing
     the number of negative samples
 
 .. testcode::
@@ -245,7 +245,7 @@ Example::
     # ddp2 = DistributedDataParallel + dp
     trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp2')
 
-.. note:: This option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
+.. note:: This option does not apply to TPU. TPUs use ``'ddp'`` by default (over each core)
 
 You can also modify hardware behavior by subclassing an existing accelerator to adjust for your needs.
 
@@ -619,7 +619,7 @@ will need to be set up to use remote filepaths.
 
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
-This has been renamed "accelerator".
+Deprecated: This has been renamed ``accelerator``.
 
 fast_dev_run
 ^^^^^^^^^^^^
@@ -818,7 +818,7 @@ Options:
     # log only the min and max memory on the master node
     trainer = Trainer(log_gpu_memory='min_max')
 
-.. note:: Might slow performance because it uses the output of nvidia-smi.
+.. note:: Might slow performance because it uses the output of ``nvidia-smi``.
 
 flush_logs_every_n_steps
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1099,7 +1099,9 @@ as you request.
 
 Your effective batch size is batch_size * total tpu cores.
 
-.. note:: No need to add a DistributedDataSampler, Lightning automatically does it for you.
+.. note::
+    No need to add a :class:`~torch.utils.data.distributed.DistributedSampler`,
+    Lightning automatically does it for you.
 
 This parameter can be either 1 or 8.
 
