@@ -81,7 +81,7 @@ jobs:
         )
         for fname in files:
             req = open(fname).read().replace('>=', '==')
-            open(fname, 'w').write(req)"
+            open(fname, 'w').write(req)
 
         # remove Fairscale from requirements
         fname = 'requirements/extra.txt'
