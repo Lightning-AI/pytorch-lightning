@@ -96,6 +96,7 @@ def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_mul
         ["micro", None, None, _mdmc_prob, None],
         ["micro", None, None, _binary_prob_inputs, 0],
         ["micro", None, None, _mc_prob, NUM_CLASSES],
+        ["micro", None, NUM_CLASSES, _mc_prob, NUM_CLASSES],
     ],
 )
 def test_wrong_params(reduce, mdmc_reduce, num_classes, inputs, ignore_index):
@@ -114,6 +115,10 @@ def test_wrong_params(reduce, mdmc_reduce, num_classes, inputs, ignore_index):
     with pytest.raises(ValueError):
         sts = StatScores(reduce=reduce, mdmc_reduce=mdmc_reduce, num_classes=num_classes, ignore_index=ignore_index)
         sts(inputs.preds[0], inputs.target[0])
+
+def test_wrong_threshold():
+    with pytest.raises(ValueError):
+        StatScores(threshold=1.5)
 
 
 @pytest.mark.parametrize("ignore_index", [None, 1])
