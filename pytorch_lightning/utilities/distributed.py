@@ -208,8 +208,8 @@ def all_gather_ddp_if_available(
         group = torch.distributed.group.WORLD
         if group is None:
             raise MisconfigurationException(
-                "The provided group was None and `torch.distributed.group` isn't available. "
-                "Gathering tensor across processes won't be possible. "
+                "The provided group was None and `torch.distributed.group` isn't available."
+                " Gathering tensor across processes won't be possible."
             )
 
     if torch.distributed.is_available() and torch.distributed.is_initialized():
