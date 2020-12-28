@@ -282,12 +282,12 @@ which is the same as converting the predictions to float beforehand.
 .. doctest::
 
     >>> stat_scores(preds, target, reduce='macro', num_classes=2)
-    torch.tensor([[1, 1, 1, 0, 1]],
-                 [[1, 0, 1, 1, 2]])
+    tensor([[1, 1, 1, 0, 1],
+            [1, 0, 1, 1, 2]])
     >>> stat_scores(preds, target, reduce='macro', num_classes=1, is_multiclass=False)
-    torch.tensor([[1, 0, 1, 1, 2]])
+    tensor([[1, 0, 1, 1, 2]])
     >>> stat_scores(preds.float(), target, reduce='macro', num_classes=1)
-    torch.tensor([[1, 0, 1, 1, 2]])
+    tensor([[1, 0, 1, 1, 2]])
 
 Next, consider the opposite example: inputs are binary (as predictions are probabilities),
 but we would like to treat them as 2-class multi-class, to obtain the metric for both classes.
@@ -302,10 +302,10 @@ In this case we can set ``is_multiclass=True``, to treat the inputs as multi-cla
 .. doctest::
 
     >>> stat_scores(preds, target, reduce='macro', num_classes=1)
-    torch.tensor([[1, 0, 1, 1, 2]])
+    tensor([[1, 0, 1, 1, 2]])
     >>> stat_scores(preds, target, reduce='macro', num_classes=2, is_multiclass=True)
-    torch.tensor([[1, 1, 1, 0, 1]],
-                 [[1, 0, 1, 1, 2]])
+    tensor([[1, 1, 1, 0, 1],
+            [1, 0, 1, 1, 2]])
 
 
 Class Metrics (Classification)
