@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from typing import Iterable, Union, Any
+from typing import Any, Iterable, Union
 
 import torch
 
@@ -23,9 +23,9 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore, LoggerStages
+from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities import flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
@@ -33,7 +33,7 @@ class LoggerConnector:
     def __init__(self, trainer):
         self.trainer = trainer
         self._callback_metrics = MetricsHolder()
-        self._evaluation_callback_metrics = MetricsHolder()
+        self._evaluation_callback_metrics = MetricsHolder(to_float=True)
         self._logged_metrics = MetricsHolder()
         self._progress_bar_metrics = MetricsHolder()
         self.eval_loop_results = []

@@ -23,8 +23,10 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE
 class MetricsHolder:
 
     """
-    This class hold metris and implement convertion function which are called when user
-    asked for them.
+    This class acts as a dictonary holder.
+    It holds metris and implement convertion functions.
+    Those functions will be triggered within LoggerConnector
+    when the property is being requested from the user.
     """
 
     def __init__(self, to_float: bool = False):
@@ -48,7 +50,7 @@ class MetricsHolder:
 
     def _convert_to_float(self, current, use_tpu: bool, device: torch.device):
         if isinstance(current, Metric):
-            current = current.compute()
+            current = current.compute().detach()
 
         if isinstance(current, torch.Tensor):
             current = float(current.item())
@@ -61,7 +63,7 @@ class MetricsHolder:
     def _convert_to_tensor(self, current: Any, use_tpu: bool, device: torch.device):
         if current is not None:
             if isinstance(current, Metric):
-                current = current.compute()
+                current = current.compute().detach()
 
             elif isinstance(current, numbers.Number):
                 if device is None:
