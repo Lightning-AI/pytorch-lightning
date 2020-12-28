@@ -15,7 +15,7 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 from copy import deepcopy
-from typing import Any
+from typing import Any, Callable
 
 import pytest
 import torch
@@ -31,8 +31,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
-def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> callable:
-    def decorator(func: callable) -> callable:
+def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Callable:
+    def decorator(func: Callable) -> Callable:
         def wrapper(self, *args, **kwargs) -> Any:
             # Set information
             self._current_fx_name = fx_name
