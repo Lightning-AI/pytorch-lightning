@@ -529,7 +529,7 @@ class DataHooks:
         - :class:`list`
         - :class:`dict`
         - :class:`tuple`
-        - :class:`~torchtext.data.batch.Batch`
+        - :class:`torchtext.data.batch.Batch`
 
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 
