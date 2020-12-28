@@ -49,7 +49,5 @@ def is_overridden_general(method_name: str, current_object: Any, super_object: A
 
 
 def at_least_one_overriden(method_names: List[str], current_object: Any, super_object: Any) -> bool:
-    is_overriden = False
-    for method_name in method_names:
-        is_overriden |= is_overridden_general(method_name, current_object, super_object)
+    is_overriden = any(is_overridden_general(method_name, current_object, super_object) for method_name in method_names)
     return is_overriden
