@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from argparse import Namespace
+from copy import deepcopy
 import os
 from pathlib import Path
 import pickle
@@ -86,7 +87,8 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
             progress_bar_refresh_rate=0,
         )
         trainer.fit(model)
-        results.append(trainer.test()[0])
+        trainer.test()
+        results.append(deepcopy(trainer.callback_metrics))
         best_model_paths.append(trainer.callbacks[0].best_model_path)
 
     for idx in range(len(results) - 1):
