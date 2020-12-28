@@ -250,11 +250,6 @@ class TrainerProperties(ABC):
         self._lightning_optimizers = None
         return self.__dict__
 
-    def __setstate__(self, d):
-        self.__dict__ = d
-        # wrap optimizers in enable_pl_optimzer is True
-        self.convert_to_lightning_optimizers()
-
     @property
     def require_distributed_sampler(self):
         if self.accelerator_backend is not None:
