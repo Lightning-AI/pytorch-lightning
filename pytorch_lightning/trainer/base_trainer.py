@@ -79,12 +79,6 @@ if HOROVOD_AVAILABLE:
 
 class BaseTrainer:
 
-    ###########################
-    #                         #
-    #    Trainer Attributes   #
-    #                         #
-    ###########################
-
     """
     This class regroups the following Mixins:
         - TrainerInternalLogicMixin:
@@ -97,6 +91,12 @@ class BaseTrainer:
         - TrainerDataLoadingMixin
         - DeprecatedDistDeviceAttributes
     """
+
+    ###########################
+    #                         #
+    #    Trainer Attributes   #
+    #                         #
+    ###########################
 
     # model and datamodule
     model: LightningModule
@@ -388,6 +388,10 @@ class BaseTrainer:
     #    TrainerInternalLogicMixin    #
     #                                 #
     ###################################
+
+    ##################################
+    #    Evaluation Loop Functions   #
+    ##################################
 
     def run_test(self):
         # only load test dataloader for testing
@@ -1036,9 +1040,11 @@ class BaseTrainer:
         f_op = getattr(model, f_name, None)
         return arg_name in inspect.signature(f_op).parameters
 
-    ##############################
-    #   TrainerOptimizersMixin   #
-    ##############################
+    ###############################
+    #                             #
+    #    TrainerOptimizersMixin   #
+    #                             #
+    ###############################
 
     def init_optimizers(self, model: LightningModule) -> Tuple[List, List, List]:
         optim_conf = model.configure_optimizers()
@@ -1170,9 +1176,11 @@ class BaseTrainer:
                 if state is not None:
                     scheduler.load_state_dict(state)
 
-    ###########################
-    #   TrainerLoggingMixin   #
-    ###########################
+    ############################
+    #                          #
+    #    TrainerLoggingMixin   #
+    #                          #
+    ############################
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
