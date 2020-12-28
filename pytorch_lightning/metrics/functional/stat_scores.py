@@ -42,16 +42,14 @@ def _stat_scores(
         and the `reduce` parameter:
 
         If inputs are of the shape (N, C), then
-
-            * If reduce is 'micro', the returned tensors are 1 element tensors
-            * If reduce is 'macro', the returned tensors are (C,) 1d tensors
-            * If reduce is 'samples', the returned tensors are 1d (N,) tensors
+        - If reduce is 'micro', the returned tensors are 1 element tensors
+        - If reduce is 'macro', the returned tensors are (C,) 1d tensors
+        - If reduce is 'samples', the returned tensors are 1d (N,) tensors
 
         If inputs are of the shape (N, C, X), then
-
-            * If reduce is 'micro', the returned tensors are (N,) 1d tensors
-            * If reduce is 'macro' the returned tensors are (N,C) 2d tensors
-            * If reduce is 'samples', the returned tensors are 1d (N,X) 2d tensors
+        - If reduce is 'micro', the returned tensors are (N,) 1d tensors
+        - If reduce is 'macro' the returned tensors are (N,C) 2d tensors
+        - If reduce is 'samples', the returned tensors are 1d (N,X) 2d tensors
     """
     if reduce == "micro":
         dim = [0, 1] if preds.ndim == 2 else [1, 2]
@@ -94,19 +92,14 @@ def _stat_scores_update(
     if ignore_index is not None and preds.shape[1] == 1:
         raise ValueError("You can not use `ignore_index` with binary data.")
 
-    if len(preds.shape) == 3:
+    if preds.ndim == 3:
         if not mdmc_reduce:
             raise ValueError(
                 "When your inputs are multi-dimensional multi-class, you have to set the `mdmc_reduce` parameter"
             )
         if mdmc_reduce == "global":
-            # Equivalent of torch.movedim(preds, 1, -1)
-            shape_permute = list(range(preds.ndim))
-            shape_permute[1] = shape_permute[-1]
-            shape_permute[2:] = range(1, len(shape_permute) - 1)
-
-            preds = preds.permute(*shape_permute).reshape(-1, preds.shape[1])
-            target = target.permute(*shape_permute).reshape(-1, target.shape[1])
+            preds = torch.transpose(preds, 1, 2).reshape(-1, preds.shape[1])
+            target = torch.transpose(target, 1, 2).reshape(-1, target.shape[1])
 
     # Delete what is in ignore_index, if applicable (and classes don't matter):
     if ignore_index and reduce != "macro":
@@ -117,16 +110,10 @@ def _stat_scores_update(
 
     # Take care of ignore_index
     if ignore_index and reduce == "macro":
-        if mdmc_reduce in ["global", None]:
-            tp[ignore_index] = -1
-            fp[ignore_index] = -1
-            tn[ignore_index] = -1
-            fn[ignore_index] = -1
-        else:
-            tp[:, ignore_index] = -1
-            fp[:, ignore_index] = -1
-            tn[:, ignore_index] = -1
-            fn[:, ignore_index] = -1
+        tp[..., ignore_index] = -1
+        fp[..., ignore_index] = -1
+        tn[..., ignore_index] = -1
+        fn[..., ignore_index] = -1
 
     return tp, fp, tn, fn
 
