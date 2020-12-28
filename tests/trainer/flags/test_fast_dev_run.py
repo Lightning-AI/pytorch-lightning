@@ -5,6 +5,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.loggers.base import DummyLogger
 from tests.base import BoringModel
 
 
@@ -27,7 +28,7 @@ def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
 
 @pytest.mark.parametrize('fast_dev_run', [1, 4])
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_mc_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
+def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     """
     Test that ModelCheckpoint, EarlyStopping and Logger are turned off with fast_dev_run
     """
@@ -46,25 +47,30 @@ def test_mc_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
             self.validation_step_called = True
             return super().validation_step(batch, batch_idx)
 
-    def _make_fast_dev_run_assertions(trainer):
-        # there should be no logger with fast_dev_run
-        assert trainer.logger is None
-        assert len(trainer.dev_debugger.logged_metrics) == 0
-
-        # checkpoint and early stopping should not have been called with fast_dev_run
-        assert trainer.early_stopping_callback is None
-        assert trainer.checkpoint_callback is None
-        assert len(trainer.dev_debugger.checkpoint_callback_history) == 0
-        assert len(trainer.dev_debugger.early_stopping_history) == 0
-
-    train_val_step_model = FastDevRunModel()
+    checkpoint_callback = ModelCheckpoint()
+    early_stopping_callback = EarlyStopping()
     trainer_config = dict(
         fast_dev_run=fast_dev_run,
         logger=True,
         log_every_n_steps=1,
-        callbacks=[ModelCheckpoint(), EarlyStopping()],
+        callbacks=[checkpoint_callback, early_stopping_callback],
     )
 
+    def _make_fast_dev_run_assertions(trainer):
+        # there should be no logger with fast_dev_run
+        assert isinstance(trainer.logger, DummyLogger)
+        assert len(trainer.dev_debugger.logged_metrics) == 0
+
+        # checkpoint callback should not have been called with fast_dev_run
+        assert trainer.checkpoint_callback == checkpoint_callback
+        assert not os.path.exists(checkpoint_callback.dirpath)
+        assert len(trainer.dev_debugger.checkpoint_callback_history) == 0
+
+        # early stopping should not have been called with fast_dev_run
+        assert trainer.early_stopping_callback == early_stopping_callback
+        assert len(trainer.dev_debugger.early_stopping_history) == 0
+
+    train_val_step_model = FastDevRunModel()
     trainer = Trainer(**trainer_config)
     results = trainer.fit(train_val_step_model)
     assert results

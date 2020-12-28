@@ -219,31 +219,37 @@ class TrainerProperties(ABC):
         return self._weights_save_path
 
     @property
-    def early_stopping_callback(self) -> Optional[ModelCheckpoint]:
+    def early_stopping_callback(self) -> Optional[EarlyStopping]:
         """
-        The first early_stopping callback in the Trainer.callbacks list, or ``None`` if
-        no early_stopping callbacks exist.
+        The first :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+        callback in the Trainer.callbacks list, or ``None`` if it doesn't exist.
         """
         callbacks = self.early_stopping_callbacks
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
-    def early_stopping_callbacks(self) -> List[ModelCheckpoint]:
-        """ A list of all instances of EarlyStopping found in the Trainer.callbacks list. """
+    def early_stopping_callbacks(self) -> List[EarlyStopping]:
+        """
+        A list of all instances of :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+        found in the Trainer.callbacks list.
+        """
         return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
 
     @property
     def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
         """
-        The first checkpoint callback in the Trainer.callbacks list, or ``None`` if
-        no checkpoint callbacks exist.
+        The first :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        callback in the Trainer.callbacks list, or ``None`` if it doesn't exist.
         """
         callbacks = self.checkpoint_callbacks
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
     def checkpoint_callbacks(self) -> List[ModelCheckpoint]:
-        """ A list of all instances of ModelCheckpoint found in the Trainer.callbacks list. """
+        """
+        A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        found in the Trainer.callbacks list.
+        """
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
