@@ -683,8 +683,8 @@ def object_detection_mean_average_precision(
                 if iou > best_iou:
                     best_iou = iou
                     best_target_idx = j
-            if best_iou > iou_threshold and targets_assigned[image_idx][best_target_idx] == 0:
-                targets_assigned[image_idx][best_target_idx] = 1
+            if best_iou > iou_threshold and not targets_assigned[image_idx][best_target_idx]:
+                targets_assigned[image_idx][best_target_idx] = True
                 tps[i] = 1
             else:
                 fps[i] = 1
