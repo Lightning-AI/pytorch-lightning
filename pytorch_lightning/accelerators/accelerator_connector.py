@@ -309,7 +309,7 @@ class AcceleratorConnector:
                 rank_zero_warn(
                     'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
                 )
-        else:
+        elif self.trainer.distributed_backend:
             self.trainer._distrib_type = DistributedType(self.trainer.distributed_backend)
 
         if self.trainer.num_gpus > 0 and 'cpu' not in self.trainer.distributed_backend:
