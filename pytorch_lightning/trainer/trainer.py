@@ -487,14 +487,6 @@ class Trainer(
         self.train_loop.setup_training(model)
 
         # ----------------------------
-        # INSPECT THESE FOR MAIN LOOPS
-        # ----------------------------
-        # assign training and eval functions... inspect these to see the train and eval loops :)
-        # self.accelerator_backend.train_loop = self.train
-        # self.accelerator_backend.validation_loop = self.run_evaluation
-        # self.accelerator_backend.test_loop = self.run_evaluation
-
-        # ----------------------------
         # TRAIN
         # ----------------------------
         # hook
@@ -528,7 +520,6 @@ class Trainer(
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
-
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
         return results or 1

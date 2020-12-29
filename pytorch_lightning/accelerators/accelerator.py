@@ -1,8 +1,10 @@
-from pytorch_lightning.accelerators.data_parallel import ParallelPlugin, TrainingTypePlugin, HorovodPlugin
-from pytorch_lightning.accelerators.base_plugin import Plugin
+import os
+
+from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.data_parallel import TrainingTypePlugin, HorovodPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE, AMPType
-from typing import Any, Union
+from pytorch_lightning.utilities import AMPType
+from typing import Any
 import math
 
 import torch
@@ -159,8 +161,6 @@ class NewAccelerator(object):
         if grad_clip_val <= 0:
             return
 
-        model = self.lightning_module
-
         # TODO: Change this. Probably to isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.APEX
 
         # if self.trainer.amp_backend == AMPType.APEX:
@@ -215,7 +215,6 @@ class NewAccelerator(object):
 
     def connect_precision_plugin(self, plugin: PrecisionPlugin):
         model, optimizers, schedulers = plugin.connect(self.model, self.optimizers, self.lr_schedulers)
-
         self.model = model
         self.optimizers = optimizers
         self.schedulers = schedulers
