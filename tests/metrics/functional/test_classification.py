@@ -216,16 +216,7 @@ def test_auroc(pred, target, max_fpr, expected):
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion('1.6.0'),
                     reason='requires torch v1.6 or higher to test max_fpr argument')
 @pytest.mark.parametrize(['max_fpr'], [
-    pytest.param(None),
-    pytest.param(1),
-    pytest.param(0.99),
-    pytest.param(0.9),
-    pytest.param(0.75),
-    pytest.param(0.5),
-    pytest.param(0.25),
-    pytest.param(0.1),
-    pytest.param(0.01),
-    pytest.param(0.001),
+    None, 1, 0.99, 0.9, 0.75, 0.5, 0.25, 0.1, 0.01, 0.001,
 ])
 def test_auroc_with_max_fpr_against_sklearn(max_fpr):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
