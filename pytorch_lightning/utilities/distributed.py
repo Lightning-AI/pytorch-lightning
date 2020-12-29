@@ -202,6 +202,7 @@ def all_gather_ddp_if_available(
     Return:
         A tensor of shape (world_size, batch, ...)
     """
+    group = group if group is not None else torch.distributed.group.WORLD
     if torch.distributed.is_available() and torch.distributed.is_initialized():
         if sync_grads:
             return AllGatherGrad.apply(tensor, group)
