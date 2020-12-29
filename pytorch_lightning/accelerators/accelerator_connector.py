@@ -283,11 +283,6 @@ class AcceleratorConnector:
         return accelerator_backend
 
     def set_distributed_mode(self):
-        self.trainer.use_dp = False
-        self.trainer.use_ddp = False
-        self.trainer.use_ddp2 = False
-        self.trainer.use_horovod = False
-        self.trainer.use_single_gpu = False
 
         if self.trainer.distributed_backend is None:
             if self.has_horovodrun():
@@ -305,42 +300,37 @@ class AcceleratorConnector:
                 )
                 self.trainer.distributed_backend = "ddp_spawn"
 
-        if self.trainer.distributed_backend == "dp":
-            # do nothing if num_gpus == 0
-            if self.trainer.num_gpus == 1:
-                self.trainer._device_type = DeviceType.GPU
-                self.trainer._distrib_type = DistributedType.DP
-            elif self.trainer.num_gpus > 1:
-                self.trainer._distrib_type = DistributedType.DP
-
-        elif self.trainer.distributed_backend in ("ddp", "ddp_spawn"):
-            if self.trainer.num_gpus == 0:
-                if self.trainer.num_nodes > 1 or self.trainer.num_processes > 1:
-                    self.trainer._distrib_type = DistributedType.DDP
-            elif self.trainer.num_gpus == 1:
-                self.trainer._device_type = DeviceType.GPU
-                self.trainer._distrib_type = DistributedType.DDP
-            elif self.trainer.num_gpus > 1:
-                self.trainer._distrib_type = DistributedType.DDP
-                self.trainer.num_processes = self.trainer.num_gpus
-
-        elif self.trainer.distributed_backend == "ddp2":
-            # do nothing if num_gpus == 0
-            if self.trainer.num_gpus >= 1:
-                self.trainer._distrib_type = DistributedType.DDP2
-        elif self.trainer.distributed_backend == "ddp_cpu":
+        if self.trainer.distributed_backend == "ddp_cpu":
+            self.trainer._distrib_type = DistributedType.DDP
+            self.trainer.data_parallel_device_ids = None
             if self.trainer.num_gpus > 0:
                 rank_zero_warn(
                     'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
                 )
-            self.trainer._distrib_type = DistributedType.DDP
-            self.trainer.data_parallel_device_ids = None
-            self.trainer.self._device_type = DeviceType.CPU
-        elif self.trainer.distributed_backend == "horovod":
+        else:
+            self.trainer._distrib_type = DistributedType(self.trainer.distributed_backend)
+
+        if self.trainer.num_gpus > 0 and 'cpu' not in self.trainer.distributed_backend:
+            self.trainer._device_type = DeviceType.GPU
+
+        if self.trainer.num_gpus == 0 and self.trainer._distrib_type in (DistributedType.DP, DistributedType.DDP2):
+            rank_zero_warn(
+                'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
+            )
+            if self.trainer.num_nodes > 1 or self.trainer.num_processes > 1:
+                self.trainer._distrib_type = DistributedType.DDP
+            else:
+                rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
+                self.trainer._distrib_type = None
+
+        if self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN):
+            self.trainer.num_processes = self.trainer.num_gpus
+
+        if self.trainer.distributed_backend == "horovod":
             self._set_horovod_backend()
 
         # throw error to force user ddp or ddp2 choice
-        if self.trainer.num_nodes > 1 and not (self.trainer.use_ddp2 or self.trainer.use_ddp):
+        if self.trainer.num_nodes > 1 and self.trainer._distrib_type not in (DistributedType.DDP2, DistributedType.DDP):
             raise MisconfigurationException(
                 'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
                 'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
@@ -350,7 +340,7 @@ class AcceleratorConnector:
         num_cores = self.trainer.tpu_cores if self.trainer.tpu_cores is not None else 0
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
-        if torch.cuda.is_available() and not self.trainer.on_gpu:
+        if torch.cuda.is_available() and self.trainer._device_type != DeviceType.GPU:
             rank_zero_warn('GPU available but not used. Set the --gpus flag when calling the script.')
 
     def _set_horovod_backend(self):
