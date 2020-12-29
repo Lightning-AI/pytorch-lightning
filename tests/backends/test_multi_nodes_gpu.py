@@ -14,21 +14,15 @@
 import os
 import sys
 
+import pytest
+import torch
+
 ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 sys.path.insert(0, ROOT)
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
-from argparse import ArgumentParser
-from unittest import mock
-
-import pytest
-import torch
-from torch.nn import functional as F
-from torch.utils.data import DataLoader, Dataset, random_split
-
-import pytorch_lightning as pl
-from pytorch_lightning import LightningModule, Trainer
-from tests.base.boring_model import *
+from pytorch_lightning import LightningModule, Trainer  # noqa: E402
+from tests.base.boring_model import BoringModel  # noqa: E402
 
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
