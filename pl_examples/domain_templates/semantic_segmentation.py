@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import ArgumentParser, Namespace
 import os
 import random
-from argparse import ArgumentParser, Namespace
 
 import numpy as np
+from PIL import Image
 import torch
 import torch.nn.functional as F
-import torchvision.transforms as transforms
-from PIL import Image
 from torch.utils.data import DataLoader, Dataset
+import torchvision.transforms as transforms
 
-import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pl_examples.domain_templates.unet import UNet
+import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
 DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
