@@ -74,3 +74,22 @@ class TestR2Score(MetricTester):
             metric_args=dict(adjusted=adjusted,
                              multioutput=multioutput),
         )
+
+
+def test_error_on_different_shape(metric_class=R2Score):
+    metric = metric_class()
+    with pytest.raises(RuntimeError, match='Predictions and targets are expected to have the same shape'):
+        metric(torch.randn(100,), torch.randn(50,))
+
+
+def test_error_on_multidim_tensors(metric_class=R2Score):
+    metric = metric_class()
+    with pytest.raises(ValueError, match=r'Expected both prediction and target to be 1D or 2D tensors,'
+                                         r' but recevied tensors with dimension .'):
+        metric(torch.randn(10,20,5), torch.randn(10,20,5))
+
+
+def test_error_on_too_few_samples(metric_class=R2Score):
+    metric = metric_class()
+    with pytest.raises(ValueError, match='Needs atleast two samples to calculate r2 score.'):
+        metric(torch.randn(1,), torch.randn(1,))
