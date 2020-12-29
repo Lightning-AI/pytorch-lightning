@@ -145,12 +145,15 @@ jobs:
     - name: Update Test Configuration File
       run: |
         from dtrun.configs import prepare_multi_nodes_gpu_config
-        prepare_multi_nodes_gpu_config('./.github/multi-nodes-gpu.yaml', './tests/mnode-tests.txt',
-                                       sha="${{ steps.vars.outputs.SHA }}",
-                                       tcp_address="${{ steps.tcp.outputs.TCP_ADDRESS }}",
-                                       python_version="${{ matrix.python-version }}",
-                                       torch_version="${{ matrix.pytorch-version }}",
-                                       num_gpus=${{ NUM_GPUS }})
+        prepare_multi_nodes_gpu_config(
+            './.github/multi-nodes-gpu.yaml',
+            './tests/mnode-tests.txt',
+            sha="${{ steps.vars.outputs.SHA }}",
+            tcp_address="${{ steps.tcp.outputs.TCP_ADDRESS }}",
+            python_version="${{ matrix.python-version }}",
+            torch_version="${{ matrix.pytorch-version }}",
+            num_gpus=$NUM_GPUS
+        )
       shell: python
 
     - name: Apply Multi Node Testing
