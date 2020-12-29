@@ -222,9 +222,9 @@ def _check_classification_inputs(
     When ``num_classes`` is not specified in these cases, consistency of the highest target
     value against ``C`` dimension is checked for (multi-dimensional) multi-class cases.
 
-    If ``top_k`` is set (not None) for inputs which do not have probability predictions (and
-    are not binary), then an error is raised. Similarly if ``top_k`` is set to a number that
-    is higher than or equal to the ``C`` dimension of ``preds``.
+    If ``top_k`` is set (not None) for inputs that do not have probability predictions (and
+    are not binary), an error is raised. Similarly if ``top_k`` is set to a number that
+    is higher than or equal to the ``C`` dimension of ``preds``, an error is raised.
 
     Preds and target tensors are expected to be squeezed already - all dimensions should be
     greater than 1, except perhaps the first one (``N``).
@@ -248,20 +248,10 @@ def _check_classification_inputs(
             Should be left unset (``None``) for inputs with label predictions.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be (see :ref:`metrics: Input types` documentation section for
-            input classification and examples of the use of this parameter). Should be left at default
-            value (``None``) in most cases.
+            than what they appear to be. See the parameter's
+            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            for a more detailed explanation and examples.
 
-            The special cases where this parameter should be set are:
-
-            - When you want to treat binary or multi-label inputs as multi-class or multi-dimensional
-              multi-class with 2 classes, respectively. The probabilities are interpreted as the
-              probability of the "1" class, and thresholding still applies as usual. In this case
-              the parameter should be set to ``True``.
-            - When you want to treat multi-class or multi-dimensional mulit-class inputs with 2 classes
-              as binary or multi-label inputs, respectively. This is mainly meant for the case when
-              inputs are labels, but will work if they are probabilities as well. For this case the
-              parameter should be set to ``False``.
 
     Return:
         case: The case the inputs fall in, one of 'binary', 'multi-class', 'multi-label' or
@@ -385,20 +375,9 @@ def _input_format_classification(
             Should be left unset (``None``) for all other types of inputs.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be (see :ref:`metrics: Input types` documentation section for
-            input classification and examples of the use of this parameter). Should be left at default
-            value (``None``) in most cases.
-
-            The special cases where this parameter should be set are:
-
-            - When you want to treat binary or multi-label inputs as multi-class or multi-dimensional
-              multi-class with 2 classes, respectively. The probabilities are interpreted as the
-              probability of the "1" class, and thresholding still applies as usual. In this case
-              the parameter should be set to ``True``.
-            - When you want to treat multi-class or multi-dimensional mulit-class inputs with 2 classes
-              as binary or multi-label inputs, respectively. This is mainly meant for the case when
-              inputs are labels, but will work if they are probabilities as well. For this case the
-              parameter should be set to ``False``.
+            than what they appear to be. See the parameter's
+            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            for a more detailed explanation and examples.
 
 
     Returns:

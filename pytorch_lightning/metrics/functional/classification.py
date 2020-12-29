@@ -146,7 +146,7 @@ def stat_scores_multiple_classes(
     rank_zero_warn(
         "This `stat_scores_multiple_classes` was deprecated in v1.2.0 in favor of"
         " `from pytorch_lightning.metrics.functional import stat_scores`."
-        " It will be removed in v1.3.0", DeprecationWarning
+        " It will be removed in v1.4.0", DeprecationWarning
     )
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
