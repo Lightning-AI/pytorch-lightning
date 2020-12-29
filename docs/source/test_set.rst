@@ -87,8 +87,8 @@ is not available at the time your model was declared.
 
 You can either pass in a single dataloader or a list of them. This optional named
 parameter can be used in conjunction with any of the above use cases. Additionally,
-you can also pass in an :ref:`datamodules` that have overridden the
-`test_dataloader` method.
+you can also pass in an :ref:`datamodules` that have overridden the 
+:ref:`datamodule-test-dataloader-label` method.
 
 .. code-block:: python
 
@@ -102,3 +102,6 @@ you can also pass in an :ref:`datamodules` that have overridden the
 
     # test (pass in datamodule)
     trainer.test(datamodule=dm)
+    
+
+
