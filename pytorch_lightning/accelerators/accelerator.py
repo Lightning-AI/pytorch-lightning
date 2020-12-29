@@ -1,4 +1,4 @@
-from pytorch_lightning.accelerators.data_parallel import ParallelPlugin, TrainingTypePlugin
+from pytorch_lightning.accelerators.data_parallel import ParallelPlugin, TrainingTypePlugin, HorovodPlugin
 from pytorch_lightning.accelerators.base_plugin import Plugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE, AMPType
@@ -106,12 +106,17 @@ class NewAccelerator(object):
         return dataloader
 
     def backward(self, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs):
-        return self.precision_plugin.backward(
+        output = self.precision_plugin.backward(
             self.lightning_module, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
         )
 
-    def optimizer_step(self, optimizer, current_epoch, batch_idx, opt_idx, lambda_closure):
+        # TODO: this is a hack, find a better solution for this (hook?)
+        if isinstance(self.training_type_plugin, HorovodPlugin):
+            optimizer.synchronize()
 
+        return output
+
+    def optimizer_step(self, optimizer, current_epoch, batch_idx, opt_idx, lambda_closure):
         model_ref = self.lightning_module
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
         native_amp = (
@@ -119,6 +124,7 @@ class NewAccelerator(object):
         )
 
         self.precision_plugin.pre_optimizer_step(optimizer, opt_idx)
+        self.training_type_plugin.pre_optimizer_step(optimizer, opt_idx)
 
         # model hook
         res = model_ref.optimizer_step(
@@ -133,6 +139,7 @@ class NewAccelerator(object):
         )
 
         self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
+        self.training_type_plugin.post_optimizer_step(optimizer, opt_idx)
         return res
 
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
