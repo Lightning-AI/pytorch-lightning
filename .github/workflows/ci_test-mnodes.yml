@@ -77,7 +77,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install awscli coverage
-        pip install git+https://${{ secrets.PL_GHOST_TOKEN }}@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.2 -v --no-cache-dir
+        pip install git+https://${{ secrets.PL_GHOST_TOKEN }}@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.3 -v --no-cache-dir
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -99,13 +99,6 @@ jobs:
       run: |
         echo "::set-output name=ID::$(echo '${{ steps.vars.outputs.SHA }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}' | tr . - )"
         echo "::set-output name=ID_NAME::$(echo 's-${{ steps.vars.outputs.SHA }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-e' | tr . - )"
-        echo "::set-output name=PYTHON_VERSION_DASH::$(echo '${{ matrix.python-version }}' | tr . - )"
-        echo "::set-output name=PYTORCH_VERSION_DASH::$(echo '${{ matrix.pytorch-version }}' | tr . - )"
-
-    - name: Update Test Configuration File
-      run: |
-        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{PYTHON_VERSION}', '${{ matrix.python-version }}').replace('{PYTHON_VERSION_DASH}', '${{ steps.job.outputs.PYTHON_VERSION_DASH }}').replace('{SHA}', '${{ steps.vars.outputs.SHA }}').replace('{PYTORCH_VERSION}', '${{ matrix.pytorch-version }}').replace('{PYTORCH_VERSION_DASH}', '${{ steps.job.outputs.PYTORCH_VERSION_DASH }}').replace('{NODES}', '$NODES').replace('{NUM_GPUS}', '$NUM_GPUS') ; open(fname, 'w').write(req)"
-        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; print(open(fname).read())"
 
     - name: Install EKSClient
       run: |
@@ -149,12 +142,19 @@ jobs:
 
     - name: Update Test Configuration File
       run: |
-        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{TCP_ADDRESS}', '${{ steps.tcp.outputs.TCP_ADDRESS }}') ; open(fname, 'w').write(req)"
-        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; print(open(fname).read())"
+        from dtrun.configs import prepare_multi_nodes_gpu_config
+        prepare_multi_nodes_gpu_config('./.github/multi-nodes-gpu.yaml', './tests/mnode-tests.txt',
+                                       sha="${{ steps.vars.outputs.SHA }}",
+                                       tcp_address="${{ steps.tcp.outputs.TCP_ADDRESS }}",
+                                       python_version="${{ matrix.python-version }}",
+                                       torch_version="${{ matrix.pytorch-version }}",
+                                       num_gpus=${{ NUM_GPUS }})
+      shell: python
 
     - name: Apply Multi Node Testing
       run: |
-        kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
+        cat .github/multi-nodes-gpu.yaml
+        kubectl apply -f .github/multi-nodes-gpu.yaml
       shell: bash
 
     - name: Wait
