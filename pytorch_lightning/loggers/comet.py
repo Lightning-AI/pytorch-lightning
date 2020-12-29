@@ -46,6 +46,7 @@ import torch
 from torch import is_tensor
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -312,3 +313,7 @@ class CometLogger(LightningLoggerBase):
         # needed later
         state["_experiment"] = None
         return state
+
+    def log_graph(self, model: LightningModule, input_array=None) -> None:
+        if self._experiment is not None:
+            self._experiment.set_model_graph(model)
