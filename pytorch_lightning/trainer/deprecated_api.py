@@ -40,7 +40,6 @@ class DeprecatedDistDeviceAttributes:
     @on_tpu.setter
     def on_tpu(self, val: bool) -> None:
         rank_zero_warn("Internal: `on_tpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        # todo add logic that it cannot be set if TPU is missing
         if val:
             self._device_type = DeviceType.TPU
 
@@ -62,7 +61,6 @@ class DeprecatedDistDeviceAttributes:
     @on_gpu.setter
     def on_gpu(self, val: bool) -> None:
         rank_zero_warn("Internal: `on_gpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        # todo add logic that it cannot be set if GPU is missing
         if val:
             self._device_type = DeviceType.GPU
 
