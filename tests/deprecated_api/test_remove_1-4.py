@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in vX.Y.Z"""
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from tests.deprecated_api import _soft_unimport_module
