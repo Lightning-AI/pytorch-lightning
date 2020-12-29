@@ -14,6 +14,7 @@
 """Test deprecated functionality which will be removed in vX.Y.Z"""
 import pytest
 
+from pytorch_lightning import Trainer
 from tests.deprecated_api import _soft_unimport_module
 
 
@@ -33,3 +34,35 @@ def test_v1_4_0_deprecated_imports():
     _soft_unimport_module('pytorch_lightning.utilities.xla_device_utils')
     with pytest.deprecated_call(match='will be removed in v1.4'):
         from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils  # noqa: F811 F401
+
+
+# todo: later add also checking deprecated warnings
+def test_v1_4_0_deprecated_trainer_attributes():
+    """Test that Trainer attributes works fine."""
+    trainer = Trainer()
+    trainer._distrib_type = None
+    trainer._device_type = None
+
+    trainer.on_cpu = True
+    assert trainer.on_cpu
+
+    trainer.on_gpu = True
+    assert trainer.on_gpu
+
+    trainer.on_tpu = True
+    assert trainer.on_tpu
+    trainer._device_type = None
+    trainer.use_tpu = True
+    assert trainer.use_tpu
+
+    trainer.use_dp = True
+    assert trainer.use_dp
+
+    trainer.use_ddp = True
+    assert trainer.use_ddp
+
+    trainer.use_ddp2 = True
+    assert trainer.use_ddp2
+
+    trainer.use_horovod = True
+    assert trainer.use_horovod
