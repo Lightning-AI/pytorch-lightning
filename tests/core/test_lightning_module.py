@@ -117,15 +117,15 @@ def test_params_groups_and_state_are_accessible(enable_pl_optimizer, tmpdir):
             optimizer_2 = Adam(self.layer.parameters(), lr=0.1)
             return [optimizer, optimizer_2]
 
-        def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure,
-                           on_tpu=False, using_native_amp=False, using_lbfgs=False):
-            # warm up lr
-            if self.trainer.global_step < 500:
-                lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
-                for pg in optimizer.param_groups:
-                    pg['lr'] = lr_scale * 0.01
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure,
+                               on_tpu=False, using_native_amp=False, using_lbfgs=False):
+                # warm up lr
+                if self.trainer.global_step < 500:
+                    lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
+                    for pg in optimizer.param_groups:
+                        pg['lr'] = lr_scale * 0.01
 
-            optimizer.step(closure=closure)
+                optimizer.step(closure=optimizer_closure)
 
     model = TestModel()
     model.training_epoch_end = None
