@@ -23,6 +23,7 @@ import torch
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.base import BoringDataModule, BoringModel
 from tests.base.develop_utils import reset_seed
 
@@ -397,7 +398,8 @@ def test_full_loop_dp(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_dm_transfer_batch_to_device(tmpdir):
+@mock.patch("pytorch_lightning.accelerators.accelerator.NewAccelerator.lightning_module", new_callable=PropertyMock)
+def test_dm_transfer_batch_to_device(get_module_mock):
     class CustomBatch:
         def __init__(self, data):
             self.samples = data[0]
@@ -420,9 +422,9 @@ def test_dm_transfer_batch_to_device(tmpdir):
 
     trainer = Trainer(gpus=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
-    trainer.get_model = MagicMock(return_value=model)
-
-    model.transfer_batch_to_device = dm.transfer_batch_to_device
+    get_module_mock.return_value = model
+    if is_overridden('transfer_batch_to_device', dm):
+        model.transfer_batch_to_device = dm.transfer_batch_to_device
 
     batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
