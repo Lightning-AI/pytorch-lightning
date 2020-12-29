@@ -86,7 +86,7 @@ def test_error_on_multidim_tensors(metric_class=R2Score):
     metric = metric_class()
     with pytest.raises(ValueError, match=r'Expected both prediction and target to be 1D or 2D tensors,'
                                          r' but recevied tensors with dimension .'):
-        metric(torch.randn(10,20,5), torch.randn(10,20,5))
+        metric(torch.randn(10, 20, 5), torch.randn(10, 20, 5))
 
 
 def test_error_on_too_few_samples(metric_class=R2Score):
