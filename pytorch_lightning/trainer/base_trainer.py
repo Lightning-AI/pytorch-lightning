@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import abstractclassmethod
+from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
 from copy import deepcopy
 import inspect
@@ -207,15 +207,15 @@ class BaseTrainer:
     #                             #
     ###############################
 
-    @abstractclassmethod
+    @abstractmethod
     def fit(self, *_, **__):
         pass
 
-    @abstractclassmethod
+    @abstractmethod
     def tune(self, *_, **__):
         pass
 
-    @abstractclassmethod
+    @abstractmethod
     def test(self, *_, **__):
         pass
 
