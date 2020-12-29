@@ -19,20 +19,20 @@ After a few epochs, launch TensorBoard to see the images being generated at ever
 
 tensorboard --logdir default
 """
-import os
 from argparse import ArgumentParser, Namespace
+import os
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # noqa
-import torchvision
-import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
+import torchvision
 from torchvision.datasets import MNIST
+import torchvision.transforms as transforms
 
 from pl_examples import cli_lightning_logo
-from pytorch_lightning.core import LightningModule, LightningDataModule
+from pytorch_lightning.core import LightningDataModule, LightningModule
 from pytorch_lightning.trainer import Trainer
 
 
