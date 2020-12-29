@@ -30,8 +30,8 @@ or show all options you can change:
     python imagenet.py --help
 
 """
-import os
 from argparse import ArgumentParser, Namespace
+import os
 
 import torch
 import torch.nn.functional as F
@@ -44,8 +44,8 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 import torchvision.transforms as transforms
 
-import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
+import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 
 

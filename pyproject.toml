@@ -23,7 +23,6 @@ known_first_party = [
     "tests",
 ]
 skip_glob = [
-    "pl_examples/*",
     "pytorch_lightning/accelerators/*",
     "pytorch_lightning/callbacks/*",
     "pytorch_lightning/cluster_environments/*",
