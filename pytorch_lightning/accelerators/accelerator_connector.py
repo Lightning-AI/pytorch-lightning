@@ -83,7 +83,12 @@ class AcceleratorConnector:
 
         self.trainer.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         if self.trainer.tpu_cores is not None:
-            self.trainer._device_type = DeviceType.TPU
+            if _TPU_AVAILABLE:
+                self.trainer._device_type = DeviceType.TPU
+            else:
+                raise MisconfigurationException(
+                    f"You have requested {self.trainer.tpu_cores} TPU cores but none is available."
+                )
 
         self.trainer.tpu_id = self.trainer.tpu_cores[0] if isinstance(self.trainer.tpu_cores, list) else None
 
@@ -101,20 +106,15 @@ class AcceleratorConnector:
 
         self.trainer.data_parallel_device_ids = device_parser.parse_gpu_ids(self.trainer.gpus)
         self.trainer.root_gpu = device_parser.determine_root_gpu_device(self.trainer.data_parallel_device_ids)
-        self.trainer.root_device = torch.device("cpu")
-
-        if (self.trainer.data_parallel_device_ids and torch.cuda.is_available()):
-            self.trainer._device_type = DeviceType.GPU
 
         # tpu state flags
-        self.trainer.use_tpu = False
         self.trainer.tpu_local_core_rank = None
         self.trainer.tpu_global_core_rank = None
 
         # distributed backend choice
         self.set_distributed_mode()
 
-        # override dist backend when using tpus
+        # override dist backend when using TPUs
         if self.trainer.on_tpu:
             self.trainer.distributed_backend = "tpu"
 
@@ -138,8 +138,10 @@ class AcceleratorConnector:
 
     def _map_deprecated_dist_backend(self, accelerator, distributed_backend):
         if distributed_backend is not None:
-            rank_zero_warn(DeprecationWarning('distributed_backend has been renamed to accelerator. '
-                                              'Deprecated in 1.0.0, will be removed in 1.2.0'))
+            rank_zero_warn(
+                '`distributed_backend` has been renamed to accelerator. Deprecated in 1.0.0, will be removed in 1.2.0',
+                DeprecationWarning
+            )
 
         # temporary mapping until we remove all the distributed_backend references
         if accelerator is not None:
@@ -344,7 +346,7 @@ class AcceleratorConnector:
             rank_zero_warn('GPU available but not used. Set the --gpus flag when calling the script.')
 
     def _set_horovod_backend(self):
-        self.check_horovod()
+        self._check_horovod()
         self.trainer._distrib_type = DistributedType.HOROVOD
 
         # Initialize Horovod to get rank / size info
@@ -353,7 +355,7 @@ class AcceleratorConnector:
             # Horovod assigns one local GPU per process
             self.trainer.root_gpu = hvd.local_rank()
 
-    def check_horovod(self):
+    def _check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
         if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(
