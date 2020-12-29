@@ -145,7 +145,7 @@ Metrics are simple subclasses of :class:`~torch.nn.Module` and their metric stat
 similar to buffers and parameters of modules. This means that metrics states should
 be moved to the same device as the input of the metric:
 
-.. testcode::
+.. code-block:: python
 
     import torch
     from pytorch_lightning.metrics import Accuracy
@@ -169,7 +169,7 @@ as child modules. Instead of ``list`` use :class:`~torch.nn.ModuleList` and inst
 
 .. testcode::
 
-    class MyModule(pl.LightningModule):
+    class MyModule(LightningModule):
         def __init__(self):
             ...
             # valid ways metrics will be identified as child modules
