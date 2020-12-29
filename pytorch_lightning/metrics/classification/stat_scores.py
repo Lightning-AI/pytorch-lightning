@@ -32,13 +32,12 @@ class StatScores(Metric):
     Args:
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0 or 1) predictions, in the case of binary or multi-label inputs. If not set it
-            defaults to 0.5.
+            (0 or 1) predictions, in the case of binary or multi-label inputs.
 
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
             only for inputs with probability predictions. If this parameter is set for multi-label
-            inputs, it will take precedence over threshold. For (multi-dim) multi-class inputs,
+            inputs, it will take precedence over ``threshold``. For (multi-dim) multi-class inputs,
             this parameter defaults to 1.
 
             Should be left unset (``None``) for inputs with label predictions.
@@ -119,7 +118,7 @@ class StatScores(Metric):
 
     def __init__(
         self,
-        threshold: Optional[float] = None,
+        threshold: float = 0.5,
         top_k: Optional[int] = None,
         reduce: str = "micro",
         num_classes: Optional[int] = None,
@@ -146,7 +145,7 @@ class StatScores(Metric):
         self.ignore_index = ignore_index
         self.top_k = top_k
 
-        if threshold is not None and not 0 < threshold < 1:
+        if not 0 < threshold < 1:
             raise ValueError(f"The `threshold` should be a float in the (0,1) interval, got {threshold}")
 
         if reduce not in ["micro", "macro", "samples"]:

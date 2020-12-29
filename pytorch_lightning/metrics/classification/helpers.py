@@ -361,8 +361,7 @@ def _input_format_classification(
         target: Tensor with ground truth labels, always integers (labels)
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0 or 1) predictions, in the case of binary or multi-label inputs. If not set it
-            defaults to 0.5.
+            (0 or 1) predictions, in the case of binary or multi-label inputs.
         num_classes:
             Number of classes. If not explicitly set, the number of classes will be infered
             either from the shape of inputs, or the maximum label in the ``target`` and ``preds``
@@ -396,9 +395,6 @@ def _input_format_classification(
     # for example, min() is not supported
     if preds.dtype == torch.float16:
         preds = preds.float()
-
-    # Let threshold default to 0.5 if not set
-    threshold = 0.5 if threshold is None else threshold
 
     case = _check_classification_inputs(
         preds,

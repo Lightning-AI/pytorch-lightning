@@ -140,7 +140,7 @@ def stat_scores(
     mdmc_reduce: Optional[str] = None,
     num_classes: Optional[int] = None,
     top_k: Optional[int] = None,
-    threshold: Optional[float] = None,
+    threshold: float = 0.5,
     is_multiclass: Optional[bool] = None,
     ignore_index: Optional[int] = None,
 ) -> torch.Tensor:
@@ -157,13 +157,12 @@ def stat_scores(
         target: Ground truth values
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0 or 1) predictions, in the case of binary or multi-label inputs. If not set it
-            defaults to 0.5.
+            (0 or 1) predictions, in the case of binary or multi-label inputs.
 
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
             only for inputs with probability predictions. If this parameter is set for multi-label
-            inputs, it will take precedence over threshold. For (multi-dim) multi-class inputs,
+            inputs, it will take precedence over ``threshold``. For (multi-dim) multi-class inputs,
             this parameter defaults to 1.
 
             Should be left unset (``None``) for inputs with label predictions.

@@ -98,7 +98,7 @@ class Accuracy(Metric):
 
     def __init__(
         self,
-        threshold: Optional[float] = None,
+        threshold: float = 0.5,
         top_k: Optional[int] = None,
         subset_accuracy: bool = False,
         compute_on_step: bool = True,
@@ -116,7 +116,7 @@ class Accuracy(Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
-        if threshold is not None and not 0 < threshold < 1:
+        if not 0 < threshold < 1:
             raise ValueError(f"The `threshold` should be a float in the (0,1) interval, got {threshold}")
 
         if top_k is not None and (not isinstance(top_k, int) or top_k <= 0):

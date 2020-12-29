@@ -50,7 +50,7 @@ def _accuracy_compute(correct: torch.Tensor, total: torch.Tensor) -> torch.Tenso
 def accuracy(
     preds: torch.Tensor,
     target: torch.Tensor,
-    threshold: Optional[float] = None,
+    threshold: float = 0.5,
     top_k: Optional[int] = None,
     subset_accuracy: bool = False,
 ) -> torch.Tensor:
@@ -80,8 +80,7 @@ def accuracy(
         target: Ground truth labels
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If not set it
-            defaults to 0.5.
+            (0,1) predictions, in the case of binary or multi-label inputs.
         top_k:
             Number of highest probability predictions considered to find the correct label, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The
