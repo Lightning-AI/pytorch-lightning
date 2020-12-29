@@ -3,9 +3,9 @@
 Test set
 ========
 Lightning forces the user to run the test set separately to make sure it isn't evaluated by mistake.
-Testing is preformed using the `trainer` objects `.test()` method.
+Testing is performed using the ``trainer`` object's ``.test()`` method.
 
-.. automethod:: pytorch_lightning.trainer.trainer.Trainer.test
+.. automethod:: pytorch_lightning.trainer.Trainer.test
     :noindex:
 
 ----------
