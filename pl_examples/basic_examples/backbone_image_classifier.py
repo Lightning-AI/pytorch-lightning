@@ -18,12 +18,12 @@ import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 
+from pl_examples import cli_lightning_logo, DATASETS_PATH, TORCHVISION_AVAILABLE
 import pytorch_lightning as pl
-from pl_examples import DATASETS_PATH, TORCHVISION_AVAILABLE, cli_lightning_logo
 
 if TORCHVISION_AVAILABLE:
-    from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
+    from torchvision.datasets.mnist import MNIST
 else:
     from tests.base.datasets import MNIST
 
