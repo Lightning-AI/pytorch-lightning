@@ -11,32 +11,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
-import os
-import pickle
-import sys
 from argparse import Namespace
 from copy import deepcopy
+import math
+import os
 from pathlib import Path
+import pickle
+import sys
 from unittest.mock import ANY, call, patch
 
 import cloudpickle
+from omegaconf import OmegaConf
 import pytest
 import torch
-from omegaconf import OmegaConf
 
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.trainer.base_trainer import BaseTrainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
+import tests.base.develop_utils as tutils
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -380,7 +380,7 @@ def test_loading_yaml(tmpdir):
 
 
 def test_dp_output_reduce():
-    mixin = TrainerLoggingMixin()
+    mixin = BaseTrainer()
 
     # test identity when we have a single gpu
     out = torch.rand(3, 1)

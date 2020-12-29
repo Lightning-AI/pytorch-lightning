@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import abstractclassmethod, abstractmethod
+from abc import abstractclassmethod
 from argparse import ArgumentParser, Namespace
 from copy import deepcopy
 import inspect
 import multiprocessing
 import os
 import platform
-from typing import Callable, cast, Iterable, List, Mapping, Optional, Tuple, Type, Union
+from typing import Callable, cast, Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import optim, Tensor
@@ -163,6 +163,7 @@ class BaseTrainer:
     log_gpu_memory: bool
 
     precision: int
+    accumulate_grad_batches: Union[int, Dict]
 
     # dataloders attributes
     train_dataloader: DataLoader
