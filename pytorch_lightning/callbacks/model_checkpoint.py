@@ -662,9 +662,6 @@ class ModelCheckpoint(Callback):
         the internal state to diverge between ranks.
         """
         exists = self._fs.exists(filepath)
-        print(trainer.global_rank, trainer.accelerator_backend)
-        print(trainer.global_rank, "exists:", exists, filepath)
-        # print(trainer.global_rank, "torch.distributed.is_initialized:", torch.distributed.is_initialized())
         if trainer.accelerator_backend is not None:
             exists = trainer.accelerator_backend.broadcast(exists)
         return exists
