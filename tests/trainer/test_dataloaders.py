@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from distutils.version import LooseVersion
 import os
 import platform
-from distutils.version import LooseVersion
 from unittest import mock
 from unittest.mock import patch
 
@@ -24,12 +24,12 @@ from torch.utils.data.dataset import IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
-import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel, RandomDataset
+import tests.base.develop_pipelines as tpipes
 
 
 def test_fit_train_loader_only(tmpdir):
@@ -613,7 +613,7 @@ def test_error_on_zero_len_dataloader(tmpdir):
 
 @pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
-@patch('pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count', return_value=4)
+@patch('pytorch_lightning.trainer.base_trainer.multiprocessing.cpu_count', return_value=4)
 def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
     """ Test that error is raised if dataloader with only a few workers is used """
 
