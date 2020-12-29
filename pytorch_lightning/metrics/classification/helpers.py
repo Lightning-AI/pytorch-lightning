@@ -58,7 +58,7 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
     care of that.
 
     It returns the name of the case in which the inputs fall, and the implied
-    number of classes (from the C dim for multi-class data, or extra dim(s) for
+    number of classes (from the ``C`` dim for multi-class data, or extra dim(s) for
     multi-label data).
     """
 
@@ -227,7 +227,7 @@ def _check_classification_inputs(
     is higher than or equal to the ``C`` dimension of ``preds``.
 
     Preds and target tensors are expected to be squeezed already - all dimensions should be
-    greater than 1, except perhaps the first one (N).
+    greater than 1, except perhaps the first one (``N``).
 
     Args:
         preds: Tensor with predictions (labels or probabilities)
@@ -371,7 +371,7 @@ def _input_format_classification(
         target: Tensor with ground truth labels, always integers (labels)
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If not set it
+            (0 or 1) predictions, in the case of binary or multi-label inputs. If not set it
             defaults to 0.5.
         num_classes:
             Number of classes. If not explicitly set, the number of classes will be infered
@@ -402,10 +402,10 @@ def _input_format_classification(
 
 
     Returns:
-        preds: binary tensor of shape (N, C) or (N, C, X)
-        target: binary tensor of shape (N, C) or (N, C, X)
-        case: The case the inputs fall in, one of 'binary', 'multi-class', 'multi-label' or
-            'multi-dim multi-class'
+        preds: binary tensor of shape ``(N, C)`` or ``(N, C, X)``
+        target: binary tensor of shape ``(N, C)`` or ``(N, C, X)``
+        case: The case the inputs fall in, one of ``'binary'``, ``'multi-class'``, ``'multi-label'`` or
+            ``'multi-dim multi-class'``
     """
     # Remove excess dimensions
     if preds.shape[0] == 1:

@@ -32,7 +32,7 @@ class StatScores(Metric):
     Args:
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If not set it
+            (0 or 1) predictions, in the case of binary or multi-label inputs. If not set it
             defaults to 0.5.
 
         top_k:
@@ -90,14 +90,14 @@ class StatScores(Metric):
             for a more detailed explanation and examples.
 
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False.
+            Forward only calls ``update()`` and return ``None`` if this is set to ``False``.
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
+            before returning the value at the step
         process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+            Specify the process group on which synchronization is called. default: ``None`` (which selects the entire world)
         dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
+            Callback that performs the allgather operation on the metric state. When ``None``, DDP
             will be used to perform the allgather.
 
     Example:

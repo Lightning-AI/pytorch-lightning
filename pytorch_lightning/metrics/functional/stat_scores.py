@@ -39,7 +39,7 @@ def _stat_scores(
     Return:
         Returns a list of 4 tensors; tp, fp, tn, fn.
         The shape of the returned tensors depnds on the shape of the inputs
-        and the `reduce` parameter:
+        and the ``reduce`` parameter:
 
         If inputs are of the shape (N, C), then
         - If reduce is 'micro', the returned tensors are 1 element tensors
@@ -157,7 +157,7 @@ def stat_scores(
         target: Ground truth values
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If not set it
+            (0 or 1) predictions, in the case of binary or multi-label inputs. If not set it
             defaults to 0.5.
 
         top_k:
