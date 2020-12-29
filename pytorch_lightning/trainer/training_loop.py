@@ -161,11 +161,8 @@ class TrainLoop:
             ref_model.on_pretrain_routine_start()
 
         # print model summary
-        if self.trainer.is_global_zero and self.trainer.weights_summary is not None and not self.trainer.testing:
-            if self.trainer.weights_summary in ModelSummary.MODES:
-                ref_model.summarize(mode=self.trainer.weights_summary)
-            else:
-                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+        if self.trainer.is_global_zero and not self.trainer.testing:
+            ref_model.summarize(weights_summary=self.trainer.weights_summary)
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
