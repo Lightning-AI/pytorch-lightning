@@ -38,22 +38,21 @@ import argparse
 from collections import OrderedDict
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Optional, Generator, Union
+from typing import Generator, Optional, Union
 
 import torch
-import torch.nn.functional as F
 from torch import optim
 from torch.nn import Module
+import torch.nn.functional as F
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
-from torchvision import models
-from torchvision import transforms
+from torchvision import models, transforms
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.utils import download_and_extract_archive
 
-import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
+import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
 
 BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
