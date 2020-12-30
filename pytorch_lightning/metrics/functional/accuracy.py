@@ -54,9 +54,7 @@ def accuracy(
     top_k: Optional[int] = None,
     subset_accuracy: bool = False,
 ) -> torch.Tensor:
-    r"""Computes the number of true positives, false positives, true negatives, false negatives.
-    Related to `Type I and Type II errors <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`__
-    and the `confusion matrix <https://en.wikipedia.org/wiki/Confusion_matrix#Table_of_confusion>`__.
+    r"""Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
 
     .. math::
         \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y}_i)

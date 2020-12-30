@@ -30,26 +30,26 @@ def _stat_scores(
 
     Args:
         preds:
-            An (N, C) or (N, C, X) tensor of predictions (0 or 1)
+            An ``(N, C)`` or ``(N, C, X)`` tensor of predictions (0 or 1)
         target:
-            An (N, C) or (N, C, X) tensor of true labels (0 or 1)
+            An ``(N, C)`` or ``(N, C, X)`` tensor of true labels (0 or 1)
         reduce:
-            One of 'micro', 'macro', 'samples'
+            One of ``'micro'``, ``'macro'``, ``'samples'``
 
     Return:
         Returns a list of 4 tensors; tp, fp, tn, fn.
         The shape of the returned tensors depnds on the shape of the inputs
         and the ``reduce`` parameter:
 
-        If inputs are of the shape (N, C), then
-        - If reduce is 'micro', the returned tensors are 1 element tensors
-        - If reduce is 'macro', the returned tensors are (C,) 1d tensors
-        - If reduce is 'samples', the returned tensors are 1d (N,) tensors
+        If inputs are of the shape ``(N, C)``, then
+        - If ``reduce='micro'``, the returned tensors are 1 element tensors
+        - If ``reduce='macro'``, the returned tensors are ``(C,)`` tensors
+        - If ``reduce'samples'``, the returned tensors are ``(N,)`` tensors
 
-        If inputs are of the shape (N, C, X), then
-        - If reduce is 'micro', the returned tensors are (N,) 1d tensors
-        - If reduce is 'macro' the returned tensors are (N,C) 2d tensors
-        - If reduce is 'samples', the returned tensors are 1d (N,X) 2d tensors
+        If inputs are of the shape ``(N, C, X)``, then
+        - If ``reduce='micro'``, the returned tensors are ``(N,)`` tensors
+        - If ``reduce='macro'``, the returned tensors are ``(N,C)`` tensors
+        - If ``reduce='samples'``, the returned tensors are ``(N,X)`` tensors
     """
     if reduce == "micro":
         dim = [0, 1] if preds.ndim == 2 else [1, 2]
