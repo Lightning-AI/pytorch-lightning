@@ -2,6 +2,7 @@ from functools import partial
 
 import pytest
 import torch
+from distutils.version import LooseVersion
 from sklearn.metrics import (
     jaccard_score as sk_jaccard_score,
     precision_score as sk_precision,
@@ -198,16 +199,39 @@ def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
     assert thresh.shape == (exp_shape,)
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected'], [
-    pytest.param([0, 1, 0, 1], [0, 1, 0, 1], 1.),
-    pytest.param([1, 1, 0, 0], [0, 0, 1, 1], 0.),
-    pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.5),
-    pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 1.),
-    pytest.param([0.5, 0.5, 0.5, 0.5], [1, 1, 0, 0], 0.5),
+@pytest.mark.parametrize(['pred', 'target', 'max_fpr', 'expected'], [
+    pytest.param([0, 1, 0, 1], [0, 1, 0, 1], None, 1.),
+    pytest.param([1, 1, 0, 0], [0, 0, 1, 1], None, 0.),
+    pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.8, 0.5),
+    pytest.param([0.5, 0.5, 0.5, 0.5], [1, 1, 0, 0], 0.2, 0.5),
+    pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 0.5, 1.),
 ])
-def test_auroc(pred, target, expected):
-    score = auroc(torch.tensor(pred), torch.tensor(target)).item()
+def test_auroc(pred, target, max_fpr, expected):
+    if max_fpr is not None and LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
+        pytest.skip('requires torch v1.6 or higher to test max_fpr argument')
+
+    score = auroc(torch.tensor(pred), torch.tensor(target), max_fpr=max_fpr).item()
     assert score == expected
+
+
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion('1.6.0'),
+                    reason='requires torch v1.6 or higher to test max_fpr argument')
+@pytest.mark.parametrize('max_fpr', [
+    None, 1, 0.99, 0.9, 0.75, 0.5, 0.25, 0.1, 0.01, 0.001,
+])
+def test_auroc_with_max_fpr_against_sklearn(max_fpr):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    pred = torch.rand((300,), device=device)
+    # Supports only binary classification
+    target = torch.randint(2, (300,), dtype=torch.float64, device=device)
+    sk_score = sk_roc_auc_score(target.cpu().detach().numpy(),
+                                pred.cpu().detach().numpy(),
+                                max_fpr=max_fpr)
+    pl_score = auroc(pred, target, max_fpr=max_fpr)
+
+    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+    assert torch.allclose(sk_score, pl_score)
 
 
 def test_multiclass_auroc():
