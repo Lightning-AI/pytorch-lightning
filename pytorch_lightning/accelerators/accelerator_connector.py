@@ -317,11 +317,11 @@ class AcceleratorConnector:
 
         # DP and DDP2 cannot run without GPU
         if (self.trainer.num_gpus == 0
-                and self.trainer._distrib_type in (DistributedType.DP, DistributedType.DDP, DistributedType.DDP2)):
+                and self.trainer._distrib_type in (DistributedType.DP, DistributedType.DDP2)):
             rank_zero_warn(
                 'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
             )
-            # in some cases it yield in comarison None and int
+            # todo: in some cases it yield in comarison None and int
             if ((self.trainer.num_nodes and self.trainer.num_nodes > 1)
                     or (self.trainer.num_processes and self.trainer.num_processes > 1)):
                 self.trainer._distrib_type = DistributedType.DDP
