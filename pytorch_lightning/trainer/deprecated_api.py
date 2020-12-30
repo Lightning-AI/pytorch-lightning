@@ -52,7 +52,6 @@ class DeprecatedDistDeviceAttributes:
     @use_tpu.setter
     def use_tpu(self, val: bool) -> None:
         # rank_zero_warn("Internal: `use_tpu` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
-        # todo add logic that it cannot be set if TPU is missing
         self.on_tpu = val
 
     @property
@@ -70,7 +69,7 @@ class DeprecatedDistDeviceAttributes:
     @property
     def use_dp(self) -> bool:
         # rank_zero_warn("Internal: `use_dp` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
-        return self._device_type and self._distrib_type == DistributedType.DP
+        return self._distrib_type and self._distrib_type == DistributedType.DP
 
     @use_dp.setter
     def use_dp(self, val: bool) -> None:
@@ -81,7 +80,7 @@ class DeprecatedDistDeviceAttributes:
     @property
     def use_ddp(self) -> bool:
         # rank_zero_warn("Internal: `use_ddp` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
-        return self._device_type and self._distrib_type == DistributedType.DDP
+        return self._distrib_type and self._distrib_type == DistributedType.DDP
 
     @use_ddp.setter
     def use_ddp(self, val: bool) -> None:
@@ -92,7 +91,7 @@ class DeprecatedDistDeviceAttributes:
     @property
     def use_ddp2(self) -> bool:
         # rank_zero_warn("Internal: `use_ddp2` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
-        return self._device_type and self._distrib_type == DistributedType.DDP2
+        return self._distrib_type and self._distrib_type == DistributedType.DDP2
 
     @use_ddp2.setter
     def use_ddp2(self, val: bool) -> None:
@@ -105,7 +104,7 @@ class DeprecatedDistDeviceAttributes:
         # rank_zero_warn(
         #     "Internal: `use_horovod` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning
         # )
-        return self._device_type and self._distrib_type == DistributedType.HOROVOD
+        return self._distrib_type and self._distrib_type == DistributedType.HOROVOD
 
     @use_horovod.setter
     def use_horovod(self, val: bool) -> None:
