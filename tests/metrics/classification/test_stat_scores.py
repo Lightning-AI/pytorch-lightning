@@ -1,11 +1,12 @@
 from functools import partial
+from typing import Callable, Optional
 
 import numpy as np
 import pytest
 import torch
 from sklearn.metrics import multilabel_confusion_matrix
 
-from pytorch_lightning.metrics.classification.utils import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics import StatScores
 from pytorch_lightning.metrics.functional import stat_scores
 from tests.metrics.classification.inputs import (
@@ -15,33 +16,31 @@ from tests.metrics.classification.inputs import (
     _multiclass_prob_inputs as _mc_prob,
     _multilabel_inputs,
     _multilabel_prob_inputs as _ml_prob,
-    _multilabel_multidim_prob_inputs as _mlmd_prob,
-    _multilabel_multidim_inputs as _mlmd,
     _multidim_multiclass_inputs as _mdmc,
     _multidim_multiclass_prob_inputs as _mdmc_prob,
 )
-from tests.metrics.utils import NUM_CLASSES, THRESHOLD, EXTRA_DIM, MetricTester
+from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
 
 torch.manual_seed(42)
 
 
-def _sk_stat_scores(preds, target, reduce, num_classes, is_multiclass, ignore_index, mdmc_reduce=None):
+def _sk_stat_scores(preds, target, reduce, num_classes, is_multiclass, ignore_index, top_k, mdmc_reduce=None):
     preds, target, _ = _input_format_classification(
-        preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
+        preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass, top_k=top_k
     )
     sk_preds, sk_target = preds.numpy(), target.numpy()
 
-    if reduce != "macro" and ignore_index:
-        if preds.shape[1] > 1 and 0 <= ignore_index < preds.shape[1]:
-            sk_preds = np.delete(sk_preds, ignore_index, 1)
-            sk_target = np.delete(sk_target, ignore_index, 1)
+    if reduce != "macro" and ignore_index and preds.shape[1] > 1:
+        sk_preds = np.delete(sk_preds, ignore_index, 1)
+        sk_target = np.delete(sk_target, ignore_index, 1)
 
     if preds.shape[1] == 1 and reduce == "samples":
         sk_target = sk_target.T
         sk_preds = sk_preds.T
 
-    samplewise = reduce == "samples" and preds.shape[1] != 1
-    sk_stats = multilabel_confusion_matrix(sk_target, sk_preds, samplewise=samplewise)
+    sk_stats = multilabel_confusion_matrix(
+        sk_target, sk_preds, samplewise=(reduce == "samples") and preds.shape[1] != 1
+    )
 
     if preds.shape[1] == 1 and reduce != "samples":
         sk_stats = sk_stats[[1]].reshape(-1, 4)[:, [3, 1, 0, 2]]
@@ -56,16 +55,15 @@ def _sk_stat_scores(preds, target, reduce, num_classes, is_multiclass, ignore_in
     if reduce == "micro":
         sk_stats = sk_stats[0]
 
-    if reduce == "macro" and ignore_index:
-        if preds.shape[1] > 1 and 0 <= ignore_index < preds.shape[1]:
-            sk_stats[ignore_index, :] = -1
+    if reduce == "macro" and ignore_index and preds.shape[1]:
+        sk_stats[ignore_index, :] = -1
 
     return sk_stats
 
 
-def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_multiclass, ignore_index):
+def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_multiclass, ignore_index, top_k):
     preds, target, _ = _input_format_classification(
-        preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
+        preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass, top_k=top_k
     )
 
     if mdmc_reduce == "global":
@@ -76,14 +74,14 @@ def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_mul
         preds = preds.permute(*shape_permute).reshape(-1, preds.shape[1])
         target = target.permute(*shape_permute).reshape(-1, target.shape[1])
 
-        return _sk_stat_scores(preds, target, reduce, None, False, ignore_index)
-    else:  # mdmc_reduce == "samplewise"
+        return _sk_stat_scores(preds, target, reduce, None, False, ignore_index, top_k)
+    elif mdmc_reduce == "samplewise":
         scores = []
 
         for i in range(preds.shape[0]):
             pred_i = preds[i, ...].T
             target_i = target[i, ...].T
-            scores_i = _sk_stat_scores(pred_i, target_i, reduce, None, False, ignore_index)
+            scores_i = _sk_stat_scores(pred_i, target_i, reduce, None, False, ignore_index, top_k)
 
             scores.append(np.expand_dims(scores_i, 0))
 
@@ -91,64 +89,80 @@ def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_mul
 
 
 @pytest.mark.parametrize(
-    "reduce, mdmc_reduce, num_classes, inputs",
+    "reduce, mdmc_reduce, num_classes, inputs, ignore_index",
     [
-        ["unknown", None, None, _binary_inputs],
-        ["micro", "unknown", None, _binary_inputs],
-        ["macro", None, None, _binary_inputs],
-        ["micro", None, None, _mdmc_prob],
+        ["unknown", None, None, _binary_inputs, None],
+        ["micro", "unknown", None, _binary_inputs, None],
+        ["macro", None, None, _binary_inputs, None],
+        ["micro", None, None, _mdmc_prob, None],
+        ["micro", None, None, _binary_prob_inputs, 0],
+        ["micro", None, None, _mc_prob, NUM_CLASSES],
+        ["micro", None, NUM_CLASSES, _mc_prob, NUM_CLASSES],
     ],
 )
-def test_wrong_params(reduce, mdmc_reduce, num_classes, inputs):
+def test_wrong_params(reduce, mdmc_reduce, num_classes, inputs, ignore_index):
+    """Test a combination of parameters that are invalid and should raise an error.
+
+    This includes invalid ``reduce`` and ``mdmc_reduce`` parameter values, not setting
+    ``num_classes`` when ``reduce='macro'`, not setting ``mdmc_reduce`` when inputs
+    are multi-dim multi-class``, setting ``ignore_index`` when inputs are binary, as well
+    as setting ``ignore_index`` to a value higher than the number of classes.
+    """
     with pytest.raises(ValueError):
         stat_scores(
-            inputs.preds[0],
-            inputs.target[0],
-            reduce,
-            mdmc_reduce,
-            num_classes=num_classes,
+            inputs.preds[0], inputs.target[0], reduce, mdmc_reduce, num_classes=num_classes, ignore_index=ignore_index
         )
 
     with pytest.raises(ValueError):
-        sts = StatScores(reduce=reduce, mdmc_reduce=mdmc_reduce, num_classes=num_classes)
+        sts = StatScores(reduce=reduce, mdmc_reduce=mdmc_reduce, num_classes=num_classes, ignore_index=ignore_index)
         sts(inputs.preds[0], inputs.target[0])
 
 
-@pytest.mark.parametrize("reduce", ["micro", "macro", "samples"])
+def test_wrong_threshold():
+    with pytest.raises(ValueError):
+        StatScores(threshold=1.5)
+
+
 @pytest.mark.parametrize("ignore_index", [None, 1])
+@pytest.mark.parametrize("reduce", ["micro", "macro", "samples"])
 @pytest.mark.parametrize(
-    "preds, target, sk_fn, mdmc_reduce, num_classes, is_multiclass",
+    "preds, target, sk_fn, mdmc_reduce, num_classes, is_multiclass, top_k",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_stat_scores, None, 1, None),
-        (_binary_inputs.preds, _binary_inputs.target, _sk_stat_scores, None, 1, False),
-        (_ml_prob.preds, _ml_prob.target, _sk_stat_scores, None, NUM_CLASSES, None),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_stat_scores, None, NUM_CLASSES, False),
-        (_mc_prob.preds, _mc_prob.target, _sk_stat_scores, None, NUM_CLASSES, None),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_stat_scores, None, NUM_CLASSES, None),
-        (_mlmd_prob.preds, _mlmd_prob.target, _sk_stat_scores, None, EXTRA_DIM * NUM_CLASSES, None),
-        (_mlmd.preds, _mlmd.target, _sk_stat_scores, None, EXTRA_DIM * NUM_CLASSES, False),
-        (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, None),
-        (_mdmc_prob.preds, _mdmc_prob.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, None),
-        (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "global", NUM_CLASSES, None),
-        (_mdmc_prob.preds, _mdmc_prob.target, _sk_stat_scores_mdmc, "global", NUM_CLASSES, None),
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_stat_scores, None, 1, None, None),
+        (_binary_inputs.preds, _binary_inputs.target, _sk_stat_scores, None, 1, False, None),
+        (_ml_prob.preds, _ml_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
+        (_ml_prob.preds, _ml_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, 2),
+        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_stat_scores, None, NUM_CLASSES, False, None),
+        (_mc_prob.preds, _mc_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
+        (_mc_prob.preds, _mc_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, 2),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
+        (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, None, None),
+        (_mdmc_prob.preds, _mdmc_prob.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, None, None),
+        (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "global", NUM_CLASSES, None, None),
+        (_mdmc_prob.preds, _mdmc_prob.target, _sk_stat_scores_mdmc, "global", NUM_CLASSES, None, None),
     ],
 )
 class TestStatScores(MetricTester):
-    @pytest.mark.parametrize("ddp", [False, True])
+    # DDP tests temporarily disabled due to hanging issues
+    @pytest.mark.parametrize("ddp", [False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_stat_scores_class(
         self,
-        ddp,
-        dist_sync_on_step,
-        sk_fn,
-        preds,
-        target,
-        reduce,
-        mdmc_reduce,
-        num_classes,
-        is_multiclass,
-        ignore_index,
+        ddp: bool,
+        dist_sync_on_step: bool,
+        sk_fn: Callable,
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        reduce: str,
+        mdmc_reduce: Optional[str],
+        num_classes: Optional[int],
+        is_multiclass: Optional[bool],
+        ignore_index: Optional[int],
+        top_k: Optional[int],
     ):
+        if ignore_index and preds.ndim == 2:
+            pytest.skip("Skipping ignore_index test with binary inputs.")
+
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
@@ -161,6 +175,7 @@ class TestStatScores(MetricTester):
                 num_classes=num_classes,
                 is_multiclass=is_multiclass,
                 ignore_index=ignore_index,
+                top_k=top_k,
             ),
             dist_sync_on_step=dist_sync_on_step,
             metric_args={
@@ -170,6 +185,7 @@ class TestStatScores(MetricTester):
                 "threshold": THRESHOLD,
                 "is_multiclass": is_multiclass,
                 "ignore_index": ignore_index,
+                "top_k": top_k,
             },
             check_dist_sync_on_step=True,
             check_batch=True,
@@ -177,15 +193,19 @@ class TestStatScores(MetricTester):
 
     def test_stat_scores_fn(
         self,
-        sk_fn,
-        preds,
-        target,
-        reduce,
-        mdmc_reduce,
-        num_classes,
-        is_multiclass,
-        ignore_index,
+        sk_fn: Callable,
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        reduce: str,
+        mdmc_reduce: Optional[str],
+        num_classes: Optional[int],
+        is_multiclass: Optional[bool],
+        ignore_index: Optional[int],
+        top_k: Optional[int],
     ):
+        if ignore_index and preds.ndim == 2:
+            pytest.skip("Skipping ignore_index test with binary inputs.")
+
         self.run_functional_metric_test(
             preds,
             target,
@@ -197,6 +217,7 @@ class TestStatScores(MetricTester):
                 num_classes=num_classes,
                 is_multiclass=is_multiclass,
                 ignore_index=ignore_index,
+                top_k=top_k,
             ),
             metric_args={
                 "num_classes": num_classes,
@@ -205,5 +226,6 @@ class TestStatScores(MetricTester):
                 "threshold": THRESHOLD,
                 "is_multiclass": is_multiclass,
                 "ignore_index": ignore_index,
+                "top_k": top_k,
             },
         )

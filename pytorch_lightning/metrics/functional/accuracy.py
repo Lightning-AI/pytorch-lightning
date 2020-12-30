@@ -11,37 +11,36 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Tuple, Union
+from typing import Tuple, Optional
 
 import torch
-from pytorch_lightning.metrics.classification.utils import _input_format_classification
-
-################################
-# Accuracy
-################################
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 
 
 def _accuracy_update(
-    preds: torch.Tensor, target: torch.Tensor, threshold: float, top_k: int, mdmc_accuracy: str
+    preds: torch.Tensor, target: torch.Tensor, threshold: float, top_k: Optional[int], subset_accuracy: bool
 ) -> Tuple[torch.Tensor, torch.Tensor]:
 
     preds, target, mode = _input_format_classification(preds, target, threshold=threshold, top_k=top_k)
 
-    if mode in ["binary", "multi-label"]:
+    if mode == "multi-label" and top_k:
+        raise ValueError("You can not use the `top_k` parameter to calculate accuracy for multi-label inputs.")
+
+    if mode == "binary" or (mode == "multi-label" and subset_accuracy):
         correct = (preds == target).all(dim=1).sum()
-        total = target.shape[0]
-    elif mdmc_accuracy == "global":
+        total = torch.tensor(target.shape[0], device=target.device)
+    elif mode == "multi-label" and not subset_accuracy:
+        correct = (preds == target).sum()
+        total = torch.tensor(target.numel(), device=target.device)
+    elif mode == "multi-class" or (mode == "multi-dim multi-class" and not subset_accuracy):
         correct = (preds * target).sum()
         total = target.sum()
-    elif mdmc_accuracy == "subset":
-        extra_dims = list(range(1, len(preds.shape)))
-        sample_correct = (preds * target).sum(dim=extra_dims)
-        sample_total = target.sum(dim=extra_dims)
+    elif mode == "multi-dim multi-class" and subset_accuracy:
+        sample_correct = (preds * target).sum(dim=(1, 2))
+        correct = (sample_correct == target.shape[2]).sum()
+        total = torch.tensor(target.shape[0], device=target.device)
 
-        correct = (sample_correct == sample_total).sum()
-        total = target.shape[0]
-
-    return (torch.tensor(correct, device=preds.device), torch.tensor(total, device=preds.device))
+    return correct, total
 
 
 def _accuracy_compute(correct: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
@@ -49,45 +48,58 @@ def _accuracy_compute(correct: torch.Tensor, total: torch.Tensor) -> torch.Tenso
 
 
 def accuracy(
-    preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, top_k: int = 1, mdmc_accuracy: str = "subset"
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    threshold: float = 0.5,
+    top_k: Optional[int] = None,
+    subset_accuracy: bool = False,
 ) -> torch.Tensor:
-    """
-    Computes the share of entirely correctly predicted samples.
+    r"""Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
 
-    This metric generalizes to subset accuracy for multilabel data, and similarly for
-    multi-dimensional multi-class data: for the sample to be counted as correct, the the
-    class has to be correctly predicted across all extra dimension for each sample in the
-    ``N`` dimension. Consider using :class:`~pytorch_lightning.metrics.classification.HammingLoss`
-    is this is not what you want.
+    .. math::
+        \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y}_i)
+
+    Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a
+    tensor of predictions.
 
     For multi-class and multi-dimensional multi-class data with probability predictions, the
     parameter ``top_k`` generalizes this metric to a Top-K accuracy metric: for each sample the
     top-K highest probability items are considered to find the correct label.
 
+    For multi-label and multi-dimensional multi-class inputs, this metric computes the "global"
+    accuracy by default, which counts all labels or sub-samples separately. This can be
+    changed to subset accuracy (which requires all labels or sub-samples in the sample to
+    be correctly predicted) by setting ``subset_accuracy=True``.
+
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
         preds: Predictions from model (probabilities, or labels)
-        target: Ground truth values
-        top_k:
-            Number of highest probability predictions considered to find the correct label, for
-            (multi-dimensional) multi-class inputs with probability predictions. Default 1
-
-            If your inputs are not (multi-dimensional) multi-class inputs with probability predictions,
-            an error will be raised if ``top_k`` is set to a value other than 1.
-        mdmc_accuracy:
-            Determines how should the extra dimension be handeled in case of multi-dimensional multi-class
-            inputs. Options are ``"global"`` or ``"subset"``.
-
-            If ``"global"``, then the inputs are treated as if the sample (``N``) and the extra dimension
-            were unrolled into a new sample dimension.
-
-            If ``"subset"``, than the equivalent of subset accuracy is performed for each sample on the
-            ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
-            must be predicted correctly (the ``top_k`` option still applies here).
+        target: Ground truth labels
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0,1) predictions, in the case of binary or multi-label inputs.
+        top_k:
+            Number of highest probability predictions considered to find the correct label, relevant
+            only for (multi-dimensional) multi-class inputs with probability predictions. The
+            default value (``None``) will be interpreted as 1 for these inputs.
+
+            Should be left at default (``None``) for all other types of inputs.
+        subset_accuracy:
+            Whether to compute subset accuracy for multi-label and multi-dimensional
+            multi-class inputs (has no effect for other input types).
+
+            - For multi-label inputs, if the parameter is set to ``True``, then all labels for
+              each sample must be correctly predicted for the sample to count as correct. If it
+              is set to ``False``, then all labels are counted separately - this is equivalent to
+              flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
+
+            - For multi-dimensional multi-class inputs, if the parameter is set to ``True``, then all
+              sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
+              If it is set to ``False``, then all sub-samples are counter separately - this is equivalent,
+              in the case of label predictions, to flattening the inputs beforehand (i.e.
+              ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
+              still applies in both cases, if set.
 
     Example:
 
@@ -103,53 +115,5 @@ def accuracy(
         tensor(0.6667)
     """
 
-    correct, total = _accuracy_update(preds, target, threshold, top_k, mdmc_accuracy)
+    correct, total = _accuracy_update(preds, target, threshold, top_k, subset_accuracy)
     return _accuracy_compute(correct, total)
-
-
-################################
-# Hamming loss
-################################
-
-
-def _hamming_loss_update(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> Tuple[torch.Tensor, int]:
-    preds, target, _ = _input_format_classification(preds, target, threshold=threshold)
-
-    correct = (preds == target).sum()
-    total = preds.numel()
-
-    return correct, total
-
-
-def _hamming_loss_compute(correct: torch.Tensor, total: Union[int, torch.Tensor]) -> torch.Tensor:
-    return 1 - correct.float() / total
-
-
-def hamming_loss(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
-    """
-    Computes the share of wrongly predicted labels.
-
-    This is the same as ``1-accuracy`` for binary data, while for all other types of inputs it
-    treats each possible label separately - meaning that, for example, multi-class data is
-    treated as if it were multi-label. If this is not what you want, consider using
-    :class:`~pytorch_lightning.metrics.classification.Accuracy`.
-
-    Accepts all input types listed in :ref:`metrics:Input types`.
-
-    Args:
-        threshold:
-            Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
-
-    Example:
-
-        >>> from pytorch_lightning.metrics.functional import hamming_loss
-        >>> target = torch.tensor([[0, 1], [1, 1]])
-        >>> preds = torch.tensor([[0, 1], [0, 1]])
-        >>> hamming_loss(preds, target)
-        tensor(0.2500)
-
-    """
-
-    correct, total = _hamming_loss_update(preds, target, threshold)
-    return _hamming_loss_compute(correct, total)

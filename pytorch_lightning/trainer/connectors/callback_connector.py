@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional, Union
+from typing import Union
 
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -71,7 +71,7 @@ class CallbackConnector:
             )
 
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
-            self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None))
+            self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None, mode='min'))
 
     def configure_progress_bar(self, refresh_rate=1, process_position=0):
         # smaller refresh rate on colab causes crashes, warn user about this
@@ -103,3 +103,8 @@ class CallbackConnector:
 
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0
+
+    def attach_model_logging_functions(self, model):
+        for callback in self.trainer.callbacks:
+            callback.log = model.log
+            callback.log_dict = model.log_dict

@@ -16,7 +16,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
+from pytorch_lightning.utilities.xla_device import XLADeviceUtils
 from tests.base.boring_model import BoringModel
 from tests.base.develop_utils import pl_multi_process_test
 
@@ -39,7 +39,12 @@ def test_resume_training_on_cpu(tmpdir):
     assert weight_tensor.device == torch.device("cpu")
 
     # Verify that training is resumed on CPU
-    trainer = Trainer(resume_from_checkpoint=model_path, checkpoint_callback=True, max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        resume_from_checkpoint=model_path,
+        checkpoint_callback=True,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
     result = trainer.fit(model)
 
     assert result == 1

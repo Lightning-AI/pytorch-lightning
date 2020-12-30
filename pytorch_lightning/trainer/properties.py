@@ -27,9 +27,18 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import argparse_utils
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities.argparse import (
+    from_argparse_args, parse_argparser, parse_env_variables, add_argparse_args
+)
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
+
+if _TPU_AVAILABLE:
+    import torch_xla.core.xla_model as xm
+
+if _HOROVOD_AVAILABLE:
+    import horovod.torch as hvd
 
 
 class TrainerProperties(ABC):
@@ -38,7 +47,7 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     _state: TrainerState
     global_rank: int
-    fast_dev_run: bool
+    fast_dev_run: Union[int, bool]
     use_dp: bool
     use_ddp: bool
     use_ddp2: bool
@@ -57,19 +66,19 @@ class TrainerProperties(ABC):
     @property
     def log_dir(self):
         if self.checkpoint_callback is not None:
-            dir = self.checkpoint_callback.dirpath
-            dir = os.path.split(dir)[0]
+            dirpath = self.checkpoint_callback.dirpath
+            dirpath = os.path.split(dirpath)[0]
         elif self.logger is not None:
             if isinstance(self.logger, TensorBoardLogger):
-                dir = self.logger.log_dir
+                dirpath = self.logger.log_dir
             else:
-                dir = self.logger.save_dir
+                dirpath = self.logger.save_dir
         else:
-            dir = self._default_root_dir
+            dirpath = self._default_root_dir
 
         if self.accelerator_backend is not None:
-            dir = self.accelerator_backend.broadcast(dir)
-        return dir
+            dirpath = self.accelerator_backend.broadcast(dirpath)
+        return dirpath
 
     @property
     def use_amp(self) -> bool:
@@ -144,19 +153,19 @@ class TrainerProperties(ABC):
 
     @classmethod
     def from_argparse_args(cls: Type['_T'], args: Union[Namespace, ArgumentParser], **kwargs) -> '_T':
-        return argparse_utils.from_argparse_args(cls, args, **kwargs)
+        return from_argparse_args(cls, args, **kwargs)
 
     @classmethod
     def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
-        return argparse_utils.parse_argparser(cls, arg_parser)
+        return parse_argparser(cls, arg_parser)
 
     @classmethod
     def match_env_arguments(cls) -> Namespace:
-        return argparse_utils.parse_env_variables(cls)
+        return parse_env_variables(cls)
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        return argparse_utils.add_argparse_args(cls, parent_parser)
+        return add_argparse_args(cls, parent_parser)
 
     @property
     def num_gpus(self) -> int:
@@ -241,6 +250,35 @@ class TrainerProperties(ABC):
         self.__dict__ = d
         # wrap optimizers in enable_pl_optimzer is True
         self.convert_to_lightning_optimizers()
+
+    @property
+    def require_distributed_sampler(self):
+        if self.accelerator_backend is not None:
+            return self.accelerator_backend.require_distributed_sampler
+        return self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
+
+    @property
+    def distributed_sampler_kwargs(self):
+        if self.accelerator_backend is not None:
+            return self.accelerator_backend.distributed_sampler_kwargs
+
+        if self.use_tpu:
+            kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+
+        elif self.use_horovod:
+            kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
+
+        else:
+            world_size = {
+                "ddp": self.num_nodes * self.num_processes,
+                "ddp_spawn": self.num_nodes * self.num_processes,
+                "ddp2": self.num_nodes,
+                "ddp_cpu": self.num_processes * self.num_nodes
+            }
+            assert self.distributed_backend is not None
+            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
+
+        return kwargs
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

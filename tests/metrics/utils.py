@@ -11,9 +11,14 @@ from torch.multiprocessing import Pool, set_start_method
 
 from pytorch_lightning.metrics import Metric
 
+try:
+    set_start_method("spawn")
+except RuntimeError:
+    pass
+
 NUM_PROCESSES = 2
 NUM_BATCHES = 10
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 NUM_CLASSES = 5
 EXTRA_DIM = 3
 THRESHOLD = 0.5
@@ -26,6 +31,32 @@ def setup_ddp(rank, world_size):
 
     if torch.distributed.is_available() and sys.platform not in ("win32", "cygwin"):
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
+
+
+def _assert_allclose(pl_result, sk_result, atol: float = 1e-8):
+    """ Utility function for recursively asserting that two results are within
+        a certain tolerance
+    """
+    # single output compare
+    if isinstance(pl_result, torch.Tensor):
+        assert np.allclose(pl_result.numpy(), sk_result, atol=atol, equal_nan=True)
+    # multi output compare
+    elif isinstance(pl_result, (tuple, list)):
+        for pl_res, sk_res in zip(pl_result, sk_result):
+            _assert_allclose(pl_res, sk_res, atol=atol)
+    else:
+        raise ValueError('Unknown format for comparison')
+
+
+def _assert_tensor(pl_result):
+    """ Utility function for recursively checking that some input only consist of
+        torch tensors
+    """
+    if isinstance(pl_result, (list, tuple)):
+        for plr in pl_result:
+            _assert_tensor(plr)
+    else:
+        assert isinstance(pl_result, torch.Tensor)
 
 
 def _class_test(
@@ -76,23 +107,23 @@ def _class_test(
                 sk_batch_result = sk_metric(ddp_preds, ddp_target)
                 # assert for dist_sync_on_step
                 if check_dist_sync_on_step:
-                    assert np.allclose(batch_result.numpy(), sk_batch_result, atol=atol, equal_nan=True)
+                    _assert_allclose(batch_result, sk_batch_result, atol=atol)
         else:
             sk_batch_result = sk_metric(preds[i], target[i])
             # assert for batch
             if check_batch:
-                assert np.allclose(batch_result.numpy(), sk_batch_result, atol=atol, equal_nan=True)
+                _assert_allclose(batch_result, sk_batch_result, atol=atol)
 
     # check on all batches on all ranks
     result = metric.compute()
-    assert isinstance(result, torch.Tensor)
+    _assert_tensor(result)
 
     total_preds = torch.cat([preds[i] for i in range(NUM_BATCHES)])
     total_target = torch.cat([target[i] for i in range(NUM_BATCHES)])
     sk_result = sk_metric(total_preds, total_target)
 
     # assert after aggregation
-    assert np.allclose(result.numpy(), sk_result, atol=atol, equal_nan=True)
+    _assert_allclose(result, sk_result, atol=atol)
 
 
 def _functional_test(
@@ -120,7 +151,7 @@ def _functional_test(
         sk_result = sk_metric(preds[i], target[i])
 
         # assert its the same
-        assert np.allclose(lightning_result.numpy(), sk_result, atol=atol, equal_nan=True)
+        _assert_allclose(lightning_result, sk_result, atol=atol)
 
 
 class MetricTester:
@@ -139,10 +170,6 @@ class MetricTester:
         """Setup the metric class. This will spawn the pool of workers that are
         used for metric testing and setup_ddp
         """
-        try:
-            set_start_method("spawn")
-        except RuntimeError:
-            pass
         self.poolSize = NUM_PROCESSES
         self.pool = Pool(processes=self.poolSize)
         self.pool.starmap(setup_ddp, [(rank, self.poolSize) for rank in range(self.poolSize)])

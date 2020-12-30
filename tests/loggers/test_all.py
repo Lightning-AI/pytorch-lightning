@@ -16,7 +16,7 @@ import os
 import pickle
 import platform
 from unittest import mock
-from unittest.mock import ANY, call
+from unittest.mock import ANY
 
 import pytest
 
@@ -31,7 +31,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
-from tests.base import BoringModel, EvalModelTemplate
+from tests.base import EvalModelTemplate
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
@@ -316,7 +316,7 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     trainer = Trainer(
         logger=logger,
         default_root_dir=tmpdir,
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         num_processes=2,
         max_steps=1,
         checkpoint_callback=True,
@@ -366,7 +366,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0}, global_step=0)
 
     # WandB
-    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
         logger = _instantiate_logger(WandbLogger, save_idr=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)

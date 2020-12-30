@@ -22,7 +22,7 @@ import yaml
 from omegaconf import OmegaConf
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import BoringModel, EvalModelTemplate
 

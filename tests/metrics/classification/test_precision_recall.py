@@ -99,7 +99,21 @@ def test_wrong_params(metric, fn_metric):
 
 
 @pytest.mark.parametrize(
-    "metric_class, sk_fn, metric_fn", [(Precision, precision_score, precision), (Recall, recall_score, recall)]
+    "preds, target, sk_metric, num_classes, multilabel",
+    [
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_prec_recall_binary_prob, 1, False),
+        (_binary_inputs.preds, _binary_inputs.target, _sk_prec_recall_binary, 1, False),
+        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target,
+         _sk_prec_recall_multilabel_prob, NUM_CLASSES, True),
+        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_prec_recall_multilabel, NUM_CLASSES, True),
+        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target,
+         _sk_prec_recall_multiclass_prob, NUM_CLASSES, False),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_prec_recall_multiclass, NUM_CLASSES, False),
+        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target,
+         _sk_prec_recall_multidim_multiclass_prob, NUM_CLASSES, False),
+        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target,
+         _sk_prec_recall_multidim_multiclass, NUM_CLASSES, False),
+    ],
 )
 @pytest.mark.parametrize("average", ["micro", "macro", None, "weighted", "samples"])
 @pytest.mark.parametrize("zero_division", [0, 1])

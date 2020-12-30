@@ -19,9 +19,17 @@ from typing import Callable, Optional
 import pytorch_lightning
 
 
-class TrainerState(Enum):
+class TrainerState(str, Enum):
     """ State which is set in the :class:`~pytorch_lightning.trainer.trainer.Trainer`
-    to indicate what is currently or was executed. """
+    to indicate what is currently or was executed.
+
+    >>> # you can math the type with string
+    >>> TrainerState.RUNNING == 'RUNNING'
+    True
+    >>> # which is case sensitive
+    >>> TrainerState.FINISHED == 'finished'
+    False
+    """
     INITIALIZING = 'INITIALIZING'
     RUNNING = 'RUNNING'
     FINISHED = 'FINISHED'

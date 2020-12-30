@@ -248,7 +248,7 @@ class Result(Dict):
     def extract_batch_size(batch):
         try:
             batch_size = Result.unpack_batch_size(batch)
-        except RecursionError as re:
+        except RecursionError:
             batch_size = 1
         return batch_size
 
@@ -400,11 +400,15 @@ class Result(Dict):
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.detach())
 
-    def cpu(self):
-        """Move all self attributes to CPU."""
+    def to(self, *args, **kwargs):
+        """Move all self attributes to the given device."""
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
-                self.__setitem__(k, v.cpu())
+                self.__setitem__(k, v.to(*args, **kwargs))
+
+    def cpu(self):
+        """Move all self attributes to CPU."""
+        self.to(torch.device("cpu"))
 
     def __repr__(self):
         self_copy = self.copy()
@@ -523,7 +527,7 @@ class Result(Dict):
                         result[k] = torch.tensor(result[k]).float()
                     try:
                         reduced_val = weighted_mean(result[k], batch_sizes)
-                    except Exception as e:
+                    except Exception:
                         reduced_val = torch.mean(result[k])
                 else:
                     reduced_val = fx(result[k])

@@ -2,47 +2,34 @@ from functools import partial
 
 import pytest
 import torch
+from distutils.version import LooseVersion
 from sklearn.metrics import (
-    accuracy_score as sk_accuracy,
     jaccard_score as sk_jaccard_score,
     precision_score as sk_precision,
     recall_score as sk_recall,
-    f1_score as sk_f1_score,
-    fbeta_score as sk_fbeta_score,
-    roc_curve as sk_roc_curve,
     roc_auc_score as sk_roc_auc_score,
-    precision_recall_curve as sk_precision_recall_curve
 )
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.functional.classification import (
-    to_onehot,
-    to_categorical,
-    get_num_classes,
     stat_scores,
     stat_scores_multiple_classes,
-    accuracy,
     precision,
     recall,
-    _binary_clf_curve,
     dice_score,
-    average_precision,
     auroc,
     multiclass_auroc,
-    precision_recall_curve,
-    roc,
     auc,
     iou,
 )
+from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
+from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categorical
 
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'only_binary'], [
-    pytest.param(sk_accuracy, accuracy, False, id='accuracy'),
     pytest.param(partial(sk_jaccard_score, average='macro'), iou, False, id='iou'),
     pytest.param(partial(sk_precision, average='micro'), precision, False, id='precision'),
     pytest.param(partial(sk_recall, average='micro'), recall, False, id='recall'),
-    pytest.param(sk_roc_curve, roc, True, id='roc'),
-    pytest.param(sk_precision_recall_curve, precision_recall_curve, True, id='precision_recall_curve'),
     pytest.param(sk_roc_auc_score, auroc, True, id='auroc')
 ])
 def test_against_sklearn(sklearn_metric, torch_metric, only_binary):
@@ -164,7 +151,8 @@ def test_stat_scores(pred, target, expected_tp, expected_fp, expected_tn, expect
     pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 'elementwise_mean',
                  torch.tensor(0.4), torch.tensor(0.4), torch.tensor(2.8), torch.tensor(0.4), torch.tensor(0.8))
 ])
-def test_stat_scores_multiclass(pred, target, reduction, expected_tp, expected_fp, expected_tn, expected_fn, expected_support):
+def test_stat_scores_multiclass(pred, target, reduction,
+                                expected_tp, expected_fp, expected_tn, expected_fn, expected_support):
     tp, fp, tn, fn, sup = stat_scores_multiple_classes(pred, target, reduction=reduction)
 
     assert torch.allclose(torch.tensor(expected_tp).to(tp), tp)
@@ -172,39 +160,6 @@ def test_stat_scores_multiclass(pred, target, reduction, expected_tp, expected_f
     assert torch.allclose(torch.tensor(expected_tn).to(tn), tn)
     assert torch.allclose(torch.tensor(expected_fn).to(fn), fn)
     assert torch.allclose(torch.tensor(expected_support).to(sup), sup)
-
-
-def test_multilabel_accuracy():
-    # Dense label indicator matrix format
-    y1 = torch.tensor([[0, 1, 1], [1, 0, 1]])
-    y2 = torch.tensor([[0, 0, 1], [1, 0, 1]])
-
-    assert torch.allclose(accuracy(y1, y2, class_reduction='none'), torch.tensor([2 / 3, 1.]))
-    assert torch.allclose(accuracy(y1, y1, class_reduction='none'), torch.tensor([1., 1.]))
-    assert torch.allclose(accuracy(y2, y2, class_reduction='none'), torch.tensor([1., 1.]))
-    assert torch.allclose(accuracy(y2, torch.logical_not(y2), class_reduction='none'), torch.tensor([0., 0.]))
-    assert torch.allclose(accuracy(y1, torch.logical_not(y1), class_reduction='none'), torch.tensor([0., 0.]))
-
-    # num_classes does not match extracted number from input we expect a warning
-    with pytest.warns(RuntimeWarning,
-                      match=r'You have set .* number of classes which is'
-                            r' different from predicted (.*) and'
-                            r' target (.*) number of classes'):
-        _ = accuracy(y2, torch.zeros_like(y2), num_classes=3)
-
-
-def test_accuracy():
-    pred = torch.tensor([0, 1, 2, 3])
-    target = torch.tensor([0, 1, 2, 2])
-    acc = accuracy(pred, target)
-
-    assert acc.item() == 0.75
-
-    pred = torch.tensor([0, 1, 2, 2])
-    target = torch.tensor([0, 1, 1, 3])
-    acc = accuracy(pred, target)
-
-    assert acc.item() == 0.50
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_prec', 'expected_rec'], [
@@ -233,7 +188,7 @@ def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
     if sample_weight is not None:
         sample_weight = torch.ones_like(pred) * sample_weight
 
-    fps, tps, thresh = _binary_clf_curve(pred, target, sample_weight, pos_label)
+    fps, tps, thresh = _binary_clf_curve(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label)
 
     assert isinstance(tps, torch.Tensor)
     assert isinstance(fps, torch.Tensor)
@@ -243,45 +198,39 @@ def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
     assert thresh.shape == (exp_shape,)
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_p', 'expected_r', 'expected_t'], [
-    pytest.param([1, 2, 3, 4], [1, 0, 0, 1], [0.5, 1 / 3, 0.5, 1., 1.], [1, 0.5, 0.5, 0.5, 0.], [1, 2, 3, 4])
+@pytest.mark.parametrize(['pred', 'target', 'max_fpr', 'expected'], [
+    pytest.param([0, 1, 0, 1], [0, 1, 0, 1], None, 1.),
+    pytest.param([1, 1, 0, 0], [0, 0, 1, 1], None, 0.),
+    pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.8, 0.5),
+    pytest.param([0.5, 0.5, 0.5, 0.5], [1, 1, 0, 0], 0.2, 0.5),
+    pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 0.5, 1.),
 ])
-def test_pr_curve(pred, target, expected_p, expected_r, expected_t):
-    p, r, t = precision_recall_curve(torch.tensor(pred), torch.tensor(target))
-    assert p.size() == r.size()
-    assert p.size(0) == t.size(0) + 1
+def test_auroc(pred, target, max_fpr, expected):
+    if max_fpr is not None and LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
+        pytest.skip('requires torch v1.6 or higher to test max_fpr argument')
 
-    assert torch.allclose(p, torch.tensor(expected_p).to(p))
-    assert torch.allclose(r, torch.tensor(expected_r).to(r))
-    assert torch.allclose(t, torch.tensor(expected_t).to(t))
-
-
-@pytest.mark.parametrize(['pred', 'target', 'expected_tpr', 'expected_fpr'], [
-    pytest.param([0, 1], [0, 1], [0, 1, 1], [0, 0, 1]),
-    pytest.param([1, 0], [0, 1], [0, 0, 1], [0, 1, 1]),
-    pytest.param([1, 1], [1, 0], [0, 1], [0, 1]),
-    pytest.param([1, 0], [1, 0], [0, 1, 1], [0, 0, 1]),
-    pytest.param([0.5, 0.5], [0, 1], [0, 1], [0, 1]),
-])
-def test_roc_curve(pred, target, expected_tpr, expected_fpr):
-    fpr, tpr, thresh = roc(torch.tensor(pred), torch.tensor(target))
-
-    assert fpr.shape == tpr.shape
-    assert fpr.size(0) == thresh.size(0)
-    assert torch.allclose(fpr, torch.tensor(expected_fpr).to(fpr))
-    assert torch.allclose(tpr, torch.tensor(expected_tpr).to(tpr))
-
-
-@pytest.mark.parametrize(['pred', 'target', 'expected'], [
-    pytest.param([0, 1, 0, 1], [0, 1, 0, 1], 1.),
-    pytest.param([1, 1, 0, 0], [0, 0, 1, 1], 0.),
-    pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.5),
-    pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 1.),
-    pytest.param([0.5, 0.5, 0.5, 0.5], [1, 1, 0, 0], 0.5),
-])
-def test_auroc(pred, target, expected):
-    score = auroc(torch.tensor(pred), torch.tensor(target)).item()
+    score = auroc(torch.tensor(pred), torch.tensor(target), max_fpr=max_fpr).item()
     assert score == expected
+
+
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion('1.6.0'),
+                    reason='requires torch v1.6 or higher to test max_fpr argument')
+@pytest.mark.parametrize('max_fpr', [
+    None, 1, 0.99, 0.9, 0.75, 0.5, 0.25, 0.1, 0.01, 0.001,
+])
+def test_auroc_with_max_fpr_against_sklearn(max_fpr):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    pred = torch.rand((300,), device=device)
+    # Supports only binary classification
+    target = torch.randint(2, (300,), dtype=torch.float64, device=device)
+    sk_score = sk_roc_auc_score(target.cpu().detach().numpy(),
+                                pred.cpu().detach().numpy(),
+                                max_fpr=max_fpr)
+    pl_score = auroc(pred, target, max_fpr=max_fpr)
+
+    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+    assert torch.allclose(sk_score, pl_score)
 
 
 def test_multiclass_auroc():
@@ -335,21 +284,6 @@ def test_multiclass_auroc_against_sklearn(n_cls):
 def test_auc(x, y, expected):
     # Test Area Under Curve (AUC) computation
     assert auc(torch.tensor(x), torch.tensor(y)) == expected
-
-
-@pytest.mark.parametrize(['scores', 'target', 'expected_score'], [
-    # Check the average_precision_score of a constant predictor is
-    # the TPR
-    # Generate a dataset with 25% of positives
-    # And a constant score
-    # The precision is then the fraction of positive whatever the recall
-    # is, as there is only one threshold:
-    pytest.param(torch.tensor([1, 1, 1, 1]), torch.tensor([0, 0, 0, 1]), .25),
-    # With threshold 0.8 : 1 TP and 2 TN and one FN
-    pytest.param(torch.tensor([.6, .7, .8, 9]), torch.tensor([1, 0, 0, 1]), .75),
-])
-def test_average_precision(scores, target, expected_score):
-    assert average_precision(scores, target) == expected_score
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [

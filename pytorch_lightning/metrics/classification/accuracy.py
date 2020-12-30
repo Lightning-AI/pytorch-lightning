@@ -14,20 +14,17 @@
 from typing import Any, Callable, Optional
 
 import torch
+
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.accuracy import (
-    _accuracy_update,
-    _hamming_loss_update,
-    _accuracy_compute,
-    _hamming_loss_compute,
-)
+from pytorch_lightning.metrics.functional.accuracy import _accuracy_update, _accuracy_compute
 
 
 class Accuracy(Metric):
     r"""
-    Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
+    Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`__:
 
-    .. math:: \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y_i})
+    .. math::
+        \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y}_i)
 
     Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a
     tensor of predictions.
@@ -42,38 +39,51 @@ class Accuracy(Metric):
     parameter ``top_k`` generalizes this metric to a Top-K accuracy metric: for each sample the
     top-K highest probability items are considered to find the correct label.
 
+    For multi-label and multi-dimensional multi-class inputs, this metric computes the "global"
+    accuracy by default, which counts all labels or sub-samples separately. This can be
+    changed to subset accuracy (which requires all labels or sub-samples in the sample to
+    be correctly predicted) by setting ``subset_accuracy=True``.
+
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
-        top_k:
-            Number of highest probability predictions considered to find the correct label, for
-            (multi-dimensional) multi-class inputs with probability predictions. Default 1
-
-            If your inputs are not (multi-dimensional) multi-class inputs with probability predictions,
-            an error will be raised if ``top_k`` is set to a value other than 1.
-        mdmc_accuracy:
-            Determines how should the extra dimension be handeled in case of multi-dimensional multi-class
-            inputs. Options are ``"global"`` or ``"subset"``.
-
-            If ``"global"``, then the inputs are treated as if the sample (``N``) and the extra dimension
-            were unrolled into a new sample dimension.
-
-            If ``"subset"``, than the equivalent of subset accuracy is performed for each sample on the
-            ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
-            must be predicted correctly (the ``top_k`` option still applies here).
+    
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0,1) predictions, in the case of binary or multi-label inputs.
+        top_k:
+            Number of highest probability predictions considered to find the correct label, relevant
+            only for (multi-dimensional) multi-class inputs with probability predictions. The
+            default value (``None``) will be interpreted as 1 for these inputs.
+
+            Should be left at default (``None``) for all other types of inputs.
+        subset_accuracy:
+            Whether to compute subset accuracy for multi-label and multi-dimensional
+            multi-class inputs (has no effect for other input types).
+
+            - For multi-label inputs, if the parameter is set to ``True``, then all labels for
+              each sample must be correctly predicted for the sample to count as correct. If it
+              is set to ``False``, then all labels are counted separately - this is equivalent to
+              flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
+
+            - For multi-dimensional multi-class inputs, if the parameter is set to ``True``, then all
+              sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
+              If it is set to ``False``, then all sub-samples are counter separately - this is equivalent,
+              in the case of label predictions, to flattening the inputs beforehand (i.e.
+              ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
+              still applies in both cases, if set.
+
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
+            Forward only calls ``update()`` and return ``None`` if this is set to ``False``.
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
+            before returning the value at the step
         process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+            Specify the process group on which synchronization is called.
+            default: ``None`` (which selects the entire world)
         dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
-            will be used to perform the allgather. default: None
+            Callback that performs the allgather operation on the metric state. When ``None``, DDP
+            will be used to perform the allgather
 
     Example:
 
@@ -94,9 +104,9 @@ class Accuracy(Metric):
 
     def __init__(
         self,
-        top_k: int = 1,
-        mdmc_accuracy: str = "subset",
         threshold: float = 0.5,
+        top_k: Optional[int] = None,
+        subset_accuracy: bool = False,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -112,9 +122,15 @@ class Accuracy(Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
+        if not 0 < threshold < 1:
+            raise ValueError(f"The `threshold` should be a float in the (0,1) interval, got {threshold}")
+
+        if top_k is not None and (not isinstance(top_k, int) or top_k <= 0):
+            raise ValueError(f"The `top_k` should be an integer larger than 0, got {top_k}")
+
         self.threshold = threshold
         self.top_k = top_k
-        self.mdmc_accuracy = mdmc_accuracy
+        self.subset_accuracy = subset_accuracy
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -123,10 +139,12 @@ class Accuracy(Metric):
 
         Args:
             preds: Predictions from model (probabilities, or labels)
-            target: Ground truth values
+            target: Ground truth labels
         """
 
-        correct, total = _accuracy_update(preds, target, self.threshold, self.top_k, self.mdmc_accuracy)
+        correct, total = _accuracy_update(
+            preds, target, threshold=self.threshold, top_k=self.top_k, subset_accuracy=self.subset_accuracy
+        )
 
         self.correct += correct
         self.total += total
@@ -136,81 +154,3 @@ class Accuracy(Metric):
         Computes accuracy based on inputs passed in to ``update`` previously.
         """
         return _accuracy_compute(self.correct, self.total)
-
-
-class HammingLoss(Metric):
-    """
-    Computes the share of wrongly predicted labels.
-
-    This is the same as ``1-accuracy`` for binary data, while for all other types of inputs it
-    treats each possible label separately - meaning that, for example, multi-class data is
-    treated as if it were multi-label. If this is not what you want, consider using
-    :class:`~pytorch_lightning.metrics.classification.Accuracy`.
-
-    Accepts all input types listed in :ref:`metrics:Input types`.
-
-    Args:
-        threshold:
-            Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
-        compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
-        process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
-        dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
-            will be used to perform the allgather. default: None
-
-    Example:
-
-        >>> from pytorch_lightning.metrics import HammingLoss
-        >>> target = torch.tensor([[0, 1], [1, 1]])
-        >>> preds = torch.tensor([[0, 1], [0, 1]])
-        >>> hamming_loss = HammingLoss()
-        >>> hamming_loss(preds, target)
-        tensor(0.2500)
-
-    """
-
-    def __init__(
-        self,
-        threshold: float = 0.5,
-        compute_on_step: bool = True,
-        dist_sync_on_step: bool = False,
-        process_group: Optional[Any] = None,
-        dist_sync_fn: Callable = None,
-    ):
-        super().__init__(
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
-
-        self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
-
-        self.threshold = threshold
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
-        """
-        Update state with predictions and targets. See :ref:`metrics:Input types` for more information
-        on input types.
-
-        Args:
-            preds: Predictions from model (probabilities, or labels)
-            target: Ground truth values
-        """
-        correct, total = _hamming_loss_update(preds, target, self.threshold)
-
-        self.correct += correct
-        self.total += total
-
-    def compute(self) -> torch.Tensor:
-        """
-        Computes hamming loss based on inputs passed in to ``update`` previously.
-        """
-        return _hamming_loss_compute(self.correct, self.total)

@@ -19,7 +19,7 @@ import types
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-from tests.base import EvalModelTemplate, BoringModel
+from tests.base import EvalModelTemplate
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
