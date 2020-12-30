@@ -321,7 +321,9 @@ class AcceleratorConnector:
             rank_zero_warn(
                 'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
             )
-            if self.trainer.num_nodes > 1 or self.trainer.num_processes > 1:
+            # in some cases it yield in comarison None and int
+            if ((self.trainer.num_nodes and self.trainer.num_nodes > 1)
+                    or (self.trainer.num_processes and self.trainer.num_processes > 1)):
                 self.trainer._distrib_type = DistributedType.DDP
             else:
                 rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
