@@ -3,7 +3,7 @@ import re
 import signal
 from subprocess import call
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.distributed import rank_zero_info
 import torch.distributed as torch_distrib
 import torch
@@ -23,7 +23,7 @@ class SLURMConnector:
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
-        if self.trainer.use_ddp or self.trainer.use_ddp2:
+        if self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2):
             self.trainer.num_requested_gpus = self.trainer.num_gpus * num_gpu_nodes
             self.trainer.num_slurm_tasks = 0
             try:

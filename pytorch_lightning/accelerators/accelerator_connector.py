@@ -185,14 +185,13 @@ class AcceleratorConnector:
         # ----------------------------------
         # choose an accelerator for the user
         # ----------------------------------
-        use_slurm_ddp = self.trainer.use_ddp and self.trainer.is_slurm_managing_tasks
+        use_slurm_ddp = self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN) and self.trainer.is_slurm_managing_tasks
 
         # torchelastic or general non_slurm ddp
         te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
-        use_torchelastic_ddp = self.trainer.use_ddp and te_flags_passed
+        use_torchelastic_ddp = self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN) and te_flags_passed
 
-        use_ddp_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_spawn"
-        use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_cpu"
+        use_ddp_cpu_spawn = self.trainer._distrib_type == DistributedType.DDP_SPAWN and self.trainer._device_type == DeviceType.CPU
 
         use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self._is_using_torchelastic()
         use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.trainer.is_slurm_managing_tasks
@@ -205,7 +204,7 @@ class AcceleratorConnector:
         cluster_env = self._select_environment()
 
         # choose the appropriate accelerator backend
-        if self.trainer.use_ddp2:
+        if self.trainer._distrib_type == DistributedType.DDP2:
             accelerator_backend = accelerators.DDP2Accelerator(
                 self.trainer,
                 cluster_env,
@@ -240,7 +239,7 @@ class AcceleratorConnector:
                 self.trainer.plugin_connector.ddp_plugin
             )
 
-        elif use_ddp_spawn:
+        elif self.trainer._distrib_type == DistributedType.DDP_SPAWN:
             accelerator_backend = accelerators.DDPSpawnAccelerator(
                 self.trainer,
                 nprocs=self.trainer.num_processes,
@@ -266,10 +265,10 @@ class AcceleratorConnector:
         elif self.trainer._distrib_type == DistributedType.DP:
             accelerator_backend = accelerators.DataParallelAccelerator(self.trainer, cluster_env)
 
-        elif self.trainer.use_horovod:
+        elif self.trainer._distrib_type == DistributedType.HOROVOD:
             accelerator_backend = accelerators.HorovodAccelerator(self.trainer, cluster_env)
 
-        elif self.trainer.use_single_gpu:
+        elif self.trainer._device_type == DeviceType.GPU and self.trainer.num_gpus == 1:
             accelerator_backend = accelerators.GPUAccelerator(self.trainer, cluster_env)
 
         elif self.trainer._device_type == DeviceType.TPU:
@@ -347,7 +346,7 @@ class AcceleratorConnector:
             self._set_horovod_backend()
 
         # throw error to force user ddp or ddp2 choice
-        if self.trainer.num_nodes > 1 and self.trainer._distrib_type not in (DistributedType.DDP2, DistributedType.DDP):
+        if self.trainer.num_nodes > 1 and self.trainer._distrib_type not in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2):
             raise MisconfigurationException(
                 'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
                 'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
