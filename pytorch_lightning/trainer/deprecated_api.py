@@ -24,7 +24,7 @@ class DeprecatedDistDeviceAttributes:
     @property
     def on_cpu(self) -> bool:
         # rank_zero_warn("Internal: `on_cpu` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
-        return self._device_type and self._device_type == DeviceType.CPU
+        return self._device_type is not None and self._device_type == DeviceType.CPU
 
     @on_cpu.setter
     def on_cpu(self, val: bool) -> None:
@@ -35,7 +35,7 @@ class DeprecatedDistDeviceAttributes:
     @property
     def on_tpu(self) -> bool:
         # rank_zero_warn("Internal: `on_tpu` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
-        return self._device_type and self._device_type == DeviceType.TPU
+        return self._device_type is not None and self._device_type == DeviceType.TPU
 
     @on_tpu.setter
     def on_tpu(self, val: bool) -> None:
@@ -57,7 +57,7 @@ class DeprecatedDistDeviceAttributes:
     @property
     def on_gpu(self) -> bool:
         # rank_zero_warn("Internal: `on_gpu` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
-        return self._device_type and self._device_type == DeviceType.GPU
+        return self._device_type is not None and self._device_type == DeviceType.GPU
 
     @on_gpu.setter
     def on_gpu(self, val: bool) -> None:
@@ -69,7 +69,7 @@ class DeprecatedDistDeviceAttributes:
     @property
     def use_dp(self) -> bool:
         # rank_zero_warn("Internal: `use_dp` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
-        return self._distrib_type and self._distrib_type == DistributedType.DP
+        return self._distrib_type is not None and self._distrib_type == DistributedType.DP
 
     @use_dp.setter
     def use_dp(self, val: bool) -> None:
@@ -91,7 +91,7 @@ class DeprecatedDistDeviceAttributes:
     @property
     def use_ddp2(self) -> bool:
         # rank_zero_warn("Internal: `use_ddp2` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
-        return self._distrib_type and self._distrib_type == DistributedType.DDP2
+        return self._distrib_type is not None and self._distrib_type == DistributedType.DDP2
 
     @use_ddp2.setter
     def use_ddp2(self, val: bool) -> None:
@@ -104,7 +104,7 @@ class DeprecatedDistDeviceAttributes:
         # rank_zero_warn(
         #     "Internal: `use_horovod` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning
         # )
-        return self._distrib_type and self._distrib_type == DistributedType.HOROVOD
+        return self._distrib_type is not None and self._distrib_type == DistributedType.HOROVOD
 
     @use_horovod.setter
     def use_horovod(self, val: bool) -> None:
