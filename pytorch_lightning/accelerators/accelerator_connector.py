@@ -185,13 +185,16 @@ class AcceleratorConnector:
         # ----------------------------------
         # choose an accelerator for the user
         # ----------------------------------
-        use_slurm_ddp = self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN) and self.trainer.is_slurm_managing_tasks
+        use_slurm_ddp = (self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
+                         and self.trainer.is_slurm_managing_tasks)
 
         # torchelastic or general non_slurm ddp
         te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
-        use_torchelastic_ddp = self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN) and te_flags_passed
+        use_torchelastic_ddp = (self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
+                                and te_flags_passed)
 
-        use_ddp_cpu_spawn = self.trainer._distrib_type == DistributedType.DDP_SPAWN and self.trainer._device_type == DeviceType.CPU
+        use_ddp_cpu_spawn = (self.trainer._distrib_type == DistributedType.DDP_SPAWN
+                             and self.trainer._device_type == DeviceType.CPU)
 
         use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self._is_using_torchelastic()
         use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.trainer.is_slurm_managing_tasks
@@ -352,7 +355,9 @@ class AcceleratorConnector:
                 'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
             )
 
-        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.trainer._device_type == DeviceType.GPU}')
+        rank_zero_info(
+            f'GPU available: {torch.cuda.is_available()}, used: {self.trainer._device_type == DeviceType.GPU}'
+        )
         num_cores = self.trainer.tpu_cores if self.trainer.tpu_cores is not None else 0
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
