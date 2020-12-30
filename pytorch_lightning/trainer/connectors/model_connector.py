@@ -32,13 +32,15 @@ class ModelConnector:
         for m in [model, ref_model]:
             m.trainer = self.trainer
             m.logger = self.trainer.logger
-            m.use_dp = self.trainer.use_dp
-            m.use_ddp2 = self.trainer.use_ddp2
-            m.use_ddp = self.trainer.use_ddp
+            m.device_type = str(self.trainer._device_type)
+            m.distrib_type = str(self.trainer._distrib_type)
+            # m.use_dp = self.trainer.use_dp
+            # m.use_ddp2 = self.trainer.use_ddp2
+            # m.use_ddp = self.trainer.use_ddp
             m.use_amp = self.trainer.amp_backend is not None
             m.testing = self.trainer.testing
-            m.use_single_gpu = self.trainer.use_single_gpu
-            m.use_tpu = self.trainer.use_tpu
+            # m.use_single_gpu = self.trainer.use_single_gpu
+            # m.use_tpu = self.trainer.use_tpu
             m.tpu_local_core_rank = self.trainer.tpu_local_core_rank
             m.tpu_global_core_rank = self.trainer.tpu_global_core_rank
             m.precision = self.trainer.precision

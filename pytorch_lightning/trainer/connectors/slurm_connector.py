@@ -3,6 +3,7 @@ import re
 import signal
 from subprocess import call
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.distributed import rank_zero_info
 import torch.distributed as torch_distrib
 import torch
@@ -145,7 +146,7 @@ class SLURMConnector:
         os.environ["MASTER_ADDR"] = root_node
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
 
-        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
+        torch_backend = "nccl" if self.trainer._device_type == DeviceType.GPU else "gloo"
 
         if not torch.distributed.is_initialized():
             log.info(

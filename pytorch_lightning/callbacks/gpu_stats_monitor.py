@@ -104,7 +104,7 @@ class GPUStatsMonitor(Callback):
                 'Cannot use GPUStatsMonitor callback with Trainer that has no logger.'
             )
 
-        if not trainer.on_gpu:
+        if trainer._device_type != DeviceType.GPU:
             raise MisconfigurationException(
                 'You are using GPUStatsMonitor but are not running on GPU'
                 f' since gpus attribute in Trainer is set to {trainer.gpus}.'

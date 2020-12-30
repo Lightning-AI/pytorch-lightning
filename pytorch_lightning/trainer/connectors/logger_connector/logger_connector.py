@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 import os
+from copy import deepcopy
 from pprint import pprint
 from typing import Any, Iterable, Union, Dict
 
@@ -24,7 +24,7 @@ from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore, LoggerStages
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
-from pytorch_lightning.utilities import flatten_dict
+from pytorch_lightning.utilities import flatten_dict, DeviceType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
@@ -219,7 +219,7 @@ class LoggerConnector:
                 and global_step for the rest.
         """
         # add gpu memory
-        if self.trainer.on_gpu and self.trainer.log_gpu_memory:
+        if self.trainer._device_type == DeviceType.GPU and self.trainer.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.trainer.log_gpu_memory)
             metrics.update(mem_map)
 
