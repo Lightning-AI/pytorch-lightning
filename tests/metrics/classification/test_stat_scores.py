@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Callable, Optional
 
 import numpy as np
 import pytest
@@ -147,17 +148,17 @@ class TestStatScores(MetricTester):
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_stat_scores_class(
         self,
-        ddp,
-        dist_sync_on_step,
-        sk_fn,
-        preds,
-        target,
-        reduce,
-        mdmc_reduce,
-        num_classes,
-        is_multiclass,
-        ignore_index,
-        top_k,
+        ddp: bool,
+        dist_sync_on_step: bool,
+        sk_fn: Callable,
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        reduce: str,
+        mdmc_reduce: Optional[str],
+        num_classes: Optional[int],
+        is_multiclass: Optional[bool],
+        ignore_index: Optional[int],
+        top_k: Optional[int],
     ):
         if ignore_index and preds.ndim == 2:
             pytest.skip("Skipping ignore_index test with binary inputs.")
@@ -192,15 +193,15 @@ class TestStatScores(MetricTester):
 
     def test_stat_scores_fn(
         self,
-        sk_fn,
-        preds,
-        target,
-        reduce,
-        mdmc_reduce,
-        num_classes,
-        is_multiclass,
-        ignore_index,
-        top_k,
+        sk_fn: Callable,
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        reduce: str,
+        mdmc_reduce: Optional[str],
+        num_classes: Optional[int],
+        is_multiclass: Optional[bool],
+        ignore_index: Optional[int],
+        top_k: Optional[int],
     ):
         if ignore_index and preds.ndim == 2:
             pytest.skip("Skipping ignore_index test with binary inputs.")
