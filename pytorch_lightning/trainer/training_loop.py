@@ -597,19 +597,13 @@ class TrainLoop:
             self.trainer.total_batch_idx += 1
 
             # stop epoch if we limited the number of training batches
-            if self._num_training_batches_reached():
+            if self._num_training_batches_reached(is_last_batch):
                 break
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
 
         # epoch end hook
-        should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
-        if should_check_val:
-            self.trainer.run_evaluation(test_mode=False)
-            # reset stage to train
-            self.trainer.logger_connector.set_stage("train")
-
         self.run_on_epoch_end_hook(epoch_output)
 
         # log epoch metrics
@@ -620,10 +614,19 @@ class TrainLoop:
             self.num_optimizers
         )
 
-        # update LR schedulers
-        self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+        should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
+        if should_check_val:
+            self.trainer.run_evaluation(test_mode=False, on_epoch=True)
+            # reset stage to train
+            self.trainer.logger_connector.set_stage("train")
 
-        should_train_only_check = not self.trainer.enable_validation and (sum(self.trainer.num_val_batches) == 0)
+        should_skip_eval = sum(self.trainer.num_val_batches) == 0
+        should_train_only_check = not self.trainer.enable_validation and should_skip_eval
+
+        if should_skip_eval or should_train_only_check:
+            # update epoch level lr_schedulers
+            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+
         self.check_checkpoint_callback(should_train_only_check)
         self.check_early_stopping_callback(should_train_only_check)
 
@@ -861,8 +864,8 @@ class TrainLoop:
     def _accumulated_batches_reached(self):
         return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
 
-    def _num_training_batches_reached(self):
-        return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
+    def _num_training_batches_reached(self, is_last_batch=False):
+        return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
 
     def should_accumulate(self):
         # checks if backward or backward + optimizer step (via closure)
