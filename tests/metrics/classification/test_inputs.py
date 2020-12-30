@@ -175,7 +175,11 @@ def test_usual_cases(inputs, num_classes, is_multiclass, top_k, exp_mode, post_p
         preds=inputs.preds[0][[0], ...],
         target=inputs.target[0][[0], ...],
         threshold=THRESHOLD,
+        num_classes=num_classes,
+        is_multiclass=is_multiclass,
+        top_k=top_k,
     )
+
     assert mode == exp_mode
     assert torch.equal(preds_out, post_preds(inputs.preds[0][[0], ...]).int())
     assert torch.equal(target_out, post_target(inputs.target[0][[0], ...]).int())

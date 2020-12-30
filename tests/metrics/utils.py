@@ -170,6 +170,7 @@ class MetricTester:
         """Setup the metric class. This will spawn the pool of workers that are
         used for metric testing and setup_ddp
         """
+
         self.poolSize = NUM_PROCESSES
         self.pool = Pool(processes=self.poolSize)
         self.pool.starmap(setup_ddp, [(rank, self.poolSize) for rank in range(self.poolSize)])
