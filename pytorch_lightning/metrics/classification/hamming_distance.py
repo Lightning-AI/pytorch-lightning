@@ -39,14 +39,15 @@ class HammingDistance(Metric):
     Args:
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            `(0,1)` predictions, in the case of binary or multi-label inputs.
+            (0 or 1) predictions, in the case of binary or multi-label inputs.
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False.
+            Forward only calls ``update()`` and return ``None`` if this is set to ``False``.
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
             before returning the value at the step.
         process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+            Specify the process group on which synchronization is called.
+            default: ``None`` (which selects the entire world)
         dist_sync_fn:
             Callback that performs the allgather operation on the metric state. When ``None``, DDP
             will be used to perform the all gather.
@@ -80,8 +81,8 @@ class HammingDistance(Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
-        if not 0 <= threshold <= 1:
-            raise ValueError("The `threshold` should lie in the [0,1] interval.")
+        if not 0 < threshold < 1:
+            raise ValueError("The `threshold` should lie in the (0,1) interval.")
         self.threshold = threshold
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
