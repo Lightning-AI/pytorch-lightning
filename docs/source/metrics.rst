@@ -129,7 +129,7 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     Metrics contain internal states that keep track of the data seen so far.
     Do not mix metric states across training, validation and testing.
     It is highly recommended to re-initialize the metric per mode as
-    shown in the examples above. For easy initializing the same metric multiply
+    shown in the examples above. For easy initializing the same metric multiple
     times, the ``.clone()`` method can be used:
 
     .. code-block:: python
