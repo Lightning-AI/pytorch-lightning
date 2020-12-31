@@ -118,7 +118,7 @@ class R2Score(Metric):
         self.add_state("sum_squared_error", default=torch.zeros(self.num_outputs), dist_reduce_fx="sum")
         self.add_state("sum_error", default=torch.zeros(self.num_outputs), dist_reduce_fx="sum")
         self.add_state("residual", default=torch.zeros(self.num_outputs), dist_reduce_fx="sum")
-        self.add_state("total", default=torch.zeros(self.num_outputs), dist_reduce_fx="sum")
+        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """

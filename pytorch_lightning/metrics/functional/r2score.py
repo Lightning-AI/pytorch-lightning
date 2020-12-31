@@ -16,6 +16,7 @@ from typing import Tuple
 import torch
 
 from pytorch_lightning.metrics.utils import _check_same_shape
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 def _r2score_update(
@@ -63,7 +64,15 @@ def _r2score_compute(sum_squared_error: torch.Tensor,
                          ' equal to 0.')
 
     if adjusted != 0:
-        r2score = 1 - (1 - r2score) * (total - 1) / (total - adjusted - 1)
+        if adjusted > total - 1:
+            rank_zero_warn("More independent regressions than datapoints in"
+                           " adjusted r2 score. Falls back to standard r2 score.",
+                           UserWarning)
+        elif adjusted == total - 1:
+            rank_zero_warn("Division by zero in adjusted r2 score. Falls back to"
+                           " standard r2 score.", UserWarning)
+        else:
+            r2score = 1 - (1 - r2score) * (total - 1) / (total - adjusted - 1)
     return r2score
 
 

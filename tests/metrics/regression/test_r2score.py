@@ -93,3 +93,17 @@ def test_error_on_too_few_samples(metric_class=R2Score):
     metric = metric_class()
     with pytest.raises(ValueError, match='Needs atleast two samples to calculate r2 score.'):
         metric(torch.randn(1,), torch.randn(1,))
+
+
+def test_warning_on_too_large_adjusted(metric_class=R2Score):
+    metric = metric_class(adjusted=10)
+
+    with pytest.warns(UserWarning,
+                      match="More independent regressions than datapoints in"
+                            " adjusted r2 score. Falls back to standard r2 score."):
+        metric(torch.randn(10,), torch.randn(10,))
+
+    with pytest.warns(UserWarning,
+                      match="Division by zero in adjusted r2 score. Falls back to"
+                            " standard r2 score."):
+        metric(torch.randn(11,), torch.randn(11,))
