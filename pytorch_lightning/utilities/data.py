@@ -49,8 +49,7 @@ def has_len(dataloader: DataLoader) -> bool:
 
 
 def get_len(dataloader: DataLoader) -> Union[int, float]:
-    """ Return the length of the given DataLoader. If __len__ method is not implemented,
-        return float('inf'). """
+    """ Return the length of the given DataLoader. If ``__len__`` method is not implemented, return float('inf'). """
 
     if has_len(dataloader):
         return len(dataloader)
