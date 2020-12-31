@@ -551,6 +551,14 @@ ssim [func]
 .. autofunction:: pytorch_lightning.metrics.functional.ssim
     :noindex:
 
+
+image_gradients [func]
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.image_gradients
+    :noindex:
+
+
 ***
 NLP
 ***
