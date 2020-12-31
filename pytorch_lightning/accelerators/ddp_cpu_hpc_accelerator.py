@@ -11,17 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-from pytorch_lightning.accelerators.ddp_hpc_accelerator import DDPHPCAccelerator
-from pytorch_lightning.utilities import HYDRA_AVAILABLE
+from typing import Optional
 
-if HYDRA_AVAILABLE:
-    from hydra.utils import to_absolute_path, get_original_cwd
-    from hydra.core.hydra_config import HydraConfig
+from pytorch_lightning.accelerators.ddp_hpc_accelerator import DDPHPCAccelerator
+from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 
 
 class DDPCPUHPCAccelerator(DDPHPCAccelerator):
 
-    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         """
         Runs training using DDP (with CPUs) strategy on a cluster
 
@@ -35,6 +37,7 @@ class DDPCPUHPCAccelerator(DDPHPCAccelerator):
         self.nickname = 'ddp_cpu'
 
     def model_to_device(self, model, process_idx):
+        # Todo: required argument `process_idx` is not used
         model.cpu()
 
     def get_device_ids(self):

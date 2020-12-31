@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-import os
 from typing import Any, List, Optional, Union
 
 import torch
@@ -20,21 +19,22 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available, all_gather_ddp_if_available
-
-if HYDRA_AVAILABLE:
-    from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import get_original_cwd, to_absolute_path
+from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, rank_zero_only, sync_ddp_if_available
 
 
 class DDP2Accelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         """
         Runs training using DDP2 strategy on a cluster
 
@@ -95,6 +95,7 @@ class DDP2Accelerator(Accelerator):
         return output
 
     def set_world_ranks(self, process_idx):
+        # Todo: required argument `process_idx` is not used
         self.trainer.local_rank = self.trainer.node_rank
         self.trainer.global_rank = self.trainer.node_rank
         self.trainer.world_size = self.trainer.num_nodes
@@ -126,6 +127,7 @@ class DDP2Accelerator(Accelerator):
             Dict with evaluation results
 
         """
+        # Todo: required argument `mp_queue` is not used
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()

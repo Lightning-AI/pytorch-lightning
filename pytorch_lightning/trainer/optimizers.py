@@ -94,6 +94,7 @@ class TrainerOptimizersMixin(ABC):
         lr_schedulers = []
         default_config = {
             'scheduler': None,
+            'name': None,  # no custom name
             'interval': 'epoch',  # after epoch is over
             'frequency': 1,  # every epoch/batch
             'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
@@ -124,7 +125,8 @@ class TrainerOptimizersMixin(ABC):
                 if monitor is None:
                     raise MisconfigurationException(
                         '`configure_optimizers` must include a monitor when a `ReduceLROnPlateau` scheduler is used.'
-                        ' For example: {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
+                        ' For example:'
+                        ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
                     )
                 lr_schedulers.append(
                     {**default_config, 'scheduler': scheduler, 'reduce_on_plateau': True, 'monitor': monitor}

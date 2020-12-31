@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Optional
+from typing import Optional
 
 import torch
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.utilities import RPC_AVAILABLE
+from pytorch_lightning.utilities import _RPC_AVAILABLE
 
-if RPC_AVAILABLE:
+if _RPC_AVAILABLE:
     from torch.distributed import rpc
 
 

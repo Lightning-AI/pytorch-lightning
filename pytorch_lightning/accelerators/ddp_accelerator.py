@@ -25,23 +25,32 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
-from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
-from pytorch_lightning.utilities.distributed import find_free_network_port, rank_zero_only, sync_ddp_if_available
+from pytorch_lightning.utilities import _HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities.distributed import (
+    all_gather_ddp_if_available,
+    find_free_network_port,
+    rank_zero_only,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
-if HYDRA_AVAILABLE:
+if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
 
 
 class DDPAccelerator(Accelerator):
 
-    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer: Optional = None,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         """
         Runs training using DDP strategy on a single machine (manually, not via cluster start)
 
@@ -85,13 +94,13 @@ class DDPAccelerator(Accelerator):
         os.environ['LOCAL_RANK'] = '0'
 
         # when user is using hydra find the absolute path
-        path_lib = abspath if not HYDRA_AVAILABLE else to_absolute_path
+        path_lib = abspath if not _HYDRA_AVAILABLE else to_absolute_path
 
         # pull out the commands used to run the script and resolve the abs file path
         command = sys.argv
         try:
             full_path = path_lib(command[0])
-        except Exception as e:
+        except Exception:
             full_path = abspath(command[0])
 
         command[0] = full_path
@@ -126,7 +135,7 @@ class DDPAccelerator(Accelerator):
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
             cwd: Optional[str] = None
-            if HYDRA_AVAILABLE:
+            if _HYDRA_AVAILABLE:
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
@@ -183,6 +192,7 @@ class DDPAccelerator(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def init_device(self, process_idx):
+        # Todo: required argument `process_idx` is not used
         self.trainer.root_gpu = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
         torch.cuda.set_device(self.trainer.root_gpu)
 

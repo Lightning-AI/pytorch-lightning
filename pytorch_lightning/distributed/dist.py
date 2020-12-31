@@ -17,10 +17,10 @@ from typing import Any
 import torch
 from torch import distributed as torch_distrib
 
-from pytorch_lightning.utilities import GROUP_AVAILABLE
+from pytorch_lightning.utilities import _GROUP_AVAILABLE
 
 WORLD = None
-if GROUP_AVAILABLE:
+if _GROUP_AVAILABLE:
     from torch.distributed import group
     WORLD = group.WORLD
 
@@ -48,9 +48,9 @@ class LightningDistributed:
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
         length_tensor = torch.tensor([len(data)]).long().to(self.device)
-        length_tensor = self._broadcast(length_tensor, src=0, group=group)
+        self._broadcast(length_tensor, src=0, group=group)
         data_tensor = torch.ByteTensor(data).to(self.device)
-        data_tensor = self._broadcast(data_tensor, src=0, group=group)
+        self._broadcast(data_tensor, src=0, group=group)
 
     def _receive(self, group=WORLD):
         length_tensor = torch.tensor([0]).long().to(self.device)
