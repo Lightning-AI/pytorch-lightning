@@ -580,3 +580,13 @@ embedding_similarity [func]
 
 .. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
     :noindex:
+
+****************
+Object Detection
+****************
+
+mean_average_precision [func]
+-----------------------------
+
+.. autofunction:: pytorch_lightning.metrics.functional.object_detection.mean_average_precision
+    :noindex:
