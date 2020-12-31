@@ -33,8 +33,8 @@ Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 """
 
 import argparse
-from collections import OrderedDict, deque, namedtuple
-from typing import Tuple, List
+from collections import deque, namedtuple, OrderedDict
+from typing import List, Tuple
 
 import gym
 import numpy as np
@@ -45,8 +45,8 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
 
-import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
+import pytorch_lightning as pl
 
 
 class DQN(nn.Module):
