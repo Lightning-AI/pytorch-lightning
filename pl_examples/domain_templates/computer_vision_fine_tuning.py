@@ -54,105 +54,42 @@ from torchvision.datasets.utils import download_and_extract_archive
 from pl_examples import cli_lightning_logo
 import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
+from pytorch_lightning import callbacks, LightningModule
+from pytorch_lightning.callbacks.finetunning import BaseFinetunningCallback, freeze, unfreeze_and_add_param_group
 
-BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
 DATA_URL = 'https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip'
 
 
-#  --- Utility functions ---
-
-
-def _make_trainable(module: Module) -> None:
-    """Unfreezes a given module.
-
-    Args:
-        module: The module to unfreeze
-    """
-    for param in module.parameters():
-        param.requires_grad = True
-    module.train()
-
-
-def _recursive_freeze(module: Module,
-                      train_bn: bool = True) -> None:
-    """Freezes the layers of a given module.
-
-    Args:
-        module: The module to freeze
-        train_bn: If True, leave the BatchNorm layers in training mode
-    """
-    children = list(module.children())
-    if not children:
-        if not (isinstance(module, BN_TYPES) and train_bn):
-            for param in module.parameters():
-                param.requires_grad = False
-            module.eval()
-        else:
-            # Make the BN layers trainable
-            _make_trainable(module)
-    else:
-        for child in children:
-            _recursive_freeze(module=child, train_bn=train_bn)
-
-
-def freeze(module: Module,
-           n: Optional[int] = None,
-           train_bn: bool = True) -> None:
-    """Freezes the layers up to index n (if n is not None).
-
-    Args:
-        module: The module to freeze (at least partially)
-        n: Max depth at which we stop freezing the layers. If None, all
-            the layers of the given module will be frozen.
-        train_bn: If True, leave the BatchNorm layers in training mode
-    """
-    children = list(module.children())
-    n_max = len(children) if n is None else int(n)
-
-    for child in children[:n_max]:
-        _recursive_freeze(module=child, train_bn=train_bn)
-
-    for child in children[n_max:]:
-        _make_trainable(module=child)
-
-
-def filter_params(module: Module,
-                  train_bn: bool = True) -> Generator:
-    """Yields the trainable parameters of a given module.
-
-    Args:
-        module: A given module
-        train_bn: If True, leave the BatchNorm layers in training mode
-
-    Returns:
-        Generator
-    """
-    children = list(module.children())
-    if not children:
-        if not (isinstance(module, BN_TYPES) and train_bn):
-            for param in module.parameters():
-                if param.requires_grad:
-                    yield param
-    else:
-        for child in children:
-            for param in filter_params(module=child, train_bn=train_bn):
-                yield param
-
-
-def _unfreeze_and_add_param_group(module: Module,
-                                  optimizer: Optimizer,
-                                  lr: Optional[float] = None,
-                                  train_bn: bool = True):
-    """Unfreezes a module and adds its parameters to an optimizer."""
-    _make_trainable(module)
-    params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
-    optimizer.add_param_group(
-        {'params': filter_params(module=module, train_bn=train_bn),
-         'lr': params_lr / 10.,
-         })
-
-
 #  --- Pytorch-lightning module ---
+
+class MilestonesFinetunningCallback(BaseFinetunningCallback):
+
+    def __init__(self,
+                 milestones: tuple = (5, 10),
+                 train_bn: bool = True):
+        self.milestones = milestones
+        self.train_bn = train_bn
+
+    def finetunning_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+        if epoch == 0:
+            freeze(
+                module=pl_module.feature_extractor,
+                train_bn=self.train_bn
+            )
+
+        if epoch == self.milestones[0]:
+            unfreeze_and_add_param_group(
+                module=pl_module.feature_extractor[-2:],
+                optimizer=optimizer,
+                train_bn=self.train_bn
+            )
+
+        elif epoch == self.milestones[1]:
+            unfreeze_and_add_param_group(
+                module=pl_module.feature_extractor[:-2],
+                optimizer=optimizer,
+                train_bn=self.train_bn
+            )
 
 
 class TransferLearningModel(pl.LightningModule):
@@ -169,27 +106,25 @@ class TransferLearningModel(pl.LightningModule):
             self,
             dl_path: Union[str, Path],
             backbone: str = 'resnet50',
-            train_bn: bool = True,
-            milestones: tuple = (5, 10),
             batch_size: int = 8,
             lr: float = 1e-2,
             lr_scheduler_gamma: float = 1e-1,
-            num_workers: int = 6,
+            num_workers: int = 1,
+            milestones: tuple = (5, 10),
             **kwargs,
     ) -> None:
         """
         Args:
             dl_path: Path where the data will be downloaded
         """
-        super().__init__(**kwargs)
+        super().__init__()
         self.dl_path = dl_path
         self.backbone = backbone
-        self.train_bn = train_bn
-        self.milestones = milestones
         self.batch_size = batch_size
         self.lr = lr
         self.lr_scheduler_gamma = lr_scheduler_gamma
         self.num_workers = num_workers
+        self.milestones = milestones
 
         self.dl_path = dl_path
         self.__build_model()
@@ -203,7 +138,6 @@ class TransferLearningModel(pl.LightningModule):
 
         _layers = list(backbone.children())[:-1]
         self.feature_extractor = torch.nn.Sequential(*_layers)
-        freeze(module=self.feature_extractor, train_bn=self.train_bn)
 
         # 2. Classifier:
         _fc_layers = [torch.nn.Linear(2048, 256),
@@ -228,34 +162,6 @@ class TransferLearningModel(pl.LightningModule):
 
     def loss(self, logits, labels):
         return self.loss_func(input=logits, target=labels)
-
-    def train(self, mode=True):
-        super().train(mode=mode)
-
-        epoch = self.current_epoch
-        if epoch < self.milestones[0] and mode:
-            # feature extractor is frozen (except for BatchNorm layers)
-            freeze(module=self.feature_extractor,
-                   train_bn=self.train_bn)
-
-        elif self.milestones[0] <= epoch < self.milestones[1] and mode:
-            # Unfreeze last two layers of the feature extractor
-            freeze(module=self.feature_extractor,
-                   n=-2,
-                   train_bn=self.train_bn)
-
-    def on_epoch_start(self):
-        """Use `on_epoch_start` to unfreeze layers progressively."""
-        optimizer = self.trainer.optimizers[0]
-        if self.current_epoch == self.milestones[0]:
-            _unfreeze_and_add_param_group(module=self.feature_extractor[-2:],
-                                          optimizer=optimizer,
-                                          train_bn=self.train_bn)
-
-        elif self.current_epoch == self.milestones[1]:
-            _unfreeze_and_add_param_group(module=self.feature_extractor[:-2],
-                                          optimizer=optimizer,
-                                          train_bn=self.train_bn)
 
     def training_step(self, batch, batch_idx):
 
@@ -386,12 +292,11 @@ class TransferLearningModel(pl.LightningModule):
                             type=str,
                             metavar='BK',
                             help='Name (as in ``torchvision.models``) of the feature extractor')
-        parser.add_argument('--epochs',
+        parser.add_argument('--max_epochs',
                             default=15,
                             type=int,
                             metavar='N',
-                            help='total number of epochs',
-                            dest='nb_epochs')
+                            help='total number of epochs')
         parser.add_argument('--batch-size',
                             default=8,
                             type=int,
@@ -449,14 +354,16 @@ def main(args: argparse.Namespace) -> None:
     with TemporaryDirectory(dir=args.root_data_path) as tmp_dir:
 
         model = TransferLearningModel(dl_path=tmp_dir, **vars(args))
+        finetunning_callback = MilestonesFinetunningCallback(milestones=args.milestones)
 
         trainer = pl.Trainer(
             weights_summary=None,
             progress_bar_refresh_rate=1,
             num_sanity_val_steps=0,
             gpus=args.gpus,
-            min_epochs=args.nb_epochs,
-            max_epochs=args.nb_epochs)
+            max_epochs=args.max_epochs,
+            callbacks=[finetunning_callback]
+        )
 
         trainer.fit(model)
 
