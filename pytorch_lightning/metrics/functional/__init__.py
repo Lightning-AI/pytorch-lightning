@@ -43,5 +43,5 @@ from pytorch_lightning.metrics.functional.psnr import psnr  # noqa: F401
 from pytorch_lightning.metrics.functional.roc import roc  # noqa: F401
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity  # noqa: F401
 from pytorch_lightning.metrics.functional.ssim import ssim  # noqa: F401
-from pytorch_lightning.metrics.functional.ir_average_precision import retrieval_average_precision
+from pytorch_lightning.metrics.functional.ir_average_precision import retrieval_average_precision # noqa: F401
 from pytorch_lightning.metrics.functional.stat_scores import stat_scores  # noqa: F401

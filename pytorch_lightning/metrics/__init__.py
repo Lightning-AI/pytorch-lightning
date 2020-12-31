@@ -36,6 +36,6 @@ from pytorch_lightning.metrics.regression import (  # noqa: F401
     SSIM,
 )
 
-from pytorch_lightning.metrics.retrieval import (
+from pytorch_lightning.metrics.retrieval import ( # noqa: F401
     RetrievalMAP,
 )
