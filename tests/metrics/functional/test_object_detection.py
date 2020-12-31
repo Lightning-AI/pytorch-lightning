@@ -103,4 +103,3 @@ def test_mean_average_precision_1(pred, target, iou_threshold, ap_calculation, e
 def test_mean_average_precision_no_target(pred, target, iou_threshold, ap_calculation, expected_map):
     mAP = mean_average_precision(pred, target, iou_threshold, ap_calculation)
     assert torch.allclose(mAP, expected_map)
-
