@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in vX.Y.Z"""
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from tests.deprecated_api import _soft_unimport_module
@@ -66,3 +67,9 @@ def test_v1_4_0_deprecated_trainer_attributes():
 
     trainer.use_horovod = True
     assert trainer.use_horovod
+
+
+def test_v1_4_0_deprecated_metrics():
+    from pytorch_lightning.metrics.functional.classification import stat_scores_multiple_classes
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        stat_scores_multiple_classes(pred=torch.tensor([0, 1]), target=torch.tensor([0, 1]))

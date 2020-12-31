@@ -21,7 +21,7 @@ from pytorch_lightning.metrics.functional.accuracy import _accuracy_update, _acc
 
 class Accuracy(Metric):
     r"""
-    Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
+    Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`__:
 
     .. math::
         \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y}_i)
@@ -43,7 +43,7 @@ class Accuracy(Metric):
     Args:
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            `(0,1)` predictions, in the case of binary or multi-label inputs.
+            (0,1) predictions, in the case of binary or multi-label inputs.
         top_k:
             Number of highest probability predictions considered to find the correct label, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The
@@ -54,27 +54,29 @@ class Accuracy(Metric):
             Whether to compute subset accuracy for multi-label and multi-dimensional
             multi-class inputs (has no effect for other input types).
 
-            For multi-label inputs, if the parameter is set to `True`, then all labels for
-            each sample must be correctly predicted for the sample to count as correct. If it
-            is set to `False`, then all labels are counted separately - this is equivalent to
-            flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
+            - For multi-label inputs, if the parameter is set to ``True``, then all labels for
+              each sample must be correctly predicted for the sample to count as correct. If it
+              is set to ``False``, then all labels are counted separately - this is equivalent to
+              flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
 
-            For multi-dimensional multi-class inputs, if the parameter is set to `True`, then all
-            sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
-            If it is set to `False`, then all sub-samples are counter separately - this is equivalent,
-            in the case of label predictions, to flattening the inputs beforehand (i.e.
-            ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
-            still applies in both cases, if set.
+            - For multi-dimensional multi-class inputs, if the parameter is set to ``True``, then all
+              sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
+              If it is set to ``False``, then all sub-samples are counter separately - this is equivalent,
+              in the case of label predictions, to flattening the inputs beforehand (i.e.
+              ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
+              still applies in both cases, if set.
+
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False.
+            Forward only calls ``update()`` and return ``None`` if this is set to ``False``.
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
+            before returning the value at the step
         process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+            Specify the process group on which synchronization is called.
+            default: ``None`` (which selects the entire world)
         dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
-            will be used to perform the allgather. default: None
+            Callback that performs the allgather operation on the metric state. When ``None``, DDP
+            will be used to perform the allgather
 
     Example:
 
@@ -113,11 +115,11 @@ class Accuracy(Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
-        if not 0 <= threshold <= 1:
-            raise ValueError("The `threshold` should lie in the [0,1] interval.")
+        if not 0 < threshold < 1:
+            raise ValueError(f"The `threshold` should be a float in the (0,1) interval, got {threshold}")
 
-        if top_k is not None and top_k <= 0:
-            raise ValueError("The `top_k` should be an integer larger than 1.")
+        if top_k is not None and (not isinstance(top_k, int) or top_k <= 0):
+            raise ValueError(f"The `top_k` should be an integer larger than 0, got {top_k}")
 
         self.threshold = threshold
         self.top_k = top_k

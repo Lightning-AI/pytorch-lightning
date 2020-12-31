@@ -23,6 +23,9 @@ def _accuracy_update(
 
     preds, target, mode = _input_format_classification(preds, target, threshold=threshold, top_k=top_k)
 
+    if mode == "multi-label" and top_k:
+        raise ValueError("You can not use the `top_k` parameter to calculate accuracy for multi-label inputs.")
+
     if mode == "binary" or (mode == "multi-label" and subset_accuracy):
         correct = (preds == target).all(dim=1).sum()
         total = torch.tensor(target.shape[0], device=target.device)
@@ -51,8 +54,7 @@ def accuracy(
     top_k: Optional[int] = None,
     subset_accuracy: bool = False,
 ) -> torch.Tensor:
-    r"""
-    Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
+    r"""Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
 
     .. math::
         \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y}_i)
@@ -76,7 +78,7 @@ def accuracy(
         target: Ground truth labels
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            `(0,1)` predictions, in the case of binary or multi-label inputs.
+            (0,1) predictions, in the case of binary or multi-label inputs.
         top_k:
             Number of highest probability predictions considered to find the correct label, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The
@@ -87,17 +89,17 @@ def accuracy(
             Whether to compute subset accuracy for multi-label and multi-dimensional
             multi-class inputs (has no effect for other input types).
 
-            For multi-label inputs, if the parameter is set to `True`, then all labels for
-            each sample must be correctly predicted for the sample to count as correct. If it
-            is set to `False`, then all labels are counted separately - this is equivalent to
-            flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
+            - For multi-label inputs, if the parameter is set to ``True``, then all labels for
+              each sample must be correctly predicted for the sample to count as correct. If it
+              is set to ``False``, then all labels are counted separately - this is equivalent to
+              flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
 
-            For multi-dimensional multi-class inputs, if the parameter is set to `True`, then all
-            sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
-            If it is set to `False`, then all sub-samples are counter separately - this is equivalent,
-            in the case of label predictions, to flattening the inputs beforehand (i.e.
-            ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
-            still applies in both cases, if set.
+            - For multi-dimensional multi-class inputs, if the parameter is set to ``True``, then all
+              sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
+              If it is set to ``False``, then all sub-samples are counter separately - this is equivalent,
+              in the case of label predictions, to flattening the inputs beforehand (i.e.
+              ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
+              still applies in both cases, if set.
 
     Example:
 
@@ -112,9 +114,6 @@ def accuracy(
         >>> accuracy(preds, target, top_k=2)
         tensor(0.6667)
     """
-
-    if top_k is not None and top_k <= 0:
-        raise ValueError("The `top_k` should be an integer larger than 1.")
 
     correct, total = _accuracy_update(preds, target, threshold, top_k, subset_accuracy)
     return _accuracy_compute(correct, total)
