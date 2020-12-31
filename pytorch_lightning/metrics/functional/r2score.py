@@ -32,7 +32,7 @@ def _r2score_update(
     sum_error = torch.sum(target, dim=0)
     sum_squared_error = torch.sum(torch.pow(target, 2.0), dim=0)
     residual = torch.sum(torch.pow(target - preds, 2.0), dim=0)
-    total = torch.sum(torch.ones_like(target), dim=0)
+    total = target.size(0)
 
     return sum_squared_error, sum_error, residual, total
 
@@ -86,7 +86,7 @@ def r2score(
     .. math:: R^2_adj = 1 - \frac{(1-R^2)(n-1)}{n-k-1}
 
     where the parameter :math:`k` (the number of independent regressors) should
-    be provided as the `adjusted` argument.
+    be provided as the ``adjusted`` argument.
 
     Args:
         pred: estimated labels
@@ -94,11 +94,11 @@ def r2score(
         adjusted: number of independent regressors for calculating adjusted r2 score.
             Default 0 (standard r2 score).
         multioutput: Defines aggregation in the case of multiple output scores. Can be one
-            of the following strings (default is `'uniform_average'`.):
+            of the following strings (default is ``'uniform_average'``.):
 
-            * `'raw_values'` returns full set of scores
-            * `'uniform_average'` scores are uniformly averaged
-            * `'variance_weighted'` scores are weighted by their individual variances
+            * ``'raw_values'`` returns full set of scores
+            * ``'uniform_average'`` scores are uniformly averaged
+            * ``'variance_weighted'`` scores are weighted by their individual variances
 
     Example:
 
