@@ -25,7 +25,8 @@ class MultiIterator(object):
         elif mode == 'max_size_cycle':
             compare_func = max
         else:
-            raise ValueError(f"Invalid Mode: {mode}")
+            raise ValueError(f"Invalid Mode: {mode}. Supported modes are: {", ".join(self.SUPPORTED_MODES)}")
+
 
         if isinstance(all_lengths, (int, float)):
             return all_lengths

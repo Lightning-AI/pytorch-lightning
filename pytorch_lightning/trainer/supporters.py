@@ -272,11 +272,11 @@ class CombinedDataset(object):
         Args:
             datasets: a sequence/mapping datasets. Can be a collections of torch.utils.data.Dataset,
                 Iterable or even None.
-            mode (str): 'min' or 'max'. Determine `CombinedDataset`'s length is the maximum or minimum of
+            mode: 'min' or 'max'. Determine `CombinedDataset`'s length is the maximum or minimum of
                 the datasets.
 
         Returns:
-            length (int): the length of `CombinedDataset`
+            length: the length of `CombinedDataset`
 
         """
         if mode not in ['min', 'max']:
@@ -406,7 +406,7 @@ class CombinedLoader(object):
             loaders: a collections of loaders.
 
         Returns:
-            length (int): the minimum length of loaders
+            length: the minimum length of loaders
 
         """
         all_lengths = apply_to_collection(loaders, Iterable, get_len,
@@ -486,7 +486,7 @@ class CombinedLoaderIterator(object):
         Create and return a collection of iterators from loaders.
 
         Args:
-            loaderss: a collections of loaders
+            loaders: a collections of loaders
 
         Returns
             a collections of iterators
