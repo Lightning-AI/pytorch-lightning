@@ -18,7 +18,7 @@ import torch
 
 try:
     from torchvision.ops import box_iou
-except ModuleNotFoundError:  #pragma: no-cover
+except ModuleNotFoundError:  # pragma: no-cover
     box_iou = None
 
 
