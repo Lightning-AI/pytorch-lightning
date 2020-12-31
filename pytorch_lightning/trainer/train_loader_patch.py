@@ -12,13 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import itertools
-
 
 from typing import Any, Union
-from collections.abc import Iterable, Iterator, Mapping, Sequence
-
-from torch.utils.data import DataLoader
+from collections.abc import Iterable, Mapping, Sequence
 
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -32,16 +28,16 @@ class MultiIterator(object):
         self.num_batches = self._calc_num_batches(loaders, mode)
 
     def _calc_num_batches(self, loaders, mode: str) -> Union[int, float]:
-        all_lengths = apply_to_collection(loaders, Iterable, get_len,
-                                          wrong_dtype=(Sequence, Mapping))
+        all_lengths = apply_to_collection(
+            loaders, Iterable, get_len, wrong_dtype=(Sequence, Mapping)
+        )
 
         if mode == 'min_size':
             compare_func = min
         elif mode == 'max_size_cycle':
             compare_func = max
         else:
-            raise ValueError(f"Invalid Mode: {mode}. Supported modes are: {", ".join(self.SUPPORTED_MODES)}")
-
+            raise ValueError(f"Invalid Mode: {mode}. Supported modes are: {', '.join(self.SUPPORTED_MODES)}")
 
         if isinstance(all_lengths, (int, float)):
             return all_lengths
