@@ -197,7 +197,7 @@ class BackboneLambdaFinetunningCallback(BaseFinetunningCallback):
         """Called when the epoch begins."""
 
         if epoch == 0:
-            _recursive_freeze(pl_module.backbone)
+            freeze(pl_module.backbone)
             return
 
         elif epoch == self.unfreeze_backbone_at_epoch:

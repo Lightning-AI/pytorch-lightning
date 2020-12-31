@@ -62,6 +62,6 @@ def test_finetunning_callback(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[callback],
-        max_epochs=10,
+        max_epochs=8,
     )
     trainer.fit(model)
