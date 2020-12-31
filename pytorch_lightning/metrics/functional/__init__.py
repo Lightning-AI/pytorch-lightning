@@ -24,7 +24,6 @@ from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
     precision,
     precision_recall,
     recall,
-    stat_scores,
     stat_scores_multiple_classes,
     to_categorical,
     to_onehot,
@@ -45,3 +44,4 @@ from pytorch_lightning.metrics.functional.roc import roc  # noqa: F401
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity  # noqa: F401
 from pytorch_lightning.metrics.functional.ssim import ssim  # noqa: F401
 from pytorch_lightning.metrics.functional.ir_average_precision import retrieval_average_precision
+from pytorch_lightning.metrics.functional.stat_scores import stat_scores  # noqa: F401

@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
-import importlib
 import queue as q
 import traceback
 from multiprocessing import Process, Queue
 
 import torch
 
-_XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
+from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm

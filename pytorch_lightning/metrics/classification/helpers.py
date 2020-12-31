@@ -39,8 +39,8 @@ def _basic_input_validation(preds: torch.Tensor, target: torch.Tensor, threshold
     if preds_float and (preds.min() < 0 or preds.max() > 1):
         raise ValueError("The `preds` should be probabilities, but values were detected outside of [0,1] range.")
 
-    if threshold > 1 or threshold < 0:
-        raise ValueError("The `threshold` should be a probability in [0,1].")
+    if not 0 < threshold < 1:
+        raise ValueError(f"The `threshold` should be a float in the (0,1) interval, got {threshold}")
 
     if is_multiclass is False and target.max() > 1:
         raise ValueError("If you set `is_multiclass=False`, then `target` should not exceed 1.")
@@ -58,7 +58,7 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
     care of that.
 
     It returns the name of the case in which the inputs fall, and the implied
-    number of classes (from the C dim for multi-class data, or extra dim(s) for
+    number of classes (from the ``C`` dim for multi-class data, or extra dim(s) for
     multi-label data).
     """
 
@@ -181,13 +181,19 @@ def _check_num_classes_ml(num_classes: int, is_multiclass: bool, implied_classes
 
 
 def _check_top_k(top_k: int, case: str, implied_classes: int, is_multiclass: Optional[bool], preds_float: bool):
-    if "multi-class" not in case or not preds_float:
-        raise ValueError(
-            "You have set `top_k` above 1, but your data is not (multi-dimensional) multi-class"
-            " with probability predictions."
-        )
+    if case == "binary":
+        raise ValueError("You can not use `top_k` parameter with binary data.")
+    if not isinstance(top_k, int) or top_k <= 0:
+        raise ValueError("The `top_k` has to be an integer larger than 0.")
+    if not preds_float:
+        raise ValueError("You have set `top_k`, but you do not have probability predictions.")
     if is_multiclass is False:
         raise ValueError("If you set `is_multiclass=False`, you can not set `top_k`.")
+    if case == "multi-label" and is_multiclass:
+        raise ValueError(
+            "If you want to transform multi-label data to 2 class multi-dimensional"
+            "multi-class data using `is_multiclass=True`, you can not use `top_k`."
+        )
     if top_k >= implied_classes:
         raise ValueError("The `top_k` has to be strictly smaller than the `C` dimension of `preds`.")
 
@@ -216,45 +222,36 @@ def _check_classification_inputs(
     When ``num_classes`` is not specified in these cases, consistency of the highest target
     value against ``C`` dimension is checked for (multi-dimensional) multi-class cases.
 
-    If ``top_k`` is set (not None) for inputs which are not (multi-dimensional) multi class
-    with probabilities, then an error is raised. Similarly if ``top_k`` is set to a number
-    that is higher than or equal to the ``C`` dimension of ``preds``.
+    If ``top_k`` is set (not None) for inputs that do not have probability predictions (and
+    are not binary), an error is raised. Similarly if ``top_k`` is set to a number that
+    is higher than or equal to the ``C`` dimension of ``preds``, an error is raised.
 
     Preds and target tensors are expected to be squeezed already - all dimensions should be
-    greater than 1, except perhaps the first one (N).
+    greater than 1, except perhaps the first one (``N``).
 
     Args:
         preds: Tensor with predictions (labels or probabilities)
         target: Tensor with ground truth labels, always integers (labels)
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0,1) predictions, in the case of binary or multi-label inputs.
         num_classes:
             Number of classes. If not explicitly set, the number of classes will be infered
             either from the shape of inputs, or the maximum label in the ``target`` and ``preds``
             tensor, where applicable.
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
-            only for (multi-dimensional) multi-class inputs with probability predictions. The
-            default value (``None``) will be interepreted as 1 for these inputs.
+            only for inputs with probability predictions. The default value (``None``) will be
+            interepreted as 1 for these inputs. If this parameter is set for multi-label inputs,
+            it will take precedence over threshold.
 
-            Should be left unset (``None``) for all other types of inputs.
+            Should be left unset (``None``) for inputs with label predictions.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be (see :ref:`metrics: Input types` documentation section for
-            input classification and examples of the use of this parameter). Should be left at default
-            value (``None``) in most cases.
+            than what they appear to be. See the parameter's
+            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            for a more detailed explanation and examples.
 
-            The special cases where this parameter should be set are:
-
-            - When you want to treat binary or multi-label inputs as multi-class or multi-dimensional
-              multi-class with 2 classes, respectively. The probabilities are interpreted as the
-              probability of the "1" class, and thresholding still applies as usual. In this case
-              the parameter should be set to ``True``.
-            - When you want to treat multi-class or multi-dimensional mulit-class inputs with 2 classes
-              as binary or multi-label inputs, respectively. This is mainly meant for the case when
-              inputs are labels, but will work if they are probabilities as well. For this case the
-              parameter should be set to ``False``.
 
     Return:
         case: The case the inputs fall in, one of 'binary', 'multi-class', 'multi-label' or
@@ -294,7 +291,7 @@ def _check_classification_inputs(
             _check_num_classes_ml(num_classes, is_multiclass, implied_classes)
 
     # Check that top_k is consistent
-    if top_k:
+    if top_k is not None:
         _check_top_k(top_k, case, implied_classes, is_multiclass, preds.is_floating_point())
 
     return case
@@ -364,7 +361,7 @@ def _input_format_classification(
         target: Tensor with ground truth labels, always integers (labels)
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0 or 1) predictions, in the case of binary or multi-label inputs.
         num_classes:
             Number of classes. If not explicitly set, the number of classes will be infered
             either from the shape of inputs, or the maximum label in the ``target`` and ``preds``
@@ -377,27 +374,16 @@ def _input_format_classification(
             Should be left unset (``None``) for all other types of inputs.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be (see :ref:`metrics: Input types` documentation section for
-            input classification and examples of the use of this parameter). Should be left at default
-            value (``None``) in most cases.
-
-            The special cases where this parameter should be set are:
-
-            - When you want to treat binary or multi-label inputs as multi-class or multi-dimensional
-              multi-class with 2 classes, respectively. The probabilities are interpreted as the
-              probability of the "1" class, and thresholding still applies as usual. In this case
-              the parameter should be set to ``True``.
-            - When you want to treat multi-class or multi-dimensional mulit-class inputs with 2 classes
-              as binary or multi-label inputs, respectively. This is mainly meant for the case when
-              inputs are labels, but will work if they are probabilities as well. For this case the
-              parameter should be set to ``False``.
+            than what they appear to be. See the parameter's
+            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            for a more detailed explanation and examples.
 
 
     Returns:
-        preds: binary tensor of shape (N, C) or (N, C, X)
-        target: binary tensor of shape (N, C) or (N, C, X)
-        case: The case the inputs fall in, one of 'binary', 'multi-class', 'multi-label' or
-            'multi-dim multi-class'
+        preds: binary tensor of shape ``(N, C)`` or ``(N, C, X)``
+        target: binary tensor of shape ``(N, C)`` or ``(N, C, X)``
+        case: The case the inputs fall in, one of ``'binary'``, ``'multi-class'``, ``'multi-label'`` or
+            ``'multi-dim multi-class'``
     """
     # Remove excess dimensions
     if preds.shape[0] == 1:
@@ -419,21 +405,22 @@ def _input_format_classification(
         top_k=top_k,
     )
 
-    top_k = top_k if top_k else 1
-
-    if case in ["binary", "multi-label"]:
+    if case in ["binary", "multi-label"] and not top_k:
         preds = (preds >= threshold).int()
         num_classes = num_classes if not is_multiclass else 2
+
+    if case == "multi-label" and top_k:
+        preds = select_topk(preds, top_k)
 
     if "multi-class" in case or is_multiclass:
         if preds.is_floating_point():
             num_classes = preds.shape[1]
-            preds = select_topk(preds, top_k)
+            preds = select_topk(preds, top_k or 1)
         else:
             num_classes = num_classes if num_classes else max(preds.max(), target.max()) + 1
-            preds = to_onehot(preds, max(2,num_classes))
+            preds = to_onehot(preds, max(2, num_classes))
 
-        target = to_onehot(target, max(2,num_classes))
+        target = to_onehot(target, max(2, num_classes))
 
         if is_multiclass is False:
             preds, target = preds[:, 1, ...], target[:, 1, ...]
