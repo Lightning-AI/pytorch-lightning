@@ -14,6 +14,7 @@
 import inspect
 import os
 from argparse import ArgumentParser, Namespace
+from contextlib import suppress
 from typing import Dict, Union, List, Tuple, Any
 from pytorch_lightning.utilities import parsing
 
@@ -98,11 +99,10 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
         env = template % {'cls_name': cls.__name__.upper(), 'cls_argument': arg_name.upper()}
         val = os.environ.get(env)
         if not (val is None or val == ''):
-            try:  # converting to native types like int/float/bool
-                val = eval(val)
             # todo: specify the possible exception
-            except Exception:
-                pass
+            with suppress(Exception):
+                # converting to native types like int/float/bool
+                val = eval(val)
             env_args[arg_name] = val
     return Namespace(**env_args)
 
