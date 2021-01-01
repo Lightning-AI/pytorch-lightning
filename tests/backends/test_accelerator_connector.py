@@ -50,6 +50,7 @@ def test_accelerator_choice_ddp_cpu(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator='ddp_cpu',
+        num_processes=2,
         callbacks=[CB()],
     )
 

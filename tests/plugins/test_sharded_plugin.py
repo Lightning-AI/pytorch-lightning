@@ -129,6 +129,7 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         accelerator='ddp_cpu',
+        num_processes=2,
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )
@@ -208,6 +209,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         accelerator='ddp_cpu',
+        num_processes=2,
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )
@@ -221,6 +223,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
 
     trainer = Trainer(
         accelerator='ddp_cpu',
+        num_processes=2,
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
         resume_from_checkpoint=checkpoint_path
@@ -291,6 +294,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     trainer = Trainer(
         plugins=[DDPShardedPlugin()],
         accelerator='ddp_cpu',
+        num_processes=2,
         fast_dev_run=True,
         resume_from_checkpoint=checkpoint_path
     )
@@ -308,6 +312,7 @@ def test_ddp_sharded_plugin_test(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         accelerator='ddp_cpu',
+        num_processes=2,
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )
