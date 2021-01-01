@@ -100,6 +100,7 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
         if not (val is None or val == ''):
             try:  # converting to native types like int/float/bool
                 val = eval(val)
+            # todo: specify the possible exception
             except Exception:
                 pass
             env_args[arg_name] = val

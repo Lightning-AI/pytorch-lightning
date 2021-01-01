@@ -126,7 +126,7 @@ class TrainerProperties(ABC):
             in_slurm_interactive_mode = os.environ['SLURM_JOB_NAME'] == 'bash'
             if in_slurm_interactive_mode:
                 job_id = None
-
+        # todo: specify the possible exception
         except Exception:
             job_id = None
         return job_id

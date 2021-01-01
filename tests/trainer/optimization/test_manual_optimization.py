@@ -410,12 +410,14 @@ class ManualOptimizationExtendedModel(BoringModel):
         if self.should_update:
             try:
                 assert not torch.equal(self.weight_before, after_before), self.count
+            # todo: specify the possible exception
             except Exception:
                 # TODO: Figure out why 1 every 3 runs, weights don't get updated on count = 4"
                 pass
         else:
             try:
                 assert torch.equal(self.weight_before, after_before)
+            # todo: specify the possible exception
             except Exception:
                 # almost no diff between before and after
                 assert torch.abs(torch.sum(self.weight_before) - torch.sum(after_before)).item() < 10e-6

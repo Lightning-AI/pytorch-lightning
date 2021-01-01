@@ -126,6 +126,7 @@ def _try_load(path_data, trials: int = 30, delta: float = 1.):
     for _ in range(trials):
         try:
             res = torch.load(path_data)
+        # todo: specify the possible exception
         except Exception as ex:
             exp = ex
             time.sleep(delta * random.random())

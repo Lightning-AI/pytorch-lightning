@@ -37,7 +37,7 @@ class SLURMConnector:
                 job_name = os.environ['SLURM_JOB_NAME']
                 if job_name == 'bash':
                     self.trainer.is_slurm_managing_tasks = False
-
+            # todo: specify the possible exception
             except Exception:
                 # likely not on slurm, so set the slurm managed flag to false
                 self.trainer.is_slurm_managing_tasks = False
@@ -47,6 +47,7 @@ class SLURMConnector:
             should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
             if should_fake:
                 self.trainer.is_slurm_managing_tasks = True
+        # todo: specify the possible exception
         except Exception:
             pass
 
@@ -74,6 +75,7 @@ class SLURMConnector:
             job_name = os.environ['SLURM_JOB_NAME']
             if job_name != 'bash':
                 on_slurm = True
+        # todo: specify the possible exception
         except Exception:
             pass
 
@@ -127,13 +129,14 @@ class SLURMConnector:
 
             # all ports should be in the 10k+ range
             default_port = int(default_port) + 15000
-
+        # todo: specify the possible exception
         except Exception:
             default_port = 12910
 
         # if user gave a port number, use that one instead
         try:
             default_port = os.environ["MASTER_PORT"]
+        # todo: specify the possible exception
         except Exception:
             os.environ["MASTER_PORT"] = str(default_port)
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
@@ -141,6 +144,7 @@ class SLURMConnector:
         # figure out the root node addr
         try:
             root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
+        # todo: specify the possible exception
         except Exception:
             root_node = "127.0.0.1"
 

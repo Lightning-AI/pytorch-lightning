@@ -27,6 +27,7 @@ if _XLA_AVAILABLE:
 def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
     try:
         queue.put(func(*args, **kwargs))
+    # todo: specify the possible exception
     except Exception:
         traceback.print_exc()
         queue.put(None)

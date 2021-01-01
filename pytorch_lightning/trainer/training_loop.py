@@ -239,6 +239,7 @@ class TrainLoop:
         # set seed for distributed sampler (enables shuffling for each epoch)
         try:
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
+        # todo: specify the possible exception
         except Exception:
             pass
 
