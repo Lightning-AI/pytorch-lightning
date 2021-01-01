@@ -32,8 +32,8 @@ try:
     import wandb
     from wandb.wandb_run import Run
 except ImportError:
-    wandb = None  # needed for test mocks, these tests shall be updated
-    Run = None
+    # needed for test mocks, these tests shall be updated
+    wandb, Run = None, None
 
 
 class WandbLogger(LightningLoggerBase):
@@ -124,7 +124,7 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> "Run":
+    def experiment(self) -> Run:
         r"""
 
         Actual wandb object. To use wandb features in your

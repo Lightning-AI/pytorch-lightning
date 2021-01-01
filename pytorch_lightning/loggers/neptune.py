@@ -30,9 +30,10 @@ _NEPTUNE_AVAILABLE = _module_available("neptune")
 
 if _NEPTUNE_AVAILABLE:
     import neptune
-    from neptune.experiments import Experiment as NeptuneExperiment
+    from neptune.experiments import Experiment
 else:
-    neptune = None  # needed for test mocks, these tests shall be updated
+    # needed for test mocks, these tests shall be updated
+    neptune, Experiment = None, None
 
 
 class NeptuneLogger(LightningLoggerBase):
@@ -214,7 +215,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> "NeptuneExperiment":
+    def experiment(self) -> Experiment:
         r"""
         Actual Neptune object. To use neptune features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.

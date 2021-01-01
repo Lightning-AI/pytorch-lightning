@@ -35,6 +35,7 @@ if _COMET_AVAILABLE:
     import comet_ml
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import Experiment as CometExperiment
+    from comet_ml import generate_guid
     from comet_ml import OfflineExperiment as CometOfflineExperiment
 
     try:
@@ -44,12 +45,9 @@ if _COMET_AVAILABLE:
         from comet_ml.papi import API  # pragma: no-cover
 else:
     # needed for test mocks, these tests shall be updated
-    comet_ml = None
-    CometExperiment = None
-    CometExistingExperiment = None
-    CometOfflineExperiment = None
+    comet_ml, generate_guid = None, None
+    CometExperiment, CometExistingExperiment, CometOfflineExperiment = None, None, None
     API = None
-    generate_guid = None
 
 
 class CometLogger(LightningLoggerBase):
@@ -296,7 +294,7 @@ class CometLogger(LightningLoggerBase):
             return self._future_experiment_key
 
         # Pre-generate an experiment key
-        self._future_experiment_key = comet_ml.generate_guid()
+        self._future_experiment_key = generate_guid()
 
         return self._future_experiment_key
 
