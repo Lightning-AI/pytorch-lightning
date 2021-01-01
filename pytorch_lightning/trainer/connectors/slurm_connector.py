@@ -66,8 +66,14 @@ class SLURMConnector:
 
     def register_slurm_signal_handlers(self):
         # see if we're using slurm (not interactive)
-        job_name = os.environ.get('SLURM_JOB_NAME', '')
-        on_slurm = job_name != 'bash'
+        on_slurm = False
+        try:
+            job_name = os.environ['SLURM_JOB_NAME']
+            if job_name != 'bash':
+                on_slurm = True
+        # todo: specify the possible exception
+        except Exception:
+            pass
 
         if on_slurm:
             log.info('Set SLURM handle signals.')
