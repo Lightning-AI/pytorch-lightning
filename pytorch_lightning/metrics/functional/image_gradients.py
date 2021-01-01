@@ -48,7 +48,6 @@ def image_gradients(img: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
     Args:
         img: input image tensor
-        device: device type
 
     Return:
         Tuple of the gradients i.e (dy, dx) of shape [BATCH_SIZE, CHANNELS, HEIGHT, WIDTH]
