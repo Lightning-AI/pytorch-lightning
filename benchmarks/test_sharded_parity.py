@@ -316,6 +316,7 @@ def plugin_parity_test(
         precision=precision,
         accelerator=accelerator,
         plugins=[plugin],
+        **kwargs,
     )
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(

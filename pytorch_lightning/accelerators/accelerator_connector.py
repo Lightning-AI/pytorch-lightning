@@ -279,9 +279,9 @@ class AcceleratorConnector:
             accelerator_backend = accelerators.CPUAccelerator(self.trainer, cluster_env)
         else:
             raise MisconfigurationException(
-                f'Trainer(accelerator={self.trainer.distributed_backend} is not a supported backend for'
-                f' num_nodes={self.trainer.num_nodes},  num_gpus={self.trainer.num_gpus}'
-                f' and  num_processes={self.trainer.num_processes}.'
+                f'`Trainer(accelerator={self.trainer.distributed_backend}, num_nodes={self.trainer.num_nodes},'
+                f' num_processes={self.trainer.num_processes}, ...)` is not a supported backend for'
+                f' num_gpus={self.trainer.num_gpus}'
             )
 
         return accelerator_backend
