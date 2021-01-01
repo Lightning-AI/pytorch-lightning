@@ -311,7 +311,9 @@ class AcceleratorConnector:
             if self.trainer.num_processes is None:
                 # define the max CPU available
                 self.trainer.num_processes = os.cpu_count()
-
+        # special case with TPUs
+        elif self.trainer.distributed_backend == 'tpu':
+            self.trainer._device_type = DeviceType.TPU
         # set all other requested distrib. types adn if it was not set in the
         elif self.trainer.distributed_backend and self.trainer._distrib_type is None:
             self.trainer._distrib_type = DistributedType(self.trainer.distributed_backend)
