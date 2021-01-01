@@ -17,12 +17,10 @@ from copy import copy, deepcopy
 
 import numpy as np
 import torch
-import torch.distributed as torch_distrib
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
@@ -30,9 +28,9 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
-from pytorch_lightning.utilities.warning_utils import WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainLoop:
@@ -647,7 +645,6 @@ class TrainLoop:
         grad_norm_dic = {}
 
         # bookkeeping
-        using_results_obj = False
         self.trainer.hiddens = None
 
         # track all outputs across time and num of optimizers

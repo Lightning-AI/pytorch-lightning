@@ -87,7 +87,8 @@ def test_result_reduce_ddp(result_cls):
             7, True, 0, id='write_dict_predictions'
         ),
         pytest.param(
-            0, True, 1, id='full_loop_single_gpu', marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires single-GPU machine")
+            0, True, 1, id='full_loop_single_gpu',
+            marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires single-GPU machine")
         )
     ]
 )

@@ -383,6 +383,7 @@ class AcceleratorConnector:
         return 'OMPI_COMM_WORLD_RANK' in os.environ or 'HOROVOD_RANK' in os.environ
 
     def set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
+        # Todo: required argument `is_slurm_managing_tasks` is not used
         if data_parallel_device_ids is None:
             return
 

@@ -27,7 +27,7 @@ class Dummy(Metric):
 
 
 def test_inherit():
-    a = Dummy()
+    Dummy()
 
 
 def test_add_state():

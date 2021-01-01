@@ -130,4 +130,4 @@ def test_warning_on_nan(tmpdir):
     target = torch.randint(3, size=(20,))
 
     with pytest.warns(UserWarning, match='.* nan values found in confusion matrix have been replaced with zeros.'):
-        confmat = confusion_matrix(preds, target, num_classes=5, normalize='true')
+        confusion_matrix(preds, target, num_classes=5, normalize='true')

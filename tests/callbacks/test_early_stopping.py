@@ -213,11 +213,14 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
     IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
     THEN the trainer should continue until reaching `trainer.global_step` == `min_steps`, and stop.
 
-    IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step` when `early_stopping` is being triggered,
-    THEN the trainer should continue until reaching `trainer.global_step` == `min_epochs * len(train_dataloader)`, and stop.
+    IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step`
+        when `early_stopping` is being triggered,
+    THEN the trainer should continue until reaching
+        `trainer.global_step` == `min_epochs * len(train_dataloader)`, and stop.
     This test validate this expected behaviour
 
-    IF both `min_epochs` and `min_steps` are provided and higher than the `trainer.global_step` when `early_stopping` is being triggered,
+    IF both `min_epochs` and `min_steps` are provided and higher than the `trainer.global_step`
+        when `early_stopping` is being triggered,
     THEN the highest between `min_epochs * len(train_dataloader)` and `min_steps` would be reached.
 
     Caviat: IF min_steps is divisible by len(train_dataloader), then it will do min_steps + len(train_dataloader)

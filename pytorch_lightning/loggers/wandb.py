@@ -18,7 +18,7 @@ Weights and Biases Logger
 """
 import os
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import torch.nn as nn
 

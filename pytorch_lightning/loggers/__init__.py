@@ -28,35 +28,35 @@ try:
     # needed to prevent ImportError and duplicated logs.
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
-    from pytorch_lightning.loggers.comet import CometLogger
+    from pytorch_lightning.loggers.comet import CometLogger  # noqa: F401
 except ImportError:  # pragma: no-cover
     del environ["COMET_DISABLE_AUTO_LOGGING"]  # pragma: no-cover
 else:
     __all__.append('CometLogger')
 
 try:
-    from pytorch_lightning.loggers.mlflow import MLFlowLogger
+    from pytorch_lightning.loggers.mlflow import MLFlowLogger  # noqa: F401
 except ImportError:  # pragma: no-cover
     pass  # pragma: no-cover
 else:
     __all__.append('MLFlowLogger')
 
 try:
-    from pytorch_lightning.loggers.neptune import NeptuneLogger
+    from pytorch_lightning.loggers.neptune import NeptuneLogger  # noqa: F401
 except ImportError:  # pragma: no-cover
     pass  # pragma: no-cover
 else:
     __all__.append('NeptuneLogger')
 
 try:
-    from pytorch_lightning.loggers.test_tube import TestTubeLogger
+    from pytorch_lightning.loggers.test_tube import TestTubeLogger  # noqa: F401
 except ImportError:  # pragma: no-cover
     pass  # pragma: no-cover
 else:
     __all__.append('TestTubeLogger')
 
 try:
-    from pytorch_lightning.loggers.wandb import WandbLogger
+    from pytorch_lightning.loggers.wandb import WandbLogger  # noqa: F401
 except ImportError:  # pragma: no-cover
     pass  # pragma: no-cover
 else:
