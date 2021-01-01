@@ -45,6 +45,32 @@ class ModelCheckpoint(Callback):
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
 
     Args:
+        dirpath: directory to save the model file.
+
+            Example::
+
+                # custom path
+                # saves a file like: my/path/epoch=0-step=10.ckpt
+                >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
+
+            By default, dirpath is ``None`` and will be set at runtime to the location
+            specified by :class:`~pytorch_lightning.trainer.trainer.Trainer`'s
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` or
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
+            and if the Trainer uses a logger, the path will also contain logger name and version.
+
+        filename: checkpoint filename. Can contain named formatting options to be auto-filled.
+
+            Example::
+
+                # save any arbitrary metrics like `val_loss`, etc. in name
+                # saves a file like: my/path/epoch=2-val_loss=0.02-other_metric=0.03.ckpt
+                >>> checkpoint_callback = ModelCheckpoint(
+                ...     dirpath='my/path',
+                ...     filename='{epoch}-{val_loss:.2f}-{other_metric:.2f}'
+                ... )
+
+            By default, filename is ``None`` and will be set to ``'{epoch}-{step}'``.
         monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
         verbose: verbosity mode. Default: ``False``.
         save_last: When ``True``, always saves the model at the end of the epoch to
@@ -78,34 +104,6 @@ class ModelCheckpoint(Callback):
 
             .. warning::
                This argument has been deprecated in v1.1 and will be removed in v1.3
-
-        dirpath: directory to save the model file.
-
-            Example::
-
-                # custom path
-                # saves a file like: my/path/epoch=0-step=10.ckpt
-                >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
-
-            By default, dirpath is ``None`` and will be set at runtime to the location
-            specified by :class:`~pytorch_lightning.trainer.trainer.Trainer`'s
-            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` or
-            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
-            and if the Trainer uses a logger, the path will also contain logger name and version.
-
-        filename: checkpoint filename. Can contain named formatting options to be auto-filled.
-
-            Example::
-
-                # save any arbitrary metrics like `val_loss`, etc. in name
-                # saves a file like: my/path/epoch=2-val_loss=0.02-other_metric=0.03.ckpt
-                >>> checkpoint_callback = ModelCheckpoint(
-                ...     dirpath='my/path',
-                ...     filename='{epoch}-{val_loss:.2f}-{other_metric:.2f}'
-                ... )
-
-            By default, filename is ``None`` and will be set to ``'{epoch}-{step}'``.
-
 
     Example::
 
