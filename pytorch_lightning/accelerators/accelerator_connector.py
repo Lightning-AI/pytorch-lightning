@@ -81,16 +81,7 @@ class AcceleratorConnector:
         # sync-bn backend
         self.trainer.sync_batchnorm = sync_batchnorm
 
-        self.trainer.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        if self.trainer.tpu_cores is not None:
-            if _TPU_AVAILABLE:
-                self.trainer._device_type = DeviceType.TPU
-            else:
-                raise MisconfigurationException(
-                    f"You have requested {self.trainer.tpu_cores} TPU cores but none is available."
-                )
-
-        self.trainer.tpu_id = self.trainer.tpu_cores[0] if isinstance(self.trainer.tpu_cores, list) else None
+        self._parse_tpu_device_details(tpu_cores)
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
             rank_zero_warn("num_processes is only used for `accelerator='ddp_cpu'`. Ignoring it.")
@@ -107,16 +98,8 @@ class AcceleratorConnector:
         self.trainer.data_parallel_device_ids = device_parser.parse_gpu_ids(self.trainer.gpus)
         self.trainer.root_gpu = device_parser.determine_root_gpu_device(self.trainer.data_parallel_device_ids)
 
-        # tpu state flags
-        self.trainer.tpu_local_core_rank = None
-        self.trainer.tpu_global_core_rank = None
-
         # distributed backend choice
         self.set_distributed_mode()
-
-        # override dist backend when using TPUs
-        if self.trainer.on_tpu:
-            self.trainer.distributed_backend = "tpu"
 
         # init flags for SLURM+DDP to work
         self.trainer.world_size = 1
@@ -135,6 +118,23 @@ class AcceleratorConnector:
         self.trainer.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
         self.trainer.replace_sampler_ddp = replace_sampler_ddp
+
+    def _parse_tpu_device_details(self, tpu_cores):
+        self.trainer.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
+        if self.trainer.tpu_cores is not None:
+            if _TPU_AVAILABLE:
+                self.trainer._device_type = DeviceType.TPU
+                self.trainer.distributed_backend = "tpu"
+            else:
+                raise MisconfigurationException(
+                    f"You have requested {self.trainer.tpu_cores} TPU cores but none is available."
+                )
+
+        self.trainer.tpu_id = self.trainer.tpu_cores[0] if isinstance(self.trainer.tpu_cores, list) else None
+
+        # tpu state flags
+        self.trainer.tpu_local_core_rank = None
+        self.trainer.tpu_global_core_rank = None
 
     def _map_deprecated_dist_backend(self, accelerator, distributed_backend):
         if distributed_backend is not None:
@@ -313,9 +313,12 @@ class AcceleratorConnector:
             self.trainer._distrib_type = DistributedType(self.trainer.distributed_backend)
 
         # unless you request explicitly for CPU and some GPU are available use them
-        if (self.trainer.num_gpus > 0
-                and not (self.trainer.distributed_backend and 'cpu' in self.trainer.distributed_backend)):
+        _on_cpu = self.trainer.distributed_backend and 'cpu' in self.trainer.distributed_backend
+        if (self.trainer.num_gpus > 0 and not _on_cpu):
             self.trainer._device_type = DeviceType.GPU
+        elif self.trainer._device_type == DeviceType.CPU and self.trainer.num_processes is None:
+            # define the max CPU available
+            self.trainer.num_processes = os.cpu_count()
 
         _distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
