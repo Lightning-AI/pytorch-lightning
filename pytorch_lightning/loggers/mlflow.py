@@ -34,6 +34,7 @@ _MLFLOW_AVAILABLE = _module_available("mlflow.model")
 try:
     import mlflow
     from mlflow.tracking import MlflowClient
+# todo: there seems to be still some remaining import error with Conda env
 except ImportError:
     _MLFLOW_AVAILABLE = False
     mlflow, MlflowClient = None, None
