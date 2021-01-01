@@ -1,12 +1,12 @@
 import os
 import platform
 import time
-from typing import Union, Type
+from typing import Type, Union
 
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, seed_everything, LightningModule
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
