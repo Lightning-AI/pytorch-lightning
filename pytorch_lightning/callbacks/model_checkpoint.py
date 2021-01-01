@@ -45,12 +45,6 @@ class ModelCheckpoint(Callback):
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
 
     Args:
-        filepath: path to save the model file.
-
-            .. warning:: .. deprecated:: 1.0
-
-               Use ``dirpath`` + ``filename`` instead. Will be removed in v1.2
-
         monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
         verbose: verbosity mode. Default: ``False``.
         save_last: When ``True``, always saves the model at the end of the epoch to
@@ -144,7 +138,6 @@ class ModelCheckpoint(Callback):
 
     def __init__(
         self,
-        filepath: Optional[str] = None,
         monitor: Optional[str] = None,
         verbose: bool = False,
         save_last: Optional[bool] = None,
@@ -184,7 +177,7 @@ class ModelCheckpoint(Callback):
             )
 
         self.__init_monitor_mode(monitor, mode)
-        self.__init_ckpt_dir(filepath, dirpath, filename, save_top_k)
+        self.__init_ckpt_dir(dirpath, filename, save_top_k)
         self.__validate_init_configuration()
 
     def on_pretrain_routine_start(self, trainer, pl_module):
@@ -269,28 +262,7 @@ class ModelCheckpoint(Callback):
                     ' You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None).'
                 )
 
-    def __init_ckpt_dir(self, filepath, dirpath, filename, save_top_k):
-        if filepath:
-            if (dirpath or filename):
-                raise MisconfigurationException(
-                    'You have set all three path/name inputs which are not feasible.'
-                    f' You have to choose either filepath={filepath} OR dirpath={dirpath}'
-                    f' and filename={filename} configuration.'
-                )
-
-            rank_zero_warn(
-                'Argument `filepath` is deprecated in v1.0 and will be removed in v1.2.'
-                ' Please use `dirpath` and `filename` instead.', DeprecationWarning
-            )
-
-            _fs = get_filesystem(filepath)
-
-            if _fs.isdir(filepath):
-                dirpath, filename = filepath, None
-            else:
-                if _fs.protocol == 'file':
-                    filepath = os.path.realpath(filepath)
-                dirpath, filename = os.path.split(filepath)
+    def __init_ckpt_dir(self, dirpath, filename, save_top_k):
 
         self._fs = get_filesystem(str(dirpath) if dirpath else '')
 
