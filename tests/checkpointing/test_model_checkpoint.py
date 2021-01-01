@@ -237,26 +237,6 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt_name = ModelCheckpoint(
         monitor='early_stop_on', dirpath=None, filename='{epoch}_{val/loss:.5f}'
     ).format_checkpoint_name(4, 3, {'val/loss': 0.03})
-    assert ckpt_name == 'epoch=4_val/loss=0.03000.ckpt'
-
-    # TODO: Checks with filepath. To be removed in v1.2
-    # CWD
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath='.').format_checkpoint_name(3, 2, {})
-    assert ckpt_name == str(Path('.').resolve() / 'epoch=3-step=2.ckpt')
-
-    # dir does not exist so it is used as filename
-    filepath = tmpdir / 'dir'
-    ckpt_name = ModelCheckpoint(
-        monitor='early_stop_on', filepath=filepath, prefix='test'
-    ).format_checkpoint_name(3, 2, {})
-    assert ckpt_name == tmpdir / 'test-dir.ckpt'
-
-    # now, dir exists
-    os.mkdir(filepath)
-    ckpt_name = ModelCheckpoint(
-        monitor='early_stop_on', filepath=filepath, prefix='test'
-    ).format_checkpoint_name(3, 2, {})
-    assert ckpt_name == filepath / 'test-epoch=3-step=2.ckpt'
 
 
 class ModelCheckpointExtensionTest(ModelCheckpoint):
@@ -571,7 +551,7 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
         model.validation_step = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir,
+        callbacks=[ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir,
                                    save_top_k=0, save_last=save_last)],
         max_epochs=max_epochs,
     )
