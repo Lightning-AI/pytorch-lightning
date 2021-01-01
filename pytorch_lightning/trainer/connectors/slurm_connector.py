@@ -43,13 +43,9 @@ class SLURMConnector:
                 self.trainer.is_slurm_managing_tasks = False
 
         # used for tests only, set this flag to simulate slurm managing a task
-        try:
-            should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
-            if should_fake:
-                self.trainer.is_slurm_managing_tasks = True
-        # todo: specify the possible exception
-        except Exception:
-            pass
+        should_fake = os.environ.get('FAKE_SLURM_MANAGING_TASKS')
+        if should_fake and int(should_fake):
+            self.trainer.is_slurm_managing_tasks = True
 
         # notify user the that slurm is managing tasks
         if self.trainer.is_slurm_managing_tasks:
