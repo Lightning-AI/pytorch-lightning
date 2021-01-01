@@ -20,8 +20,8 @@ def _image_gradients_validate(img: torch.Tensor) -> torch.Tensor:
 
     if not isinstance(img, torch.Tensor):
         raise TypeError(f"`img` expects a value of <torch.Tensor> type but got {type(img)}")
-    if img.ndim != 3 and img.ndim != 4:
-        raise RuntimeError(f"`img` expects a 3D or 4D tensor but got {img.ndim}D tensor")
+    if img.ndim != 4:
+        raise RuntimeError(f"`img` expects a 4D tensor but got {img.ndim}D tensor")
 
 
 def _compute_image_gradients(img: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -47,10 +47,10 @@ def image_gradients(img: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     Computes the `gradients <https://en.wikipedia.org/wiki/Image_gradient>`_ of a given image using finite difference
 
     Args:
-        img: input image tensor
+        img: An ``(N, C, H, W)`` input tensor where C is the number of image channels
 
     Return:
-        Tuple of the gradients i.e (dy, dx) of shape [BATCH_SIZE, CHANNELS, HEIGHT, WIDTH]
+        Tuple of (dy, dx) with each gradient of shape ``[N, C, H, W]``
 
     Example:
         >>> image = torch.arange(0, 1*1*5*5, dtype=torch.float32)

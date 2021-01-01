@@ -7,25 +7,9 @@ from pytorch_lightning.metrics.functional.image_gradients import image_gradients
 def test_invalid_input_img_type():
     """Test Whether the module successfully handles invalid input data type"""
     invalid_dummy_input = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-    device = torch.device("cpu")
-    with pytest.raises(TypeError):
-        image_gradients(invalid_dummy_input, device)
-
-
-def test_invalid_input_device_type():
-    """Test wheather the module successfully handles invald input device type"""
-    BATCH_SIZE = 1
-    HEIGHT = 5
-    WIDTH = 5
-    CHANNELS = 1
-
-    device = "cpu"
-
-    image = torch.arange(0, BATCH_SIZE * HEIGHT * WIDTH * CHANNELS, dtype=torch.float32)
-    image = torch.reshape(image, (HEIGHT, WIDTH))
 
     with pytest.raises(TypeError):
-        image_gradients(image, device)
+        image_gradients(invalid_dummy_input)
 
 
 def test_invalid_input_ndims():
