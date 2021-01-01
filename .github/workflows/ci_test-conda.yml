@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         # os: [ubuntu-20.04]
-        python-version: [3.8]
+        python-version: [3.6]
         pytorch-version: [1.3, 1.4, 1.5, 1.6, 1.7, 1.8]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
