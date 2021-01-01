@@ -775,24 +775,6 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
         assert_checkpoint_log_dir(idx)
 
 
-@pytest.mark.parametrize(
-    'filepath, dirpath, filename',
-    [
-        (None, None, None),
-        ('.', '.', None),
-        ('', None, None),
-        ('my/path/', 'my/', 'path'),
-        ('my/path/{val_loss:.2f}', 'my/path/', '{val_loss:.2f}'),
-    ]
-)
-def test_filepath_decomposition_dirpath_filename(tmpdir, filepath, dirpath, filename):
-    mc_cb = ModelCheckpoint(filepath=filepath)
-    dirpath = os.path.realpath(dirpath) if dirpath else dirpath
-
-    assert mc_cb.dirpath == dirpath
-    assert mc_cb.filename == filename
-
-
 def test_configure_model_checkpoint(tmpdir):
     """ Test all valid and invalid ways a checkpoint callback can be passed to the Trainer. """
     kwargs = dict(default_root_dir=tmpdir)
