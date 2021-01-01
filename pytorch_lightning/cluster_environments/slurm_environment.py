@@ -42,16 +42,12 @@ class SLURMEnvironment(ClusterEnvironment):
         # -----------------------
         # this way every process knows what port to use
         default_port = os.environ.get("SLURM_JOB_ID")
-        try:
+        if default_port:
             # use the last 4 numbers in the job id as the id
             default_port = default_port[-4:]
-
             # all ports should be in the 10k+ range
             default_port = int(default_port) + 15000
-
-        # TypeError: if default_port is None
-        # ValueError: if default_port is not integer
-        except (TypeError, ValueError):
+        else:
             default_port = 12910
 
         # -----------------------
