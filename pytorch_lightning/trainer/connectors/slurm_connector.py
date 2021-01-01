@@ -66,14 +66,8 @@ class SLURMConnector:
 
     def register_slurm_signal_handlers(self):
         # see if we're using slurm (not interactive)
-        on_slurm = False
-        try:
-            job_name = os.environ['SLURM_JOB_NAME']
-            if job_name != 'bash':
-                on_slurm = True
-        # todo: specify the possible exception
-        except Exception:
-            pass
+        job_name = os.environ.get('SLURM_JOB_NAME')
+        on_slurm = job_name != 'bash'
 
         if on_slurm:
             log.info('Set SLURM handle signals.')
@@ -118,30 +112,27 @@ class SLURMConnector:
         """
         # use slurm job id for the port number
         # guarantees unique ports across jobs from same grid search
-        try:
+        default_port = os.environ.get("SLURM_JOB_ID")
+        if default_port:
             # use the last 4 numbers in the job id as the id
-            default_port = os.environ["SLURM_JOB_ID"]
             default_port = default_port[-4:]
-
             # all ports should be in the 10k+ range
             default_port = int(default_port) + 15000
-        # todo: specify the possible exception
-        except Exception:
+        else:
             default_port = 12910
 
         # if user gave a port number, use that one instead
-        try:
+        if "MASTER_PORT" in os.environ:
             default_port = os.environ["MASTER_PORT"]
-        # todo: specify the possible exception
-        except Exception:
+        else:
             os.environ["MASTER_PORT"] = str(default_port)
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         # figure out the root node addr
-        try:
-            root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
-        # todo: specify the possible exception
-        except Exception:
+        root_node = os.environ.get("SLURM_NODELIST")
+        if root_node:
+            root_node = root_node.split(" ")[0]
+        else:
             root_node = "127.0.0.1"
 
         root_node = self.trainer.slurm_connector.resolve_root_node_address(root_node)
