@@ -94,7 +94,7 @@ class MLFlowLogger(LightningLoggerBase):
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
     ):
-        if not mlflow:
+        if mlflow is None:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
                               ' install it with `pip install mlflow`.')
         super().__init__()

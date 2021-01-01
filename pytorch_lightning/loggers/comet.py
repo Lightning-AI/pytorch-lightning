@@ -134,7 +134,7 @@ class CometLogger(LightningLoggerBase):
         prefix: str = '',
         **kwargs
     ):
-        if not comet_ml:
+        if comet_ml is None:
             raise ImportError(
                 "You want to use `comet_ml` logger which is not installed yet,"
                 " install it with `pip install comet-ml`."
