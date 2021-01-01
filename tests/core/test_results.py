@@ -19,7 +19,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from pytorch_lightning import Trainer
-from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
+from pytorch_lightning.core.step_result import Result, EvalResult
 import tests.base.develop_utils as tutils
 
 from tests.base import EvalModelTemplate

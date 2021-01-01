@@ -414,11 +414,11 @@ def test_tbptt_cpu_model_result(tmpdir):
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
             loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
-            return loss_val
+            return {'loss': loss_val, 'hiddens': self.test_hidden}
 
         def training_epoch_end(self, training_step_outputs):
             result = training_step_outputs
-            assert isinstance(result, TrainResult)
+            assert isinstance(result, dict)
             assert result.minimize.size(1) == (sequence_size / truncated_bptt_steps)
 
             result.minimize = result.minimize.mean()
@@ -490,7 +490,7 @@ def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
             loss_val = torch.nn.functional.mse_loss(
                 pred, y_tensor.view(batch_size, truncated_bptt_steps))
-            return loss_val
+            return {'loss': loss_val, 'hiddens': self.test_hidden}
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(
