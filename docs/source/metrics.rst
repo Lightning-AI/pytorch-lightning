@@ -212,7 +212,7 @@ Classification Metrics
 Input types
 -----------
 
-For the purposes of classification metrics, inputs (predictions and targets) are split 
+For the purposes of classification metrics, inputs (predictions and targets) are split
 into these categories (``N`` stands for the batch size and ``C`` for number of classes):
 
 .. csv-table:: \*dtype ``binary`` means integers that are either 0 or 1
@@ -227,10 +227,10 @@ into these categories (``N`` stands for the batch size and ``C`` for number of c
     "Multi-dimensional multi-class with probabilities", "(N, C, ...)", "``float``", "(N, ...)", "``int``"
 
 .. note::
-    All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so 
+    All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so
     that, for example, a tensor of shape ``(N, 1)`` is treated as ``(N, )``.
 
-When predictions or targets are integers, it is assumed that class labels start at 0, i.e. 
+When predictions or targets are integers, it is assumed that class labels start at 0, i.e.
 the possible class labels are 0, 1, 2, 3, etc. Below are some examples of different input types
 
 .. testcode::
@@ -573,6 +573,12 @@ SSIM
     :noindex:
 
 
+R2Score
+~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.R2Score
+    :noindex:
+
 Functional Metrics (Regression)
 -------------------------------
 
@@ -580,6 +586,13 @@ explained_variance [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.explained_variance
+    :noindex:
+
+
+image_gradients [func]
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.image_gradients
     :noindex:
 
 
@@ -618,10 +631,10 @@ ssim [func]
     :noindex:
 
 
-image_gradients [func]
-~~~~~~~~~~~~~~~~~~~~~~
+r2score [func]
+~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.image_gradients
+.. autofunction:: pytorch_lightning.metrics.functional.r2score
     :noindex:
 
 
