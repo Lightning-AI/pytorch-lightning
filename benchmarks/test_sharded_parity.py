@@ -1,12 +1,12 @@
 import os
 import platform
 import time
-from typing import Union
+from typing import Union, Type
 
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import Trainer, seed_everything, LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
@@ -20,9 +20,10 @@ from tests.base.boring_model import BoringModel, RandomDataset
 def test_ddp_sharded_plugin_correctness_one_device():
     plugin_parity_test(
         accelerator='ddp_cpu',
+        num_processes=2,
         max_percent_speed_diff=0.15,  # slower speed due to one CPU doing additional sequential memory saving calls
         plugin=DDPShardedPlugin(),
-        model_cls=SeedTrainLoaderModel
+        model_cls=SeedTrainLoaderModel,
     )
 
 
@@ -35,7 +36,7 @@ def test_ddp_sharded_plugin_correctness_one_gpu():
         gpus=1,
         accelerator='ddp_spawn',
         plugin=DDPShardedPlugin(),
-        model_cls=SeedTrainLoaderModel
+        model_cls=SeedTrainLoaderModel,
     )
 
 
@@ -50,7 +51,7 @@ def test_ddp_sharded_plugin_correctness_amp_one_gpu():
         precision=16,
         accelerator='ddp_spawn',
         plugin=DDPShardedPlugin(),
-        model_cls=SeedTrainLoaderModel
+        model_cls=SeedTrainLoaderModel,
     )
 
 
@@ -65,7 +66,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu():
         accelerator='ddp_spawn',
         plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25
+        max_percent_speed_diff=0.25,
     )
 
 
@@ -81,7 +82,7 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
         accelerator='ddp_spawn',
         plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25
+        max_percent_speed_diff=0.25,
     )
 
 
@@ -97,7 +98,7 @@ def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
         accelerator='ddp_spawn',
         plugin='ddp_sharded',
         model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25
+        max_percent_speed_diff=0.25,
     )
 
 
@@ -145,7 +146,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
         gpus=2,
         accelerator='ddp_spawn',
         model_cls=SeedTrainLoaderMultipleOptimizersModel,
-        max_percent_speed_diff=0.25  # Increase speed diff since only 2 GPUs sharding 2 optimizers
+        max_percent_speed_diff=0.25,  # Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
 
 
@@ -163,7 +164,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim_manual(tmpdir):
         gpus=2,
         accelerator='ddp_spawn',
         model_cls=SeedTrainLoaderManualModel,
-        max_percent_speed_diff=0.25  # Increase speed diff since only 2 GPUs sharding 2 optimizers
+        max_percent_speed_diff=0.25,  # Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
 
 
@@ -259,13 +260,15 @@ def record_ddp_fit_model_stats(trainer, model, use_cuda):
 
 
 def plugin_parity_test(
-        model_cls: SeedTrainLoaderModel,
+        model_cls: Type[SeedTrainLoaderModel],
         plugin: Union[str, DDPPlugin],
         seed: int = 42,
         accelerator: str = 'ddp_spawn',
         gpus: int = 0,
         precision: int = 32,
-        max_percent_speed_diff: float = 0.1):
+        max_percent_speed_diff: float = 0.1,
+        **kwargs,
+):
     """
     Ensures that the trained model is identical to the standard DDP implementation.
     Also checks for speed/memory regressions, we should expect always less memory but performance to fluctuate.
@@ -293,6 +296,7 @@ def plugin_parity_test(
         gpus=gpus,
         precision=precision,
         accelerator=accelerator,
+        **kwargs,
     )
 
     max_memory_ddp, ddp_time = record_ddp_fit_model_stats(
