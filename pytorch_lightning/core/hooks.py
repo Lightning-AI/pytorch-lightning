@@ -573,9 +573,6 @@ class DataHooks:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
-        Note:
-            This hook only runs on single gpu training (no data-parallel) or with sharded plugin.
-
         Args:
             batch: A batch of data that needs to be altered or augmented.
 

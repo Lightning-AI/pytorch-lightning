@@ -303,8 +303,6 @@ on_before_batch_transfer
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
-.. note:: This hook only runs on single gpu training (no data-parallel) or with sharded plugin.
-
 .. testcode::
 
     class MNISTDataModule(LightningDataModule):
