@@ -252,7 +252,7 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
 
 
 @mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
+    "SLURM_NTASKS": "2",
     "SLURM_JOB_NAME": "SOME_NAME",
     "SLURM_NODEID": "0",
     "LOCAL_RANK": "0",
@@ -280,7 +280,7 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
 
 
 @mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
+    "SLURM_NTASKS": "2",
     "SLURM_JOB_NAME": "SOME_NAME",
     "SLURM_NODEID": "0",
     "LOCAL_RANK": "0",
@@ -317,7 +317,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
 
 
 @mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
+    "SLURM_NTASKS": "2",
     "SLURM_JOB_NAME": "SOME_NAME",
     "SLURM_NODEID": "0",
     "LOCAL_RANK": "0",
@@ -351,7 +351,7 @@ def test_custom_accelerator(tmpdir):
 
 
 @mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
+    "SLURM_NTASKS": "2",
     "SLURM_JOB_NAME": "SOME_NAME",
     "SLURM_NODEID": "0",
     "LOCAL_RANK": "0",
@@ -369,7 +369,7 @@ def test_dist_backend_accelerator_mapping(tmpdir):
         fast_dev_run=True,
         accelerator='ddp_cpu',
         num_processes=2,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):

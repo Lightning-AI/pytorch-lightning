@@ -31,8 +31,8 @@ class PluginConnector:
         self.plugins = []
         self.ddp_plugin = DDPPlugin()
         self.cloud_environment = None
-        self.amp_plugin = NativeAMPPlugin(trainer)
-        self.apex_plugin = ApexPlugin(trainer)
+        # self.amp_plugin = NativeAMPPlugin(trainer)
+        # self.apex_plugin = ApexPlugin(trainer)
 
     def on_trainer_init(self, plugins: Optional[Union[str, list]]):
         self.plugins = plugins
