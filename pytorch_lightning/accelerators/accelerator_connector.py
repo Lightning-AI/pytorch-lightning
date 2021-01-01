@@ -308,6 +308,10 @@ class AcceleratorConnector:
                 rank_zero_warn(
                     'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
                 )
+            if self.trainer.num_processes is None:
+                # define the max CPU available
+                self.trainer.num_processes = os.cpu_count()
+
         # set all other requested distrib. types adn if it was not set in the
         elif self.trainer.distributed_backend and self.trainer._distrib_type is None:
             self.trainer._distrib_type = DistributedType(self.trainer.distributed_backend)
@@ -316,9 +320,6 @@ class AcceleratorConnector:
         _on_cpu = self.trainer.distributed_backend and 'cpu' in self.trainer.distributed_backend
         if (self.trainer.num_gpus > 0 and not _on_cpu):
             self.trainer._device_type = DeviceType.GPU
-        elif self.trainer._device_type == DeviceType.CPU and self.trainer.num_processes is None:
-            # define the max CPU available
-            self.trainer.num_processes = os.cpu_count()
 
         _distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
