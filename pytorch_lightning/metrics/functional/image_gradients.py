@@ -44,7 +44,7 @@ def _compute_image_gradients(img: torch.Tensor) -> Tuple[torch.Tensor, torch.Ten
 
 def image_gradients(img: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """
-    Computes the gradients of a given Image
+    Computes the `gradients <https://en.wikipedia.org/wiki/Image_gradient>`_ of a given image using finite difference
 
     Args:
         img: input image tensor
