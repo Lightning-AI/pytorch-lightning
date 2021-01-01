@@ -138,6 +138,8 @@ class ModelCheckpoint(Callback):
 
     def __init__(
         self,
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
         monitor: Optional[str] = None,
         verbose: bool = False,
         save_last: Optional[bool] = None,
@@ -146,8 +148,6 @@ class ModelCheckpoint(Callback):
         mode: str = "auto",
         period: int = 1,
         prefix: str = "",
-        dirpath: Optional[Union[str, Path]] = None,
-        filename: Optional[str] = None,
     ):
         super().__init__()
         self.monitor = monitor
