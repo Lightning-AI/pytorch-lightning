@@ -30,7 +30,7 @@ from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, _module_
 LOCAL_FILE_URI_PREFIX = "file:"
 
 
-_MLFLOW_AVAILABLE = _module_available("mlflow.model")
+_MLFLOW_AVAILABLE = _module_available("mlflow")
 try:
     import mlflow
     from mlflow.tracking import MlflowClient
