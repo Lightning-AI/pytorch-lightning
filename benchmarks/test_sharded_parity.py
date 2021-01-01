@@ -14,8 +14,7 @@ from tests.backends import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_one_device():
     plugin_parity_test(
@@ -28,8 +27,7 @@ def test_ddp_sharded_plugin_correctness_one_device():
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_one_gpu():
     plugin_parity_test(
@@ -42,8 +40,7 @@ def test_ddp_sharded_plugin_correctness_one_gpu():
 
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_amp_one_gpu():
     plugin_parity_test(
@@ -57,8 +54,7 @@ def test_ddp_sharded_plugin_correctness_amp_one_gpu():
 
 @pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_multi_gpu():
     plugin_parity_test(
@@ -71,8 +67,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu():
 
 
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
@@ -87,8 +82,7 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
 
 
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
@@ -134,8 +128,7 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
 
 @pytest.mark.skip(reason="Current issue with multiple optimizers and FairScale.")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
     """
@@ -152,8 +145,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
 
 @pytest.mark.skip(reason="Current issue with multiple optimizers and FairScale.")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim_manual(tmpdir):
     """
