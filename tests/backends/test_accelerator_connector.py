@@ -242,7 +242,7 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator='ddp_cpu',
-        num_processes=1,
+        num_processes=2,
         callbacks=[CB()],
     )
 
@@ -270,7 +270,7 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator='ddp_cpu',
-        num_processes=1,
+        num_processes=2,
         callbacks=[CB()],
     )
 
@@ -307,7 +307,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
         plugins=[CustomCluster()],
         fast_dev_run=True,
         accelerator='ddp_cpu',
-        num_processes=1,
+        num_processes=2,
         callbacks=[CB()],
     )
 
@@ -341,7 +341,7 @@ def test_custom_accelerator(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator=Accel(),
-        num_processes=1,
+        num_processes=2,
         callbacks=[CB()]
     )
 
@@ -367,7 +367,7 @@ def test_dist_backend_accelerator_mapping(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator='ddp_cpu',
-        num_processes=1,
+        num_processes=2,
         callbacks=[CB()]
     )
 
