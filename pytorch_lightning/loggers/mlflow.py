@@ -31,12 +31,12 @@ LOCAL_FILE_URI_PREFIX = "file:"
 
 
 _MLFLOW_AVAILABLE = _module_available("mlflow.model")
-if _MLFLOW_AVAILABLE:
+try:
     import mlflow
     from mlflow.tracking import MlflowClient
-else:
-    mlflow = None
-    MlflowClient = None
+except ImportError:
+    _MLFLOW_AVAILABLE = False
+    mlflow, MlflowClient = None, None
 
 
 class MLFlowLogger(LightningLoggerBase):
