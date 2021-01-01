@@ -237,6 +237,7 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt_name = ModelCheckpoint(
         monitor='early_stop_on', dirpath=None, filename='{epoch}_{val/loss:.5f}'
     ).format_checkpoint_name(4, 3, {'val/loss': 0.03})
+    assert ckpt_name == 'epoch=4_val/loss=0.03000.ckpt'
 
 
 class ModelCheckpointExtensionTest(ModelCheckpoint):
