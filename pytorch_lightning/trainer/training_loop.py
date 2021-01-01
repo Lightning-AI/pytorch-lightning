@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
 
 import numpy as np
@@ -236,12 +236,10 @@ class TrainLoop:
         if self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
-        # set seed for distributed sampler (enables shuffling for each epoch)
-        try:
-            self.trainer.train_dataloader.sampler.set_epoch(epoch)
         # todo: specify the possible exception
-        except Exception:
-            pass
+        with suppress(Exception):
+            # set seed for distributed sampler (enables shuffling for each epoch)
+            self.trainer.train_dataloader.sampler.set_epoch(epoch)
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.get_model())
