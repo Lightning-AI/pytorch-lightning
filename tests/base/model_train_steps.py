@@ -13,7 +13,6 @@
 # limitations under the License.
 import math
 from abc import ABC
-from collections import OrderedDict
 
 import torch
 
@@ -26,9 +25,9 @@ class TrainingStepVariations(ABC):
     test_step_inf_loss = float('inf')
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
+        """Lightning calls this inside the training loop"""
         self.training_step_called = True
 
-        """Lightning calls this inside the training loop"""
         # forward pass
         x, y = batch
         x = x.view(x.size(0), -1)
@@ -42,14 +41,9 @@ class TrainingStepVariations(ABC):
         if batch_idx % 2 == 0:
             log_val = log_val.item()
 
-        output = OrderedDict(
-            {
-                'loss': loss_val,
-                'progress_bar': {'some_val': log_val * log_val},
-                'log': {'train_some_val': log_val * log_val},
-            }
-        )
-        return output
+        self.log('some_val', log_val * log_val, prog_bar=True, logger=False)
+        self.log('train_some_val', log_val * log_val)
+        return loss_val
 
     def training_step__inf_loss(self, batch, batch_idx, optimizer_idx=None):
         output = self.training_step(batch, batch_idx, optimizer_idx)
