@@ -175,7 +175,7 @@ class TrainLoop:
 
         # print model summary
         if self.trainer.is_global_zero and not self.trainer.testing:
-            ref_model.summarize(weights_summary=self.trainer.weights_summary)
+            ref_model.summarize(mode=self.trainer.weights_summary)
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
