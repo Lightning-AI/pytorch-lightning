@@ -27,6 +27,19 @@ else:
     Batch = type(None)
 
 
+def flatten(data: Any):
+    
+    if isinstance(data, dict):
+        for key, value in data.items():
+            data[key] = flatten(value)
+    
+    elif isinstance(data, list):
+        if all([torch.is_tensor(value) for value in data]) and len(data) > 0:
+            return torch.cat(data, dim=0)
+    
+    return data
+
+
 def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args, **kwargs) -> Any:
     """
     Recursively applies a function to all elements of a certain dtype.

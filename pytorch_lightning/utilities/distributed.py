@@ -15,14 +15,15 @@
 import os
 import warnings
 from functools import wraps
+from typing import Any, Optional, Union
 
 import torch
+
 from pytorch_lightning import _logger as log
-from typing import Union, Optional, Any
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-    from torch.distributed import group
+    from torch.distributed import ReduceOp, group
 else:
     class ReduceOp:
         SUM = None
@@ -81,11 +82,9 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
     """
     Function to gather all tensors from several ddp processes onto a list that
     is broadcasted to all processes
-
     Args:
         result: the value to sync
         group: the process group to gather results from. Defaults to all processes (world)
-
     Return:
         gathered_result: list with size equal to the process group where
             gathered_result[i] corresponds to result tensor from process i
@@ -130,13 +129,11 @@ def sync_ddp(
 ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
-
     Args:
         result: the value to sync and reduce (typically tensor or number)
         group: the process group to gather results from. Defaults to all processes (world)
         reduce_op: the reduction operation. Defaults to sum.
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
-
     Return:
         reduced value
     """
@@ -194,19 +191,25 @@ def all_gather_ddp_if_available(
 ) -> torch.Tensor:
     """
     Function to gather a tensor from several distributed processes
-
     Args:
         tensor: tensor of shape (batch, ...)
         group: the process group to gather results from. Defaults to all processes (world)
         sync_grads: flag that allows users to synchronize gradients for all_gather op
-
     Return:
         A tensor of shape (world_size, batch, ...)
     """
+    if group is None:
+        group = torch.distributed.group.WORLD
+        if group is None:
+            raise MisconfigurationException(
+                "The provided group was None and `torch.distributed.group` isn't available."
+                " Gathering tensor across processes won't be possible."
+            )
+
     if torch.distributed.is_available() and torch.distributed.is_initialized():
         if sync_grads:
             return AllGatherGrad.apply(tensor, group)
         else:
-            with torch.no_grad:
+            with torch.no_grad():
                 return AllGatherGrad.apply(tensor, group)
     return tensor

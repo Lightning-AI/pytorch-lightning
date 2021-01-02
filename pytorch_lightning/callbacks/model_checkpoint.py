@@ -232,6 +232,7 @@ class ModelCheckpoint(Callback):
 
         # ie: path/val_loss=0.5.ckpt
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, epoch, global_step)
+        print(filepath)
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially

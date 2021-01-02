@@ -389,6 +389,11 @@ class LightningModule(
         else:
             all_gather = all_gather_ddp_if_available
 
+        def to_dtype_tensor(value, dtype=None):
+            return torch.tensor(value, dtype=dtype, device=self.device)
+
+        data = apply_to_collection(data, float, partial(to_dtype_tensor, dtype=torch.float))
+        data = apply_to_collection(data, int, partial(to_dtype_tensor, dtype=torch.int))
         all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
         return apply_to_collection(data, torch.Tensor, all_gather)
 
