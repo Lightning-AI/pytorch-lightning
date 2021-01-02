@@ -21,7 +21,7 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, _OMEGACONF_AVAILABLE, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, _OMEGACONF_CONTAINER_AVAILABLE, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
@@ -30,8 +30,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 if _APEX_AVAILABLE:
     from apex import amp
 
-if _OMEGACONF_AVAILABLE:
+if _OMEGACONF_CONTAINER_AVAILABLE:
     from omegaconf import Container
+else:
+    Container = None
 
 
 class CheckpointConnector:

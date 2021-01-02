@@ -20,6 +20,7 @@ import inspect
 import os
 import re
 import tempfile
+from functools import partial
 from abc import ABC
 from argparse import Namespace
 from pathlib import Path
@@ -41,6 +42,8 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 
 
 class LightningModule(
@@ -363,23 +366,31 @@ class LightningModule(
 
         return on_epoch
 
-    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+    def all_gather(
+        self,
+        data: Union[torch.Tensor, Dict, List, Tuple],
+        group: Optional[Any] = None,
+        sync_grads: bool = False
+    ):
         r"""
         Allows users to call ``self.all_gather()`` from the LightningModule, thus making
         the ```all_gather``` operation accelerator agnostic.
-
         ```all_gather``` is a function provided by accelerators to gather a tensor from several
         distributed processes
-
         Args:
             tensor: tensor of shape (batch, ...)
             group: the process group to gather results from. Defaults to all processes (world)
             sync_grads: flag that allows users to synchronize gradients for all_gather op
-
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        return self.trainer.accelerator_backend.all_gather(tensor, group=group, sync_grads=sync_grads)
+        if self.trainer.accelerator_backend is not None:
+            all_gather = self.trainer.accelerator_backend.all_gather
+        else:
+            all_gather = all_gather_ddp_if_available
+
+        all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
+        return apply_to_collection(data, torch.Tensor, all_gather)
 
     def forward(self, *args, **kwargs):
         r"""

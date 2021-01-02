@@ -30,7 +30,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import _HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities import _HYDRA_AVAILABLE, _HYDRA_CORE_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import (
     all_gather_ddp_if_available,
     find_free_network_port,
@@ -41,7 +41,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
 if _HYDRA_AVAILABLE:
-    from hydra.core.hydra_config import HydraConfig
+    if _HYDRA_CORE_AVAILABLE:
+        from hydra.core.hydra_config import HydraConfig
+    else:
+        HydraConfig = None
     from hydra.utils import get_original_cwd, to_absolute_path
 
 
@@ -136,7 +139,7 @@ class DDPAccelerator(Accelerator):
             # if hydra is available and initialized, make sure to set the cwd correctly
             cwd: Optional[str] = None
             if _HYDRA_AVAILABLE:
-                if HydraConfig.initialized():
+                if HydraConfig is None or (HydraConfig is not None and HydraConfig.initialized()):
                     cwd = get_original_cwd()
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.interactive_ddp_procs.append(proc)
