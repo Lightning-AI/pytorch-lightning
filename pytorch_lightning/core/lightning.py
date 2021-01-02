@@ -1327,15 +1327,15 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, weights_summary: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
+    def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
         model_summary = None
 
-        if weights_summary in ModelSummary.MODES:
-            model_summary = ModelSummary(self, mode=weights_summary)
+        if mode in ModelSummary.MODES:
+            model_summary = ModelSummary(self, mode=mode)
             log.info("\n" + str(model_summary))
-        elif weights_summary is not None:
+        elif mode is not None:
             raise MisconfigurationException(
-                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, got {weights_summary}"
+                f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}"
             )
 
         return model_summary

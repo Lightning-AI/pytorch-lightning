@@ -15,8 +15,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.core.memory import UNKNOWN_SIZE, ModelSummary
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.models import ParityModuleRNN
 
@@ -71,8 +71,11 @@ class MixedDtypeModel(LightningModule):
 
 def test_invalid_weights_summmary():
     """ Test that invalid value for weights_summary raises an error. """
-    with pytest.raises(MisconfigurationException, match='can be None, .* got temp'):
-        UnorderedModel().summarize(weights_summary='temp')
+    with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
+        UnorderedModel().summarize(mode='temp')
+
+    with pytest.raises(MisconfigurationException, match='`weights_summary` can be None, .* got temp'):
+        Trainer(weights_summary='temp')
 
 
 @pytest.mark.parametrize(['mode'], [
@@ -82,7 +85,7 @@ def test_invalid_weights_summmary():
 def test_empty_model_summary_shapes(mode):
     """ Test that the summary works for models that have no submodules. """
     model = EmptyModule()
-    summary = model.summarize(weights_summary=mode)
+    summary = model.summarize(mode=mode)
     assert summary.in_sizes == []
     assert summary.out_sizes == []
     assert summary.param_nums == []
@@ -102,7 +105,7 @@ def test_linear_model_summary_shapes(device, mode):
     """ Test that the model summary correctly computes the input- and output shapes. """
     model = UnorderedModel().to(device)
     model.train()
-    summary = model.summarize(weights_summary=mode)
+    summary = model.summarize(mode=mode)
     assert summary.in_sizes == [
         [2, 10],    # layer 2
         [2, 7],     # combine
@@ -165,7 +168,7 @@ def test_rnn_summary_shapes(mode):
 
     model.example_input_array = torch.zeros(b, t, 10)
 
-    summary = model.summarize(weights_summary=mode)
+    summary = model.summarize(mode=mode)
     assert summary.in_sizes == [
         [b, t, i],  # rnn
         [b, t, h],  # linear
@@ -183,7 +186,7 @@ def test_rnn_summary_shapes(mode):
 def test_summary_parameter_count(mode):
     """ Test that the summary counts the number of parameters in every submodule. """
     model = UnorderedModel()
-    summary = model.summarize(weights_summary=mode)
+    summary = model.summarize(mode=mode)
     assert summary.param_nums == [
         model.layer2.weight.numel() + model.layer2.bias.numel(),
         model.combine.weight.numel() + model.combine.bias.numel(),
@@ -200,7 +203,7 @@ def test_summary_parameter_count(mode):
 def test_summary_layer_types(mode):
     """ Test that the summary displays the layer names correctly. """
     model = UnorderedModel()
-    summary = model.summarize(weights_summary=mode)
+    summary = model.summarize(mode=mode)
     assert summary.layer_types == [
         'Linear',
         'Linear',
@@ -242,5 +245,5 @@ def test_example_input_array_types(example_input, expected_size, mode):
 
     model = DummyLightningModule()
     model.example_input_array = example_input
-    summary = model.summarize(weights_summary=mode)
+    summary = model.summarize(mode=mode)
     assert summary.in_sizes == [expected_size]
