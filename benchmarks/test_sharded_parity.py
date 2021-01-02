@@ -14,18 +14,6 @@ from tests.backends import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_sharded_plugin_correctness_one_device():
-    plugin_parity_test(
-        accelerator='ddp_cpu',
-        num_processes=2,
-        max_percent_speed_diff=0.15,  # slower speed due to one CPU doing additional sequential memory saving calls
-        plugin=DDPShardedPlugin(),
-        model_cls=SeedTrainLoaderModel,
-    )
-
-
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
