@@ -185,7 +185,7 @@ class TrainLoop:
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
         if should_update and self.trainer.checkpoint_connector.has_trained:
-            callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+            callbacks = self.trainer.checkpoint_callbacks
 
             if is_last and any(cb.save_last for cb in callbacks):
                 rank_zero_info("Saving latest checkpoint...")
