@@ -251,8 +251,7 @@ class Trainer(
                 you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
-                This can be a URL.
-                If there is no checkpoint file at the specified path, start training from scratch.
+                This can be an URL.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
