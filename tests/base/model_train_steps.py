@@ -13,6 +13,7 @@
 # limitations under the License.
 import math
 from abc import ABC
+from collections import OrderedDict
 
 import torch
 
@@ -41,9 +42,14 @@ class TrainingStepVariations(ABC):
         if batch_idx % 2 == 0:
             log_train = log_train.item()
 
-        self.log('some_val', log_train * log_train, prog_bar=True, logger=False)
-        self.log('train_some_val', log_train * log_train)
-        return loss_train
+        output = OrderedDict(
+            {
+                'loss': loss_train,
+                'progress_bar': {'some_val': log_train * log_train},
+                'log': {'train_some_val': log_train * log_train},
+            }
+        )
+        return output
 
     def training_step__inf_loss(self, batch, batch_idx, optimizer_idx=None):
         output = self.training_step(batch, batch_idx, optimizer_idx)
