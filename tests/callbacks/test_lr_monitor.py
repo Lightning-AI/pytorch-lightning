@@ -65,7 +65,6 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
                 opt_kwargs = {'betas': (0.9, 0.999)}
 
             optimizer = getattr(optim, self.opt)(self.parameters(), lr=1e-2, **opt_kwargs)
-            print(optimizer.defaults)
             lr_scheduler = optim.lr_scheduler.OneCycleLR(
                 optimizer,
                 max_lr=1e-2,
@@ -74,7 +73,6 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
             return [optimizer], [lr_scheduler]
 
     model = LogMomentumModel(opt=opt)
-
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
