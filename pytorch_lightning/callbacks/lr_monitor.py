@@ -80,15 +80,27 @@ class LearningRateMonitor(Callback):
         """
         if not trainer.logger:
             raise MisconfigurationException(
-                'Cannot use LearningRateMonitor callback with Trainer that has no logger.'
+                'Cannot use `LearningRateMonitor` callback with `Trainer` that has no logger.'
             )
 
         if not trainer.lr_schedulers:
             rank_zero_warn(
-                'You are using LearningRateMonitor callback with models that'
+                'You are using `LearningRateMonitor` callback with models that'
                 ' have no learning rate schedulers. Please see documentation'
                 ' for `configure_optimizers` method.', RuntimeWarning
             )
+
+        if self.log_momentum:
+            def _check_momentum(key):
+                return any(
+                    key not in sch['scheduler'].optimizer.defaults for sch in trainer.lr_schedulers
+                )
+
+            if _check_momentum('momentum') and _check_momentum('betas'):
+                rank_zero_warn(
+                    "You have set log_momentum=True, but some optimizers doesn't"
+                    " have momentum. This will log 0 value for the momentum.", RuntimeWarning
+                )
 
         # Find names for schedulers
         names = self._find_names(trainer.lr_schedulers)
@@ -153,7 +165,7 @@ class LearningRateMonitor(Callback):
         if not self.log_momentum:
             return {}
 
-        momentum = param_group.get('betas')[0] if use_betas else param_group.get('momentum')
+        momentum = param_group.get('betas')[0] if use_betas else param_group.get('momentum', 0)
         self.last_momentum_values[name] = momentum
         return {name: momentum}
 
