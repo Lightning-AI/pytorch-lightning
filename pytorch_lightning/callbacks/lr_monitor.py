@@ -121,19 +121,25 @@ class LearningRateMonitor(Callback):
 
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
             if scheduler['interval'] == interval or interval == 'any':
-                param_groups = scheduler['scheduler'].optimizer.param_groups
+                opt = scheduler['scheduler'].optimizer
+                param_groups = opt.param_groups
+                use_betas = 'betas' in opt.defaults
+
                 if len(param_groups) != 1:
                     for i, pg in enumerate(param_groups):
                         lr = self._extract_lr(param_group=pg, name=f'{name}/pg{i + 1}')
                         latest_stat.update(lr)
-                        momentum = self._extract_momentum(param_group=pg, name=f'{name}-momentum/pg{i + 1}')
+                        momentum = self._extract_momentum(
+                            param_group=pg, name=f'{name}-momentum/pg{i + 1}', use_betas=use_betas
+                        )
                         latest_stat.update(momentum)
-
                 else:
                     pg = param_groups[0]
                     lr = self._extract_lr(param_group=pg, name=name)
                     latest_stat.update(lr)
-                    momentum = self._extract_momentum(param_group=pg, name=f'{name}-momentum')
+                    momentum = self._extract_momentum(
+                        param_group=pg, name=f'{name}-momentum', use_betas=use_betas
+                    )
                     latest_stat.update(momentum)
 
         return latest_stat
@@ -143,11 +149,11 @@ class LearningRateMonitor(Callback):
         self.lrs[name].append(lr)
         return {name: lr}
 
-    def _extract_momentum(self, param_group, name: str) -> Dict[str, float]:
+    def _extract_momentum(self, param_group, name: str, use_betas: bool) -> Dict[str, float]:
         if not self.log_momentum:
             return {}
 
-        momentum = param_group.get('momentum')
+        momentum = param_group.get('betas')[0] if use_betas else param_group.get('momentum')
         self.last_momentum_values[name] = momentum
         return {name: momentum}
 

@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+from torch import optim
 
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
+import tests.base.develop_utils as tutils
 
 
 def test_lr_monitor_single_lr(tmpdir):
@@ -47,12 +48,32 @@ def test_lr_monitor_single_lr(tmpdir):
         'Names of learning rates not set correctly'
 
 
-def test_lr_monitor_single_lr_with_momentum(tmpdir):
-    """ Test that learning rates and momentum are extracted and logged for single lr scheduler. """
-    tutils.reset_seed()
+@pytest.mark.parametrize('opt', ['SGD', 'Adam'])
+def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
+    """
+    Test that learning rates and momentum are extracted and logged for single lr scheduler.
+    """
+    class LogMomentumModel(BoringModel):
+        def __init__(self, opt):
+            super().__init__()
+            self.opt = opt
 
-    model = EvalModelTemplate()
-    model.configure_optimizers = model.configure_optimizers__onecycle_scheduler
+        def configure_optimizers(self):
+            if self.opt == 'SGD':
+                opt_kwargs = {'momentum': 0.9}
+            elif self.opt == 'Adam':
+                opt_kwargs = {'betas': (0.9, 0.999)}
+
+            optimizer = getattr(optim, self.opt)(self.parameters(), lr=1e-2, **opt_kwargs)
+            print(optimizer.defaults)
+            lr_scheduler = optim.lr_scheduler.OneCycleLR(
+                optimizer,
+                max_lr=1e-2,
+                total_steps=10_000)
+
+            return [optimizer], [lr_scheduler]
+
+    model = LogMomentumModel(opt=opt)
 
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
@@ -69,7 +90,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir):
         'Expected momentum to be logged'
     assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers), \
         'Number of momentum values logged does not match number of lr schedulers'
-    assert all([k in ['lr-SGD-momentum'] for k in lr_monitor.last_momentum_values.keys()]), \
+    assert all([k in [f'lr-{opt}-momentum'] for k in lr_monitor.last_momentum_values.keys()]), \
         'Names of momentum values not set correctly'
 
 
