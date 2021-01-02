@@ -104,11 +104,7 @@ class LightningDataParallel(DataParallel):
 
         outputs = self.gather(outputs)
 
-        # pass minimize to constructor for TrainResult
-        if 'minimize' in outputs:
-            result = original_class(outputs['minimize'])
-        else:
-            result = original_class()
+        result = original_class()
 
         result.update(outputs)
         result['meta'] = meta
