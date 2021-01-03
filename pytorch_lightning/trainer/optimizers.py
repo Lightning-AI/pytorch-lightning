@@ -186,6 +186,7 @@ class _MockOptimizer(Optimizer):
     def __repr__(self):
         return 'No Optimizer'
 
+
 def _validate_scheduler_optimizer(optimizers, lr_schedulers):
     if any(sch['scheduler'].optimizer not in optimizers for sch in lr_schedulers):
         raise MisconfigurationException(
