@@ -2,6 +2,7 @@ import os
 from unittest import mock
 
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -40,6 +41,8 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
             self.test_step_called = False
 
         def training_step(self, batch, batch_idx):
+            self.log('some_metric', torch.tensor(7.))
+            self.logger.experiment.add_scaler('some_distribution', torch.randn(7) + batch_idx)
             self.training_step_called = True
             return super().training_step(batch, batch_idx)
 
@@ -59,7 +62,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     def _make_fast_dev_run_assertions(trainer):
         # there should be no logger with fast_dev_run
         assert isinstance(trainer.logger, DummyLogger)
-        assert len(trainer.dev_debugger.logged_metrics) == 0
+        assert len(trainer.dev_debugger.logged_metrics) == fast_dev_run
 
         # checkpoint callback should not have been called with fast_dev_run
         assert trainer.checkpoint_callback == checkpoint_callback
