@@ -42,7 +42,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
 
         def training_step(self, batch, batch_idx):
             self.log('some_metric', torch.tensor(7.))
-            self.logger.experiment.add_scaler('some_distribution', torch.randn(7) + batch_idx)
+            self.logger.experiment.dummy_log('some_distribution', torch.randn(7) + batch_idx)
             self.training_step_called = True
             return super().training_step(batch, batch_idx)
 
