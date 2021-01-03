@@ -75,7 +75,9 @@ class TrainerOptimizersMixin(ABC):
                 ' * {"optimizer": `torch.optim.Optimizer`, (optional) "lr_scheduler": `torch.optim.lr_scheduler`}\n'
                 ' * A list of the previously described dict format, with an optional "frequency" key (int)'
             )
+
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor=monitor)
+        _validate_scheduler_optimizer(optimizers, lr_schedulers)
 
         return optimizers, lr_schedulers, optimizer_frequencies
 
@@ -183,3 +185,9 @@ class _MockOptimizer(Optimizer):
 
     def __repr__(self):
         return 'No Optimizer'
+
+def _validate_scheduler_optimizer(optimizers, lr_schedulers):
+    if any(sch['scheduler'].optimizer not in optimizers for sch in lr_schedulers):
+        raise MisconfigurationException(
+            "Some schedulers are attatched with an optimizer that wasn't returned from `configure_optimizers`."
+        )
