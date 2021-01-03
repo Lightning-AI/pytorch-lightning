@@ -79,6 +79,13 @@ class Precision(StatScores):
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s - relevant
+            only for inputs with probability predictions. If this parameter is set for multi-label
+            inputs, it will take precedence over ``threshold``. For (multi-dim) multi-class inputs,
+            this parameter defaults to 1.
+
+            Should be left unset (``None``) for inputs with label predictions.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
@@ -117,8 +124,9 @@ class Precision(StatScores):
         mdmc_average: Optional[str] = None,
         zero_division: Union[float, int] = 0,
         ignore_index: Optional[int] = None,
-        threshold: float = 0.5,
         num_classes: Optional[int] = None,
+        threshold: float = 0.5,
+        top_k: Optional[int] = None,
         is_multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
@@ -136,6 +144,7 @@ class Precision(StatScores):
             reduce="macro" if average in ["weighted", "none", None] else average,
             mdmc_reduce=mdmc_average,
             threshold=threshold,
+            top_k=top_k,
             num_classes=num_classes,
             is_multiclass=is_multiclass,
             ignore_index=ignore_index,
@@ -231,6 +240,14 @@ class Recall(StatScores):
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s - relevant
+            only for inputs with probability predictions. If this parameter is set for multi-label
+            inputs, it will take precedence over ``threshold``. For (multi-dim) multi-class inputs,
+            this parameter defaults to 1.
+
+            Should be left unset (``None``) for inputs with label predictions.
+
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
@@ -267,11 +284,12 @@ class Recall(StatScores):
         self,
         average: str = "micro",
         mdmc_average: Optional[str] = None,
-        threshold: float = 0.5,
-        num_classes: Optional[int] = None,
-        is_multiclass: Optional[bool] = None,
-        ignore_index: Optional[int] = None,
         zero_division: Union[float, int] = 0,
+        ignore_index: Optional[int] = None,
+        num_classes: Optional[int] = None,
+        threshold: float = 0.5,
+        top_k: Optional[int] = None,
+        is_multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -288,6 +306,7 @@ class Recall(StatScores):
             reduce="macro" if average in ["weighted", "none", None] else average,
             mdmc_reduce=mdmc_average,
             threshold=threshold,
+            top_k=top_k,
             num_classes=num_classes,
             is_multiclass=is_multiclass,
             ignore_index=ignore_index,

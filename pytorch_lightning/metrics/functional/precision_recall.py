@@ -42,11 +42,12 @@ def precision(
     target: torch.Tensor,
     average: str = "micro",
     mdmc_average: Optional[str] = None,
-    threshold: float = 0.5,
-    num_classes: Optional[int] = None,
-    is_multiclass: Optional[bool] = None,
-    ignore_index: Optional[int] = None,
     zero_division: Union[float, int] = 0,
+    ignore_index: Optional[int] = None,
+    num_classes: Optional[int] = None,
+    threshold: float = 0.5,
+    top_k: Optional[int] = None,
+    is_multiclass: Optional[bool] = None,
 ) -> torch.Tensor:
     r"""
     Computes `Precision <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
@@ -110,6 +111,13 @@ def precision(
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s - relevant
+            only for inputs with probability predictions. If this parameter is set for multi-label
+            inputs, it will take precedence over ``threshold``. For (multi-dim) multi-class inputs,
+            this parameter defaults to 1.
+
+            Should be left unset (``None``) for inputs with label predictions.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
@@ -141,9 +149,27 @@ def precision(
     if not isinstance(zero_division, (float, int)):
         raise ValueError(f"The `zero_division` has to be a number, got {zero_division}.")
 
+    allowed_mdmc_average = [None, "samplewise", "global"]
+    if mdmc_average not in allowed_mdmc_average:
+        raise ValueError(f"The `mdmc_average` has to be one of {allowed_mdmc_average}, got {mdmc_average}.")
+
+    if average in ["macro", "weighted", "none", None] and (not num_classes or num_classes < 1):
+        raise ValueError(f"When you set `average` as {average}, you have to provide the number of classes.")
+
+    if num_classes and ignore_index is not None and (not 0 <= ignore_index < num_classes or num_classes == 1):
+        raise ValueError(f"The `ignore_index` {ignore_index} is not valid for inputs with {num_classes} classes")
+
     reduce = "macro" if average in ["weighted", "none", None] else average
     tp, fp, tn, fn = _stat_scores_update(
-        preds, target, reduce, mdmc_average, threshold, num_classes, is_multiclass, ignore_index
+        preds,
+        target,
+        reduce=reduce,
+        mdmc_reduce=mdmc_average,
+        threshold=threshold,
+        num_classes=num_classes,
+        top_k=top_k,
+        is_multiclass=is_multiclass,
+        ignore_index=ignore_index,
     )
 
     return _precision_compute(tp, fp, tn, fn, average, mdmc_average, zero_division)
@@ -173,11 +199,12 @@ def recall(
     target: torch.Tensor,
     average: str = "micro",
     mdmc_average: Optional[str] = None,
-    threshold: float = 0.5,
-    num_classes: Optional[int] = None,
-    is_multiclass: Optional[bool] = None,
-    ignore_index: Optional[int] = None,
     zero_division: Union[float, int] = 0,
+    ignore_index: Optional[int] = None,
+    num_classes: Optional[int] = None,
+    threshold: float = 0.5,
+    top_k: Optional[int] = None,
+    is_multiclass: Optional[bool] = None,
 ) -> torch.Tensor:
     r"""
     Computes `Recall <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
@@ -241,6 +268,13 @@ def recall(
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s - relevant
+            only for inputs with probability predictions. If this parameter is set for multi-label
+            inputs, it will take precedence over ``threshold``. For (multi-dim) multi-class inputs,
+            this parameter defaults to 1.
+
+            Should be left unset (``None``) for inputs with label predictions.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
@@ -272,9 +306,27 @@ def recall(
     if not isinstance(zero_division, (float, int)):
         raise ValueError(f"The `zero_division` has to be a number, got {zero_division}.")
 
+    allowed_mdmc_average = [None, "samplewise", "global"]
+    if mdmc_average not in allowed_mdmc_average:
+        raise ValueError(f"The `mdmc_average` has to be one of {allowed_mdmc_average}, got {mdmc_average}.")
+
+    if average in ["macro", "weighted", "none", None] and (not num_classes or num_classes < 1):
+        raise ValueError(f"When you set `average` as {average}, you have to provide the number of classes.")
+
+    if num_classes and ignore_index is not None and (not 0 <= ignore_index < num_classes or num_classes == 1):
+        raise ValueError(f"The `ignore_index` {ignore_index} is not valid for inputs with {num_classes} classes")
+
     reduce = "macro" if average in ["weighted", "none", None] else average
     tp, fp, tn, fn = _stat_scores_update(
-        preds, target, reduce, mdmc_average, threshold, num_classes, is_multiclass, ignore_index
+        preds,
+        target,
+        reduce=reduce,
+        mdmc_reduce=mdmc_average,
+        threshold=threshold,
+        num_classes=num_classes,
+        top_k=top_k,
+        is_multiclass=is_multiclass,
+        ignore_index=ignore_index,
     )
 
     return _recall_compute(tp, fp, tn, fn, average, mdmc_average, zero_division)

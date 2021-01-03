@@ -17,10 +17,8 @@ from tests.metrics.classification.inputs import (
     _multidim_multiclass_prob_inputs as _mdmc_prob,
     _multilabel_inputs as _ml,
     _multilabel_prob_inputs as _ml_prob,
-    _multilabel_multidim_prob_inputs as _mlmd_prob,
-    _multilabel_multidim_inputs as _mlmd,
 )
-from tests.metrics.utils import EXTRA_DIM, NUM_CLASSES, THRESHOLD, MetricTester
+from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
 
 torch.manual_seed(42)
 
@@ -127,8 +125,6 @@ def test_wrong_params(metric, fn_metric):
         (_ml.preds, _ml.target, NUM_CLASSES, False, None, _sk_prec_recall),
         (_mc_prob.preds, _mc_prob.target, NUM_CLASSES, None, None, _sk_prec_recall),
         (_multiclass_inputs.preds, _multiclass_inputs.target, NUM_CLASSES, None, None, _sk_prec_recall),
-        (_mlmd_prob.preds, _mlmd_prob.target, EXTRA_DIM * NUM_CLASSES, None, None, _sk_prec_recall),
-        (_mlmd.preds, _mlmd.target, EXTRA_DIM * NUM_CLASSES, False, None, _sk_prec_recall),
         (_mdmc.preds, _mdmc.target, NUM_CLASSES, None, "global", _sk_prec_recall_mdmc),
         (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, None, "global", _sk_prec_recall_mdmc),
         (_mdmc.preds, _mdmc.target, NUM_CLASSES, None, "samplewise", _sk_prec_recall_mdmc),
@@ -136,7 +132,7 @@ def test_wrong_params(metric, fn_metric):
     ],
 )
 class TestPrecisionRecall(MetricTester):
-    @pytest.mark.parametrize("ddp", [True, False])
+    @pytest.mark.parametrize("ddp", [False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_precision_recall_class(
         self,
