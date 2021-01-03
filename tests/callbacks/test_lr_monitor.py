@@ -109,7 +109,7 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         log_every_n_steps=1,
         callbacks=[lr_monitor],
     )
-    with pytest.warns(RuntimeWarning, match="optimizers doesn't have momentum."):
+    with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         result = trainer.fit(model)
         assert result
 

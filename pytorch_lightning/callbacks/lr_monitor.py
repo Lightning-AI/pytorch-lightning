@@ -98,8 +98,8 @@ class LearningRateMonitor(Callback):
 
             if _check_momentum('momentum') and _check_momentum('betas'):
                 rank_zero_warn(
-                    "You have set log_momentum=True, but some optimizers doesn't"
-                    " have momentum. This will log 0 value for the momentum.", RuntimeWarning
+                    "You have set log_momentum=True, but some optimizers do not"
+                    " have momentum. This will log a value 0 for the momentum.", RuntimeWarning
                 )
 
         # Find names for schedulers
