@@ -15,12 +15,12 @@
 from argparse import ArgumentParser
 
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from torch.utils.data import DataLoader, random_split
 
-from pl_examples import cli_lightning_logo, TORCHVISION_AVAILABLE
 import pytorch_lightning as pl
+from pl_examples import cli_lightning_logo, TORCHVISION_AVAILABLE
 
 if TORCHVISION_AVAILABLE:
     from torchvision import transforms
