@@ -20,16 +20,16 @@ to balance across your GPUs.
 To run:
 python conv_model_sequential_example.py --accelerator ddp --gpus 4 --max_epochs 1  --batch_size 256 --use_ddp_sequential
 """
-from argparse import ArgumentParser
 import math
+from argparse import ArgumentParser
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
-from pl_examples import cli_lightning_logo
 import pytorch_lightning as pl
+from pl_examples import cli_lightning_logo
 from pytorch_lightning import Trainer
 from pytorch_lightning.metrics.functional import accuracy
 from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
