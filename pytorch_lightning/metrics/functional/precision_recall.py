@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 from pytorch_lightning.metrics.functional.reduction import _reduce_scores
@@ -25,7 +25,7 @@ def _precision_compute(
     fn: torch.Tensor,
     average: str,
     mdmc_average: Optional[str],
-    zero_division: int,
+    zero_division: Union[float, int],
 ) -> torch.Tensor:
     return _reduce_scores(
         numerator=tp,
@@ -46,16 +46,19 @@ def precision(
     num_classes: Optional[int] = None,
     is_multiclass: Optional[bool] = None,
     ignore_index: Optional[int] = None,
-    zero_division: int = 0,
+    zero_division: Union[float, int] = 0,
 ) -> torch.Tensor:
-    """Computes the precision score (the ratio ``tp / (tp + fp)``).
+    r"""
+    Computes `Precision <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
+
+    .. math:: \text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}
+
+    Where :math:`\text{TP}` and :math:`\text{FP}` represent the number of true positives and
+    false positives respecitively.
 
     The reduction method (how the precision scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
-
-    In case where you need to ignore a class in computing the score, anI ``ignore_index``
-    parameter is availible.
 
     Args:
         preds: Predictions from model (probabilities or labels)
@@ -63,8 +66,7 @@ def precision(
         average:
             Defines the reduction that is applied. Should be one of the following:
 
-            - ``'micro'`` [default]: Calculate the metric globally, by counting the statistics
-              (tp, fp, tn, fn) accross all samples and classes.
+            - ``'micro'`` [default]: Calculate the metric globally, accross all samples and classes.
             - ``'macro'``: Calculate the metric for each class separately, and average the
               metrics accross classes (with equal weights for each class).
             - ``'weighted'``: Calculate the metric for each class separately, and average the
@@ -94,30 +96,28 @@ def precision(
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
+        zero_division:
+            Score to use in the case of a 0 in the denominator in the calculation.
+
+        ignore_index:
+            Integer specifying a target class to ignore. If given, this class index does not contribute
+            to the returned score, regardless of reduction method. If an index is ignored, and ``average=None``
+            or ``'none'``, the score for the ignored class will be returned as ``nan``.
+
         num_classes:
-            Number of classes. Necessary for (multi-dimensional) multi-class or multi-label data.
+            Number of classes. Necessary for ``'macro'``, ``'weighted'`` and ``None`` average methods.
 
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         is_multiclass:
-            If ``False``, treat multi-class and multi-dim multi-class inputs with 1 or 2 classes as
-            binary and multi-label, respectively. If ``True``, treat binary and multi-label inputs
-            as multi-class or multi-dim multi-class with 2 classes, respectively.
-            Defaults to ``None``, which treats inputs as they appear.
-        ignore_index:
-            Integer specifying a target class to ignore. If given, this class index does not contribute
-            to the returned score, regardless of reduction method. Has no effect if given an int that
-            is not in the range ``[0, C-1]``, or if  ``C=1``, where ``C`` is the number of classes.
-
-            If an index is ignored, and ``average=None`` or ``'none'``, the score for the ignored class
-            will be returned as ``nan`` (to not break the indexing of other labels).
-        zero_division:
-            Score to use for classes/samples, whose score has 0 in the denominator. Has to be either
-            0 [default] or 1.
+            Used only in certain special cases, where you want to treat inputs as a different type
+            than what they appear to be. See the parameter's
+            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            for a more detailed explanation and examples.
 
     Return:
-        The of the returned tensor depends on the ``average`` parameter
+        The shape of the returned tensor depends on the ``average`` parameter
 
         - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
         - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
@@ -134,12 +134,14 @@ def precision(
         tensor(0.2500)
 
     """
+    allowed_average = ["micro", "macro", "weighted", "none", None]
+    if average not in allowed_average:
+        raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
+
+    if not isinstance(zero_division, (float, int)):
+        raise ValueError(f"The `zero_division` has to be a number, got {zero_division}.")
 
     reduce = "macro" if average in ["weighted", "none", None] else average
-
-    if zero_division not in [0, 1]:
-        raise ValueError("zero_division has to be either 0 or 1")
-
     tp, fp, tn, fn = _stat_scores_update(
         preds, target, reduce, mdmc_average, threshold, num_classes, is_multiclass, ignore_index
     )
@@ -154,7 +156,7 @@ def _recall_compute(
     fn: torch.Tensor,
     average: str,
     mdmc_average: Optional[str],
-    zero_division: int,
+    zero_division: Union[float, int],
 ) -> torch.Tensor:
     return _reduce_scores(
         numerator=tp,
@@ -175,16 +177,19 @@ def recall(
     num_classes: Optional[int] = None,
     is_multiclass: Optional[bool] = None,
     ignore_index: Optional[int] = None,
-    zero_division: int = 0,
+    zero_division: Union[float, int] = 0,
 ) -> torch.Tensor:
-    """Computes the recall score (the ratio ``tp / (tp + fn)``).
+    r"""
+    Computes `Recall <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
+
+    .. math:: \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}
+
+    Where :math:`\text{TP}` and :math:`\text{FN}` represent the number of true positives and
+    false negatives respecitively.
 
     The reduction method (how the recall scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
-
-    In case where you need to ignore a class in computing the score, an ``ignore_index``
-    parameter is availible.
 
     Args:
         preds: Predictions from model (probabilities, or labels)
@@ -192,8 +197,7 @@ def recall(
         average:
             Defines the reduction that is applied. Should be one of the following:
 
-            - ``'micro'`` [default]: Calculate the metric globally, by counting the statistics
-              (tp, fp, tn, fn) accross all samples and classes.
+            - ``'micro'`` [default]: Calculate the metric globally, accross all samples and classes.
             - ``'macro'``: Calculate the metric for each class separately, and average the
               metrics accross classes (with equal weights for each class).
             - ``'weighted'``: Calculate the metric for each class separately, and average the
@@ -223,30 +227,28 @@ def recall(
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
+        zero_division:
+            Score to use in the case of a 0 in the denominator in the calculation.
+
+        ignore_index:
+            Integer specifying a target class to ignore. If given, this class index does not contribute
+            to the returned score, regardless of reduction method. If an index is ignored, and ``average=None``
+            or ``'none'``, the score for the ignored class will be returned as ``nan``.
+
         num_classes:
-            Number of classes. Necessary for (multi-dimensional) multi-class or multi-label data.
+            Number of classes. Necessary for ``'macro'``, ``'weighted'`` and ``None`` average methods.
 
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         is_multiclass:
-            If ``False``, treat multi-class and multi-dim multi-class inputs with 1 or 2 classes as
-            binary and multi-label, respectively. If ``True``, treat binary and multi-label inputs
-            as multi-class or multi-dim multi-class with 2 classes, respectively.
-            Defaults to ``None``, which treats inputs as they appear.
-        ignore_index:
-            Integer specifying a target class to ignore. If given, this class index does not contribute
-            to the returned score, regardless of reduction method. Has no effect if given an int that
-            is not in the range ``[0, C-1]``, or if  ``C=1``, where ``C`` is the number of classes.
-
-            If an index is ignored, and ``average=None`` or ``'none'``, the score for the ignored class
-            will be returned as ``nan`` (to not break the indexing of other labels).
-        zero_division:
-            Score to use for classes/samples, whose score has 0 in the denominator. Has to be either
-            0 [default] or 1.
+            Used only in certain special cases, where you want to treat inputs as a different type
+            than what they appear to be. See the parameter's
+            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            for a more detailed explanation and examples.
 
     Return:
-        The of the returned tensor depends on the ``average`` parameter
+        The shape of the returned tensor depends on the ``average`` parameter
 
         - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
         - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
@@ -263,12 +265,14 @@ def recall(
         tensor(0.2500)
 
     """
+    allowed_average = ["micro", "macro", "weighted", "none", None]
+    if average not in allowed_average:
+        raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
+
+    if not isinstance(zero_division, (float, int)):
+        raise ValueError(f"The `zero_division` has to be a number, got {zero_division}.")
 
     reduce = "macro" if average in ["weighted", "none", None] else average
-
-    if zero_division not in [0, 1]:
-        raise ValueError("zero_division has to be either 0 or 1")
-
     tp, fp, tn, fn = _stat_scores_update(
         preds, target, reduce, mdmc_average, threshold, num_classes, is_multiclass, ignore_index
     )
