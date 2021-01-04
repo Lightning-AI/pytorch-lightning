@@ -13,9 +13,9 @@
 # limitations under the License.
 from abc import ABC
 from argparse import ArgumentParser
+from distutils.version import LooseVersion
 from random import shuffle
 from warnings import warn
-from distutils.version import LooseVersion
 
 import numpy as np
 import torch
@@ -23,19 +23,19 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import TORCHVISION_AVAILABLE, DALI_AVAILABLE, cli_lightning_logo
+from pl_examples import cli_lightning_logo, DALI_AVAILABLE, TORCHVISION_AVAILABLE
 
 if TORCHVISION_AVAILABLE:
-    from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
+    from torchvision.datasets.mnist import MNIST
 else:
     from tests.base.datasets import MNIST
 
 if DALI_AVAILABLE:
+    from nvidia.dali import __version__ as dali_version
     from nvidia.dali import ops
     from nvidia.dali.pipeline import Pipeline
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
-    from nvidia.dali import __version__ as dali_version
 
     NEW_DALI_API = LooseVersion(dali_version) >= LooseVersion('0.28.0')
     if NEW_DALI_API:
