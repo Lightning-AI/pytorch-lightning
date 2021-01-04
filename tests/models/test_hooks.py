@@ -13,13 +13,14 @@
 # limitations under the License.
 import inspect
 import os
+from unittest.mock import MagicMock
+
 import pytest
 import torch
-from unittest.mock import MagicMock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
-from tests.base import EvalModelTemplate, BoringModel, RandomDataset
+from tests.base import BoringModel, EvalModelTemplate, RandomDataset
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
@@ -129,7 +130,7 @@ def test_transfer_batch_hook():
                     reason="test should be run outside of pytest")
 def test_transfer_batch_hook_ddp(tmpdir):
     """
-    Test custom data are properly moved to the right device using ddp  
+    Test custom data are properly moved to the right device using ddp
     """
 
     class CustomBatch:
@@ -151,7 +152,6 @@ def test_transfer_batch_hook_ddp(tmpdir):
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(RandomDataset(32, 64), collate_fn=collate_fn)
-
 
     model = TestModel()
     model.validation_step = None
