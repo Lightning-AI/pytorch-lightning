@@ -164,7 +164,6 @@ class SequentialModelRPCManual(LightningModule):
 
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
-        print(opt)
         output = self.sequential_module(batch)
         loss = self.loss(output)
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
