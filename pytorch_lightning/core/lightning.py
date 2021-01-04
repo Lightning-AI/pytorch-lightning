@@ -1701,6 +1701,7 @@ class LightningModule(
                 line = re.sub(r"\s+", "", line, flags=re.UNICODE)
                 if ".hparams=" in line:
                     return line.split("=")[1]
+        # todo: specify the possible exception
         except Exception:
             return "hparams"
 

@@ -527,6 +527,7 @@ class Result(Dict):
                         result[k] = torch.tensor(result[k]).float()
                     try:
                         reduced_val = weighted_mean(result[k], batch_sizes)
+                    # todo: specify the expected Exceptions to come
                     except Exception:
                         reduced_val = torch.mean(result[k])
                 else:

@@ -112,6 +112,7 @@ def pl_multi_process_test(func):
             try:
                 func(**kwargs)
                 queue.put(1)
+            # todo: specify the possible exception
             except Exception:
                 import traceback
                 traceback.print_exc()

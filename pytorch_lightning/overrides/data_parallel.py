@@ -284,6 +284,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
 
             with lock:
                 results[i] = output
+        # todo: specify the possible exception
         except Exception as ex:
             with lock:
                 results[i] = ex
