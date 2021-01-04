@@ -220,11 +220,6 @@ class LightningDistributedDataParallel(DistributedDataParallel):
     def reducer_reset_hooks(self):
         self._reducer_prepared_for_backwards = False
 
-    @property
-    def running_single_process_per_device(self) -> bool:
-        device_ids = getattr(self, "device_ids", None)
-        return device_ids is not None and len(device_ids) == 1
-
 
 def warn_missing_output(fx_called):
     if fx_called == 'training_step':
