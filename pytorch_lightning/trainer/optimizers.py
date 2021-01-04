@@ -87,10 +87,10 @@ class TrainerOptimizersMixin(ABC):
             optimizer._on_trainer_init(trainer)
             return optimizer
 
-        self._lightning_optimizers = OrderedDict({
+        self._lightning_optimizers = {
             opt_idx: _convert_to_lightning_optimizer(self, opt)
             for opt_idx, opt in enumerate(self.optimizers)
-        })
+        }
 
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information

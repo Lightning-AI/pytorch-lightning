@@ -14,15 +14,15 @@
 
 """nn.Module with additional great features."""
 
-from abc import ABC
-from argparse import Namespace
 import collections
 import copy
 import inspect
 import os
-from pathlib import Path
 import re
 import tempfile
+from abc import ABC
+from argparse import Namespace
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
@@ -112,7 +112,7 @@ class LightningModule(
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
 
-    def optimizers(self, use_pl_optimizer: bool = True):
+    def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
             opts = list(self.trainer.lightning_optimizers.values())
         else:
