@@ -102,6 +102,7 @@ Lightning has a few built-in callbacks.
     ModelCheckpoint
     ProgressBar
     ProgressBarBase
+    LambdaMonitor
 
 ----------
 
