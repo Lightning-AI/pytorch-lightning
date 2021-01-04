@@ -79,8 +79,8 @@ def test_combined_loader_iterator_dict_min_size():
 
 def test_combined_loader_init_mode_error():
     """Test the ValueError when constructing `CombinedLoader`"""
-    with pytest.raises(ValueError, match='Invalid Mode'):
-        CombinedLoader([range(10)], 'test')
+    with pytest.raises(ValueError, match='selected unsupported mode'):
+        CombinedLoader([range(10)], 'testtt')
 
 
 def test_combined_loader_loader_type_error():
