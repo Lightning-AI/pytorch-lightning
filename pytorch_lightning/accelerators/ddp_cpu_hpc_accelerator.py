@@ -51,4 +51,3 @@ class DDPCPUHPCAccelerator(DDPHPCAccelerator):
 
     def init_device(self, process_idx):
         pass
-
