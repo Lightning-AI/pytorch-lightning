@@ -59,7 +59,7 @@ class WandbLogger(LightningLoggerBase):
         \**kwargs: Additional arguments like `entity`, `group`, `tags`, etc. used by
             :func:`wandb.init` can be passed as keyword arguments in this logger.
 
-    Example::
+    Example:
 
     .. code-block:: python
 
