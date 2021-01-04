@@ -117,7 +117,7 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         'Expected momentum to be logged'
     assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers), \
         'Number of momentum values logged does not match number of lr schedulers'
-    assert all([k == 'lr-ASGD-momentum' for k in lr_monitor.last_momentum_values.keys()]), \
+    assert all(k == 'lr-ASGD-momentum' for k in lr_monitor.last_momentum_values.keys()), \
         'Names of momentum values not set correctly'
 
 
