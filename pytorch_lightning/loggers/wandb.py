@@ -46,15 +46,15 @@ class WandbLogger(LightningLoggerBase):
 
     Args:
         name: Display name for the run.
-        save_dir: Path where data is saved.
+        save_dir: Path where data is saved (wandb dir by default).
         offline: Run offline (data can be streamed later to wandb servers).
         id: Sets the version, mainly used to resume a previous run.
+        version: Same as id.
         anonymous: Enables or explicitly disables anonymous logging.
-        version: Sets the version, mainly used to resume a previous run.
         project: The name of the project to which this run will belong.
         log_model: Save checkpoints in wandb dir to upload on W&B servers.
-        experiment: WandB experiment object.
         prefix: A string to put at the beginning of metric keys.
+        experiment: WandB experiment object. Automatically set when creating a run.
         \**kwargs: Additional arguments like `entity`, `group`, `tags`, etc. used by
             :func:`wandb.init` can be passed as keyword arguments in this logger.
 
@@ -85,12 +85,12 @@ class WandbLogger(LightningLoggerBase):
         save_dir: Optional[str] = None,
         offline: bool = False,
         id: Optional[str] = None,
-        anonymous: bool = False,
         version: Optional[str] = None,
+        anonymous: bool = False,
         project: Optional[str] = None,
         log_model: bool = False,
-        experiment=None,
         prefix: str = '',
+        experiment=None,
         **kwargs
     ):
         if wandb is None:
