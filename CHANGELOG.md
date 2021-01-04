@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added a check for optimizer attatched to lr_scheduler ([#5338](https://github.com/PyTorchLightning/pytorch-lightning/pull/5338))
+- Added a check for optimizer attached to lr_scheduler ([#5338](https://github.com/PyTorchLightning/pytorch-lightning/pull/5338))
 
 
 ### Changed
