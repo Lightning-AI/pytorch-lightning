@@ -64,9 +64,8 @@ class CheckpointConnector:
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
         # 2. Attempt to restore states from `resume_from_checkpoint` file
-        elif self.trainer.resume_from_checkpoint is not None:
-            checkpoint_path = self.trainer.callback_connector.resolve_checkpoint_path()
-            self.restore(checkpoint_path, on_gpu=self.trainer.on_gpu)
+        elif self.trainer.resume_from_checkpoint is not None and not self.trainer.testing:
+            self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
 
         # wait for all to catch up
         self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')

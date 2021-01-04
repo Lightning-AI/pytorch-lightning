@@ -53,15 +53,6 @@ class CallbackConnector:
             progress_bar_refresh_rate, process_position
         )
 
-    def resolve_checkpoint_path(self):
-        if self.trainer.testing:
-            checkpoint_callbacks = self.trainer.checkpoint_callbacks[0]
-            checkpoint_path = checkpoint_callbacks.best_model_path
-        else:
-            checkpoint_path = self.trainer.resume_from_checkpoint
-        return self.trainer.resume_from_checkpoint if checkpoint_path == '' \
-            else checkpoint_path
-
     def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):
         if isinstance(checkpoint_callback, ModelCheckpoint):
             # TODO: deprecated, remove this block in v1.3.0

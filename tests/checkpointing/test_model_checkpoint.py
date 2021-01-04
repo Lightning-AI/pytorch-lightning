@@ -760,8 +760,9 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
         model = ExtendedBoringModel()
         trainer.test(model)
         assert not trainer.checkpoint_connector.has_trained
-        assert trainer.global_step == epochs * limit_train_batches
-        assert trainer.current_epoch == epochs
+        # resume_from_checkpoint is resumed when calling `.fit`
+        assert trainer.global_step == 0
+        assert trainer.current_epoch == 0
         trainer.fit(model)
         assert not trainer.checkpoint_connector.has_trained
         assert trainer.global_step == epochs * limit_train_batches

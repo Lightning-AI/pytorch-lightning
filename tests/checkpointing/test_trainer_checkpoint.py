@@ -96,6 +96,6 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
 
     for idx, best_model_path in enumerate(best_model_paths):
         if idx == 0:
-            best_model_path.endswith(f"epoch={idx}.ckpt")
+            assert best_model_path.endswith(f"epoch=0{idx}.ckpt")
         else:
-            best_model_path.endswith(f"epoch={idx + 2}.ckpt")
+            assert f"epoch={idx + 1}" in best_model_path
