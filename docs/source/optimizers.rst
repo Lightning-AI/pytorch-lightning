@@ -201,12 +201,12 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
     # Alternating schedule for optimizer steps (ie: GANs)
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         # update generator opt every 2 steps
-        if optimizer_i == 0:
+        if optimizer_idx == 0:
             if batch_nb % 2 == 0 :
                optimizer.step(closure=closure)
 
         # update discriminator opt every 4 steps
-        if optimizer_i == 1:
+        if optimizer_idx == 1:
             if batch_nb % 4 == 0 :
                optimizer.step(closure=closure)
 
@@ -220,11 +220,11 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
     # Alternating schedule for optimizer steps (ie: GANs)
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         # update generator opt every 2 steps
-        if optimizer_i == 0:
+        if optimizer_idx == 0:
             optimizer.step(closure=closure, make_optimizer_step=(batch_nb % 2) == 0)
 
         # update discriminator opt every 4 steps
-        if optimizer_i == 1:
+        if optimizer_idx == 1:
             optimizer.step(closure=closure, make_optimizer_step=(batch_nb % 4) == 0)
 
 Here we add a learning-rate warm up
