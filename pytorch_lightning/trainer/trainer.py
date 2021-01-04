@@ -282,7 +282,7 @@ class Trainer(
             enable_pl_optimizer: If True, each optimizer will be wrapped by
                 `pytorch_lightning.core.optimizer.LightningOptimizer`. It allows Lightning to
                 handle AMP, TPU, accumulated_gradients, etc.
-                ... warning:: Currently Deprecated and it will be removed in v1.3
+                .. warning:: Currently deprecated and it will be removed in v1.3
         """
         super().__init__()
         self._device_type = DeviceType.CPU
