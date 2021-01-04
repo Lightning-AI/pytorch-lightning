@@ -16,6 +16,7 @@
 
 import os
 import warnings
+from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
 
 import torch
@@ -117,7 +118,7 @@ class Trainer(
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
-        resume_from_checkpoint: Optional[str] = None,
+        resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, bool, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
@@ -252,7 +253,8 @@ class Trainer(
                 you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
-                This can be a URL.
+                This can be a URL. If resuming from mid-epoch checkpoint, training will start from
+                the beginning of the next epoch.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
