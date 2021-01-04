@@ -107,9 +107,9 @@ jobs:
     - name: Pull checkpoints from S3
       # todo: consider adding some caching, but ATM all models have less then 100KB
       run: |
-        pip install downloader-cli
         cd legacy
-        dw https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip --force
+        # wget is simpler but does not work on Windows
+        python -c "from urllib.request import urlretrieve ; urlretrieve('https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip', 'checkpoints.zip')"
         ls -l
         unzip -o checkpoints.zip
         ls -l checkpoints/
