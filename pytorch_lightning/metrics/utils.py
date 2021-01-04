@@ -266,8 +266,9 @@ def class_reduce(
     )
     
     
-def _stable_1d_sort(x):
-    """ Stable sort of 1d tensors. Pytorch defaults to a stable sorting algorithm
+def _stable_1d_sort(x: torch):
+    """ 
+    Stable sort of 1d tensors. Pytorch defaults to a stable sorting algorithm
     if number of elements are larger than 2048. This function pads the tensors,
     makes the sort and returns the sorted array (with the padding removed)
     """
