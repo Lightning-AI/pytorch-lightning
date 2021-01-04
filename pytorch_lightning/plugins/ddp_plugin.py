@@ -95,9 +95,11 @@ class DDPPlugin(LightningPlugin):
 
     @property
     def is_running_single_process_per_device(self) -> bool:
+        # objects do not need to be scattered in single process per device, move objects upfront to device
+        # used in `self.on_before_forward`
         return self.device_ids is not None and len(self.device_ids) == 1
 
-    def on_before_forward(self, model: LightningDistributedDataParallel, *batch):
+    def on_before_forward(self, model: LightningModule, *batch):
         """
         Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
         within the DDP wrapper.
@@ -114,7 +116,6 @@ class DDPPlugin(LightningPlugin):
         Returns: batch moved to correct device if needed.
         """
         if self.is_running_single_process_per_device:
-            model = self.get_model_from_plugin(model)
             batch = model.transfer_batch_to_device(batch, model.device)
         return batch
 
