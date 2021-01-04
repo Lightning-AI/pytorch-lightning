@@ -259,7 +259,7 @@ def train_with_restore(tmpdir, model_cls, restore_from=None):
         max_epochs=(1 + bool(restore_from)),
         limit_train_batches=8,
         callbacks=[ckpt_saver] if restore_from is None else [],
-        checkpoint_callback=not restore_from,
+        checkpoint_callback=(not restore_from),
         resume_from_checkpoint=restore_from,
         num_sanity_val_steps=0,
     )
