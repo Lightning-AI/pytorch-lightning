@@ -28,7 +28,7 @@ class LambdaCallback(Callback):
     Create a simple callback on the fly.
 
     Args:
-        **kwargs: event listener supported by ``Callback``
+        **kwargs: hooks supported by ``Callback``
 
     Example::
 
