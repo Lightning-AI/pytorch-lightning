@@ -50,7 +50,7 @@ def test_all_gather_ddp():
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
-def test_all_gather_properly_works(tmpdir):
+def test_all_gather_collection(tmpdir):
 
     class TestModel(BoringModel):
 
