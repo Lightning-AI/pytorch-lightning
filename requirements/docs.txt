@@ -12,4 +12,3 @@ sphinx-autodoc-typehints
 sphinx-paramlinks<0.4.0
 sphinx-togglebutton
 sphinx-copybutton
-fsspec[http]
