@@ -89,7 +89,7 @@ class DDPHPCAccelerator(Accelerator):
         return self._step(args)
 
     def _step(self, args):
-        args = self.ddp_plugin.on_before_forward(self.trainer.get_model(), self.single_process_per_device, *args)
+        args = self.ddp_plugin.on_before_forward(self.trainer.get_model(), *args)
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
@@ -260,8 +260,4 @@ class DDPHPCAccelerator(Accelerator):
 
     @property
     def require_distributed_sampler(self):
-        return True
-
-    @property
-    def single_process_per_device(self):
         return True

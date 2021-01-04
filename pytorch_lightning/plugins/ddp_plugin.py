@@ -92,7 +92,7 @@ class DDPPlugin(LightningPlugin):
                 torch_backend, rank=global_rank, world_size=world_size
             )
 
-    def on_before_forward(self, model: LightningModule, single_process_per_device, *batch):
+    def on_before_forward(self, model: LightningDistributedDataParallel, *batch):
         """
         Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
         within the DDP wrapper.
@@ -105,13 +105,12 @@ class DDPPlugin(LightningPlugin):
 
         Args:
             batch: Inputs to the model.
-            single_process_per_device (bool): Wheter the accelerator requieres to move each batch data to a single gpu.
-                This should be skipped on 'cpu' and 'dp', 'ddp2' modes.
             model: Model to train.
         Returns: batch moved to correct device if needed.
         """
-        if single_process_per_device:
-            return model.transfer_batch_to_device(batch, model.device)
+        if model.device_ids is not None and len(model.device_ids) == 1:
+            if isinstance(model, LightningDistributedDataParallel):
+                batch = model.module.transfer_batch_to_device(batch, model.module.device)
         return batch
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:

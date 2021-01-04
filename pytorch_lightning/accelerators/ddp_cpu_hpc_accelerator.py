@@ -52,6 +52,3 @@ class DDPCPUHPCAccelerator(DDPHPCAccelerator):
     def init_device(self, process_idx):
         pass
 
-    @property
-    def single_process_per_device(self):
-        return False
