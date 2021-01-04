@@ -85,7 +85,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
         'Expected momentum to be logged'
     assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers), \
         'Number of momentum values logged does not match number of lr schedulers'
-    assert all([k == f'lr-{opt}-momentum' for k in lr_monitor.last_momentum_values.keys()]), \
+    assert all(k == f'lr-{opt}-momentum' for k in lr_monitor.last_momentum_values.keys()), \
         'Names of momentum values not set correctly'
 
 
