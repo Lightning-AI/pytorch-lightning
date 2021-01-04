@@ -251,43 +251,42 @@ class CombinedDataset(object):
     """
     Combine multiple datasets and compute their statistics
     """
-    MODES = ['min', 'max']
-    def __init__(self, datasets: Union[Sequence, Mapping]):
+    def __init__(self, datasets: Union[Sequence, Mapping], mode: str):
         """
 
         Args:
             datasets: a sequence/mapping datasets. Can be a collections of torch.utils.Dataset,
                 Iterable or even None.
+            mode: whether to use the minimum number of batches in all samples or the maximum 
+                number of batches in all samples.
 
         """
         self.datasets = datasets
-
-        self.max_len = self._calc_num_data(self.datasets, 'max')
-        self.min_len = self._calc_num_data(self.datasets, 'min')
+        self.mode = mode
 
     @staticmethod
-    def _calc_num_data(datasets: Union[Sequence, Mapping], mode: str = 'min') -> Union[int, float]:
+    def _calc_num_data(datasets: Union[Sequence, Mapping], mode: str) -> Union[int, float]:
         """
         Compute the length of `CombinedDataset` according to the `mode`.
 
         Args:
             datasets: a sequence/mapping datasets. Can be a collections of torch.utils.data.Dataset,
                 Iterable or even None.
-            mode: 'min' or 'max'. Determine `CombinedDataset`'s length is the maximum or minimum of
+            mode: Determine `CombinedDataset`'s length is the maximum or minimum of
                 the datasets.
 
         Returns:
             length: the length of `CombinedDataset`
 
         """
-        if mode not in ['min', 'max']:
+        if mode not in ['min_size', 'max_size_cycle']:
             raise ValueError(f"Invalid Mode: {mode}")
 
         # extract the lengths
         all_lengths = apply_to_collection(datasets, (Dataset, Iterable, type(None)), get_len,
                                           wrong_dtype=(Sequence, Mapping))
 
-        compute_func = eval(mode)
+        compute_func = {'min_size': min, 'max_size_cycle': max}
 
         if isinstance(all_lengths, (int, float)):
             length = all_lengths
@@ -302,7 +301,7 @@ class CombinedDataset(object):
 
     def __len__(self) -> int:
         """Return the minimum length of the datasets."""
-        return self.min_len
+        return self._calc_num_data(self.datasets, self.mode)
 
 
 class CombinedLoader(object):
@@ -341,7 +340,7 @@ class CombinedLoader(object):
         datasets = apply_to_collection(self.loaders, Iterable, getattr, 'dataset', None,
                                        wrong_dtype=(Sequence, Mapping))
         # could be multiple datasets, but use self.dataset to follow the name convention in DataLoader
-        self.dataset = CombinedDataset(datasets)
+        self.dataset = CombinedDataset(datasets, mode)
 
         if mode not in self.SUPPORTED_MODES:
             raise ValueError(f"Invalid Mode: {mode}")
