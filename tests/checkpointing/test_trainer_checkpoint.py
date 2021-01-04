@@ -11,30 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from argparse import Namespace
 from copy import deepcopy
 import os
-from pathlib import Path
-import pickle
-import platform
-import re
-from unittest import mock
-from unittest.mock import Mock
 
-import cloudpickle
-from omegaconf import Container, OmegaConf
-import pytest
 import torch
-import yaml
 
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
-import tests.base.develop_utils as tutils
 
 
 def test_finetuning_with_resume_from_checkpoint(tmpdir):
@@ -89,7 +75,7 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
         trainer.fit(model)
         trainer.test()
         results.append(deepcopy(trainer.callback_metrics))
-        best_model_paths.append(trainer.callbacks[0].best_model_path)
+        best_model_paths.append(trainer.checkpoint_callback.best_model_path)
 
     for idx in range(len(results) - 1):
         assert results[idx]["val_loss"] > results[idx + 1]["val_loss"]
