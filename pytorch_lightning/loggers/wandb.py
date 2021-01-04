@@ -72,9 +72,9 @@ class WandbLogger(LightningLoggerBase):
     make sure to use `commit=False` so the logging step does not increase.
 
     See Also:
-        - `Tutorial <https://app.wandb.ai/cayush/pytorchlightning/reports/
-          Use-Pytorch-Lightning-with-Weights-%26-Biases--Vmlldzo2NjQ1Mw>`__
-          on how to use W&B with Pytorch Lightning.
+        - `Tutorial <https://colab.research.google.com/drive/16d1uctGaw2y9KhGBlINNTsWpmlXdJwRW?usp=sharing>`__
+          on how to use W&B with Pytorch Lightning
+        - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
 
     """
 
