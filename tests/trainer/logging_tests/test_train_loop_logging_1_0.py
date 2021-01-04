@@ -320,8 +320,9 @@ def test_tbptt_log(tmpdir):
         def training_step(self, batch, batch_idx, hiddens):
             try:
                 assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            except Exception as e:
-                print(e)
+            # todo: specify the possible exception
+            except Exception as ex:
+                print(ex)
 
             self.test_hidden = torch.rand(1)
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
 
 import numpy as np
@@ -28,9 +28,9 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
-from pytorch_lightning.utilities.warning_utils import WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainLoop:
@@ -236,11 +236,10 @@ class TrainLoop:
         if self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
-        # set seed for distributed sampler (enables shuffling for each epoch)
-        try:
+        # todo: specify the possible exception
+        with suppress(Exception):
+            # set seed for distributed sampler (enables shuffling for each epoch)
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
-        except Exception:
-            pass
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.get_model())
