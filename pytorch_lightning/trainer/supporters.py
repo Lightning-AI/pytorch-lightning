@@ -251,7 +251,9 @@ class CombinedDataset(object):
     """
     Combine multiple datasets and compute their statistics
     """
-    def __init__(self, datasets: Union[Sequence, Mapping], mode: str):
+    COMPUTE_FUNCS = {'min_size': min, 'max_size_cycle': max}
+
+    def __init__(self, datasets: Union[Sequence, Mapping], mode: str = 'min_size'):
         """
 
         Args:
@@ -262,7 +264,20 @@ class CombinedDataset(object):
 
         """
         self.datasets = datasets
+        if mode not in self.COMPUTE_FUNCS.keys():
+            raise ValueError(
+                f'You have selected unsupported mode "{mode}",'
+                f' please select one the: {list(self.COMPUTE_FUNCS.keys())}.'
+            )
         self.mode = mode
+
+    @property
+    def max_len(self) -> Union[int, float]:
+        return self._calc_num_data(self.datasets, 'max_size_cycle')
+
+    @property
+    def min_len(self) -> Union[int, float]:
+        return self._calc_num_data(self.datasets, 'min_size')
 
     @staticmethod
     def _calc_num_data(datasets: Union[Sequence, Mapping], mode: str) -> Union[int, float]:
@@ -279,14 +294,14 @@ class CombinedDataset(object):
             length: the length of `CombinedDataset`
 
         """
-        if mode not in ['min_size', 'max_size_cycle']:
+        if mode not in CombinedDataset.COMPUTE_FUNCS.keys():
             raise ValueError(f"Invalid Mode: {mode}")
 
         # extract the lengths
         all_lengths = apply_to_collection(datasets, (Dataset, Iterable, type(None)), get_len,
                                           wrong_dtype=(Sequence, Mapping))
 
-        compute_func = {'min_size': min, 'max_size_cycle': max}
+        compute_func = CombinedDataset.COMPUTE_FUNCS[mode]
 
         if isinstance(all_lengths, (int, float)):
             length = all_lengths
