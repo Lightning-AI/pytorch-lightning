@@ -20,11 +20,13 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import RPC_AVAILABLE
 
+DEFAULT_RPC_TIMEOUT_SEC = 60.
 if RPC_AVAILABLE:
     from torch.distributed import rpc
-    from torch.distributed.rpc.constants import DEFAULT_RPC_TIMEOUT_SEC
-else:
-    DEFAULT_RPC_TIMEOUT_SEC = 60.
+    try:
+        from torch.distributed.rpc.constants import DEFAULT_RPC_TIMEOUT_SEC
+    except ModuleNotFoundError:
+        DEFAULT_RPC_TIMEOUT_SEC = 60.
 
 
 class RPCPlugin(DDPPlugin):
@@ -45,10 +47,7 @@ class RPCPlugin(DDPPlugin):
                             global_rank: int,
                             world_size: int) -> None:
         os.environ['MASTER_PORT'] = os.getenv('RPC_MASTER_PORT', '15000')
-        rpc_backend_options = rpc.TensorPipeRpcBackendOptions(
-                    rpc_timeout=self.rpc_timeout_sec
-        )
-        rpc.init_rpc(f"worker{global_rank}",  rank=global_rank, world_size=world_size)
+        rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
         rpc._set_rpc_timeout(self.rpc_timeout_sec)
         self.rpc_initialized = True
 
