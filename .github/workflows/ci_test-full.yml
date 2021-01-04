@@ -110,7 +110,7 @@ jobs:
         cd legacy
         # wget is simpler but does not work on Windows
         python -c "from urllib.request import urlretrieve ; urlretrieve('https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip', 'checkpoints.zip')"
-        ls -l
+        ls -l .
         unzip -o checkpoints.zip
         ls -l checkpoints/
 
