@@ -737,7 +737,7 @@ class LightningModule(
                 out = self(x)
                 return out
 
-            def validation_epoch_end(self, val_step_outputs):
+            def validation_step_end(self, val_step_outputs):
                 for out in val_step_outputs:
                     # do something with these
 
@@ -745,9 +745,7 @@ class LightningModule(
             See the :ref:`multi_gpu` guide for more details.
         """
 
-    def validation_epoch_end(
-        self, outputs: List[Any]
-    ) -> None:
+    def validation_epoch_end(self, outputs: List[Any]) -> None:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -914,7 +912,7 @@ class LightningModule(
                 out = self.encoder(x)
                 return out
 
-            def test_epoch_end(self, output_results):
+            def test_step_end(self, output_results):
                 # this out is now the full size of the batch
                 all_test_step_outs = output_results.out
                 loss = nce_loss(all_test_step_outs)
