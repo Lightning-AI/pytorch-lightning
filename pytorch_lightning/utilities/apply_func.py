@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import importlib
 from abc import ABC
 from collections.abc import Mapping, Sequence
@@ -58,20 +57,6 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
         return elem_type([apply_to_collection(d, dtype, function, *args, **kwargs) for d in data])
 
     # data is neither of dtype, nor a collection
-    return data
-
-
-def flatten_collection(data: Any):
-
-    if isinstance(data, dict):
-        for key, value in data.items():
-            data[key] = flatten_collection(value)
-
-    elif isinstance(data, (list, tuple)):
-        if all([torch.is_tensor(value) for value in data]) and len(data) > 0:
-            value = torch.cat(data, dim=0)
-            return [value] if isinstance(data, list) else (value, )
-
     return data
 
 

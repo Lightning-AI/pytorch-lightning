@@ -370,7 +370,7 @@ class LightningModule(
         self,
         data: Union[torch.Tensor, Dict, List, Tuple],
         group: Optional[Any] = None,
-        sync_grads: bool = False
+        sync_grads: bool = False,
     ):
         r"""
         Allows users to call ``self.all_gather()`` from the LightningModule, thus making
@@ -398,8 +398,7 @@ class LightningModule(
         data = apply_to_collection(data, float, partial(to_dtype_tensor, dtype=torch.float))
         data = apply_to_collection(data, int, partial(to_dtype_tensor, dtype=torch.int))
         all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
-        data = apply_to_collection(data, torch.Tensor, all_gather)
-        return flatten_collection(data)
+        return apply_to_collection(data, torch.Tensor, all_gather)
 
     def forward(self, *args, **kwargs):
         r"""
