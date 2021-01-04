@@ -105,11 +105,11 @@ jobs:
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
     - name: Pull checkpoints from S3
-      # todo: consider adding coma caching, but ATM all models have less then 100KB
+      # todo: consider adding some caching, but ATM all models have less then 100KB
       run: |
         pip install downloader-cli
         cd legacy
-        python -m dw https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip
+        dw https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip
         unzip -o checkpoints.zip
         ls -l checkpoints/
 
