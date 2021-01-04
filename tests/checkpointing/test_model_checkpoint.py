@@ -493,10 +493,9 @@ def test_ckpt_metric_names_results(tmpdir):
             if batch_idx % 2 == 0:
                 log_val = log_val.item()
 
-            result = pl.core.step_result.TrainResult(loss_val)
-            result.log('some_val', log_val * log_val, prog_bar=True, logger=False)
-            result.log('train_some_val', log_val * log_val)
-            return result
+            self.log('some_val', log_val * log_val, prog_bar=True, logger=False)
+            self.log('train_some_val', log_val * log_val)
+            return loss_val
 
         def validation_step(self, batch, batch_idx):
             y_hat = self(batch)
