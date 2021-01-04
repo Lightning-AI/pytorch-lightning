@@ -93,7 +93,7 @@ class DDPPlugin(LightningPlugin):
                 torch_backend, rank=global_rank, world_size=world_size
             )
 
-    @staticmethod
+    @property
     def is_running_single_process_per_device(self) -> bool:
         return self.device_ids is not None and len(self.device_ids) == 1
 
@@ -113,7 +113,7 @@ class DDPPlugin(LightningPlugin):
             model: Model to train.
         Returns: batch moved to correct device if needed.
         """
-        if self.is_running_single_process_per_device(model):
+        if self.is_running_single_process_per_device:
             model = self.get_model_from_plugin(model)
             batch = model.transfer_batch_to_device(batch, model.device)
         return batch

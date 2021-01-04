@@ -35,6 +35,7 @@ class DDPShardedPlugin(DDPPlugin):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ):
+        self.device_ids = device_ids
         self._wrap_optimizers(model)
         model = LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
         return model
