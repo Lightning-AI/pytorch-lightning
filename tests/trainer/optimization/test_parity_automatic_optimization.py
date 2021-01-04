@@ -256,7 +256,7 @@ def train_with_restore(tmpdir, model_cls, restore_from=None):
     # Initialize a trainer
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1 + bool(restore_from),
+        max_epochs=(1 + bool(restore_from)),
         limit_train_batches=8,
         callbacks=[ckpt_saver] if restore_from is None else [],
         checkpoint_callback=not restore_from,
