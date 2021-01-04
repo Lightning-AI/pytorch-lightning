@@ -48,7 +48,7 @@ class DDPPlugin(LightningPlugin):
 
             def configure_ddp(self, model, device_ids):
                 model = LightningDistributedDataParallel(
-                    model, device_ids=device_ids, find_unused_parameters=True
+                    model, device_ids=device_ids, find_unused_parameters=False
                 )
                 return model
 
@@ -60,9 +60,9 @@ class DDPPlugin(LightningPlugin):
             the model wrapped in LightningDistributedDataParallel
 
         """
-        # if unset, default `find_unused_parameters` `True`
+        # if unset, default `find_unused_parameters` `False`
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get(
-            "find_unused_parameters", True
+            "find_unused_parameters", False
         )
         model = LightningDistributedDataParallel(
             model,
@@ -92,6 +92,11 @@ class DDPPlugin(LightningPlugin):
                 torch_backend, rank=global_rank, world_size=world_size
             )
 
+    @staticmethod
+    def is_running_single_process_per_device(model) -> bool:
+        device_ids = getattr(model, "device_ids", None)
+        return device_ids is not None and len(device_ids) == 1
+
     def on_before_forward(self, model: LightningDistributedDataParallel, *batch):
         """
         Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
@@ -108,7 +113,7 @@ class DDPPlugin(LightningPlugin):
             model: Model to train.
         Returns: batch moved to correct device if needed.
         """
-        if isinstance(model, LightningDistributedDataParallel) and model.running_single_process_per_device:
+        if self.is_running_single_process_per_device(model):
             model = self.get_model_from_plugin(model)
             batch = model.transfer_batch_to_device(batch, model.device)
         return batch

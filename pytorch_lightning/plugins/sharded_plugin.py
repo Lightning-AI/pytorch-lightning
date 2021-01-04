@@ -36,7 +36,9 @@ class DDPShardedPlugin(DDPPlugin):
             self, model: LightningModule, device_ids: List[int]
     ):
         self._wrap_optimizers(model)
-        return LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
+        model = LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
+        model.device_ids = device_ids
+        return model
 
     def optimizer_state(self, optimizer: 'OSS') -> Optional[dict]:
         optimizer.consolidate_state_dict()
