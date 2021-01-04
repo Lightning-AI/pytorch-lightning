@@ -221,7 +221,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
         self._reducer_prepared_for_backwards = False
 
     @property
-    def running_single_process_per_device(self):
+    def running_single_process_per_device(self) -> bool:
         device_ids = getattr(self, "device_ids", None)
         return device_ids is not None and len(device_ids) == 1
 

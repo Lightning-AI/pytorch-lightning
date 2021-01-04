@@ -108,7 +108,7 @@ class DDPPlugin(LightningPlugin):
             model: Model to train.
         Returns: batch moved to correct device if needed.
         """
-        if model.running_single_process_per_device:
+        if isinstance(model, LightningDistributedDataParallel) and model.running_single_process_per_device:
             model = self.get_model_from_plugin(model)
             batch = model.transfer_batch_to_device(batch, model.device)
         return batch
