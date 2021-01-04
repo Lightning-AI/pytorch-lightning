@@ -109,7 +109,7 @@ jobs:
       run: |
         pip install downloader-cli
         cd legacy
-        dw https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip
+        dw https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip --force
         unzip -o checkpoints.zip
         ls -l checkpoints/
 
