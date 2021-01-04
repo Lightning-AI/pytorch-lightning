@@ -1327,7 +1327,7 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: str = Optional[ModelSummary.MODE_DEFAULT]) -> Optional[ModelSummary]:
+    def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
         model_summary = None
 
         if mode in ModelSummary.MODES:
