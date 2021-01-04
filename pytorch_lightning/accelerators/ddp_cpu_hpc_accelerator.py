@@ -54,4 +54,4 @@ class DDPCPUHPCAccelerator(DDPHPCAccelerator):
 
     @property
     def single_process_per_device(self):
-        return True
+        return False

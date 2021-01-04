@@ -1,6 +1,6 @@
-from contextlib import contextmanager
 import os
-from typing import Any, Dict, List, Optional, Union
+from contextlib import contextmanager
+from typing import Any, Dict, List, Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -105,6 +105,8 @@ class DDPPlugin(LightningPlugin):
 
         Args:
             batch: Inputs to the model.
+            single_process_per_device (bool): Wheter the accelerator requieres to move each batch data to a single gpu.
+                This should be skipped on 'cpu' and 'dp', 'ddp2' modes.
             model: Model to train.
         Returns: batch moved to correct device if needed.
         """
