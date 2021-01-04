@@ -251,6 +251,7 @@ class CombinedDataset(object):
     """
     Combine multiple datasets and compute their statistics
     """
+    MODES = ['min', 'max']
     def __init__(self, datasets: Union[Sequence, Mapping]):
         """
 
