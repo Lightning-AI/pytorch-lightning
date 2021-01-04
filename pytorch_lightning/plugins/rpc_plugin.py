@@ -25,7 +25,7 @@ if RPC_AVAILABLE:
     from torch.distributed import rpc
     try:
         from torch.distributed.rpc.constants import DEFAULT_RPC_TIMEOUT_SEC
-    except ModuleNotFoundError:
+    except (ModuleNotFoundError, ImportError):
         DEFAULT_RPC_TIMEOUT_SEC = 60.
 
 
