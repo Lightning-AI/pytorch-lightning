@@ -33,11 +33,11 @@ class LearningRateMonitor(Callback):
     Automatically monitor and logs learning rate for learning rate schedulers during training.
 
     Args:
-        logging_interval: set to `epoch` or `step` to log `lr` of all optimizers
-            at the same interval, set to `None` to log at individual interval
+        logging_interval: set to ``'epoch'`` or ``'step'`` to log ``lr`` of all optimizers
+            at the same interval, set to ``None`` to log at individual interval
             according to the `interval` key of each scheduler. Defaults to ``None``.
         log_momentum: option to also log the momentum values of the optimizer, if the optimizer
-            has the `momentum` attribute. Defaults to ``False``.
+            has the ``momentum`` or ``betas`` attribute. Defaults to ``False``.
 
     Example::
 
@@ -47,17 +47,19 @@ class LearningRateMonitor(Callback):
         >>> trainer = Trainer(callbacks=[lr_monitor])
 
     Logging names are automatically determined based on optimizer class name.
-    In case of multiple optimizers of same type, they will be named `Adam`,
-    `Adam-1` etc. If a optimizer has multiple parameter groups they will
-    be named `Adam/pg1`, `Adam/pg2` etc. To control naming, pass in a
-    `name` keyword in the construction of the learning rate schdulers
+    In case of multiple optimizers of same type, they will be named ``Adam``,
+    ``Adam-1`` etc. If a optimizer has multiple parameter groups they will
+    be named ``Adam/pg1``, ``Adam/pg2`` etc. To control naming, pass in a
+    ``name`` keyword in the construction of the learning rate schdulers
 
     Example::
 
         def configure_optimizer(self):
             optimizer = torch.optim.Adam(...)
-            lr_scheduler = {'scheduler': torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
-                            'name': 'my_logging_name'}
+            lr_scheduler = {
+                'scheduler': torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
+                'name': 'my_logging_name'
+            }
             return [optimizer], [lr_scheduler]
 
     """
@@ -91,12 +93,12 @@ class LearningRateMonitor(Callback):
             )
 
         if self.log_momentum:
-            def _check_momentum(key):
+            def _check_no_key(key):
                 return any(
                     key not in sch['scheduler'].optimizer.defaults for sch in trainer.lr_schedulers
                 )
 
-            if _check_momentum('momentum') and _check_momentum('betas'):
+            if _check_no_key('momentum') and _check_no_key('betas'):
                 rank_zero_warn(
                     "You have set log_momentum=True, but some optimizers do not"
                     " have momentum. This will log a value 0 for the momentum.", RuntimeWarning
@@ -137,20 +139,12 @@ class LearningRateMonitor(Callback):
                 param_groups = opt.param_groups
                 use_betas = 'betas' in opt.defaults
 
-                if len(param_groups) != 1:
-                    for i, pg in enumerate(param_groups):
-                        lr = self._extract_lr(param_group=pg, name=f'{name}/pg{i + 1}')
-                        latest_stat.update(lr)
-                        momentum = self._extract_momentum(
-                            param_group=pg, name=f'{name}-momentum/pg{i + 1}', use_betas=use_betas
-                        )
-                        latest_stat.update(momentum)
-                else:
-                    pg = param_groups[0]
-                    lr = self._extract_lr(param_group=pg, name=name)
+                for i, pg in enumerate(param_groups):
+                    suffix = f'/pg{i + 1}' if len(param_groups) > 1 else ''
+                    lr = self._extract_lr(param_group=pg, name=f'{name}{suffix}')
                     latest_stat.update(lr)
                     momentum = self._extract_momentum(
-                        param_group=pg, name=f'{name}-momentum', use_betas=use_betas
+                        param_group=pg, name=f'{name}-momentum{suffix}', use_betas=use_betas
                     )
                     latest_stat.update(momentum)
 
