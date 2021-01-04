@@ -40,6 +40,6 @@ class LambdaCallback(Callback):
     def __init__(self, **kwargs):
         hooks = [m for m in dir(Callback) if not m.startswith("_")]
         for k, v in kwargs.items():
-            if k not in listeners:
+            if k not in hooks:
                 raise ValueError(f"Invalid argument `{k}`")
             setattr(self, k, v)
