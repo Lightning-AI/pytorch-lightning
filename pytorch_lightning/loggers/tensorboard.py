@@ -152,7 +152,7 @@ class TensorBoardLogger(LightningLoggerBase):
         params = self._convert_params(params)
 
         # store params to output
-        if _OMEGACONF_AVAILABLE and isinstance(params, Container):
+        if _OMEGACONF_AVAILABLE and Container is not None and isinstance(params, Container):
             self.hparams = OmegaConf.merge(self.hparams, params)
         else:
             self.hparams.update(params)
