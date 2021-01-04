@@ -23,10 +23,8 @@ from pytorch_lightning.utilities import RPC_AVAILABLE
 DEFAULT_RPC_TIMEOUT_SEC = 60.
 if RPC_AVAILABLE:
     from torch.distributed import rpc
-    try:
+    if _module_available("torch.distributed.rpc.constants") and hasattr(torch.distributed.rpc.constants, "DEFAULT_RPC_TIMEOUT_SEC"):
         from torch.distributed.rpc.constants import DEFAULT_RPC_TIMEOUT_SEC
-    except (ModuleNotFoundError, ImportError):
-        DEFAULT_RPC_TIMEOUT_SEC = 60.
 
 
 class RPCPlugin(DDPPlugin):
