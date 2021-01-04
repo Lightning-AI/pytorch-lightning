@@ -79,3 +79,99 @@ class TrainingStepVariations(ABC):
         self.log('train_some_val', log_train * log_train)
 
         return loss_train
+
+    def training_step_end_full_loop_result_obj_dp(self, result):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        result.minimize = result.minimize.mean()
+        result.checkpoint_on = result.checkpoint_on.mean()
+        result.train_step_metric = result.train_step_metric.mean()
+        result.log('train_step_end_metric', 1)
+        self.training_step_end_called = True
+        return result
+
+    def training_epoch_end_full_loop_result_obj_dp(self, result):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        result.log('train_epoch_end_metric', 1, on_epoch=True)
+        self.training_epoch_end_called = True
+
+        return result
+
+    def eval_step_end_full_loop_result_obj_dp(self, result):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        eval_name = 'validation' if not self.trainer.testing else 'test'
+        reduced = getattr(result, f'{eval_name}_step_metric_step').mean()
+        setattr(result, f'{eval_name}_step_metric_step', reduced)
+
+        reduced = getattr(result, f'{eval_name}_step_metric_epoch').mean()
+        setattr(result, f'{eval_name}_step_metric_epoch', reduced)
+
+        reduced = getattr(result, f'{eval_name}_step_metric').mean()
+        setattr(result, f'{eval_name}_step_metric', reduced)
+
+        result.checkpoint_on = result.checkpoint_on.mean()
+        result.early_stop_on = result.early_stop_on.mean()
+        result.log(f'{eval_name}_step_end_metric', torch.tensor(1).type_as(result.checkpoint_on))
+        setattr(self, f'{eval_name}_step_end_called', True)
+
+        return result
+
+    def eval_epoch_end_full_loop_result_obj_dp(self, result):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        eval_name = 'validation' if not self.trainer.testing else 'test'
+        result.log(f'{eval_name}_epoch_end_metric', torch.tensor(1).type_as(result.checkpoint_on), on_epoch=True)
+        result.checkpoint_on = result.checkpoint_on.mean()
+        result.early_stop_on = result.early_stop_on.mean()
+        setattr(self, f'{eval_name}_epoch_end_called', True)
+
+        # reduce the parametrized values
+        reduced = getattr(result, f'{eval_name}_step_metric_step').mean()
+        setattr(result, f'{eval_name}_step_metric_step', reduced)
+
+        reduced = getattr(result, f'{eval_name}_step_metric_epoch').mean()
+        setattr(result, f'{eval_name}_step_metric_epoch', reduced)
+
+        reduced = getattr(result, f'{eval_name}_step_end_metric').mean()
+        setattr(result, f'{eval_name}_step_end_metric', reduced)
+
+        reduced = getattr(result, f'{eval_name}_step_metric').mean()
+        setattr(result, f'{eval_name}_step_metric', reduced)
+
+        return result
+
+    def training_step__multiple_dataloaders(self, batch, batch_idx, optimizer_idx=None):
+        """Training step for multiple train loaders"""
+
+        assert isinstance(batch, dict)
+        assert len(batch) == 2
+        assert 'a' in batch and 'b' in batch
+
+        # forward pass
+        x, y = batch['a']
+        x = x.view(x.size(0), -1)
+        y_hat = self(x)
+
+        # calculate loss
+        loss_val = self.loss(y, y_hat)
+        log_val = loss_val
+
+        # alternate between tensors and scalars for "log" and "progress_bar"
+        if batch_idx % 2 == 0:
+            log_val = log_val.item()
+
+        output = OrderedDict(
+            {
+                'loss': loss_val,
+                'progress_bar': {'some_val': log_val * log_val},
+                'log': {'train_some_val': log_val * log_val},
+            }
+        )
+        return output
+
