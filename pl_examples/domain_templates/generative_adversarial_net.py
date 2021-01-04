@@ -19,17 +19,17 @@ After a few epochs, launch TensorBoard to see the images being generated at ever
 
 tensorboard --logdir default
 """
-from argparse import ArgumentParser, Namespace
 import os
+from argparse import ArgumentParser, Namespace
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # noqa
-from torch.utils.data import DataLoader
 import torchvision
-from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
+from torchvision.datasets import MNIST
 
 from pl_examples import cli_lightning_logo
 from pytorch_lightning.core import LightningDataModule, LightningModule

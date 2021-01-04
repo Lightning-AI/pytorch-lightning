@@ -228,7 +228,7 @@ class DDPSequentialPlugin(RPCPlugin):
         Returns: The appropriate balance for the model
         """
         if isinstance(self.balance, list):
-            if len(self.balance) != trainer.world_size:
+            if len(self.balance) != (trainer.world_size / trainer.num_nodes):
                 raise MisconfigurationException(
                     "Pipe currently only supports splitting the module onto all available GPUs"
                 )
