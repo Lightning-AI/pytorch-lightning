@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.metrics.classification.accuracy import Accuracy  # noqa: F401
+from pytorch_lightning.metrics.classification.auc import AUC
+from pytorch_lightning.metrics.classification.auroc import AUROC
 from pytorch_lightning.metrics.classification.average_precision import AveragePrecision  # noqa: F401
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix  # noqa: F401
 from pytorch_lightning.metrics.classification.f_beta import FBeta, F1  # noqa: F401

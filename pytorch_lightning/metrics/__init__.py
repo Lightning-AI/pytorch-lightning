@@ -25,7 +25,9 @@ from pytorch_lightning.metrics.classification import (  # noqa: F401
     ROC,
     FBeta,
     F1,
-    StatScores
+    StatScores,
+    AUC,
+    AUROC
 )
 
 from pytorch_lightning.metrics.regression import (  # noqa: F401
