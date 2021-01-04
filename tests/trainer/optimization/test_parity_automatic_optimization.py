@@ -269,7 +269,12 @@ def train_with_restore(tmpdir, model_cls, restore_from=None):
     return ckpt_saver.best_model_path, model
 
 
-def test_parity_checkpointing(tmpdir, model_cls=BaseParityAutomaticOptimizationModel):
+def test_parity_checkpointing(tmpdir):
+    """
+    This test assert that reloading a checkpoint and finetunning gives the same result
+    with / without LightningOptimizer
+    """
+
     # Initial train run of the model.
     seed_everything(0)
     ckpt_path, first_epoch_pl_optimizer_model = train_with_restore(

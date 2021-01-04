@@ -22,7 +22,7 @@ class OptimizerConnector:
     def on_trainer_init(self, enable_pl_optimizer):
         if enable_pl_optimizer is not None:
             rank_zero_warn(
-                "Trainer argument `enable_pl_optimizer` is deprecated. It will be removed in v1.3.0",
+                "Trainer argument `enable_pl_optimizer` is deprecated in v1.1.3. It will be removed in v1.3.0",
                 DeprecationWarning
             )
         self.trainer.lr_schedulers = []
