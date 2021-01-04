@@ -40,6 +40,18 @@ def test_wandb_logger_init(wandb, recwarn):
     wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({'acc': 1.0}, step=None)
 
+    # test sync_step functionality
+    wandb.init().log.reset_mock()
+    wandb.init.reset_mock()
+    wandb.run = None
+    wandb.init().step = 0
+    logger = WandbLogger(sync_step=False)
+    logger.log_metrics({'acc': 1.0})
+    wandb.init().log.assert_called_once_with({'acc': 1.0})
+    wandb.init().log.reset_mock()
+    logger.log_metrics({'acc': 1.0}, step=3)
+    wandb.init().log.assert_called_once_with({'acc': 1.0, 'trainer_step': 3})
+
     # mock wandb step
     wandb.init().step = 0
 
