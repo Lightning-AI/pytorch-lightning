@@ -108,9 +108,9 @@ class DDPPlugin(LightningPlugin):
             model: Model to train.
         Returns: batch moved to correct device if needed.
         """
-        if model.device_ids is not None and len(model.device_ids) == 1:
-            if isinstance(model, LightningDistributedDataParallel):
-                batch = model.module.transfer_batch_to_device(batch, model.module.device)
+        if model.running_single_process_per_device:
+            model = self.get_model_from_plugin(model)
+            batch = model.transfer_batch_to_device(batch, model.device)
         return batch
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
