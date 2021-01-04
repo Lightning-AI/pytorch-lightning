@@ -247,7 +247,6 @@ def plugin_parity_test(
         gpus: int = 0,
         precision: int = 32,
         max_percent_speed_diff: float = 0.1,
-        **kwargs,
 ):
     """
     Ensures that the trained model is identical to the standard DDP implementation.
@@ -276,7 +275,6 @@ def plugin_parity_test(
         gpus=gpus,
         precision=precision,
         accelerator=accelerator,
-        **kwargs,
     )
 
     max_memory_ddp, ddp_time = record_ddp_fit_model_stats(
@@ -296,7 +294,6 @@ def plugin_parity_test(
         precision=precision,
         accelerator=accelerator,
         plugins=[plugin],
-        **kwargs,
     )
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(
