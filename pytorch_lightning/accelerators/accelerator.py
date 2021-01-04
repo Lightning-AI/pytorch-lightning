@@ -238,6 +238,10 @@ class Accelerator(object):
         return checkpoint
 
     @property
+    def single_process_per_device(self):
+        raise NotImplementedError
+
+    @property
     def rpc_enabled(self):
         return self.ddp_plugin is not None and isinstance(self.ddp_plugin, RPCPlugin)
 

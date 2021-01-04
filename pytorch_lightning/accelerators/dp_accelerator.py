@@ -188,3 +188,6 @@ class DataParallelAccelerator(Accelerator):
     @property
     def require_distributed_sampler(self):
         return False
+
+    def single_process_per_device(self):
+        return False

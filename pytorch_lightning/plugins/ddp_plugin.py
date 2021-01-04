@@ -92,7 +92,7 @@ class DDPPlugin(LightningPlugin):
                 torch_backend, rank=global_rank, world_size=world_size
             )
 
-    def on_before_forward(self, model: LightningModule, *batch):
+    def on_before_forward(self, model: LightningModule, single_process_per_device, *batch):
         """
         Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
         within the DDP wrapper.
@@ -108,7 +108,9 @@ class DDPPlugin(LightningPlugin):
             model: Model to train.
         Returns: batch moved to correct device if needed.
         """
-        return model.transfer_batch_to_device(batch, model.device)
+        if single_process_per_device:
+            return model.transfer_batch_to_device(batch, model.device)
+        return batch
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()
