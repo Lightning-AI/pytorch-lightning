@@ -33,10 +33,11 @@ The example below shows how to use a metric in your ``LightningModule``:
         self.accuracy = pl.metrics.Accuracy()
 
     def training_step(self, batch, batch_idx):
-        probs = self(x)
+        data, target = batch
+        preds = self(data)
         ...
         # log step metric
-        self.log('train_acc_step', self.accuracy(probs, y))
+        self.log('train_acc_step', self.accuracy(preds, y))
         ...
 
     def training_epoch_end(self, outs):
@@ -67,9 +68,10 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.valid_acc = pl.metrics.Accuracy()
 
     def training_step(self, batch, batch_idx):
-        probs = self(x)
+        data, target = batch
+        preds = self(data)
         ...
-        self.train_acc(probs, y)
+        self.train_acc(preds, y)
         self.log('train_acc', self.train_acc, on_step=True, on_epoch=False)
 
     def validation_step(self, batch, batch_idx):
