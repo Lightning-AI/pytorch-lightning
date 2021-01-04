@@ -259,7 +259,7 @@ class CombinedDataset(object):
         Args:
             datasets: a sequence/mapping datasets. Can be a collections of torch.utils.Dataset,
                 Iterable or even None.
-            mode: whether to use the minimum number of batches in all samples or the maximum 
+            mode: whether to use the minimum number of batches in all samples or the maximum
                 number of batches in all samples.
 
         """
@@ -322,7 +322,7 @@ class CombinedDataset(object):
 class CombinedLoader(object):
     """
     Combines different dataloaders and allows sampling in parallel.
-    
+
     Supported modes are 'min_size', which raises StopIteration after the shortest loader
     (the one with the lowest number of batches) is done, and 'max_size_cycle` which raises
     StopIteration after the longest loader (the one with most batches) is done, while cycling
