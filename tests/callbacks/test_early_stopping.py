@@ -299,3 +299,13 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
         (trainer.global_step, max(min_steps, by_early_stopping, by_min_epochs), step_freeze, min_steps, min_epochs)
 
     _logger.disabled = False
+
+
+def test_early_stopping_mode_options():
+    with pytest.raises(MisconfigurationException, match="unknown_option"):
+        EarlyStopping(mode="unknown_option")
+
+
+def test_model_checkpoint_mode_options():
+    with pytest.raises(MisconfigurationException, match="unknown_option"):
+        ModelCheckpoint(mode="unknown_option")
