@@ -20,6 +20,7 @@ from unittest.mock import ANY, call
 
 import pytest
 
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import (
     CometLogger,
@@ -31,7 +32,6 @@ from pytorch_lightning.loggers import (
 )
 from pytorch_lightning.loggers.base import DummyExperiment
 from tests.base import BoringModel, EvalModelTemplate
-import tests.base.develop_utils as tutils
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
 

@@ -20,11 +20,11 @@ Automatically save model checkpoints during training.
 
 """
 
-from copy import deepcopy
 import numbers
 import os
-from pathlib import Path
 import re
+from copy import deepcopy
+from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
