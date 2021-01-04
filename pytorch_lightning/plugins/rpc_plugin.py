@@ -33,7 +33,8 @@ class RPCPlugin(DDPPlugin):
     that need to be addressed when using RPC communication when building custom RPC Plugins.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, rpc_timeout_sec: float = rpc.constants.DEFAULT_RPC_TIMEOUT_SEC, **kwargs):
+        self.rpc_timeout_sec = rpc_timeout_sec
         self.rpc_initialized = False
         super().__init__(**kwargs)
 
@@ -41,7 +42,11 @@ class RPCPlugin(DDPPlugin):
                             global_rank: int,
                             world_size: int) -> None:
         os.environ['MASTER_PORT'] = os.getenv('RPC_MASTER_PORT', '15000')
-        rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
+        rpc_backend_options = rpc.TensorPipeRpcBackendOptions(
+                    rpc_timeout=self.rpc_timeout_sec
+        )    
+        rpc.init_rpc(f"worker{global_rank}",  rank=global_rank, world_size=world_size)  
+        rpc._set_rpc_timeout(self.rpc_timeout_sec)          
         self.rpc_initialized = True
 
     def rpc_save_model(self,
