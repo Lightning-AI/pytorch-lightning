@@ -93,8 +93,8 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir: Path):
     # Generate checkpoint `last.ckpt` with BoringModel
     gen_trainer(None).fit(model)
     # `True` if resume/restore successfully else `False`
-    assert gen_trainer("last.ckpt").checkpoint_connector.attempt_to_restore()
-    assert not gen_trainer("last_non_existing.ckpt").checkpoint_connector.attempt_to_restore()
+    assert gen_trainer("last.ckpt").checkpoint_connector.attempt_to_restore(model)
+    assert not gen_trainer("last_non_existing.ckpt").checkpoint_connector.attempt_to_restore(model)
 
 
 class CaptureCallbacksBeforeTraining(Callback):

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.core.lightning import LightningModule
 import torch
 
 from pytorch_lightning import Trainer
@@ -47,7 +48,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
 
-def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True):
+def run_model_test(trainer_options, model: LightningModule, on_gpu: bool = True, version=None, with_hpc: bool = True):
 
     reset_seed()
     save_dir = trainer_options['default_root_dir']
@@ -90,7 +91,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         trainer.checkpoint_connector.hpc_save(save_dir, logger)
         # test HPC loading
         checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(save_dir)
-        checkpoint = trainer.checkpoint_connector.restore_states(checkpoint_path, trainer.root_gpu)
+        checkpoint = trainer.checkpoint_connector.restore_states(model, checkpoint_path, trainer.root_gpu)
         trainer.get_model().on_hpc_load(checkpoint)
 
 

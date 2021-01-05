@@ -78,7 +78,7 @@ def run_test_from_config(trainer_options):
     trainer.checkpoint_connector.hpc_save(ckpt_path, trainer.logger)
     # test HPC loading
     checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(ckpt_path)
-    checkpoint = trainer.checkpoint_connector.restore_states(checkpoint_path, trainer.root_gpu)
+    checkpoint = trainer.checkpoint_connector.restore_states(model, checkpoint_path, trainer.root_gpu)
     trainer.get_model().on_hpc_load(checkpoint)
 
     if args.on_gpu:

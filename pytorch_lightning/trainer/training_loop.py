@@ -184,8 +184,8 @@ class TrainLoop:
         # if cluster resets state, the model will update with the saved weights
         self.trainer.model = model
 
-        # restore training and model before hpc is called
-        self.trainer.checkpoint_connector.attempt_to_restore()
+        # restore model/training states before hpc is called
+        self.trainer.checkpoint_connector.attempt_to_restore(self.trainer.model)
 
         # on pretrain routine end
         self.trainer.on_pretrain_routine_end(ref_model)

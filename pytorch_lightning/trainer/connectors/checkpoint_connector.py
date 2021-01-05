@@ -42,16 +42,21 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
 
-    def attempt_to_restore(self) -> bool:
+    def attempt_to_restore(self, model: LightningModule) -> bool:
         """
         Attempt to restore model/training states in this priority:
         1. from HPC weights
         2. from `resume_from_checkpoint` file
         3. don't restore
 
+        Args:
+            model: Model to which states from checkpoint are applied.
         Returns:
             True if restored else False
         """
+        # Design Note:
+        #   `model` can be acquired with `self.trainer.get_model()`, but it make testing hard. 
+
         restored: bool = False
 
         # clear cache before restore
@@ -63,8 +68,8 @@ class CheckpointConnector:
         max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_suffix is not None:
             checkpoint_path = f'{dir_path_hpc}/hpc_ckpt_{max_suffix}.ckpt'
-            checkpoint = self.restore_states(checkpoint_path, self.trainer.root_gpu)
-            self.trainer.get_model().on_hpc_load(checkpoint)
+            checkpoint = self.restore_states(model, checkpoint_path, self.trainer.root_gpu)
+            model.on_hpc_load(checkpoint)
             restored = True
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
@@ -72,7 +77,7 @@ class CheckpointConnector:
         elif self.trainer.resume_from_checkpoint is not None and not self.trainer.testing:
             adress_checkpoint: str = self.trainer.resume_from_checkpoint
             if get_filesystem(adress_checkpoint).exists(adress_checkpoint):
-                self.restore_states(adress_checkpoint, self.trainer.on_gpu)
+                self.restore_states(model, adress_checkpoint, self.trainer.on_gpu)
                 restored = True
                 rank_zero_info(f"States restored from the checkpoint file at {adress_checkpoint}")
             else:
@@ -91,7 +96,12 @@ class CheckpointConnector:
 
         return restored
 
-    def restore_states(self, checkpoint_path: str, with_gpu: Union[bool, Optional[int]]) -> Dict[str, Any]:
+    def restore_states(
+            self,
+            model: LightningModule,
+            checkpoint_path: str,
+            with_gpu: Union[bool, Optional[int]],
+    ) -> Dict[str, Any]:
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
         All restored states are listed in return value description of `dump_checkpoint`.
@@ -103,12 +113,26 @@ class CheckpointConnector:
         # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
         checkpoint: Dict[str, Any] = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
-        # acquire the model
-        model = self.trainer.get_model()
-
-        # restore datamodule states
+        # restore states
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_load_checkpoint(checkpoint)
+        self.restore_model_state(model, checkpoint, with_gpu, self.trainer.root_gpu)
+        self.restore_training_state(checkpoint)
+
+        return checkpoint
+
+    def restore_model_state(
+        self,
+        model: LightningModule,
+        checkpoint: Dict[str, Any],
+        with_gpu: Union[bool, Optional[int]],
+        root_gpu: Optional[int],
+    ) -> None:
+        """
+        Restore model state.
+        """
+        # Design Note:
+        #   model can be acquired with `self.trainer.get_model()`, but it make upstream testing hard. 
 
         # hook: give user access to checkpoint if needed.
         model.on_load_checkpoint(checkpoint)
@@ -118,14 +142,9 @@ class CheckpointConnector:
 
         # moves the model to the GPU
         if (with_gpu is True) or ((not isinstance(with_gpu, bool)) and (with_gpu is not None)):
-            model.cuda(self.trainer.root_gpu)
+            model.cuda(root_gpu)
 
-        # restore training state
-        self.restore_training_state(checkpoint)
-
-        return checkpoint
-
-    def restore_training_state(self, checkpoint):
+    def restore_training_state(self, checkpoint: Dict[str, Any]) -> None:
         """
         Restore trainer state.
         Model will get its change to update
