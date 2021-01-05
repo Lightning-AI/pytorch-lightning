@@ -18,13 +18,15 @@ import torch
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.utilities import _module_available, RPC_AVAILABLE
+from pytorch_lightning.utilities import RPC_AVAILABLE
 
 DEFAULT_RPC_TIMEOUT_SEC = 60.
 if RPC_AVAILABLE:
     from torch.distributed import rpc
-    if _module_available("torch.distributed.rpc.constants") and hasattr(torch.distributed.rpc.constants, "DEFAULT_RPC_TIMEOUT_SEC"):
+    try:
         from torch.distributed.rpc.constants import DEFAULT_RPC_TIMEOUT_SEC
+    except (ModuleNotFoundError, ImportError):
+        pass
 
 
 class RPCPlugin(DDPPlugin):
