@@ -30,6 +30,7 @@ steps:
     MKL_THREADING_LAYER: GNU
 
   commands:
+    - set -e
     - python --version
     - pip --version
     - nvidia-smi

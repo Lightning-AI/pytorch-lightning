@@ -6,5 +6,5 @@ future>=0.17.1  # required for builtins in setup.py
 # pyyaml>=3.13
 PyYAML>=5.1  # OmegaConf requirement >=5.1
 tqdm>=4.41.0
-fsspec>=0.8.0
+fsspec[http]>=0.8.1
 tensorboard>=2.2.0
