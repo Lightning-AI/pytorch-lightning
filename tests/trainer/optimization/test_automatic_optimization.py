@@ -11,50 +11,48 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import collections
 import os
-from unittest import mock
-from unittest.mock import ANY, call, patch
 
 import pytest
 import torch
-import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
-from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.utilities import APEX_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning import Trainer
 from tests.base.boring_model import BoringModel
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
-@pytest.mark.parametrize('accumulate_grad_batches', [1])
-def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_batches):
+@pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
+@pytest.mark.parametrize('decision_on_invalid_result', ["normal", "skip_on_at_least_one", "never_skip"])
+def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_batches, decision_on_invalid_result):
     """
     Tests that training doesn't hang with returning nan loss
     """
     class TestModel(BoringModel):
-        """
+        def __init__(self, decision_on_invalid_result):
+            super().__init__()
+            self._decision_on_invalid_result = decision_on_invalid_result
+
         def training_step(self, batch, batch_idx):
-            if os.getenv("LOCAL_RANK") == str(batch_idx % 2 == 0):
-                return torch.tensor(float('NaN'), device=self.device)
-            return super().training_step(batch, batch_idx)
-        """
-        def training_step(self, batch, batch_idx):
-            if os.getenv("LOCAL_RANK") == str(batch_idx % 2 == 0) or batch_idx == 12:
-                if batch_idx in [1, 2, 5, 7, 9, 11, 12]:
-                    return torch.tensor(float('NaN'), device=self.device)
-            return super().training_step(batch, batch_idx)
+            local_rank = os.getenv("LOCAL_RANK")
+            rank = str(int(batch_idx % 2 == 0))
+            output = super().training_step(batch, batch_idx)["loss"]
+            if local_rank == rank:
+                if batch_idx in [0, 1, 8, 9] and self.decision_on_invalid_result != "never_skip":
+                    output = None
+                elif batch_idx in [2, 3, 10, 11]:
+                    output = torch.tensor(float('NaN'), device=self.device)
+            return output
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer
 
         @property
-        def is_loss_possibly_nan(self) -> bool:
-            return True
+        def decision_on_invalid_result(self):
+            return self._decision_on_invalid_result
 
         def on_train_epoch_end(self, *_) -> None:
             clone_weight = self.layer.weight.data.clone()
@@ -62,19 +60,27 @@ def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_ba
             self.trainer.accelerator_backend.sync_tensor(weight)
             torch.equal(weight / 2., clone_weight)
 
-    model = TestModel()
+    model = TestModel(decision_on_invalid_result)
     model.val_dataloader = None
     model.training_epoch_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=12,
-        limit_val_batches=2,
-        max_epochs=1,
-        log_every_n_steps=1,
-        weights_summary=None,
-        gpus=2,
-        accelerator="ddp",
-        accumulate_grad_batches=accumulate_grad_batches,
-    )
-    trainer.fit(model)
+    try:
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=12,
+            limit_val_batches=2,
+            max_epochs=1,
+            log_every_n_steps=1,
+            weights_summary=None,
+            gpus=2,
+            accelerator="ddp",
+            accumulate_grad_batches=accumulate_grad_batches,
+        )
+        trainer.fit(model)
+    except Exception as e:
+        msg = "LightningModule `decision_on_invalid_result` property should be within"
+        if msg in str(e) and decision_on_invalid_result == "normal":
+            pass
+        else:
+            raise Exception(str(e))
+

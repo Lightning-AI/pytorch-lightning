@@ -6,7 +6,7 @@ import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.lightning import LightningModule, DecisionOnInvalidResult
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.plugin import LightningPlugin
 
@@ -68,6 +68,9 @@ class DDPPlugin(LightningPlugin):
             device_ids=device_ids,
             **self._ddp_kwargs,
         )
+        if model.module.decision_on_invalid_result == DecisionOnInvalidResult.NEVER_SKIP:
+            model.require_forward_param_sync = False
+            model.require_backward_grad_sync = False
         return model
 
     def init_ddp_connection(

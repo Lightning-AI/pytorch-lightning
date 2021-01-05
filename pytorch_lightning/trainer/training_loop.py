@@ -34,6 +34,8 @@ from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warning_utils import WarningCache
+from pytorch_lightning.utilities import DecisionOnInvalidResult
+
 
 
 class TrainLoop:
@@ -91,13 +93,6 @@ class TrainLoop:
     def num_optimizers(self):
         num_optimizers = len(self.get_optimizers_iterable())
         return num_optimizers
-
-    @property
-    def grad_synced(self):
-        model = self.trainer.model
-        if not isinstance(model, LightningDistributedDataParallel):
-            return True
-        return model.require_backward_grad_sync
 
     def set_require_forward_param_sync(self):
         model = self.trainer.model
@@ -197,6 +192,9 @@ class TrainLoop:
 
         # restore training state and model weights before hpc is called
         self.trainer.checkpoint_connector.restore_weights(model)
+
+        # check check_decision_on_invalid_result is correct set        
+        self.trainer.config_validator.check_decision_on_invalid_result()       
 
         # on pretrain routine end
         self.trainer.on_pretrain_routine_end(ref_model)
@@ -345,10 +343,11 @@ class TrainLoop:
         # give the PL module a result for logging
         model_ref = self.trainer.get_model()
 
-        self.set_require_forward_param_sync()
-
         with self.trainer.profiler.profile("model_forward"):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
+
+            self.trainer.model.require_forward_param_sync = False
+            self.trainer.model.require_backward_grad_sync = False
 
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
@@ -835,7 +834,7 @@ class TrainLoop:
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
-            if result is None:
+            if self.should_return_on_invalid_result(result):
                 self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
                 return None
 
@@ -871,6 +870,39 @@ class TrainLoop:
         if not self.should_accumulate():
             # track gradients
             self.track_and_norm_grad(optimizer=optimizer)
+
+    def should_return_on_invalid_result(self, result):
+        is_result_none = result is None
+        if isinstance(self.trainer.model, LightningDistributedDataParallel):
+            model_ref = self.trainer.get_model()
+            skip_on_at_leat_one = model_ref.decision_on_invalid_result == DecisionOnInvalidResult.SKIP_ON_AT_lEAST_ONE
+            never_skip = model_ref.decision_on_invalid_result == DecisionOnInvalidResult.NEVER_SKIP
+
+            if never_skip and is_result_none:
+                raise MisconfigurationException(
+                    "decision_on_invalid_result ``never_skip`` doesn't support returning None for training_step. "
+                    "Hint: Either switch to ``skip_on_at_least_one`` or return a Nan or Inf loss directly"
+                )
+
+            if not skip_on_at_leat_one:
+                return is_result_none
+            
+            if is_result_none:
+                is_invalid = 1
+            
+            elif isinstance(result.closure_loss, torch.Tensor):
+                # self.trainer.print_colored_rank(f"{result.closure_loss} {torch.isnan(result.closure_loss)}")
+                is_invalid = int(torch.isnan(result.closure_loss))
+            
+            else:
+                is_invalid = 0
+
+            is_invalid = torch.tensor(is_invalid, device=model_ref.device, dtype=int)
+            self.trainer.accelerator_backend.sync_tensor(is_invalid)
+
+            return is_invalid > 0
+        else:
+            return is_result_none
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = self._accumulated_batches_reached()

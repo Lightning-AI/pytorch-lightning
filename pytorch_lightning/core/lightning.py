@@ -35,7 +35,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.utilities import DecisionOnInvalidResult
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
@@ -165,11 +165,24 @@ class LightningModule(
         return True
 
     @property
-    def is_loss_possibly_nan(self) -> bool:
+    def decision_on_invalid_result(self) -> Union[str, int]:
         """
-        If False, we expect the loss to be nan only due to unstability and won't allow nan loss to be used.
+        This property is used to decide behaviour on ``training_step`` result object 
+        when using LightningDistributedDataParallel.
+
+        Can either be "skip_on_at_least_one" or "never_skip".
+        
+        "skip_on_at_least_one": 
+            If result is None on at least on, it will skip 
+            ``backward`` and ``optimizer_step`` for all processes
+
+        "never_skip":
+            If result loss is NaN or Inf on 1 or more processes,
+            those processes will skip backward and gradient will be
+            synchronized before running ``optimizer.step``
+
         """
-        return False
+        return "skip_on_at_least_one"
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -1156,7 +1169,9 @@ class LightningModule(
 
         """
         if self.trainer.train_loop.automatic_optimization or self._running_manual_backward:
-            if self.is_loss_possibly_nan and isinstance(self.trainer.model, LightningDistributedDataParallel):
+            is_ddp = isinstance(self.trainer.model, LightningDistributedDataParallel)
+            never_skip = self.decision_on_invalid_result == DecisionOnInvalidResult.NEVER_SKIP
+            if is_ddp and never_skip:
                 self._backward_with_possible_nan_loss(loss, *args, **kwargs)
             else:
                 loss.backward(*args, **kwargs)
@@ -1165,7 +1180,7 @@ class LightningModule(
         is_loss_nan = torch.isnan(loss).int()
         self.trainer.accelerator_backend.sync_tensor(is_loss_nan)
         no_nan_losses = is_loss_nan == 0
-        self.trainer.model.require_backward_grad_sync = no_nan_losses
+        self.trainer.model.require_backward_grad_sync = False
 
         if not torch.isnan(loss):
             loss.backward(*args, **kwargs)
@@ -1173,9 +1188,27 @@ class LightningModule(
             for p in self.parameters():
                 if p.requires_grad and p.grad is None:
                     p.grad = torch.zeros_like(p, device=self.device, dtype=torch.float)
+        
+        should_reduce_grad = not no_nan_losses
+        if self.trainer.train_loop.automatic_optimization:
+            should_reduce_grad = should_reduce_grad and not self.trainer.train_loop.should_accumulate()
 
-        if no_nan_losses:
+        if should_reduce_grad:
+
+            batch_idx = torch.tensor(self.trainer.batch_idx, device=self.device, dtype=torch.float)
+            batch_idx_clone = batch_idx.clone()
+            self.trainer.accelerator_backend.sync_tensor(batch_idx, reduce_op="avg")
+            assert batch_idx / 2. == batch_idx_clone
+
+            for p in self.parameters():
+                if p.requires_grad:
+                    self.trainer.accelerator_backend.sync_tensor(p.grad, reduce_op="avg")
+
             self.trainer.model._sync_params()
+
+        self.trainer.model.require_forward_param_sync = False
+        self.trainer.model.require_backward_grad_sync = False
+
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """
