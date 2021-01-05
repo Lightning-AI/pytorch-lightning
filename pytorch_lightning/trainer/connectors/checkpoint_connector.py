@@ -77,12 +77,31 @@ class CheckpointConnector:
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
         All restored states are listed in return value description of `dump_checkpoint`.
         """
-        # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(checkpoint_path)
         if not fs.exists(checkpoint_path):
             rank_zero_warn("No checkpoint file exists at `resume_from_checkpoint`. Start from scratch")
             return False
+        self.restore_from_checkpoint(checkpoint_path, on_gpu)
+        rank_zero_info(f"Restored states from the checkpoint file at {checkpoint_path}")
+        return True
 
+    def hpc_load(self, checkpoint_path: str):
+        """
+        Load model/training states from a 'PyTorch-Lightning checkpoint' file for hpc.
+        All restored states are listed in return value description of `dump_checkpoint`.
+        """
+        self.restore_from_checkpoint(checkpoint_path, self.trainer.root_gpu)
+        # call hpc specific hook
+        self.trainer.get_model().on_hpc_load(checkpoint)
+
+    def restore_from_checkpoint(self, checkpoint_path: str, with_gpu: Union[bool, Optional[int]]) -> None:
+        """
+        Restore states from existing checkpoint.
+        `with_gpu=on_gpu` works as normal restore, `with_gpu=trainer.root_gpu` works as hpc restore.
+
+        Args:
+            with_gpu: bool for `on_gpu`, Optional[int] for `trainer.root_gpu`.
+        """
         # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
@@ -93,14 +112,11 @@ class CheckpointConnector:
         self.restore_model_state(model, checkpoint)
 
         # moves the model to the GPU
-        if on_gpu:
+        if (with_gpu is True) or ((not isinstance(with_gpu, bool)) and (with_gpu is not None)):
             model.cuda(self.trainer.root_gpu)
 
         # restore training state
         self.restore_training_state(checkpoint)
-
-        rank_zero_info(f"Restored states from the checkpoint file at {checkpoint_path}")
-        return True
 
     def restore_model_state(self, model: LightningModule, checkpoint) -> None:
         """
@@ -320,31 +336,6 @@ class CheckpointConnector:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
-
-    def hpc_load(self, checkpoint_path: str):
-        """
-        Load model/training states from a 'PyTorch-Lightning checkpoint' file for hpc.
-        All restored states are listed in return value description of `dump_checkpoint`.
-        """
-
-        # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
-        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
-
-        # acquire the model
-        model = self.trainer.get_model()
-
-        # restore model and datamodule state
-        self.restore_model_state(model, checkpoint)
-
-        # moves the model to the GPU
-        if self.trainer.root_gpu is not None:
-            model.cuda(self.trainer.root_gpu)
-
-        # restore training state
-        self.restore_training_state(checkpoint)
-
-        # call hpc specific hook
-        model.on_hpc_load(checkpoint)
 
     def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
         """List up files in `dir_path` with name_key, then yield maximum suffix number.
