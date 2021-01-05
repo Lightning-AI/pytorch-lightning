@@ -229,6 +229,7 @@ class LightningLoggerBase(ABC):
             prefixes = prefixes[:] if prefixes else []
             if isinstance(input_dict, MutableMapping):
                 for key, value in input_dict.items():
+                    key = str(key)
                     if isinstance(value, (MutableMapping, Namespace)):
                         value = vars(value) if isinstance(value, Namespace) else value
                         for d in _dict_generator(value, prefixes + [key]):
