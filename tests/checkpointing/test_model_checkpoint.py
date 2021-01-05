@@ -11,20 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from argparse import Namespace
 import os
-from pathlib import Path
 import pickle
 import platform
 import re
+from argparse import Namespace
+from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
 import cloudpickle
-from omegaconf import Container, OmegaConf
 import pytest
 import torch
 import yaml
+from omegaconf import Container, OmegaConf
 
 import pytorch_lightning as pl
 import tests.base.develop_utils as tutils
