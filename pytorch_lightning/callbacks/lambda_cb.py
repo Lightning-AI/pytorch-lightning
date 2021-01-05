@@ -21,6 +21,7 @@ Create a simple callback on the fly.
 """
 
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class LambdaCallback(Callback):
@@ -41,5 +42,7 @@ class LambdaCallback(Callback):
         hooks = [m for m in dir(Callback) if not m.startswith("_")]
         for k, v in kwargs.items():
             if k not in hooks:
-                raise ValueError(f"Invalid argument `{k}`")
+                raise MisconfigurationException(
+                    f"The event function: `{k}` doesn't exist in supported callbacks function. Currently, Callback implements the following functions {dir(Callback)}"
+                )
             setattr(self, k, v)
