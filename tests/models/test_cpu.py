@@ -229,7 +229,16 @@ def test_running_test_after_fitting(tmpdir):
 
 def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
-    model = EvalModelTemplate()
+    class ModelTrainTest(BoringModel):
+
+        def val_loader(self):
+            pass
+
+        def test_epoch_end(self, outputs) -> None:
+            test_loss = torch.stack([x["y"] for x in outputs]).mean()
+            self.log('test_loss', test_loss)
+
+    model = ModelTrainTest()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
