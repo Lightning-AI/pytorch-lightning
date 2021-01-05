@@ -17,15 +17,14 @@ from argparse import ArgumentParser
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.utils.data import DataLoader
-from torch.utils.data import random_split
+from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
-from pl_examples import TORCHVISION_AVAILABLE, cli_lightning_logo
+from pl_examples import cli_lightning_logo, TORCHVISION_AVAILABLE
 
 if TORCHVISION_AVAILABLE:
-    from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
+    from torchvision.datasets.mnist import MNIST
 else:
     from tests.base.datasets import MNIST
 

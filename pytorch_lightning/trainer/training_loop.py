@@ -26,7 +26,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import TPU_AVAILABLE, AMPType, parsing
+from pytorch_lightning.utilities import AMPType, parsing, TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -49,7 +49,14 @@ class TrainLoop:
         self._cur_grad_norm_dict = None
 
     def on_trainer_init(
-        self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
+        self,
+        max_epochs,
+        min_epochs,
+        max_steps,
+        min_steps,
+        num_sanity_val_steps,
+        automatic_optimization,
+        weights_summary,
     ):
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
@@ -72,6 +79,12 @@ class TrainLoop:
             self.trainer.num_sanity_val_steps = float("inf")
         else:
             self.trainer.num_sanity_val_steps = num_sanity_val_steps
+
+        self.trainer.weights_summary = weights_summary
+        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
+            raise MisconfigurationException(
+                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, got {weights_summary}"
+            )
 
     @property
     def num_optimizers(self):
@@ -161,11 +174,8 @@ class TrainLoop:
             ref_model.on_pretrain_routine_start()
 
         # print model summary
-        if self.trainer.is_global_zero and self.trainer.weights_summary is not None and not self.trainer.testing:
-            if self.trainer.weights_summary in ModelSummary.MODES:
-                ref_model.summarize(mode=self.trainer.weights_summary)
-            else:
-                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+        if self.trainer.is_global_zero and not self.trainer.testing:
+            ref_model.summarize(mode=self.trainer.weights_summary)
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
@@ -488,6 +498,9 @@ class TrainLoop:
             raise MisconfigurationException(
                 'native PyTorch amp and lbfgs are not compatible.'
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+
+        # wraps into LightingOptimizer only for running step
+        optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
 
         # model hook
         model_ref.optimizer_step(
@@ -831,6 +844,8 @@ class TrainLoop:
 
         # backward can be called manually in the training loop
         if isinstance(result, torch.Tensor):
+            # scale loss under accumulate_grad_batches > 1 and manual_backward
+            result = self.scale_closure_loss(result)
             self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, *args, **kwargs)
         else:
             result.closure_loss = self.trainer.accelerator_backend.backward(
@@ -910,9 +925,8 @@ class TrainLoop:
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
-        if should_flush_logs or self.trainer.fast_dev_run is True:
-            if self.trainer.is_global_zero and self.trainer.logger is not None:
-                self.trainer.logger.save()
+        if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
+            self.trainer.logger.save()
 
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
         """
@@ -975,3 +989,9 @@ class TrainLoop:
 
         # reset for next set of accumulated grads
         self.accumulated_loss.reset()
+
+    def scale_closure_loss(self, loss: torch.Tensor) -> torch.Tensor:
+        model_ref = self.trainer.get_model()
+        if model_ref._running_manual_backward:
+            loss /= self.trainer.accumulate_grad_batches
+        return loss
