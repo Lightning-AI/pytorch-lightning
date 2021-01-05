@@ -251,9 +251,9 @@ class Trainer(
                 train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
                 you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
-            resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
-                This can be a URL. If resuming from mid-epoch checkpoint, training will start from
-                the beginning of the next epoch.
+            resume_from_checkpoint: Path/URL of the checkpoint from which training is resumed. If there is
+                no checkpoint file at the path, start from scratch. If resuming from mid-epoch checkpoint,
+                training will start from the beginning of the next epoch.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
