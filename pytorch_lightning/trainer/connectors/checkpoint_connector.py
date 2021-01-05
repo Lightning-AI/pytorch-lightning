@@ -42,23 +42,24 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
 
-    def attempt_to_restore(self, model: LightningModule) -> bool:
+    def attempt_to_restore(self) -> bool:
         """
         Attempt to restore model/training states in this priority:
         1. from HPC weights
         2. from `resume_from_checkpoint` file
         3. don't restore
 
-        Args:
-            model: Model to which states from checkpoint are applied.
         Returns:
             True if restored else False
         """
-        # Design Note:
-        #   `model` can be acquired with `self.trainer.get_model()`, but it make testing hard.
+        # Development Note:
+        #   prerequisite:
+        #     `trainer.train_loop.setup_training(model)` is needed before this method call.
+        #     It is because Trainer.__init__ do not prepare `model` and `accelerator_backend`.
 
         restored: bool = False
-
+        model: LightningModule = self.trainer.get_model()
+        
         # clear cache before restore
         if self.trainer.on_gpu:
             torch.cuda.empty_cache()
@@ -131,9 +132,6 @@ class CheckpointConnector:
         """
         Restore model state.
         """
-        # Design Note:
-        #   model can be acquired with `self.trainer.get_model()`, but it make upstream testing hard.
-
         # hook: give user access to checkpoint if needed.
         model.on_load_checkpoint(checkpoint)
 

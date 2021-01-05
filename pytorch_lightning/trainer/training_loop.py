@@ -185,7 +185,7 @@ class TrainLoop:
         self.trainer.model = model
 
         # restore model/training states before hpc is called
-        self.trainer.checkpoint_connector.attempt_to_restore(self.trainer.model)
+        self.trainer.checkpoint_connector.attempt_to_restore()
 
         # on pretrain routine end
         self.trainer.on_pretrain_routine_end(ref_model)
