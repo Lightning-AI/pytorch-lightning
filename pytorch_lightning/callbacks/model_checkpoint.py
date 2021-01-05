@@ -20,11 +20,11 @@ Automatically save model checkpoints during training.
 
 """
 
-from copy import deepcopy
 import numbers
 import os
-from pathlib import Path
 import re
+from copy import deepcopy
+from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
@@ -215,7 +215,8 @@ class ModelCheckpoint(Callback):
         global_step = trainer.global_step
 
         if (
-            self.save_top_k == 0  # no models are saved
+            trainer.fast_dev_run  # disable checkpointing with fast_dev_run
+            or self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
@@ -450,14 +451,14 @@ class ModelCheckpoint(Callback):
             version, name = trainer.accelerator_backend.broadcast((version, trainer.logger.name))
 
             ckpt_path = os.path.join(
-                save_dir, name, version, "checkpoints"
+                save_dir, str(name), version, "checkpoints"
             )
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
         self.dirpath = ckpt_path
 
-        if trainer.is_global_zero:
+        if not trainer.fast_dev_run and trainer.is_global_zero:
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def _add_backward_monitor_support(self, trainer):

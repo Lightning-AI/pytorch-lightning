@@ -666,9 +666,9 @@ Under the hood the pseudocode looks like this when running *fast_dev_run* with a
 .. note::
 
     This argument is a bit different from ``limit_train/val/test_batches``. Setting this argument will
-    disable tuner, logger callbacks like ``LearningRateLogger`` and runs for only 1 epoch. This must be
-    used only for debugging purposes. ``limit_train/val/test_batches`` only limits the number of batches and won't
-    disable anything.
+    disable tuner, checkpoint callbacks, early stopping callbacks, loggers and logger callbacks like
+    ``LearningRateLogger`` and runs for only 1 epoch. This must be used only for debugging purposes.
+    ``limit_train/val/test_batches`` only limits the number of batches and won't disable anything.
 
 flush_logs_every_n_steps
 ^^^^^^^^^^^^^^^^^^^^^^^^

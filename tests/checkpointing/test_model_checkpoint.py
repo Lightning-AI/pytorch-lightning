@@ -28,7 +28,7 @@ from omegaconf import Container, OmegaConf
 
 import pytorch_lightning as pl
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -863,7 +863,8 @@ def test_current_score_when_nan(tmpdir, mode):
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
         weights_summary=None,
@@ -889,7 +890,8 @@ def test_hparams_type(tmpdir, hparams_type):
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
         weights_summary=None,
