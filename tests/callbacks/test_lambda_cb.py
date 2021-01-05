@@ -59,5 +59,4 @@ def test_lambda_call(tmpdir):
     trainer.fit(model)
     trainer.test(model)
 
-    for h in hooks:
-        assert h in checker
+    assert checker == set(hooks)
