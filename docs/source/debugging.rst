@@ -28,12 +28,17 @@ The point is to detect any bugs in the training/validation loop without having t
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 .. testcode::
-    
+
     # runs 1 train, val, test batch and program ends
     trainer = Trainer(fast_dev_run=True)
 
     # runs 7 train, val, test batches and program ends
     trainer = Trainer(fast_dev_run=7)
+
+.. note::
+
+    This argument will disable tuner, checkpoint callbacks, early stopping callbacks,
+    loggers and logger callbacks like ``LearningRateLogger`` and runs for only 1 epoch.
 
 ----------------
 
