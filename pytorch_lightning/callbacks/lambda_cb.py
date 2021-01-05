@@ -45,6 +45,7 @@ class LambdaCallback(Callback):
         for k, v in kwargs.items():
             if k not in hooks:
                 raise MisconfigurationException(
-                    f"The event function: `{k}` doesn't exist in supported callbacks function. Currently, Callback implements the following functions {dir(Callback)}"
+                    f"The event function: `{k}` doesn't exist in supported callbacks function."
+                    f"Currently, Callback implements the following functions {hooks}"
                 )
             setattr(self, k, v)
