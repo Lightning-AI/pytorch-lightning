@@ -21,7 +21,7 @@ from pytorch_lightning.metrics.utils import _stable_1d_sort
 def _auc_update(x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     if x.ndim > 1 or y.ndim > 1:
         raise ValueError('Expected both `x` and `y` tensor to be 1d, but got'
-                         f' tensors with dimention x={x.ndim} and y={y.ndim}')
+                         f' tensors with dimention {x.ndim=} and {y.ndim=}')
     return x, y
 
 
@@ -38,6 +38,7 @@ def _auc_compute(x: torch.Tensor, y: torch.Tensor, reorder: bool = False) -> tor
                              "Try setting the reorder argument to `True`.")
     else:
         direction = 1.
+    print('pl', x, y)
     return direction * torch.trapz(y, x)
     
 

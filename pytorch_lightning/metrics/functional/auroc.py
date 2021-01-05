@@ -54,4 +54,4 @@ def auroc(
     
     """
     preds, target = _auroc_update(preds, target)
-    #Table_of_confusion
+    return _auroc_compute(preds, target, sample_weight, num_classes, average, max_fpr, multi_class)
