@@ -113,7 +113,7 @@ class DDPPlugin(LightningPlugin):
         Args:
             batch: Inputs to the model.
             model: Model to train.
-        Returns: batch moved to correct device if needed.
+        Returns: args moved to correct device if needed.
         """
         if self.is_running_single_process_per_device:
             args = model.transfer_batch_to_device(args, model.device)
