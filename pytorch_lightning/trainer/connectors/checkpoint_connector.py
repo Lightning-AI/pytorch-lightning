@@ -44,7 +44,7 @@ class CheckpointConnector:
 
     def restore_weights(self) -> None:
         """
-        Attempt to restore a checkpoint (e.g. weights) in this priority:
+        Attempt to restore model/training states in this priority:
         1. from HPC weights
         2. from `resume_from_checkpoint` file
         3. don't restore
