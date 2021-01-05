@@ -18,6 +18,7 @@ import torch
 
 from torch.utils.data import TensorDataset
 from pytorch_lightning.trainer.supporters import CycleIterator, CombinedLoader, CombinedDataset, CombinedLoaderIterator
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_cycle_iterator():
@@ -58,7 +59,7 @@ def test_combined_dataset(dataset_1, dataset_2):
 
 
 def test_combined_dataset_length_mode_error():
-    with pytest.raises(ValueError, match='Invalid Mode'):
+    with pytest.raises(MisconfigurationException, match='Invalid Mode'):
         CombinedDataset._calc_num_data([range(10)], 'test')
 
 
@@ -79,7 +80,7 @@ def test_combined_loader_iterator_dict_min_size():
 
 def test_combined_loader_init_mode_error():
     """Test the ValueError when constructing `CombinedLoader`"""
-    with pytest.raises(ValueError, match='selected unsupported mode'):
+    with pytest.raises(MisconfigurationException, match='selected unsupported mode'):
         CombinedLoader([range(10)], 'testtt')
 
 

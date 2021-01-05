@@ -24,6 +24,8 @@ from pytorch_lightning.utilities.data import get_len
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import Any, Union
 
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 
 class TensorRunningAccum(object):
     """Tracks a running accumulation values (min, max, mean) without graph
@@ -265,7 +267,7 @@ class CombinedDataset(object):
         """
         self.datasets = datasets
         if mode not in self.COMPUTE_FUNCS.keys():
-            raise ValueError(
+            raise MisconfigurationException(
                 f'You have selected unsupported mode "{mode}",'
                 f' please select one the: {list(self.COMPUTE_FUNCS.keys())}.'
             )
@@ -295,7 +297,7 @@ class CombinedDataset(object):
 
         """
         if mode not in CombinedDataset.COMPUTE_FUNCS.keys():
-            raise ValueError(f"Invalid Mode: {mode}")
+            raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         # extract the lengths
         all_lengths = apply_to_collection(datasets, (Dataset, Iterable, type(None)), get_len,
@@ -363,7 +365,7 @@ class CombinedLoader(object):
         self.dataset = CombinedDataset(datasets, mode)
 
         if mode not in self.SUPPORTED_MODES:
-            raise ValueError(f"Invalid Mode: {mode}")
+            raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         self.mode = mode
 
@@ -401,8 +403,9 @@ class CombinedLoader(object):
                                                for k, v in self.loaders.items()})
 
         elif isinstance(self.loaders, Sequence):
-            self.loaders = type(self.loaders)([CycleIterator(v, length=length)
-                                               for v in self.loaders])
+            self.loaders = type(self.loaders)([
+                CycleIterator(v, length=length) for v in self.loaders
+            ])
 
         # dataloaders are iterable but not sequence
         elif isinstance(self.loaders, Iterable):
