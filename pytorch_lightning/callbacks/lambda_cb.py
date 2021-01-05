@@ -16,7 +16,7 @@ r"""
 Lambda Callback
 ^^^^^^^^^^^^^^^
 
-Create a simple callback on the fly.
+Create a simple callback on the fly using lambda functions.
 
 """
 
@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class LambdaCallback(Callback):
     r"""
-    Create a simple callback on the fly.
+    Create a simple callback on the fly using lambda functions.
 
     Args:
         **kwargs: hooks supported by ``Callback``
