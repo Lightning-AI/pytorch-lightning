@@ -1330,9 +1330,17 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
-        model_summary = ModelSummary(self, mode=mode)
-        log.info("\n" + str(model_summary))
+    def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
+        model_summary = None
+
+        if mode in ModelSummary.MODES:
+            model_summary = ModelSummary(self, mode=mode)
+            log.info("\n" + str(model_summary))
+        elif mode is not None:
+            raise MisconfigurationException(
+                f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}"
+            )
+
         return model_summary
 
     def freeze(self) -> None:
