@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from typing import Union
-from pytorch_lightning.utilities import rank_zero_warn, rank_zero_info
+
+from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class DebuggingConnector:
@@ -54,11 +56,16 @@ class DebuggingConnector:
             limit_train_batches = fast_dev_run
             limit_val_batches = fast_dev_run
             limit_test_batches = fast_dev_run
+            self.trainer.max_steps = fast_dev_run
             self.trainer.num_sanity_val_steps = 0
             self.trainer.max_epochs = 1
+            self.trainer.val_check_interval = 1.0
+            self.trainer.check_val_every_n_epoch = 1
+            self.trainer.logger = DummyLogger()
+
             rank_zero_info(
                 'Running in fast_dev_run mode: will run a full train,'
-                f' val and test loop using {fast_dev_run} batch(es)'
+                f' val and test loop using {fast_dev_run} batch(es).'
             )
 
         self.trainer.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')
