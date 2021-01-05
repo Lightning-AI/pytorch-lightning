@@ -59,8 +59,5 @@ def test_lambda_call(tmpdir):
     trainer.fit(model)
     trainer.test(model)
 
-    print(len(hooks))
-    print(len(checker))
-
     for h in hooks:
         assert h in checker
