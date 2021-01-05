@@ -112,6 +112,8 @@ class LightningModule(
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
 
+        self.param_grad_dict = {}
+
     def optimizers(self):
         opts = self.trainer.optimizers
 
@@ -1163,11 +1165,13 @@ class LightningModule(
             optimizer_idx:
         """
         for param in self.parameters():
+            if param not in self.param_grad_dict:
+                self.param_grad_dict[param] = param.requires_grad
             param.requires_grad = False
 
         for group in optimizer.param_groups:
             for param in group['params']:
-                param.requires_grad = True
+                param.requires_grad = self.param_grad_dict[param]
 
     def optimizer_step(
         self,
