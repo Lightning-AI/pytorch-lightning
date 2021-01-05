@@ -46,7 +46,6 @@ class CheckpointConnector:
         """
         Attempt to restore model/training states.
         """
-
         # clear cache before restore
         if self.trainer.on_gpu:
             torch.cuda.empty_cache()
@@ -124,18 +123,13 @@ class CheckpointConnector:
         # restore states
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_load_checkpoint(checkpoint)
-        self.restore_model_state(model, checkpoint, with_gpu, self.trainer.root_gpu)
+        self.restore_model_state(checkpoint, model, with_gpu)
         self.restore_training_state(checkpoint)
 
         return checkpoint
 
-    def restore_model_state(
-        self,
-        model: LightningModule,
-        checkpoint: Dict[str, Any],
-        with_gpu: Union[bool, Optional[int]],
-        root_gpu: Optional[int],
-    ) -> None:
+    def restore_model_state(self, checkpoint: Dict[str, Any], model: LightningModule,
+        with_gpu: Union[bool, Optional[int]]) -> None:
         """
         Restore model state.
         """
@@ -147,7 +141,7 @@ class CheckpointConnector:
 
         # moves the model to the GPU
         if (with_gpu is True) or ((not isinstance(with_gpu, bool)) and (with_gpu is not None)):
-            model.cuda(root_gpu)
+            model.cuda(self.trainer.root_gpu)
 
     def restore_training_state(self, checkpoint: Dict[str, Any]) -> None:
         """
