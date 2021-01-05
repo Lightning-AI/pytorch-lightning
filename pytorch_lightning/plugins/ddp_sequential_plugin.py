@@ -19,8 +19,8 @@ import torch.distributed as torch_distrib
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
+from pytorch_lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
@@ -270,6 +270,7 @@ class DDPSequentialPlugin(RPCPlugin):
         ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
         # Plugin handle backwards across processes. Currently not supported for DDP + pipe parallel
         ddp_plugin.PREPARE_FOR_BACKWARDS = False
+        self.device_ids = device_ids
         return ddp_plugin
 
     @rank_zero_only
