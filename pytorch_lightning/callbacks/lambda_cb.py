@@ -20,6 +20,8 @@ Create a simple callback on the fly using lambda functions.
 
 """
 
+import inspect
+
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -39,7 +41,7 @@ class LambdaCallback(Callback):
     """
 
     def __init__(self, **kwargs):
-        hooks = [m for m in dir(Callback) if not m.startswith("_")]
+        hooks = [m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
         for k, v in kwargs.items():
             if k not in hooks:
                 raise MisconfigurationException(
