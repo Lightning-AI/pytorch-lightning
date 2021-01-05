@@ -98,7 +98,7 @@ def r2score(
     be provided as the ``adjusted`` argument.
 
     Args:
-        pred: estimated labels
+        preds: estimated labels
         target: ground truth labels
         adjusted: number of independent regressors for calculating adjusted r2 score.
             Default 0 (standard r2 score).

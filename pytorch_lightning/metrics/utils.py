@@ -260,7 +260,7 @@ def class_reduce(
 
     Args:
         num: numerator tensor
-        decom: denominator tensor
+        denom: denominator tensor
         weights: weights for each class
         class_reduction: reduction method for multiclass problems
 

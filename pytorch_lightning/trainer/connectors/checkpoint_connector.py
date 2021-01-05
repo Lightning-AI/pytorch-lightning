@@ -336,10 +336,11 @@ class CheckpointConnector:
         model.on_hpc_load(checkpoint)
 
     def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
-        """List up files in `dir_path` with name_key, then yield maximum suffix number.
+        """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
 
         Args:
             dir_path: path of directory which may contain files whose name include `name_key`
+            name_key: file name prefix
 
         Returns:
             None if no-corresponding-file else maximum suffix number

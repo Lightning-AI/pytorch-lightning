@@ -171,7 +171,6 @@ class TPUAccelerator(Accelerator):
 
         Args:
             batch: A tensor or collection of tensors.
-            tpu_id: The id of the TPU core. If omitted, the first available core is chosen.
 
         Return:
             the tensor on the TPU device.
