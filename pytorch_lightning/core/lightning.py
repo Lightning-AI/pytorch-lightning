@@ -380,12 +380,14 @@ class LightningModule(
         distributed processes
 
         Args:
-            tensor: tensor of shape (batch, ...)
+            tensor: int, float, tensor of shape (batch, ...),  or a collection of
+                int, float, tensor of shape (batch, ...)
             group: the process group to gather results from. Defaults to all processes (world)
             sync_grads: flag that allows users to synchronize gradients for all_gather op
 
         Return:
-            A tensor of shape (world_size, batch, ...), or if the input was a collection the output will also be a collection with tensors of this shape.
+            A tensor of shape (world_size, batch, ...), or if the input was a collection
+            the output will also be a collection with tensors of this shape.
         """
         if self.trainer.accelerator_backend is not None:
             all_gather = self.trainer.accelerator_backend.all_gather
