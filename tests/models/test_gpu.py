@@ -21,11 +21,10 @@ from torchtext.data import Batch, Dataset, Example, Field, LabelField
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
-from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
-
+from tests.base import BoringModel
 
 PRETEND_N_OF_GPUS = 16
 
@@ -43,8 +42,8 @@ def test_multi_gpu_none_backend(tmpdir):
         gpus=2,
     )
 
-    model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model)
+    model = BoringModel()
+    tpipes.run_model_test(trainer_options, model, min_acc=0.20)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -60,7 +59,7 @@ def test_single_gpu_model(tmpdir, gpus):
         gpus=gpus
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
 
 

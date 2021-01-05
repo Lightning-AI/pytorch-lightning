@@ -21,15 +21,14 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from tests.base import EvalModelTemplate
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from tests.base import BoringModel
 
 
 @pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
     """Verify model save/load/checkpoint on CPU."""
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    model = BoringModel()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -61,11 +60,8 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
         for batch in dataloader:
             break
 
-    x, y = batch
-    x = x.view(x.size(0), -1)
-
     model.eval()
-    pred_before_saving = model(x)
+    pred_before_saving = model(batch)
 
     # test HPC saving
     # simulate snapshot on slurm
@@ -75,6 +71,19 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
     # new logger file to get meta
     logger = tutils.get_default_logger(tmpdir, version=version)
 
+    model = BoringModel()
+
+    class _StartCallback(Callback):
+        # set the epoch start hook so we can predict before the model does the full training
+        def on_train_epoch_start(self, trainer, model):
+            assert trainer.global_step == real_global_step and trainer.global_step > 0
+            # predict with loaded model to make sure answers are the same
+            mode = model.training
+            model.eval()
+            new_pred = model(batch)
+            assert torch.eq(pred_before_saving, new_pred).all()
+            model.train(mode)
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -82,19 +91,6 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
         enable_pl_optimizer=enable_pl_optimizer,
         callbacks=[_StartCallback(), ModelCheckpoint(dirpath=tmpdir)],
     )
-    model = EvalModelTemplate(**hparams)
-
-    # set the epoch start hook so we can predict before the model does the full training
-    def assert_pred_same():
-        assert trainer.global_step == real_global_step and trainer.global_step > 0
-
-        # predict with loaded model to make sure answers are the same
-        trainer.model.eval()
-        new_pred = trainer.model(x)
-        assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
-
-    model.on_epoch_start = assert_pred_same
-
     # by calling fit again, we trigger training, loading weights from the cluster
     # and our hook to predict using current model before any more weight updates
     trainer.fit(model)
@@ -103,16 +99,14 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
 @pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 def test_early_stopping_cpu_model(enable_pl_optimizer, tmpdir):
     class ModelTrainVal(BoringModel):
-
         def validation_epoch_end(self, outputs) -> None:
             val_loss = torch.stack([x["x"] for x in outputs]).mean()
             self.log('val_loss', val_loss)
 
     stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
     trainer_options = dict(
-        default_root_dir=tmpdir,
         callbacks=[stopping],
-        max_epochs=2,
+        default_root_dir=tmpdir,
         gradient_clip_val=1.0,
         overfit_batches=0.20,
         track_grad_norm=2,
@@ -153,26 +147,29 @@ def test_multi_cpu_model_ddp(enable_pl_optimizer, tmpdir):
         enable_pl_optimizer=enable_pl_optimizer,
     )
 
-    model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    model = BoringModel()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, min_acc=0.05)
 
 
 def test_lbfgs_cpu_model(tmpdir):
-    """Test each of the trainer options."""
+    """Test each of the trainer options. Testing LBFGS optimizer"""
+    class ModelSpecifiedOptimizer(BoringModel):
+        def __init__(self, optimizer_name, learning_rate):
+            super().__init__()
+            self.optimizer_name = optimizer_name
+            self.learning_rate = learning_rate
+            self.save_hyperparameters()
+
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
         progress_bar_refresh_rate=0,
-        weights_summary='top',
+        weights_summary="top",
         limit_train_batches=0.2,
         limit_val_batches=0.2,
     )
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    hparams.update(optimizer_name='lbfgs',
-                   learning_rate=0.004)
-    model = EvalModelTemplate(**hparams)
-    model.configure_optimizers = model.configure_optimizers__lbfgs
+    model = ModelSpecifiedOptimizer(optimizer_name="LBFGS", learning_rate=0.004)
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
 
 
@@ -188,8 +185,8 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
         limit_val_batches=0.01,
     )
 
-    model = EvalModelTemplate()
-    tpipes.run_model_test_without_loggers(trainer_options, model)
+    model = BoringModel()
+    tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.01)
 
     # test freeze on cpu
     model.freeze()
@@ -198,7 +195,17 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
-    model = EvalModelTemplate()
+    class ModelTrainValTest(BoringModel):
+
+        def validation_epoch_end(self, outputs) -> None:
+            val_loss = torch.stack([x["x"] for x in outputs]).mean()
+            self.log('val_loss', val_loss)
+
+        def test_epoch_end(self, outputs) -> None:
+            test_loss = torch.stack([x["y"] for x in outputs]).mean()
+            self.log('test_loss', test_loss)
+
+    model = ModelTrainValTest()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -224,14 +231,15 @@ def test_running_test_after_fitting(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(trainer, thr=0.5)
+    tutils.assert_ok_model_acc(trainer, key='test_loss', thr=0.5)
 
 
 def test_running_test_no_val(tmpdir):
-    """Verify `test()` works on a model with no `val_loader`."""
+    """Verify `test()` works on a model with no `val_dataloader`. It performs
+    train and test only"""
     class ModelTrainTest(BoringModel):
 
-        def val_loader(self):
+        def val_dataloader(self):
             pass
 
         def test_epoch_end(self, outputs) -> None:
@@ -264,12 +272,12 @@ def test_running_test_no_val(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(trainer)
+    tutils.assert_ok_model_acc(trainer, key='test_loss')
 
 
 def test_simple_cpu(tmpdir):
     """Verify continue training session on CPU."""
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # fit model
     trainer = Trainer(
@@ -291,7 +299,7 @@ def test_cpu_model(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = BoringModel()
@@ -315,10 +323,12 @@ def test_tbptt_cpu_model(tmpdir):
         def __len__(self):
             return 1
 
-    class BpttTestModel(EvalModelTemplate):
-        def __init__(self, *args, **kwargs):
+    class BpttTestModel(BoringModel):
+        def __init__(self, batch_size, in_features, out_features, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.test_hidden = None
+            self.batch_size = batch_size
+            self.layer = torch.nn.Linear(in_features, out_features)
 
         def training_step(self, batch, batch_idx, hiddens):
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
@@ -331,18 +341,17 @@ def test_tbptt_cpu_model(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(
-                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
             return {
-                'loss': loss_val,
-                'hiddens': self.test_hidden,
+                "loss": loss_val,
+                "hiddens": self.test_hidden,
             }
 
         def training_epoch_end(self, training_step_outputs):
             training_step_outputs = training_step_outputs[0]
             assert len(training_step_outputs) == (sequence_size / truncated_bptt_steps)
-            loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
-            self.log('train_loss', loss)
+            loss = torch.stack([x["loss"] for x in training_step_outputs]).mean()
+            self.log("train_loss", loss)
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(
@@ -352,15 +361,8 @@ def test_tbptt_cpu_model(tmpdir):
                 sampler=None,
             )
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    hparams.update(
-        batch_size=batch_size,
-        in_features=truncated_bptt_steps,
-        hidden_dim=truncated_bptt_steps,
-        out_features=truncated_bptt_steps
-    )
-
-    model = BpttTestModel(**hparams)
+    model = BpttTestModel(batch_size=batch_size,
+                          in_features=truncated_bptt_steps, out_features=truncated_bptt_steps)
     model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
     # fit model
