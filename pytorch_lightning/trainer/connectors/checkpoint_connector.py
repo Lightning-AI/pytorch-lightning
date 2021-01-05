@@ -63,7 +63,8 @@ class CheckpointConnector:
         max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_suffix is not None:
             checkpoint_path = f'{dir_path_hpc}/hpc_ckpt_{max_suffix}.ckpt'
-            self.hpc_load(checkpoint_path)
+            checkpoint = self.restore_states(checkpoint_path, self.trainer.root_gpu)
+            self.trainer.get_model().on_hpc_load(checkpoint)
             restored = True
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
@@ -90,15 +91,6 @@ class CheckpointConnector:
         
         return restored
     
-    def hpc_load(self, checkpoint_path: str):
-        """
-        Load model/training states from a 'PyTorch-Lightning checkpoint' file for hpc.
-        All restored states are listed in return value description of `dump_checkpoint`.
-        """
-        checkpoint = self.restore_states(checkpoint_path, self.trainer.root_gpu)
-        # call hpc specific hook
-        self.trainer.get_model().on_hpc_load(checkpoint)
-
     def restore_states(self, checkpoint_path: str, with_gpu: Union[bool, Optional[int]]) -> Dict[str, Any]:
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.

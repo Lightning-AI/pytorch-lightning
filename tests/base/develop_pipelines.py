@@ -90,7 +90,8 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         trainer.checkpoint_connector.hpc_save(save_dir, logger)
         # test HPC loading
         checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(save_dir)
-        trainer.checkpoint_connector.hpc_load(checkpoint_path)
+        checkpoint = trainer.checkpoint_connector.restore_states(checkpoint_path, trainer.root_gpu)
+        trainer.get_model().on_hpc_load(checkpoint)
 
 
 def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
