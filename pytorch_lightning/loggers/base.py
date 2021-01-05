@@ -207,7 +207,7 @@ class LightningLoggerBase(ABC):
         return {key: _sanitize_callable(val) for key, val in params.items()}
 
     @staticmethod
-    def _flatten_dict(params: Dict[str, Any], delimiter: str = '/') -> Dict[str, Any]:
+    def _flatten_dict(params: Dict[Any, Any], delimiter: str = '/') -> Dict[str, Any]:
         """
         Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
 
@@ -223,6 +223,8 @@ class LightningLoggerBase(ABC):
             {'a/b': 'c'}
             >>> LightningLoggerBase._flatten_dict({'a': {'b': 123}})
             {'a/b': 123}
+            >>> LightningLoggerBase._flatten_dict({5: {'a': 123}})
+            {'5/a': 123}
         """
 
         def _dict_generator(input_dict, prefixes=None):
