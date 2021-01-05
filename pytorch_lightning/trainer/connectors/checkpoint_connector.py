@@ -77,7 +77,7 @@ class CheckpointConnector:
                 rank_zero_info(f"States restored from the checkpoint file at {adress_checkpoint}")
             else:
                 rank_zero_warn(f"checkpoint file at {adress_checkpoint} does not exist.")
-        
+
         # 3. Do not restore, start from scratch.
         else:
             rank_zero_info("Start from scratch.")
@@ -88,9 +88,9 @@ class CheckpointConnector:
         # clear cache after restore
         if self.trainer.on_gpu:
             torch.cuda.empty_cache()
-        
+
         return restored
-    
+
     def restore_states(self, checkpoint_path: str, with_gpu: Union[bool, Optional[int]]) -> Dict[str, Any]:
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
