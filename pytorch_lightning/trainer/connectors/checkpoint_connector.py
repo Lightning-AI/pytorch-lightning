@@ -77,7 +77,7 @@ class CheckpointConnector:
         #   This method has responsibility to applying/assigning state value from nullable checkpoint.
 
         restored: bool = False
-        
+
         # 1. Attempt to apply HPC checkpoint.
         dir_path_hpc = str(self.trainer.weights_save_path)
         max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
