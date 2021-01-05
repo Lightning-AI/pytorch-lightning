@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
+
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LambdaCallback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -18,11 +20,8 @@ from tests.base.boring_model import BoringModel
 
 
 def test_lambda_raise_misconfiguration():
-    try:
-        LambdaCallback(invalid=lambda *args: args)
-        assert False
-    except MisconfigurationException:
-        assert True
+    with pytest.raises(MisconfigurationException):
+        LambdaCallback(setup=lambda *args: args)
 
 
 def test_lambda_call(tmpdir):
