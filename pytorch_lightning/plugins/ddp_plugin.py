@@ -99,16 +99,16 @@ class DDPPlugin(LightningPlugin):
         # used in `self.on_before_forward`
         return self.device_ids is not None and len(self.device_ids) == 1
 
-    def on_before_forward(self, model: LightningModule, *batch):
+    def on_before_forward(self, model: LightningModule, *args):
         """
         Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
         within the DDP wrapper.
 
         Example::
 
-            def on_before_forward(self, model, *batch):
-                batch, batch_idx = batch
-                return batch.to(model.device)
+            def on_before_forward(self, model, *args):
+                batch, batch_idx = args
+                return batch.to(model.device), batch_idx
 
         Args:
             batch: Inputs to the model.
@@ -116,8 +116,8 @@ class DDPPlugin(LightningPlugin):
         Returns: batch moved to correct device if needed.
         """
         if self.is_running_single_process_per_device:
-            batch = model.transfer_batch_to_device(batch, model.device)
-        return batch
+            args = model.transfer_batch_to_device(args, model.device)
+        return args
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()

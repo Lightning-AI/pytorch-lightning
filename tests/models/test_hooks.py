@@ -158,8 +158,8 @@ def test_transfer_batch_hook_ddp(tmpdir):
     model.training_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
         max_epochs=1,
         weights_summary=None,
         accelerator="ddp",
