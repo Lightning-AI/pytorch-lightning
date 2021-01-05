@@ -22,7 +22,7 @@ Fixes # (issue) <- this [links related issue to this PR](https://docs.github.com
 - [ ] Did you make sure to update the documentation with your changes? (if necessary)
 - [ ] Did you write any new necessary tests? (not for typos and docs)
 - [ ] Did you verify new and existing tests pass locally with your changes?
-- [ ] Did you update the [CHANGELOG](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/CHANGELOG.md)? (not for typos, docs, test updates, or internal changes)
+- [ ] Did you update the [CHANGELOG](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/CHANGELOG.md)? (not for typos, docs, test updates, or internal minor changes/refactorings)
 
 <!-- For CHANGELOG separate each item in the unreleased section by a blank line to reduce collisions -->
 
