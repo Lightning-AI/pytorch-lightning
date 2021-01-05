@@ -24,7 +24,6 @@ import sys
 # this is need as e.g. Conda do not uses `PYTHONPATH` env var as pip or/and virtualenv
 sys.path = os.getenv('PYTHONPATH').split(':') + sys.path
 
-
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE  # noqa: E402
@@ -36,7 +35,8 @@ else:
 
 from tests.base import EvalModelTemplate  # noqa: E402
 from tests.base.develop_pipelines import run_prediction  # noqa: E402
-from tests.base.develop_utils import reset_seed, set_random_master_port  # noqa: E402
+from tests.base.develop_utils import set_random_master_port, reset_seed  # noqa: E402
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--trainer-options', required=True)

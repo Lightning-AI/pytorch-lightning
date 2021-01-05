@@ -919,14 +919,11 @@ def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_train
     """Integration test for multple train loaders"""
     model = EvalModelTemplate()
 
-    model.train_dataloader = model.train_dataloader__multiple_mapping
-    # todo: add also `train_dataloader__multiple_sequence`
+    model.train_dataloader = model.train_dataloader__multiple
     model.training_step = model.training_step__multiple_dataloaders
 
     trainer = Trainer(
-        max_epochs=1,
-        default_root_dir=tmpdir,
-        multiple_trainloader_mode=multiple_trainloader_mode,
+        max_epochs=1, default_root_dir=tmpdir, multiple_trainloader_mode=multiple_trainloader_mode
     )
 
     assert 1 == trainer.fit(model)
