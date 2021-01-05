@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed invalid value for weights_summary ([#5296](https://github.com/PyTorchLightning/pytorch-lightning/pull/5296))
 - Fixed `Trainer.test` not using the latest `best_model_path` ([#5161](https://github.com/PyTorchLightning/pytorch-lightning/pull/5161))
 - Fixed existence check for hparams not using underlying filesystem ([#5250](https://github.com/PyTorchLightning/pytorch-lightning/pull/5250))
+- Fixed `LightningOptimizer` AMP bug ([#5191](https://github.com/PyTorchLightning/pytorch-lightning/pull/5191))
 
 
 ## [1.1.2] - 2020-12-23
