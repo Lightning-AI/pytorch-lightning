@@ -56,7 +56,8 @@ def test_lambda_call(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=[test_callback])
 
-    trainer.fit(model)
+    result = trainer.fit(model)
     trainer.test(model)
 
+    assert result
     assert checker == set(hooks)
