@@ -49,7 +49,14 @@ class TrainLoop:
         self._cur_grad_norm_dict = None
 
     def on_trainer_init(
-        self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
+        self,
+        max_epochs,
+        min_epochs,
+        max_steps,
+        min_steps,
+        num_sanity_val_steps,
+        automatic_optimization,
+        weights_summary,
     ):
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
@@ -72,6 +79,12 @@ class TrainLoop:
             self.trainer.num_sanity_val_steps = float("inf")
         else:
             self.trainer.num_sanity_val_steps = num_sanity_val_steps
+
+        self.trainer.weights_summary = weights_summary
+        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
+            raise MisconfigurationException(
+                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, got {weights_summary}"
+            )
 
     @property
     def num_optimizers(self):
@@ -161,11 +174,8 @@ class TrainLoop:
             ref_model.on_pretrain_routine_start()
 
         # print model summary
-        if self.trainer.is_global_zero and self.trainer.weights_summary is not None and not self.trainer.testing:
-            if self.trainer.weights_summary in ModelSummary.MODES:
-                ref_model.summarize(mode=self.trainer.weights_summary)
-            else:
-                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+        if self.trainer.is_global_zero and not self.trainer.testing:
+            ref_model.summarize(mode=self.trainer.weights_summary)
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
@@ -915,9 +925,8 @@ class TrainLoop:
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
-        if should_flush_logs or self.trainer.fast_dev_run is True:
-            if self.trainer.is_global_zero and self.trainer.logger is not None:
-                self.trainer.logger.save()
+        if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
+            self.trainer.logger.save()
 
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
         """
