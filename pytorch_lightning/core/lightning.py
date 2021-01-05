@@ -1168,10 +1168,14 @@ class LightningModule(
                 loss.backward()
 
         """
-        if self.trainer.train_loop.automatic_optimization or self._running_manual_backward:
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+        
+        if automatic_optimization or self._running_manual_backward:
+        
             is_ddp = isinstance(self.trainer.model, LightningDistributedDataParallel)
             never_skip = self.decision_on_invalid_result == DecisionOnInvalidResult.NEVER_SKIP
-            if is_ddp and never_skip:
+        
+            if is_ddp and never_skip and automatic_optimization:
                 self._backward_with_possible_nan_loss(loss, *args, **kwargs)
             else:
                 loss.backward(*args, **kwargs)
@@ -1189,16 +1193,7 @@ class LightningModule(
                 if p.requires_grad and p.grad is None:
                     p.grad = torch.zeros_like(p, device=self.device, dtype=torch.float)
         
-        should_reduce_grad = not no_nan_losses
-        if self.trainer.train_loop.automatic_optimization:
-            should_reduce_grad = should_reduce_grad and not self.trainer.train_loop.should_accumulate()
-
-        if should_reduce_grad:
-
-            batch_idx = torch.tensor(self.trainer.batch_idx, device=self.device, dtype=torch.float)
-            batch_idx_clone = batch_idx.clone()
-            self.trainer.accelerator_backend.sync_tensor(batch_idx, reduce_op="avg")
-            assert batch_idx / 2. == batch_idx_clone
+        if not self.trainer.train_loop.should_accumulate():
 
             for p in self.parameters():
                 if p.requires_grad:
@@ -1207,7 +1202,6 @@ class LightningModule(
             self.trainer.model._sync_params()
 
         self.trainer.model.require_forward_param_sync = False
-        self.trainer.model.require_backward_grad_sync = False
 
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):

@@ -94,12 +94,6 @@ class TrainLoop:
         num_optimizers = len(self.get_optimizers_iterable())
         return num_optimizers
 
-    def set_require_forward_param_sync(self):
-        model = self.trainer.model
-        if isinstance(model, LightningDistributedDataParallel):
-            if model.module.is_loss_possibly_nan:
-                model.require_forward_param_sync = False
-
     def should_skip_training(self):
         if self.trainer.current_epoch >= self.trainer.max_epochs:
             return True
@@ -345,9 +339,6 @@ class TrainLoop:
 
         with self.trainer.profiler.profile("model_forward"):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
-
-            self.trainer.model.require_forward_param_sync = False
-            self.trainer.model.require_backward_grad_sync = False
 
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
