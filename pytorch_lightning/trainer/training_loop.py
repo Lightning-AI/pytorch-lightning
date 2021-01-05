@@ -14,7 +14,6 @@
 
 from contextlib import contextmanager
 from copy import copy, deepcopy
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
 import numpy as np
 import torch
@@ -25,6 +24,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, parsing, TPU_AVAILABLE
@@ -833,7 +833,6 @@ class TrainLoop:
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
             self.trainer.model.require_backward_grad_sync = False
-            
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 

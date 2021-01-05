@@ -18,7 +18,6 @@ import collections
 import copy
 import inspect
 import os
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 import re
 import tempfile
 from abc import ABC
@@ -27,10 +26,10 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
+import torch.distributed as torch_distrib
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
@@ -39,6 +38,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn, TPU_AVAILABLE
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -1164,7 +1164,7 @@ class LightningModule(
     def _backward_with_possible_nan_loss(self, loss: Tensor, *args, **kwargs) -> None:
         is_loss_nan = torch.isnan(loss).int()
         self.trainer.accelerator_backend.sync_tensor(is_loss_nan)
-        no_nan_losses = is_loss_nan == 0 
+        no_nan_losses = is_loss_nan == 0
         self.trainer.model.require_backward_grad_sync = no_nan_losses
 
         if not torch.isnan(loss):
@@ -1175,7 +1175,6 @@ class LightningModule(
                     p.grad = torch.zeros_like(p, device=self.device, dtype=torch.float)
 
         if no_nan_losses:
-            # need to be 
             self.trainer.model._sync_params()
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):

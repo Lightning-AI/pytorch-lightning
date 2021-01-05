@@ -16,7 +16,7 @@ import os
 import time
 from collections import Counter
 from functools import wraps
-from typing import Callable, Any, Optional
+from typing import Any, Callable, Dict, Optional
 
 
 def enabled_only(fn: Callable):
@@ -197,12 +197,12 @@ class InternalDebugger(object):
                 counts.update({x['dataloader_idx']: 1})
         return counts
 
-    @property
-    def debugging_terminal_colors(self):
+    @staticmethod
+    def rank_to_terminal_colors() -> Dict:
         return {
             "-1": "\033[0m",
-            "0": "\033[0;92m", 
-            "1": "\033[0;93m", 
-            "2": "\033[0;92m", 
+            "0": "\033[0;92m",
+            "1": "\033[0;93m",
+            "2": "\033[0;92m",
             "3": "\033[1;30m"
         }
