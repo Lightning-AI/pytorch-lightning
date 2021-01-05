@@ -541,7 +541,7 @@ class DataHooks:
 
         Note:
             This hook only runs on single GPU training and DDP.
-            If you need multi-GPU support for your custom batch objects in `dp` or `ddp2`,
+            If you need multi-GPU support for your custom batch objects in ``dp`` or ``ddp2``,
             you need to define your custom :class:`~torch.nn.parallel.DistributedDataParallel` or
             :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
             override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
