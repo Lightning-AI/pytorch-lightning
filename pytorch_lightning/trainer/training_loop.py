@@ -832,7 +832,6 @@ class TrainLoop:
         """
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
-            self.trainer.model.require_backward_grad_sync = False
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
