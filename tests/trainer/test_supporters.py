@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from collections import Sequence
 
 import pytest
@@ -5,6 +18,7 @@ import torch
 
 from torch.utils.data import TensorDataset
 from pytorch_lightning.trainer.supporters import CycleIterator, CombinedLoader, CombinedDataset, CombinedLoaderIterator
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_cycle_iterator():
@@ -45,7 +59,7 @@ def test_combined_dataset(dataset_1, dataset_2):
 
 
 def test_combined_dataset_length_mode_error():
-    with pytest.raises(ValueError, match='Invalid Mode'):
+    with pytest.raises(MisconfigurationException, match='Invalid Mode'):
         CombinedDataset._calc_num_data([range(10)], 'test')
 
 
@@ -66,8 +80,8 @@ def test_combined_loader_iterator_dict_min_size():
 
 def test_combined_loader_init_mode_error():
     """Test the ValueError when constructing `CombinedLoader`"""
-    with pytest.raises(ValueError, match='Invalid Mode'):
-        CombinedLoader([range(10)], 'test')
+    with pytest.raises(MisconfigurationException, match='selected unsupported mode'):
+        CombinedLoader([range(10)], 'testtt')
 
 
 def test_combined_loader_loader_type_error():

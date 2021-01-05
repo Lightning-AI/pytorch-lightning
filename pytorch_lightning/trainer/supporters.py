@@ -24,6 +24,8 @@ from pytorch_lightning.utilities.data import get_len
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import Any, Union
 
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 
 class TensorRunningAccum(object):
     """Tracks a running accumulation values (min, max, mean) without graph
@@ -251,18 +253,33 @@ class CombinedDataset(object):
     """
     Combine multiple datasets and compute their statistics
     """
-    def __init__(self, datasets: Union[Sequence, Mapping], mode: str):
+    COMPUTE_FUNCS = {'min_size': min, 'max_size_cycle': max}
+
+    def __init__(self, datasets: Union[Sequence, Mapping], mode: str = 'min_size'):
         """
 
         Args:
             datasets: a sequence/mapping datasets. Can be a collections of torch.utils.Dataset,
                 Iterable or even None.
-            mode: whether to use the minimum number of batches in all samples or the maximum 
+            mode: whether to use the minimum number of batches in all samples or the maximum
                 number of batches in all samples.
 
         """
         self.datasets = datasets
+        if mode not in self.COMPUTE_FUNCS.keys():
+            raise MisconfigurationException(
+                f'You have selected unsupported mode "{mode}",'
+                f' please select one the: {list(self.COMPUTE_FUNCS.keys())}.'
+            )
         self.mode = mode
+
+    @property
+    def max_len(self) -> Union[int, float]:
+        return self._calc_num_data(self.datasets, 'max_size_cycle')
+
+    @property
+    def min_len(self) -> Union[int, float]:
+        return self._calc_num_data(self.datasets, 'min_size')
 
     @staticmethod
     def _calc_num_data(datasets: Union[Sequence, Mapping], mode: str) -> Union[int, float]:
@@ -279,14 +296,14 @@ class CombinedDataset(object):
             length: the length of `CombinedDataset`
 
         """
-        if mode not in ['min_size', 'max_size_cycle']:
-            raise ValueError(f"Invalid Mode: {mode}")
+        if mode not in CombinedDataset.COMPUTE_FUNCS.keys():
+            raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         # extract the lengths
         all_lengths = apply_to_collection(datasets, (Dataset, Iterable, type(None)), get_len,
                                           wrong_dtype=(Sequence, Mapping))
 
-        compute_func = {'min_size': min, 'max_size_cycle': max}
+        compute_func = CombinedDataset.COMPUTE_FUNCS[mode]
 
         if isinstance(all_lengths, (int, float)):
             length = all_lengths
@@ -307,7 +324,7 @@ class CombinedDataset(object):
 class CombinedLoader(object):
     """
     Combines different dataloaders and allows sampling in parallel.
-    
+
     Supported modes are 'min_size', which raises StopIteration after the shortest loader
     (the one with the lowest number of batches) is done, and 'max_size_cycle` which raises
     StopIteration after the longest loader (the one with most batches) is done, while cycling
@@ -348,7 +365,7 @@ class CombinedLoader(object):
         self.dataset = CombinedDataset(datasets, mode)
 
         if mode not in self.SUPPORTED_MODES:
-            raise ValueError(f"Invalid Mode: {mode}")
+            raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         self.mode = mode
 
@@ -386,8 +403,9 @@ class CombinedLoader(object):
                                                for k, v in self.loaders.items()})
 
         elif isinstance(self.loaders, Sequence):
-            self.loaders = type(self.loaders)([CycleIterator(v, length=length)
-                                               for v in self.loaders])
+            self.loaders = type(self.loaders)([
+                CycleIterator(v, length=length) for v in self.loaders
+            ])
 
         # dataloaders are iterable but not sequence
         elif isinstance(self.loaders, Iterable):
