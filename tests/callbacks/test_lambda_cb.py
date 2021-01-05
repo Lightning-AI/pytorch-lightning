@@ -21,7 +21,7 @@ from tests.base.boring_model import BoringModel
 
 def test_lambda_raise_misconfiguration():
     with pytest.raises(MisconfigurationException):
-        LambdaCallback(setup=lambda *args: args)
+        LambdaCallback(invalid=lambda *args: args)
 
 
 def test_lambda_call(tmpdir):
