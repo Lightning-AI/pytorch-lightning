@@ -199,6 +199,7 @@ class ModelCheckpoint(Callback):
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
             "current_score": self.current_score,
+            "dirpath": self.dirpath
         }
 
     def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):

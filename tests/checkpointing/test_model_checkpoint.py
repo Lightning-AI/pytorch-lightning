@@ -11,20 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from argparse import Namespace
 import os
+from pathlib import Path
 import pickle
 import platform
 import re
-from argparse import Namespace
-from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
 import cloudpickle
+from omegaconf import Container, OmegaConf
 import pytest
 import torch
 import yaml
-from omegaconf import Container, OmegaConf
 
 import pytorch_lightning as pl
 import tests.base.develop_utils as tutils
@@ -34,6 +34,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
+import tests.base.develop_utils as tutils
 
 
 class LogInTwoMethods(BoringModel):
@@ -745,9 +746,9 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
         model = ExtendedBoringModel()
         trainer.test(model)
         assert not trainer.checkpoint_connector.has_trained
-        assert trainer.global_step == epochs * limit_train_batches
-        assert trainer.current_epoch == epochs
-
+        # resume_from_checkpoint is resumed when calling `.fit`
+        assert trainer.global_step == 0
+        assert trainer.current_epoch == 0
         trainer.fit(model)
         assert not trainer.checkpoint_connector.has_trained
         assert trainer.global_step == epochs * limit_train_batches

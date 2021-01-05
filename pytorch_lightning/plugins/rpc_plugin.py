@@ -18,10 +18,13 @@ import torch
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.utilities import _RPC_AVAILABLE
+from pytorch_lightning.utilities import _RPC_AVAILABLE, _module_available
 
+DEFAULT_RPC_TIMEOUT_SEC = 60.
 if _RPC_AVAILABLE:
     from torch.distributed import rpc
+    if _module_available("torch.distributed.rpc.constants") and hasattr(torch.distributed.rpc.constants, "DEFAULT_RPC_TIMEOUT_SEC"):
+        from torch.distributed.rpc.constants import DEFAULT_RPC_TIMEOUT_SEC
 
 
 class RPCPlugin(DDPPlugin):
@@ -33,7 +36,8 @@ class RPCPlugin(DDPPlugin):
     that need to be addressed when using RPC communication when building custom RPC Plugins.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, rpc_timeout_sec: float = DEFAULT_RPC_TIMEOUT_SEC, **kwargs):
+        self.rpc_timeout_sec = rpc_timeout_sec
         self.rpc_initialized = False
         super().__init__(**kwargs)
 
@@ -42,6 +46,7 @@ class RPCPlugin(DDPPlugin):
                             world_size: int) -> None:
         os.environ['MASTER_PORT'] = os.getenv('RPC_MASTER_PORT', '15000')
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
+        rpc._set_rpc_timeout(self.rpc_timeout_sec)
         self.rpc_initialized = True
 
     def rpc_save_model(self,
