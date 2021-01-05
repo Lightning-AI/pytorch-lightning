@@ -26,13 +26,7 @@ def test_lambda_call(tmpdir):
     test_callback = LambdaCallback(**callback_dicts)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_val_batches=1,
-        limit_train_batches=3,
-        limit_test_batches=2,
-        progress_bar_refresh_rate=0,
-        enable_pl_optimizer=True,
+        fast_dev_run=True,
         callbacks=[test_callback],
     )
 
