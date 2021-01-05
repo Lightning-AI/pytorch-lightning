@@ -25,9 +25,9 @@ __all__ = [
     'EarlyStopping',
     'GPUStatsMonitor',
     'GradientAccumulationScheduler',
+    'LambdaCallback',
     'LearningRateMonitor',
     'ModelCheckpoint',
     'ProgressBar',
     'ProgressBarBase',
-    'LambdaCallback',
 ]
