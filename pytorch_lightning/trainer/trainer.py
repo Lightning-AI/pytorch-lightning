@@ -317,7 +317,6 @@ class Trainer(
         self.plugin_connector = PluginConnector(self)
 
         # training state
-        self.weights_summary = weights_summary
         self.model = None
         self.shown_warnings = set()
 
@@ -380,7 +379,8 @@ class Trainer(
             max_steps,
             min_steps,
             num_sanity_val_steps,
-            automatic_optimization
+            automatic_optimization,
+            weights_summary,
         )
         self.evaluation_loop.on_trainer_init()
 
