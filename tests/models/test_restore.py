@@ -81,7 +81,7 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir: Path):
         path_dir_saved = tmpdir
         path_file_loaded = None if name_ckpt is None else str(tmpdir / name_ckpt)
         checkpoint_cb = ModelCheckpoint(dirpath=path_dir_saved, monitor="early_stop_on", save_last=True)
-        trainer = Trainer(
+        return Trainer(
             resume_from_checkpoint=path_file_loaded,
             max_epochs=1,
             logger=False,
@@ -89,14 +89,12 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir: Path):
             limit_train_batches=0.1,
             limit_val_batches=0.1,
         )
-        trainer.train_loop.setup_training(model)
-        return trainer
 
     # Generate checkpoint `last.ckpt` with BoringModel
     gen_trainer(None).fit(model)
     # `True` if resume/restore successfully else `False`
-    assert gen_trainer("last.ckpt").checkpoint_connector.attempt_to_restore()
-    assert not gen_trainer("last_non_existing.ckpt").checkpoint_connector.attempt_to_restore()
+    assert gen_trainer("last.ckpt").checkpoint_connector.attempt_to_apply_checkpoint(model)
+    assert not gen_trainer("last_non_existing.ckpt").checkpoint_connector.attempt_to_apply_checkpoint(model)
 
 
 class CaptureCallbacksBeforeTraining(Callback):

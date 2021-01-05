@@ -42,29 +42,43 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
 
-    def attempt_to_restore(self) -> bool:
+    def attempt_to_restore(self) -> None:
         """
-        Attempt to restore model/training states in this priority:
-        1. from HPC weights
-        2. from `resume_from_checkpoint` file
-        3. don't restore
-
-        Returns:
-            True if restored else False
+        Attempt to restore model/training states.
         """
-        # Development Note:
-        #   prerequisite:
-        #     `trainer.train_loop.setup_training(model)` is needed before this method call.
-        #     It is because Trainer.__init__ do not prepare `model` and `accelerator_backend`.
 
-        restored: bool = False
-        model: LightningModule = self.trainer.get_model()
-        
         # clear cache before restore
         if self.trainer.on_gpu:
             torch.cuda.empty_cache()
 
-        # 1. Attempt to restore states from HPC checkpoint.
+        # attempt to restore states
+        model: LightningModule = self.trainer.get_model()
+        self.attempt_to_apply_checkpoint(model)
+
+        # wait for all to catch up
+        self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')
+
+        # clear cache after restore
+        if self.trainer.on_gpu:
+            torch.cuda.empty_cache()
+
+    def attempt_to_apply_checkpoint(self, model: LightningModule) -> bool:
+        """
+        Attempt to apply checkpoint states to model/training in this priority:
+        1. from HPC weights
+        2. from `resume_from_checkpoint` file
+        3. don't apply
+
+        Returns:
+            True if applied else False
+        """
+        # Design Note:
+        #   `attempt_to_restore` has responsibility to whole state restoration flow (e.g. OOM, parallel processing).
+        #   This method has responsibility to applying/assigning state value from nullable checkpoint.
+
+        restored: bool = False
+        
+        # 1. Attempt to apply HPC checkpoint.
         dir_path_hpc = str(self.trainer.weights_save_path)
         max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_suffix is not None:
@@ -74,7 +88,7 @@ class CheckpointConnector:
             restored = True
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
-        # 2. Attempt to restore states from `resume_from_checkpoint` file.
+        # 2. Attempt to apply `resume_from_checkpoint` file.
         elif self.trainer.resume_from_checkpoint is not None and not self.trainer.testing:
             adress_checkpoint: str = self.trainer.resume_from_checkpoint
             if get_filesystem(adress_checkpoint).exists(adress_checkpoint):
@@ -84,16 +98,9 @@ class CheckpointConnector:
             else:
                 rank_zero_warn(f"checkpoint file at {adress_checkpoint} does not exist.")
 
-        # 3. Do not restore, start from scratch.
+        # 3. Do not apply, start from scratch.
         else:
             rank_zero_info("Start from scratch.")
-
-        # wait for all to catch up
-        self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')
-
-        # clear cache after restore
-        if self.trainer.on_gpu:
-            torch.cuda.empty_cache()
 
         return restored
 
