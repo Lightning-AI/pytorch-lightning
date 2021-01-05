@@ -314,6 +314,22 @@ class ModelHooks:
 
         """
 
+    def on_post_move_to_device(self) -> None:
+        """
+        Called in the parameter_validation decorator after Lightning.to is called
+        This is a good place to tie weights between modules after moving them to a device.
+        Can be used when training models with weight sharing properties on TPU.
+
+        Addresses the handling of shared weights on TPU:
+        https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks
+
+        Example::
+
+            def on_post_move_to_device(self):
+                self.decoder.weight.data = self.encoder.weight.data.transpose(0,1)
+
+        """
+
 
 class DataHooks:
     """Hooks to be used with LightningDataModule."""

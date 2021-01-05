@@ -18,6 +18,7 @@ from functools import wraps
 from typing import Callable
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 def auto_move_data(fn: Callable) -> Callable:
@@ -64,3 +65,23 @@ def auto_move_data(fn: Callable) -> Callable:
         return fn(self, *args, **kwargs)
 
     return auto_transfer_args
+
+
+def parameter_validation(fn: Callable) -> Callable:
+    @wraps(fn)
+    def inner_f(self, *args, **kwargs):
+        if not isinstance(self, LightningModule):
+            return fn(self, *args, **kwargs)
+        pre_param_count = len(list(self.parameters()))
+        module = fn(self, *args, **kwargs)
+        self.on_post_move_to_device()
+        post_param_count = len(list(self.parameters()))
+
+        if not pre_param_count == post_param_count:
+            rank_zero_warn('The parameter count does not match after moving target device. '
+                           'If your model employs weight sharing on TPU,'
+                           'please tie your weights in the `on_post_move_to_device` model hook.')
+
+        return module
+
+    return inner_f
