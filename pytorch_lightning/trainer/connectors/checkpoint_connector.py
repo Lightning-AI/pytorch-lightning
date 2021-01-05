@@ -92,6 +92,7 @@ class CheckpointConnector:
         # restore model and datamodule state
         self.restore_model_state(model, checkpoint)
 
+        # moves the model to the GPU
         if on_gpu:
             model.cuda(self.trainer.root_gpu)
 
@@ -335,6 +336,7 @@ class CheckpointConnector:
         # restore model and datamodule state
         self.restore_model_state(model, checkpoint)
 
+        # moves the model to the GPU
         if self.trainer.root_gpu is not None:
             model.cuda(self.trainer.root_gpu)
 
