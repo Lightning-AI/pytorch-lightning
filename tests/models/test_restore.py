@@ -76,13 +76,13 @@ def test_model_properties_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
 def test_try_resume_from_non_existing_checkpoint(tmpdir: Path):
     """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
     model = BoringModel()
-    checkpoint_cb = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
 
     def gen_trainer(name_ckpt: Optional[str]) -> Trainer:
-        path_ckpt = None if name_ckpt is None else str(tmpdir / name_ckpt)
+        path_dir_saved = tmpdir
+        path_file_loaded = None if name_ckpt is None else str(tmpdir / name_ckpt)
+        checkpoint_cb = ModelCheckpoint(dirpath=path_dir_saved, monitor="early_stop_on", save_last=True)
         return Trainer(
-            default_root_dir=tmpdir,
-            resume_from_checkpoint=path_ckpt,
+            resume_from_checkpoint=path_file_loaded,
             max_epochs=1,
             logger=False,
             callbacks=[checkpoint_cb],
