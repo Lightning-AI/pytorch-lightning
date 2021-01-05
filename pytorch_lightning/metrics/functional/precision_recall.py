@@ -14,7 +14,7 @@
 from typing import Optional, Union
 
 import torch
-from pytorch_lightning.metrics.functional.reduction import _reduce_scores
+from pytorch_lightning.metrics.classification.helpers import _reduce_stat_scores
 from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_update
 
 
@@ -27,10 +27,10 @@ def _precision_compute(
     mdmc_average: Optional[str],
     zero_division: Union[float, int],
 ) -> torch.Tensor:
-    return _reduce_scores(
+    return _reduce_stat_scores(
         numerator=tp,
         denominator=tp + fp,
-        weights=tp + fn,
+        weights=None if average != "weighted" else tp + fn,
         average=average,
         mdmc_average=mdmc_average,
         zero_division=zero_division,
@@ -110,7 +110,7 @@ def precision(
 
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0,1) predictions, in the case of binary or multi-label inputs. 
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
             only for inputs with probability predictions. If this parameter is set for multi-label
@@ -121,7 +121,7 @@ def precision(
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
-            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            :ref:`documentation section <metrics:Using the is_multiclass parameter>`
             for a more detailed explanation and examples.
 
     Return:
@@ -142,7 +142,7 @@ def precision(
         tensor(0.2500)
 
     """
-    allowed_average = ["micro", "macro", "weighted", "none", None]
+    allowed_average = ["micro", "macro", "weighted", "samples", "none", None]
     if average not in allowed_average:
         raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
@@ -184,10 +184,10 @@ def _recall_compute(
     mdmc_average: Optional[str],
     zero_division: Union[float, int],
 ) -> torch.Tensor:
-    return _reduce_scores(
+    return _reduce_stat_scores(
         numerator=tp,
         denominator=tp + fn,
-        weights=tp + fn,
+        weights=None if average != "weighted" else tp + fn,
         average=average,
         mdmc_average=mdmc_average,
         zero_division=zero_division,
@@ -267,7 +267,7 @@ def recall(
 
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0,1) predictions, in the case of binary or multi-label inputs
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
             only for inputs with probability predictions. If this parameter is set for multi-label
@@ -278,7 +278,7 @@ def recall(
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
-            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            :ref:`documentation section <metrics:Using the is_multiclass parameter>`
             for a more detailed explanation and examples.
 
     Return:
@@ -299,7 +299,7 @@ def recall(
         tensor(0.2500)
 
     """
-    allowed_average = ["micro", "macro", "weighted", "none", None]
+    allowed_average = ["micro", "macro", "weighted", "samples", "none", None]
     if average not in allowed_average:
         raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 

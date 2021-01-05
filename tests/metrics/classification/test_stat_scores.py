@@ -123,7 +123,7 @@ def test_wrong_threshold():
         StatScores(threshold=1.5)
 
 
-@pytest.mark.parametrize("ignore_index", [None, 1])
+@pytest.mark.parametrize("ignore_index", [None, 0])
 @pytest.mark.parametrize("reduce", ["micro", "macro", "samples"])
 @pytest.mark.parametrize(
     "preds, target, sk_fn, mdmc_reduce, num_classes, is_multiclass, top_k",

@@ -78,7 +78,7 @@ class Precision(StatScores):
 
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0,1) predictions, in the case of binary or multi-label inputs. 
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
             only for inputs with probability predictions. If this parameter is set for multi-label
@@ -89,7 +89,7 @@ class Precision(StatScores):
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
-            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            :ref:`documentation section <metrics:Using the is_multiclass parameter>`
             for a more detailed explanation and examples.
 
         compute_on_step:
@@ -133,7 +133,7 @@ class Precision(StatScores):
         process_group: Optional[Any] = None,
         dist_sync_fn: Callable = None,
     ):
-        allowed_average = ["micro", "macro", "weighted", "none", None]
+        allowed_average = ["micro", "macro", "weighted", "samples", "none", None]
         if average not in allowed_average:
             raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
@@ -239,7 +239,7 @@ class Recall(StatScores):
 
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0,1) predictions, in the case of binary or multi-label inputs. 
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
             only for inputs with probability predictions. If this parameter is set for multi-label
@@ -251,7 +251,7 @@ class Recall(StatScores):
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
-            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            :ref:`documentation section <metrics:Using the is_multiclass parameter>`
             for a more detailed explanation and examples.
 
         compute_on_step:
@@ -295,7 +295,7 @@ class Recall(StatScores):
         process_group: Optional[Any] = None,
         dist_sync_fn: Callable = None,
     ):
-        allowed_average = ["micro", "macro", "weighted", "none", None]
+        allowed_average = ["micro", "macro", "weighted", "samples", "none", None]
         if average not in allowed_average:
             raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
