@@ -113,9 +113,9 @@ def scale_batch_size(trainer,
     garbage_collection_cuda()
     log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
 
-    # Restore initial state of model
+    # Restore initial state of model from temporary checkpoint, which is deleted after restore.
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        trainer.checkpoint_connector.restore_from_checkpoint(str(save_path), trainer.on_gpu)
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)

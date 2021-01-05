@@ -190,9 +190,9 @@ def lr_find(
                               'loss': trainer.callbacks[0].losses})
     lr_finder._total_batch_idx = trainer.total_batch_idx  # for debug purpose
 
-    # Reset model state
+    # Restore initial state of model from temporary checkpoint, which is deleted after restore.
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        trainer.checkpoint_connector.restore_from_checkpoint(str(save_path), trainer.on_gpu)
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)

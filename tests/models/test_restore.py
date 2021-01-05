@@ -14,8 +14,10 @@
 import glob
 import logging as log
 import os
+from pathlib import Path
 import pickle
 from copy import deepcopy
+from typing import Optional
 
 import cloudpickle
 import pytest
@@ -71,24 +73,27 @@ def test_model_properties_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
     trainer.fit(model)
 
 
-def test_try_resume_from_non_existing_checkpoint(tmpdir):
+def test_try_resume_from_non_existing_checkpoint(tmpdir: Path):
     """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
     model = BoringModel()
     checkpoint_cb = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        logger=False,
-        callbacks=[checkpoint_cb],
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-    )
+    def gen_trainer(name_ckpt: Optional[str]) -> Trainer:
+        path_ckpt = None if name_ckpt is None else str(tmpdir / name_ckpt)
+        return Trainer(
+            default_root_dir=tmpdir,
+            resume_from_checkpoint=path_ckpt,
+            max_epochs=1,
+            logger=False,
+            callbacks=[checkpoint_cb],
+            limit_train_batches=0.1,
+            limit_val_batches=0.1,
+        )
     # Generate checkpoint `last.ckpt` with BoringModel
-    trainer.fit(model)
+    gen_trainer(None).fit(model)
     # `True` if resume/restore successfully else `False`
-    assert trainer.checkpoint_connector.restore(str(tmpdir / "last.ckpt"), trainer.on_gpu)
-    assert not trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
-
+    assert gen_trainer("last.ckpt").checkpoint_connector.attempt_to_restore()
+    assert not gen_trainer("last_non_existing.ckpt").checkpoint_connector.attempt_to_restore()
+    
 
 class CaptureCallbacksBeforeTraining(Callback):
     callbacks = []
