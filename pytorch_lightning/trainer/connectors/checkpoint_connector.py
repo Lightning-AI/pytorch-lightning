@@ -42,7 +42,7 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
 
-    def restore_weights(self) -> None:
+    def attempt_to_restore(self) -> None:
         """
         Attempt to restore model/training states in this priority:
         1. from HPC weights
