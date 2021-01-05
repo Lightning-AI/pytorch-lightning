@@ -15,7 +15,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
 
@@ -71,7 +71,7 @@ class CheckpointConnector:
         elif self.trainer.resume_from_checkpoint is not None and not self.trainer.testing:
             adress_checkpoint: str = self.trainer.resume_from_checkpoint
             if get_filesystem(adress_checkpoint).exists(adress_checkpoint):
-                self.restore_from_checkpoint(adress_checkpoint, self.trainer.on_gpu)
+                self.restore_states(adress_checkpoint, self.trainer.on_gpu)
                 restored = True
                 rank_zero_info(f"States restored from the checkpoint file at {adress_checkpoint}")
             else:
@@ -80,7 +80,6 @@ class CheckpointConnector:
         # 3. Do not restore, start from scratch.
         else:
             rank_zero_info("Start from scratch.")
-
 
         # wait for all to catch up
         self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')
@@ -96,11 +95,11 @@ class CheckpointConnector:
         Load model/training states from a 'PyTorch-Lightning checkpoint' file for hpc.
         All restored states are listed in return value description of `dump_checkpoint`.
         """
-        self.restore_from_checkpoint(checkpoint_path, self.trainer.root_gpu)
+        self.restore_states(checkpoint_path, self.trainer.root_gpu)
         # call hpc specific hook
         self.trainer.get_model().on_hpc_load(checkpoint)
 
-    def restore_from_checkpoint(self, checkpoint_path: str, with_gpu: Union[bool, Optional[int]]) -> None:
+    def restore_states(self, checkpoint_path: str, with_gpu: Union[bool, Optional[int]]) -> Dict[str, Any]:
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
         All restored states are listed in return value description of `dump_checkpoint`.
@@ -110,7 +109,7 @@ class CheckpointConnector:
             with_gpu: bool for `on_gpu`, Optional[int] for `trainer.root_gpu`.
         """
         # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
-        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        checkpoint: Dict[str, Any] = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # acquire the model
         model = self.trainer.get_model()
@@ -131,6 +130,8 @@ class CheckpointConnector:
 
         # restore training state
         self.restore_training_state(checkpoint)
+
+        return checkpoint
 
     def restore_training_state(self, checkpoint):
         """

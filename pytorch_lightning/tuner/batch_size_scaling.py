@@ -115,7 +115,7 @@ def scale_batch_size(trainer,
 
     # Restore initial state of model from temporary checkpoint, which is deleted after restore.
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore_from_checkpoint(str(save_path), trainer.on_gpu)
+        trainer.checkpoint_connector.restore_states(str(save_path), trainer.on_gpu)
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)
