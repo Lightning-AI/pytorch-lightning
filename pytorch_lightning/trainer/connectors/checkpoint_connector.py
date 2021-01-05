@@ -55,7 +55,7 @@ class CheckpointConnector:
             True if restored else False
         """
         # Design Note:
-        #   `model` can be acquired with `self.trainer.get_model()`, but it make testing hard. 
+        #   `model` can be acquired with `self.trainer.get_model()`, but it make testing hard.
 
         restored: bool = False
 
@@ -132,7 +132,7 @@ class CheckpointConnector:
         Restore model state.
         """
         # Design Note:
-        #   model can be acquired with `self.trainer.get_model()`, but it make upstream testing hard. 
+        #   model can be acquired with `self.trainer.get_model()`, but it make upstream testing hard.
 
         # hook: give user access to checkpoint if needed.
         model.on_load_checkpoint(checkpoint)
