@@ -95,7 +95,7 @@ class CheckpointConnector:
         Load model/training states from a 'PyTorch-Lightning checkpoint' file for hpc.
         All restored states are listed in return value description of `dump_checkpoint`.
         """
-        self.restore_states(checkpoint_path, self.trainer.root_gpu)
+        checkpoint = self.restore_states(checkpoint_path, self.trainer.root_gpu)
         # call hpc specific hook
         self.trainer.get_model().on_hpc_load(checkpoint)
 
