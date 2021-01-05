@@ -14,6 +14,7 @@
 
 from contextlib import contextmanager
 from copy import copy, deepcopy
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
 import numpy as np
 import torch
@@ -90,6 +91,19 @@ class TrainLoop:
     def num_optimizers(self):
         num_optimizers = len(self.get_optimizers_iterable())
         return num_optimizers
+
+    @property
+    def grad_synced(self):
+        model = self.trainer.model
+        if not isinstance(model, LightningDistributedDataParallel):
+            return True
+        return model.require_backward_grad_sync
+
+    def set_require_forward_param_sync(self):
+        model = self.trainer.model
+        if isinstance(model, LightningDistributedDataParallel):
+            if model.module.is_loss_possibly_nan:
+                model.require_forward_param_sync = False
 
     def should_skip_training(self):
         if self.trainer.current_epoch >= self.trainer.max_epochs:
@@ -330,6 +344,8 @@ class TrainLoop:
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
         model_ref = self.trainer.get_model()
+
+        self.set_require_forward_param_sync()
 
         with self.trainer.profiler.profile("model_forward"):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
@@ -816,6 +832,8 @@ class TrainLoop:
         """
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
+            self.trainer.model.require_backward_grad_sync = False
+            
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 

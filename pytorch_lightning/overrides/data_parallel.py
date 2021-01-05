@@ -161,7 +161,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
 
     def forward(self, *inputs, **kwargs):  # pragma: no-cover
-        self._sync_params()
+        if self.require_forward_param_sync:
+            self._sync_params()
         self.reducer_reset_hooks()
         fx_called: str = ''
 
@@ -206,7 +207,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
 
     def reducer_prepare_for_backwards(self, output):
         self._reducer_prepared_for_backwards = True
-        if torch.is_grad_enabled():
+        if torch.is_grad_enabled() and self.require_backward_grad_sync:
+            self.require_forward_param_sync = True
             # We'll return the output object verbatim since it is a freeform
             # object. We need to find any tensors in this object, though,
             # because we need to figure out which parameters were used during
@@ -216,6 +218,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 self.reducer.prepare_for_backward(list(_find_tensors(output)))
             else:
                 self.reducer.prepare_for_backward([])
+        else:
+            self.require_forward_param_sync = False
 
     def reducer_reset_hooks(self):
         self._reducer_prepared_for_backwards = False

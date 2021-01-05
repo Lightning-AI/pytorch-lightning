@@ -18,6 +18,7 @@ import collections
 import copy
 import inspect
 import os
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 import re
 import tempfile
 from abc import ABC
@@ -29,6 +30,7 @@ import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
@@ -161,6 +163,13 @@ class LightningModule(
         If False you are responsible for calling .backward, .step, zero_grad.
         """
         return True
+
+    @property
+    def is_loss_possibly_nan(self) -> bool:
+        """
+        If False, we expect the loss to be nan only due to unstability and won't allow nan loss to be used.
+        """
+        return False
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -1147,7 +1156,27 @@ class LightningModule(
 
         """
         if self.trainer.train_loop.automatic_optimization or self._running_manual_backward:
+            if self.is_loss_possibly_nan and isinstance(self.trainer.model, LightningDistributedDataParallel):
+                self._backward_with_possible_nan_loss(loss, *args, **kwargs)
+            else:
+                loss.backward(*args, **kwargs)
+
+    def _backward_with_possible_nan_loss(self, loss: Tensor, *args, **kwargs) -> None:
+        is_loss_nan = torch.isnan(loss).int()
+        self.trainer.accelerator_backend.sync_tensor(is_loss_nan)
+        no_nan_losses = is_loss_nan == 0 
+        self.trainer.model.require_backward_grad_sync = no_nan_losses
+
+        if not torch.isnan(loss):
             loss.backward(*args, **kwargs)
+        else:
+            for p in self.parameters():
+                if p.requires_grad and p.grad is None:
+                    p.grad = torch.zeros_like(p, device=self.device, dtype=torch.float)
+
+        if no_nan_losses:
+            # need to be 
+            self.trainer.model._sync_params()
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """

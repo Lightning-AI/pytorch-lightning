@@ -196,3 +196,13 @@ class InternalDebugger(object):
             if not x['sanity_check']:
                 counts.update({x['dataloader_idx']: 1})
         return counts
+
+    @property
+    def debugging_terminal_colors(self):
+        return {
+            "-1": "\033[0m",
+            "0": "\033[0;92m", 
+            "1": "\033[0;93m", 
+            "2": "\033[0;92m", 
+            "3": "\033[1;30m"
+        }

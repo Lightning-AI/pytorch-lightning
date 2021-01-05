@@ -297,6 +297,12 @@ class TrainerProperties(ABC):
 
         return kwargs
 
+    def print_colored_rank(self, msg):
+        colors = self.dev_debugger.debugging_terminal_colors
+        rank = os.getenv("LOCAL_RANK", '0')
+        print(f"{colors[rank]} LOCAL_RANK:{rank} {msg} {colors['-1']}")
+    
+
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
 _T = TypeVar('_T', bound=TrainerProperties)

@@ -169,6 +169,9 @@ class LightningOptimizer:
         if make_optimizer_step is None:
             make_optimizer_step = not self._should_accumulate
 
+        if not self._trainer.train_loop.grad_synced:
+            make_optimizer_step = False
+
         return make_optimizer_step
 
     def step(self, *args, closure: Optional[Callable] = None, make_optimizer_step: Optional[bool] = None, **kwargs):
