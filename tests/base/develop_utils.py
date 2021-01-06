@@ -19,7 +19,7 @@ import numpy as np
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
-from tests import TEMP_PATH, RANDOM_PORTS
+from tests import _TEMP_PATH, RANDOM_PORTS
 from tests.base.model_template import EvalModelTemplate
 
 
@@ -63,7 +63,7 @@ def get_data_path(expt_logger, path_dir=None):
         if hasattr(expt_logger, 'save_dir') and expt_logger.save_dir:
             path_dir = expt_logger.save_dir
         else:
-            path_dir = TEMP_PATH
+            path_dir = _TEMP_PATH
     path_expt = os.path.join(path_dir, name, 'version_%s' % version)
 
     # try if the new sub-folder exists, typical case for test-tube
