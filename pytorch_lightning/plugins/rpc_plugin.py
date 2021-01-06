@@ -12,23 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from contextlib import suppress
 from typing import Optional
 
 import torch
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.utilities import _module_available, RPC_AVAILABLE
+from pytorch_lightning.utilities import RPC_AVAILABLE
 
 DEFAULT_RPC_TIMEOUT_SEC = 60.
 if RPC_AVAILABLE:
     from torch.distributed import rpc
-    try:
+    with suppress(ModuleNotFoundError, ImportError):
         from torch.distributed.rpc.constants import DEFAULT_RPC_TIMEOUT_SEC
-    except (ModuleNotFoundError, ImportError):
-        pass
 
-
+ 
 class RPCPlugin(DDPPlugin):
     """
     Backbone for RPC Plugins built on top of DDP.
