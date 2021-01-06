@@ -23,7 +23,7 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import _TORCHVISION_AVAILABLE, _DALI_AVAILABLE, cli_lightning_logo
+from pl_examples import _DALI_AVAILABLE, _TORCHVISION_AVAILABLE, cli_lightning_logo
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
@@ -32,7 +32,8 @@ else:
     from tests.base.datasets import MNIST
 
 if _DALI_AVAILABLE:
-    from nvidia.dali import ops, __version__ as dali_version
+    from nvidia.dali import __version__ as dali_version
+    from nvidia.dali import ops
     from nvidia.dali.pipeline import Pipeline
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 

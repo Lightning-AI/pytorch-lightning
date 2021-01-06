@@ -40,7 +40,6 @@ Note:
 """
 
 import argparse
-from collections import OrderedDict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Generator, Optional, Union
@@ -268,7 +267,7 @@ class TransferLearningModel(pl.LightningModule):
 
         # 2. Compute loss & accuracy:
         train_loss = self.loss(y_logits, y_true)
-        accuracy = self.train_acc(y_logits, y_true)
+        self.train_acc(y_logits, y_true)
 
         # 3. Outputs:
         tqdm_dict = {"train_loss": train_loss}
@@ -291,7 +290,7 @@ class TransferLearningModel(pl.LightningModule):
 
         # 2. Compute loss & accuracy:
         val_loss = self.loss(y_logits, y_true)
-        accuracy = self.valid_acc(y_logits, y_true)
+        self.valid_acc(y_logits, y_true)
 
         return {"val_loss": val_loss}
 

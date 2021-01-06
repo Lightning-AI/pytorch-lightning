@@ -19,7 +19,6 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from tests.base import BoringModel
 
 
