@@ -128,8 +128,12 @@ class CheckpointConnector:
 
         return checkpoint
 
-    def restore_model_state(self, checkpoint: Dict[str, Any], model: LightningModule,
-        with_gpu: Union[bool, Optional[int]]) -> None:
+    def restore_model_state(
+        self,
+        checkpoint: Dict[str, Any],
+        model: LightningModule,
+        with_gpu: Union[bool, Optional[int]]
+    ) -> None:
         """
         Restore model state.
         """
