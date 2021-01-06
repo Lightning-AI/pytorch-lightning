@@ -24,13 +24,10 @@ def _confusion_matrix_update(preds: torch.Tensor,
                              num_classes: int,
                              threshold: float = 0.5) -> torch.Tensor:
     preds, target, mode = _input_format_classification(preds, target, threshold)
-    if mode in ['binary', 'multi-label']:
-        preds = preds.view(-1)
-        target = target.view(-1)
-    else:
-        preds = preds.argmax(dim=1).view(-1)
-        target = target.argmax(dim=1).view(-1)
-    unique_mapping = (target * num_classes + preds).to(torch.long)
+    if mode not in ('binary', 'multi-label'):
+        preds = preds.argmax(dim=1)
+        target = target.argmax(dim=1)
+    unique_mapping = (target.view(-1) * num_classes + preds.view(-1)).to(torch.long)
     bins = torch.bincount(unique_mapping, minlength=num_classes ** 2)
     confmat = bins.reshape(num_classes, num_classes)
     return confmat
