@@ -95,7 +95,7 @@ class DDPPlugin(LightningPlugin):
     @property
     def is_running_single_process_per_device(self) -> bool:
         # objects do not need to be scattered in single process per device, move objects upfront to device
-        # used in `self.on_before_forward`
+        # This property is used in ``self.on_before_forward`` function.
         return self.device_ids is not None and len(self.device_ids) == 1
 
     def on_before_forward(self, model: LightningModule, *args):
