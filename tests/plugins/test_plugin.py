@@ -38,7 +38,7 @@ from tests.base.boring_model import BoringModel
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
+    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
     """
@@ -92,7 +92,7 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
+    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 def test_invalid_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
     """

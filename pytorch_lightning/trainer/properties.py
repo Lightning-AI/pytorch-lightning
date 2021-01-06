@@ -118,16 +118,16 @@ class TrainerProperties(ABC):
 
     @property
     def slurm_job_id(self) -> Optional[int]:
-        try:
-            job_id = os.environ['SLURM_JOB_ID']
-            job_id = int(job_id)
-
-            # in interactive mode, don't make logs use the same job id
-            in_slurm_interactive_mode = os.environ['SLURM_JOB_NAME'] == 'bash'
-            if in_slurm_interactive_mode:
+        job_id = os.environ.get('SLURM_JOB_ID')
+        if job_id:
+            try:
+                job_id = int(job_id)
+            except ValueError:
                 job_id = None
 
-        except Exception:
+        # in interactive mode, don't make logs use the same job id
+        in_slurm_interactive_mode = os.environ.get('SLURM_JOB_NAME') == 'bash'
+        if in_slurm_interactive_mode:
             job_id = None
         return job_id
 
