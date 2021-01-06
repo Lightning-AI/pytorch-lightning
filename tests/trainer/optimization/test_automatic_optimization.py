@@ -111,4 +111,3 @@ def test_automatic_optimization_with_nan_loss_and_ddp_spawn(tmpdir, accumulate_g
     Tests that training doesn't hang with returning nan loss
     """
     train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, 12)
-
