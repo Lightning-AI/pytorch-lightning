@@ -20,7 +20,7 @@ from tests.base.boring_model import BoringModel
 
 
 def test_lambda_raise_misconfiguration():
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match='does not exist in supported callbacks function'):
         LambdaCallback(invalid=lambda *args: args)
 
 
