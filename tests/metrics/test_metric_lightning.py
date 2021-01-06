@@ -149,11 +149,15 @@ def test_metric_collection_lightning_log(tmpdir):
 
         def training_step(self, batch, batch_idx):
             x = batch
-            self.metric(x.sum())
+            metric_vals = self.metric(x.sum())
             self.sum += x.sum()
             self.diff -= x.sum()
-            self.log_dict(self.metric, on_epoch=True, on_step=False, prefix='train')
+            self.log_dict({f'{k}_step': v for k, v in metric_vals.items()})
             return self.step(x)
+
+        def training_epoch_end(self, outputs):
+            metric_vals = self.metric.compute()
+            self.log_dict({f'{k}_epoch': v for k, v in metric_vals.items()})
 
     model = TestModel()
     model.val_dataloader = None
@@ -169,5 +173,5 @@ def test_metric_collection_lightning_log(tmpdir):
     trainer.fit(model)
 
     logged = trainer.logged_metrics
-    assert torch.allclose(torch.tensor(logged["train_SumMetric"]), model.sum)
-    assert torch.allclose(torch.tensor(logged["train_DiffMetric"]), model.diff)
+    assert torch.allclose(torch.tensor(logged["SumMetric_epoch"]), model.sum)
+    assert torch.allclose(torch.tensor(logged["DiffMetric_epoch"]), model.diff)
