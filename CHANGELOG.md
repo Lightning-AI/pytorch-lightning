@@ -9,27 +9,26 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added a check for optimizer attached to lr_scheduler ([#5338](https://github.com/PyTorchLightning/pytorch-lightning/pull/5338))
-
-- Added `resume_from_checkpoint` accept non-existing file path ([#4402](https://github.com/PyTorchLightning/pytorch-lightning/pull/4402))
-
+- Added a check for optimizer attached to `lr_scheduler` ([#5338](https://github.com/PyTorchLightning/pytorch-lightning/pull/5338))
+- Added support for passing non-existing filepaths to `resume_from_checkpoint` ([#4402](https://github.com/PyTorchLightning/pytorch-lightning/pull/4402))
 
 ### Changed
 
-
-### Deprecated
-
-
-### Removed
-
+- Skip restore from `resume_from_checkpoint` while `testing` ([#5161](https://github.com/PyTorchLightning/pytorch-lightning/pull/5161))
+- Allowed `log_momentum` for adaptive optimizers in `LearningRateMonitor` ([#5333](https://github.com/PyTorchLightning/pytorch-lightning/pull/5333))
+- Disabled checkpointing, earlystopping and logging with `fast_dev_run` ([#5277](https://github.com/PyTorchLightning/pytorch-lightning/pull/5277))
+- Distributed group defaults to `WORLD` if `None` ([#5125](https://github.com/PyTorchLightning/pytorch-lightning/pull/5125))
 
 ### Fixed
 
-- Skip restore from `resume_from_checkpoint` in while `testing` ([#5161](https://github.com/PyTorchLightning/pytorch-lightning/pull/5161))
-
-- Allowed `log_momentum` for adaptive optimizers in `LearningRateMonitor` ([#5333](https://github.com/PyTorchLightning/pytorch-lightning/pull/5333))
-
-- Disabled checkpointing, earlystopping and logger with `fast_dev_run` ([#5277](https://github.com/PyTorchLightning/pytorch-lightning/pull/5277))
+- Fixed `trainer.test` returning non-test metrics ([#5214](https://github.com/PyTorchLightning/pytorch-lightning/pull/5214))
+- Fixed metric state reset ([#5273](https://github.com/PyTorchLightning/pytorch-lightning/pull/5273))
+- Fixed `--num-nodes` on `DDPSequentialPlugin` ([#5327](https://github.com/PyTorchLightning/pytorch-lightning/pull/5327))
+- Fixed invalid value for `weights_summary` ([#5296](https://github.com/PyTorchLightning/pytorch-lightning/pull/5296))
+- Fixed `Trainer.test` not using the latest `best_model_path` ([#5161](https://github.com/PyTorchLightning/pytorch-lightning/pull/5161))
+- Fixed existence check for hparams not using underlying filesystem ([#5250](https://github.com/PyTorchLightning/pytorch-lightning/pull/5250))
+- Fixed `LightningOptimizer` AMP bug ([#5191](https://github.com/PyTorchLightning/pytorch-lightning/pull/5191))
+- Fixed casted key to string in `_flatten_dict` ([#5354](https://github.com/PyTorchLightning/pytorch-lightning/pull/5354))
 
 
 ## [1.1.2] - 2020-12-23
