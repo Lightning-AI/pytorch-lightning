@@ -113,6 +113,7 @@ class LightningModule(
         self._running_manual_backward = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
+        self._invalid_loss_strategy = InvalidLossStrategy.SKIP_IF_ANY
         self._invalid_loss_counts = []
 
     def optimizers(self):
@@ -183,7 +184,11 @@ class LightningModule(
             synchronized before running ``optimizer.step``
 
         """
-        return "skip_if_any"
+        return self._invalid_loss_strategy
+
+    @invalid_loss_strategy.setter
+    def invalid_loss_strategy(self, invalid_loss_strategy):
+        self._invalid_loss_strategy = invalid_loss_strategy
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -1169,6 +1174,9 @@ class LightningModule(
                 loss.backward()
 
         """
+        loss.backward(*args, **kwargs)
+
+    def _backward_wrapper(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         automatic_optimization = self.trainer.train_loop.automatic_optimization
 
         if automatic_optimization or self._running_manual_backward:
@@ -1177,11 +1185,11 @@ class LightningModule(
             never_skip = self.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP
 
             if is_ddp and never_skip and automatic_optimization:
-                self._backward_with_possible_nan_loss(loss, *args, **kwargs)
+                self._backward_with_possible_nan_loss(loss, optimizer, optimizer_idx, *args, **kwargs)
             else:
-                loss.backward(*args, **kwargs)
+                self.backward(loss, optimizer, optimizer_idx, *args, **kwargs)
 
-    def _backward_with_possible_nan_loss(self, loss: Tensor, *args, **kwargs) -> None:
+    def _backward_with_possible_nan_loss(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
         This function is used to handle the case when a loss in a ``DistributedDataParallel``
         """
@@ -1191,7 +1199,7 @@ class LightningModule(
         self.trainer.model.require_backward_grad_sync = False
 
         if not torch.isnan(loss):
-            loss.backward(*args, **kwargs)
+            self.backward(loss, optimizer, optimizer_idx, *args, **kwargs)
         else:
             self.__create_zeros_gradients()
 

@@ -19,6 +19,8 @@ from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, AMPType, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import InvalidLossStrategy
+from pytorch_lightning.utilities import rank_zero_warn
 
 if FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -36,6 +38,13 @@ class DDPShardedPlugin(DDPPlugin):
             self, model: LightningModule, device_ids: List[int]
     ):
         self._wrap_optimizers(model)
+        if model.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP:
+            rank_zero_warn(
+                "DDPShardedPlugin doesn't work with `never_skip` for property invalid_loss_strategy."
+                f"We will override `invalid_loss_strategy` to {InvalidLossStrategy.SKIP_IF_ANY}"
+            )
+            model.invalid_loss_strategy = InvalidLossStrategy.SKIP_IF_ANY
+
         return LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
 
     def optimizer_state(self, optimizer: 'OSS') -> Optional[dict]:

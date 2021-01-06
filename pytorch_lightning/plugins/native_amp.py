@@ -44,7 +44,7 @@ class NativeAMPPlugin(PrecisionPlugin):
         # do backward pass
         if automatic_optimization:
             model = self.trainer.get_model()
-            model.backward(closure_loss, optimizer, opt_idx)
+            model._backward_wrapper(closure_loss, optimizer, opt_idx)
         else:
             closure_loss.backward(*args, **kwargs)
 

@@ -53,7 +53,6 @@ class TestModel(BoringModel):
         torch.equal(weight / 2., clone_weight)
 
 
-
 def train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, limit_train_batches):
     model = TestModel(invalid_loss_strategy)
     model.val_dataloader = None
