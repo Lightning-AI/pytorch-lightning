@@ -15,7 +15,7 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import cast, List, Optional, Type, TypeVar, Union
+from typing import Callable, cast, List, Optional, Type, TypeVar, Union, Dict
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
@@ -59,6 +59,7 @@ class TrainerProperties(ABC):
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
     callbacks: List[Callback]
+    _comm_hook_state: Dict
 
     @property
     def log_dir(self):
@@ -296,6 +297,18 @@ class TrainerProperties(ABC):
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
 
         return kwargs
+
+    @property
+    def comm_hook_state(self):
+        if getattr(self, "_comm_hook_state", None) is None:
+            self._comm_hook_state = {}
+        return self._comm_hook_state
+
+    def add_comm_hook_state(self, comm_hook_state_name: str, init_hook: Optional[Callable] = None):
+        if comm_hook_state_name not in self.comm_hook_state:
+            self._comm_hook_state[comm_hook_state_name] = {}
+            if init_hook:
+                init_hook(self._comm_hook_state[comm_hook_state_name])
 
     def print_colored_rank(self, msg):
         colors = self.dev_debugger.rank_to_terminal_colors()

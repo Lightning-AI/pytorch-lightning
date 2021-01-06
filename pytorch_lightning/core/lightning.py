@@ -1192,13 +1192,15 @@ class LightningModule(
     def _backward_with_possible_nan_loss(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
         This function is used to handle the case when a loss in a ``DistributedDataParallel``
-        """
-        self.__check_invalid_loss(loss)
-        
+        """        
         if TORCH_GREATER_EQUAL_1_7_0:
+            state = self.trainer.comm_hook_state["allreduce_hook_with_invalid_tensors"]
+            state["should_accumulate"] = self.trainer.train_loop.should_accumulate()
             self.backward(loss, optimizer, optimizer_idx, *args, **kwargs)
-
         else:
+            # This 
+            self.__check_invalid_loss(loss)
+
             # prevent ddp grad synchronization
             self.trainer.model.require_backward_grad_sync = False
 
@@ -1209,8 +1211,8 @@ class LightningModule(
                 if not self.trainer.train_loop.should_accumulate():
                     self.__all_reduce_gradients(optimizer)
 
-        if not self.trainer.train_loop.should_accumulate():
-            self.__normalize_gradients()
+            if not self.trainer.train_loop.should_accumulate():
+                self.__normalize_gradients()
 
     def __check_invalid_loss(self, loss):
         is_invalid = torch.isnan(loss).int()

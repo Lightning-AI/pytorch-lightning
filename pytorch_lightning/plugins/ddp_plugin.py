@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 import torch.distributed as torch_distrib
 from torch.optim import Optimizer
+from functools import partial
 import torch.distributed as dist
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
@@ -14,25 +15,54 @@ from pytorch_lightning.utilities import TORCH_GREATER_EQUAL_1_7_0, InvalidLossSt
 
 if TORCH_GREATER_EQUAL_1_7_0:
 
-    def allreduce_hook_with_invalid_tensors(process_group: torch_distrib.ProcessGroup, bucket: torch_distrib._GradBucket):
+    def allreduce_init_hook_with_invalid_tensors(state, accumulate_grad_batches = None, world_size = None):
+        state["is_invalid"] = []
+        state["should_accumulate"] = None
+        state["accumulate_grad_batches"] = accumulate_grad_batches
+        state["world_size"] = world_size
+
+    def allreduce_hook_with_invalid_tensors(state: Dict, bucket: torch_distrib._GradBucket):
         """
         This DDP communication hook implements all reduce where some tensors are allowed to be NaN.
         """
-        group_to_use = process_group if process_group is not None else torch_distrib.group.WORLD
+        name = "allreduce_hook_with_invalid_tensors"
+        state = state[name]
 
+        group_to_use = torch_distrib.group.WORLD
         tensor = bucket.get_tensors()[0]
 
         is_invalid = torch.isnan(tensor).any() or not torch.isfinite(tensor).any()
+        is_invalid = torch.tensor(int(is_invalid), device=tensor.device)
 
         if is_invalid:
             tensor = torch.zeros_like(tensor, device=tensor.device)
+
+        dist.all_reduce(
+            is_invalid, 
+            group=group_to_use, 
+            async_op=False, 
+            op=torch_distrib.ReduceOp.SUM
+        )
+
+        state["is_invalid"].append(is_invalid)
 
         fut = dist.all_reduce(
             tensor, group=group_to_use, async_op=True, op=torch_distrib.ReduceOp.SUM
         ).get_future()
 
         def then_callback(fut):
-            return [fut.value()[0]]
+            tensor = fut.value()[0]
+            if not state["should_accumulate"]:
+
+                total_invalid_batches = torch.FloatTensor(state["is_invalid"]).sum()
+                total_batches = state["accumulate_grad_batches"] * state["world_size"]
+                number_seen_batches = max(total_batches - total_invalid_batches, 1)
+                tensor /= number_seen_batches
+
+                state["is_invalid"] = []
+                state["should_accumulate"] = None
+
+            return [tensor]
 
         return fut.then(then_callback)
 
@@ -88,13 +118,19 @@ class DDPPlugin(LightningPlugin):
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get(
             "find_unused_parameters", True
         )
+        trainer = model.trainer
         model = LightningDistributedDataParallel(
             model,
             device_ids=device_ids,
             **self._ddp_kwargs,
         )
         if TORCH_GREATER_EQUAL_1_7_0 and model.module.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP:
-            model._register_comm_hook(state = None, hook = allreduce_hook_with_invalid_tensors)
+            init_hook = partial(
+                allreduce_init_hook_with_invalid_tensors, 
+                accumulate_grad_batches=trainer.accumulate_grad_batches,
+                world_size=trainer.world_size)
+            trainer.add_comm_hook_state("allreduce_hook_with_invalid_tensors", init_hook=init_hook)
+            model._register_comm_hook(state = trainer.comm_hook_state, hook = allreduce_hook_with_invalid_tensors)
         return model
 
     def init_ddp_connection(
