@@ -31,7 +31,7 @@ class LambdaCallback(Callback):
     Create a simple callback on the fly using lambda functions.
 
     Args:
-        **kwargs: hooks supported by ``Callback``
+        **kwargs: hooks supported by :class:`~pytorch_lightning.callbacks.base.Callback`
 
     Example::
 
