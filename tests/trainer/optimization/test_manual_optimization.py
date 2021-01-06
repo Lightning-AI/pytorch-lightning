@@ -21,7 +21,7 @@ import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities import APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
@@ -658,11 +658,11 @@ def test_multiple_optimizers_step(tmpdir):
     assert model.called
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_step_with_optimizer_closure(tmpdir):
     """
     Tests that `step` works with optimizer_closure
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
 
@@ -739,11 +739,11 @@ def test_step_with_optimizer_closure(tmpdir):
     assert trainer.logger_connector.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     """
     Tests that `step` works with optimizer_closure and accumulated_grad
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -802,12 +802,12 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     """
     Tests that `step` works with optimizer_closure and extra arguments
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -859,13 +859,13 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     step_mock.assert_has_calls(expected_calls)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
@@ -939,6 +939,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     mock_adam_step.assert_has_calls(expected_calls)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -947,7 +948,6 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
 
