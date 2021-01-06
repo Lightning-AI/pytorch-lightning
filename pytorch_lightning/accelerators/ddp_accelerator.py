@@ -299,9 +299,6 @@ class DDPAccelerator(Accelerator):
         # allow user to configure ddp
         model = self.configure_ddp(model, device_ids)
 
-        # attach the device_ids to the plugin
-        model.device_ids = device_ids
-
         # set up training routine
         self.barrier('ddp_setup')
         self.trainer.train_loop.setup_training(model)
@@ -317,6 +314,7 @@ class DDPAccelerator(Accelerator):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
+        self.ddp_plugin.device_ids = device_ids
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
