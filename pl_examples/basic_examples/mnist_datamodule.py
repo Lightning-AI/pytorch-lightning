@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import platform
 from typing import Optional
 
 from torch.utils.data import DataLoader, random_split
@@ -55,6 +55,9 @@ class MNISTDataModule(LightningDataModule):
             normalize: If true applies image normalize
         """
         super().__init__(*args, **kwargs)
+        if platform.system() == "Windows":
+            # see: https://stackoverflow.com/a/59680818/4521646
+            num_workers = 0
 
         self.dims = (1, 28, 28)
         self.data_dir = data_dir
