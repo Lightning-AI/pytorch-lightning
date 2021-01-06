@@ -398,7 +398,7 @@ def test_full_loop_dp(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@mock.patch("pytorch_lightning.accelerators.accelerator.NewAccelerator.lightning_module", new_callable=PropertyMock)
+@mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_dm_transfer_batch_to_device(get_module_mock):
     class CustomBatch:
         def __init__(self, data):

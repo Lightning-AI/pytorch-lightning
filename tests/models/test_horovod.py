@@ -26,7 +26,7 @@ from sklearn.metrics import accuracy_score
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator
+from pytorch_lightning.accelerators.accelerator import CPUAccelerator
 from pytorch_lightning.core.step_result import EvalResult, Result, TrainResult
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.trainer.states import TrainerState
@@ -312,7 +312,7 @@ def test_accuracy_metric_horovod():
             accelerator='horovod',
         )
 
-        assert isinstance(trainer.accelerator_backend, NewCPUAccelerator)
+        assert isinstance(trainer.accelerator_backend, CPUAccelerator)
         # TODO: test that we selected the correct training_type_plugin based on horovod flags
 
         metric = Accuracy(compute_on_step=True,

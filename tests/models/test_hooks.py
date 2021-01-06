@@ -55,20 +55,19 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     num_epochs = 3
 
     class CurrentModel(EvalModelTemplate):
-
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
-            output['progress_bar'].update({'step_metric': torch.tensor(-1)})
-            output['progress_bar'].update({'shared_metric': 100})
+            output["progress_bar"].update({"step_metric": torch.tensor(-1)})
+            output["progress_bar"].update({"shared_metric": 100})
             return output
 
         def training_epoch_end(self, outputs):
             epoch = self.current_epoch
             # both scalar tensors and Python numbers are accepted
             return {
-                'progress_bar': {
-                    f'epoch_metric_{epoch}': torch.tensor(epoch),  # add a new metric key every epoch
-                    'shared_metric': 111,
+                "progress_bar": {
+                    f"epoch_metric_{epoch}": torch.tensor(epoch),  # add a new metric key every epoch
+                    "shared_metric": 111,
                 }
             }
 
@@ -83,20 +82,18 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     metrics = trainer.progress_bar_dict
 
     # metrics added in training step should be unchanged by epoch end method
-    assert metrics['step_metric'] == -1
+    assert metrics["step_metric"] == -1
     # a metric shared in both methods gets overwritten by epoch_end
-    assert metrics['shared_metric'] == 111
+    assert metrics["shared_metric"] == 111
     # metrics are kept after each epoch
     for i in range(num_epochs):
-        assert metrics[f'epoch_metric_{i}'] == i
+        assert metrics[f"epoch_metric_{i}"] == i
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@mock.patch("pytorch_lightning.accelerators.accelerator.NewAccelerator.lightning_module", new_callable=PropertyMock)
+@mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_transfer_batch_hook(model_getter_mock):
-
     class CustomBatch:
-
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
@@ -120,16 +117,13 @@ def test_transfer_batch_hook(model_getter_mock):
     trainer = Trainer(gpus=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     model_getter_mock.return_value = model
-    batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
-    expected = torch.device('cuda', 0)
+    batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device("cuda:0"))
+    expected = torch.device("cuda", 0)
     assert model.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
 
 
-@pytest.mark.parametrize(
-    'max_epochs,batch_idx_',
-    [(2, 5), (3, 8), (4, 12)]
-)
+@pytest.mark.parametrize("max_epochs,batch_idx_", [(2, 5), (3, 8), (4, 12)])
 def test_on_train_batch_start_hook(max_epochs, batch_idx_):
     class CurrentModel(EvalModelTemplate):
         def on_train_batch_start(self, batch, batch_idx, dataloader_idx):

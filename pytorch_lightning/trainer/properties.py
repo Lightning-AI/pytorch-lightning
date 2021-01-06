@@ -17,7 +17,7 @@ from abc import ABC
 from argparse import ArgumentParser, Namespace
 from typing import cast, List, Optional, Type, TypeVar, Union
 
-from pytorch_lightning.accelerators.accelerator import NewAccelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import Callback, ProgressBarBase, ModelCheckpoint, EarlyStopping
 from pytorch_lightning.core.lightning import LightningModule
@@ -63,7 +63,7 @@ class TrainerProperties(ABC):
     limit_val_batches: int
     _default_root_dir: str
     _weights_save_path: str
-    accelerator_backend: NewAccelerator
+    accelerator_backend: Accelerator
     num_nodes: int
     num_processes: int
     accelerator_connector: BackendConnector
