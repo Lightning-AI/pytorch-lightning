@@ -123,7 +123,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed loading yaml ([#5619](https://github.com/PyTorchLightning/pytorch-lightning/pull/5619))
 
-## [1.1.3rc] - 2020-12-29
+## [1.1.4] - YYYY-MM-DD
+
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+
+### Removed
+
+
+### Fixed
+
+
+## [1.1.3] - 2021-01-05
 
 ### Added
 
