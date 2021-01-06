@@ -101,6 +101,11 @@ class DDPPlugin(LightningPlugin):
     def on_before_forward(self, model: LightningModule, *args):
         """
         Override to handle custom edge case.
+
+        Args:
+            args: Inputs to the model.
+            model: Model to train.
+        Returns: args moved to correct device if needed.
         """
         if self.is_running_single_process_per_device:
             args = model.transfer_batch_to_device(args, model.device)
@@ -114,6 +119,7 @@ class DDPPlugin(LightningPlugin):
         Called after optimizers have been set-up. This is useful for doing any configuration options in RPC, or
         state sharding.
         """
+        pass
 
     def get_model_from_plugin(
             self,
