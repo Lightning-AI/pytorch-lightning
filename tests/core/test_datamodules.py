@@ -20,12 +20,12 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, random_split
 
-from pytorch_lightning import LightningDataModule, Trainer, seed_everything
+from pytorch_lightning import LightningDataModule, Trainer
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
 
@@ -248,6 +248,7 @@ def test_dm_checkpoint_save(tmpdir):
 
     # fit model
     result = trainer.fit(model, dm)
+    assert result
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
     assert dm.__class__.__name__ in checkpoint

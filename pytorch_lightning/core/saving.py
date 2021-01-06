@@ -174,7 +174,8 @@ class ModelIO(object):
             cls_kwargs_loaded.update(checkpoint.get(_new_hparam_key))
 
             # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
-            cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+            cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded,
+                                                        checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
 
             # 4. Update cls_kwargs_new with cls_kwargs_old, such that new has higher priority
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
@@ -377,7 +378,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     for k, v in hparams.items():
         try:
             yaml.dump(v)
-        except TypeError as err:
+        except TypeError:
             warn(f"Skipping '{k}' parameter because it is not possible to safely dump to YAML.")
             hparams[k] = type(v).__name__
         else:

@@ -23,7 +23,7 @@ import tempfile
 from abc import ABC
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -37,13 +37,10 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
 
 
 class LightningModule(
@@ -279,6 +276,7 @@ class LightningModule(
                 sync_dist_group,
                 accelerator.sync_tensor,
                 self._current_dataloader_idx,
+                self.device,
             )
 
     def log_dict(
@@ -1163,6 +1161,7 @@ class LightningModule(
             optimizer:
             optimizer_idx:
         """
+        # Todo: required argument `optimizer_idx` is not used
         for param in self.parameters():
             param.requires_grad = False
 
@@ -1187,7 +1186,8 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer.
 
-        .. tip:: With `Trainer(enable_pl_optimizer=True)`, you can user `optimizer.step()` directly and it will handle zero_grad, accumulated gradients, AMP, TPU and more automatically for you.
+        .. tip:: With `Trainer(enable_pl_optimizer=True)`, you can user `optimizer.step()` directly
+         and it will handle zero_grad, accumulated gradients, AMP, TPU and more automatically for you.
 
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
@@ -1392,12 +1392,15 @@ class LightningModule(
         """
         # call .item() only once but store elements without graphs
         running_train_loss = self.trainer.train_loop.running_loss.mean()
-        avg_training_loss = (
-            running_train_loss.cpu().item()
-            if running_train_loss is not None
-            else float("NaN")
-        )
-        tqdm_dict = {"loss": "{:.3g}".format(avg_training_loss)}
+        avg_training_loss = None
+        if running_train_loss is not None:
+            avg_training_loss = running_train_loss.cpu().item()
+        elif self.trainer.train_loop.automatic_optimization:
+            avg_training_loss = float('NaN')
+
+        tqdm_dict = {}
+        if avg_training_loss is not None:
+            tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
         if self.trainer.truncated_bptt_steps is not None:
             tqdm_dict["split_idx"] = self.trainer.split_idx
@@ -1453,7 +1456,6 @@ class LightningModule(
             args: single object of `dict`, `NameSpace` or `OmegaConf`
              or string names or argumenst from class `__init__`
 
-        >>> from collections import OrderedDict
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
@@ -1703,6 +1705,7 @@ class LightningModule(
                 line = re.sub(r"\s+", "", line, flags=re.UNICODE)
                 if ".hparams=" in line:
                     return line.split("=")[1]
+        # todo: specify the possible exception
         except Exception:
             return "hparams"
 

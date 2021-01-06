@@ -15,10 +15,13 @@ from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
+from distutils.version import LooseVersion
 
 from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
-from pytorch_lightning.metrics.functional.f_beta import fbeta as __fb, f1 as __f1
-from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve, precision_recall_curve as __prc
+from pytorch_lightning.metrics.functional.precision_recall_curve import (
+    _binary_clf_curve,
+    precision_recall_curve as __prc
+)
 from pytorch_lightning.metrics.functional.roc import roc as __roc
 from pytorch_lightning.metrics.utils import (
     to_categorical as __tc,
@@ -135,39 +138,15 @@ def stat_scores_multiple_classes(
     Calculates the number of true positive, false positive, true negative
     and false negative for each class
 
-    Args:
-        pred: prediction tensor
-        target: target tensor
-        num_classes: number of classes if known
-        argmax_dim: if pred is a tensor of probabilities, this indicates the
-            axis the argmax transformation will be applied over
-        reduction: a method to reduce metric score over labels (default: none)
-            Available reduction methods:
-
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
-
-    Return:
-        True Positive, False Positive, True Negative, False Negative, Support
-
-    Example:
-
-        >>> x = torch.tensor([1, 2, 3])
-        >>> y = torch.tensor([0, 2, 3])
-        >>> tps, fps, tns, fns, sups = stat_scores_multiple_classes(x, y)
-        >>> tps
-        tensor([0., 0., 1., 1.])
-        >>> fps
-        tensor([0., 1., 0., 0.])
-        >>> tns
-        tensor([2., 2., 2., 2.])
-        >>> fns
-        tensor([1., 0., 0., 0.])
-        >>> sups
-        tensor([1., 0., 1., 1.])
+    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.stat_scores`
 
     """
+
+    rank_zero_warn(
+        "This `stat_scores_multiple_classes` was deprecated in v1.2.0 in favor of"
+        " `from pytorch_lightning.metrics.functional import stat_scores`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
 
@@ -188,7 +167,6 @@ def stat_scores_multiple_classes(
 
         tps = torch.zeros((num_classes + 1,), device=pred.device)
         fps = torch.zeros((num_classes + 1,), device=pred.device)
-        tns = torch.zeros((num_classes + 1,), device=pred.device)
         fns = torch.zeros((num_classes + 1,), device=pred.device)
         sups = torch.zeros((num_classes + 1,), device=pred.device)
 
@@ -225,47 +203,6 @@ def stat_scores_multiple_classes(
             sups /= num_classes
 
     return tps.float(), fps.float(), tns.float(), fns.float(), sups.float()
-
-
-def accuracy(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        class_reduction: str = 'micro',
-        return_state: bool = False
-) -> torch.Tensor:
-    """
-    Computes the accuracy classification score
-
-    Args:
-        pred: predicted labels
-        target: ground truth labels
-        num_classes: number of classes
-        class_reduction: method to reduce metric score over labels
-
-            - ``'micro'``: calculate metrics globally (default)
-            - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
-            - ``'none'``: returns calculated metric per class
-        return_state: returns a internal state that can be ddp reduced
-            before doing the final calculation
-
-    Return:
-         A Tensor with the accuracy score.
-
-    Example:
-
-        >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
-        >>> accuracy(x, y)
-        tensor(0.7500)
-
-    """
-    tps, fps, tns, fns, sups = stat_scores_multiple_classes(
-        pred=pred, target=target, num_classes=num_classes)
-    if return_state:
-        return {'tps': tps, 'sups': sups}
-    return class_reduce(tps, sups, sups, class_reduction=class_reduction)
 
 
 def _confmat_normalize(cm):
@@ -583,6 +520,7 @@ def auroc(
         target: torch.Tensor,
         sample_weight: Optional[Sequence] = None,
         pos_label: int = 1.,
+        max_fpr: float = None,
 ) -> torch.Tensor:
     """
     Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from prediction scores
@@ -592,6 +530,8 @@ def auroc(
         target: ground-truth labels
         sample_weight: sample weights
         pos_label: the label for the positive class
+        max_fpr: If not ``None``, calculates standardized partial AUC over the
+            range [0, max_fpr]. Should be a float between 0 and 1.
 
     Return:
         Tensor containing ROCAUC score
@@ -608,11 +548,32 @@ def auroc(
                          ' target tensor contains value different from 0 and 1.'
                          ' Use `multiclass_auroc` for multi class classification.')
 
-    @auc_decorator()
-    def _auroc(pred, target, sample_weight, pos_label):
-        return _roc(pred, target, sample_weight, pos_label)
+    if max_fpr is None or max_fpr == 1:
+        fpr, tpr, _ = __roc(pred, target, sample_weight, pos_label)
+        return auc(fpr, tpr)
+    if not (isinstance(max_fpr, float) and 0 < max_fpr <= 1):
+        raise ValueError(f"`max_fpr` should be a float in range (0, 1], got: {max_fpr}")
+    if LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
+        raise RuntimeError('`max_fpr` argument requires `torch.bucketize` which'
+                           ' is not available below PyTorch version 1.6')
 
-    return _auroc(pred=pred, target=target, sample_weight=sample_weight, pos_label=pos_label)
+    fpr, tpr, _ = __roc(pred, target, sample_weight, pos_label)
+    max_fpr = torch.tensor(max_fpr, device=fpr.device)
+    # Add a single point at max_fpr and interpolate its tpr value
+    stop = torch.bucketize(max_fpr, fpr, out_int32=True, right=True)
+    weight = (max_fpr - fpr[stop - 1]) / (fpr[stop] - fpr[stop - 1])
+    interp_tpr = torch.lerp(tpr[stop - 1], tpr[stop], weight)
+    tpr = torch.cat([tpr[:stop], interp_tpr.view(1)])
+    fpr = torch.cat([fpr[:stop], max_fpr.view(1)])
+
+    # Compute partial AUC
+    partial_auc = auc(fpr, tpr)
+
+    # McClish correction: standardize result to be 0.5 if non-discriminant
+    # and 1 if maximal
+    min_area = 0.5 * max_fpr ** 2
+    max_area = max_fpr
+    return 0.5 * (1 + (partial_auc - min_area) / (max_area - min_area))
 
 
 def multiclass_auroc(
@@ -822,7 +783,8 @@ def precision_recall_curve(
     """
     Computes precision-recall pairs for different thresholds.
 
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
     """
     rank_zero_warn(
         "This `precision_recall_curve` was deprecated in v1.1.0 in favor of"
@@ -842,7 +804,8 @@ def multiclass_precision_recall_curve(
     """
     Computes precision-recall pairs for different thresholds given a multiclass scores.
 
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
     """
     rank_zero_warn(
         "This `multiclass_precision_recall_curve` was deprecated in v1.1.0 in favor of"
@@ -864,7 +827,8 @@ def average_precision(
     """
     Compute average precision from prediction scores.
 
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.average_precision.average_precision`
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.average_precision.average_precision`
     """
     rank_zero_warn(
         "This `average_precision` was deprecated in v1.1.0 in favor of"
@@ -872,48 +836,3 @@ def average_precision(
         " It will be removed in v1.3.0", DeprecationWarning
     )
     return __ap(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label)
-
-
-# todo: remove in 1.2
-def fbeta_score(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        beta: float,
-        num_classes: Optional[int] = None,
-        class_reduction: str = 'micro',
-) -> torch.Tensor:
-    """
-    Computes the F-beta score which is a weighted harmonic mean of precision and recall.
-
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.f_beta.fbeta`
-    """
-    rank_zero_warn(
-        "This `average_precision` was deprecated in v1.0.x in favor of"
-        " `from pytorch_lightning.metrics.functional.f_beta import fbeta`."
-        " It will be removed in v1.2.0", DeprecationWarning
-    )
-    if num_classes is None:
-        num_classes = get_num_classes(pred, target)
-    return __fb(preds=pred, target=target, beta=beta, num_classes=num_classes, average=class_reduction)
-
-
-# todo: remove in 1.2
-def f1_score(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        class_reduction: str = 'micro',
-) -> torch.Tensor:
-    """
-    Computes the F1-score (a.k.a F-measure), which is the harmonic mean of the precision and recall.
-
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.f_beta.f1`
-    """
-    rank_zero_warn(
-        "This `average_precision` was deprecated in v1.0.x in favor of"
-        " `from pytorch_lightning.metrics.functional.f_beta import f1`."
-        " It will be removed in v1.2.0", DeprecationWarning
-    )
-    if num_classes is None:
-        num_classes = get_num_classes(pred, target)
-    return __f1(preds=pred, target=target, num_classes=num_classes, average=class_reduction)

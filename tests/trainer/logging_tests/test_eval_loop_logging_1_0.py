@@ -18,12 +18,11 @@ import collections
 import itertools
 import os
 from unittest import mock
-from unittest.mock import call, patch
+from unittest.mock import call
 
 import numpy as np
 import pytest
 import torch
-from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer, callbacks, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint

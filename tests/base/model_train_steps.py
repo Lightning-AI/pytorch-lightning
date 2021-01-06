@@ -17,8 +17,6 @@ from collections import OrderedDict
 
 import torch
 
-from pytorch_lightning.core.step_result import TrainResult, EvalResult
-
 
 class TrainingStepVariations(ABC):
     """
@@ -28,27 +26,27 @@ class TrainingStepVariations(ABC):
     test_step_inf_loss = float('inf')
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
+        """Lightning calls this inside the training loop"""
         self.training_step_called = True
 
-        """Lightning calls this inside the training loop"""
         # forward pass
         x, y = batch
         x = x.view(x.size(0), -1)
         y_hat = self(x)
 
         # calculate loss
-        loss_val = self.loss(y, y_hat)
-        log_val = loss_val
+        loss_train = self.loss(y, y_hat)
+        log_train = loss_train
 
         # alternate between tensors and scalars for "log" and "progress_bar"
         if batch_idx % 2 == 0:
-            log_val = log_val.item()
+            log_train = log_train.item()
 
         output = OrderedDict(
             {
-                'loss': loss_val,
-                'progress_bar': {'some_val': log_val * log_val},
-                'log': {'train_some_val': log_val * log_val},
+                'loss': loss_train,
+                'progress_bar': {'some_val': log_train * log_train},
+                'log': {'train_some_val': log_train * log_train},
             }
         )
         return output
@@ -62,27 +60,25 @@ class TrainingStepVariations(ABC):
                 output /= 0
         return output
 
-    def training_step_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
+    def training_step__result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
+
         # forward pass
         x, y = batch
         x = x.view(x.size(0), -1)
         y_hat = self(x.to(self.device))
 
         # calculate loss
-        loss_val = self.loss(y.to(y_hat.device), y_hat)
-        log_val = loss_val
+        loss_train = self.loss(y.to(y_hat.device), y_hat)
+        log_train = loss_train
 
         # alternate between tensors and scalars for "log" and "progress_bar"
         if batch_idx % 2 == 0:
-            log_val = log_val.item()
+            log_train = log_train.item()
 
-        result = TrainResult(loss_val)
-        result.log('some_val', log_val * log_val, prog_bar=True, logger=False)
-        result.log('train_some_val', log_val * log_val)
+        self.log('some_val', log_train * log_train, prog_bar=True, logger=False)
+        self.log('train_some_val', log_train * log_train)
 
-        self.training_step_called = True
-
-        return result
+        return loss_train
 
     def training_step_end_full_loop_result_obj_dp(self, result):
         """
@@ -149,3 +145,32 @@ class TrainingStepVariations(ABC):
         setattr(result, f'{eval_name}_step_metric', reduced)
 
         return result
+
+    def training_step__multiple_dataloaders(self, batch, batch_idx, optimizer_idx=None):
+        """Training step for multiple train loaders"""
+
+        assert isinstance(batch, dict)
+        assert len(batch) == 2
+        assert 'a' in batch and 'b' in batch
+
+        # forward pass
+        x, y = batch['a']
+        x = x.view(x.size(0), -1)
+        y_hat = self(x)
+
+        # calculate loss
+        loss_val = self.loss(y, y_hat)
+        log_val = loss_val
+
+        # alternate between tensors and scalars for "log" and "progress_bar"
+        if batch_idx % 2 == 0:
+            log_val = log_val.item()
+
+        output = OrderedDict(
+            {
+                'loss': loss_val,
+                'progress_bar': {'some_val': log_val * log_val},
+                'log': {'train_some_val': log_val * log_val},
+            }
+        )
+        return output

@@ -27,9 +27,12 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, argparse_utils, rank_zero_warn
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities.argparse import (
+    from_argparse_args, parse_argparser, parse_env_variables, add_argparse_args
+)
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -115,16 +118,16 @@ class TrainerProperties(ABC):
 
     @property
     def slurm_job_id(self) -> Optional[int]:
-        try:
-            job_id = os.environ['SLURM_JOB_ID']
-            job_id = int(job_id)
-
-            # in interactive mode, don't make logs use the same job id
-            in_slurm_interactive_mode = os.environ['SLURM_JOB_NAME'] == 'bash'
-            if in_slurm_interactive_mode:
+        job_id = os.environ.get('SLURM_JOB_ID')
+        if job_id:
+            try:
+                job_id = int(job_id)
+            except ValueError:
                 job_id = None
 
-        except Exception:
+        # in interactive mode, don't make logs use the same job id
+        in_slurm_interactive_mode = os.environ.get('SLURM_JOB_NAME') == 'bash'
+        if in_slurm_interactive_mode:
             job_id = None
         return job_id
 
@@ -150,19 +153,19 @@ class TrainerProperties(ABC):
 
     @classmethod
     def from_argparse_args(cls: Type['_T'], args: Union[Namespace, ArgumentParser], **kwargs) -> '_T':
-        return argparse_utils.from_argparse_args(cls, args, **kwargs)
+        return from_argparse_args(cls, args, **kwargs)
 
     @classmethod
     def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
-        return argparse_utils.parse_argparser(cls, arg_parser)
+        return parse_argparser(cls, arg_parser)
 
     @classmethod
     def match_env_arguments(cls) -> Namespace:
-        return argparse_utils.parse_env_variables(cls)
+        return parse_env_variables(cls)
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        return argparse_utils.add_argparse_args(cls, parent_parser)
+        return add_argparse_args(cls, parent_parser)
 
     @property
     def num_gpus(self) -> int:

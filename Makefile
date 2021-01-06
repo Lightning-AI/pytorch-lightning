@@ -1,4 +1,4 @@
-.PHONY: test
+.PHONY: test clean
 
 test:
 	# install APEX, see https://github.com/NVIDIA/apex#linux
@@ -13,3 +13,7 @@ test:
 
 	# specific file
 	# python -m coverage run --source pytorch_lightning -m py.test --flake8 --durations=0 -v -k
+
+clean:
+	# clean all temp runs
+	rm -rf $(shell find . -name "mlruns" )
