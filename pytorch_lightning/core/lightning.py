@@ -35,11 +35,10 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.utilities import DecisionOnInvalidResult
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.utilities import rank_zero_warn, TPU_AVAILABLE
+from pytorch_lightning.utilities import DecisionOnInvalidResult, rank_zero_warn, TPU_AVAILABLE
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
@@ -167,13 +166,13 @@ class LightningModule(
     @property
     def decision_on_invalid_result(self) -> Union[str, int]:
         """
-        This property is used to decide behaviour on ``training_step`` result object 
+        This property is used to decide behaviour on ``training_step`` result object
         when using LightningDistributedDataParallel.
 
         Can either be "skip_on_at_least_one" or "never_skip".
-        
-        "skip_on_at_least_one": 
-            If result is None on at least on, it will skip 
+
+        "skip_on_at_least_one":
+            If result is None on at least on, it will skip
             ``backward`` and ``optimizer_step`` for all processes
 
         "never_skip":
@@ -1169,12 +1168,12 @@ class LightningModule(
 
         """
         automatic_optimization = self.trainer.train_loop.automatic_optimization
-        
+
         if automatic_optimization or self._running_manual_backward:
-        
+
             is_ddp = isinstance(self.trainer.model, LightningDistributedDataParallel)
             never_skip = self.decision_on_invalid_result == DecisionOnInvalidResult.NEVER_SKIP
-        
+
             if is_ddp and never_skip and automatic_optimization:
                 self._backward_with_possible_nan_loss(loss, *args, **kwargs)
             else:
@@ -1192,7 +1191,7 @@ class LightningModule(
             for p in self.parameters():
                 if p.requires_grad and p.grad is None:
                     p.grad = torch.zeros_like(p, device=self.device, dtype=torch.float)
-        
+
         if not self.trainer.train_loop.should_accumulate():
 
             for p in self.parameters():
@@ -1202,7 +1201,6 @@ class LightningModule(
             self.trainer.model._sync_params()
 
         self.trainer.model.require_forward_param_sync = False
-
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """

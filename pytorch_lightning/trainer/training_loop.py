@@ -27,15 +27,13 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import AMPType, parsing, TPU_AVAILABLE
+from pytorch_lightning.utilities import AMPType, DecisionOnInvalidResult, parsing, TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warning_utils import WarningCache
-from pytorch_lightning.utilities import DecisionOnInvalidResult
-
 
 
 class TrainLoop:
@@ -187,8 +185,8 @@ class TrainLoop:
         # restore training state and model weights before hpc is called
         self.trainer.checkpoint_connector.restore_weights(model)
 
-        # check check_decision_on_invalid_result is correct set        
-        self.trainer.config_validator.check_decision_on_invalid_result()       
+        # check check_decision_on_invalid_result is correct set
+        self.trainer.config_validator.check_decision_on_invalid_result()
 
         # on pretrain routine end
         self.trainer.on_pretrain_routine_end(ref_model)
@@ -877,14 +875,14 @@ class TrainLoop:
 
             if not skip_on_at_leat_one:
                 return is_result_none
-            
+
             if is_result_none:
                 is_invalid = 1
-            
+
             elif isinstance(result.closure_loss, torch.Tensor):
                 # self.trainer.print_colored_rank(f"{result.closure_loss} {torch.isnan(result.closure_loss)}")
                 is_invalid = int(torch.isnan(result.closure_loss))
-            
+
             else:
                 is_invalid = 0
 

@@ -128,6 +128,7 @@ class DeviceType(LightningEnum):
     GPU = 'GPU'
     TPU = 'TPU'
 
+
 class DecisionOnInvalidResult(LightningEnum):
     SKIP_ON_AT_lEAST_ONE = "skip_on_at_least_one"
     NEVER_SKIP = "never_skip"

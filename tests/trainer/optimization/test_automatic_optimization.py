@@ -83,4 +83,3 @@ def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_ba
             pass
         else:
             raise Exception(str(e))
-

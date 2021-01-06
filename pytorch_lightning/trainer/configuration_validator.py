@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning import _logger as log
-from pytorch_lightning.core.lightning import LightningModule, DecisionOnInvalidResult
+from pytorch_lightning.core.lightning import DecisionOnInvalidResult, LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
@@ -127,4 +126,4 @@ class ConfigValidator(object):
         if decision_on_invalid_result not in values:
             raise MisconfigurationException(
                 f'LightningModule `decision_on_invalid_result` property should be within {values}. Provided {decision_on_invalid_result}'
-            )            
+            )
