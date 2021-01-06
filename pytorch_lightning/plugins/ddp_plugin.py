@@ -1,15 +1,40 @@
 import os
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Union
-
+import torch
 import torch.distributed as torch_distrib
 from torch.optim import Optimizer
-
+import torch.distributed as dist
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.plugin import LightningPlugin
+from pytorch_lightning.utilities import TORCH_GREATER_EQUAL_1_7_0, InvalidLossStrategy
 
+
+if TORCH_GREATER_EQUAL_1_7_0:
+
+    def allreduce_hook_with_invalid_tensors(process_group: torch_distrib.ProcessGroup, bucket: torch_distrib._GradBucket):
+        """
+        This DDP communication hook implements all reduce where some tensors are allowed to be NaN.
+        """
+        group_to_use = process_group if process_group is not None else torch_distrib.group.WORLD
+
+        tensor = bucket.get_tensors()[0]
+
+        is_invalid = torch.isnan(tensor).any() or not torch.isfinite(tensor).any()
+
+        if is_invalid:
+            tensor = torch.zeros_like(tensor, device=tensor.device)
+
+        fut = dist.all_reduce(
+            tensor, group=group_to_use, async_op=True, op=torch_distrib.ReduceOp.SUM
+        ).get_future()
+
+        def then_callback(fut):
+            return [fut.value()[0]]
+
+        return fut.then(then_callback)
 
 class DDPPlugin(LightningPlugin):
     """
@@ -68,6 +93,8 @@ class DDPPlugin(LightningPlugin):
             device_ids=device_ids,
             **self._ddp_kwargs,
         )
+        if TORCH_GREATER_EQUAL_1_7_0 and model.module.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP:
+            model._register_comm_hook(state = None, hook = allreduce_hook_with_invalid_tensors)
         return model
 
     def init_ddp_connection(

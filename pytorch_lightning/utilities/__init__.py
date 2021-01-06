@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_
 from pytorch_lightning.utilities.xla_device_utils import XLA_AVAILABLE, XLADeviceUtils
 
 
-def _module_available(module_path: str) -> bool:
+def _module_available(module_path: str, obj_name: str = None, attr: str = None) -> bool:
     """Testing if given module is avalaible in your env
 
     >>> _module_available('os')
@@ -44,6 +44,13 @@ def _module_available(module_path: str) -> bool:
             module_path = '.'.join(mods[:i + 1])
             if importlib.util.find_spec(module_path) is None:
                 return False
+        mod = importlib.import_module(module_path)
+        if obj_name:
+            obj = getattr(mod, obj_name, None)
+            is_obj_not_none = obj is not None
+            if attr and is_obj_not_none:
+                return attr in dir(obj)
+            return is_obj_not_none
         return True
     except AttributeError:
         return False
@@ -55,6 +62,7 @@ OMEGACONF_AVAILABLE = _module_available("omegaconf")
 HYDRA_AVAILABLE = _module_available("hydra")
 HOROVOD_AVAILABLE = _module_available("horovod.torch")
 BOLTS_AVAILABLE = _module_available("pl_bolts")
+TORCH_GREATER_EQUAL_1_7_0 = LooseVersion(torch.__version__) >= LooseVersion("1.7.0")
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')

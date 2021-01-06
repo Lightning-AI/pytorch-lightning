@@ -38,7 +38,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.utilities import InvalidLossStrategy, rank_zero_warn, TPU_AVAILABLE
+from pytorch_lightning.utilities import InvalidLossStrategy, rank_zero_warn, TPU_AVAILABLE, TORCH_GREATER_EQUAL_1_7_0
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
@@ -1194,23 +1194,28 @@ class LightningModule(
         This function is used to handle the case when a loss in a ``DistributedDataParallel``
         """
         self.__check_invalid_loss(loss)
-
-        # prevent ddp grad synchronization
-        self.trainer.model.require_backward_grad_sync = False
-
-        if not torch.isnan(loss):
+        
+        if TORCH_GREATER_EQUAL_1_7_0:
             self.backward(loss, optimizer, optimizer_idx, *args, **kwargs)
+
         else:
-            self.__create_zeros_gradients()
+            # prevent ddp grad synchronization
+            self.trainer.model.require_backward_grad_sync = False
+
+            if not torch.isnan(loss):
+                self.backward(loss, optimizer, optimizer_idx, *args, **kwargs)
+            else:
+                self.__create_zeros_gradients()
+                if not self.trainer.train_loop.should_accumulate():
+                    self.__all_reduce_gradients(optimizer)
 
         if not self.trainer.train_loop.should_accumulate():
-            self.__synchronize_gradients(optimizer)
+            self.__normalize_gradients()
 
     def __check_invalid_loss(self, loss):
         is_invalid = torch.isnan(loss).int()
         self.trainer.accelerator_backend.sync_tensor(is_invalid)
         self._invalid_loss_counts.append(is_invalid)
-        return False
 
     def __create_zeros_gradients(self):
         """
@@ -1220,23 +1225,24 @@ class LightningModule(
             if p.requires_grad and p.grad is None:
                 p.grad = torch.zeros_like(p, device=self.device, dtype=torch.float)
 
-    def __synchronize_gradients(self, optimizer):
-        """
-        This function will synchornize gradients
-        """
-        # compute actual number of batches used during accumulation
-        total_invalid_batches = torch.FloatTensor(self._invalid_loss_counts).sum()
-        total_batches = self.trainer.accumulate_grad_batches * self.trainer.world_size
-        number_seen_batches = max(total_batches - total_invalid_batches, 1)
-
+    def __all_reduce_gradients(self, optimizer: Optimizer) -> None:
         # perform SUM all_reduce asynchronously
         for group in optimizer.param_groups:
             for param in group["params"]:
                 if param.grad is not None:
-                    self.trainer.accelerator_backend.sync_tensor(param.grad, reduce_op="SUM", async_op=True)
+                    work = torch_distrib.all_reduce(param.grad, async_op=TORCH_GREATER_EQUAL_1_7_0)
+                    if TORCH_GREATER_EQUAL_1_7_0:
+                        futures.append(work.get_future())
+        
+        if TORCH_GREATER_EQUAL_1_7_0:
+            torch.futures.wait_all(futures)
 
-        # wait for all synchronization
-        self.trainer.accelerator_backend.barrier("Wait Gradient Synchronization End")
+    def __normalize_gradients(self):
+        # compute actual number of batches used during accumulation
+        total_invalid_batches = torch.FloatTensor(self._invalid_loss_counts).sum()
+        total_batches = self.trainer.accumulate_grad_batches * self.trainer.world_size
+        # TODO: skip if all invalid ?
+        number_seen_batches = max(total_batches - total_invalid_batches, 1)
 
         # compute average gradients based on actual number of valid loss.
         for p in self.parameters():
