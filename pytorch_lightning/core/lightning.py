@@ -67,6 +67,7 @@ class LightningModule(
         "on_gpu",
         "current_epoch",
         "global_step",
+        "invalid_loss_strategy"
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
@@ -1226,7 +1227,7 @@ class LightningModule(
                 self.trainer.accelerator_backend.sync_tensor(p.grad, reduce_op="SUM", async_op=True)
 
         # wait for all synchronization
-        self.trainer.accelerator_backend.barrier("Gradient Synchronization")
+        self.trainer.accelerator_backend.barrier("Wait Gradient Synchronization End")
 
         # compute average gradients based on actual number of valid loss.
         for p in self.parameters():
