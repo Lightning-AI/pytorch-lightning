@@ -269,20 +269,20 @@ def test_metric_collection_wrong_input(tmpdir):
 
     # Not all input are metrics (list)
     with pytest.raises(ValueError):
-        metric_collection = MetricCollection([m1, 5])
+        _ = MetricCollection([m1, 5])
 
     # Not all input are metrics (dict)
     with pytest.raises(ValueError):
-        metric_collection = MetricCollection({'metric1': m1,
-                                              'metric2': 5})
+        _ = MetricCollection({'metric1': m1,
+                              'metric2': 5})
 
     # Same metric passed in multiple times
     with pytest.raises(ValueError, match='Encountered two metrics both named *.'):
-        metric_collection = MetricCollection([m1, m1])
+        _ = MetricCollection([m1, m1])
 
     # Not a list or dict passed in
     with pytest.raises(ValueError, match='Unknown input to MetricCollection.'):
-        metric_collection = MetricCollection(m1)
+        _ = MetricCollection(m1)
 
 
 def test_metric_collection_args_kwargs(tmpdir):

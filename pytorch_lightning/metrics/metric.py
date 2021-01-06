@@ -16,7 +16,7 @@ import inspect
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from copy import deepcopy
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
@@ -318,7 +318,7 @@ class MetricCollection(nn.ModuleDict):
               dict as key for output dict. Use this format if you want to chain
               together multiple of the same metric with different parameters.
 
-    Example:
+    Example (input as list):
 
         >>> from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
         >>> target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
@@ -329,13 +329,15 @@ class MetricCollection(nn.ModuleDict):
         >>> metrics(preds, target)
         {'Accuracy': tensor(0.1250), 'Precision': tensor(0.0667), 'Recall': tensor(0.1111)}
 
+    Example (input as dict):
+
         >>> metrics = MetricCollection({'micro_recall': Recall(num_classes=3, average='micro'),
         ...                             'macro_recall': Recall(num_classes=3, average='macro')})
         >>> metrics(preds, target)
         {'micro_recall': tensor(0.1250), 'macro_recall': tensor(0.1111)}
 
     """
-    def __init__(self, metrics):
+    def __init__(self, metrics: Union[List[Metric], Tuple[Metric], Dict[str, Metric]]):
         super().__init__()
         if isinstance(metrics, dict):
             # Check all values are metrics
@@ -356,29 +358,29 @@ class MetricCollection(nn.ModuleDict):
         else:
             raise ValueError('Unknown input to MetricCollection.')
 
-    def _filter_kwargs(self, metric, **kwargs):
+    def _filter_kwargs(self, metric: Metric, **kwargs):
         """ filter kwargs such that they match the update signature of the metric """
         return {k: v for k, v in kwargs.items() if k in metric._update_signature.parameters.keys()}
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=E0202
         """
-        Iteratively call forward for each metric. Positional arguments (*args) will
-        be passed to every metric in the collection, while keyword arguments (**kwargs)
+        Iteratively call forward for each metric. Positional arguments (args) will
+        be passed to every metric in the collection, while keyword arguments (kwargs)
         will be filtered based on the signature of the individual metric.
         """
         return {k: m(*args, **self._filter_kwargs(m, **kwargs)) for k, m in self.items()}
 
-    def update(self, *args, **kwargs):
+    def update(self, *args, **kwargs):  # pylint: disable=E0202
         """
-        Iteratively call update for each metric. Positional arguments (*args) will
-        be passed to every metric in the collection, while keyword arguments (**kwargs)
+        Iteratively call update for each metric. Positional arguments (args) will
+        be passed to every metric in the collection, while keyword arguments (kwargs)
         will be filtered based on the signature of the individual metric.
         """
         for _, m in self.items():
             m_kwargs = self._filter_kwargs(m, **kwargs)
             m.update(*args, **m_kwargs)
 
-    def compute(self):
+    def compute(self) -> Dict[str, Any]:
         return {k: m.compute() for k, m in self.items()}
 
     def reset(self):
