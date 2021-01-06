@@ -20,11 +20,12 @@
 # --------------------------------------------
 # --------------------------------------------
 import os
+
 import torch
 from torch.utils.data import Dataset
 
 from pl_examples import cli_lightning_logo
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import LightningModule, Trainer
 
 
 class RandomDataset(Dataset):

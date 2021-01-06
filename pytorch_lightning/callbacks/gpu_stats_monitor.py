@@ -24,7 +24,7 @@ import os
 import shutil
 import subprocess
 import time
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_only
@@ -213,5 +213,4 @@ class GPUStatsMonitor(Callback):
             or trainer.should_stop
         )
 
-        should_log = should_log and not trainer.fast_dev_run
         return should_log
