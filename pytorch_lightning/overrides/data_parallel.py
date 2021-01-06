@@ -224,7 +224,12 @@ def warn_missing_output(fx_called):
         warning_cache.warn("Your training_step returned None. Make sure that was your intention!")
 
 
-def parallel_apply(modules: Module, inputs: Tensor, kwargs_tup: Optional[tuple] = None, devices: Optional[list] = None):  # pragma: no-cover
+def parallel_apply(
+        modules: Module,
+        inputs: Tensor,
+        kwargs_tup: Optional[tuple] = None,
+        devices: Optional[list] = None,
+):  # pragma: no-cover
     r"""Applies each `module` in :attr:`modules` in parallel on arguments
     contained in :attr:`inputs` (positional) and :attr:`kwargs_tup` (keyword)
     on each of :attr:`devices`.
