@@ -175,6 +175,9 @@ class DDPSpawnAccelerator(Accelerator):
         # allow user to configure ddp
         model = self.configure_ddp(model, device_ids)
 
+        # attach the device_ids to the plugin
+        model.device_ids = device_ids
+
         # set up training routine
         self.trainer.train_loop.setup_training(model)
 

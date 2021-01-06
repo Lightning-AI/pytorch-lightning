@@ -270,7 +270,6 @@ class DDPSequentialPlugin(RPCPlugin):
         ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
         # Plugin handle backwards across processes. Currently not supported for DDP + pipe parallel
         ddp_plugin.PREPARE_FOR_BACKWARDS = False
-        self.device_ids = device_ids
         return ddp_plugin
 
     @rank_zero_only

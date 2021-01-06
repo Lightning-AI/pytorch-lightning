@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional, Union, Any
+from typing import Any, List, Optional, Union
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
-from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, AMPType, rank_zero_only
+from pytorch_lightning.utilities import AMPType, FAIRSCALE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if FAIRSCALE_AVAILABLE:
@@ -35,7 +35,6 @@ class DDPShardedPlugin(DDPPlugin):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ):
-        self.device_ids = device_ids
         self._wrap_optimizers(model)
         model = LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
         return model

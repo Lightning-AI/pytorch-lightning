@@ -69,7 +69,6 @@ class DDPPlugin(LightningPlugin):
             device_ids=device_ids,
             **self._ddp_kwargs,
         )
-        self.device_ids = device_ids
         return model
 
     def init_ddp_connection(
@@ -101,19 +100,7 @@ class DDPPlugin(LightningPlugin):
 
     def on_before_forward(self, model: LightningModule, *args):
         """
-        Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
-        within the DDP wrapper.
-
-        Example::
-
-            def on_before_forward(self, model, *args):
-                batch, batch_idx = args
-                return batch.to(model.device), batch_idx
-
-        Args:
-            model: Model to train.
-            args: Inputs to the model.
-        Returns: args moved to correct device if needed.
+        Override to handle custom edge case.
         """
         if self.is_running_single_process_per_device:
             args = model.transfer_batch_to_device(args, model.device)
