@@ -27,7 +27,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
@@ -296,8 +296,9 @@ class DDPSpawnAccelerator(Accelerator):
     def sync_tensor(self,
                     tensor: Union[torch.Tensor],
                     group: Optional[Any] = None,
-                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
-        return sync_ddp_if_available(tensor, group, reduce_op)
+                    reduce_op: Optional[Union[ReduceOp, str]] = None,
+                    async_op: bool = False) -> torch.Tensor:
+        return sync_ddp_if_available(tensor, group, reduce_op, async_op)
 
     def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
         """

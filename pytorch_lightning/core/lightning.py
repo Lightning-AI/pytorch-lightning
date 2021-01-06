@@ -1182,7 +1182,7 @@ class LightningModule(
 
     def _backward_with_possible_nan_loss(self, loss: Tensor, *args, **kwargs) -> None:
         """
-        This function is used to handle the case when a loss in a ``DistributedDataParallel`` 
+        This function is used to handle the case when a loss in a ``DistributedDataParallel``
         """
         self.__check_invalid_loss(loss)
 
@@ -1200,27 +1200,41 @@ class LightningModule(
     def __check_invalid_loss(self, loss):
         is_invalid = torch.isnan(loss).int()
         self.trainer.accelerator_backend.sync_tensor(is_invalid)
-        self._invalid_loss_counts.append(is_invalid)      
-        return False  
+        self._invalid_loss_counts.append(is_invalid)
+        return False
 
     def __create_zeros_gradients(self):
+        """
+        This function will generate zeros gradients when None for the first reduction
+        """
         for p in self.parameters():
             if p.requires_grad and p.grad is None:
                 p.grad = torch.zeros_like(p, device=self.device, dtype=torch.float)
-        
+
     def __synchronize_gradients(self):
+        """
+        This function will synchornize gradients
+        """
         # compute actual number of batches used during accumulation
         total_invalid_batches = torch.FloatTensor(self._invalid_loss_counts).sum()
         total_batches = self.trainer.accumulate_grad_batches * self.trainer.world_size
         number_seen_batches = max(total_batches - total_invalid_batches, 1)
-        
+
+        # perform SUM all_reduce asynchronously
         for p in self.parameters():
             if p.requires_grad:
-                self.trainer.accelerator_backend.sync_tensor(p.grad, reduce_op="SUM") 
-                p.grad /= number_seen_batches  
-        
+                self.trainer.accelerator_backend.sync_tensor(p.grad, reduce_op="SUM", async_op=True)
+
+        # wait for all synchronization
+        self.trainer.accelerator_backend.barrier("Gradient Synchronization")
+
+        # compute average gradients based on actual number of valid loss.
+        for p in self.parameters():
+            if p.requires_grad:
+                p.grad /= number_seen_batches
+
         # reset for next accumulation
-        self._invalid_loss_counts = []    
+        self._invalid_loss_counts = []
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """

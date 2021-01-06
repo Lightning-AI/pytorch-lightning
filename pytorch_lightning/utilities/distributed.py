@@ -22,7 +22,7 @@ import torch
 from pytorch_lightning import _logger as log
 
 if torch.distributed.is_available():
-    from torch.distributed import ReduceOp, group
+    from torch.distributed import group, ReduceOp
 else:
     class ReduceOp:
         SUM = None
@@ -108,7 +108,7 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
 
 
 def sync_ddp_if_available(
-    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None, async_op: bool = False,
 ) -> torch.Tensor:
     """
     Function to reduce a tensor across worker processes during distributed training
@@ -121,12 +121,12 @@ def sync_ddp_if_available(
         reduced value
     """
     if torch.distributed.is_available() and torch.distributed.is_initialized():
-        return sync_ddp(result, group=group, reduce_op=reduce_op)
+        return sync_ddp(result, group=group, reduce_op=reduce_op, async_op=async_op)
     return result
 
 
 def sync_ddp(
-    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None, async_op: bool = False,
 ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
@@ -152,7 +152,7 @@ def sync_ddp(
 
     # sync all processes before reduction
     torch.distributed.barrier(group=group)
-    torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
+    torch.distributed.all_reduce(result, op=op, group=group, async_op=async_op)
 
     if divide_by_world_size:
         result = result / torch.distributed.get_world_size(group)

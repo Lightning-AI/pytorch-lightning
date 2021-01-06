@@ -26,7 +26,7 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, rank_zero_only, sync_ddp_if_available
 
 if HYDRA_AVAILABLE:
@@ -236,8 +236,9 @@ class DDP2Accelerator(Accelerator):
     def sync_tensor(self,
                     tensor: Union[torch.Tensor],
                     group: Optional[Any] = None,
-                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
-        return sync_ddp_if_available(tensor, group, reduce_op)
+                    reduce_op: Optional[Union[ReduceOp, str]] = None,
+                    async_op: bool = False) -> torch.Tensor:
+        return sync_ddp_if_available(tensor, group, reduce_op, async_op)
 
     def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
         """

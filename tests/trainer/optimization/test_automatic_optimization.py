@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest.mock import ANY, call, patch
 
 import pytest
 import torch
 import torch.nn.functional as F
-from unittest.mock import ANY, call, patch
+
 from pytorch_lightning import Trainer
 from tests.base.boring_model import BoringModel
 
@@ -96,4 +97,3 @@ def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_ba
                 sgd_step.assert_has_calls(expected_calls)
     else:
         train()
-
