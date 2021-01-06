@@ -36,14 +36,23 @@ class NativeAMPPlugin(PrecisionPlugin):
             output = fx(*args)
         return output
 
+    @staticmethod
+    def is_loss_invalid(loss):
+        return torch.isnan(loss) or torch.isfinite(loss)
+
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
-        closure_loss = self.trainer.scaler.scale(closure_loss)
+        model = self.trainer.get_model()
+        if self.is_loss_invalid(closure_loss):
+            # scaler needs to fake tensor to properly initialized
+            fake_loss = torch.tensor(1, device=model.device)
+            self.trainer.scaler.scale(fake_loss)
+        else:
+            closure_loss = self.trainer.scaler.scale(closure_loss)
 
         automatic_optimization = self.trainer.train_loop.automatic_optimization
 
         # do backward pass
         if automatic_optimization:
-            model = self.trainer.get_model()
             model._backward_wrapper(closure_loss, optimizer, opt_idx)
         else:
             closure_loss.backward(*args, **kwargs)
@@ -74,10 +83,11 @@ class NativeAMPPlugin(PrecisionPlugin):
         with trainer.profiler.profile("closure"):
             closure()
 
-        if not self.trainer.train_loop.automatic_optimization:
-            trainer.scaler.unscale_(optimizer)
-            trainer.call_hook("on_after_backward")
+        if trainer.scaler._scale is not None:
+            if not self.trainer.train_loop.automatic_optimization:
+                trainer.scaler.unscale_(optimizer)
+                trainer.call_hook("on_after_backward")
 
-        with trainer.profiler.profile("optimizer_step"):
-            trainer.scaler.step(optimizer)
-            trainer.scaler.update()
+            with trainer.profiler.profile("optimizer_step"):
+                trainer.scaler.step(optimizer)
+                trainer.scaler.update()

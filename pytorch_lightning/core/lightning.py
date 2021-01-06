@@ -1204,7 +1204,7 @@ class LightningModule(
             self.__create_zeros_gradients()
 
         if not self.trainer.train_loop.should_accumulate():
-            self.__synchronize_gradients()
+            self.__synchronize_gradients(optimizer)
 
     def __check_invalid_loss(self, loss):
         is_invalid = torch.isnan(loss).int()
@@ -1220,7 +1220,7 @@ class LightningModule(
             if p.requires_grad and p.grad is None:
                 p.grad = torch.zeros_like(p, device=self.device, dtype=torch.float)
 
-    def __synchronize_gradients(self):
+    def __synchronize_gradients(self, optimizer):
         """
         This function will synchornize gradients
         """
@@ -1230,9 +1230,10 @@ class LightningModule(
         number_seen_batches = max(total_batches - total_invalid_batches, 1)
 
         # perform SUM all_reduce asynchronously
-        for p in self.parameters():
-            if p.requires_grad:
-                self.trainer.accelerator_backend.sync_tensor(p.grad, reduce_op="SUM", async_op=True)
+        for group in optimizer.param_groups:
+            for param in group["params"]:
+                if param.grad is not None:
+                    self.trainer.accelerator_backend.sync_tensor(param.grad, reduce_op="SUM", async_op=True)
 
         # wait for all synchronization
         self.trainer.accelerator_backend.barrier("Wait Gradient Synchronization End")
