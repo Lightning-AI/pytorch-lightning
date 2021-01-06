@@ -45,7 +45,6 @@ jobs:
           verbose: true
 
   docker-XLA:
-    if: contains(github.event.schedule, "0 0 * * 0")
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -78,7 +77,6 @@ jobs:
         timeout-minutes: 55
 
   docker-cuda-conda:
-    if: contains(github.event.schedule, "0 0 * * 0")
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
