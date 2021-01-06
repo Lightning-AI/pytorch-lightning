@@ -16,7 +16,7 @@ import os
 import pytest
 import torch
 import torch.nn.functional as F
-
+from unittest.mock import ANY, call, patch
 from pytorch_lightning import Trainer
 from tests.base.boring_model import BoringModel
 
@@ -26,7 +26,8 @@ from tests.base.boring_model import BoringModel
                     reason="test should be run outside of pytest")
 @pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
 @pytest.mark.parametrize('invalid_loss_strategy', ["normal", "skip_if_any", "never_skip"])
-def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_batches, invalid_loss_strategy):
+@pytest.mark.parametrize('mock', [False, True])
+def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_batches, invalid_loss_strategy, mock):
     """
     Tests that training doesn't hang with returning nan loss
     """
@@ -64,22 +65,35 @@ def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_ba
     model.val_dataloader = None
     model.training_epoch_end = None
 
-    try:
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=12,
-            limit_val_batches=2,
-            max_epochs=1,
-            log_every_n_steps=1,
-            weights_summary=None,
-            gpus=2,
-            accelerator="ddp",
-            accumulate_grad_batches=accumulate_grad_batches,
-        )
-        trainer.fit(model)
-    except Exception as e:
-        msg = "LightningModule `invalid_loss_strategy` property should be within"
-        if msg in str(e) and invalid_loss_strategy == "normal":
-            pass
-        else:
-            raise Exception(str(e))
+    limit_train_batches = 12
+
+    def train():
+        try:
+            trainer = Trainer(
+                default_root_dir=tmpdir,
+                limit_train_batches=limit_train_batches,
+                limit_val_batches=2,
+                max_epochs=1,
+                log_every_n_steps=1,
+                weights_summary=None,
+                gpus=2,
+                accelerator="ddp",
+                accumulate_grad_batches=accumulate_grad_batches,
+            )
+            trainer.fit(model)
+        except Exception as e:
+            msg = "LightningModule `invalid_loss_strategy` property should be within"
+            if msg in str(e) and invalid_loss_strategy == "normal":
+                pass
+            else:
+                raise Exception(str(e))
+
+    if mock:
+        with patch("torch.optim.SGD.step") as sgd_step:
+            train()
+            if invalid_loss_strategy != "normal":
+                expected_calls = [call(closure=ANY)] * (limit_train_batches // accumulate_grad_batches)
+                sgd_step.assert_has_calls(expected_calls)
+    else:
+        train()
+

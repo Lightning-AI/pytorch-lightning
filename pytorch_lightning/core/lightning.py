@@ -112,6 +112,7 @@ class LightningModule(
         self._running_manual_backward = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
+        self._invalid_loss_counts = []
 
     def optimizers(self):
         opts = self.trainer.optimizers
@@ -1180,27 +1181,46 @@ class LightningModule(
                 loss.backward(*args, **kwargs)
 
     def _backward_with_possible_nan_loss(self, loss: Tensor, *args, **kwargs) -> None:
-        is_loss_nan = torch.isnan(loss).int()
-        self.trainer.accelerator_backend.sync_tensor(is_loss_nan)
-        no_nan_losses = is_loss_nan == 0
+        """
+        This function is used to handle the case when a loss in a ``DistributedDataParallel`` 
+        """
+        self.__check_invalid_loss(loss)
+
+        # prevent ddp grad synchronization
         self.trainer.model.require_backward_grad_sync = False
 
         if not torch.isnan(loss):
             loss.backward(*args, **kwargs)
         else:
-            for p in self.parameters():
-                if p.requires_grad and p.grad is None:
-                    p.grad = torch.zeros_like(p, device=self.device, dtype=torch.float)
+            self.__create_zeros_gradients()
 
         if not self.trainer.train_loop.should_accumulate():
+            self.__synchronize_gradients()
 
-            for p in self.parameters():
-                if p.requires_grad:
-                    self.trainer.accelerator_backend.sync_tensor(p.grad, reduce_op="avg")
+    def __check_invalid_loss(self, loss):
+        is_invalid = torch.isnan(loss).int()
+        self.trainer.accelerator_backend.sync_tensor(is_invalid)
+        self._invalid_loss_counts.append(is_invalid)      
+        return False  
 
-            self.trainer.model._sync_params()
-
-        self.trainer.model.require_forward_param_sync = False
+    def __create_zeros_gradients(self):
+        for p in self.parameters():
+            if p.requires_grad and p.grad is None:
+                p.grad = torch.zeros_like(p, device=self.device, dtype=torch.float)
+        
+    def __synchronize_gradients(self):
+        # compute actual number of batches used during accumulation
+        total_invalid_batches = torch.FloatTensor(self._invalid_loss_counts).sum()
+        total_batches = self.trainer.accumulate_grad_batches * self.trainer.world_size
+        actual_number_batches = max(total_batches - total_invalid_batches, 1)
+        
+        for p in self.parameters():
+            if p.requires_grad:
+                self.trainer.accelerator_backend.sync_tensor(p.grad, reduce_op="SUM") 
+                p.grad /= actual_number_batches  
+        
+        # reset for next accumulation
+        self._invalid_loss_counts = []    
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """

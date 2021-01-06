@@ -880,7 +880,6 @@ class TrainLoop:
                 is_invalid = 1
 
             elif isinstance(result.closure_loss, torch.Tensor):
-                # self.trainer.print_colored_rank(f"{result.closure_loss} {torch.isnan(result.closure_loss)}")
                 is_invalid = int(torch.isnan(result.closure_loss))
 
             else:
