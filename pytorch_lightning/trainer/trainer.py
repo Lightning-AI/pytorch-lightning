@@ -133,7 +133,7 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
-        enable_pl_optimizer: bool = True,
+        enable_pl_optimizer: bool = False,
         multiple_trainloader_mode: str = 'max_size_cycle',
     ):
         r"""

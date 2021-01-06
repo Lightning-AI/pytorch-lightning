@@ -905,3 +905,42 @@ def test_hparams_type(tmpdir, hparams_type):
     else:
         # make sure it's not AttributeDict
         assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
+
+
+@pytest.mark.parametrize('max_epochs', [3, 4])
+@pytest.mark.parametrize(
+    'save_top_k, expected',
+    [
+        (1, ['curr_epoch.ckpt']),
+        (2, ['curr_epoch.ckpt', 'curr_epoch-v0.ckpt']),
+    ]
+)
+def test_model_checkpoint_file_already_exists(tmpdir, max_epochs, save_top_k, expected):
+    """
+    Test that version is added to filename if required and it already exists in dirpath.
+    """
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        filename='curr_epoch',
+        save_top_k=save_top_k,
+        monitor='epoch',
+        mode='max',
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[model_checkpoint],
+        max_epochs=max_epochs,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        logger=None,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+
+    model = BoringModel()
+    trainer.fit(model)
+    ckpt_files = os.listdir(tmpdir)
+    assert set(ckpt_files) == set(expected)
+
+    epochs_in_ckpt_files = [pl_load(os.path.join(tmpdir, f))['epoch'] - 1 for f in ckpt_files]
+    assert sorted(epochs_in_ckpt_files) == list(range(max_epochs - save_top_k, max_epochs))
