@@ -1212,12 +1212,12 @@ class LightningModule(
         # compute actual number of batches used during accumulation
         total_invalid_batches = torch.FloatTensor(self._invalid_loss_counts).sum()
         total_batches = self.trainer.accumulate_grad_batches * self.trainer.world_size
-        actual_number_batches = max(total_batches - total_invalid_batches, 1)
+        number_seen_batches = max(total_batches - total_invalid_batches, 1)
         
         for p in self.parameters():
             if p.requires_grad:
                 self.trainer.accelerator_backend.sync_tensor(p.grad, reduce_op="SUM") 
-                p.grad /= actual_number_batches  
+                p.grad /= number_seen_batches  
         
         # reset for next accumulation
         self._invalid_loss_counts = []    
