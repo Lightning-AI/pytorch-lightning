@@ -15,7 +15,9 @@
 import os
 import torch
 
-from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator, NewAccelerator, NewGPUAccelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.cpu import CPUAccelerator
+from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
     DataParallelPlugin, DDP2Plugin, HorovodPlugin
 from pytorch_lightning.accelerators.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
@@ -241,14 +243,14 @@ class BackendConnector(object):
         return plugin
 
     def select_accelerator(self):
-        if isinstance(self.distributed_backend, NewAccelerator):
+        if isinstance(self.distributed_backend, Accelerator):
             # custom accelerator from user
             return self.distributed_backend
 
         if self.on_gpu:
-            acc_cls = NewGPUAccelerator
+            acc_cls = GPUAccelerator
         else:
-            acc_cls = NewCPUAccelerator
+            acc_cls = CPUAccelerator
 
         return acc_cls(
             precision_plugin=self.select_precision_plugin(),

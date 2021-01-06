@@ -83,7 +83,7 @@ from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.plugins.plugin_connector import PluginConnector
-from pytorch_lightning.accelerators.accelerator import NewAccelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -133,7 +133,7 @@ class Trainer(
         val_check_interval: Union[int, float] = 1.0,
         flush_logs_every_n_steps: int = 100,
         log_every_n_steps: int = 50,
-        accelerator: Optional[Union[str, NewAccelerator]] = None,
+        accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = "top",

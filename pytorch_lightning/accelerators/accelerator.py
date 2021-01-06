@@ -21,7 +21,7 @@ from pytorch_lightning.accelerators.precision import (
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 
 
-class NewAccelerator(object):
+class Accelerator(object):
     def __init__(
         self,
         precision_plugin: PrecisionPlugin,
@@ -161,15 +161,6 @@ class NewAccelerator(object):
         if grad_clip_val <= 0:
             return
 
-        # TODO: Change this. Probably to isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.APEX
-
-        # if self.trainer.amp_backend == AMPType.APEX:
-        #     parameters = self.precision_plugin.master_params(optimizer)
-        # else:
-        #     parameters = model.parameters()
-
-        # TODO
-        #  ... or we call master_params() and in the default plugin we return the model.parameters()
         parameters = self.precision_plugin.master_params(optimizer)
 
         max_norm = grad_clip_val
@@ -246,7 +237,6 @@ class NewAccelerator(object):
     def rpc_enabled(self):
         return self.training_type_plugin.rpc_enabled
 
-    # TODO: Check where this comes from and why it is needed
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         """
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
@@ -260,47 +250,3 @@ class NewAccelerator(object):
 
     def on_save(self, checkpoint):
         return checkpoint
-
-
-class NewCPUAccelerator(NewAccelerator):
-    def setup(self, trainer, model):
-        if isinstance(self.precision_plugin, MixedPrecisionPlugin):
-            MisconfigurationException("amp + cpu is not supported.  Please use a GPU option")
-
-        if "cpu" not in str(self.root_device):
-            raise MisconfigurationException(f"Device should be CPU, got {self.root_device} instead")
-
-        return super().setup(trainer, model)
-
-
-class NewGPUAccelerator(NewAccelerator):
-    def setup(self, trainer, model):
-        if "cuda" not in str(self.root_device):
-            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
-        torch.cuda.set_device(self.root_device)
-        model.to(self.root_device)
-
-        return super().setup(trainer, model)
-
-    def on_train_start(self):
-        # clear cache before training
-        # use context because of:
-        # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
-        with torch.cuda.device(self.root_device):
-            torch.cuda.empty_cache()
-
-    def on_train_end(self):
-        # clean up memory
-        with torch.cuda.device(self.root_device):
-            torch.cuda.empty_cache()
-
-# TODO: Complete the TPUAccelerator
-class NewTPUAccelerator(NewAccelerator):
-    def setup(self, trainer, model):
-        raise NotImplementedError
-
-    def on_train_start(self):
-        raise NotImplementedError
-
-    def on_train_end(self):
-        raise NotImplementedError
