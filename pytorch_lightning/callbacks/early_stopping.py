@@ -98,7 +98,9 @@ class EarlyStopping(Callback):
 
     def __init_monitor_mode(self):
         if self.mode not in self.mode_dict and self.mode != 'auto':
-            raise MisconfigurationException(f'EarlyStopping mode={self.mode} is unknown.')
+            raise MisconfigurationException(
+                f"`mode` can be auto, {', '.join(self.mode_dict.keys())}, got {self.mode}"
+            )
 
         # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
         if self.mode == 'auto':

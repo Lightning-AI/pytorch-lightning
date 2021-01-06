@@ -288,7 +288,9 @@ class ModelCheckpoint(Callback):
         }
 
         if mode not in mode_dict and mode != 'auto':
-            raise MisconfigurationException(f'ModelCheckpoint mode={mode} is unknown.')
+            raise MisconfigurationException(
+                f"`mode` can be auto, {', '.join(mode_dict.keys())}, got {mode}"
+            )
 
         # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
         if mode == 'auto':
