@@ -59,10 +59,8 @@ class GPUAccelerator(Accelerator):
         self.trainer.model = model
 
     def train(self):
-        model = self.trainer.model
-
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        # set up trainer
+        self.trainer.setup_trainer(self.trainer.model)
 
         # train or test
         results = self.train_or_test()

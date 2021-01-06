@@ -15,9 +15,9 @@
 """Trainer to automate the training."""
 
 import os
+import warnings
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
-import warnings
 
 import torch
 from torch.utils.data import DataLoader
@@ -57,7 +57,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities import AMPType, DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -410,6 +410,51 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    def setup_trainer(self, model: LightningModule):
+        """
+        Sanity check a few things before starting actual training or testing.
+
+        Args:
+            model: The model to run sanity test on.
+        """
+        # --------------------------
+        # Setup??
+        # --------------------------
+        ref_model = model
+        if self.data_parallel:
+            ref_model = model.module
+
+        # set the ranks and devices
+        self.accelerator_backend.dist.rank = self.global_rank
+        self.accelerator_backend.dist.device = ref_model.device
+
+        # give model convenience properties
+        ref_model.trainer = self
+
+        # set local properties on the model
+        self.model_connector.copy_trainer_model_properties(ref_model)
+
+        # init amp. Must be done here instead of __init__ to allow ddp to work
+        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
+            self.scaler = self.precision_connector.backend.scaler
+
+        # log hyper-parameters
+        if self.logger is not None:
+            # save exp to get started (this is where the first experiment logs are written)
+            self.logger.log_hyperparams(ref_model.hparams_initial)
+            self.logger.log_graph(ref_model)
+            self.logger.save()
+
+        # wait for all to join if on distributed
+        self.accelerator_backend.barrier("setup_trainer")
+
+        # register auto-resubmit when on SLURM
+        self.slurm_connector.register_slurm_signal_handlers()
+
+        # track model now.
+        # if cluster resets state, the model will update with the saved weights
+        self.model = model
 
     def fit(
         self,

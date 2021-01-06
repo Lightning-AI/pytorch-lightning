@@ -26,11 +26,11 @@ from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import (
-    TPU_AVAILABLE,
     move_data_to_device,
     rank_zero_info,
     rank_zero_only,
     rank_zero_warn,
+    TPU_AVAILABLE,
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -134,8 +134,8 @@ class TPUAccelerator(Accelerator):
         # setup TPU training
         self.__setup_tpu_training(model, trainer)
 
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        # set up trainer
+        self.trainer.setup_trainer(model)
 
         # train or test
         results = self.train_or_test()

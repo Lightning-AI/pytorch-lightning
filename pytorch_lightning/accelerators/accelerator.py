@@ -66,6 +66,7 @@ class Accelerator(object):
         if self.trainer.testing:
             results = self.trainer.run_test()
         else:
+            self.trainer.train_loop.setup_training()
             results = self.trainer.train()
         return results
 

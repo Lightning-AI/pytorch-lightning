@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union, Callable
+from typing import Any, Callable, Optional, Union
 
 import torch
 
@@ -53,10 +53,8 @@ class CPUAccelerator(Accelerator):
         self.trainer.model = model
 
     def train(self):
-        model = self.trainer.model
-
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        # set up trainer
+        self.trainer.setup_trainer(self.trainer.model)
 
         # train or test
         results = self.train_or_test()
