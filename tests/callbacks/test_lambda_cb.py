@@ -15,13 +15,7 @@ import pytest
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LambdaCallback
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
-
-
-def test_lambda_raise_misconfiguration():
-    with pytest.raises(MisconfigurationException, match='does not exist in supported callbacks function'):
-        LambdaCallback(invalid=lambda *args: args)
 
 
 def test_lambda_call(tmpdir):

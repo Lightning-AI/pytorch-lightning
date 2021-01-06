@@ -20,10 +20,9 @@ Create a simple callback on the fly using lambda functions.
 
 """
 
-import inspect
+from typing import Callable, Optional
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class LambdaCallback(Callback):
@@ -40,12 +39,117 @@ class LambdaCallback(Callback):
         >>> trainer = Trainer(callbacks=[LambdaCallback(setup=lambda *args: print('setup'))])
     """
 
-    def __init__(self, **kwargs):
-        hooks = [m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
-        for k, v in kwargs.items():
-            if k not in hooks:
-                raise MisconfigurationException(
-                    f"The event function: `{k}` does not exist in supported callbacks function."
-                    f" Currently, `Callback` implements the following functions {hooks}"
-                )
-            setattr(self, k, v)
+    def __init__(
+        self,
+        setup: Optional[Callable] = None,
+        teardown: Optional[Callable] = None,
+        on_init_start: Optional[Callable] = None,
+        on_init_end: Optional[Callable] = None,
+        on_fit_start: Optional[Callable] = None,
+        on_fit_end: Optional[Callable] = None,
+        on_sanity_check_start: Optional[Callable] = None,
+        on_sanity_check_end: Optional[Callable] = None,
+        on_train_batch_start: Optional[Callable] = None,
+        on_train_batch_end: Optional[Callable] = None,
+        on_train_epoch_start: Optional[Callable] = None,
+        on_train_epoch_end: Optional[Callable] = None,
+        on_validation_epoch_start: Optional[Callable] = None,
+        on_validation_epoch_end: Optional[Callable] = None,
+        on_test_epoch_start: Optional[Callable] = None,
+        on_test_epoch_end: Optional[Callable] = None,
+        on_epoch_start: Optional[Callable] = None,
+        on_epoch_end: Optional[Callable] = None,
+        on_batch_start: Optional[Callable] = None,
+        on_validation_batch_start: Optional[Callable] = None,
+        on_validation_batch_end: Optional[Callable] = None,
+        on_test_batch_start: Optional[Callable] = None,
+        on_test_batch_end: Optional[Callable] = None,
+        on_batch_end: Optional[Callable] = None,
+        on_train_start: Optional[Callable] = None,
+        on_train_end: Optional[Callable] = None,
+        on_pretrain_routine_start: Optional[Callable] = None,
+        on_pretrain_routine_end: Optional[Callable] = None,
+        on_validation_start: Optional[Callable] = None,
+        on_validation_end: Optional[Callable] = None,
+        on_test_start: Optional[Callable] = None,
+        on_test_end: Optional[Callable] = None,
+        on_keyboard_interrupt: Optional[Callable] = None,
+        on_save_checkpoint: Optional[Callable] = None,
+        on_load_checkpoint: Optional[Callable] = None,
+        on_after_backward: Optional[Callable] = None,
+        on_before_zero_grad: Optional[Callable] = None,
+    ):
+        if setup is not None:
+            self.setup = setup
+        if teardown is not None:
+            self.teardown = teardown
+        if on_init_start is not None:
+            self.on_init_start = on_init_start
+        if on_init_end is not None:
+            self.on_init_end = on_init_end
+        if on_fit_start is not None:
+            self.on_fit_start = on_fit_start
+        if on_fit_end is not None:
+            self.on_fit_end = on_fit_end
+        if on_sanity_check_start is not None:
+            self.on_sanity_check_start = on_sanity_check_start
+        if on_sanity_check_end is not None:
+            self.on_sanity_check_end = on_sanity_check_end
+        if on_train_batch_start is not None:
+            self.on_train_batch_start = on_train_batch_start
+        if on_train_batch_end is not None:
+            self.on_train_batch_end = on_train_batch_end
+        if on_train_epoch_start is not None:
+            self.on_train_epoch_start = on_train_epoch_start
+        if on_train_epoch_end is not None:
+            self.on_train_epoch_end = on_train_epoch_end
+        if on_validation_epoch_start is not None:
+            self.on_validation_epoch_start = on_validation_epoch_start
+        if on_validation_epoch_end is not None:
+            self.on_validation_epoch_end = on_validation_epoch_end
+        if on_test_epoch_start is not None:
+            self.on_test_epoch_start = on_test_epoch_start
+        if on_test_epoch_end is not None:
+            self.on_test_epoch_end = on_test_epoch_end
+        if on_epoch_start is not None:
+            self.on_epoch_start = on_epoch_start
+        if on_epoch_end is not None:
+            self.on_epoch_end = on_epoch_end
+        if on_batch_start is not None:
+            self.on_batch_start = on_batch_start
+        if on_validation_batch_start is not None:
+            self.on_validation_batch_start = on_validation_batch_start
+        if on_validation_batch_end is not None:
+            self.on_validation_batch_end = on_validation_batch_end
+        if on_test_batch_start is not None:
+            self.on_test_batch_start = on_test_batch_start
+        if on_test_batch_end is not None:
+            self.on_test_batch_end = on_test_batch_end
+        if on_batch_end is not None:
+            self.on_batch_end = on_batch_end
+        if on_train_start is not None:
+            self.on_train_start = on_train_start
+        if on_train_end is not None:
+            self.on_train_end = on_train_end
+        if on_pretrain_routine_start is not None:
+            self.on_pretrain_routine_start = on_pretrain_routine_start
+        if on_pretrain_routine_end is not None:
+            self.on_pretrain_routine_end = on_pretrain_routine_end
+        if on_validation_start is not None:
+            self.on_validation_start = on_validation_start
+        if on_validation_end is not None:
+            self.on_validation_end = on_validation_end
+        if on_test_start is not None:
+            self.on_test_start = on_test_start
+        if on_test_end is not None:
+            self.on_test_end = on_test_end
+        if on_keyboard_interrupt is not None:
+            self.on_keyboard_interrupt = on_keyboard_interrupt
+        if on_save_checkpoint is not None:
+            self.on_save_checkpoint = on_save_checkpoint
+        if on_load_checkpoint is not None:
+            self.on_load_checkpoint = on_load_checkpoint
+        if on_after_backward is not None:
+            self.on_after_backward = on_after_backward
+        if on_before_zero_grad is not None:
+            self.on_before_zero_grad = on_before_zero_grad
