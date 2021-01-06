@@ -654,7 +654,7 @@ To use Sharded Training, you need to first install FairScale using the command b
 
 .. code-block:: bash
 
-    pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.1.0.zip
+    pip install fairscale
 
 
 .. code-block:: python
@@ -681,7 +681,7 @@ Reference: https://arxiv.org/abs/1811.06965
 
 .. note:: DDPSequentialPlugin is currently supported only for Pytorch 1.6.
 
-To get started, install FairScale using the command below.
+To get started, install FairScale using the command below. We install a specific branch which contains PyTorch related fixes for Sequential Parallelism.
 
 .. code-block:: bash
 
