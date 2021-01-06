@@ -53,7 +53,7 @@ class TestModel(BoringModel):
         torch.equal(weight / 2., clone_weight)
 
 
-def train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, limit_train_batches):
+def train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, limit_train_batches, precision=32):
     model = TestModel(invalid_loss_strategy)
     model.val_dataloader = None
     model.training_epoch_end = None
@@ -70,6 +70,8 @@ def train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, l
             gpus=2,
             accelerator=accelerator,
             accumulate_grad_batches=accumulate_grad_batches,
+            amp_backend='native',
+            precision=precision
         )
         trainer.fit(model)
     except Exception as e:
@@ -87,19 +89,20 @@ def train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, l
 @pytest.mark.parametrize('invalid_loss_strategy', ["normal", "skip_if_any", "never_skip"])
 @pytest.mark.parametrize('mock', [False, True])
 @pytest.mark.parametrize('accelerator', ["ddp"])
-def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_batches, invalid_loss_strategy, mock, accelerator):
+@pytest.mark.parametrize('precision', [16, 32])
+def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_batches, invalid_loss_strategy, mock, accelerator, precision):
     """
     Tests that training doesn't hang with returning nan loss
     """
     limit_train_batches = 12
     if mock:
         with patch("torch.optim.SGD.step") as sgd_step:
-            train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, limit_train_batches)
+            train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, limit_train_batches, precision=precision)
             if invalid_loss_strategy != "normal":
                 expected_calls = [call(closure=ANY)] * (limit_train_batches // accumulate_grad_batches)
                 sgd_step.assert_has_calls(expected_calls)
     else:
-        train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, limit_train_batches)
+        train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, limit_train_batches, precision=precision)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
