@@ -118,7 +118,8 @@ def unfreeze_and_add_param_group(module: Module,
          })
 
 
-multiplicative = lambda epoch: 2
+def multiplicative(epoch):
+    return 2
 
 
 class BaseFinetunningCallback(Callback):
