@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.core.lightning import DecisionOnInvalidResult, LightningModule
+from pytorch_lightning.core.lightning import InvalidLossStrategy, LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
@@ -120,10 +120,10 @@ class ConfigValidator(object):
                 f'you defined a {step_name} but have no {loader_name}. Skipping {eval_loop_name} loop'
             )
 
-    def check_decision_on_invalid_result(self):
-        values = [v.value for v in DecisionOnInvalidResult]
-        decision_on_invalid_result = self.trainer.get_model().decision_on_invalid_result
-        if decision_on_invalid_result not in values:
+    def check_invalid_loss_strategy(self):
+        values = [v.value for v in InvalidLossStrategy]
+        invalid_loss_strategy = self.trainer.get_model().invalid_loss_strategy
+        if invalid_loss_strategy not in values:
             raise MisconfigurationException(
-                f'LightningModule `decision_on_invalid_result` property should be within {values}. Provided {decision_on_invalid_result}'
+                f'LightningModule `invalid_loss_strategy` property should be within {values}. Provided {invalid_loss_strategy}'
             )

@@ -129,6 +129,6 @@ class DeviceType(LightningEnum):
     TPU = 'TPU'
 
 
-class DecisionOnInvalidResult(LightningEnum):
-    SKIP_ON_AT_lEAST_ONE = "skip_on_at_least_one"
+class InvalidLossStrategy(LightningEnum):
+    SKIP_IF_ANY = "skip_if_any"
     NEVER_SKIP = "never_skip"

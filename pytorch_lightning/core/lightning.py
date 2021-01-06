@@ -38,7 +38,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.utilities import DecisionOnInvalidResult, rank_zero_warn, TPU_AVAILABLE
+from pytorch_lightning.utilities import InvalidLossStrategy, rank_zero_warn, TPU_AVAILABLE
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
@@ -164,14 +164,14 @@ class LightningModule(
         return True
 
     @property
-    def decision_on_invalid_result(self) -> Union[str, int]:
+    def invalid_loss_strategy(self) -> Union[str, int]:
         """
         This property is used to decide behaviour on ``training_step`` result object
         when using LightningDistributedDataParallel.
 
-        Can either be "skip_on_at_least_one" or "never_skip".
+        Can either be "skip_if_any" or "never_skip".
 
-        "skip_on_at_least_one":
+        "skip_if_any":
             If result is None on at least on, it will skip
             ``backward`` and ``optimizer_step`` for all processes
 
@@ -181,7 +181,7 @@ class LightningModule(
             synchronized before running ``optimizer.step``
 
         """
-        return "skip_on_at_least_one"
+        return "skip_if_any"
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -1172,7 +1172,7 @@ class LightningModule(
         if automatic_optimization or self._running_manual_backward:
 
             is_ddp = isinstance(self.trainer.model, LightningDistributedDataParallel)
-            never_skip = self.decision_on_invalid_result == DecisionOnInvalidResult.NEVER_SKIP
+            never_skip = self.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP
 
             if is_ddp and never_skip and automatic_optimization:
                 self._backward_with_possible_nan_loss(loss, *args, **kwargs)

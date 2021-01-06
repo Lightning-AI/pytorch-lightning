@@ -27,7 +27,7 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import AMPType, DecisionOnInvalidResult, parsing, TPU_AVAILABLE
+from pytorch_lightning.utilities import AMPType, InvalidLossStrategy, parsing, TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -185,8 +185,8 @@ class TrainLoop:
         # restore training state and model weights before hpc is called
         self.trainer.checkpoint_connector.restore_weights(model)
 
-        # check check_decision_on_invalid_result is correct set
-        self.trainer.config_validator.check_decision_on_invalid_result()
+        # check check_invalid_loss_strategy is correct set
+        self.trainer.config_validator.check_invalid_loss_strategy()
 
         # on pretrain routine end
         self.trainer.on_pretrain_routine_end(ref_model)
@@ -864,13 +864,13 @@ class TrainLoop:
         is_result_none = result is None
         if isinstance(self.trainer.model, LightningDistributedDataParallel):
             model_ref = self.trainer.get_model()
-            skip_on_at_leat_one = model_ref.decision_on_invalid_result == DecisionOnInvalidResult.SKIP_ON_AT_lEAST_ONE
-            never_skip = model_ref.decision_on_invalid_result == DecisionOnInvalidResult.NEVER_SKIP
+            skip_on_at_leat_one = model_ref.invalid_loss_strategy == InvalidLossStrategy.SKIP_IF_ANY
+            never_skip = model_ref.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP
 
             if never_skip and is_result_none:
                 raise MisconfigurationException(
-                    "decision_on_invalid_result ``never_skip`` doesn't support returning None for training_step. "
-                    "Hint: Either switch to ``skip_on_at_least_one`` or return a Nan or Inf loss directly"
+                    "invalid_loss_strategy ``never_skip`` doesn't support returning None for training_step. "
+                    "Hint: Either switch to ``skip_if_any`` or return a Nan or Inf loss directly"
                 )
 
             if not skip_on_at_leat_one:
