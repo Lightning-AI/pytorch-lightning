@@ -20,14 +20,14 @@ def sk_auc(x, y, reorder=False):
         idx = np.argsort(x, kind='stable')
         x = x[idx]
         y = y[idx]
-    print('sk', x, y)
+        print('sk', x, y, idx)
     return _sk_auc(x, y)
 
 
 Input = namedtuple('Input', ["x", "y", "reorder"])
 
 _examples = []
-# generate already ordered samples, in both directions
+# generate already ordered samples, sorted in both directions
 for i in range(4):
     x = np.random.randint(0, 5, (NUM_BATCHES*8))
     y = np.random.randint(0, 5, (NUM_BATCHES*8))
@@ -37,12 +37,7 @@ for i in range(4):
     x = x.reshape(NUM_BATCHES, 8)
     y = y.reshape(NUM_BATCHES, 8)
     _examples.append(Input(x=torch.tensor(x), y=torch.tensor(y), reorder=False))
-# generate non ordered samples
-for i in range(2):
-    x = np.random.randint(0, 5, (NUM_BATCHES, 8))
-    y = np.random.randint(0, 5, (NUM_BATCHES, 8))
-    _examples.append(Input(x=torch.tensor(x), y=torch.tensor(y), reorder=True))
-    
+
 
 @pytest.mark.parametrize("x, y, reorder", _examples)
 class TestAUC(MetricTester):

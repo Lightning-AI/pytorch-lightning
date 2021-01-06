@@ -22,6 +22,9 @@ def _auc_update(x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.T
     if x.ndim > 1 or y.ndim > 1:
         raise ValueError('Expected both `x` and `y` tensor to be 1d, but got'
                          f' tensors with dimention {x.ndim=} and {y.ndim=}')
+    if x.numel() != y.numel():
+        raise ValueError('Expected the same number of elements in `x` and `y`'
+                         ' tensor but received {x.numel()=} and {y.numel()=}')
     return x, y
 
 
@@ -29,6 +32,7 @@ def _auc_compute(x: torch.Tensor, y: torch.Tensor, reorder: bool = False) -> tor
     if reorder:
         x, x_idx = _stable_1d_sort(x)
         y = y[x_idx]
+        print('pl', x, y, x_idx)
     dx = x[1:] - x[:-1]
     if (dx < 0).any():
         if (dx <= 0).all():
@@ -38,7 +42,6 @@ def _auc_compute(x: torch.Tensor, y: torch.Tensor, reorder: bool = False) -> tor
                              "Try setting the reorder argument to `True`.")
     else:
         direction = 1.
-    print('pl', x, y)
     return direction * torch.trapz(y, x)
     
 
