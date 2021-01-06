@@ -56,7 +56,7 @@ class MNISTDataModule(LightningDataModule):
         """
         super().__init__(*args, **kwargs)
         if platform.system() == "Windows":
-            # see: https://stackoverflow.com/a/59680818/4521646
+            # see: https://stackoverflow.com/a/59680818
             num_workers = 0
 
         self.dims = (1, 28, 28)
