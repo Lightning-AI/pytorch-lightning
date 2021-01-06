@@ -304,8 +304,3 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
 def test_early_stopping_mode_options():
     with pytest.raises(MisconfigurationException, match="`mode` can be auto, .* got unknown_option"):
         EarlyStopping(mode="unknown_option")
-
-
-def test_model_checkpoint_mode_options():
-    with pytest.raises(MisconfigurationException, match="`mode` can be auto, .* got unknown_option"):
-        ModelCheckpoint(mode="unknown_option")
