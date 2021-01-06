@@ -121,6 +121,7 @@ class DDPHPCAccelerator(Accelerator):
         """
         # determine which process we are and world size
         self.set_world_ranks(process_idx)
+        self.init_device(process_idx)
 
         # toggle prog bar
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:

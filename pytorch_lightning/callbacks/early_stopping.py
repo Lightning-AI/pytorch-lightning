@@ -19,12 +19,14 @@ Early Stopping
 Monitor a metric and stop training when it stops improving.
 
 """
+import numbers
 
 import numpy as np
 import torch
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn, _TPU_AVAILABLE
+from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_info, rank_zero_warn
 
 
 class EarlyStopping(Callback):
@@ -199,8 +201,11 @@ class EarlyStopping(Callback):
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
 
-        if not isinstance(current, torch.Tensor):
-            current = torch.tensor(current, device=pl_module.device)
+        if current is not None:
+            if isinstance(current, Metric):
+                current = current.compute()
+            elif isinstance(current, numbers.Number):
+                current = torch.tensor(current, device=pl_module.device, dtype=torch.float)
 
         if trainer.use_tpu and _TPU_AVAILABLE:
             current = current.cpu()

@@ -25,9 +25,10 @@ class SLURMEnvironment(ClusterEnvironment):
 
     def master_address(self):
         # figure out the root node addr
-        try:
-            root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
-        except Exception:
+        slurm_nodelist = os.environ.get("SLURM_NODELIST")
+        if slurm_nodelist:
+            root_node = slurm_nodelist.split(" ")[0]
+        else:
             root_node = "127.0.0.1"
 
         root_node = self._resolve_root_node_address(root_node)
@@ -40,24 +41,22 @@ class SLURMEnvironment(ClusterEnvironment):
         # SLURM JOB = PORT number
         # -----------------------
         # this way every process knows what port to use
-        try:
+        default_port = os.environ.get("SLURM_JOB_ID")
+        if default_port:
             # use the last 4 numbers in the job id as the id
-            default_port = os.environ["SLURM_JOB_ID"]
             default_port = default_port[-4:]
-
             # all ports should be in the 10k+ range
             default_port = int(default_port) + 15000
-
-        except Exception:
+        else:
             default_port = 12910
 
         # -----------------------
         # PORT NUMBER = MASTER_PORT
         # -----------------------
         # in case the user passed it in
-        try:
+        if "MASTER_PORT" in os.environ:
             default_port = os.environ["MASTER_PORT"]
-        except Exception:
+        else:
             os.environ["MASTER_PORT"] = str(default_port)
 
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")

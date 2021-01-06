@@ -43,3 +43,6 @@ class DDPCPUHPCAccelerator(DDPHPCAccelerator):
     def get_device_ids(self):
         device_ids = None
         return device_ids
+
+    def init_device(self, process_idx):
+        pass
