@@ -24,9 +24,9 @@ from collections import defaultdict
 from contextlib import contextmanager
 from typing import Optional, Union
 
-import fsspec
 import numpy as np
 
+import fsspec
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
