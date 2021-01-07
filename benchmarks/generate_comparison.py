@@ -14,8 +14,8 @@
 import os
 
 import matplotlib.pylab as plt
-import pandas as pd
 
+import pandas as pd
 from benchmarks.test_basic_parity import measure_loops
 from tests.base.models import ParityModuleMNIST, ParityModuleRNN
 
