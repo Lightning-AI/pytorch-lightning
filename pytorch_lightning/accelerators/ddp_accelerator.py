@@ -318,6 +318,7 @@ class DDPAccelerator(Accelerator):
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         model = self.ddp_plugin.configure_ddp(model, device_ids)
+        self.ddp_plugin.configure_ddp_comm_hook(model, self.trainer)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:

@@ -11,17 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+from functools import partial
 from typing import Dict
+
 import torch
 import torch.distributed as torch_distrib
 import torch.distributed as dist
-from pytorch_lightning.utilities import TORCH_GREATER_EQUAL_1_7_0, LightningEnum
-from functools import partial
+
+from pytorch_lightning.utilities import LightningEnum, TORCH_GREATER_EQUAL_1_7_0
 
 init_allreduce_hook_with_invalid_tensors = None
 allreduce_hook_with_invalid_tensors = None
 update_allreduce_hook_with_invalid_tensors = None
-allreduce_hook_with_invalid_tensors_err_message = "Hint: Hooks are currently support only for PyTorch 1.7"
+allreduce_hook_with_invalid_tensors_err_message = "Hint: `DDP_COMM_HOOKS` are introduced in PyTorch 1.7. Update PyTorch to use this feature"
 
 
 if TORCH_GREATER_EQUAL_1_7_0:
@@ -33,7 +35,7 @@ if TORCH_GREATER_EQUAL_1_7_0:
             state["accumulate_grad_batches"] = accumulate_grad_batches
             state["world_size"] = world_size
 
-        return partial(init_hook, 
+        return partial(init_hook,
                        accumulate_grad_batches=trainer.accumulate_grad_batches,
                        world_size=trainer.world_size)
 
@@ -42,7 +44,7 @@ if TORCH_GREATER_EQUAL_1_7_0:
 
     def allreduce_hook_with_invalid_tensors(state: Dict, bucket: torch_distrib._GradBucket):
         """
-        This DDP communication hook implements all reduce where some tensors are allowed to be NaN.
+        This DDP communication all_reduce hook enables to train with NaN or Inf losses
         """
         group_to_use = torch_distrib.group.WORLD
         tensor = bucket.get_tensors()[0]
@@ -61,9 +63,9 @@ if TORCH_GREATER_EQUAL_1_7_0:
         state["is_invalid"] = torch.vstack(state["is_invalid"]).sum()
 
         dist.all_reduce(
-            state["is_invalid"], 
-            group=group_to_use, 
-            async_op=False, 
+            state["is_invalid"],
+            group=group_to_use,
+            async_op=False,
             op=torch_distrib.ReduceOp.SUM
         )
 

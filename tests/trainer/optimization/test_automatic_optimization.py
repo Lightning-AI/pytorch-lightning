@@ -35,11 +35,11 @@ class TestModel(BoringModel):
             if batch_idx in [0, 1, 8, 9] and self.invalid_loss_strategy != "never_skip":
                 output = None
             elif batch_idx in [2, 3, 10, 11]:
+                # Generate an invalid tensor
                 try:
                     output /= 0
-                except:
+                except Exception:
                     pass
-                # output = torch.tensor(float('NaN'), device=self.device)
         return output
 
     def configure_optimizers(self):

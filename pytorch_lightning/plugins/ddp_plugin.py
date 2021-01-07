@@ -13,17 +13,21 @@
 # limitations under the License
 import os
 from contextlib import contextmanager
+from functools import partial
 from typing import Any, Dict, List, Optional, Union
+
 import torch
 import torch.distributed as torch_distrib
-from torch.optim import Optimizer
-from functools import partial
 import torch.distributed as dist
+from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.optim import Optimizer
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.plugins.ddp_comm_hooks import DDP_COMM_CALLBACK, initialize_ddp_comm_hooks
 from pytorch_lightning.plugins.plugin import LightningPlugin
-from pytorch_lightning.plugins.ddp_comm_hooks import initialize_ddp_comm_hooks, DDP_COMM_CALLBACK
+
 
 class DDPPlugin(LightningPlugin):
     """
@@ -83,11 +87,11 @@ class DDPPlugin(LightningPlugin):
             device_ids=device_ids,
             **self._ddp_kwargs,
         )
-        self.configure_ddp_comm_hook(model, trainer)
         return model
 
     def configure_ddp_comm_hook(self, model, trainer):
-        initialize_ddp_comm_hooks(model, trainer)
+        if isinstance(model, DistributedDataParallel):
+            initialize_ddp_comm_hooks(model, trainer)
 
     def init_ddp_connection(
             self,
