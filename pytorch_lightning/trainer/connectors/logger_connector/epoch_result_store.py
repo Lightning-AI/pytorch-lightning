@@ -399,7 +399,7 @@ class EpochResultStore:
             callback_metrics.update(epoch_log_metrics)
             callback_metrics.update(forked_metrics)
 
-        if not is_train:
+        if not is_train and self.trainer.testing:
             logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         # update callback_metrics
