@@ -279,7 +279,7 @@ class PPOLightning(pl.LightningModule):
 
         return adv
 
-    def train_batch(
+    def generate_trajectory_samples(
             self,
     ) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
         """
@@ -427,7 +427,7 @@ class PPOLightning(pl.LightningModule):
 
     def _dataloader(self) -> DataLoader:
         """Initialize the Replay Buffer dataset used for retrieving experiences"""
-        dataset = ExperienceSourceDataset(self.train_batch)
+        dataset = ExperienceSourceDataset(self.generate_trajectory_samples)
         dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size)
         return dataloader
 
