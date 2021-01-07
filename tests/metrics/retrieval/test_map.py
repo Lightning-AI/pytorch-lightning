@@ -2,6 +2,7 @@ import math
 import numpy as np
 import pytest
 import torch
+import random
 from sklearn.metrics import average_precision_score as sk_average_precision
 
 from pytorch_lightning import seed_everything
@@ -21,83 +22,107 @@ def test_against_sklearn(sklearn_metric, torch_class_metric):
     batch_sizes = [1, 4, 10]
     query_without_relevant_docs_options = ['skip', 'pos', 'neg']
 
+    def compute_sklearn_metric(target, preds, behaviour):
+        """ Compute sk metric with multiple iterations using the base `sklearn_metric`. """
+        sk_results = []
+        kwargs = {'device': device, 'dtype': torch.float32}
+
+        for b, a in zip(target, preds):
+            res = sklearn_metric(b, a)
+
+            if math.isnan(res):
+                if behaviour == 'skip':
+                    pass
+                elif behaviour == 'pos':
+                    sk_results.append(
+                        torch.tensor(1.0, **kwargs)
+                    )
+                else:
+                    sk_results.append(
+                        torch.tensor(0.0, **kwargs)
+                    )
+            else:
+                sk_results.append(
+                    torch.tensor(res, **kwargs)
+                )
+        if len(sk_results) > 0:
+            sk_results = torch.stack(sk_results).mean()
+        else:
+            sk_results = torch.tensor(0.0, **kwargs)
+
+        return sk_results
+
+    def do_test(batch_size, size):
+        """ For each possible behaviour of the metric, check results are correct. """
+        for behaviour in query_without_relevant_docs_options:
+            metric = torch_class_metric(query_without_relevant_docs=behaviour)
+            shape = (size,)
+
+            indexes = []
+            preds = []
+            target = []
+
+            for i in range(batch_size):
+                indexes.append(
+                    np.ones(shape, dtype=int) * i
+                )
+                preds.append(
+                    np.random.randn(*shape)
+                )
+                target.append(
+                    np.random.randn(*shape) > 0
+                )
+            
+            sk_results = compute_sklearn_metric(target, preds, behaviour)
+
+            indexes = torch.cat([torch.tensor(i) for i in indexes])
+            preds = torch.cat([torch.tensor(p) for p in preds])
+            target = torch.cat([torch.tensor(t) for t in target])
+
+            # lets assume data are not ordered
+            perm = torch.randperm(indexes.nelement())
+            indexes = indexes.view(-1)[perm].view(indexes.size())
+            preds = preds.view(-1)[perm].view(preds.size())
+            target = target.view(-1)[perm].view(target.size())
+
+            # shuffle ids to require also sorting of documents ability from the lightning metric
+            pl_result = metric(indexes, preds, target)
+
+            assert torch.allclose(sk_results.float(), pl_result.float(), equal_nan=True)
+
     for batch_size in batch_sizes:
         for size in sizes:
             for _ in range(rounds):
-                for behaviour in query_without_relevant_docs_options:
+                do_test(batch_size, size)
 
-                    metric = torch_class_metric(query_without_relevant_docs=behaviour)
-                    shape = (size,)
 
-                    indexes = []
-                    preds = []
-                    target = []
+@pytest.mark.parametrize(['torch_class_metric'],[
+    [RetrievalMAP],
+])
+def test_input_data(torch_class_metric):
+    """Check PL metrics inputs are controlled correctly. """
 
-                    for i in range(batch_size):
-                        indexes.append(
-                            np.ones(shape, dtype=int) * i
-                        )
-                        preds.append(
-                            np.random.randn(*shape)
-                        )
-                        target.append(
-                            np.random.randn(*shape) > 0
-                        )
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    seed_everything(0)
 
-                    # compute sk metric with multiple iterations using the base `sklearn_metric`
-                    sk_results = []
-                    kwargs = {'device': device, 'dtype': torch.float32}
-                    for b, a in zip(target, preds):
-                        res = sklearn_metric(b, a)
+    for _ in range(10):
 
-                        if math.isnan(res):
-                            if behaviour == 'skip':
-                                pass
-                            elif behaviour == 'pos':
-                                sk_results.append(
-                                    torch.tensor(1.0, **kwargs)
-                                )
-                            else:
-                                sk_results.append(
-                                    torch.tensor(0.0, **kwargs)
-                                )
-                        else:
-                            sk_results.append(
-                                torch.tensor(res, **kwargs)
-                            )
-                    if len(sk_results) > 0:
-                        sk_results = torch.stack(sk_results).mean()
-                    else:
-                        sk_results = torch.tensor(0.0, **kwargs)
+        length = random.randint(0, 20)
 
-                    indexes = torch.cat([torch.tensor(i) for i in indexes])
-                    preds = torch.cat([torch.tensor(p) for p in preds])
-                    target = torch.cat([torch.tensor(t) for t in target])
+        # check error when `query_without_relevant_docs='error'` is raised correctly
+        indexes = torch.tensor([0] * length, device=device, dtype=torch.int64)
+        preds = torch.rand(size=(length, ), device=device, dtype=torch.float32)
+        target = torch.tensor([False] * length, device=device, dtype=torch.bool)
 
-                    perm = torch.randperm(indexes.nelement())
-                    indexes = indexes.view(-1)[perm].view(indexes.size())
-                    preds = preds.view(-1)[perm].view(preds.size())
-                    target = target.view(-1)[perm].view(target.size())
+        metric = torch_class_metric(query_without_relevant_docs='error')
 
-                    # shuffle ids to require also sorting of documents ability from the lightning metric
-                    pl_result = metric(indexes, preds, target)
+        try:
+            metric(indexes, preds, target)
+        except Exception as e:
+            assert isinstance(e, ValueError)
 
-                    assert torch.allclose(sk_results.float(), pl_result.float(), equal_nan=True)
-
-    # check error when `query_without_relevant_docs='error'` is raised correctly
-    indexes = torch.tensor([0, 0, 0], device=device, dtype=torch.int64)
-    preds = torch.tensor([0.1, 0.2, 0.3], device=device, dtype=torch.float32)
-    target = torch.tensor([False, False, False], device=device, dtype=torch.bool)
-
-    metric = torch_class_metric(query_without_relevant_docs='error')
-
-    try:
-        metric(indexes, preds, target)
-    except Exception as e:
-        assert isinstance(e, ValueError)
-
-    # check ValueError with non-accepted argument
-    try:
-        metric = torch_class_metric(query_without_relevant_docs='casual_argument')
-    except Exception as e:
-        assert isinstance(e, ValueError)
+        # check ValueError with non-accepted argument
+        try:
+            metric = torch_class_metric(query_without_relevant_docs='casual_argument')
+        except Exception as e:
+            assert isinstance(e, ValueError)
