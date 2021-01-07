@@ -22,7 +22,6 @@ from pytorch_lightning.utilities import (
     FAIRSCALE_AVAILABLE,
     InvalidLossStrategy,
     rank_zero_only,
-    rank_zero_warn,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 

@@ -134,7 +134,7 @@ class DDPPlugin(LightningPlugin):
 
     def on_before_backward_engine_execution(self, trainer):
         state = trainer.comm_hook_state
-        callback_name = DDP_COMM_CALLBACK.UPDATE_ON_BEFORE_BACKWARD_ENGINE_EXECUTION.value
+        callback_name = DDP_COMM_CALLBACK.ON_BEFORE_BACKWARD_ENGINE_EXECUTION.value
         if callback_name in state:
             state[callback_name](trainer)
 

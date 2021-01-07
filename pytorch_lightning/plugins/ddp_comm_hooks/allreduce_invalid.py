@@ -95,4 +95,4 @@ class ALLREDUCE_INVALID(LightningEnum):
     INIT_STATE_HOOK = init_allreduce_hook_with_invalid_tensors
     HOOK = allreduce_hook_with_invalid_tensors
     ERR_MSG = allreduce_hook_with_invalid_tensors_err_message
-    UPDATE_ON_BEFORE_BACKWARD_ENGINE_EXECUTION = update_allreduce_hook_with_invalid_tensors
+    ON_BEFORE_BACKWARD_ENGINE_EXECUTION = update_allreduce_hook_with_invalid_tensors

@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class DDP_COMM_CALLBACK(LightningEnum):
-    UPDATE_ON_BEFORE_BACKWARD_ENGINE_EXECUTION = "update_on_before_backward_engine_execution"
+    ON_BEFORE_BACKWARD_ENGINE_EXECUTION = "ON_BEFORE_BACKWARD_ENGINE_EXECUTION"
 
 
 def initialize_ddp_comm_hooks(model: LightningDistributedDataParallel, trainer):
@@ -33,7 +33,7 @@ def _ddp_comm_hook_wrapper(model, trainer, ddp_comm_hook):
     hook_name = ddp_comm_hook.__name__
     hook = ddp_comm_hook.HOOK
     init_state_hook = ddp_comm_hook.INIT_STATE_HOOK
-    update_hook = ddp_comm_hook.UPDATE_ON_BEFORE_BACKWARD_ENGINE_EXECUTION
+    update_hook = ddp_comm_hook.ON_BEFORE_BACKWARD_ENGINE_EXECUTION
     err_msg = ddp_comm_hook.ERR_MSG
 
     if hook is None or init_state_hook is None:
@@ -44,7 +44,7 @@ def _ddp_comm_hook_wrapper(model, trainer, ddp_comm_hook):
 
     trainer.add_comm_hook_state(hook_name, init_hook=init_state_hook(trainer))
     state = trainer.comm_hook_state[hook_name]
-    state[DDP_COMM_CALLBACK.UPDATE_ON_BEFORE_BACKWARD_ENGINE_EXECUTION.value] = partial(update_hook, state=state)
+    state[DDP_COMM_CALLBACK.ON_BEFORE_BACKWARD_ENGINE_EXECUTION.value] = partial(update_hook, state=state)
     model._register_comm_hook(state, hook)
 
 

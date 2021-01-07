@@ -864,7 +864,7 @@ class TrainLoop:
         is_result_none = result is None
         if isinstance(self.trainer.model, LightningDistributedDataParallel):
             model_ref = self.trainer.get_model()
-            skip_on_at_leat_one = model_ref.invalid_loss_strategy == InvalidLossStrategy.SKIP_IF_ANY
+            skip_if_any = model_ref.invalid_loss_strategy == InvalidLossStrategy.SKIP_IF_ANY
             never_skip = model_ref.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP
 
             if never_skip and is_result_none:
@@ -873,7 +873,7 @@ class TrainLoop:
                     "Hint: Either switch to ``skip_if_any`` or return a Nan or Inf loss directly"
                 )
 
-            if not skip_on_at_leat_one:
+            if not skip_if_any:
                 return is_result_none
 
             if is_result_none:

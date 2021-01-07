@@ -169,18 +169,19 @@ class LightningModule(
     @property
     def invalid_loss_strategy(self) -> Union[str, int]:
         """
-        This property is used to decide behaviour on ``training_step`` result object
-        when using LightningDistributedDataParallel.
+        This property is used to decide the optimization behaviour when
+        ``training_step`` returns an invalid loss (None, NaN, or +-Inf)
+        when using DDP.
 
         Can either be "skip_if_any" or "never_skip".
 
         "skip_if_any":
-            If result is None on at least on, it will skip
-            ``backward`` and ``optimizer_step`` for all processes
-
+            If one process returns an invalid loss, ``backward`` and
+            ``optimizer_step`` will be skipped on all processes
+            
         "never_skip":
-            If result loss is NaN or Inf on 1 or more processes,
-            those processes will skip backward and gradient will be
+            If the loss is invalid on 1 or more processes,
+            those processes will skip ``backward`` and gradients will be
             synchronized before running ``optimizer.step``
 
         """
@@ -188,6 +189,11 @@ class LightningModule(
 
     @invalid_loss_strategy.setter
     def invalid_loss_strategy(self, invalid_loss_strategy):
+        allowed = list(InvalidLossStrategy)
+        if invalid_loss_strategy not in allowed:
+            raise MisconfigurationException(
+                f'LightningModule `invalid_loss_strategy` property should be within {allowed}. Found {invalid_loss_strategy}'
+        )
         self._invalid_loss_strategy = invalid_loss_strategy
 
     def print(self, *args, **kwargs) -> None:

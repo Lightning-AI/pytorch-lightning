@@ -121,9 +121,9 @@ class ConfigValidator(object):
             )
 
     def check_invalid_loss_strategy(self):
-        values = [v.value for v in InvalidLossStrategy]
+        allowed = list(InvalidLossStrategy)
         invalid_loss_strategy = self.trainer.get_model().invalid_loss_strategy
-        if invalid_loss_strategy not in values:
+        if invalid_loss_strategy not in allowed:
             raise MisconfigurationException(
-                f'LightningModule `invalid_loss_strategy` property should be within {values}. Provided {invalid_loss_strategy}'
+                f'LightningModule `invalid_loss_strategy` property should be within {allowed}. Found {invalid_loss_strategy}'
             )
