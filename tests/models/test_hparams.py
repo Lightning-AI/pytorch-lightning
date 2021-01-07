@@ -20,14 +20,18 @@ import cloudpickle
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
-from omegaconf import OmegaConf, Container
+from omegaconf import Container, OmegaConf
+from omegaconf.dictconfig import DictConfig
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
-from pytorch_lightning.utilities import AttributeDict, is_picklable
-from tests.base import EvalModelTemplate, TrialMNIST, BoringModel
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
+from pytorch_lightning.utilities import AttributeDict, HYDRA_AVAILABLE, is_picklable
+from tests.base import BoringModel, EvalModelTemplate, TrialMNIST
+
+if HYDRA_AVAILABLE:
+    from hydra.experimental import compose, initialize
 
 
 class SaveHparamsModel(BoringModel):
@@ -633,6 +637,33 @@ class UnsafeParamModel(BoringModel):
 
 def test_model_with_fsspec_as_parameter(tmpdir):
     model = UnsafeParamModel(LocalFileSystem(tmpdir))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=1,
+    )
+    trainer.fit(model)
+    trainer.test()
+
+
+@pytest.mark.skipif(not HYDRA_AVAILABLE, reason="Hydra is not available")
+def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
+
+    initialize(config_path="conf")
+
+    cfg = compose(config_name="config")
+
+    class TestModel(BoringModel):
+
+        def __init__(self, cfg):
+            self.save_hyperparameters()
+            assert isinstance(self.hparams.cfg, DictConfig)
+            assert self.hparams.cfg.log == "Something"
+            super().__init__()
+
+    model = TestModel(cfg)
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
