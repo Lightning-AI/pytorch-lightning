@@ -125,7 +125,7 @@ def ssim(
     Computes Structual Similarity Index Measure
 
     Args:
-        pred: estimated image
+        preds: estimated image
         target: ground truth image
         kernel_size: size of the gaussian kernel (default: (11, 11))
         sigma: Standard deviation of the gaussian kernel (default: (1.5, 1.5))
