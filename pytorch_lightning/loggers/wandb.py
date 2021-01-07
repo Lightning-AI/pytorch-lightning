@@ -86,13 +86,13 @@ class WandbLogger(LightningLoggerBase):
         save_dir: Optional[str] = None,
         offline: Optional[bool] = False,
         id: Optional[str] = None,
-        version: Optional[str] = None,
         anonymous: Optional[bool] = False,
+        version: Optional[str] = None,
         project: Optional[str] = None,
         log_model: Optional[bool] = False,
+        experiment=None,
         prefix: Optional[str] = '',
         sync_step: Optional[bool] = True,
-        experiment=None,
         **kwargs
     ):
         if wandb is None:
