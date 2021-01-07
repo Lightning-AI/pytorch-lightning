@@ -62,6 +62,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `DDPHPCAccelerator` hangs in DDP construction by calling `init_device` ([#5157](https://github.com/PyTorchLightning/pytorch-lightning/pull/5157))
 
 
+- Fixed `num_workers` for Windows example ([#5375](https://github.com/PyTorchLightning/pytorch-lightning/pull/5375))
+
+
 ## [1.1.3rc] - 2020-12-29
 
 ### Added
