@@ -92,7 +92,7 @@ You can also control more advanced options, like `save_top_k`, to save the best 
     )
 
     trainer = Trainer(callbacks=[checkpoint_callback])
-    
+
 You can retrieve the checkpoint after training by calling
 
 .. code-block:: python
