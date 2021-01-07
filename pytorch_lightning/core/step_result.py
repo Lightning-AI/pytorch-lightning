@@ -306,9 +306,9 @@ class Result(Dict):
         Gets the metrics to log at the end of epoch
         """
         result = {}
-
         meta = self['meta']
         for k, options in meta.items():
+            print(k)
             if k == '_internal':
                 continue
 
@@ -321,11 +321,15 @@ class Result(Dict):
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
                     self[k].reset()
+                    print("reset", k)
                 else:
                     result[dl_key] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
                 # reset metric anyway so state does not accumulate
+                # NOTE: we must compute before setting just incase the computed value is needed
+                # before reseting
+                self[k].compute()
                 self[k].reset()
 
         return result
@@ -355,6 +359,9 @@ class Result(Dict):
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
                 # reset metric anyway so state does not accumulate
+                # NOTE: we must compute before setting just incase the computed value is needed
+                # before reseting
+                self[k].compute()
                 self[k].reset()
 
         return result
