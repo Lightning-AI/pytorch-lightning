@@ -38,7 +38,6 @@ import torch
 from torch import nn
 from torch.distributions import Categorical, Normal
 from torch.utils.data import DataLoader, IterableDataset
-import torch.optim as optim
 from torch.optim.optimizer import Optimizer
 
 
@@ -412,8 +411,8 @@ class PPOLightning(pl.LightningModule):
 
     def configure_optimizers(self) -> List[Optimizer]:
         """ Initialize Adam optimizer"""
-        optimizer_actor = optim.Adam(self.actor.parameters(), lr=self.lr_actor)
-        optimizer_critic = optim.Adam(self.critic.parameters(), lr=self.lr_critic)
+        optimizer_actor = torch.optim.Adam(self.actor.parameters(), lr=self.lr_actor)
+        optimizer_critic = torch.optim.Adam(self.critic.parameters(), lr=self.lr_critic)
 
         return optimizer_actor, optimizer_critic
 
