@@ -36,17 +36,17 @@ import argparse
 from collections import deque, namedtuple, OrderedDict
 from typing import List, Tuple
 
-import gym
 import numpy as np
+
+import gym
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from pl_examples import cli_lightning_logo
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
-
-import pytorch_lightning as pl
-from pl_examples import cli_lightning_logo
 
 
 class DQN(nn.Module):
