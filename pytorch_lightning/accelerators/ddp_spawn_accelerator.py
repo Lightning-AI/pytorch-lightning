@@ -161,9 +161,6 @@ class DDPSpawnAccelerator(Accelerator):
 
         self.ddp_plugin.on_after_setup_optimizers(self.trainer)
 
-        # set model properties before going into wrapper
-        self.trainer.model_connector.copy_trainer_model_properties(model)
-
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 

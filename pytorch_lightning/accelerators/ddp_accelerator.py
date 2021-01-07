@@ -285,9 +285,6 @@ class DDPAccelerator(Accelerator):
         # allow for lr schedulers as well
         self.setup_optimizers(model)
 
-        # set model properties before going into wrapper
-        self.trainer.model_connector.copy_trainer_model_properties(model)
-
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
