@@ -57,6 +57,7 @@ class Metric(nn.Module, ABC):
             Callback that performs the allgather operation on the metric state. When `None`, DDP
             will be used to perform the allgather. default: None
     """
+
     def __init__(
         self,
         compute_on_step: bool = True,
@@ -119,12 +120,10 @@ class Metric(nn.Module, ABC):
         """
         if (
             not isinstance(default, torch.Tensor)
-            and not isinstance(default, list)                     # noqa: W503
+            and not isinstance(default, list)  # noqa: W503
             or (isinstance(default, list) and len(default) != 0)  # noqa: W503
         ):
-            raise ValueError(
-                "state variable must be a tensor or any empty list (where you can append tensors)"
-            )
+            raise ValueError("state variable must be a tensor or any empty list (where you can append tensors)")
 
         if dist_reduce_fx == "sum":
             dist_reduce_fx = dim_zero_sum
@@ -133,9 +132,7 @@ class Metric(nn.Module, ABC):
         elif dist_reduce_fx == "cat":
             dist_reduce_fx = dim_zero_cat
         elif dist_reduce_fx is not None and not isinstance(dist_reduce_fx, Callable):
-            raise ValueError(
-                "`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]"
-            )
+            raise ValueError("`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]")
 
         setattr(self, name, default)
 
@@ -197,6 +194,7 @@ class Metric(nn.Module, ABC):
         def wrapped_func(*args, **kwargs):
             self._computed = None
             return update(*args, **kwargs)
+
         return wrapped_func
 
     def _wrap_compute(self, compute):
@@ -207,28 +205,27 @@ class Metric(nn.Module, ABC):
                 return self._computed
 
             dist_sync_fn = self.dist_sync_fn
-            if (dist_sync_fn is None
-                    and torch.distributed.is_available()
-                    and torch.distributed.is_initialized()):
+            if dist_sync_fn is None and torch.distributed.is_available() and torch.distributed.is_initialized():
                 # User provided a bool, so we assume DDP if available
                 dist_sync_fn = gather_all_tensors
-           
+
             synced = False
             if self._to_sync and dist_sync_fn is not None:
                 # cache prior to syncing
                 cache = {attr: getattr(self, attr) for attr in self._defaults.keys()}
-                
+
                 # sync
                 self._sync_dist(dist_sync_fn)
                 synced = True
 
             self._computed = compute(*args, **kwargs)
             if synced:
-                 # ADDED: if we synced, restore to cache
+                # if we synced, restore to cache so that we can continue to accumulate un-synced state
                 for attr, val in cache.items():
                     setattr(self, attr, val)
-           
+
             return self._computed
+
         return wrapped_func
 
     @abstractmethod
@@ -268,8 +265,8 @@ class Metric(nn.Module, ABC):
         self.compute = self._wrap_compute(self.compute)
 
     def _apply(self, fn):
-        """ Overwrite _apply function such that we can also move metric states
-            to the correct device when `.to`, `.cuda`, etc methods are called
+        """Overwrite _apply function such that we can also move metric states
+        to the correct device when `.to`, `.cuda`, etc methods are called
         """
         self = super()._apply(fn)
         # Also apply fn to metric states
@@ -280,13 +277,15 @@ class Metric(nn.Module, ABC):
             elif isinstance(current_val, Sequence):
                 setattr(self, key, [fn(cur_v) for cur_v in current_val])
             else:
-                raise TypeError('Expected metric state to be either a torch.Tensor'
-                                f'or a list of torch.Tensor, but encountered {current_val}')
+                raise TypeError(
+                    "Expected metric state to be either a torch.Tensor"
+                    f"or a list of torch.Tensor, but encountered {current_val}"
+                )
         return self
 
     def persistent(self, mode: bool = False):
-        """ Method for post-init to change if metric states should be saved to
-            its state_dict
+        """Method for post-init to change if metric states should be saved to
+        its state_dict
         """
         for key in self._persistent.keys():
             self._persistent[key] = mode
