@@ -325,8 +325,8 @@ class Result(Dict):
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
                 # reset metric anyway so state does not accumulate
-                # NOTE: we must compute before setting just incase the computed value is needed
-                # before reseting
+                # NOTE: we must compute before reseting just in case the computed value is needed
+                # later (i.e. if the step metric gets visited first, and then the epoch metric)
                 self[k].compute()
                 self[k].reset()
 
@@ -357,8 +357,8 @@ class Result(Dict):
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
                 # reset metric anyway so state does not accumulate
-                # NOTE: we must compute before setting just incase the computed value is needed
-                # before reseting
+                # NOTE: we must compute before reseting just in case the computed value is needed
+                # later (i.e. if the step metric gets visited first, and then the epoch metric)
                 self[k].compute()
                 self[k].reset()
 
