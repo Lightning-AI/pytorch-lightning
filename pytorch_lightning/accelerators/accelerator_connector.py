@@ -14,14 +14,12 @@
 import os
 
 import torch
-
-from pytorch_lightning.utilities import HOROVOD_AVAILABLE
 from pytorch_lightning import _logger as log
 from pytorch_lightning import accelerators
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
-from pytorch_lightning.utilities import device_parser, rank_zero_only, TPU_AVAILABLE
+from pytorch_lightning.utilities import device_parser, HOROVOD_AVAILABLE, rank_zero_only, TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 

@@ -14,8 +14,6 @@
 from typing import Optional, Union
 
 import torch
-from torch import optim
-
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
@@ -25,6 +23,7 @@ from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from torch import optim
 
 
 class DataParallelAccelerator(Accelerator):
