@@ -14,6 +14,7 @@
 import inspect
 import os
 from argparse import ArgumentParser, Namespace
+from contextlib import suppress
 from typing import Dict, Union, List, Tuple, Any
 from pytorch_lightning.utilities import parsing
 
@@ -24,6 +25,7 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
     Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
 
     Args:
+        cls: Lightning class
         args: The parser or namespace to take arguments from. Only known arguments will be
             parsed and passed to the :class:`Trainer`.
         **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
@@ -98,10 +100,10 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
         env = template % {'cls_name': cls.__name__.upper(), 'cls_argument': arg_name.upper()}
         val = os.environ.get(env)
         if not (val is None or val == ''):
-            try:  # converting to native types like int/float/bool
+            # todo: specify the possible exception
+            with suppress(Exception):
+                # converting to native types like int/float/bool
                 val = eval(val)
-            except Exception:
-                pass
             env_args[arg_name] = val
     return Namespace(**env_args)
 
@@ -138,6 +140,7 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
     r"""Extends existing argparse by default `Trainer` attributes.
 
     Args:
+        cls: Lightning class
         parent_parser:
             The custom cli arguments parser, which will be extended by
             the Trainer default arguments.
