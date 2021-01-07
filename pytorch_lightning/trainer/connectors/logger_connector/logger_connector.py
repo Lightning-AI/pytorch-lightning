@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from copy import deepcopy
+import os
 from pprint import pprint
 from typing import Iterable, Union
 
@@ -273,10 +273,13 @@ class LoggerConnector:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
                     self.trainer.logger_connector.callback_metrics.update(eval_result.callback_metrics)
-                    self.trainer.logger_connector.evaluation_callback_metrics.update(eval_result.callback_metrics)
+                    if self.trainer.testing:
+                        self.trainer.logger_connector.evaluation_callback_metrics.update(
+                            eval_result.callback_metrics)
             else:
                 self.trainer.logger_connector.callback_metrics.update(eval_results.callback_metrics)
-                self.trainer.logger_connector.evaluation_callback_metrics.update(eval_results.callback_metrics)
+                if self.trainer.testing:
+                    self.trainer.logger_connector.evaluation_callback_metrics.update(eval_results.callback_metrics)
         else:
             flat = {}
             if isinstance(eval_results, list):
@@ -292,7 +295,8 @@ class LoggerConnector:
                         flat['checkpoint_on'] = flat['val_loss']
                         flat['early_stop_on'] = flat['val_loss']
                     self.trainer.logger_connector.callback_metrics.update(flat)
-                    self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
+                    if self.trainer.testing:
+                        self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
             else:
                 # with a scalar return, auto set it to "val_loss" for callbacks
                 if isinstance(eval_results, torch.Tensor):
@@ -305,7 +309,8 @@ class LoggerConnector:
                     flat['checkpoint_on'] = flat['val_loss']
                     flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
-                self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
+                if self.trainer.testing:
+                    self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
 
     def __process_eval_epoch_end_results_and_log_legacy_update(self, prog_bar_metrics, log_metrics, callback_metrics):
         # eval loop returns all metrics
@@ -322,7 +327,8 @@ class LoggerConnector:
         callback_metrics.update(log_metrics)
         callback_metrics.update(prog_bar_metrics)
         self.trainer.logger_connector.callback_metrics.update(callback_metrics)
-        self.trainer.logger_connector.evaluation_callback_metrics.update(callback_metrics)
+        if self.trainer.testing:
+            self.trainer.logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         if len(dataloader_result_metrics) > 0:
             self.eval_loop_results.append(dataloader_result_metrics)
@@ -589,7 +595,7 @@ class LoggerConnector:
     def log_train_step_metrics(self, batch_output):
         _, batch_log_metrics = self.cached_results.update_logger_connector()
         # when metrics should be logged
-        if self.should_update_logs or self.trainer.fast_dev_run:
+        if self.should_update_logs or self.trainer.fast_dev_run is True:
             # logs user requested information to logger
             grad_norm_dic = batch_output.grad_norm_dic
             if grad_norm_dic is None:

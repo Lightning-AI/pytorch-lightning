@@ -3,6 +3,10 @@
 Test set
 ========
 Lightning forces the user to run the test set separately to make sure it isn't evaluated by mistake.
+Testing is performed using the ``trainer`` object's ``.test()`` method.
+
+.. automethod:: pytorch_lightning.trainer.Trainer.test
+    :noindex:
 
 ----------
 
@@ -37,7 +41,7 @@ You can run the test set on multiple models using the same trainer instance.
 
     model1 = LitModel()
     model2 = GANModel()
-    
+
     trainer = Trainer()
     trainer.test(model1)
     trainer.test(model2)
@@ -82,4 +86,19 @@ is not available at the time your model was declared.
     trainer.test(test_dataloaders=test)
 
 You can either pass in a single dataloader or a list of them. This optional named
-parameter can be used in conjunction with any of the above use cases.
+parameter can be used in conjunction with any of the above use cases. Additionally,
+you can also pass in an :ref:`datamodules` that have overridden the
+:ref:`datamodule-test-dataloader-label` method.
+
+.. code-block:: python
+
+    class MyDataModule(pl.LightningDataModule):
+        ...
+        def test_dataloader(self):
+            return DataLoader(...)
+
+    # setup your datamodule
+    dm = MyDataModule(...)
+
+    # test (pass in datamodule)
+    trainer.test(datamodule=dm)

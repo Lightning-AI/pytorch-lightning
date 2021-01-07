@@ -80,7 +80,7 @@ def test_horovod_cpu(enable_pl_optimizer, tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        distributed_backend='horovod',
+        accelerator='horovod',
         deterministic=True,
         enable_pl_optimizer=enable_pl_optimizer,
     )
@@ -120,7 +120,7 @@ def test_horovod_multi_gpu(tmpdir):
         limit_val_batches=0.2,
         gpus=2,
         deterministic=True,
-        distributed_backend='horovod'
+        accelerator='horovod',
     )
     _run_horovod(trainer_options, on_gpu=True)
 
@@ -141,7 +141,7 @@ def test_horovod_apex(tmpdir):
         limit_val_batches=0.2,
         gpus=2,
         deterministic=True,
-        distributed_backend='horovod',
+        accelerator='horovod',
         amp_backend='apex',
         precision=16,
     )
@@ -165,7 +165,7 @@ def test_horovod_amp(tmpdir):
         limit_val_batches=0.2,
         gpus=2,
         deterministic=True,
-        distributed_backend='horovod',
+        accelerator='horovod',
         amp_backend='native',
         precision=16,
     )
@@ -200,7 +200,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         limit_val_batches=0.2,
         gpus=1,
         deterministic=True,
-        distributed_backend='horovod'
+        accelerator='horovod',
     )
     tpipes.run_model_test_without_loggers(trainer_options, model)
 
@@ -218,7 +218,7 @@ def test_horovod_multi_optimizer(enable_pl_optimizer, tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         deterministic=True,
-        distributed_backend='horovod',
+        accelerator='horovod',
         enable_pl_optimizer=enable_pl_optimizer,
     )
     result = trainer.fit(model)
@@ -308,7 +308,7 @@ def test_accuracy_metric_horovod():
     def _compute_batch():
         trainer = Trainer(
             fast_dev_run=True,
-            distributed_backend='horovod',
+            accelerator='horovod',
         )
 
         accelerator_backend = trainer.accelerator_connector.select_accelerator()

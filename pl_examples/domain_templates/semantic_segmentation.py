@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import random
 from argparse import ArgumentParser, Namespace
@@ -10,11 +24,25 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 
 import pytorch_lightning as pl
+from pl_examples import cli_lightning_logo
 from pl_examples.domain_templates.unet import UNet
 from pytorch_lightning.loggers import WandbLogger
 
 DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
 DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33)
+
+
+def _create_synth_kitti_dataset(path_dir: str, image_dims: tuple = (1024, 512)):
+    """Create synthetic dataset with random images, just to simulate that the dataset have been already downloaded."""
+    path_dir_images = os.path.join(path_dir, KITTI.IMAGE_PATH)
+    path_dir_masks = os.path.join(path_dir, KITTI.MASK_PATH)
+    for p_dir in (path_dir_images, path_dir_masks):
+        os.makedirs(p_dir, exist_ok=True)
+    for i in range(3):
+        path_img = os.path.join(path_dir_images, f'dummy_kitti_{i}.png')
+        Image.new('RGB', image_dims).save(path_img)
+        path_mask = os.path.join(path_dir_masks, f'dummy_kitti_{i}.png')
+        Image.new('L', image_dims).save(path_mask)
 
 
 class KITTI(Dataset):
@@ -38,6 +66,12 @@ class KITTI(Dataset):
     In the `get_item` function, images and masks are resized to the given `img_size`, masks are
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
+
+    >>> from pl_examples import DATASETS_PATH
+    >>> dataset_path = os.path.join(DATASETS_PATH, "Kitti")
+    >>> _create_synth_kitti_dataset(dataset_path, image_dims=(1024, 512))
+    >>> KITTI(dataset_path, 'train')  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    <...semantic_segmentation.KITTI object at ...>
     """
     IMAGE_PATH = os.path.join('training', 'image_2')
     MASK_PATH = os.path.join('training', 'semantic')
@@ -126,16 +160,35 @@ class SegModel(pl.LightningModule):
     It uses the FCN ResNet50 model as an example.
 
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
-    """
 
-    def __init__(self,
-                 data_path: str,
-                 batch_size: int,
-                 lr: float,
-                 num_layers: int,
-                 features_start: int,
-                 bilinear: bool, **kwargs):
-        super().__init__()
+    >>> from pl_examples import DATASETS_PATH
+    >>> dataset_path = os.path.join(DATASETS_PATH, "Kitti")
+    >>> _create_synth_kitti_dataset(dataset_path, image_dims=(1024, 512))
+    >>> SegModel(dataset_path)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    SegModel(
+      (net): UNet(
+        (layers): ModuleList(
+          (0): DoubleConv(...)
+          (1): Down(...)
+          (2): Down(...)
+          (3): Up(...)
+          (4): Up(...)
+          (5): Conv2d(64, 19, kernel_size=(1, 1), stride=(1, 1))
+        )
+      )
+    )
+    """
+    def __init__(
+            self,
+            data_path: str,
+            batch_size: int = 4,
+            lr: float = 1e-3,
+            num_layers: int = 3,
+            features_start: int = 64,
+            bilinear: bool = False,
+            **kwargs,
+    ):
+        super().__init__(**kwargs)
         self.data_path = data_path
         self.batch_size = batch_size
         self.lr = lr
@@ -189,6 +242,18 @@ class SegModel(pl.LightningModule):
     def val_dataloader(self):
         return DataLoader(self.validset, batch_size=self.batch_size, shuffle=False)
 
+    @staticmethod
+    def add_model_specific_args(parent_parser):  # pragma: no-cover
+        parser = ArgumentParser(parents=[parent_parser])
+        parser.add_argument("--data_path", type=str, help="path where dataset is stored")
+        parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
+        parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
+        parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
+        parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
+        parser.add_argument("--bilinear", action='store_true', default=False,
+                            help="whether to use bilinear interpolation or transposed")
+        return parser
+
 
 def main(hparams: Namespace):
     # ------------------------
@@ -209,14 +274,7 @@ def main(hparams: Namespace):
     # ------------------------
     # 3 INIT TRAINER
     # ------------------------
-    trainer = pl.Trainer(
-        gpus=hparams.gpus,
-        logger=logger,
-        max_epochs=hparams.epochs,
-        accumulate_grad_batches=hparams.grad_batches,
-        distributed_backend=hparams.distributed_backend,
-        precision=16 if hparams.use_amp else 32,
-    )
+    trainer = pl.Trainer.from_argparse_args(hparams)
 
     # ------------------------
     # 5 START TRAINING
@@ -225,22 +283,9 @@ def main(hparams: Namespace):
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     parser = ArgumentParser()
-    parser.add_argument("--data_path", type=str, help="path where dataset is stored")
-    parser.add_argument("--gpus", type=int, default=-1, help="number of available GPUs")
-    parser.add_argument('--distributed-backend', type=str, default='dp', choices=('dp', 'ddp', 'ddp2'),
-                        help='supports three options dp, ddp, ddp2')
-    parser.add_argument('--use_amp', action='store_true', help='if true uses 16 bit precision')
-    parser.add_argument("--batch_size", type=int, default=4, help="size of the batches")
-    parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
-    parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
-    parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
-    parser.add_argument("--bilinear", action='store_true', default=False,
-                        help="whether to use bilinear interpolation or transposed")
-    parser.add_argument("--grad_batches", type=int, default=1, help="number of batches to accumulate")
-    parser.add_argument("--epochs", type=int, default=20, help="number of epochs to train")
-    parser.add_argument("--log_wandb", action='store_true', help="log training on Weights & Biases")
-
+    parser = SegModel.add_model_specific_args(parser)
     hparams = parser.parse_args()
 
     main(hparams)
