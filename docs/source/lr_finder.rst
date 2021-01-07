@@ -2,7 +2,7 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
-    
+
 .. _lr_finder:
 
 Learning Rate Finder
@@ -22,14 +22,14 @@ for both better performance and faster convergence. Even optimizers such as
 choices.
 
 To reduce the amount of guesswork concerning choosing a good initial learning
-rate, a `learning rate finder` can be used. As described in this `paper <https://arxiv.org/abs/1506.01186>`_ 
-a learning rate finder does a small run where the learning rate is increased 
-after each processed batch and the corresponding loss is logged. The result of 
+rate, a `learning rate finder` can be used. As described in this `paper <https://arxiv.org/abs/1506.01186>`_
+a learning rate finder does a small run where the learning rate is increased
+after each processed batch and the corresponding loss is logged. The result of
 this is a `lr` vs. `loss` plot that can be used as guidance for choosing a optimal
-initial lr. 
+initial lr.
 
-.. warning:: 
-    For the moment, this feature only works with models having a single optimizer. 
+.. warning::
+    For the moment, this feature only works with models having a single optimizer.
     LR Finder support for DDP is not implemented yet, it is coming soon.
 
 ----------
@@ -52,7 +52,7 @@ which can be accessed via ``self.learning_rate`` or ``self.lr``.
 
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=(self.lr or self.learning_rate))
-            
+
     model = LitModel()
 
     # finds learning rate automatically
@@ -81,26 +81,26 @@ method of the trainer. A typical example of this would look like
 
     model = MyModelClass(hparams)
     trainer = Trainer()
-    
+
     # Run learning rate finder
     lr_finder = trainer.tuner.lr_find(model)
-    
+
     # Results can be found in
     lr_finder.results
-    
+
     # Plot with
     fig = lr_finder.plot(suggest=True)
     fig.show()
-    
+
     # Pick point based on plot, or get suggestion
     new_lr = lr_finder.suggestion()
-    
+
     # update hparams of the model
     model.hparams.lr = new_lr
 
     # Fit model
     trainer.fit(model)
-    
+
 The figure produced by ``lr_finder.plot()`` should look something like the figure
 below. It is recommended to not pick the learning rate that achieves the lowest
 loss, but instead something in the middle of the sharpest downward slope (red point).
