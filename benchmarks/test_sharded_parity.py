@@ -18,8 +18,8 @@ import time
 from typing import Type, Union
 
 import pytest
-import torch
 
+import torch
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
