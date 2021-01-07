@@ -63,7 +63,6 @@ from pytorch_lightning.callbacks.finetunning import BaseFinetunningCallback, fre
 
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
 
-
 #  --- Finetunning Callback ---
 
 class MilestonesFinetunningCallback(BaseFinetunningCallback):
@@ -94,7 +93,6 @@ class MilestonesFinetunningCallback(BaseFinetunningCallback):
             
 
 #  --- Pytorch-lightning module ---
-
 
 class TransferLearningModel(pl.LightningModule):
     """Transfer Learning with pre-trained ResNet50.
@@ -201,7 +199,7 @@ class TransferLearningModel(pl.LightningModule):
         self.log("val_acc", self.valid_acc(y_logits, y_true.int()), prog_bar=True) 
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=self.lr)
 
         scheduler = MultiStepLR(optimizer, milestones=self.milestones, gamma=self.lr_scheduler_gamma)
 
@@ -297,7 +295,7 @@ class TransferLearningModel(pl.LightningModule):
             dest="train_bn",
         )
         parser.add_argument(
-            "--milestones", default=[5, 10], type=list, metavar="M", help="List of two epochs milestones"
+            "--milestones", default=[2, 4], type=list, metavar="M", help="List of two epochs milestones"
         )
         return parser
 

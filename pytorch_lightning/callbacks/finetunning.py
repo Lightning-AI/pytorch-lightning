@@ -64,23 +64,17 @@ def _recursive_freeze(module: Module,
 
 
 def freeze(module: Module,
-           n: Optional[int] = None,
            train_bn: bool = True) -> None:
     """Freezes the layers up to index n (if n is not None).
     Args:
         module: The module to freeze (at least partially)
-        n: Max depth at which we stop freezing the layers. If None, all
-            the layers of the given module will be frozen.
         train_bn: If True, leave the BatchNorm layers in training mode
     """
-    children = list(module.children())
-    n_max = len(children) if n is None else int(n)
-
-    for child in children[:n_max]:
-        _recursive_freeze(module=child, train_bn=train_bn)
-
-    for child in children[n_max:]:
-        _make_trainable(module=child)
+    for module_ in module.parameters():
+        if (isinstance(module_, BN_TYPES) and train_bn):
+            _make_trainable(module_)
+        else:
+            module_.requires_grad = False
 
 
 def filter_params(module: Module,
@@ -128,7 +122,8 @@ class BaseFinetunningCallback(Callback):
     BaseFinetunningCallback.
     Overrides the finetunning_function and add your own logic there.
     """
-    def on_fit_start(self, _, pl_module):
+    def on_before_accelerator_backend_setup(self, _, pl_module):
+        import pdb; pdb.set_trace()
         self.freeze_before_training(pl_module)
 
     def on_train_epoch_start(self, trainer, pl_module):
