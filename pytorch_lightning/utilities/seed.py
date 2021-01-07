@@ -20,7 +20,7 @@ from typing import Optional
 
 import numpy as np
 import torch
-
+from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -51,6 +51,7 @@ def seed_everything(seed: Optional[int] = None) -> int:
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
+    log.info(f"Global seed set to {seed}")
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)

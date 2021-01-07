@@ -1,18 +1,17 @@
 import os
 
+from unittest import mock
 import pytest
 
 import pytorch_lightning.utilities.seed as seed_utils
 
 
+@mock.patch.dict(os.environ, {})
 def test_seed_stays_same_with_multiple_seed_everything_calls():
     """
     Ensure that after the initial seed everything,
     the seed stays the same for the same run.
     """
-    if "PL_GLOBAL_SEED" in os.environ:
-        del os.environ["PL_GLOBAL_SEED"]
-
     with pytest.warns(UserWarning, match="No correct seed found"):
         seed_utils.seed_everything()
     initial_seed = os.environ.get("PL_GLOBAL_SEED")
@@ -23,46 +22,34 @@ def test_seed_stays_same_with_multiple_seed_everything_calls():
     seed = os.environ.get("PL_GLOBAL_SEED")
 
     assert initial_seed == seed
-    del os.environ["PL_GLOBAL_SEED"]
 
 
-def test_correct_seed_with_environment_variable(monkeypatch):
+@mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "2020"})
+def test_correct_seed_with_environment_variable():
     """
     Ensure that the PL_GLOBAL_SEED environment is read
     """
-    if "PL_GLOBAL_SEED" in os.environ:
-        del os.environ["PL_GLOBAL_SEED"]
-    expected = 2020
-    monkeypatch.setenv("PL_GLOBAL_SEED", str(expected))
-    assert seed_utils.seed_everything() == expected
-    del os.environ["PL_GLOBAL_SEED"]
+    assert seed_utils.seed_everything() == 2020
 
 
-def test_invalid_seed(monkeypatch):
+@mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"})
+@mock.patch.object(seed_utils, attribute='_select_seed_randomly', new=lambda *_: 123)
+def test_invalid_seed():
     """
     Ensure that we still fix the seed even if an invalid seed is given
     """
-    if "PL_GLOBAL_SEED" in os.environ:
-        del os.environ["PL_GLOBAL_SEED"]
-    expected = 123
-    monkeypatch.setenv("PL_GLOBAL_SEED", "invalid")
-    monkeypatch.setattr(seed_utils, "_select_seed_randomly", lambda *_: expected)
     with pytest.warns(UserWarning, match="No correct seed found"):
         seed = seed_utils.seed_everything()
-    assert seed == expected
-    del os.environ["PL_GLOBAL_SEED"]
+    assert seed == 123
 
 
+@mock.patch.dict(os.environ, {})
+@mock.patch.object(seed_utils, attribute='_select_seed_randomly', new=lambda *_: 123)
 @pytest.mark.parametrize("seed", (10e9, -10e9))
-def test_out_of_bounds_seed(monkeypatch, seed):
+def test_out_of_bounds_seed(seed):
     """
     Ensure that we still fix the seed even if an out-of-bounds seed is given
     """
-    if "PL_GLOBAL_SEED" in os.environ:
-        del os.environ["PL_GLOBAL_SEED"]
-    expected = 123
-    monkeypatch.setattr(seed_utils, "_select_seed_randomly", lambda *_: expected)
     with pytest.warns(UserWarning, match="is not in bounds"):
         actual = seed_utils.seed_everything(seed)
-    assert actual == expected
-    del os.environ["PL_GLOBAL_SEED"]
+    assert actual == 123
