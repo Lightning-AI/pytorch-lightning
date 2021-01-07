@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import platform
 from typing import Optional
+from warnings import warn
 
 from torch.utils.data import DataLoader, random_split
 
@@ -55,6 +56,11 @@ class MNISTDataModule(LightningDataModule):
             normalize: If true applies image normalize
         """
         super().__init__(*args, **kwargs)
+        if num_workers and platform.system() == "Windows":
+            # see: https://stackoverflow.com/a/59680818
+            warn(f"You have requested num_workers={num_workers} on Windows,"
+                 " but currently recommended is 0, so we set it for you")
+            num_workers = 0
 
         self.dims = (1, 28, 28)
         self.data_dir = data_dir
