@@ -23,12 +23,11 @@ python conv_model_sequential_example.py --accelerator ddp --gpus 4 --max_epochs 
 import math
 from argparse import ArgumentParser
 
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-
-import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import Trainer
 from pytorch_lightning.metrics.functional import accuracy
