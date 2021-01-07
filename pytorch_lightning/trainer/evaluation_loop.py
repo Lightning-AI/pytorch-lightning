@@ -123,9 +123,6 @@ class EvaluationLoop(object):
         return using_eval_result
 
     def setup(self, model, max_batches, dataloaders):
-        # copy properties for forward overrides
-        self.trainer.model_connector.copy_trainer_model_properties(model)
-
         # bookkeeping
         self.outputs = []
         self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)

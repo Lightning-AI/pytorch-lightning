@@ -429,9 +429,6 @@ class Trainer(
         self.accelerator_backend.dist.rank = self.global_rank
         self.accelerator_backend.dist.device = ref_model.device
 
-        # give model convenience properties
-        ref_model.trainer = self
-
         # set local properties on the model
         self.model_connector.copy_trainer_model_properties(ref_model)
 
