@@ -823,7 +823,7 @@ class TrainLoop:
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
-            if self.should_return_on_invalid_result(result):
+            if self.trainer.accelerator_backend.should_return_on_invalid_result(result):
                 self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
                 return None
 
@@ -859,38 +859,6 @@ class TrainLoop:
         if not self.should_accumulate():
             # track gradients
             self.track_and_norm_grad(optimizer=optimizer)
-
-    def should_return_on_invalid_result(self, result):
-        is_result_none = result is None
-        if isinstance(self.trainer.model, LightningDistributedDataParallel):
-            model_ref = self.trainer.get_model()
-            skip_if_any = model_ref.invalid_loss_strategy == InvalidLossStrategy.SKIP_IF_ANY
-            never_skip = model_ref.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP
-
-            if never_skip and is_result_none:
-                raise MisconfigurationException(
-                    "invalid_loss_strategy ``never_skip`` doesn't support returning None for training_step. "
-                    "Hint: Either switch to ``skip_if_any`` or return a Nan or Inf loss directly"
-                )
-
-            if not skip_if_any:
-                return is_result_none
-
-            if is_result_none:
-                is_invalid = 1
-
-            elif isinstance(result.closure_loss, torch.Tensor):
-                is_invalid = int(torch.isnan(result.closure_loss))
-
-            else:
-                is_invalid = 0
-
-            is_invalid = torch.tensor(is_invalid, device=model_ref.device, dtype=int)
-            self.trainer.accelerator_backend.sync_tensor(is_invalid)
-
-            return is_invalid > 0
-        else:
-            return is_result_none
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = self._accumulated_batches_reached()

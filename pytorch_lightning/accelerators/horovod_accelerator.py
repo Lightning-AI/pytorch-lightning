@@ -22,6 +22,8 @@ from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities import HOROVOD_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities import InvalidLossStrategy
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -196,3 +198,25 @@ class HorovodAccelerator(Accelerator):
     @property
     def require_distributed_sampler(self):
         return True
+
+    def should_return_on_invalid_result(self, result):
+        is_result_none = result is None
+        model_ref = self.trainer.get_model()
+        skip_if_any = model_ref.invalid_loss_strategy == InvalidLossStrategy.SKIP_IF_ANY
+
+        if not skip_if_any:
+            return is_result_none
+
+        if is_result_none:
+            is_invalid = 1
+
+        elif isinstance(result.closure_loss, torch.Tensor):
+            is_invalid = int(torch.isnan(result.closure_loss))
+
+        else:
+            is_invalid = 0
+
+        is_invalid = torch.tensor(is_invalid, device=model_ref.device, dtype=int)
+        self.sync_tensor(is_invalid)
+
+        return is_invalid > 0

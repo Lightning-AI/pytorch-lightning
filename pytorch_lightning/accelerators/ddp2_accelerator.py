@@ -210,10 +210,17 @@ class DDP2Accelerator(Accelerator):
         torch.cuda.empty_cache()
         return results
 
+    def should_return_on_invalid_result(self, result):
+        self.ddp_plugin.should_return_on_invalid_result(result, self.trainer, self.sync_tensor)
+
+    def on_before_backward_engine_execution(self):
+        self.ddp_plugin.on_before_backward_engine_execution(self.trainer)
+
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         model = self.ddp_plugin.configure_ddp(model, device_ids)
+        self.ddp_plugin.configure_ddp_comm_hook(model, self.trainer, self.is_single_process_single_device)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
@@ -230,7 +237,6 @@ class DDP2Accelerator(Accelerator):
             LightningModule with batchnorm layers synchronized between process groups
         """
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
-
         return model
 
     def sync_tensor(self,
@@ -270,3 +276,7 @@ class DDP2Accelerator(Accelerator):
     @property
     def require_distributed_sampler(self):
         return True
+
+    @property
+    def is_single_process_single_device(self):
+        return False

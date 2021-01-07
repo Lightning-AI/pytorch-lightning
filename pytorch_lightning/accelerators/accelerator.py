@@ -90,6 +90,9 @@ class Accelerator(object):
     def on_before_backward_engine_execution(self) -> None:
         pass
 
+    def should_return_on_invalid_result(self, result):
+        return result is None
+
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         automatic_optimization = self.trainer.train_loop.automatic_optimization
 
@@ -250,6 +253,10 @@ class Accelerator(object):
 
     @property
     def require_distributed_sampler(self):
+        raise NotImplementedError
+
+    @property
+    def is_single_process_single_device(self):
         raise NotImplementedError
 
     @contextmanager

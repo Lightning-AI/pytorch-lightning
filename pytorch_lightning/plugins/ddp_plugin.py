@@ -23,6 +23,8 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities import InvalidLossStrategy
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.ddp_comm_hooks import DDP_COMM_CALLBACK, initialize_ddp_comm_hooks
@@ -89,8 +91,10 @@ class DDPPlugin(LightningPlugin):
         )
         return model
 
-    def configure_ddp_comm_hook(self, model, trainer):
-        if isinstance(model, DistributedDataParallel):
+    def configure_ddp_comm_hook(self, model: DistributedDataParallel, trainer, is_single_process_single_device:bool):
+        # DDP communication hook does not support single-process multiple-device mode.
+        # https://github.com/pytorch/pytorch/blob/e6779d4357ae94cc9f9fedb83a87eb6126016769/torch/nn/parallel/distributed.py#L1035
+        if isinstance(model, DistributedDataParallel) and is_single_process_single_device:
             initialize_ddp_comm_hooks(model, trainer)
 
     def init_ddp_connection(
@@ -195,3 +199,32 @@ class DDPPlugin(LightningPlugin):
         Returns: The ProcessGroup this process exists in.
         """
         return torch_distrib.group.WORLD
+
+    def should_return_on_invalid_result(self, result, trainer, sync_tensor):
+        is_result_none = result is None
+        model_ref = trainer.get_model()
+        skip_if_any = model_ref.invalid_loss_strategy == InvalidLossStrategy.SKIP_IF_ANY
+        never_skip = model_ref.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP
+
+        if never_skip and is_result_none:
+            raise MisconfigurationException(
+                "invalid_loss_strategy ``never_skip`` doesn't support returning None for training_step. "
+                "Hint: Either switch to ``skip_if_any`` or return a Nan or Inf loss directly"
+            )
+
+        if not skip_if_any:
+            return is_result_none
+
+        if is_result_none:
+            is_invalid = 1
+
+        elif isinstance(result.closure_loss, torch.Tensor):
+            is_invalid = int(torch.isnan(result.closure_loss))
+
+        else:
+            is_invalid = 0
+
+        is_invalid = torch.tensor(is_invalid, device=model_ref.device, dtype=int)
+        sync_tensor(is_invalid)
+
+        return is_invalid > 0
