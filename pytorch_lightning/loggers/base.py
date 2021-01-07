@@ -200,6 +200,7 @@ class LightningLoggerBase(ABC):
                     if isinstance(_val, Callable):
                         return val.__name__
                     return _val
+                # todo: specify the possible exception
                 except Exception:
                     return getattr(val, "__name__", None)
             return val

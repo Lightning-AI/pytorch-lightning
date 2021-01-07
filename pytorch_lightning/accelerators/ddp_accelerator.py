@@ -100,6 +100,7 @@ class DDPAccelerator(Accelerator):
         command = sys.argv
         try:
             full_path = path_lib(command[0])
+        # todo: specify the possible exception
         except Exception:
             full_path = abspath(command[0])
 

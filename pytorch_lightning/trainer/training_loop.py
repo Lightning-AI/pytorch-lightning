@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
 
 import numpy as np
@@ -28,13 +28,13 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
-from pytorch_lightning.utilities.warning_utils import WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainLoop:
-    def __init__(self, trainer):
+    def __init__(self, trainer, multiple_trainloader_mode):
         self.trainer = trainer
         self.early_stopping_accumulator = None
         self.checkpoint_accumulator = None
@@ -45,6 +45,8 @@ class TrainLoop:
         self.automatic_optimization = True
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
+        self._multiple_trainloader_mode = multiple_trainloader_mode
+        self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
 
     def on_trainer_init(
         self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
@@ -236,11 +238,10 @@ class TrainLoop:
         if self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
-        # set seed for distributed sampler (enables shuffling for each epoch)
-        try:
+        # todo: specify the possible exception
+        with suppress(Exception):
+            # set seed for distributed sampler (enables shuffling for each epoch)
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
-        except Exception:
-            pass
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.get_model())
@@ -546,10 +547,10 @@ class TrainLoop:
         # track epoch output
         epoch_output = [[] for _ in range(self.num_optimizers)]
 
-        # enable profiling for the dataloader
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
         should_check_val = False
+
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
             self.trainer.batch_idx = batch_idx

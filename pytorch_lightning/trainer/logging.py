@@ -112,6 +112,7 @@ class TrainerLoggingMixin(ABC):
                 progress_output = self.reduce_distributed_output(progress_output, num_gpus)
 
             progress_bar_metrics = progress_output
+        # todo: specify the possible exception
         except Exception:
             progress_bar_metrics = {}
 
@@ -128,6 +129,7 @@ class TrainerLoggingMixin(ABC):
                 log_output = self.reduce_distributed_output(log_output, num_gpus)
 
             log_metrics = log_output
+        # todo: specify the possible exception
         except Exception:
             log_metrics = {}
 
@@ -140,6 +142,7 @@ class TrainerLoggingMixin(ABC):
         if train:
             try:
                 loss = output['loss']
+            # todo: specify the possible exception
             except Exception as exp:
                 if isinstance(output, torch.Tensor):
                     loss = output

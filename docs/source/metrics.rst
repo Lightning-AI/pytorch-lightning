@@ -212,7 +212,7 @@ Classification Metrics
 Input types
 -----------
 
-For the purposes of classification metrics, inputs (predictions and targets) are split 
+For the purposes of classification metrics, inputs (predictions and targets) are split
 into these categories (``N`` stands for the batch size and ``C`` for number of classes):
 
 .. csv-table:: \*dtype ``binary`` means integers that are either 0 or 1
@@ -227,10 +227,10 @@ into these categories (``N`` stands for the batch size and ``C`` for number of c
     "Multi-dimensional multi-class with probabilities", "(N, C, ...)", "``float``", "(N, ...)", "``int``"
 
 .. note::
-    All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so 
+    All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so
     that, for example, a tensor of shape ``(N, 1)`` is treated as ``(N, )``.
 
-When predictions or targets are integers, it is assumed that class labels start at 0, i.e. 
+When predictions or targets are integers, it is assumed that class labels start at 0, i.e.
 the possible class labels are 0, 1, 2, 3, etc. Below are some examples of different input types
 
 .. testcode::
@@ -251,13 +251,62 @@ the possible class labels are 0, 1, 2, 3, etc. Below are some examples of differ
     ml_preds  = torch.tensor([[0.2, 0.8, 0.9], [0.5, 0.6, 0.1], [0.3, 0.1, 0.1]])
     ml_target = torch.tensor([[0, 1, 1], [1, 0, 0], [0, 0, 0]])
 
-In some rare cases, you might have inputs which appear to be (multi-dimensional) multi-class
-but are actually binary/multi-label. For example, if both predictions and targets are 1d
-binary tensors. Or it could be the other way around, you want to treat binary/multi-label
-inputs as 2-class (multi-dimensional) multi-class inputs.
+
+Using the ``is_multiclass`` parameter
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In some cases, you might have inputs which appear to be (multi-dimensional) multi-class
+but are actually binary/multi-label - for example, if both predictions and targets are
+integer (binary) tensors. Or it could be the other way around, you want to treat 
+binary/multi-label inputs as 2-class (multi-dimensional) multi-class inputs.
 
 For these cases, the metrics where this distinction would make a difference, expose the
-``is_multiclass`` argument.
+``is_multiclass`` argument. Let's see how this is used on the example of 
+:class:`~pytorch_lightning.metrics.classification.StatScores` metric.
+
+First, let's consider the case with label predictions with 2 classes, which we want to
+treat as binary.
+
+.. testcode::
+
+   from pytorch_lightning.metrics.functional import stat_scores
+
+   # These inputs are supposed to be binary, but appear as multi-class
+   preds  = torch.tensor([0, 1, 0])
+   target = torch.tensor([1, 1, 0])
+
+As you can see below, by default the inputs are treated
+as multi-class. We can set ``is_multiclass=False`` to treat the inputs as binary - 
+which is the same as converting the predictions to float beforehand.
+
+.. doctest::
+
+    >>> stat_scores(preds, target, reduce='macro', num_classes=2)
+    tensor([[1, 1, 1, 0, 1],
+            [1, 0, 1, 1, 2]])
+    >>> stat_scores(preds, target, reduce='macro', num_classes=1, is_multiclass=False)
+    tensor([[1, 0, 1, 1, 2]])
+    >>> stat_scores(preds.float(), target, reduce='macro', num_classes=1)
+    tensor([[1, 0, 1, 1, 2]])
+
+Next, consider the opposite example: inputs are binary (as predictions are probabilities),
+but we would like to treat them as 2-class multi-class, to obtain the metric for both classes.
+
+.. testcode::
+
+   preds  = torch.tensor([0.2, 0.7, 0.3])
+   target = torch.tensor([1, 1, 0])
+
+In this case we can set ``is_multiclass=True``, to treat the inputs as multi-class.
+
+.. doctest::
+
+    >>> stat_scores(preds, target, reduce='macro', num_classes=1)
+    tensor([[1, 0, 1, 1, 2]])
+    >>> stat_scores(preds, target, reduce='macro', num_classes=2, is_multiclass=True)
+    tensor([[1, 1, 1, 0, 1],
+            [1, 0, 1, 1, 2]])
+
 
 Class Metrics (Classification)
 ------------------------------
@@ -292,6 +341,12 @@ FBeta
 .. autoclass:: pytorch_lightning.metrics.classification.FBeta
     :noindex:
 
+Hamming Distance
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.HammingDistance
+    :noindex:
+
 Precision
 ~~~~~~~~~
 
@@ -317,15 +372,21 @@ ROC
     :noindex:
 
 
+StatScores
+~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.StatScores
+    :noindex:
+
+
 Functional Metrics (Classification)
 -----------------------------------
 
 accuracy [func]
 ~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.accuracy
+.. autofunction:: pytorch_lightning.metrics.functional.accuracy
     :noindex:
-
 
 auc [func]
 ~~~~~~~~~~
@@ -382,6 +443,11 @@ fbeta [func]
 .. autofunction:: pytorch_lightning.metrics.functional.fbeta
     :noindex:
 
+hamming_distance [func]
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.hamming_distance
+    :noindex:
 
 iou [func]
 ~~~~~~~~~~
@@ -434,7 +500,7 @@ select_topk [func]
 stat_scores [func]
 ~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores
+.. autofunction:: pytorch_lightning.metrics.functional.stat_scores
     :noindex:
 
 
@@ -507,6 +573,12 @@ SSIM
     :noindex:
 
 
+R2Score
+~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.R2Score
+    :noindex:
+
 Functional Metrics (Regression)
 -------------------------------
 
@@ -550,6 +622,13 @@ ssim [func]
 
 .. autofunction:: pytorch_lightning.metrics.functional.ssim
     :noindex:
+
+r2score [func]
+~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.r2score
+    :noindex:
+
 
 ***
 NLP

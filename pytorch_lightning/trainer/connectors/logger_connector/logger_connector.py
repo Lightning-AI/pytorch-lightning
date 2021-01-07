@@ -25,7 +25,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validat
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore, LoggerStages
 from pytorch_lightning.utilities import flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class LoggerConnector:
