@@ -19,7 +19,6 @@ from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.callbacks.progress import ProgressBar, ProgressBarBase
 
-
 __all__ = [
     'Callback',
     'EarlyStopping',

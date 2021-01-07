@@ -23,8 +23,8 @@ import numbers
 import os
 
 import numpy as np
-import torch
 
+import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.metrics.metric import Metric
