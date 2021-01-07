@@ -56,14 +56,14 @@ from torchvision.datasets.utils import download_and_extract_archive
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks.finetunning import BaseFinetunningCallback, freeze, unfreeze_and_add_param_group
+from pytorch_lightning.callbacks.finetuning import BaseFinetuningCallback
 
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
 
 
 #  --- Finetunning Callback ---
 
-class MilestonesFinetunningCallback(BaseFinetunningCallback):
+class MilestonesFinetuningCallback(BaseFinetuningCallback):
 
     def __init__(self,
                  milestones: tuple = (5, 10),
@@ -72,18 +72,18 @@ class MilestonesFinetunningCallback(BaseFinetunningCallback):
         self.train_bn = train_bn
 
     def freeze_before_training(self, pl_module: pl.LightningModule):
-        freeze(module=pl_module.feature_extractor, train_bn=self.train_bn)
+        self.freeze(module=pl_module.feature_extractor, train_bn=self.train_bn)
 
     def finetunning_function(self, pl_module: pl.LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
         if epoch == self.milestones[0]:
-            unfreeze_and_add_param_group(
+            self.unfreeze_and_add_param_group(
                 module=pl_module.feature_extractor[-5:],
                 optimizer=optimizer,
                 train_bn=self.train_bn
             )
 
         elif epoch == self.milestones[1]:
-            unfreeze_and_add_param_group(
+            self.unfreeze_and_add_param_group(
                 module=pl_module.feature_extractor[:-5],
                 optimizer=optimizer,
                 train_bn=self.train_bn
@@ -311,7 +311,7 @@ def main(args: argparse.Namespace) -> None:
     with TemporaryDirectory(dir=args.root_data_path) as tmp_dir:
 
         model = TransferLearningModel(dl_path=tmp_dir, **vars(args))
-        finetunning_callback = MilestonesFinetunningCallback(milestones=args.milestones)
+        finetunning_callback = MilestonesFinetuningCallback(milestones=args.milestones)
 
         trainer = pl.Trainer(
             weights_summary=None,

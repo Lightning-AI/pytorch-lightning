@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `R2Score` metric ([#5241](https://github.com/PyTorchLightning/pytorch-lightning/pull/5241))
 
-- Added `BackboneLambdaFinetunningCallback` ([#5377](https://github.com/PyTorchLightning/pytorch-lightning/pull/5377))
+- Added `BackboneLambdaFinetuningCallback` ([#5377](https://github.com/PyTorchLightning/pytorch-lightning/pull/5377))
 
 
 ### Changed
@@ -37,7 +37,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed `stat_scores` metric now calculates stat scores over all classes and gains new parameters, in line with the new `StatScores` metric ([#4839](https://github.com/PyTorchLightning/pytorch-lightning/pull/4839))
 
 
-- Changed `computer_vision_fine_tunning` example to use `BackboneLambdaFinetunningCallback` ([#5377](https://github.com/PyTorchLightning/pytorch-lightning/pull/5377))
+- Changed `computer_vision_fine_tunning` example to use `BackboneLambdaFinetuningCallback` ([#5377](https://github.com/PyTorchLightning/pytorch-lightning/pull/5377))
 
 
 ### Deprecated

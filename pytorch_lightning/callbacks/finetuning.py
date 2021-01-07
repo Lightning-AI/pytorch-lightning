@@ -63,20 +63,6 @@ def _recursive_freeze(module: Module,
             _recursive_freeze(module=child, train_bn=train_bn)
 
 
-def freeze(module: Module,
-           train_bn: bool = True) -> None:
-    """Freezes the layers up to index n (if n is not None).
-    Args:
-        module: The module to freeze (at least partially)
-        train_bn: If True, leave the BatchNorm layers in training mode
-    """
-    for module_ in module.parameters():
-        if (isinstance(module_, BN_TYPES) and train_bn):
-            _make_trainable(module_)
-        else:
-            module_.requires_grad = False
-
-
 def filter_params(module: Module,
                   train_bn: bool = True) -> Generator:
     """Yields the trainable parameters of a given module.
@@ -98,30 +84,48 @@ def filter_params(module: Module,
                 yield param
 
 
-def unfreeze_and_add_param_group(module: Module,
-                                 optimizer: Optimizer,
-                                 lr: Optional[float] = None,
-                                 train_bn: bool = True,):
-    """Unfreezes a module and adds its parameters to an optimizer."""
-    _make_trainable(module)
-    params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
-    denom_lr = 10. if lr is None else 1.
-    optimizer.add_param_group(
-        {'params': filter_params(module=module, train_bn=train_bn),
-         'lr': params_lr / denom_lr,
-         })
-
-
 def multiplicative(epoch):
     return 2
 
 
-class BaseFinetunningCallback(Callback):
+class BaseFinetuningCallback(Callback):
 
     r"""
-    BaseFinetunningCallback.
+    BaseFinetuningCallback.
     Overrides the finetunning_function and add your own logic there.
+
     """
+    @staticmethod
+    def freeze(module: Module, train_bn: bool = True) -> None:
+        """Freezes the layers up to index n (if n is not None).
+        Args:
+            module: The module to freeze (at least partially)
+            train_bn: If True, leave the BatchNorm layers in training mode
+        """
+        for mod in module.parameters():
+            if (isinstance(mod, BN_TYPES) and train_bn):
+                _make_trainable(mod)
+            else:
+                mod.requires_grad = False
+
+    @staticmethod
+    def unfreeze_and_add_param_group(
+        module: Module,
+        optimizer: Optimizer,
+        lr: Optional[float] = None,
+        train_bn: bool = True
+    ):
+        """Unfreezes a module and adds its parameters to an optimizer."""
+        _make_trainable(module)
+        params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
+        denom_lr = 10. if lr is None else 1.
+        optimizer.add_param_group(
+            {
+                'params': filter_params(module=module, train_bn=train_bn),
+                'lr': params_lr / denom_lr,
+            }
+        )
+
     def on_before_accelerator_backend_setup(self, _, pl_module):
         self.freeze_before_training(pl_module)
 
@@ -137,7 +141,7 @@ class BaseFinetunningCallback(Callback):
         raise NotImplementedError
 
 
-class BackboneLambdaFinetunningCallback(BaseFinetunningCallback):
+class BackboneLambdaFinetuningCallback(BaseFinetuningCallback):
 
     r"""
     Finetunne a backbone model based on a learning rate user-defined scheduling.
@@ -157,9 +161,9 @@ class BackboneLambdaFinetunningCallback(BaseFinetunningCallback):
         round: Precision for displaying learning rate
     Example::
         >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.callbacks import BackboneLambdaFinetunningCallback
+        >>> from pytorch_lightning.callbacks import BackboneLambdaFinetuningCallback
         >>> multiplicative = lambda epoch: 1.5
-        >>> backbone_finetunning = BackboneLambdaFinetunningCallback(200, multiplicative)
+        >>> backbone_finetunning = BackboneLambdaFinetuningCallback(200, multiplicative)
         >>> trainer = Trainer(callbacks=[backbone_finetunning])
     """
 
@@ -190,7 +194,7 @@ class BackboneLambdaFinetunningCallback(BaseFinetunningCallback):
         )
 
     def freeze_before_training(self, pl_module: LightningModule):
-        freeze(pl_module.backbone)
+        self.freeze(pl_module.backbone)
 
     def finetunning_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
         """Called when the epoch begins."""
@@ -200,7 +204,7 @@ class BackboneLambdaFinetunningCallback(BaseFinetunningCallback):
             initial_backbone_lr = self.backbone_initial_lr if self.backbone_initial_lr is not None \
                 else current_lr * self.backbone_initial_ratio_lr
             self.previous_backbone_lr = initial_backbone_lr
-            unfreeze_and_add_param_group(pl_module.backbone, optimizer, initial_backbone_lr)
+            self.unfreeze_and_add_param_group(pl_module.backbone, optimizer, initial_backbone_lr)
             if self.verbose:
                 log.info(f"Current lr: {round(current_lr, self.round)}, "
                          f"Backbone lr: {round(initial_backbone_lr, self.round)}")
