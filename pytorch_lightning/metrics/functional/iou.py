@@ -13,7 +13,7 @@
 # limitations under the License.
 import torch
 from typing import Optional
-from pytorch_lightning.metrics.functional.classification import get_num_classes
+from pytorch_lightning.metrics.utils import get_num_classes
 from pytorch_lightning.metrics.functional.reduction import reduce
 from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_update
 
@@ -55,27 +55,35 @@ def iou(
 
     .. math:: J(A,B) = \frac{|A\cap B|}{|A\cup B|}
 
-    Where: :math:`A` and :math:`B` are both tensors of the same size, containing integer class values. They may be subject to conversion from input data (see description below). Note that it is different from box IoU.
+    Where: :math:`A` and :math:`B` are both tensors of the same size, 
+    containing integer class values. They may be subject to conversion from 
+    input data (see description below). 
+    
+    Note that it is different from box IoU.
 
-    If pred and target are the same shape and pred is a float tensor, we use the ``threshold`` argument.
-    This is the case for binary and multi-label logits.
+    If pred and target are the same shape and pred is a float tensor, 
+    we use the ``threshold`` argument. This is the case for binary and multi-label logits.
 
-    If pred has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
+    If pred has an extra dimension as in the case of multi-class scores we 
+    perform an argmax on ``dim=1``.
 
     Args:
         pred: Tensor containing integer predictions, with shape [N, d1, d2, ...]
         target: Tensor containing integer targets, with shape [N, d1, d2, ...]
-        ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
-            to the returned score, regardless of reduction method. Has no effect if given an int that is not in the
-            range [0, num_classes-1], where num_classes is either given or derived from pred and target. By default, no
-            index is ignored, and all classes are used.
-        absent_score: score to use for an individual class, if no instances of the class index were present in
-            `pred` AND no instances of the class index were present in `target`. For example, if we have 3 classes,
-            [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be assigned the `absent_score`. Default is
-            0.0.
+        ignore_index: optional int specifying a target class to ignore. If given, 
+            this class index does not contribute to the returned score, regardless 
+            of reduction method. Has no effect if given an int that is not in the
+            range [0, num_classes-1], where num_classes is either given or derived 
+            from pred and target. By default, no index is ignored, and all classes are used.
+        absent_score: score to use for an individual class, if no instances of 
+            the class index were present in `pred` AND no instances of the class 
+            index were present in `target`. For example, if we have 3 classes,
+            [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be 
+            assigned the `absent_score`.
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
-        num_classes: Optionally specify the number of classes
+        num_classes: 
+            Optionally specify the number of classes
         reduction: a method to reduce metric score over labels.
 
             - ``'elementwise_mean'``: takes the mean (default)

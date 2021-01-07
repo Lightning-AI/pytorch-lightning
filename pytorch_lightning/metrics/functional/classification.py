@@ -17,10 +17,13 @@ from typing import Callable, Optional, Sequence, Tuple
 import torch
 from distutils.version import LooseVersion
 
+from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
 from pytorch_lightning.metrics.functional.precision_recall_curve import (
     _binary_clf_curve,
+    precision_recall_curve as __prc
 )
 from pytorch_lightning.metrics.functional.roc import roc as __roc
+from pytorch_lightning.metrics.functional.iou import iou as __iou
 from pytorch_lightning.metrics.utils import (
     to_categorical as __tc,
     to_onehot as __to,
@@ -160,8 +163,8 @@ def stat_scores_multiple_classes(
         raise ValueError("reduction type %s not supported" % reduction)
 
     if reduction == 'none':
-        pred = pred.view((-1,)).long()
-        target = target.view((-1,)).long()
+        pred = pred.view((-1, )).long()
+        target = target.view((-1, )).long()
 
         tps = torch.zeros((num_classes + 1,), device=pred.device)
         fps = torch.zeros((num_classes + 1,), device=pred.device)
@@ -683,3 +686,125 @@ def dice_score(
 
         scores[i - bg] += score_cls
     return reduce(scores, reduction=reduction)
+
+
+# todo: remove in 1.3
+def iou(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        ignore_index: Optional[int] = None,
+        absent_score: float = 0.0,
+        num_classes: Optional[int] = None,
+        reduction: str = 'elementwise_mean',
+) -> torch.Tensor:
+    """
+    Intersection over union, or Jaccard index calculation.
+
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.iou.iou`
+
+    Args:
+        pred: Tensor containing integer predictions, with shape [N, d1, d2, ...]
+        target: Tensor containing integer targets, with shape [N, d1, d2, ...]
+        ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
+            to the returned score, regardless of reduction method. Has no effect if given an int that is not in the
+            range [0, num_classes-1], where num_classes is either given or derived from pred and target. By default, no
+            index is ignored, and all classes are used.
+        absent_score: score to use for an individual class, if no instances of the class index were present in
+            `pred` AND no instances of the class index were present in `target`. For example, if we have 3 classes,
+            [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be assigned the `absent_score`. Default is
+            0.0.
+        num_classes: Optionally specify the number of classes
+        reduction: a method to reduce metric score over labels.
+
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
+
+    Return:
+        IoU score : Tensor containing single value if reduction is
+        'elementwise_mean', or number of classes if reduction is 'none'
+
+    Example:
+
+        >>> target = torch.randint(0, 2, (10, 25, 25))
+        >>> pred = torch.tensor(target)
+        >>> pred[2:5, 7:13, 9:15] = 1 - pred[2:5, 7:13, 9:15]
+        >>> iou(pred, target)
+        tensor(0.9660)
+
+    """
+    return __iou(
+        pred=pred, 
+        target=target, 
+        ignore_index=ignore_index, 
+        absent_score=absent_score,
+        threshold=0.5,
+        num_classes=num_classes,
+        reduction=reduction
+    )
+
+
+# todo: remove in 1.3
+def precision_recall_curve(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
+        pos_label: int = 1.,
+):
+    """
+    Computes precision-recall pairs for different thresholds.
+
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
+    """
+    rank_zero_warn(
+        "This `precision_recall_curve` was deprecated in v1.1.0 in favor of"
+        " `from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve`."
+        " It will be removed in v1.3.0", DeprecationWarning
+    )
+    return __prc(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label)
+
+
+# todo: remove in 1.3
+def multiclass_precision_recall_curve(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
+        num_classes: Optional[int] = None,
+):
+    """
+    Computes precision-recall pairs for different thresholds given a multiclass scores.
+
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
+    """
+    rank_zero_warn(
+        "This `multiclass_precision_recall_curve` was deprecated in v1.1.0 in favor of"
+        " `from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve`."
+        " It will be removed in v1.3.0", DeprecationWarning
+    )
+    if num_classes is None:
+        num_classes = get_num_classes(pred, target, num_classes)
+    return __prc(preds=pred, target=target, sample_weights=sample_weight, num_classes=num_classes)
+
+
+# todo: remove in 1.3
+def average_precision(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
+        pos_label: int = 1.,
+):
+    """
+    Compute average precision from prediction scores.
+
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.average_precision.average_precision`
+    """
+    rank_zero_warn(
+        "This `average_precision` was deprecated in v1.1.0 in favor of"
+        " `pytorch_lightning.metrics.functional.average_precision import average_precision`."
+        " It will be removed in v1.3.0", DeprecationWarning
+    )
+    return __ap(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label)
