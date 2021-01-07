@@ -487,10 +487,6 @@ class Trainer(
         # hook
         self.data_connector.prepare_data(model)
 
-        # bookkeeping
-        # we reuse fit in .test() but change its behavior using this flag
-        self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
-
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
@@ -595,13 +591,13 @@ class Trainer(
             # hook
             self.train_loop.on_train_end()
 
-    def run_evaluation(self, test_mode: bool = False, max_batches=None):
+    def run_evaluation(self, max_batches=None):
 
         # used to know if we are logging for val, test + reset cached results
-        self.logger_connector.set_stage(test_mode, reset=True)
+        self.logger_connector.set_stage(self.testing, reset=True)
 
         # bookkeeping
-        self.evaluation_loop.testing = test_mode
+        self.evaluation_loop.testing = self.testing
 
         # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
@@ -647,7 +643,7 @@ class Trainer(
 
                 # lightning module methods
                 with self.profiler.profile("evaluation_step_and_end"):
-                    output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                    output = self.evaluation_loop.evaluation_step(batch, batch_idx, dataloader_idx)
                     output = self.evaluation_loop.evaluation_step_end(output)
 
                 # hook + store predictions
@@ -700,7 +696,7 @@ class Trainer(
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
         with self.profiler.profile("run_test_evaluation"):
-            eval_loop_results, _ = self.run_evaluation(test_mode=True)
+            eval_loop_results, _ = self.run_evaluation()
 
         if len(eval_loop_results) == 0:
             return 1
@@ -731,7 +727,7 @@ class Trainer(
             self.on_sanity_check_start()
 
             # run eval step
-            _, eval_results = self.run_evaluation(test_mode=False, max_batches=self.num_sanity_val_batches)
+            _, eval_results = self.run_evaluation(max_batches=self.num_sanity_val_batches)
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
@@ -835,11 +831,9 @@ class Trainer(
         # run tests
         self.tested_ckpt_path = ckpt_path
         self.testing = True
-        os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
         results = self.fit(model)
         self.testing = False
-        del os.environ['PL_TESTING_MODE']
 
         # teardown
         if self.is_function_implemented('teardown'):
