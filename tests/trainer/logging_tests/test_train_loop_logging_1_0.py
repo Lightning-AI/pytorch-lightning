@@ -781,50 +781,6 @@ def test_logging_sync_dist_true_gpu(tmpdir):
     assert trainer.logged_metrics['bar'] == fake_result
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-def test_metric_are_properly_reduced(tmpdir):
-    class TestingModel(BoringModel):
-        def __init__(self, *args, **kwargs):
-            super().__init__()
-            self.val_acc = pl.metrics.Accuracy()
-
-        def training_step(self, batch, batch_idx):
-            output = super().training_step(batch, batch_idx)
-            self.log("train_loss", output["loss"])
-            return output
-
-        def validation_step(self, batch, batch_idx):
-            preds = torch.tensor([[0.9, 0.1]], device=self.device)
-            targets = torch.tensor([1], device=self.device)
-            if batch_idx < 8:
-                preds = torch.tensor([[0.1, 0.9]], device=self.device)
-            self.val_acc(preds, targets)
-            self.log('val_acc', self.val_acc, on_step=True, on_epoch=True)
-            return super().validation_step(batch, batch_idx)
-
-    early_stop = EarlyStopping(monitor='val_acc', mode='max')
-
-    checkpoint = ModelCheckpoint(
-        monitor='val_acc',
-        save_last=True,
-        save_top_k=2,
-        mode='max',
-    )
-
-    model = TestingModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        gpus=1,
-        max_epochs=2,
-        limit_train_batches=5,
-        limit_val_batches=32,
-        callbacks=[early_stop, checkpoint])
-    trainer.fit(model)
-
-    assert trainer.callback_metrics["val_acc"] == 8 / 32.
-    assert "train_loss" in trainer.callback_metrics
-
-
 def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, *args):

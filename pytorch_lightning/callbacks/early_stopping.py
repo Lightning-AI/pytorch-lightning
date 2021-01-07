@@ -19,14 +19,12 @@ Early Stopping
 Monitor a metric and stop training when it stops improving.
 
 """
-import numbers
 
 import numpy as np
 import torch
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 
 
 class EarlyStopping(Callback):

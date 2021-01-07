@@ -20,7 +20,6 @@ Automatically save model checkpoints during training.
 
 """
 
-import numbers
 import os
 import re
 from copy import deepcopy
@@ -33,7 +32,6 @@ import yaml
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
