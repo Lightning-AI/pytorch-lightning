@@ -320,12 +320,13 @@ class Result(Dict):
             if options['logger'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
+                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # compute metric on epoch anyway so state does not accumulate
-                self[k].compute()
+                # reset metric anyway so state does not accumulate
+                self[k].reset()
 
         return result
 
@@ -348,12 +349,13 @@ class Result(Dict):
             if options['prog_bar'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
+                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # compute metric on epoch anyway so state does not accumulate
-                self[k].compute()
+                # reset metric anyway so state does not accumulate
+                self[k].reset()
 
         return result
 
@@ -373,6 +375,7 @@ class Result(Dict):
             if options['forked']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
+                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 

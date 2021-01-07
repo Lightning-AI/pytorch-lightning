@@ -20,6 +20,11 @@ The metrics API provides ``update()``, ``compute()``, ``reset()`` functions to t
 serves the dual purpose of calling ``update()`` on its input and simultaneously returning the value of the metric over the
 provided input.
 
+.. warning::
+    From v1.2 and foreward ``compute()`` will no longer automatically also call ``reset()``,
+    and it is up to the user to reset metrics between epochs, except in the case where the
+    metric is directly passed to ``LightningModule``s ``self.log``.
+
 These metrics work with DDP in PyTorch and PyTorch Lightning by default. When ``.compute()`` is called in
 distributed mode, the internal state of each metric is synced and reduced across each process, so that the
 logic present in ``.compute()`` is applied to state information from all processes.

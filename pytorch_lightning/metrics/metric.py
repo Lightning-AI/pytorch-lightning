@@ -212,15 +212,23 @@ class Metric(nn.Module, ABC):
                     and torch.distributed.is_initialized()):
                 # User provided a bool, so we assume DDP if available
                 dist_sync_fn = gather_all_tensors
-
+           
+            synced = False
             if self._to_sync and dist_sync_fn is not None:
+                # cache prior to syncing
+                self._cache = {attr: getattr(self, attr) for attr in self._defaults.keys()}
+                
+                # sync
                 self._sync_dist(dist_sync_fn)
+                synced = True
 
             self._computed = compute(*args, **kwargs)
-            self.reset()
-
+            if synced:
+                 # ADDED: if we synced, restore to cache
+                for attr, val in self._cache.items():
+                    setattr(self, attr, val)
+           
             return self._computed
-
         return wrapped_func
 
     @abstractmethod
