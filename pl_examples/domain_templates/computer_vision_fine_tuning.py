@@ -42,12 +42,12 @@ Note:
 import argparse
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Generator, Optional, Union
+from typing import Union
 
 import torch
+from torch import nn
 import torch.nn.functional as F
 from torch import optim
-from torch.nn import Module
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
@@ -74,23 +74,20 @@ class MilestonesFinetunningCallback(BaseFinetunningCallback):
         self.milestones = milestones
         self.train_bn = train_bn
 
-    def finetunning_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
-        if epoch == 0:
-            freeze(
-                module=pl_module.feature_extractor,
-                train_bn=self.train_bn
-            )
+    def freeze_before_training(self, pl_module: pl.LightningModule):
+        freeze(module=pl_module.feature_extractor, train_bn=self.train_bn)
 
+    def finetunning_function(self, pl_module: pl.LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
         if epoch == self.milestones[0]:
             unfreeze_and_add_param_group(
-                module=pl_module.feature_extractor[-2:],
+                module=pl_module.feature_extractor[-5:],
                 optimizer=optimizer,
                 train_bn=self.train_bn
             )
 
         elif epoch == self.milestones[1]:
             unfreeze_and_add_param_group(
-                module=pl_module.feature_extractor[:-2],
+                module=pl_module.feature_extractor[:-5],
                 optimizer=optimizer,
                 train_bn=self.train_bn
             )
@@ -115,7 +112,7 @@ class TransferLearningModel(pl.LightningModule):
         backbone: str = "resnet50",
         train_bn: bool = True,
         milestones: tuple = (5, 10),
-        batch_size: int = 8,
+        batch_size: int = 32,
         lr: float = 1e-2,
         lr_scheduler_gamma: float = 1e-1,
         num_workers: int = 6,
@@ -150,13 +147,14 @@ class TransferLearningModel(pl.LightningModule):
         backbone = model_func(pretrained=True)
 
         _layers = list(backbone.children())[:-1]
-        self.feature_extractor = torch.nn.Sequential(*_layers)
+        self.feature_extractor = nn.Sequential(*_layers)
 
         # 2. Classifier:
-        _fc_layers = [torch.nn.Linear(2048, 256),
-                      torch.nn.Linear(256, 32),
-                      torch.nn.Linear(32, 1)]
-        self.fc = torch.nn.Sequential(*_fc_layers)
+        _fc_layers = [nn.Linear(2048, 256),
+                      nn.ReLU(),
+                      nn.Linear(256, 32),
+                      nn.Linear(32, 1)]
+        self.fc = nn.Sequential(*_fc_layers)
 
         # 3. Loss:
         self.loss_func = F.binary_cross_entropy_with_logits
@@ -171,43 +169,39 @@ class TransferLearningModel(pl.LightningModule):
         # 2. Classifier (returns logits):
         x = self.fc(x)
 
-        return x
+        return F.sigmoid(x)
 
     def loss(self, logits, labels):
         return self.loss_func(input=logits, target=labels)
 
     def training_step(self, batch, batch_idx):
-
-        # 1. Forward pass:
-        x, y = batch
-        y_logits = self.forward(x)
-        y_true = y.view((-1, 1)).type_as(x)
-
-        # 2. Compute loss & accuracy:
-        train_loss = self.loss(y_logits, y_true)
-        self.train_acc(y_logits, y_true)
-
-        # 3. Outputs:
-        self.log("train_loss" , train_loss, prog_bar=True)
-        return train_loss
-
-    def validation_step(self, batch, batch_idx):
-
         # 1. Forward pass:
         x, y = batch
         y_logits = self.forward(x)
         y_true = y.view((-1, 1)).type_as(x)
 
         # 2. Compute loss
-        val_loss = self.loss(y_logits, y_true)
-        self.log("val_loss", val_loss, prog_bar=True) 
+        train_loss = self.loss(y_logits, y_true)
         
         # 3. Compute accuracy:
-        self.log("val_loss", self.valid_acc(y_logits, y_true), prog_bar=True) 
+        self.log("train_acc", self.train_acc(y_logits, y_true.int()), prog_bar=True) 
 
+        return train_loss
+
+    def validation_step(self, batch, batch_idx):
+        # 1. Forward pass:
+        x, y = batch
+        y_logits = self.forward(x)
+        y_true = y.view((-1, 1)).type_as(x)
+
+        # 2. Compute loss
+        self.log("val_loss", self.loss(y_logits, y_true), prog_bar=True) 
+        
+        # 3. Compute accuracy:
+        self.log("val_acc", self.valid_acc(y_logits, y_true.int()), prog_bar=True) 
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=self.lr)
+        optimizer = optim.Adam(self.parameters(), lr=self.lr)
 
         scheduler = MultiStepLR(optimizer, milestones=self.milestones, gamma=self.lr_scheduler_gamma)
 
@@ -281,7 +275,7 @@ class TransferLearningModel(pl.LightningModule):
         parser.add_argument("--batch-size", default=8, type=int, metavar="B", help="batch size", dest="batch_size")
         parser.add_argument("--gpus", type=int, default=1, help="number of gpus to use")
         parser.add_argument(
-            "--lr", "--learning-rate", default=1e-2, type=float, metavar="LR", help="initial learning rate", dest="lr"
+            "--lr", "--learning-rate", default=1e-3, type=float, metavar="LR", help="initial learning rate", dest="lr"
         )
         parser.add_argument(
             "--lr-scheduler-gamma",

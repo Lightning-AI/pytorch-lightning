@@ -128,12 +128,18 @@ class BaseFinetunningCallback(Callback):
     BaseFinetunningCallback.
     Overrides the finetunning_function and add your own logic there.
     """
+    def on_fit_start(self, _, pl_module):
+        self.freeze_before_training(pl_module)
+
     def on_train_epoch_start(self, trainer, pl_module):
         """Called when the epoch begins."""
         for opt_idx, optimizer in trainer.train_loop.prepare_optimizers():
             self.finetunning_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
 
     def finetunning_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+        raise NotImplementedError
+
+    def freeze_before_training(self, pl_module: LightningModule):
         raise NotImplementedError
 
 
@@ -189,14 +195,13 @@ class BackboneLambdaFinetunningCallback(BaseFinetunningCallback):
             "The LightningModule should have a nn.Module `backbone` attribute"
         )
 
+    def freeze_before_training(self, pl_module: LightningModule):
+        freeze(pl_module.backbone)
+
     def finetunning_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
         """Called when the epoch begins."""
 
-        if epoch == 0:
-            freeze(pl_module.backbone)
-            return
-
-        elif epoch == self.unfreeze_backbone_at_epoch:
+        if epoch == self.unfreeze_backbone_at_epoch:
             current_lr = optimizer.param_groups[0]['lr']
             initial_backbone_lr = self.backbone_initial_lr if self.backbone_initial_lr is not None \
                 else current_lr * self.backbone_initial_ratio_lr
