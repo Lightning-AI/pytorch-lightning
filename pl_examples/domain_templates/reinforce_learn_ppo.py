@@ -33,14 +33,13 @@ import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 
 import gym
+import numpy as np
 import torch
 from torch import nn
 from torch.distributions import Categorical, Normal
 from torch.utils.data import DataLoader, IterableDataset
 import torch.optim as optim
 from torch.optim.optimizer import Optimizer
-
-import numpy as np
 
 
 def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
