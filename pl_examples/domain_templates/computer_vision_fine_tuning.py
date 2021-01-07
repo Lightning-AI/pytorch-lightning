@@ -44,10 +44,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Union
 
-import torch
-from torch import nn
 import torch.nn.functional as F
-from torch import optim
+from torch import nn, optim
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
@@ -59,7 +57,6 @@ import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.finetunning import BaseFinetunningCallback, freeze, unfreeze_and_add_param_group
-
 
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
 
@@ -91,7 +88,7 @@ class MilestonesFinetunningCallback(BaseFinetunningCallback):
                 optimizer=optimizer,
                 train_bn=self.train_bn
             )
-            
+
 
 #  --- Pytorch-lightning module ---
 
@@ -182,9 +179,9 @@ class TransferLearningModel(pl.LightningModule):
 
         # 2. Compute loss
         train_loss = self.loss(y_logits, y_true)
-        
+
         # 3. Compute accuracy:
-        self.log("train_acc", self.train_acc(y_logits, y_true.int()), prog_bar=True) 
+        self.log("train_acc", self.train_acc(y_logits, y_true.int()), prog_bar=True)
 
         return train_loss
 
@@ -195,10 +192,10 @@ class TransferLearningModel(pl.LightningModule):
         y_true = y.view((-1, 1)).type_as(x)
 
         # 2. Compute loss
-        self.log("val_loss", self.loss(y_logits, y_true), prog_bar=True) 
-        
+        self.log("val_loss", self.loss(y_logits, y_true), prog_bar=True)
+
         # 3. Compute accuracy:
-        self.log("val_acc", self.valid_acc(y_logits, y_true.int()), prog_bar=True) 
+        self.log("val_acc", self.valid_acc(y_logits, y_true.int()), prog_bar=True)
 
     def configure_optimizers(self):
         optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=self.lr)

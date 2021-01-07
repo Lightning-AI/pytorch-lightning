@@ -28,7 +28,7 @@ class Callback(abc.ABC):
     """
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
-        """Called before accelerator is being called"""
+        """Called before accelerator is being setup"""
         pass
 
     def setup(self, trainer, pl_module, stage: str):
