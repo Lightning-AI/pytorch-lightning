@@ -17,15 +17,15 @@ Tests to ensure that the training loop works with a dict (1.0)
 from copy import deepcopy
 
 import pytest
-import torch
-from torch.utils.data import DataLoader
 
+import torch
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDataset
+from torch.utils.data import DataLoader
 
 
 def decorator_with_arguments(fx_name='', hook_fx_name=None):

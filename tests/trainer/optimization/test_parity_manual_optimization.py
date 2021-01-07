@@ -18,17 +18,16 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-import torch
-from torch.optim import Optimizer
 
+import torch
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from tests.base.boring_model import BoringModel
-from tests.trainer.optimization.test_parity_automatic_optimization import (
-    assert_model_equality,
-    run_lightning_optimizer_equality,
-    should_accumulate,
-)
+from tests.trainer.optimization.test_parity_automatic_optimization import (assert_model_equality,
+                                                                           run_lightning_optimizer_equality,
+                                                                           should_accumulate)
+from torch.optim import Optimizer
+
 
 """
 TODO:

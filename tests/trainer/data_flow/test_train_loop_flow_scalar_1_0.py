@@ -17,12 +17,13 @@ Tests to ensure that the training loop works with a dict (1.0)
 import os
 from unittest import mock
 
-from pytorch_lightning.core.lightning import LightningModule
 import pytest
-from pytorch_lightning import Trainer
-from tests.base.deterministic_model import DeterministicModel
-from tests.base.boring_model import BoringModel
+
 import torch
+from pytorch_lightning import Trainer
+from pytorch_lightning.core.lightning import LightningModule
+from tests.base.boring_model import BoringModel
+from tests.base.deterministic_model import DeterministicModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})

@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import torch
+
 import pytest
-from tests.base.boring_model import BoringModel, RandomDataset
+
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base.boring_model import BoringModel, RandomDataset
 
 
 def test_logdir(tmpdir):

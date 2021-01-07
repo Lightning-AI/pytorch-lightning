@@ -20,12 +20,12 @@ from copy import deepcopy
 from pathlib import Path
 from unittest.mock import ANY, call, patch
 
-import cloudpickle
 import pytest
+
+import cloudpickle
+import tests.base.develop_utils as tutils
 import torch
 from omegaconf import OmegaConf
-
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv

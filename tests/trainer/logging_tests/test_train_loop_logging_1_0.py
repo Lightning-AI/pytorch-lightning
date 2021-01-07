@@ -23,15 +23,15 @@ from unittest import mock
 
 import numpy as np
 import pytest
-import torch
-from torch.utils.data import Dataset
 
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
+from torch.utils.data import Dataset
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})

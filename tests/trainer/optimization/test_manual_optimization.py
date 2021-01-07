@@ -17,11 +17,11 @@ from unittest import mock
 from unittest.mock import ANY, call, patch
 
 import pytest
+
 import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
-
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities import APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel

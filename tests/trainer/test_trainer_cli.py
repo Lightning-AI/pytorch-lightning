@@ -18,9 +18,9 @@ from argparse import ArgumentParser, Namespace
 from unittest import mock
 
 import pytest
-import torch
 
 import tests.base.develop_utils as tutils
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import argparse_utils
 

@@ -22,15 +22,15 @@ from unittest.mock import call, patch
 
 import numpy as np
 import pytest
-import torch
-from torch.utils.data import DataLoader, Dataset
 
+import torch
 from pytorch_lightning import callbacks, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import BoringModel, RandomDataset, SimpleModule
 from tests.base.deterministic_model import DeterministicModel
+from torch.utils.data import DataLoader, Dataset
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})

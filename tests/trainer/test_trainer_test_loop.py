@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-import torch
 
 import pytorch_lightning as pl
 import tests.base.develop_utils as tutils
+import torch
 from tests.base import EvalModelTemplate
 
 
