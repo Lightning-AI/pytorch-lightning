@@ -104,6 +104,7 @@ class Accuracy(Metric):
         """
         return self.correct.float() / self.total
 
+
 class TopKAccuracy(Metric):
     r"""
     Computes Top - K accuracy:
@@ -111,7 +112,7 @@ class TopKAccuracy(Metric):
     .. math:: \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i \in \text{topk}(\hat{\mathbf{p}_i}))
 
     Where :math:`y` is a tensor of target values, :math:`\hat{\mathbf{p}_i}` is a
-    tensor of predictions (logits or probabilities) :math:`\text{topk}` is a function that gives back the top k indices.  
+    tensor of predictions (logits or probabilities) :math:`\text{topk}` is a function that gives back the top k indices.
     Works with multiclass and multilabel data.  Accepts logits from a model output or integer class values in
     prediction.  Works with multi-dimensional preds and target.
 
@@ -139,10 +140,10 @@ class TopKAccuracy(Metric):
         >>> from pytorch_lightning.metrics import TopKAccuracy
         >>> target = torch.tensor([0, 1, 2, 3])
         >>> preds = torch.tensor([
-            [0.0, 0.9, 0.1, 0.0], 
-            [0.0, 0.9, 0.1, 0.0], 
-            [0.0, 0.9, 0.1, 0.0], 
-            [0.0, 0.9, 0.1, 0.0], 
+            [0.0, 0.9, 0.1, 0.0],
+            [0.0, 0.9, 0.1, 0.0],
+            [0.0, 0.9, 0.1, 0.0],
+            [0.0, 0.9, 0.1, 0.0],
             ])
         >>> accuracy = TopKAccuracy(k=2)
         >>> accuracy(preds, target)
@@ -150,7 +151,7 @@ class TopKAccuracy(Metric):
 
     """
     def __init__(
-        self, 
+        self,
         k: int = 5,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
@@ -174,7 +175,7 @@ class TopKAccuracy(Metric):
             target = target[:, None]
 
         self.correct += torch.sum((preds == target).any(dim=-1))
-        self.total += target.numel() 
+        self.total += target.numel()
 
     def compute(self):
         """

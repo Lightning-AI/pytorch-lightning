@@ -112,14 +112,15 @@ class TestAccuracy(MetricTester):
             metric_args={"threshold": THRESHOLD},
         )
 
+
 def test_topk_accuracy():
     target = torch.tensor([0, 1, 2, 3])
     preds = torch.tensor(
         [
-            [0.0, 0.9, 0.1, 0.0], 
-            [0.0, 0.9, 0.1, 0.0], 
-            [0.0, 0.9, 0.1, 0.0], 
-            [0.0, 0.9, 0.1, 0.0], 
+            [0.0, 0.9, 0.1, 0.0],
+            [0.0, 0.9, 0.1, 0.0],
+            [0.0, 0.9, 0.1, 0.0],
+            [0.0, 0.9, 0.1, 0.0],
         ]
     )
 
