@@ -17,7 +17,7 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning import Trainer, accelerators
+from pytorch_lightning import accelerators, Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.cluster_environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
