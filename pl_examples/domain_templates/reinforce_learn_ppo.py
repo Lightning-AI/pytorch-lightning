@@ -25,6 +25,7 @@ References
 ----------
 [1] https://github.com/openai/baselines/blob/master/baselines/ppo2/ppo2.py
 [2] https://github.com/openai/spinningup
+[3] https://github.com/sid-sundrani/ppo_lightning
 """
 import argparse
 from typing import Callable, Iterable, List, Tuple
