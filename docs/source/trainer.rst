@@ -141,9 +141,9 @@ So you can run it like so:
 
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
-    The trainer will catch the `KeyboardInterrupt` and attempt a graceful shutdown, including
-    running callbacks such as `on_train_end`. The trainer object will also set an attribute
-    `interrupted` to `True` in such cases. If you have a callback which shuts down compute
+    The trainer will catch the ``KeyboardInterrupt`` and attempt a graceful shutdown, including
+    running callbacks such as ``on_train_end``. The trainer object will also set an attribute
+    ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
     resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs.
 
 ------------
@@ -155,7 +155,7 @@ Once you're done training, feel free to run the test set!
 
 .. code-block:: python
 
-    trainer.test(test_dataloader=test_dataloader)
+    trainer.test(test_dataloaders=test_dataloader)
 
 ------------
 
@@ -220,13 +220,13 @@ accelerator
 
 The accelerator backend to use (previously known as distributed_backend).
 
-- (```dp```) is DataParallel (split batch among GPUs of same machine)
-- (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
-- (```ddp_cpu```) is DistributedDataParallel on CPU (same as `ddp`, but does not use GPUs.
+- (``'dp'``) is DataParallel (split batch among GPUs of same machine)
+- (``'ddp'``) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
+- (``'ddp_cpu'``) is DistributedDataParallel on CPU (same as ``'ddp'``, but does not use GPUs.
   Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
-  a speedup on a single node, since Torch already makes effient use of multiple CPUs on a single
+  a speedup on a single node, since Torch already makes efficient use of multiple CPUs on a single
   machine.)
-- (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
+- (``'ddp2'``) dp on node, ddp across nodes. Useful for things like increasing
     the number of negative samples
 
 .. testcode::
@@ -245,7 +245,7 @@ Example::
     # ddp2 = DistributedDataParallel + dp
     trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp2')
 
-.. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
+.. note:: This option does not apply to TPU. TPUs use ``'ddp'`` by default (over each core)
 
 You can also modify hardware behavior by subclassing an existing accelerator to adjust for your needs.
 
@@ -619,7 +619,7 @@ will need to be set up to use remote filepaths.
 
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
-This has been renamed "accelerator".
+Deprecated: This has been renamed ``accelerator``.
 
 fast_dev_run
 ^^^^^^^^^^^^
@@ -632,9 +632,10 @@ fast_dev_run
 
 |
 
-Runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
+Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es) of train, val and test
+to find any bugs (ie: a sort of unit test).
 
-Under the hood the pseudocode looks like this:
+Under the hood the pseudocode looks like this when running *fast_dev_run* with a single batch:
 
 .. code-block:: python
 
@@ -658,6 +659,37 @@ Under the hood the pseudocode looks like this:
 
     # runs 1 train, val, test batch and program ends
     trainer = Trainer(fast_dev_run=True)
+
+    # runs 7 train, val, test batches and program ends
+    trainer = Trainer(fast_dev_run=7)
+
+.. note::
+
+    This argument is a bit different from ``limit_train/val/test_batches``. Setting this argument will
+    disable tuner, checkpoint callbacks, early stopping callbacks, loggers and logger callbacks like
+    ``LearningRateLogger`` and runs for only 1 epoch. This must be used only for debugging purposes.
+    ``limit_train/val/test_batches`` only limits the number of batches and won't disable anything.
+
+flush_logs_every_n_steps
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/flush_logs%E2%80%A8_every_n_steps.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/flush_logs_every_n_steps.mp4"></video>
+
+|
+
+Writes logs to disk this often.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(flush_logs_every_n_steps=100)
+
+See Also:
+    - :ref:`logging`
 
 gpus
 ^^^^
@@ -725,6 +757,35 @@ Gradient clipping value
     # default used by the Trainer
     trainer = Trainer(gradient_clip_val=0.0)
 
+limit_train_batches
+^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_train_batches.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4"></video>
+
+|
+
+How much of training dataset to check.
+Useful when debugging or testing something that happens at the end of an epoch.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(limit_train_batches=1.0)
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(limit_train_batches=1.0)
+
+    # run through only 25% of the training set each epoch
+    trainer = Trainer(limit_train_batches=0.25)
+
+    # run through only 10 batches of the training set each epoch
+    trainer = Trainer(limit_train_batches=10)
 
 limit_test_batches
 ^^^^^^^^^^^^^^^^^^
@@ -779,6 +840,28 @@ Useful when debugging or testing something that happens at the end of an epoch.
 
 In the case of multiple validation dataloaders, the limit applies to each dataloader individually.
 
+log_every_n_steps
+^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_every_n_steps.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_every_n_steps.mp4"></video>
+
+|
+
+
+How often to add logging rows (does not write to disk)
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(log_every_n_steps=50)
+
+See Also:
+    - :ref:`logging`
+
 log_gpu_memory
 ^^^^^^^^^^^^^^
 
@@ -807,28 +890,7 @@ Options:
     # log only the min and max memory on the master node
     trainer = Trainer(log_gpu_memory='min_max')
 
-.. note:: Might slow performance because it uses the output of nvidia-smi.
-
-flush_logs_every_n_steps
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/flush_logs%E2%80%A8_every_n_steps.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/flush_logs_every_n_steps.mp4"></video>
-
-|
-
-Writes logs to disk this often.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(flush_logs_every_n_steps=100)
-
-See Also:
-    - :ref:`logging`
+.. note:: Might slow performance because it uses the output of ``nvidia-smi``.
 
 logger
 ^^^^^^
@@ -971,7 +1033,7 @@ Number of processes to train with. Automatically set to the number of GPUs
 when using ``accelerator="ddp"``. Set to a number greater than 1 when
 using ``accelerator="ddp_cpu"`` to mimic distributed training on a
 machine without GPUs. This is useful for debugging, but **will not** provide
-any speedup, since single-process Torch already makes effient use of multiple
+any speedup, since single-process Torch already makes efficient use of multiple
 CPUs.
 
 .. testcode::
@@ -1008,6 +1070,32 @@ The Trainer uses 2 steps by default. Turn it off or modify it here.
 
 This option will reset the validation dataloader unless ``num_sanity_val_steps=0``.
 
+overfit_batches
+^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/overfit_batches.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/overfit_batches.mp4"></video>
+
+|
+
+Uses this much data of the training set. If nonzero, will use the same training set for validation and testing.
+If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
+
+Useful for quickly debugging or trying to overfit on purpose.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(overfit_batches=0.0)
+
+    # use only 1% of the train set (and use the train set for val and test)
+    trainer = Trainer(overfit_batches=0.01)
+
+    # overfit on 10 of the same batches
+    trainer = Trainer(overfit_batches=10)
 
 plugins
 ^^^^^^^
@@ -1068,89 +1156,6 @@ If False will only call from NODE_RANK=0, LOCAL_RANK=0
     # use only NODE_RANK=0, LOCAL_RANK=0
     Trainer(prepare_data_per_node=False)
 
-tpu_cores
-^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/tpu_cores.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4"></video>
-
-|
-
-- How many TPU cores to train on (1 or 8).
-- Which TPU core to train on [1-8]
-
-A single TPU v2 or v3 has 8 cores. A TPU pod has
-up to 2048 cores. A slice of a POD means you get as many cores
-as you request.
-
-Your effective batch size is batch_size * total tpu cores.
-
-.. note:: No need to add a DistributedDataSampler, Lightning automatically does it for you.
-
-This parameter can be either 1 or 8.
-
-Example::
-
-    # your_trainer_file.py
-
-    # default used by the Trainer (ie: train on CPU)
-    trainer = Trainer(tpu_cores=None)
-
-    # int: train on a single core
-    trainer = Trainer(tpu_cores=1)
-
-    # list: train on a single selected core
-    trainer = Trainer(tpu_cores=[2])
-
-    # int: train on all cores few cores
-    trainer = Trainer(tpu_cores=8)
-
-    # for 8+ cores must submit via xla script with
-    # a max of 8 cores specified. The XLA script
-    # will duplicate script onto each TPU in the POD
-    trainer = Trainer(tpu_cores=8)
-
-To train on more than 8 cores (ie: a POD),
-submit this script using the xla_dist script.
-
-Example::
-
-    python -m torch_xla.distributed.xla_dist
-    --tpu=$TPU_POD_NAME
-    --conda-env=torch-xla-nightly
-    --env=XLA_USE_BF16=1
-    -- python your_trainer_file.py
-
-overfit_batches
-^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/overfit_batches.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/overfit_batches.mp4"></video>
-
-|
-
-Uses this much data of the training set. If nonzero, will use the same training set for validation and testing.
-If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
-
-Useful for quickly debugging or trying to overfit on purpose.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(overfit_batches=0.0)
-
-    # use only 1% of the train set (and use the train set for val and test)
-    trainer = Trainer(overfit_batches=0.01)
-
-    # overfit on 10 of the same batches
-    trainer = Trainer(overfit_batches=10)
-
 precision
 ^^^^^^^^^
 
@@ -1200,8 +1205,7 @@ Orders the progress bar. Useful when running multiple trainers on the same node.
     # default used by the Trainer
     trainer = Trainer(process_position=0)
 
-Note:
-    This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
+.. note:: This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 profiler
 ^^^^^^^^
@@ -1324,7 +1328,8 @@ resume_from_checkpoint
 
 |
 
-To resume training from a specific checkpoint pass in the path here.
+To resume training from a specific checkpoint pass in the path here. If resuming from a mid-epoch
+checkpoint, training will start from the beginning of the next epoch.
 
 .. testcode::
 
@@ -1333,29 +1338,6 @@ To resume training from a specific checkpoint pass in the path here.
 
     # resume from a specific checkpoint
     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
-
-log_every_n_steps
-^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_every_n_steps.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_every_n_steps.mp4"></video>
-
-|
-
-
-How often to add logging rows (does not write to disk)
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(log_every_n_steps=50)
-
-See Also:
-    - :ref:`logging`
-
 
 sync_batchnorm
 ^^^^^^^^^^^^^^
@@ -1396,35 +1378,63 @@ track_grad_norm
     # track the 2-norm
     trainer = Trainer(track_grad_norm=2)
 
-limit_train_batches
-^^^^^^^^^^^^^^^^^^^
+tpu_cores
+^^^^^^^^^
 
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_train_batches.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4"></video>
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/tpu_cores.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4"></video>
 
 |
 
-How much of training dataset to check.
-Useful when debugging or testing something that happens at the end of an epoch.
+- How many TPU cores to train on (1 or 8).
+- Which TPU core to train on [1-8]
 
-.. testcode::
+A single TPU v2 or v3 has 8 cores. A TPU pod has
+up to 2048 cores. A slice of a POD means you get as many cores
+as you request.
 
-    # default used by the Trainer
-    trainer = Trainer(limit_train_batches=1.0)
+Your effective batch size is batch_size * total tpu cores.
+
+.. note::
+    No need to add a :class:`~torch.utils.data.distributed.DistributedSampler`,
+    Lightning automatically does it for you.
+
+This parameter can be either 1 or 8.
 
 Example::
 
-    # default used by the Trainer
-    trainer = Trainer(limit_train_batches=1.0)
+    # your_trainer_file.py
 
-    # run through only 25% of the training set each epoch
-    trainer = Trainer(limit_train_batches=0.25)
+    # default used by the Trainer (ie: train on CPU)
+    trainer = Trainer(tpu_cores=None)
 
-    # run through only 10 batches of the training set each epoch
-    trainer = Trainer(limit_train_batches=10)
+    # int: train on a single core
+    trainer = Trainer(tpu_cores=1)
+
+    # list: train on a single selected core
+    trainer = Trainer(tpu_cores=[2])
+
+    # int: train on all cores few cores
+    trainer = Trainer(tpu_cores=8)
+
+    # for 8+ cores must submit via xla script with
+    # a max of 8 cores specified. The XLA script
+    # will duplicate script onto each TPU in the POD
+    trainer = Trainer(tpu_cores=8)
+
+To train on more than 8 cores (ie: a POD),
+submit this script using the xla_dist script.
+
+Example::
+
+    python -m torch_xla.distributed.xla_dist
+    --tpu=$TPU_POD_NAME
+    --conda-env=torch-xla-nightly
+    --env=XLA_USE_BF16=1
+    -- python your_trainer_file.py
 
 truncated_bptt_steps
 ^^^^^^^^^^^^^^^^^^^^

@@ -27,7 +27,7 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, LightningModule, Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.base import EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
+from tests.base import BoringModel, EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
 
 
 class ModelTrainerPropertyParity(Callback):
@@ -71,6 +71,25 @@ def test_model_properties_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
     trainer_args.update(max_epochs=2)
     trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
     trainer.fit(model)
+
+
+def test_try_resume_from_non_existing_checkpoint(tmpdir):
+    """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
+    model = BoringModel()
+    checkpoint_cb = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=False,
+        callbacks=[checkpoint_cb],
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+    )
+    # Generate checkpoint `last.ckpt` with BoringModel
+    trainer.fit(model)
+    # `True` if resume/restore successfully else `False`
+    assert trainer.checkpoint_connector.restore(str(tmpdir / "last.ckpt"), trainer.on_gpu)
+    assert not trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
 
 
 class CaptureCallbacksBeforeTraining(Callback):
@@ -159,10 +178,10 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
         gpus=[0, 1],
-        distributed_backend='dp',
+        accelerator='dp',
         default_root_dir=tmpdir,
     )
 
@@ -209,10 +228,10 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
         gpus=[0, 1],
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         default_root_dir=tmpdir,
     )
 
@@ -257,7 +276,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
         max_epochs=3,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
         default_root_dir=tmpdir,
     )
@@ -288,7 +307,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
         max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1)],
         default_root_dir=tmpdir,
     )
 
@@ -332,7 +351,7 @@ def test_dp_resume(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
 
-    trainer_options = dict(max_epochs=1, gpus=2, distributed_backend='dp', default_root_dir=tmpdir,)
+    trainer_options = dict(max_epochs=1, gpus=2, accelerator='dp', default_root_dir=tmpdir)
 
     # get logger
     logger = tutils.get_default_logger(tmpdir)
@@ -404,8 +423,10 @@ def test_model_saving_loading(tmpdir):
 
     # fit model
     trainer = Trainer(
-        max_epochs=1, logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir), default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=logger,
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
+        default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
 
@@ -460,7 +481,7 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
     # fit model
     trainer = Trainer(
         default_root_dir=tmpdir, max_epochs=1, logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     result = trainer.fit(model)
 
@@ -500,7 +521,7 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
     # fit model
     trainer = Trainer(
         default_root_dir=tmpdir, max_epochs=1, logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     result = trainer.fit(model)
 

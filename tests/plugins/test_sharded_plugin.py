@@ -46,7 +46,7 @@ def test_ddp_choice_sharded(tmpdir, ddp_backend, gpus, num_processes):
         fast_dev_run=True,
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
+        accelerator=ddp_backend,
         plugins=[DDPShardedPlugin()],
         callbacks=[CB()],
     )
@@ -66,10 +66,10 @@ def test_invalid_apex_sharded(tmpdir):
     with pytest.raises(MisconfigurationException, match='Sharded Plugin is not supported with Apex AMP'):
         trainer = Trainer(
             fast_dev_run=True,
-            distributed_backend='ddp_spawn',
+            accelerator='ddp_spawn',
             plugins=[DDPShardedPlugin()],
             precision=16,
-            amp_backend='apex'
+            amp_backend='apex',
         )
 
         trainer.fit(model)
@@ -110,7 +110,7 @@ def test_ddp_choice_sharded_amp(tmpdir, ddp_backend, gpus, num_processes):
         gpus=gpus,
         precision=16,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
+        accelerator=ddp_backend,
         plugins=[DDPShardedPlugin()],
         callbacks=[CB()],
     )

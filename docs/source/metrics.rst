@@ -17,7 +17,7 @@ common metric implementations.
 
 The metrics API provides ``update()``, ``compute()``, ``reset()`` functions to the user. The metric base class inherits
 ``nn.Module`` which allows us to call ``metric(...)`` directly. The ``forward()`` method of the base ``Metric`` class
-serves the dual purpose of calling ``update()`` on its input and simultanously returning the value of the metric over the
+serves the dual purpose of calling ``update()`` on its input and simultaneously returning the value of the metric over the
 provided input.
 
 These metrics work with DDP in PyTorch and PyTorch Lightning by default. When ``.compute()`` is called in
@@ -33,10 +33,11 @@ The example below shows how to use a metric in your ``LightningModule``:
         self.accuracy = pl.metrics.Accuracy()
 
     def training_step(self, batch, batch_idx):
-        logits = self(x)
+        x, y = batch
+        preds = self(x)
         ...
         # log step metric
-        self.log('train_acc_step', self.accuracy(logits, y))
+        self.log('train_acc_step', self.accuracy(preds, y))
         ...
 
     def training_epoch_end(self, outs):
@@ -67,9 +68,10 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.valid_acc = pl.metrics.Accuracy()
 
     def training_step(self, batch, batch_idx):
-        logits = self(x)
+        x, y = batch
+        preds = self(x)
         ...
-        self.train_acc(logits, y)
+        self.train_acc(preds, y)
         self.log('train_acc', self.train_acc, on_step=True, on_epoch=False)
 
     def validation_step(self, batch, batch_idx):
@@ -88,7 +90,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
 
         def training_step(self, batch, batch_idx):
             data, target = batch
-            pred = self(data)
+            preds = self(data)
             ...
             return {'loss' : loss, 'preds' : preds, 'target' : target}
 
@@ -136,6 +138,56 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     Metric states are **not** added to the models ``state_dict`` by default.
     To change this, after initializing the metric, the method ``.persistent(mode)`` can
     be used to enable (``mode=True``) or disable (``mode=False``) this behaviour.
+
+*******************
+Metrics and devices
+*******************
+
+Metrics are simple subclasses of :class:`~torch.nn.Module` and their metric states behave
+similar to buffers and parameters of modules. This means that metrics states should
+be moved to the same device as the input of the metric:
+
+.. code-block:: python
+
+    import torch
+    from pytorch_lightning.metrics import Accuracy
+
+    target = torch.tensor([1, 1, 0, 0], device=torch.device("cuda", 0))
+    preds = torch.tensor([0, 1, 0, 0], device=torch.device("cuda", 0))
+
+    # Metric states are always initialized on cpu, and needs to be moved to
+    # the correct device
+    confmat = Accuracy(num_classes=2).to(torch.device("cuda", 0))
+    out = confmat(preds, target)
+    print(out.device) # cuda:0
+
+However, when **properly defined** inside a :class:`~pytorch_lightning.core.lightning.LightningModule`
+, Lightning will automatically move the metrics to the same device as the data. Being
+**properly defined** means that the metric is correctly identified as a child module of the
+model (check ``.children()`` attribute of the model). Therefore, metrics cannot be placed
+in native python ``list`` and ``dict``, as they will not be correctly identified
+as child modules. Instead of ``list`` use :class:`~torch.nn.ModuleList` and instead of
+``dict`` use :class:`~torch.nn.ModuleDict`.
+
+.. testcode::
+
+    class MyModule(LightningModule):
+        def __init__(self):
+            ...
+            # valid ways metrics will be identified as child modules
+            self.metric1 = pl.metrics.Accuracy()
+            self.metric2 = torch.nn.ModuleList(pl.metrics.Accuracy())
+            self.metric3 = torch.nn.ModuleDict({'accuracy': Accuracy()})
+
+        def training_step(self, batch, batch_idx):
+            # all metrics will be on the same device as the input batch
+            data, target = batch
+            preds = self(data)
+            ...
+            val1 = self.metric1(preds, target)
+            val2 = self.metric2[0](preds, target)
+            val3 = self.metric3['accuracy'](preds, target)
+
 
 *********************
 Implementing a Metric
@@ -196,12 +248,71 @@ Metric API
 .. autoclass:: pytorch_lightning.metrics.Metric
     :noindex:
 
-*************
-Class metrics
-*************
+***************************
+Class vs Functional Metrics
+***************************
 
+The functional metrics follow the simple paradigm input in, output out. This means, they don't provide any advanced mechanisms for syncing across DDP nodes or aggregation over batches. They simply compute the metric value based on the given inputs.
+
+Also, the integration within other parts of PyTorch Lightning will never be as tight as with the class-based interface.
+If you look for just computing the values, the functional metrics are the way to go. However, if you are looking for the best integration and user experience, please consider also using the class interface.
+
+**********************
 Classification Metrics
-----------------------
+**********************
+
+Input types
+-----------
+
+For the purposes of classification metrics, inputs (predictions and targets) are split
+into these categories (``N`` stands for the batch size and ``C`` for number of classes):
+
+.. csv-table:: \*dtype ``binary`` means integers that are either 0 or 1
+    :header: "Type", "preds shape", "preds dtype", "target shape", "target dtype"
+    :widths: 20, 10, 10, 10, 10
+
+    "Binary", "(N,)", "``float``", "(N,)", "``binary``\*"
+    "Multi-class", "(N,)", "``int``", "(N,)", "``int``"
+    "Multi-class with probabilities", "(N, C)", "``float``", "(N,)", "``int``"
+    "Multi-label", "(N, ...)", "``float``", "(N, ...)", "``binary``\*"
+    "Multi-dimensional multi-class", "(N, ...)", "``int``", "(N, ...)", "``int``"
+    "Multi-dimensional multi-class with probabilities", "(N, C, ...)", "``float``", "(N, ...)", "``int``"
+
+.. note::
+    All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so
+    that, for example, a tensor of shape ``(N, 1)`` is treated as ``(N, )``.
+
+When predictions or targets are integers, it is assumed that class labels start at 0, i.e.
+the possible class labels are 0, 1, 2, 3, etc. Below are some examples of different input types
+
+.. testcode::
+
+    # Binary inputs
+    binary_preds  = torch.tensor([0.6, 0.1, 0.9])
+    binary_target = torch.tensor([1, 0, 2])
+
+    # Multi-class inputs
+    mc_preds  = torch.tensor([0, 2, 1])
+    mc_target = torch.tensor([0, 1, 2])
+
+    # Multi-class inputs with probabilities
+    mc_preds_probs  = torch.tensor([[0.8, 0.2, 0], [0.1, 0.2, 0.7], [0.3, 0.6, 0.1]])
+    mc_target_probs = torch.tensor([0, 1, 2])
+
+    # Multi-label inputs
+    ml_preds  = torch.tensor([[0.2, 0.8, 0.9], [0.5, 0.6, 0.1], [0.3, 0.1, 0.1]])
+    ml_target = torch.tensor([[0, 1, 1], [1, 0, 0], [0, 0, 0]])
+
+In some rare cases, you might have inputs which appear to be (multi-dimensional) multi-class
+but are actually binary/multi-label. For example, if both predictions and targets are 1d
+binary tensors. Or it could be the other way around, you want to treat binary/multi-label
+inputs as 2-class (multi-dimensional) multi-class inputs.
+
+For these cases, the metrics where this distinction would make a difference, expose the
+``is_multiclass`` argument.
+
+Class Metrics (Classification)
+------------------------------
 
 Accuracy
 ~~~~~~~~
@@ -209,28 +320,10 @@ Accuracy
 .. autoclass:: pytorch_lightning.metrics.classification.Accuracy
     :noindex:
 
-Precision
-~~~~~~~~~
+AveragePrecision
+~~~~~~~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.Precision
-    :noindex:
-
-Recall
-~~~~~~
-
-.. autoclass:: pytorch_lightning.metrics.classification.Recall
-    :noindex:
-
-FBeta
-~~~~~
-
-.. autoclass:: pytorch_lightning.metrics.classification.FBeta
-    :noindex:
-
-F1
-~~
-
-.. autoclass:: pytorch_lightning.metrics.classification.F1
+.. autoclass:: pytorch_lightning.metrics.classification.AveragePrecision
     :noindex:
 
 ConfusionMatrix
@@ -239,61 +332,45 @@ ConfusionMatrix
 .. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
     :noindex:
 
-Regression Metrics
-------------------
+F1
+~~
 
-MeanSquaredError
-~~~~~~~~~~~~~~~~
+.. autoclass:: pytorch_lightning.metrics.classification.F1
+    :noindex:
 
-.. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredError
+FBeta
+~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.FBeta
+    :noindex:
+
+Precision
+~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.Precision
+    :noindex:
+
+PrecisionRecallCurve
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecallCurve
+    :noindex:
+
+Recall
+~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.Recall
+    :noindex:
+
+ROC
+~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.ROC
     :noindex:
 
 
-MeanAbsoluteError
-~~~~~~~~~~~~~~~~~
-
-.. autoclass:: pytorch_lightning.metrics.regression.MeanAbsoluteError
-    :noindex:
-
-
-MeanSquaredLogError
-~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredLogError
-    :noindex:
-
-
-ExplainedVariance
-~~~~~~~~~~~~~~~~~
-
-.. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
-    :noindex:
-
-
-PSNR
-~~~~
-
-.. autoclass:: pytorch_lightning.metrics.regression.PSNR
-    :noindex:
-
-
-SSIM
-~~~~
-
-.. autoclass:: pytorch_lightning.metrics.regression.SSIM
-    :noindex:
-
-******************
-Functional Metrics
-******************
-
-The functional metrics follow the simple paradigm input in, output out. This means, they don't provide any advanced mechanisms for syncing across DDP nodes or aggregation over batches. They simply compute the metric value based on the given inputs.
-
-Also the integration within other parts of PyTorch Lightning will never be as tight as with the class-based interface.
-If you look for just computing the values, the functional metrics are the way to go. However, if you are looking for the best integration and user experience, please consider also to use the class interface.
-
-Classification
---------------
+Functional Metrics (Classification)
+-----------------------------------
 
 accuracy [func]
 ~~~~~~~~~~~~~~~
@@ -326,7 +403,7 @@ multiclass_auroc [func]
 average_precision [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.average_precision
+.. autofunction:: pytorch_lightning.metrics.functional.average_precision
     :noindex:
 
 
@@ -365,10 +442,10 @@ iou [func]
     :noindex:
 
 
-multiclass_roc [func]
+roc [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_roc
+.. autofunction:: pytorch_lightning.metrics.functional.roc
     :noindex:
 
 
@@ -389,7 +466,7 @@ precision_recall [func]
 precision_recall_curve [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall_curve
+.. autofunction:: pytorch_lightning.metrics.functional.precision_recall_curve
     :noindex:
 
 
@@ -399,11 +476,10 @@ recall [func]
 .. autofunction:: pytorch_lightning.metrics.functional.classification.recall
     :noindex:
 
+select_topk [func]
+~~~~~~~~~~~~~~~~~~~~~
 
-roc [func]
-~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.classification.roc
+.. autofunction:: pytorch_lightning.metrics.utils.select_topk
     :noindex:
 
 
@@ -424,19 +500,67 @@ stat_scores_multiple_classes [func]
 to_categorical [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.to_categorical
+.. autofunction:: pytorch_lightning.metrics.utils.to_categorical
     :noindex:
 
 
 to_onehot [func]
 ~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.to_onehot
+.. autofunction:: pytorch_lightning.metrics.utils.to_onehot
+    :noindex:
+
+******************
+Regression Metrics
+******************
+
+Class Metrics (Regression)
+--------------------------
+
+ExplainedVariance
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
     :noindex:
 
 
-Regression
-----------
+MeanAbsoluteError
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.MeanAbsoluteError
+    :noindex:
+
+
+MeanSquaredError
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredError
+    :noindex:
+
+
+MeanSquaredLogError
+~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredLogError
+    :noindex:
+
+
+PSNR
+~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.PSNR
+    :noindex:
+
+
+SSIM
+~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.SSIM
+    :noindex:
+
+
+Functional Metrics (Regression)
+-------------------------------
 
 explained_variance [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -459,17 +583,17 @@ mean_squared_error [func]
     :noindex:
 
 
-psnr [func]
-~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.psnr
-    :noindex:
-
-
 mean_squared_log_error [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.mean_squared_log_error
+    :noindex:
+
+
+psnr [func]
+~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.psnr
     :noindex:
 
 
@@ -479,22 +603,22 @@ ssim [func]
 .. autofunction:: pytorch_lightning.metrics.functional.ssim
     :noindex:
 
-
+***
 NLP
----
+***
 
 bleu_score [func]
-~~~~~~~~~~~~~~~~~
+-----------------
 
 .. autofunction:: pytorch_lightning.metrics.functional.nlp.bleu_score
     :noindex:
 
-
+********
 Pairwise
---------
+********
 
 embedding_similarity [func]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 .. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
     :noindex:

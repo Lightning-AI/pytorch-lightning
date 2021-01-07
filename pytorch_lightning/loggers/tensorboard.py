@@ -217,7 +217,7 @@ class TensorBoardLogger(LightningLoggerBase):
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file if it doesn't exist
-        if not os.path.isfile(hparams_file):
+        if not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only

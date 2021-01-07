@@ -71,25 +71,6 @@ class ValidationStepVariations(ABC):
         })
         return output
 
-    def validation_step_result_obj(self, batch, batch_idx, *args, **kwargs):
-        x, y = batch
-        x = x.view(x.size(0), -1)
-        y_hat = self(x)
-
-        loss_val = self.loss(y, y_hat)
-
-        # acc
-        labels_hat = torch.argmax(y_hat, dim=1)
-        val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
-        val_acc = torch.tensor(val_acc).type_as(x)
-
-        result = EvalResult(checkpoint_on=loss_val, early_stop_on=loss_val)
-        result.log_dict({
-            'val_loss': loss_val,
-            'val_acc': val_acc,
-        })
-        return result
-
     def validation_step_result_obj_dp(self, batch, batch_idx, *args, **kwargs):
         x, y = batch
         x = x.view(x.size(0), -1)

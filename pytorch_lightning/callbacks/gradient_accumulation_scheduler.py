@@ -67,6 +67,9 @@ class GradientAccumulationScheduler(Callback):
         self.scheduling = scheduling
         self.epochs = sorted(scheduling.keys())
 
+    def going_to_accumulate_grad_batches(self):
+        return any([v > 1 for v in self.scheduling.values()])
+
     def on_epoch_start(self, trainer, pl_module):
         epoch = trainer.current_epoch
         for i in reversed(range(len(self.epochs))):

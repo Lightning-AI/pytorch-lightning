@@ -14,6 +14,7 @@
 from typing import Union, Tuple, Sequence
 
 import torch
+
 from pytorch_lightning.metrics.utils import _check_same_shape
 
 
@@ -22,10 +23,11 @@ def _explained_variance_update(preds: torch.Tensor, target: torch.Tensor) -> Tup
     return preds, target
 
 
-def _explained_variance_compute(preds: torch.Tensor,
-                                target: torch.Tensor,
-                                multioutput: str = 'uniform_average',
-                                ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
+def _explained_variance_compute(
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        multioutput: str = 'uniform_average',
+) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
     diff_avg = torch.mean(target - preds, dim=0)
     numerator = torch.mean((target - preds - diff_avg) ** 2, dim=0)
 
@@ -51,10 +53,11 @@ def _explained_variance_compute(preds: torch.Tensor,
         return torch.sum(denominator / denom_sum * output_scores)
 
 
-def explained_variance(preds: torch.Tensor,
-                       target: torch.Tensor,
-                       multioutput: str = 'uniform_average',
-                       ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
+def explained_variance(
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        multioutput: str = 'uniform_average',
+) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
     """
     Computes explained variance.
 
