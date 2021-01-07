@@ -32,7 +32,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
 from pl_examples import cli_lightning_logo
-from pytorch_lightning.core import LightningModule, LightningDataModule
+from pytorch_lightning.core import LightningDataModule, LightningModule
 from pytorch_lightning.trainer import Trainer
 
 
