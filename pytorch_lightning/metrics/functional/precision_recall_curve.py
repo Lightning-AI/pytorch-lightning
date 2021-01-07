@@ -173,7 +173,7 @@ def precision_recall_curve(
             which for binary problem is translate to 1. For multiclass problems
             this argument should not be set as we iteratively change it in the
             range [0,num_classes-1]
-        sample_weight: sample weights for each data point
+        sample_weights: sample weights for each data point
 
     Returns: 3-element tuple containing
 
