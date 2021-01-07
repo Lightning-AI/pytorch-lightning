@@ -44,3 +44,4 @@ from pytorch_lightning.metrics.functional.self_supervised import embedding_simil
 from pytorch_lightning.metrics.functional.ssim import ssim  # noqa: F401
 from pytorch_lightning.metrics.functional.ir_average_precision import retrieval_average_precision  # noqa: F401
 from pytorch_lightning.metrics.functional.stat_scores import stat_scores  # noqa: F401
+from pytorch_lightning.metrics.functional.image_gradients import image_gradients  # noqa: F401
