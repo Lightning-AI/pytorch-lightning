@@ -15,8 +15,10 @@ import importlib
 from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import copy
+from functools import partial
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from typing import Any, Callable, Union
-
+import numpy as np
 import torch
 
 TORCHTEXT_AVAILABLE = importlib.util.find_spec("torchtext") is not None
@@ -24,6 +26,15 @@ if TORCHTEXT_AVAILABLE:
     from torchtext.data import Batch
 else:
     Batch = type(None)
+
+
+CONVERSION_DTYPES = [
+    (bool, torch.bool),
+    (int, torch.int),
+    (float, torch.float),
+    (np.ndarray, None),
+
+]
 
 
 def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args, **kwargs) -> Any:
@@ -57,6 +68,22 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
         return elem_type([apply_to_collection(d, dtype, function, *args, **kwargs) for d in data])
 
     # data is neither of dtype, nor a collection
+    return data
+
+
+def to_dtype_tensor(value, dtype:torch.dtype = None, device: torch.device = None):
+    if isinstance(value, np.ndarray):
+        return torch.from_numpy(value).to(device)
+    return torch.tensor(value, dtype=dtype, device=device)
+
+
+def convert_to_tensors(data, device: torch.device = None):
+    if device is None:
+        raise MisconfigurationException(
+            "device (torch.device) should be provided."
+        )
+    for src_dtype, dst_dtype in CONVERSION_DTYPES:
+        data = apply_to_collection(data, src_dtype, partial(to_dtype_tensor, dtype=dst_dtype, device=device))
     return data
 
 

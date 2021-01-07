@@ -20,6 +20,7 @@ import inspect
 import os
 import re
 import tempfile
+import numpy as np
 from abc import ABC
 from argparse import Namespace
 from functools import partial
@@ -39,7 +40,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.apply_func import apply_to_collection, flatten_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -392,11 +393,7 @@ class LightningModule(
         else:
             all_gather = all_gather_ddp_if_available
 
-        def to_dtype_tensor(value, dtype=None):
-            return torch.tensor(value, dtype=dtype, device=self.device)
-
-        data = apply_to_collection(data, float, partial(to_dtype_tensor, dtype=torch.float))
-        data = apply_to_collection(data, int, partial(to_dtype_tensor, dtype=torch.int))
+        data = convert_to_tensors(data, device=self.device)
         all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
         return apply_to_collection(data, torch.Tensor, all_gather)
 

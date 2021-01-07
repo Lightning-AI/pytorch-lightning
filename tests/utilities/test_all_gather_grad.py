@@ -3,6 +3,7 @@ import sys
 
 import pytest
 import torch
+import numpy as np
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities import AllGatherGrad
@@ -60,11 +61,15 @@ def test_all_gather_properly_works(tmpdir):
             self.training_epoch_end_called = True
             losses = torch.stack([x["loss"] for x in outputs])
             gathered_loss = self.all_gather({
+                "losses_np_ndarray": np.array([1, 2, 3]),
+                "losses_bool": [True, False],
                 "losses_float": [0., 1., 2.],
                 "losses_int": [0, 1, 2],
                 "losses": losses,
                 "losses_list": [losses, losses]
             })
+            assert gathered_loss["losses_np_ndarray"][0].dtype == torch.int64
+            assert gathered_loss["losses_bool"][0].dtype == torch.bool
             assert gathered_loss["losses_float"][0].dtype == torch.float
             assert gathered_loss["losses_int"][0].dtype == torch.int
             assert gathered_loss["losses_list"][0].numel() == 2 * len(losses)
