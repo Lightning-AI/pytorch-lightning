@@ -16,7 +16,7 @@ from typing import Union
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
+from pytorch_lightning.plugins.old.precision_plugin import PrecisionPlugin
 
 
 class NativeAMPPlugin(PrecisionPlugin):

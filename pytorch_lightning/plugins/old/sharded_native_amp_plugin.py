@@ -15,7 +15,7 @@ from typing import Union, cast
 
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+from pytorch_lightning.plugins.old.native_amp import NativeAMPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 
 if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:

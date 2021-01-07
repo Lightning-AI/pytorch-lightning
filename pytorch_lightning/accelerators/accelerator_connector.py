@@ -18,11 +18,11 @@ import torch
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
+from pytorch_lightning.accelerators.plugins import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
     DataParallelPlugin, DDP2Plugin, HorovodPlugin
-from pytorch_lightning.accelerators.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
+from pytorch_lightning.accelerators.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, device_parser
+from pytorch_lightning.utilities import AMPType, _NATIVE_AMP_AVAILABLE, _APEX_AVAILABLE, device_parser
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -40,9 +40,9 @@ else:
 try:
     import horovod.torch as hvd
 except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
+    _HOROVOD_AVAILABLE = False
 else:
-    HOROVOD_AVAILABLE = True
+    _HOROVOD_AVAILABLE = True
 
 
 class BackendConnector(object):
@@ -180,7 +180,7 @@ class BackendConnector(object):
 
         elif self.precision == 16:
             if self.amp_type == 'native':
-                if not NATIVE_AMP_AVAILABLE:
+                if not _NATIVE_AMP_AVAILABLE:
                     rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
                                 ' Consider upgrading with `pip install torch>=1.6`.'
                                 ' We will attempt to use NVIDIA Apex for this session.')
@@ -191,7 +191,7 @@ class BackendConnector(object):
                     return NativeMixedPrecisionPlugin()
 
             if self.amp_type =='apex':
-                if not APEX_AVAILABLE:
+                if not _APEX_AVAILABLE:
                     rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
                                 ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
                 else:
@@ -371,7 +371,7 @@ class BackendConnector(object):
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
-        if not HOROVOD_AVAILABLE:
+        if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(
                 'Requested `distributed_backend="horovod"`, but Horovod is not installed.'
                 "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"

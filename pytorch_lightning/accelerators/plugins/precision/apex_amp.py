@@ -3,10 +3,10 @@ from typing import List, Tuple
 import torch
 from torch.optim import Optimizer
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import AMPType, _APEX_AVAILABLE, rank_zero_warn
 from pytorch_lightning.accelerators.plugins.precision.mixed import MixedPrecisionPlugin
 
-if APEX_AVAILABLE:
+if _APEX_AVAILABLE:
     from apex import amp
 
 class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):

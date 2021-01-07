@@ -1,8 +1,4 @@
-import os
-
-from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.data_parallel import TrainingTypePlugin, HorovodPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.accelerators.plugins import TrainingTypePlugin, HorovodPlugin
 from pytorch_lightning.utilities import AMPType
 from typing import Any
 import math
@@ -11,7 +7,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.accelerators.precision import (
+from pytorch_lightning.accelerators.plugins.precision import (
     ApexMixedPrecisionPlugin,
     MixedPrecisionPlugin,
     NativeMixedPrecisionPlugin,
