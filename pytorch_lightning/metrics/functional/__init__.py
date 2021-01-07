@@ -32,6 +32,8 @@ from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matr
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance  # noqa: F401
 from pytorch_lightning.metrics.functional.f_beta import fbeta, f1  # noqa: F401
 from pytorch_lightning.metrics.functional.hamming_distance import hamming_distance  # noqa: F401
+from pytorch_lightning.metrics.functional.image_gradients import image_gradients  # noqa: F401
+from pytorch_lightning.metrics.functional.iou import iou  # noqa: F401
 from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolute_error  # noqa: F401
 from pytorch_lightning.metrics.functional.mean_squared_error import mean_squared_error  # noqa: F401
 from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squared_log_error  # noqa: F401
@@ -43,4 +45,3 @@ from pytorch_lightning.metrics.functional.roc import roc  # noqa: F401
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity  # noqa: F401
 from pytorch_lightning.metrics.functional.ssim import ssim  # noqa: F401
 from pytorch_lightning.metrics.functional.stat_scores import stat_scores  # noqa: F401
-from pytorch_lightning.metrics.functional.iou import iou  # noqa: F401
