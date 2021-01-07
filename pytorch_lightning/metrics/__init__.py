@@ -11,25 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.metrics.classification import (Accuracy, AveragePrecision, ConfusionMatrix, F1, FBeta, Precision,
+                                                      PrecisionRecallCurve, Recall, ROC)
 from pytorch_lightning.metrics.metric import Metric
-
-from pytorch_lightning.metrics.classification import (
-    Accuracy,
-    Precision,
-    Recall,
-    ConfusionMatrix,
-    PrecisionRecallCurve,
-    AveragePrecision,
-    ROC,
-    FBeta,
-    F1,
-)
-
-from pytorch_lightning.metrics.regression import (
-    MeanSquaredError,
-    MeanAbsoluteError,
-    MeanSquaredLogError,
-    ExplainedVariance,
-    PSNR,
-    SSIM,
-)
+from pytorch_lightning.metrics.regression import (ExplainedVariance, MeanAbsoluteError, MeanSquaredError,
+                                                  MeanSquaredLogError, PSNR, SSIM)

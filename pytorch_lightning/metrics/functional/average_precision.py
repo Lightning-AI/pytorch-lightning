@@ -11,14 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Sequence, Tuple, Union, List
+from typing import List, Optional, Sequence, Tuple, Union
 
 import torch
-
-from pytorch_lightning.metrics.functional.precision_recall_curve import (
-    _precision_recall_curve_update,
-    _precision_recall_curve_compute
-)
+from pytorch_lightning.metrics.functional.precision_recall_curve import (_precision_recall_curve_compute,
+                                                                         _precision_recall_curve_update)
 
 
 def _average_precision_update(

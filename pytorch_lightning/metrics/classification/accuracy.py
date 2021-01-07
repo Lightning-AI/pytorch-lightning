@@ -14,7 +14,6 @@
 from typing import Any, Callable, Optional
 
 import torch
-
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.utils import _input_format_classification
 
