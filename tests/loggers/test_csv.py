@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from argparse import Namespace
 
 import pytest
-import torch
-import os
 
+import torch
 from pytorch_lightning.core.saving import load_hparams_from_yaml
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.csv_logs import ExperimentWriter

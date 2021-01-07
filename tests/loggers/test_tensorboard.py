@@ -17,13 +17,13 @@ from distutils.version import LooseVersion
 from unittest import mock
 
 import pytest
-import torch
 import yaml
-from omegaconf import OmegaConf
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
+import torch
+from omegaconf import OmegaConf
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 from tests.base import BoringModel, EvalModelTemplate
 
 

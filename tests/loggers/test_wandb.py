@@ -13,13 +13,13 @@
 # limitations under the License.
 import os
 import pickle
-from unittest import mock
-from argparse import ArgumentParser
 import types
+from argparse import ArgumentParser
+from unittest import mock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-from tests.base import EvalModelTemplate, BoringModel
+from tests.base import BoringModel, EvalModelTemplate
 
 
 def get_warnings(recwarn):

@@ -22,14 +22,8 @@ import pytest
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.loggers import (
-    CometLogger,
-    MLFlowLogger,
-    NeptuneLogger,
-    TensorBoardLogger,
-    TestTubeLogger,
-    WandbLogger,
-)
+from pytorch_lightning.loggers import (CometLogger, MLFlowLogger, NeptuneLogger, TensorBoardLogger, TestTubeLogger,
+                                       WandbLogger)
 from pytorch_lightning.loggers.base import DummyExperiment
 from tests.base import BoringModel, EvalModelTemplate
 from tests.loggers.test_comet import _patch_comet_atexit
