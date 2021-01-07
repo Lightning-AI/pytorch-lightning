@@ -107,7 +107,7 @@ class CheckpointConnector:
             self,
             model: LightningModule,
             checkpoint_path: str,
-            with_gpu: Union[bool, Optional[int]],
+            with_gpu: Optional[Union[int, bool]],
     ) -> Dict[str, Any]:
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
