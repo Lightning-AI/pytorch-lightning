@@ -26,10 +26,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
-from torch import ScriptModule, Tensor
-from torch.nn import Module
-from torch.optim.optimizer import Optimizer
-
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -41,6 +37,9 @@ from pytorch_lightning.utilities import rank_zero_warn, TPU_AVAILABLE
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+from torch import ScriptModule, Tensor
+from torch.nn import Module
+from torch.optim.optimizer import Optimizer
 
 if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm

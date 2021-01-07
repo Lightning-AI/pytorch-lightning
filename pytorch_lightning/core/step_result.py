@@ -20,10 +20,9 @@ from copy import copy
 from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence, Tuple, Union
 
 import torch
-from torch import Tensor
-
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from torch import Tensor
 
 
 class Result(Dict):
