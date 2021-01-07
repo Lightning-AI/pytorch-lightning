@@ -124,6 +124,7 @@ def _mlmd_prob_to_mc_preds_tr(x):
         (_ml_prob, None, None, None, "multi-label", _thrs, _idn),
         (_ml, None, False, None, "multi-dim multi-class", _idn, _idn),
         (_ml_prob, None, None, None, "multi-label", _ml_preds_tr, _rshp1),
+        (_ml_prob, None, None, 2, "multi-label", _top2, _rshp1),
         (_mlmd, None, False, None, "multi-dim multi-class", _rshp1, _rshp1),
         (_mc, NUM_CLASSES, None, None, "multi-class", _onehot, _onehot),
         (_mc_prob, None, None, None, "multi-class", _top1, _onehot),
@@ -199,9 +200,11 @@ def test_threshold():
 ########################################################################
 
 
-def test_incorrect_threshold():
+@pytest.mark.parametrize("threshold", [-0.5, 0.0, 1.0, 1.5])
+def test_incorrect_threshold(threshold):
+    preds, target = rand(size=(7,)), randint(high=2, size=(7,))
     with pytest.raises(ValueError):
-        _input_format_classification(preds=rand(size=(7,)), target=randint(high=2, size=(7,)), threshold=1.5)
+        _input_format_classification(preds, target, threshold=threshold)
 
 
 @pytest.mark.parametrize(
@@ -272,19 +275,25 @@ def test_incorrect_inputs(preds, target, num_classes, is_multiclass):
 @pytest.mark.parametrize(
     "preds, target, num_classes, is_multiclass, top_k",
     [
-        # Topk set with non (md)mc prob data
+        # Topk set with non (md)mc or ml prob data
         (_bin.preds[0], _bin.target[0], None, None, 2),
         (_bin_prob.preds[0], _bin_prob.target[0], None, None, 2),
         (_mc.preds[0], _mc.target[0], None, None, 2),
         (_ml.preds[0], _ml.target[0], None, None, 2),
         (_mlmd.preds[0], _mlmd.target[0], None, None, 2),
-        (_ml_prob.preds[0], _ml_prob.target[0], None, None, 2),
-        (_mlmd_prob.preds[0], _mlmd_prob.target[0], None, None, 2),
         (_mdmc.preds[0], _mdmc.target[0], None, None, 2),
+        # top_k = 0
+        (_mc_prob_2cls.preds[0], _mc_prob_2cls.target[0], None, None, 0),
+        # top_k = float
+        (_mc_prob_2cls.preds[0], _mc_prob_2cls.target[0], None, None, 0.123),
         # top_k =2 with 2 classes, is_multiclass=False
         (_mc_prob_2cls.preds[0], _mc_prob_2cls.target[0], None, False, 2),
         # top_k = number of classes (C dimension)
         (_mc_prob.preds[0], _mc_prob.target[0], None, None, NUM_CLASSES),
+        # is_multiclass = True for ml prob inputs, top_k set
+        (_ml_prob.preds[0], _ml_prob.target[0], None, True, 2),
+        # top_k = num_classes for ml prob inputs
+        (_ml_prob.preds[0], _ml_prob.target[0], None, True, NUM_CLASSES),
     ],
 )
 def test_incorrect_inputs_topk(preds, target, num_classes, is_multiclass, top_k):

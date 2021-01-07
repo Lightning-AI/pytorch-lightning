@@ -16,22 +16,19 @@ from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
     auc,
     auroc,
     dice_score,
-    f1_score,
-    fbeta_score,
     get_num_classes,
     iou,
     multiclass_auroc,
     precision,
     precision_recall,
     recall,
-    stat_scores,
     stat_scores_multiple_classes,
     to_categorical,
     to_onehot,
 )
-from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix  # noqa: F401
 # TODO: unify metrics between class and functional, add below
 from pytorch_lightning.metrics.functional.accuracy import accuracy  # noqa: F401
+from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix  # noqa: F401
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance  # noqa: F401
 from pytorch_lightning.metrics.functional.f_beta import fbeta, f1  # noqa: F401
 from pytorch_lightning.metrics.functional.hamming_distance import hamming_distance  # noqa: F401
@@ -41,6 +38,8 @@ from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squ
 from pytorch_lightning.metrics.functional.nlp import bleu_score  # noqa: F401
 from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve  # noqa: F401
 from pytorch_lightning.metrics.functional.psnr import psnr  # noqa: F401
+from pytorch_lightning.metrics.functional.r2score import r2score  # noqa: F401
 from pytorch_lightning.metrics.functional.roc import roc  # noqa: F401
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity  # noqa: F401
 from pytorch_lightning.metrics.functional.ssim import ssim  # noqa: F401
+from pytorch_lightning.metrics.functional.stat_scores import stat_scores  # noqa: F401

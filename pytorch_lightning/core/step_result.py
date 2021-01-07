@@ -15,15 +15,15 @@
 """[Train, Eval]Result for easier logging, checkpointing, early stopping, epoch-wise reduction."""
 
 import numbers
+import os
 from copy import copy
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple, Iterable
+from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
-import os
 
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.metrics import Metric
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 
 
 class Result(Dict):
@@ -128,6 +128,7 @@ class Result(Dict):
         sync_dist_group: Optional[Any] = None,
         sync_fn: Callable = None,
         dataloader_idx: Optional[int] = None,
+        device: torch.device = None,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
@@ -138,7 +139,10 @@ class Result(Dict):
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
             is_dist_initialized = torch.distributed.is_available() and torch.distributed.is_initialized()
             # TODO: Find a way to make the reduction only once, so we don't need to clone.
-            value = value.clone() if is_dist_initialized else value
+            if is_dist_initialized and isinstance(value, torch.Tensor):
+                value = value.clone()
+            else:
+                value = torch.tensor(value, device=device, dtype=torch.float)
             value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
@@ -530,6 +534,7 @@ class Result(Dict):
                         result[k] = torch.tensor(result[k]).float()
                     try:
                         reduced_val = weighted_mean(result[k], batch_sizes)
+                    # todo: specify the expected Exceptions to come
                     except Exception:
                         reduced_val = torch.mean(result[k])
                 else:
@@ -682,157 +687,6 @@ def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
         return torch.cat(items)
 
     return items
-
-
-class TrainResult(Result):
-    def __init__(
-        self,
-        minimize: Optional[Tensor] = None,
-        early_stop_on: Optional[Tensor] = None,
-        checkpoint_on: Optional[Union[Tensor, bool]] = None,
-        hiddens: Optional[Tensor] = None,
-    ):
-        """
-        Tracks internal metrics aggregations
-
-        Args:
-            minimize: Metric currently being minimized.
-            early_stop_on: Metric to early stop on.
-                Should be a one element tensor if combined with default
-                :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`.
-                If this result is returned by
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
-                the specified value will be averaged across all steps.
-            checkpoint_on: Metric to checkpoint on.
-                Should be a one element tensor if combined with default checkpoint callback.
-                If this result is returned by
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
-                the specified value will be averaged across all steps.
-            hiddens:
-        """
-
-        super().__init__(minimize, early_stop_on, checkpoint_on, hiddens)
-
-    def log(
-        self,
-        name,
-        value,
-        prog_bar: bool = False,
-        logger: bool = True,
-        on_step: bool = True,
-        on_epoch: bool = False,
-        reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
-        enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-    ):
-        """
-        Log a key, value
-
-        Example::
-
-            result.log('train_loss', loss)
-
-            # defaults used
-            result.log(
-                name,
-                value,
-                on_step=True,
-                on_epoch=False,
-                logger=True,
-                prog_bar=False,
-                reduce_fx=torch.mean,
-                enable_graph=False
-            )
-
-
-        Args:
-            name: key name
-            value: value name
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs the output of validation_step or test_step
-            on_epoch: if True, logs the output of the training loop aggregated
-            reduce_fx: Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
-            sync_dist_group: the ddp group
-        """
-        super().log(
-            name=name,
-            value=value,
-            prog_bar=prog_bar,
-            logger=logger,
-            on_step=on_step,
-            on_epoch=on_epoch,
-            reduce_fx=reduce_fx,
-            enable_graph=enable_graph,
-            sync_dist=sync_dist,
-            sync_dist_group=sync_dist_group,
-            sync_dist_op=sync_dist_op,
-            tbptt_pad_token=tbptt_pad_token,
-            tbptt_reduce_fx=tbptt_reduce_fx,
-        )
-
-    def log_dict(
-        self,
-        dictionary: dict,
-        prog_bar: bool = False,
-        logger: bool = True,
-        on_step: bool = False,
-        on_epoch: bool = True,
-        reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
-        enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-    ):
-        """
-        Log a dictonary of values at once
-
-        Example::
-
-            values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
-            result.log_dict(values)
-
-        Args:
-            dictionary: key value pairs (str, tensors)
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs the output of validation_step or test_step
-            on_epoch: if True, logs the output of the training loop aggregated
-            reduce_fx: Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
-            sync_dist_group: the ddp group:
-        """
-        for k, v in dictionary.items():
-            self.log(
-                name=k,
-                value=v,
-                prog_bar=prog_bar,
-                logger=logger,
-                on_step=on_step,
-                on_epoch=on_epoch,
-                reduce_fx=reduce_fx,
-                enable_graph=enable_graph,
-                sync_dist=sync_dist,
-                sync_dist_group=sync_dist_group,
-                sync_dist_op=sync_dist_op,
-                tbptt_pad_token=tbptt_pad_token,
-                tbptt_reduce_fx=tbptt_reduce_fx,
-            )
 
 
 class EvalResult(Result):

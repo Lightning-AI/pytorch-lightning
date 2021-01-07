@@ -353,6 +353,7 @@ class _LRFinder(object):
             min_grad = np.gradient(loss).argmin()
             self._optimal_idx = min_grad + skip_begin
             return self.results["lr"][self._optimal_idx]
+        # todo: specify the possible exception
         except Exception:
             log.exception('Failed to compute suggesting for `lr`. There might not be enough points.')
             self._optimal_idx = None

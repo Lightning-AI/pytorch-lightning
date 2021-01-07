@@ -13,18 +13,17 @@
 # limitations under the License.
 import os
 import pickle
+from unittest import mock
 
 import cloudpickle
 import numpy as np
 import pytest
 import torch
-from unittest import mock
 
-from pytorch_lightning import _logger
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import _logger, seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from tests.base import EvalModelTemplate, BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import BoringModel, EvalModelTemplate
 
 
 class EarlyStoppingTestRestore(EarlyStopping):
@@ -87,15 +86,18 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
     model = EvalModelTemplate()
+    early_stop_callback = EarlyStopping()
     expected_count = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[EarlyStopping()],
+        callbacks=[early_stop_callback],
         val_check_interval=1.0,
         max_epochs=expected_count,
     )
     trainer.fit(model)
 
+    assert trainer.early_stopping_callback == early_stop_callback
+    assert trainer.early_stopping_callbacks == [early_stop_callback]
     assert len(trainer.dev_debugger.early_stopping_history) == expected_count
 
 

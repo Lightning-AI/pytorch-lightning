@@ -102,7 +102,7 @@ def test_tensorboard_named_version(tmpdir):
     expected_version = "2020-02-05-162402"
 
     logger = TensorBoardLogger(save_dir=tmpdir, name=name, version=expected_version)
-    logger.log_hyperparams({"a": 1, "b": 2})  # Force data to be written
+    logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
 
     assert logger.version == expected_version
     assert os.listdir(tmpdir / name) == [expected_version]
@@ -113,7 +113,7 @@ def test_tensorboard_named_version(tmpdir):
 def test_tensorboard_no_name(tmpdir, name):
     """Verify that None or empty name works"""
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)
-    logger.log_hyperparams({"a": 1, "b": 2})  # Force data to be written
+    logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
     assert logger.root_dir == tmpdir
     assert os.listdir(tmpdir / "version_0")
 

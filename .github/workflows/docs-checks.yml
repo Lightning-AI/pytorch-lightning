@@ -105,7 +105,7 @@ jobs:
       - name: Upload built docs
         uses: actions/upload-artifact@v2
         with:
-          name: docs-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
+          name: docs-results-${{ github.sha }}
           path: docs/build/html/
         # Use always() to always run this step to publish test results when there are test failures
         if: success()

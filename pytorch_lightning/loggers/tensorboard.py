@@ -187,9 +187,10 @@ class TensorBoardLogger(LightningLoggerBase):
             else:
                 try:
                     self.experiment.add_scalar(k, v, step)
-                except Exception as e:
+                # todo: specify the possible exception
+                except Exception as ex:
                     m = f'\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
-                    type(e)(e.message + m)
+                    type(ex)(ex.message + m)
 
     @rank_zero_only
     def log_graph(self, model: LightningModule, input_array=None):
@@ -217,7 +218,7 @@ class TensorBoardLogger(LightningLoggerBase):
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file if it doesn't exist
-        if not os.path.isfile(hparams_file):
+        if not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only

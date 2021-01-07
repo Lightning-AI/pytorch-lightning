@@ -28,7 +28,7 @@ from tests.base.boring_model import BoringModel
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
+    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_choice_sharded(tmpdir, ddp_backend, gpus, num_processes):
@@ -89,7 +89,7 @@ def test_invalid_apex_sharded(tmpdir):
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
+    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
@@ -129,6 +129,7 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         accelerator='ddp_cpu',
+        num_processes=2,
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )
@@ -208,6 +209,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         accelerator='ddp_cpu',
+        num_processes=2,
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )
@@ -221,6 +223,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
 
     trainer = Trainer(
         accelerator='ddp_cpu',
+        num_processes=2,
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
         resume_from_checkpoint=checkpoint_path
@@ -291,6 +294,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     trainer = Trainer(
         plugins=[DDPShardedPlugin()],
         accelerator='ddp_cpu',
+        num_processes=2,
         fast_dev_run=True,
         resume_from_checkpoint=checkpoint_path
     )
@@ -308,6 +312,7 @@ def test_ddp_sharded_plugin_test(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         accelerator='ddp_cpu',
+        num_processes=2,
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )

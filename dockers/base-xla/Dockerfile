@@ -97,6 +97,8 @@ RUN \
     python -c "fname = 'requirements.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torch')] ; open(fname, 'w').writelines(lines)" && \
     # drop Horovod as it is not needed
     python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
+    # drop fairscale as it is not needed
+    python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" && \
     # drop TorchVision as it was installed with XLA
     python -c "fname = 'requirements/examples.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torchvision')] ; open(fname, 'w').writelines(lines)" && \
     pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed && \

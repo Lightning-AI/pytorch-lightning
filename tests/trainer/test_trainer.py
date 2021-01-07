@@ -172,6 +172,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
             checkpoint_path=ckpt_path,
             hparams_file=hparams_path,
         )
+    # todo: specify the possible exception
     except Exception:
         failed = True
     else:
@@ -186,6 +187,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
             hparams_file=hparams_path,
             strict=False,
         )
+    # todo: specify the possible exception
     except Exception:
         failed = True
 
