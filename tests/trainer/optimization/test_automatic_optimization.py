@@ -23,6 +23,9 @@ from tests.base.boring_model import BoringModel
 
 
 class TestModel(BoringModel):
+
+    invalid_return = None
+
     def __init__(self, invalid_loss_strategy):
         super().__init__()
         self._invalid_loss_strategy = invalid_loss_strategy
@@ -35,11 +38,7 @@ class TestModel(BoringModel):
             if batch_idx in [0, 1, 8, 9] and self.invalid_loss_strategy != "never_skip":
                 output = None
             elif batch_idx in [2, 3, 10, 11]:
-                # Generate an invalid tensor
-                try:
-                    output /= 0
-                except Exception:
-                    pass
+                output.data = torch.ones_like(output.data) * float('NaN')
         return output
 
     def configure_optimizers(self):
