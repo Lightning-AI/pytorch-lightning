@@ -14,7 +14,7 @@
 from typing import Tuple, Optional
 
 import torch
-from pytorch_lightning.metrics.utils import to_categorical, reduce
+from pytorch_lightning.metrics.utils import reduce, _input_format_classification_one_hot
 
 
 def _dice_update(
@@ -23,21 +23,13 @@ def _dice_update(
     bg: bool = False,
 ) -> [torch.Tensor, torch.Tensor, torch.Tensor]:
 
-    num_classes = preds.shape[1]
-    bg = 1 - int(bool(bg))
-    tps = torch.zeros(num_classes - bg, device=preds.device, dtype=torch.float32)
-    fps = torch.zeros(num_classes - bg, device=preds.device, dtype=torch.float32)
-    fns = torch.zeros(num_classes - bg, device=preds.device, dtype=torch.float32)
-
-    if preds.ndim == target.ndim + 1:
-        preds = to_categorical(preds, argmax_dim=1)
-    # TODO: should use _input_format_classification() here?
-
-    for c in range(bg, num_classes):
-        tps[c] = torch.sum((preds == c) * (target == c))
-        fps[c] = torch.sum((preds == c) * (target != c))
-        fns[c] = torch.sum((preds != c) * (target == c))
-
+    preds, target = _input_format_classification_one_hot(4, preds, target)
+    print("preds", preds)
+    print("target", target)
+    dim = 0
+    tps = torch.sum((target == preds) * (preds == 1), dim=dim).float()
+    fps = torch.sum((target != preds) * (preds == 1), dim=dim).float()
+    fns = torch.sum((target != preds) * (preds == 0), dim=dim).float()
     return tps, fps, fns
 
 
@@ -47,7 +39,7 @@ def _dice_compute(
     num = 2 * tps
     denom = 2 * tps + fps + fns
     scores = num / denom
-    scores = torch.nan_to_num(scores, nan_score)
+    scores[scores != scores] = nan_score
     return reduce(scores, reduction=reduction)
 
 
@@ -88,4 +80,6 @@ def dice_score(
 
     """
     tps, fps, fns = _dice_update(pred, target, bg)
+    print("TPs", "FPs", "FNs")
+    print(tps, fps, fns)
     return _dice_compute(tps, fps, fns, reduction, nan_score)

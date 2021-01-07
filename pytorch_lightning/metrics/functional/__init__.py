@@ -15,7 +15,6 @@ from pytorch_lightning.metrics.functional.average_precision import average_preci
 from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
     auc,
     auroc,
-    dice_score,
     get_num_classes,
     iou,
     multiclass_auroc,
@@ -30,6 +29,7 @@ from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
 from pytorch_lightning.metrics.functional.accuracy import accuracy  # noqa: F401
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix  # noqa: F401
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance  # noqa: F401
+from pytorch_lightning.metrics.functional.dice import dice_score  # noqa: F401
 from pytorch_lightning.metrics.functional.f_beta import fbeta, f1  # noqa: F401
 from pytorch_lightning.metrics.functional.hamming_distance import hamming_distance  # noqa: F401
 from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolute_error  # noqa: F401
