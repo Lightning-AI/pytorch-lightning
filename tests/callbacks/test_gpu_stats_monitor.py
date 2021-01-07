@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import pytest
-import torch
-import numpy as np
 
+import numpy as np
+import pytest
+
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import GPUStatsMonitor
 from pytorch_lightning.loggers import CSVLogger
