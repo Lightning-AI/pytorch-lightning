@@ -14,7 +14,8 @@
 import inspect
 import os
 from argparse import ArgumentParser, Namespace
-from typing import Dict, Union, List, Tuple, Any
+from typing import Any, Dict, List, Tuple, Union
+
 from pytorch_lightning.utilities import parsing
 
 

@@ -15,7 +15,6 @@ import argparse
 from shutil import copyfile
 
 import torch
-
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 

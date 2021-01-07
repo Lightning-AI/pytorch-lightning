@@ -18,7 +18,6 @@ from functools import wraps
 from typing import Any, Optional, Union
 
 import torch
-
 from pytorch_lightning import _logger as log
 
 if torch.distributed.is_available():
