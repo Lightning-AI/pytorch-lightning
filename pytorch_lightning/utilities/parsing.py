@@ -17,11 +17,15 @@ import pickle
 from argparse import Namespace
 from typing import Dict, Tuple, Union
 
-from omegaconf import OmegaConf
-from omegaconf.dictconfig import DictConfig
-
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.package_utils import _module_available
+
+OMEGACONF_AVAILABLE = _module_available("omegaconf")
+
+if OMEGACONF_AVAILABLE:
+    from omegaconf import OmegaConf
+    from omegaconf.dictconfig import DictConfig
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
@@ -128,7 +132,8 @@ def get_init_args(frame) -> dict:
     local_args = {k: local_vars[k] for k in init_parameters.keys()}
     local_args.update(local_args.get(kwargs_var, {}))
     local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
-    local_args = apply_to_collection(local_args, DictConfig, resolve_dict_config)
+    if OMEGACONF_AVAILABLE:
+        local_args = apply_to_collection(local_args, DictConfig, resolve_dict_config)
     return local_args
 
 
