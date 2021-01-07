@@ -139,7 +139,7 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_epoch_start', *args, **kwargs)
 
-    def build_args(self, batch, batch_idx, dataloader_idx):
+    def _build_args(self, batch, batch_idx, dataloader_idx):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
@@ -167,7 +167,7 @@ class EvaluationLoop(object):
 
     def evaluation_step(self, batch, batch_idx, dataloader_idx):
         # configure args
-        args = self.build_args(batch, batch_idx, dataloader_idx)
+        args = self._build_args(batch, batch_idx, dataloader_idx)
 
         model_ref = self.trainer.get_model()
         model_ref._results = Result()

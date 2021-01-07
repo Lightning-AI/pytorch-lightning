@@ -52,14 +52,6 @@ class CPUAccelerator(Accelerator):
 
         self.trainer.model = model
 
-    def train(self):
-        # set up trainer
-        self.trainer.setup_trainer(self.trainer.model)
-
-        # train or test
-        results = self.train_or_test()
-        return results
-
     def _step(self, model_step: Callable, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():

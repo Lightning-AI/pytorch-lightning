@@ -52,6 +52,10 @@ class Accelerator(object):
     def setup(self, model):
         pass
 
+    def train(self):
+        self.trainer.setup_trainer(self.trainer.model)
+        return self.train_or_test()
+
     def teardown(self):
         # Ensure if necessary all processes are finished
         self.barrier()

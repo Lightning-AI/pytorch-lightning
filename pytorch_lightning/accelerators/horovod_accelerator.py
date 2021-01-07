@@ -106,7 +106,6 @@ class HorovodAccelerator(Accelerator):
                 # Synchronization will be performed explicitly following backward()
                 stack.enter_context(optimizer.skip_synchronize())
 
-            # set up trainer
             self.trainer.setup_trainer(self.trainer.model)
 
             # train or test

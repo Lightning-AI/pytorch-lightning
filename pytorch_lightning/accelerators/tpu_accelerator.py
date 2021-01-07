@@ -134,7 +134,6 @@ class TPUAccelerator(Accelerator):
         # setup TPU training
         self.__setup_tpu_training(model, trainer)
 
-        # set up trainer
         self.trainer.setup_trainer(model)
 
         # train or test

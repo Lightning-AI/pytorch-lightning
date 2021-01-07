@@ -103,15 +103,6 @@ class DataParallelAccelerator(Accelerator):
 
         return model
 
-    def train(self):
-        # set up trainer
-        self.trainer.setup_trainer(self.trainer.model)
-
-        # train or test
-        results = self.train_or_test()
-
-        return results
-
     def teardown(self):
         # replace the original fwd function
         self.trainer.model.forward = self.model_autocast_original_forward

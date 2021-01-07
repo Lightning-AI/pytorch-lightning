@@ -58,14 +58,6 @@ class GPUAccelerator(Accelerator):
 
         self.trainer.model = model
 
-    def train(self):
-        # set up trainer
-        self.trainer.setup_trainer(self.trainer.model)
-
-        # train or test
-        results = self.train_or_test()
-        return results
-
     def _step(self, model_step: Callable, args):
         args[0] = self.to_device(args[0])
 

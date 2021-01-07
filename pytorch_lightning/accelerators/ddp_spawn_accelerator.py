@@ -172,7 +172,6 @@ class DDPSpawnAccelerator(Accelerator):
         # allow user to configure ddp
         model = self.configure_ddp(model, device_ids)
 
-        # set up trainer
         self.trainer.setup_trainer(model)
 
         # train or test
