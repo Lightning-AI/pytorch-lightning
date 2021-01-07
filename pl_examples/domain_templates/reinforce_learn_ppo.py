@@ -27,18 +27,18 @@ References
 [2] https://github.com/openai/spinningup
 """
 import argparse
-from typing import List, Tuple, Callable, Iterable
-
-import pytorch_lightning as pl
-from pl_examples import cli_lightning_logo
+from typing import Callable, Iterable, List, Tuple
 
 import gym
 import numpy as np
 import torch
 from torch import nn
 from torch.distributions import Categorical, Normal
-from torch.utils.data import DataLoader, IterableDataset
 from torch.optim.optimizer import Optimizer
+from torch.utils.data import DataLoader, IterableDataset
+
+import pytorch_lightning as pl
+from pl_examples import cli_lightning_logo
 
 
 def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
