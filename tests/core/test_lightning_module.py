@@ -11,19 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from argparse import ArgumentParser
 import pickle
+from argparse import ArgumentParser
 from typing import Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
-import torch
-from torch.optim import Adam, SGD
-from torch.utils.data import DataLoader, random_split
 
+import torch
 from pytorch_lightning import LightningDataModule, seed_everything, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
+from torch.optim import Adam, SGD
+from torch.utils.data import DataLoader, random_split
 
 
 def test_automatic_optimization(tmpdir):

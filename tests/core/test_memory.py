@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+
 import torch
 import torch.nn as nn
-
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.core.memory import UNKNOWN_SIZE, ModelSummary
+from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.models import ParityModuleRNN
 
