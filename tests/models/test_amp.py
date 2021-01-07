@@ -15,10 +15,10 @@ import os
 from unittest import mock
 
 import pytest
-import torch
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer.states import TrainerState

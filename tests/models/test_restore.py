@@ -17,17 +17,17 @@ import os
 import pickle
 from copy import deepcopy
 
-import cloudpickle
 import pytest
-import torch
-from torch.nn import functional as F
-from torch.utils.data import DataLoader
 
+import cloudpickle
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Callback, LightningModule, Trainer, seed_everything
+import torch
+from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.base import BoringModel, EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
+from torch.nn import functional as F
+from torch.utils.data import DataLoader
 
 
 class ModelTrainerPropertyParity(Callback):

@@ -16,18 +16,18 @@ import os
 import pickle
 from argparse import Namespace
 
-import cloudpickle
 import pytest
+
+import cloudpickle
 import torch
 from fsspec.implementations.local import LocalFileSystem
-from omegaconf import OmegaConf, Container
+from omegaconf import Container, OmegaConf
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
+from pytorch_lightning.utilities import AttributeDict, is_picklable
+from tests.base import BoringModel, EvalModelTemplate, TrialMNIST
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-
-from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
-from pytorch_lightning.utilities import AttributeDict, is_picklable
-from tests.base import EvalModelTemplate, TrialMNIST, BoringModel
 
 
 class SaveHparamsModel(BoringModel):

@@ -16,10 +16,10 @@ import platform
 from distutils.version import LooseVersion
 
 import pytest
-import torch
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.step_result import TrainResult
