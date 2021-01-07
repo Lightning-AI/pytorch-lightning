@@ -14,15 +14,15 @@
 import os
 from typing import Optional, Tuple
 
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_getattr, lightning_setattr
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
-from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning import _logger as log
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.data import has_len
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
+from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
 
 
 def scale_batch_size(trainer,
