@@ -3,7 +3,7 @@ import pytest
 import torch
 from sklearn.metrics import accuracy_score
 
-from pytorch_lightning.metrics.classification.accuracy import Accuracy
+from pytorch_lightning.metrics.classification.accuracy import Accuracy, TopKAccuracy
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
@@ -111,3 +111,17 @@ class TestAccuracy(MetricTester):
             dist_sync_on_step=dist_sync_on_step,
             metric_args={"threshold": THRESHOLD},
         )
+
+def test_topk_accuracy():
+    target = torch.tensor([0, 1, 2, 3])
+    preds = torch.tensor(
+        [
+            [0.0, 0.9, 0.1, 0.0], 
+            [0.0, 0.9, 0.1, 0.0], 
+            [0.0, 0.9, 0.1, 0.0], 
+            [0.0, 0.9, 0.1, 0.0], 
+        ]
+    )
+
+    topk_accuracy = TopKAccuracy(k=2)
+    assert (topk_accuracy(preds, target) == 0.5).item()

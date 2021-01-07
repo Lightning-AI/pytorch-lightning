@@ -103,3 +103,81 @@ class Accuracy(Metric):
         Computes accuracy over state.
         """
         return self.correct.float() / self.total
+
+class TopKAccuracy(Metric):
+    r"""
+    Computes Top - K accuracy:
+
+    .. math:: \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i \in \text{topk}(\hat{\mathbf{p}_i}))
+
+    Where :math:`y` is a tensor of target values, :math:`\hat{\mathbf{p}_i}` is a
+    tensor of predictions (logits or probabilities) :math:`\text{topk}` is a function that gives back the top k indices.  
+    Works with multiclass and multilabel data.  Accepts logits from a model output or integer class values in
+    prediction.  Works with multi-dimensional preds and target.
+
+    Forward accepts
+
+    - ``preds`` (float tensor): ``(N, C, ...)`` matrix of logits or probabilities where C is the number of classes
+    - ``target`` (long tensor): ``(N, ...)``
+
+    Args:
+        k:
+            Number of top classes to look at.
+        compute_on_step:
+            Forward only calls ``update()`` and return None if this is set to False. default: True
+        dist_sync_on_step:
+            Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. default: False
+        process_group:
+            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+        dist_sync_fn:
+            Callback that performs the allgather operation on the metric state. When `None`, DDP
+            will be used to perform the allgather. default: None
+
+    Example:
+
+        >>> from pytorch_lightning.metrics import TopKAccuracy
+        >>> target = torch.tensor([0, 1, 2, 3])
+        >>> preds = torch.tensor([
+            [0.0, 0.9, 0.1, 0.0], 
+            [0.0, 0.9, 0.1, 0.0], 
+            [0.0, 0.9, 0.1, 0.0], 
+            [0.0, 0.9, 0.1, 0.0], 
+            ])
+        >>> accuracy = TopKAccuracy(k=2)
+        >>> accuracy(preds, target)
+        tensor(0.5000)
+
+    """
+    def __init__(
+        self, 
+        k: int = 5,
+        compute_on_step: bool = True,
+        dist_sync_on_step: bool = False,
+        process_group: Optional[Any] = None,
+        dist_sync_fn: Callable = None,
+    ):
+        super().__init__(
+            compute_on_step=compute_on_step,
+            dist_sync_on_step=dist_sync_on_step,
+            process_group=process_group,
+            dist_sync_fn=dist_sync_fn,
+        )
+
+        self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.k = k
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        preds = preds.topk(k=self.k, dim=-1)[1]
+        if target.ndim < preds.ndim:
+            target = target[:, None]
+
+        self.correct += torch.sum((preds == target).any(dim=-1))
+        self.total += target.numel() 
+
+    def compute(self):
+        """
+        Computes accuracy over state.
+        """
+        return self.correct.float() / self.total
