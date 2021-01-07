@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+
 import torch
 import torchtext
-from torchtext.data.example import Example
-
 from pytorch_lightning.utilities.apply_func import move_data_to_device
+from torchtext.data.example import Example
 
 
 def _get_torchtext_data_iterator(include_lengths=False):

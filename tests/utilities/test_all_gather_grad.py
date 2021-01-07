@@ -1,9 +1,10 @@
 import os
-import pytest
 import sys
+
+import pytest
+
 import torch
 import torch.nn as nn
-
 from pytorch_lightning.utilities import AllGatherGrad
 
 

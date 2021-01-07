@@ -16,7 +16,7 @@ import time
 import pytest
 
 import pytorch_lightning.utilities.xla_device_utils as xla_utils
-from pytorch_lightning.utilities import XLA_AVAILABLE, TPU_AVAILABLE
+from pytorch_lightning.utilities import TPU_AVAILABLE, XLA_AVAILABLE
 from tests.base.develop_utils import pl_multi_process_test
 
 if XLA_AVAILABLE:

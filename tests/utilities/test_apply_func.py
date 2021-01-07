@@ -15,8 +15,8 @@ import numbers
 from collections import namedtuple
 
 import numpy as np
-import torch
 
+import torch
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
