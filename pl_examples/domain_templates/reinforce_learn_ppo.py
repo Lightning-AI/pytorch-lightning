@@ -32,6 +32,7 @@ from typing import List, Tuple, Callable, Iterable
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 
+import gym
 import torch
 from torch import nn
 from torch.distributions import Categorical, Normal
@@ -40,13 +41,6 @@ import torch.optim as optim
 from torch.optim.optimizer import Optimizer
 
 import numpy as np
-
-try:
-    import gym
-except ModuleNotFoundError:
-    _GYM_AVAILABLE = False
-else:
-    _GYM_AVAILABLE = True
 
 
 def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
@@ -193,9 +187,6 @@ class PPOLightning(pl.LightningModule):
             clip_ratio: hyperparameter for clipping in the policy objective
         """
         super().__init__()
-
-        if not _GYM_AVAILABLE:
-            raise ModuleNotFoundError('This Module requires gym environment which is not installed yet.')
 
         # Hyperparameters
         self.lr_actor = lr_actor
