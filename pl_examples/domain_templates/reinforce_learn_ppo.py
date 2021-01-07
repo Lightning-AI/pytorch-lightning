@@ -150,7 +150,7 @@ class ExperienceSourceDataset(IterableDataset):
 
 class PPOLightning(pl.LightningModule):
     """
-    PyTorch Lightning implementation of `PPO.
+    PyTorch Lightning implementation of PPO.
 
     Example:
         model = PPOLightning("CartPole-v0")
