@@ -16,7 +16,6 @@ from contextlib import suppress
 from typing import Optional
 
 import torch
-
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import RPC_AVAILABLE
