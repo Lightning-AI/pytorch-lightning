@@ -25,6 +25,7 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
     Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
 
     Args:
+        cls: Lightning class
         args: The parser or namespace to take arguments from. Only known arguments will be
             parsed and passed to the :class:`Trainer`.
         **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
@@ -139,6 +140,7 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
     r"""Extends existing argparse by default `Trainer` attributes.
 
     Args:
+        cls: Lightning class
         parent_parser:
             The custom cli arguments parser, which will be extended by
             the Trainer default arguments.
