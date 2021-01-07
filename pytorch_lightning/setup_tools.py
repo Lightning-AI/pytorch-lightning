@@ -14,10 +14,10 @@
 # limitations under the License.
 import os
 import re
+import warnings
 from typing import Iterable, List
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-import warnings
 
 from pytorch_lightning import __homepage__, __version__, _PROJECT_ROOT
 
@@ -178,6 +178,11 @@ def _load_long_description(path_dir: str) -> str:
     text = text.replace('/branch/master/graph/badge.svg', f'/release/{__version__}/graph/badge.svg')
     # replace github badges for release ones
     text = text.replace('badge.svg?branch=master&event=push', f'badge.svg?tag={__version__}')
+
+    skip_begin = r'<!-- following section will be skipped from PyPI description -->'
+    skip_end = r'<!-- end skipping PyPI description -->'
+    # todo: wrap content as commented description
+    text = re.sub(rf"{skip_begin}.+?{skip_end}", '<!--  -->', text, flags=re.IGNORECASE + re.DOTALL)
 
     # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
     # github_release_url = os.path.join(__homepage__, "releases", "download", __version__)
