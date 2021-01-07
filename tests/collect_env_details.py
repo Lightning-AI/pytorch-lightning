@@ -23,11 +23,12 @@ import re
 import sys
 
 import numpy
-import torch
 import tqdm
 
-sys.path += [os.path.abspath('..'), os.path.abspath('.')]
 import pytorch_lightning  # noqa: E402
+import torch
+
+sys.path += [os.path.abspath('..'), os.path.abspath('.')]
 
 LEVEL_OFFSET = '\t'
 KEY_PADDING = 20
