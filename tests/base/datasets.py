@@ -22,10 +22,10 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from tests import PROJECT_ROOT
+from tests import _PROJECT_ROOT
 
 #: local path to test datasets
-PATH_DATASETS = os.path.join(PROJECT_ROOT, 'Datasets')
+PATH_DATASETS = os.path.join(_PROJECT_ROOT, 'Datasets')
 
 
 class MNIST(Dataset):
@@ -63,8 +63,13 @@ class MNIST(Dataset):
     TEST_FILE_NAME = 'test.pt'
     cache_folder_name = 'complete'
 
-    def __init__(self, root: str = PATH_DATASETS, train: bool = True,
-                 normalize: tuple = (0.5, 1.0), download: bool = True):
+    def __init__(
+            self,
+            root: str = PATH_DATASETS,
+            train: bool = True,
+            normalize: tuple = (0.5, 1.0),
+            download: bool = True,
+    ):
         super().__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -126,6 +131,7 @@ def _try_load(path_data, trials: int = 30, delta: float = 1.):
     for _ in range(trials):
         try:
             res = torch.load(path_data)
+        # todo: specify the possible exception
         except Exception as ex:
             exp = ex
             time.sleep(delta * random.random())

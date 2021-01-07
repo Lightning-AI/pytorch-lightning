@@ -34,6 +34,7 @@ from pytorch_lightning.metrics.regression import (  # noqa: F401
     ExplainedVariance,
     PSNR,
     SSIM,
+    R2Score
 )
 
 from pytorch_lightning.metrics.retrieval import (  # noqa: F401

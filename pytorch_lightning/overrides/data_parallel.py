@@ -16,10 +16,12 @@ import itertools
 import threading
 from collections.abc import Iterable, Mapping
 from itertools import chain
+from typing import Optional
 
 import torch
+from torch import Tensor
 from torch.cuda._utils import _get_device_index
-from torch.nn import DataParallel
+from torch.nn import DataParallel, Module
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel._functions import Gather
 
@@ -104,11 +106,7 @@ class LightningDataParallel(DataParallel):
 
         outputs = self.gather(outputs)
 
-        # pass minimize to constructor for TrainResult
-        if 'minimize' in outputs:
-            result = original_class(outputs['minimize'])
-        else:
-            result = original_class()
+        result = original_class()
 
         result.update(outputs)
         result['meta'] = meta
@@ -226,15 +224,20 @@ def warn_missing_output(fx_called):
         warning_cache.warn("Your training_step returned None. Make sure that was your intention!")
 
 
-def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: no-cover
+def parallel_apply(
+        modules: Module,
+        inputs: Tensor,
+        kwargs_tup: Optional[tuple] = None,
+        devices: Optional[list] = None,
+):  # pragma: no-cover
     r"""Applies each `module` in :attr:`modules` in parallel on arguments
     contained in :attr:`inputs` (positional) and :attr:`kwargs_tup` (keyword)
     on each of :attr:`devices`.
 
     Args:
-        modules (Module): modules to be parallelized
-        inputs (tensor): inputs to the modules
-        devices (list of int or torch.device): CUDA devices
+        modules: modules to be parallelized
+        inputs: inputs to the modules
+        devices: CUDA devices
 
     :attr:`modules`, :attr:`inputs`, :attr:`kwargs_tup` (if given), and
     :attr:`devices` (if given) should all have same length. Moreover, each
@@ -288,6 +291,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
 
             with lock:
                 results[i] = output
+        # todo: specify the possible exception
         except Exception as ex:
             with lock:
                 results[i] = ex

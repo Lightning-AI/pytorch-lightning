@@ -16,14 +16,13 @@ exclude = "(.eggs|.git|.hg|.mypy_cache|.nox|.tox|.venv|.svn|_build|buck-out|buil
 
 [tool.isort]
 known_first_party = [
-    "bencharmks",
+    "benchmarks",
     "docs",
     "pl_examples",
     "pytorch_lightning",
     "tests",
 ]
 skip_glob = [
-    "pl_examples/*",
     "pytorch_lightning/accelerators/*",
     "pytorch_lightning/callbacks/*",
     "pytorch_lightning/cluster_environments/*",
@@ -52,3 +51,5 @@ skip_glob = [
 ]
 profile = "black"
 line_length = 120
+force_sort_within_sections = "False"
+order_by_type = "False"
