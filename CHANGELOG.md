@@ -33,7 +33,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `image_gradients` functional metric to compute the image gradients of a given input image. ([#5056](https://github.com/PyTorchLightning/pytorch-lightning/pull/5056))
 
 
-- Added `IoU` class ([#4704](https://github.com/PyTorchLightning/pytorch-lightning/pull/4704))
+- Added `IoU` class interface ([#4704](https://github.com/PyTorchLightning/pytorch-lightning/pull/4704))
 
 
 ### Changed
@@ -59,7 +59,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed deprecated `Fbeta`, `f1_score` and `fbeta_score` metrics ([#5322](https://github.com/PyTorchLightning/pytorch-lightning/pull/5322))
 
-- Changed `iou [func]` to allow float input ([#4704](https://github.com/PyTorchLightning/pytorch-lightning/pull/4704))
 
 - Removed deprecated `TrainResult` ([#5323](https://github.com/PyTorchLightning/pytorch-lightning/pull/5323))
 
