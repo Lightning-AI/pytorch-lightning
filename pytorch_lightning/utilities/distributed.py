@@ -20,11 +20,9 @@ from typing import Any, Optional, Union
 import torch
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
 
 if torch.distributed.is_available():
-    from torch.distributed import ReduceOp, group
+    from torch.distributed import group, ReduceOp
 else:
     class ReduceOp:
         SUM = None
