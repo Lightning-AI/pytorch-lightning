@@ -16,13 +16,12 @@ import os
 import random
 import time
 import urllib.request
-from typing import Tuple, Optional, Sequence
+from typing import Optional, Sequence, Tuple
 
 import torch
+from tests import PROJECT_ROOT
 from torch import Tensor
 from torch.utils.data import Dataset
-
-from tests import PROJECT_ROOT
 
 #: local path to test datasets
 PATH_DATASETS = os.path.join(PROJECT_ROOT, 'Datasets')

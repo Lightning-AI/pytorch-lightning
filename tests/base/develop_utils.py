@@ -17,7 +17,7 @@ import os
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
-from tests import TEMP_PATH, RANDOM_PORTS
+from tests import RANDOM_PORTS, TEMP_PATH
 from tests.base.model_template import EvalModelTemplate
 
 

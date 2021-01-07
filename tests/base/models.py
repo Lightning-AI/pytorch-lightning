@@ -14,13 +14,13 @@
 from collections import OrderedDict
 
 import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.datasets import MNIST, AverageDataset, TrialMNIST
+from tests.base.datasets import AverageDataset, MNIST, TrialMNIST
+from torch.utils.data import DataLoader
 
 
 class Generator(nn.Module):
