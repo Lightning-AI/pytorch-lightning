@@ -30,8 +30,6 @@ from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_t
 from pytorch_lightning.utilities import AttributeDict, HYDRA_AVAILABLE, is_picklable
 from tests.base import BoringModel, EvalModelTemplate, TrialMNIST
 
-if HYDRA_AVAILABLE:
-    from hydra.experimental import compose, initialize
 
 
 class SaveHparamsModel(BoringModel):
