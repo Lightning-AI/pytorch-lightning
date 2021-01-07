@@ -14,17 +14,16 @@
 
 """nn.Module with additional great features."""
 
-import collections
-import copy
-import inspect
-import os
-import re
-import tempfile
-import numpy as np
 from abc import ABC
 from argparse import Namespace
+import collections
+import copy
 from functools import partial
+import inspect
+import os
 from pathlib import Path
+import re
+import tempfile
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -37,7 +36,7 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
+from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors

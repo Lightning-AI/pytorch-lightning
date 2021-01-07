@@ -13,14 +13,15 @@
 # limitations under the License.
 
 from abc import ABC
-import numpy as np
-from functools import partial
 from collections.abc import Mapping, Sequence
 from copy import copy
-from typing import Any, Callable, Union, Optional
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from functools import partial
+from typing import Any, Callable, Optional, Union
+
+import numpy as np
 import torch
 
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHTEXT_AVAILABLE
 
 if _TORCHTEXT_AVAILABLE:
