@@ -134,7 +134,7 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     shown in the examples above. For easy initializing the same metric multiple
     times, the ``.clone()`` method can be used:
 
-    .. code-block:: python
+    .. testcode::
 
         def __init__(self):
             ...
@@ -261,7 +261,7 @@ interface as any other metric.
 
 Example:
 
-.. code-block:: python
+.. testcode::
 
     from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
     target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
