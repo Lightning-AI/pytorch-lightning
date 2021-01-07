@@ -9,7 +9,7 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.retrieval.mean_average_precision import RetrievalMAP
 
 
-@pytest.mark.parametrize(['sklearn_metric', 'torch_class_metric'],[
+@pytest.mark.parametrize(['sklearn_metric', 'torch_class_metric'], [
     [sk_average_precision, RetrievalMAP],
 ])
 def test_against_sklearn(sklearn_metric, torch_class_metric):
@@ -72,7 +72,7 @@ def test_against_sklearn(sklearn_metric, torch_class_metric):
                 target.append(
                     np.random.randn(*shape) > 0
                 )
-            
+
             sk_results = compute_sklearn_metric(target, preds, behaviour)
 
             indexes = torch.cat([torch.tensor(i) for i in indexes])
@@ -96,7 +96,7 @@ def test_against_sklearn(sklearn_metric, torch_class_metric):
                 do_test(batch_size, size)
 
 
-@pytest.mark.parametrize(['torch_class_metric'],[
+@pytest.mark.parametrize(['torch_class_metric'], [
     [RetrievalMAP],
 ])
 def test_input_data(torch_class_metric):
@@ -111,7 +111,7 @@ def test_input_data(torch_class_metric):
 
         # check error when `query_without_relevant_docs='error'` is raised correctly
         indexes = torch.tensor([0] * length, device=device, dtype=torch.int64)
-        preds = torch.rand(size=(length, ), device=device, dtype=torch.float32)
+        preds = torch.rand(size=(length,), device=device, dtype=torch.float32)
         target = torch.tensor([False] * length, device=device, dtype=torch.bool)
 
         metric = torch_class_metric(query_without_relevant_docs='error')
