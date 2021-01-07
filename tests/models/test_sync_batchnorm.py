@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from pytorch_lightning import Trainer, seed_everything, LightningModule
+from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.core.step_result import TrainResult
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.base.datamodules import MNISTDataModule

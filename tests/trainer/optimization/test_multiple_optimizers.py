@@ -14,9 +14,8 @@
 """
 Tests to ensure that the behaviours related to multiple optimizers works
 """
-import torch
-
 import pytorch_lightning as pl
+import torch
 from tests.base.boring_model import BoringModel
 
 

@@ -16,17 +16,17 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-import torch
-import torch.nn as nn
-from torch.optim import Adam, Optimizer
 
 import pytorch_lightning as pl
+import torch
+import torch.nn as nn
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
 from tests.base.boring_model import BoringModel, RandomDataset, RandomDictDataset, RandomDictStringDataset
+from torch.optim import Adam, Optimizer
 
 
 def test_lightning_optimizer(tmpdir):

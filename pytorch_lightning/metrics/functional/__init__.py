@@ -12,28 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.metrics.functional.average_precision import average_precision
-from pytorch_lightning.metrics.functional.classification import (
-    accuracy,
-    auc,
-    auroc,
-    dice_score,
-    f1_score,
-    fbeta_score,
-    get_num_classes,
-    iou,
-    multiclass_auroc,
-    precision,
-    precision_recall,
-    recall,
-    stat_scores,
-    stat_scores_multiple_classes,
-    to_categorical,
-    to_onehot,
-)
+from pytorch_lightning.metrics.functional.classification import (accuracy, auc, auroc, dice_score, f1_score,
+                                                                 fbeta_score, get_num_classes, iou, multiclass_auroc,
+                                                                 precision, precision_recall, recall, stat_scores,
+                                                                 stat_scores_multiple_classes, to_categorical,
+                                                                 to_onehot)
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
 # TODO: unify metrics between class and functional, add below
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance
-from pytorch_lightning.metrics.functional.f_beta import fbeta, f1
+from pytorch_lightning.metrics.functional.f_beta import f1, fbeta
 from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolute_error
 from pytorch_lightning.metrics.functional.mean_squared_error import mean_squared_error
 from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squared_log_error

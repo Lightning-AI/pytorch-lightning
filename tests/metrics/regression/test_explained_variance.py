@@ -2,12 +2,12 @@ from collections import namedtuple
 from functools import partial
 
 import pytest
-import torch
-from sklearn.metrics import explained_variance_score
 
-from pytorch_lightning.metrics.regression import ExplainedVariance
+import torch
 from pytorch_lightning.metrics.functional import explained_variance
-from tests.metrics.utils import BATCH_SIZE, NUM_BATCHES, MetricTester
+from pytorch_lightning.metrics.regression import ExplainedVariance
+from sklearn.metrics import explained_variance_score
+from tests.metrics.utils import BATCH_SIZE, MetricTester, NUM_BATCHES
 
 torch.manual_seed(42)
 

@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-
 from pytorch_lightning import Trainer
-from tests.base.develop_utils import load_model_from_checkpoint, get_default_logger, \
-    reset_seed
+from tests.base.develop_utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
 
 def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50):

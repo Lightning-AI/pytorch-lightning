@@ -11,12 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union, cast
-
-from torch.optim import Optimizer
+from typing import cast, Union
 
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, NATIVE_AMP_AVAILABLE
+from torch.optim import Optimizer
 
 if NATIVE_AMP_AVAILABLE and FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS

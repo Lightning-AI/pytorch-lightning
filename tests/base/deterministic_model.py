@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from torch import nn
-from torch.utils.data import Dataset, DataLoader
-
 from pytorch_lightning.core.lightning import LightningModule
+from torch import nn
+from torch.utils.data import DataLoader, Dataset
 
 
 class DeterministicModel(LightningModule):

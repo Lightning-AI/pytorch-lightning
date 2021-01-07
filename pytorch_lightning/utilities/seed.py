@@ -19,8 +19,8 @@ import random
 from typing import Optional
 
 import numpy as np
-import torch
 
+import torch
 from pytorch_lightning import _logger as log
 
 

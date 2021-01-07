@@ -2,11 +2,11 @@ import pickle
 from collections import OrderedDict
 from distutils.version import LooseVersion
 
-import cloudpickle
 import numpy as np
 import pytest
-import torch
 
+import cloudpickle
+import torch
 from pytorch_lightning.metrics.metric import Metric
 
 torch.manual_seed(42)

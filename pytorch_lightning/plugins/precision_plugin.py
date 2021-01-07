@@ -13,9 +13,8 @@
 # limitations under the License.
 from typing import Union
 
-from torch.optim import Optimizer
-
 from pytorch_lightning.plugins.plugin import LightningPlugin
+from torch.optim import Optimizer
 
 
 class PrecisionPlugin(LightningPlugin):

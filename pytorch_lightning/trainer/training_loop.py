@@ -16,9 +16,9 @@ from contextlib import contextmanager
 from copy import copy, deepcopy
 
 import numpy as np
+
 import torch
 import torch.distributed as torch_distrib
-
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary

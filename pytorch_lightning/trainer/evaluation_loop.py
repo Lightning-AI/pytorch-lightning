@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.distributed import rank_zero_warn

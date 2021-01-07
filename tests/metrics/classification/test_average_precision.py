@@ -2,17 +2,14 @@ from functools import partial
 
 import numpy as np
 import pytest
-import torch
-from sklearn.metrics import average_precision_score as _sk_average_precision_score
 
+import torch
 from pytorch_lightning.metrics.classification.average_precision import AveragePrecision
 from pytorch_lightning.metrics.functional.average_precision import average_precision
-from tests.metrics.classification.inputs import (
-    _binary_prob_inputs,
-    _multiclass_prob_inputs,
-    _multidim_multiclass_prob_inputs,
-)
-from tests.metrics.utils import NUM_CLASSES, MetricTester
+from sklearn.metrics import average_precision_score as _sk_average_precision_score
+from tests.metrics.classification.inputs import (_binary_prob_inputs, _multiclass_prob_inputs,
+                                                 _multidim_multiclass_prob_inputs)
+from tests.metrics.utils import MetricTester, NUM_CLASSES
 
 torch.manual_seed(42)
 

@@ -11,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 from typing import Any, Callable, Optional
 
+import torch
+from pytorch_lightning.metrics.functional.mean_squared_log_error import (_mean_squared_log_error_compute,
+                                                                         _mean_squared_log_error_update)
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.mean_squared_log_error import (
-    _mean_squared_log_error_update,
-    _mean_squared_log_error_compute
-)
 
 
 class MeanSquaredLogError(Metric):

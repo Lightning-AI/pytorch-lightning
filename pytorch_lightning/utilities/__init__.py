@@ -19,8 +19,8 @@ from enum import Enum
 from typing import Union
 
 import numpy
-import torch
 
+import torch
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import AllGatherGrad, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable

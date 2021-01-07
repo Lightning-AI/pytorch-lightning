@@ -17,8 +17,8 @@ import platform
 from unittest import mock
 
 import pytest
-import torch
 
+import torch
 from pl_examples import DALI_AVAILABLE
 
 ARGS_DEFAULT = """

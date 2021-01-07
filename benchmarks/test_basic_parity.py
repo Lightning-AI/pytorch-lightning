@@ -16,9 +16,9 @@ import time
 
 import numpy as np
 import pytest
-import torch
 from tqdm import tqdm
 
+import torch
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from tests.base.models import ParityModuleMNIST, ParityModuleRNN
 

@@ -1,8 +1,8 @@
 import pytest
-import torch
-from sklearn.metrics import pairwise
 
+import torch
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity
+from sklearn.metrics import pairwise
 
 
 @pytest.mark.parametrize('similarity', ['cosine', 'dot'])

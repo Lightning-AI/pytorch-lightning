@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.utilities import rank_zero_warn, DistributedType, DeviceType
+from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 
 
 class DeprecatedDistDeviceAttributes:

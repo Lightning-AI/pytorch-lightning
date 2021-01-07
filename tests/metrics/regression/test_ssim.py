@@ -2,12 +2,12 @@ from collections import namedtuple
 from functools import partial
 
 import pytest
-import torch
-from skimage.metrics import structural_similarity
 
-from pytorch_lightning.metrics.regression import SSIM
+import torch
 from pytorch_lightning.metrics.functional import ssim
-from tests.metrics.utils import BATCH_SIZE, NUM_BATCHES, MetricTester
+from pytorch_lightning.metrics.regression import SSIM
+from skimage.metrics import structural_similarity
+from tests.metrics.utils import BATCH_SIZE, MetricTester, NUM_BATCHES
 
 torch.manual_seed(42)
 

@@ -13,16 +13,17 @@
 # limitations under the License.
 import os
 from copy import deepcopy
+
 import pytest
-import torch
-from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 
 import tests.base.develop_utils as tutils
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import MNISTDataModule
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 
 
 def test_num_training_batches(tmpdir):

@@ -3,8 +3,8 @@ from typing import Optional
 from unittest import mock
 
 import pytest
-import torch
 
+import torch
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin

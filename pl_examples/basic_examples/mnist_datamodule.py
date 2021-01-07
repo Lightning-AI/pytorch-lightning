@@ -14,10 +14,9 @@
 import platform
 from typing import Optional
 
-from torch.utils.data import DataLoader, random_split
-
 from pl_examples import DATASETS_PATH, TORCHVISION_AVAILABLE
 from pytorch_lightning import LightningDataModule
+from torch.utils.data import DataLoader, random_split
 
 if TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib

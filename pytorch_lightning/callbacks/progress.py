@@ -22,6 +22,8 @@ Use or override one of the progress bar callbacks.
 import importlib
 import sys
 
+from pytorch_lightning.callbacks import Callback
+
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
 if importlib.util.find_spec('ipywidgets') is not None:
@@ -29,7 +31,6 @@ if importlib.util.find_spec('ipywidgets') is not None:
 else:
     from tqdm import tqdm
 
-from pytorch_lightning.callbacks import Callback
 
 
 class ProgressBarBase(Callback):

@@ -15,10 +15,9 @@
 from abc import ABC, abstractmethod
 
 import torch
-from torch import Tensor
-
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
+from torch import Tensor
 
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5

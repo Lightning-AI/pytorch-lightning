@@ -16,14 +16,14 @@ import os
 import shutil
 import subprocess
 from collections import OrderedDict
-from typing import Tuple, Dict, Union, List, Any
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
+
 import torch
 import torch.nn as nn
-from torch.utils.hooks import RemovableHandle
-
 from pytorch_lightning.utilities import AMPType
+from torch.utils.hooks import RemovableHandle
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"

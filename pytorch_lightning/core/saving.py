@@ -17,16 +17,16 @@ import csv
 import inspect
 import os
 from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable, MutableMapping, IO
+from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
 from warnings import warn
 
-import torch
 import yaml
 
+import torch
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_warn, AttributeDict, OMEGACONF_AVAILABLE
-from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities import AttributeDict, OMEGACONF_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 PRIMITIVE_TYPES = (bool, int, float, str)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import ANY, MagicMock, call
+from unittest.mock import ANY, call, MagicMock
 
 from pytorch_lightning import Trainer
 from tests.base import BoringModel

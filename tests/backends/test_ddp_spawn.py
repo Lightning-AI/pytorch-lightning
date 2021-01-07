@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-import torch
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
+import torch
 from pytorch_lightning.callbacks import EarlyStopping
-from tests.base import EvalModelTemplate
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
+from tests.base import EvalModelTemplate
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")

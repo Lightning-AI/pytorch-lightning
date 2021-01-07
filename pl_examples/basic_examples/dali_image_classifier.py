@@ -18,12 +18,12 @@ from random import shuffle
 from warnings import warn
 
 import numpy as np
-import torch
-from torch.nn import functional as F
-from torch.utils.data import random_split
 
 import pytorch_lightning as pl
+import torch
 from pl_examples import cli_lightning_logo, DALI_AVAILABLE, TORCHVISION_AVAILABLE
+from torch.nn import functional as F
+from torch.utils.data import random_split
 
 if TORCHVISION_AVAILABLE:
     from torchvision import transforms

@@ -15,11 +15,11 @@ import os
 import pickle
 from unittest import mock
 
-import cloudpickle
 import numpy as np
 import pytest
-import torch
 
+import cloudpickle
+import torch
 from pytorch_lightning import _logger, seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

@@ -28,9 +28,9 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
-import torch
 import yaml
 
+import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.metrics.metric import Metric

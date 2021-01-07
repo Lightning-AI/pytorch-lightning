@@ -18,12 +18,12 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-import torch
-from torch.optim import Optimizer
 
+import torch
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from tests.base.boring_model import BoringModel
+from torch.optim import Optimizer
 
 # TODO:
 # For both automatic / manual optimization

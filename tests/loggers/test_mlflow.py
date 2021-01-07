@@ -13,11 +13,10 @@
 # limitations under the License.
 import importlib.util
 import os
-
 from unittest import mock
 from unittest.mock import MagicMock
-import pytest
 
+import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger

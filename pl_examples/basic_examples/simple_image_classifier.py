@@ -15,12 +15,11 @@
 from argparse import ArgumentParser
 from pprint import pprint
 
-import torch
-from torch.nn import functional as F
-
 import pytorch_lightning as pl
+import torch
 from pl_examples import cli_lightning_logo
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
+from torch.nn import functional as F
 
 
 class LitClassifier(pl.LightningModule):

@@ -21,9 +21,8 @@ from argparse import Namespace
 from typing import Any, Dict, List, Optional, Union
 
 import torch.nn as nn
-
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, _module_available
+from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
 _WANDB_AVAILABLE = _module_available("wandb")

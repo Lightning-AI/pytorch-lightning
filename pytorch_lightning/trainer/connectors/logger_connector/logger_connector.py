@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 import os
+from copy import deepcopy
 from pprint import pprint
 from typing import Iterable, Union
 
 import torch
-
 from pytorch_lightning.core import memory
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger

@@ -17,16 +17,16 @@ import random
 from argparse import ArgumentParser, Namespace
 
 import numpy as np
+from PIL import Image
+
+import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from PIL import Image
-from torch.utils.data import DataLoader, Dataset
-
-import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pl_examples.domain_templates.unet import UNet
 from pytorch_lightning.loggers import WandbLogger
+from torch.utils.data import DataLoader, Dataset
 
 DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
 DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33)

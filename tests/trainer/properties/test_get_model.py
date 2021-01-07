@@ -14,8 +14,8 @@
 import sys
 
 import pytest
-import torch
 
+import torch
 from pytorch_lightning import Trainer
 from tests.backends import DDPLauncher
 from tests.base.boring_model import BoringModel

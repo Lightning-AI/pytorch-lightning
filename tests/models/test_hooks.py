@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-
-import pytest
-import torch
 from unittest.mock import MagicMock
 
+import pytest
+
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
-from tests.base import EvalModelTemplate, BoringModel
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])

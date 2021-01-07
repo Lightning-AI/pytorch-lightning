@@ -15,9 +15,8 @@ import io
 from typing import Any
 
 import torch
-from torch import distributed as torch_distrib
-
 from pytorch_lightning.utilities import GROUP_AVAILABLE
+from torch import distributed as torch_distrib
 
 WORLD = None
 if GROUP_AVAILABLE:

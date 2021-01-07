@@ -1,30 +1,19 @@
 from functools import partial
 
 import pytest
-import torch
-from sklearn.metrics import (
-    accuracy_score as sk_accuracy,
-    jaccard_score as sk_jaccard_score,
-    precision_score as sk_precision,
-    recall_score as sk_recall,
-    roc_auc_score as sk_roc_auc_score,
-)
 
+import torch
 from pytorch_lightning import seed_everything
-from pytorch_lightning.metrics.functional.classification import (
-    stat_scores,
-    stat_scores_multiple_classes,
-    accuracy,
-    precision,
-    recall,
-    dice_score,
-    auroc,
-    multiclass_auroc,
-    auc,
-    iou,
-)
+from pytorch_lightning.metrics.functional.classification import (accuracy, auc, auroc, dice_score, iou,
+                                                                 multiclass_auroc, precision, recall, stat_scores,
+                                                                 stat_scores_multiple_classes)
 from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
-from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categorical
+from pytorch_lightning.metrics.utils import get_num_classes, to_categorical, to_onehot
+from sklearn.metrics import accuracy_score as sk_accuracy
+from sklearn.metrics import jaccard_score as sk_jaccard_score
+from sklearn.metrics import precision_score as sk_precision
+from sklearn.metrics import recall_score as sk_recall
+from sklearn.metrics import roc_auc_score as sk_roc_auc_score
 
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'only_binary'], [

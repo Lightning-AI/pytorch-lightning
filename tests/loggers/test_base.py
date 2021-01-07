@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pickle
+from argparse import Namespace
 from typing import Optional
 from unittest.mock import MagicMock
 
-from argparse import Namespace
 import numpy as np
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
-from pytorch_lightning.loggers.base import DummyLogger, DummyExperiment
+from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities import rank_zero_only
 from tests.base import EvalModelTemplate
 

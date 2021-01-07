@@ -1,8 +1,8 @@
 import sys
 
 import pytest
-import torch
 
+import torch
 from pytorch_lightning.metrics import Metric
 from tests.metrics.test_metric import Dummy
 from tests.metrics.utils import setup_ddp

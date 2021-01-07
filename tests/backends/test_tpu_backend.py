@@ -13,8 +13,8 @@
 # limitations under the License
 
 import pytest
-import torch
 
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from tests.base.boring_model import BoringModel

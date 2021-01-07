@@ -14,9 +14,8 @@
 from typing import Any, Optional
 
 import torch
-
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.utils import METRIC_EPS, _input_format_classification_one_hot
+from pytorch_lightning.metrics.utils import _input_format_classification_one_hot, METRIC_EPS
 
 
 class Precision(Metric):

@@ -15,13 +15,13 @@ import sys
 from pathlib import Path
 
 import pytest
+
+import tests.base.develop_utils as tutils
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from pytorch_lightning import Trainer
-from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
-import tests.base.develop_utils as tutils
-
+from pytorch_lightning.core.step_result import EvalResult, Result, TrainResult
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 

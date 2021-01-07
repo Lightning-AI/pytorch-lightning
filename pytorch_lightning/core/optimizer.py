@@ -15,10 +15,9 @@ import types
 from typing import Any, Callable, Optional
 from weakref import proxy
 
-from torch.optim.optimizer import Optimizer
-
 from pytorch_lightning.utilities import TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from torch.optim.optimizer import Optimizer
 
 if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm

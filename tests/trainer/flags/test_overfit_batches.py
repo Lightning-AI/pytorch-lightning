@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 import pytest
-from tests.base.boring_model import BoringModel, RandomDataset
+
+import torch
 from pytorch_lightning import Trainer
+from tests.base.boring_model import BoringModel, RandomDataset
 
 
 def test_overfit_multiple_val_loaders(tmpdir):
