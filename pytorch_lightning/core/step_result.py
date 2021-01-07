@@ -308,7 +308,6 @@ class Result(Dict):
         result = {}
         meta = self['meta']
         for k, options in meta.items():
-            print(k)
             if k == '_internal':
                 continue
 
@@ -321,7 +320,6 @@ class Result(Dict):
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
                     self[k].reset()
-                    print("reset", k)
                 else:
                     result[dl_key] = self[k]
 
