@@ -1,0 +1,4 @@
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.cpu import CPUAccelerator
+from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.tpu import TPUAccelerator

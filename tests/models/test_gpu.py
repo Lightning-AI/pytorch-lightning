@@ -21,11 +21,9 @@ from torchtext.data import Batch, Dataset, Example, Field, LabelField
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
-
+from tests.base import BoringModel
 
 PRETEND_N_OF_GPUS = 16
 

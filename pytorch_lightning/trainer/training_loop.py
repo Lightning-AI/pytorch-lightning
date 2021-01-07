@@ -18,7 +18,7 @@ from copy import copy, deepcopy
 import numpy as np
 import torch
 
-from pytorch_lightning.accelerators.data_parallel import ParallelPlugin
+from pytorch_lightning.accelerators.plugins import ParallelPlugin
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
