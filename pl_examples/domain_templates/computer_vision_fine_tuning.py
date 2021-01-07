@@ -109,7 +109,6 @@ class TransferLearningModel(pl.LightningModule):
         dl_path: Union[str, Path],
         backbone: str = "resnet50",
         train_bn: bool = True,
-        milestones: tuple = (5, 10),
         batch_size: int = 32,
         lr: float = 1e-2,
         lr_scheduler_gamma: float = 1e-1,
@@ -124,7 +123,6 @@ class TransferLearningModel(pl.LightningModule):
         self.dl_path = dl_path
         self.backbone = backbone
         self.train_bn = train_bn
-        self.milestones = milestones
         self.batch_size = batch_size
         self.lr = lr
         self.lr_scheduler_gamma = lr_scheduler_gamma
