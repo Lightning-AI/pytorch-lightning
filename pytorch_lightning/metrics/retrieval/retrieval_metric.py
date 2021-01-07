@@ -3,8 +3,8 @@ import torch
 from typing import Optional, Callable, Any
 
 from pytorch_lightning.metrics import Metric
-from pytorch_lightning.metrics.utils import get_mini_groups
-#: get_mini_groups is used to group predictions belonging to the same query
+from pytorch_lightning.metrics.utils import get_group_indexes
+#: get_group_indexes is used to group predictions belonging to the same query
 
 IGNORE_IDX = -100
 
@@ -109,7 +109,8 @@ class RetrievalMetric(Metric, ABC):
         res = []
         kwargs = {'device': idx.device, 'dtype': torch.float32}
 
-        for group in get_mini_groups(idx):
+        groups = get_group_indexes(idx)
+        for group in groups:
 
             mini_preds = preds[group]
             mini_target = target[group]
