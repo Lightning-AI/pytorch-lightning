@@ -269,10 +269,13 @@ Example:
     metric_collection = MetricCollection([Accuracy(),
                                           Precision(num_classes=3, average='macro'),
                                           Recall(num_classes=3, average='macro')])
-    metric_collection(preds, target)
-    {'Accuracy': tensor(0.1250),
-     'Precision': tensor(0.0667),
-     'Recall': tensor(0.1111)}
+    print(metric_collection(preds, target))
+
+.. testoutput::
+
+    {'Accuracy': torch.tensor(0.1250),
+     'Precision': torch.tensor(0.0667),
+     'Recall': torch.tensor(0.1111)}
 
 Similarly it can also reduce the amount of code required to log multiple metrics
 inside your LightningModule
