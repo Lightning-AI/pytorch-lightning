@@ -459,7 +459,8 @@ class PPOLightning(pl.LightningModule):
                             help="how many action-state pairs to rollout for trajectory collection per epoch")
         parser.add_argument("--nb_optim_iters", type=int, default=4,
                             help="how many steps of gradient descent to perform on each batch")
-        parser.add_argument("--clip_ratio", type=float, default=0.2, help="hyperparameter for clipping in the policy objective")
+        parser.add_argument("--clip_ratio", type=float, default=0.2,
+                            help="hyperparameter for clipping in the policy objective")
 
         return parser
 
