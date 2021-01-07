@@ -9,7 +9,7 @@
 Loggers
 *******
 
-Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...). TensorBoard is used by default, 
+Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...). TensorBoard is used by default,
 but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combination of the following loggers.
 
 .. note::
@@ -247,7 +247,7 @@ Lightning supports the use of multiple loggers, just pass a list to the
     logger1 = TensorBoardLogger('tb_logs', name='my_model')
     logger2 = TestTubeLogger('tb_logs', name='my_model')
     trainer = Trainer(logger=[logger1, logger2])
-   
+
 The loggers are available as a list anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
