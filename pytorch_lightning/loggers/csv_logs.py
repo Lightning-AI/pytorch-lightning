@@ -26,7 +26,6 @@ from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
 import torch
-
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
