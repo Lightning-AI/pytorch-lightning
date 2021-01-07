@@ -24,7 +24,7 @@ class MetricsHolder:
 
     """
     This class acts as a dictonary holder.
-    It holds metris and implement convertion functions.
+    It holds metrics and implements conversion functions.
     Those functions will be triggered within LoggerConnector
     when the property is being requested from the user.
     """

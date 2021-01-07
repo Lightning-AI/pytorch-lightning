@@ -15,7 +15,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional, Union
 
 import torch
 
@@ -24,8 +24,8 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, _OMEGACONF_AVAILABLE, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _APEX_AVAILABLE:
     from apex import amp
@@ -42,7 +42,7 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
 
-    def restore_weights(self, model: LightningModule):
+    def restore_weights(self, model: LightningModule) -> None:
         """
         Attempt to restore a checkpoint (e.g. weights) in this priority:
         1. from HPC weights
@@ -62,7 +62,7 @@ class CheckpointConnector:
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
         # 2. Attempt to restore states from `resume_from_checkpoint` file
-        elif self.trainer.resume_from_checkpoint is not None:
+        elif self.trainer.resume_from_checkpoint is not None and not self.trainer.testing:
             self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
 
         # wait for all to catch up
@@ -72,11 +72,16 @@ class CheckpointConnector:
         if self.trainer.on_gpu:
             torch.cuda.empty_cache()
 
-    def restore(self, checkpoint_path: str, on_gpu: bool):
+    def restore(self, checkpoint_path: str, on_gpu: bool) -> bool:
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
         All restored states are listed in return value description of `dump_checkpoint`.
         """
+        # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
+        fs = get_filesystem(checkpoint_path)
+        if not fs.exists(checkpoint_path):
+            rank_zero_warn("No checkpoint file exists at `resume_from_checkpoint`. Start from scratch")
+            return False
 
         # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
@@ -92,6 +97,9 @@ class CheckpointConnector:
 
         # restore training state
         self.restore_training_state(checkpoint)
+
+        rank_zero_info(f"Restored states from the checkpoint file at {checkpoint_path}")
+        return True
 
     def restore_model_state(self, model: LightningModule, checkpoint) -> None:
         """
@@ -156,9 +164,10 @@ class CheckpointConnector:
         expected_steps = self.trainer.num_training_batches / n_accum
         if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:
             rank_zero_warn(
-                "You're resuming from a checkpoint that ended mid-epoch. "
-                "This can cause unreliable results if further training is done, "
-                "consider using an end of epoch checkpoint. "
+                "You're resuming from a checkpoint that ended mid-epoch."
+                " Training will start from the beginning of the next epoch."
+                " This can cause unreliable results if further training is done,"
+                " consider using an end of epoch checkpoint."
             )
 
         # restore the optimizers

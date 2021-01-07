@@ -24,6 +24,7 @@ from pytorch_lightning.metrics.classification import (  # noqa: F401
     ROC,
     FBeta,
     F1,
+    StatScores
 )
 
 from pytorch_lightning.metrics.regression import (  # noqa: F401
@@ -33,4 +34,5 @@ from pytorch_lightning.metrics.regression import (  # noqa: F401
     ExplainedVariance,
     PSNR,
     SSIM,
+    R2Score
 )

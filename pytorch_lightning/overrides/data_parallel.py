@@ -104,11 +104,7 @@ class LightningDataParallel(DataParallel):
 
         outputs = self.gather(outputs)
 
-        # pass minimize to constructor for TrainResult
-        if 'minimize' in outputs:
-            result = original_class(outputs['minimize'])
-        else:
-            result = original_class()
+        result = original_class()
 
         result.update(outputs)
         result['meta'] = meta
@@ -288,6 +284,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
 
             with lock:
                 results[i] = output
+        # todo: specify the possible exception
         except Exception as ex:
             with lock:
                 results[i] = ex
