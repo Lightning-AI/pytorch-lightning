@@ -3,13 +3,13 @@ import platform
 from unittest import mock
 
 import pytest
-import torch
 
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin, FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE, APEX_AVAILABLE
+from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
