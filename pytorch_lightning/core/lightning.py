@@ -38,7 +38,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.utilities import InvalidLossStrategy, rank_zero_warn, TPU_AVAILABLE, TORCH_GREATER_EQUAL_1_7_0
+from pytorch_lightning.utilities import InvalidLossStrategy, rank_zero_warn, TORCH_GREATER_EQUAL_1_7_0, TPU_AVAILABLE
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
@@ -171,14 +171,14 @@ class LightningModule(
         """
         This property is used to decide the optimization behaviour when
         ``training_step`` returns an invalid loss (None, NaN, or +-Inf)
-        when using DDP.
+        with DistributedDataParallel (DDP in short).
 
         Can either be "skip_if_any" or "never_skip".
 
         "skip_if_any":
             If one process returns an invalid loss, ``backward`` and
             ``optimizer_step`` will be skipped on all processes
-            
+
         "never_skip":
             If the loss is invalid on 1 or more processes,
             those processes will skip ``backward`` and gradients will be
@@ -193,7 +193,7 @@ class LightningModule(
         if invalid_loss_strategy not in allowed:
             raise MisconfigurationException(
                 f'LightningModule `invalid_loss_strategy` property should be within {allowed}. Found {invalid_loss_strategy}'
-        )
+            )
         self._invalid_loss_strategy = invalid_loss_strategy
 
     def print(self, *args, **kwargs) -> None:

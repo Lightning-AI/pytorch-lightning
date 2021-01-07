@@ -23,12 +23,12 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import InvalidLossStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.ddp_comm_hooks import DDP_COMM_CALLBACK, initialize_ddp_comm_hooks
 from pytorch_lightning.plugins.plugin import LightningPlugin
+from pytorch_lightning.utilities import InvalidLossStrategy
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class DDPPlugin(LightningPlugin):
@@ -91,9 +91,20 @@ class DDPPlugin(LightningPlugin):
         )
         return model
 
-    def configure_ddp_comm_hook(self, model: DistributedDataParallel, trainer, is_single_process_single_device:bool):
-        # DDP communication hook does not support single-process multiple-device mode.
+    def configure_ddp_comm_hook(self, model: DistributedDataParallel, trainer, is_single_process_single_device:bool) -> None:
+        """
+        This function configure ddp_coom_hook
+
         # https://github.com/pytorch/pytorch/blob/e6779d4357ae94cc9f9fedb83a87eb6126016769/torch/nn/parallel/distributed.py#L1035
+        .. warning ::
+            DDP communication hook does not support single-process multiple-device mode.
+            Gradbucket tensors should consist of only a single tensor.
+
+        Args:
+            model: DistributedDataParallel model
+            trainer: Lightning Trainer
+            is_single_process_single_device: ddp_coom_hook doesn't work in SPMD mode.
+        """
         if isinstance(model, DistributedDataParallel) and is_single_process_single_device:
             initialize_ddp_comm_hooks(model, trainer)
 

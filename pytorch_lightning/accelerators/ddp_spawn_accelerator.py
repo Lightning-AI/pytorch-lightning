@@ -341,4 +341,3 @@ class DDPSpawnAccelerator(Accelerator):
     @property
     def is_single_process_single_device(self):
         return True
-
