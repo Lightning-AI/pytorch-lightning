@@ -123,7 +123,6 @@ class BaseFinetunningCallback(Callback):
     Overrides the finetunning_function and add your own logic there.
     """
     def on_before_accelerator_backend_setup(self, _, pl_module):
-        import pdb; pdb.set_trace()
         self.freeze_before_training(pl_module)
 
     def on_train_epoch_start(self, trainer, pl_module):
