@@ -6,10 +6,10 @@ from typing import Callable
 
 import numpy as np
 import pytest
-import torch
-from torch.multiprocessing import Pool, set_start_method
 
+import torch
 from pytorch_lightning.metrics import Metric
+from torch.multiprocessing import Pool, set_start_method
 
 try:
     set_start_method("spawn")

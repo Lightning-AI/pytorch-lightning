@@ -2,22 +2,16 @@ from functools import partial
 
 import numpy as np
 import pytest
-import torch
-from sklearn.metrics import confusion_matrix as sk_confusion_matrix
 
+import torch
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
-from tests.metrics.classification.inputs import (
-    _binary_inputs,
-    _binary_prob_inputs,
-    _multiclass_inputs,
-    _multiclass_prob_inputs,
-    _multidim_multiclass_inputs,
-    _multidim_multiclass_prob_inputs,
-    _multilabel_inputs,
-    _multilabel_prob_inputs
-)
-from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
+from sklearn.metrics import confusion_matrix as sk_confusion_matrix
+from tests.metrics.classification.inputs import (_binary_inputs, _binary_prob_inputs, _multiclass_inputs,
+                                                 _multiclass_prob_inputs, _multidim_multiclass_inputs,
+                                                 _multidim_multiclass_prob_inputs, _multilabel_inputs,
+                                                 _multilabel_prob_inputs)
+from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 torch.manual_seed(42)
 

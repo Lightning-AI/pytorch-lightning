@@ -1,20 +1,14 @@
 import numpy as np
 import pytest
-import torch
-from sklearn.metrics import accuracy_score
 
+import torch
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from tests.metrics.classification.inputs import (
-    _binary_inputs,
-    _binary_prob_inputs,
-    _multiclass_inputs,
-    _multiclass_prob_inputs,
-    _multidim_multiclass_inputs,
-    _multidim_multiclass_prob_inputs,
-    _multilabel_inputs,
-    _multilabel_prob_inputs,
-)
-from tests.metrics.utils import THRESHOLD, MetricTester
+from sklearn.metrics import accuracy_score
+from tests.metrics.classification.inputs import (_binary_inputs, _binary_prob_inputs, _multiclass_inputs,
+                                                 _multiclass_prob_inputs, _multidim_multiclass_inputs,
+                                                 _multidim_multiclass_prob_inputs, _multilabel_inputs,
+                                                 _multilabel_prob_inputs)
+from tests.metrics.utils import MetricTester, THRESHOLD
 
 torch.manual_seed(42)
 

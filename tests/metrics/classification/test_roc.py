@@ -2,17 +2,14 @@ from functools import partial
 
 import numpy as np
 import pytest
-import torch
-from sklearn.metrics import roc_curve as _sk_roc_curve
 
+import torch
 from pytorch_lightning.metrics.classification.roc import ROC
 from pytorch_lightning.metrics.functional.roc import roc
-from tests.metrics.classification.inputs import (
-    _binary_prob_inputs,
-    _multiclass_prob_inputs,
-    _multidim_multiclass_prob_inputs,
-)
-from tests.metrics.utils import NUM_CLASSES, MetricTester
+from sklearn.metrics import roc_curve as _sk_roc_curve
+from tests.metrics.classification.inputs import (_binary_prob_inputs, _multiclass_prob_inputs,
+                                                 _multidim_multiclass_prob_inputs)
+from tests.metrics.utils import MetricTester, NUM_CLASSES
 
 torch.manual_seed(42)
 

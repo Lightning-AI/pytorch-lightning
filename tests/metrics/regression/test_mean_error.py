@@ -2,20 +2,14 @@ from collections import namedtuple
 from functools import partial
 
 import pytest
-import torch
-from sklearn.metrics import (
-    mean_absolute_error as sk_mean_absolute_error,
-    mean_squared_error as sk_mean_squared_error,
-    mean_squared_log_error as sk_mean_squared_log_error
-)
 
+import torch
+from pytorch_lightning.metrics.functional import mean_absolute_error, mean_squared_error, mean_squared_log_error
 from pytorch_lightning.metrics.regression import MeanAbsoluteError, MeanSquaredError, MeanSquaredLogError
-from pytorch_lightning.metrics.functional import (
-    mean_absolute_error,
-    mean_squared_error,
-    mean_squared_log_error,
-)
-from tests.metrics.utils import BATCH_SIZE, NUM_BATCHES, MetricTester
+from sklearn.metrics import mean_absolute_error as sk_mean_absolute_error
+from sklearn.metrics import mean_squared_error as sk_mean_squared_error
+from sklearn.metrics import mean_squared_log_error as sk_mean_squared_log_error
+from tests.metrics.utils import BATCH_SIZE, MetricTester, NUM_BATCHES
 
 torch.manual_seed(42)
 
