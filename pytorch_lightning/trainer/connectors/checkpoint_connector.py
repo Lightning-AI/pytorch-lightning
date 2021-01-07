@@ -13,13 +13,12 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Optional, Union
 
-import torch
-
 import pytorch_lightning
+import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule

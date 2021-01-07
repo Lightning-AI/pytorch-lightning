@@ -16,7 +16,6 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
 import torch
-
 from pytorch_lightning.core.step_result import Result
 
 

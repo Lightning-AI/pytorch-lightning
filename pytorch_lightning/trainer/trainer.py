@@ -15,13 +15,11 @@
 """Trainer to automate the training."""
 
 import os
+import warnings
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
-import warnings
 
 import torch
-from torch.utils.data import DataLoader
-
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
@@ -63,6 +61,7 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_utils import is_overridden
+from torch.utils.data import DataLoader
 
 # warnings to ignore in trainer
 warnings.filterwarnings(

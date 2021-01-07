@@ -2,10 +2,11 @@ import os
 import re
 import signal
 from subprocess import call
+
+import torch
+import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.distributed import rank_zero_info
-import torch.distributed as torch_distrib
-import torch
 
 
 class SLURMConnector:

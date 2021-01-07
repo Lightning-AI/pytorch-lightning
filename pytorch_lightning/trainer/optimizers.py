@@ -16,13 +16,12 @@ from abc import ABC
 from typing import List, Optional, Tuple
 
 import torch
-from torch import optim
-from torch.optim.optimizer import Optimizer
-
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from torch import optim
+from torch.optim.optimizer import Optimizer
 
 
 class TrainerOptimizersMixin(ABC):
