@@ -76,6 +76,7 @@ class MilestonesFinetuningCallback(BaseFinetuningCallback):
 
     def finetunning_function(self, pl_module: pl.LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
         if epoch == self.milestones[0]:
+            # unfreeze 5 last layers
             self.unfreeze_and_add_param_group(
                 module=pl_module.feature_extractor[-5:],
                 optimizer=optimizer,
@@ -83,6 +84,7 @@ class MilestonesFinetuningCallback(BaseFinetuningCallback):
             )
 
         elif epoch == self.milestones[1]:
+            # unfreeze remaing layers
             self.unfreeze_and_add_param_group(
                 module=pl_module.feature_extractor[:-5],
                 optimizer=optimizer,
