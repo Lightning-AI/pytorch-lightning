@@ -44,7 +44,7 @@ if TORCH_GREATER_EQUAL_1_7_0:
 
     def allreduce_hook_with_invalid_tensors(state: Dict, bucket: torch_distrib._GradBucket):
         """
-        This DDP communication all_reduce hook enables to train with NaN or Inf losses
+        This DDP communication all_reduce hook enables to train with NaN or Inf losses by detecting invalid values and zeroing them for the optimizer step
         """
         group_to_use = torch_distrib.group.WORLD
         tensor = bucket.get_tensors()[0]
