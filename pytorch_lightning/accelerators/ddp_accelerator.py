@@ -146,10 +146,9 @@ class DDPAccelerator(Accelerator):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
-    def train(self):
-        model = self.trainer.model
-
+    def train(self, model: LightningModule):
         results = self.ddp_train(process_idx=self.task_idx, model=model)
+
         if 'WORLD_SIZE' in os.environ:
             del os.environ['WORLD_SIZE']
         return results
@@ -297,10 +296,7 @@ class DDPAccelerator(Accelerator):
         model = self.configure_ddp(model, device_ids)
 
         self.barrier('ddp_setup')
-        self.trainer.setup_trainer(model)
-
-        # train or test
-        results = self.train_or_test()
+        results = super().train(model)
 
         # clean up memory
         torch.cuda.empty_cache()

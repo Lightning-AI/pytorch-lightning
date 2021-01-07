@@ -59,8 +59,7 @@ class DDPHPCAccelerator(Accelerator):
         self.trainer.model = model
         self.task_idx = self.cluster_environment.local_rank()
 
-    def train(self):
-        model = self.trainer.model
+    def train(self, model: LightningModule):
         self.ddp_train(process_idx=self.task_idx, model=model)
 
     def set_world_ranks(self, process_idx):
@@ -188,10 +187,7 @@ class DDPHPCAccelerator(Accelerator):
         # allow user to configure ddp
         model = self.configure_ddp(model, device_ids)
 
-        self.trainer.setup_trainer(model)
-
-        # train or test
-        results = self.train_or_test()
+        results = super().train(model)
 
         # clean up memory
         torch.cuda.empty_cache()

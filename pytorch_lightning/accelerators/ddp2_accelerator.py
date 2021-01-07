@@ -58,8 +58,7 @@ class DDP2Accelerator(Accelerator):
         self.trainer.model = model
         self.task_idx = self.cluster_environment.local_rank()
 
-    def train(self):
-        model = self.trainer.model
+    def train(self, model: LightningModule):
         return self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def training_step(self, args):
@@ -197,10 +196,7 @@ class DDP2Accelerator(Accelerator):
         # allow user to configure ddp
         model = self.configure_ddp(model, device_ids)
 
-        self.trainer.setup_trainer(model)
-
-        # train or test
-        results = self.train_or_test()
+        results = super().train(model)
 
         # clean up memory
         torch.cuda.empty_cache()

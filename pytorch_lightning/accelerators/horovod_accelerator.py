@@ -20,6 +20,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import AMPType, HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -100,16 +101,13 @@ class HorovodAccelerator(Accelerator):
 
         self.trainer.model = model
 
-    def train(self):
+    def train(self, model: LightningModule):
         with ExitStack() as stack:
             for optimizer in self.trainer.optimizers:
                 # Synchronization will be performed explicitly following backward()
                 stack.enter_context(optimizer.skip_synchronize())
 
-            self.trainer.setup_trainer(self.trainer.model)
-
-            # train or test
-            results = self.train_or_test()
+            results = super().train(model)
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()

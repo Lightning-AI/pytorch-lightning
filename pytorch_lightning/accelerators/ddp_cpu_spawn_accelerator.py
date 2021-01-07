@@ -71,9 +71,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
 
         self.trainer.model = model
 
-    def train(self):
-        model = self.trainer.model
-
+    def train(self, model: LightningModule):
         # train in children process
         mp.spawn(self.ddp_train, nprocs=self.nprocs, args=(self.mp_queue, model,))
 
@@ -157,10 +155,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
         # allow user to configure ddp
         model = self.configure_ddp(model, device_ids)
 
-        self.trainer.setup_trainer(model)
-
-        # train or test
-        results = self.train_or_test()
+        results = super().train(model)
 
         # get original model
         model = self.trainer.get_model()
