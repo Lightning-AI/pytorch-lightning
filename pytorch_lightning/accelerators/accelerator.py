@@ -87,6 +87,9 @@ class Accelerator(object):
     def process_dataloader(self, dataloader):
         return dataloader
 
+    def on_before_backward_engine_execution(self) -> None:
+        pass
+
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         automatic_optimization = self.trainer.train_loop.automatic_optimization
 

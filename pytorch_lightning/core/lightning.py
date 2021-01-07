@@ -1177,82 +1177,9 @@ class LightningModule(
         loss.backward(*args, **kwargs)
 
     def _backward_wrapper(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
-
-        if automatic_optimization or self._running_manual_backward:
-
-            is_ddp = isinstance(self.trainer.model, LightningDistributedDataParallel)
-            never_skip = self.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP
-
-            if is_ddp and never_skip and automatic_optimization:
-                self._backward_with_possible_nan_loss(loss, optimizer, optimizer_idx, *args, **kwargs)
-            else:
-                self.backward(loss, optimizer, optimizer_idx, *args, **kwargs)
-
-    def _backward_with_possible_nan_loss(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
-        """
-        This function is used to handle the case when a loss in a ``DistributedDataParallel``
-        """        
-        if TORCH_GREATER_EQUAL_1_7_0:
-            state = self.trainer.comm_hook_state["allreduce_hook_with_invalid_tensors"]
-            state["should_accumulate"] = self.trainer.train_loop.should_accumulate()
+        if self.trainer.train_loop.automatic_optimization or self._running_manual_backward:
+            self.trainer.accelerator_backend.on_before_backward_engine_execution()
             self.backward(loss, optimizer, optimizer_idx, *args, **kwargs)
-        else:
-            # This 
-            self.__check_invalid_loss(loss)
-
-            # prevent ddp grad synchronization
-            self.trainer.model.require_backward_grad_sync = False
-
-            if not torch.isnan(loss):
-                self.backward(loss, optimizer, optimizer_idx, *args, **kwargs)
-            else:
-                self.__create_zeros_gradients()
-                if not self.trainer.train_loop.should_accumulate():
-                    self.__all_reduce_gradients(optimizer)
-
-            if not self.trainer.train_loop.should_accumulate():
-                self.__normalize_gradients()
-
-    def __check_invalid_loss(self, loss):
-        is_invalid = torch.isnan(loss).int()
-        self.trainer.accelerator_backend.sync_tensor(is_invalid)
-        self._invalid_loss_counts.append(is_invalid)
-
-    def __create_zeros_gradients(self):
-        """
-        This function will generate zeros gradients when None for the first reduction
-        """
-        for p in self.parameters():
-            if p.requires_grad and p.grad is None:
-                p.grad = torch.zeros_like(p, device=self.device, dtype=torch.float)
-
-    def __all_reduce_gradients(self, optimizer: Optimizer) -> None:
-        # perform SUM all_reduce asynchronously
-        for group in optimizer.param_groups:
-            for param in group["params"]:
-                if param.grad is not None:
-                    work = torch_distrib.all_reduce(param.grad, async_op=TORCH_GREATER_EQUAL_1_7_0)
-                    if TORCH_GREATER_EQUAL_1_7_0:
-                        futures.append(work.get_future())
-        
-        if TORCH_GREATER_EQUAL_1_7_0:
-            torch.futures.wait_all(futures)
-
-    def __normalize_gradients(self):
-        # compute actual number of batches used during accumulation
-        total_invalid_batches = torch.FloatTensor(self._invalid_loss_counts).sum()
-        total_batches = self.trainer.accumulate_grad_batches * self.trainer.world_size
-        # TODO: skip if all invalid ?
-        number_seen_batches = max(total_batches - total_invalid_batches, 1)
-
-        # compute average gradients based on actual number of valid loss.
-        for p in self.parameters():
-            if p.requires_grad:
-                p.grad /= number_seen_batches
-
-        # reset for next accumulation
-        self._invalid_loss_counts = []
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """

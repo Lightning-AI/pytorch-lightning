@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License
 import os
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Union
@@ -10,61 +23,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.plugin import LightningPlugin
-from pytorch_lightning.utilities import TORCH_GREATER_EQUAL_1_7_0, InvalidLossStrategy
-
-
-if TORCH_GREATER_EQUAL_1_7_0:
-
-    def allreduce_init_hook_with_invalid_tensors(state, accumulate_grad_batches = None, world_size = None):
-        state["is_invalid"] = []
-        state["should_accumulate"] = None
-        state["accumulate_grad_batches"] = accumulate_grad_batches
-        state["world_size"] = world_size
-
-    def allreduce_hook_with_invalid_tensors(state: Dict, bucket: torch_distrib._GradBucket):
-        """
-        This DDP communication hook implements all reduce where some tensors are allowed to be NaN.
-        """
-        name = "allreduce_hook_with_invalid_tensors"
-        state = state[name]
-
-        group_to_use = torch_distrib.group.WORLD
-        tensor = bucket.get_tensors()[0]
-
-        is_invalid = torch.isnan(tensor).any() or not torch.isfinite(tensor).any()
-        is_invalid = torch.tensor(int(is_invalid), device=tensor.device)
-
-        if is_invalid:
-            tensor = torch.zeros_like(tensor, device=tensor.device)
-
-        dist.all_reduce(
-            is_invalid, 
-            group=group_to_use, 
-            async_op=False, 
-            op=torch_distrib.ReduceOp.SUM
-        )
-
-        state["is_invalid"].append(is_invalid)
-
-        fut = dist.all_reduce(
-            tensor, group=group_to_use, async_op=True, op=torch_distrib.ReduceOp.SUM
-        ).get_future()
-
-        def then_callback(fut):
-            tensor = fut.value()[0]
-            if not state["should_accumulate"]:
-
-                total_invalid_batches = torch.FloatTensor(state["is_invalid"]).sum()
-                total_batches = state["accumulate_grad_batches"] * state["world_size"]
-                number_seen_batches = max(total_batches - total_invalid_batches, 1)
-                tensor /= number_seen_batches
-
-                state["is_invalid"] = []
-                state["should_accumulate"] = None
-
-            return [tensor]
-
-        return fut.then(then_callback)
+from pytorch_lightning.plugins.ddp_comm_hooks import initialize_ddp_comm_hooks, DDP_COMM_CALLBACK
 
 class DDPPlugin(LightningPlugin):
     """
@@ -124,14 +83,11 @@ class DDPPlugin(LightningPlugin):
             device_ids=device_ids,
             **self._ddp_kwargs,
         )
-        if TORCH_GREATER_EQUAL_1_7_0 and model.module.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP:
-            init_hook = partial(
-                allreduce_init_hook_with_invalid_tensors, 
-                accumulate_grad_batches=trainer.accumulate_grad_batches,
-                world_size=trainer.world_size)
-            trainer.add_comm_hook_state("allreduce_hook_with_invalid_tensors", init_hook=init_hook)
-            model._register_comm_hook(state = trainer.comm_hook_state, hook = allreduce_hook_with_invalid_tensors)
+        self.configure_ddp_comm_hook(model, trainer)
         return model
+
+    def configure_ddp_comm_hook(self, model, trainer):
+        initialize_ddp_comm_hooks(model, trainer)
 
     def init_ddp_connection(
             self,
@@ -171,6 +127,12 @@ class DDPPlugin(LightningPlugin):
         Returns: args moved to correct device if needed.
         """
         return args
+
+    def on_before_backward_engine_execution(self, trainer):
+        state = trainer.comm_hook_state
+        callback_name = DDP_COMM_CALLBACK.UPDATE_ON_BEFORE_BACKWARD_ENGINE_EXECUTION.value
+        if callback_name in state:
+            state[callback_name](trainer)
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()

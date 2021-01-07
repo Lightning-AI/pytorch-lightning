@@ -270,6 +270,9 @@ class DDPSpawnAccelerator(Accelerator):
                 atomic_save(model.state_dict(), last_path)
             mp_queue.put(last_path)
 
+    def on_before_backward_engine_execution(self):
+        self.ddp_plugin.on_before_backward_engine_execution(self.trainer)
+
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:

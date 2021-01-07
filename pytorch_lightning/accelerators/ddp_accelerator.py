@@ -311,6 +311,9 @@ class DDPAccelerator(Accelerator):
 
         return results
 
+    def on_before_backward_engine_execution(self):
+        self.ddp_plugin.on_before_backward_engine_execution(self.trainer)
+
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
