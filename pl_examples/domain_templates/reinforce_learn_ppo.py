@@ -169,6 +169,7 @@ class PPOLightning(pl.LightningModule):
         steps_per_epoch: int = 2048,
         nb_optim_iters: int = 4,
         clip_ratio: float = 0.2,
+        **kwargs,
     ) -> None:
 
         """
@@ -457,7 +458,7 @@ class PPOLightning(pl.LightningModule):
 def main(args) -> None:
     model = PPOLightning(**vars(args))
 
-    trainer = pl.Trainer(max_epochs=70)
+    trainer = pl.Trainer.from_argparse_args(args)
     trainer.fit(model)
 
 
@@ -466,8 +467,10 @@ if __name__ == '__main__':
     torch.manual_seed(0)
     np.random.seed(0)
 
-    parser = argparse.ArgumentParser(add_help=False)
-    parser = PPOLightning.add_model_specific_args(parser)
+    parent_parser = argparse.ArgumentParser(add_help=False)
+    parent_parser = pl.Trainer.add_argparse_args(parent_parser)
+
+    parser = PPOLightning.add_model_specific_args(parent_parser)
     args = parser.parse_args()
 
     main(args)
