@@ -22,8 +22,8 @@ import pytorch_lightning as pl
 from pl_examples import _DATASETS_PATH, _TORCHVISION_AVAILABLE, cli_lightning_logo
 
 if _TORCHVISION_AVAILABLE:
-    from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
+    from torchvision.datasets.mnist import MNIST
 else:
     from tests.base.datasets import MNIST
 

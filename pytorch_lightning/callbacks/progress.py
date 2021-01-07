@@ -22,7 +22,6 @@ Use or override one of the progress bar callbacks.
 import importlib
 import sys
 
-
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
 if importlib.util.find_spec('ipywidgets') is not None:
@@ -323,7 +322,7 @@ class ProgressBar(ProgressBarBase):
         super().on_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
-        if total_train_batches != float('inf') and not trainer.fast_dev_run:
+        if total_train_batches != float('inf'):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
