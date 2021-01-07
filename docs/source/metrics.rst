@@ -641,6 +641,13 @@ explained_variance [func]
     :noindex:
 
 
+image_gradients [func]
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.image_gradients
+    :noindex:
+
+
 mean_absolute_error [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -674,6 +681,7 @@ ssim [func]
 
 .. autofunction:: pytorch_lightning.metrics.functional.ssim
     :noindex:
+
 
 r2score [func]
 ~~~~~~~~~~~~~~
