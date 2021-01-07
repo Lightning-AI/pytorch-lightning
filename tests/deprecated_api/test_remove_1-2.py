@@ -14,8 +14,8 @@
 """Test deprecated functionality which will be removed in vX.Y.Z"""
 
 import pytest
-import torch
 
+import torch
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 

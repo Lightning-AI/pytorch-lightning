@@ -16,8 +16,8 @@ from argparse import ArgumentParser
 from unittest import mock
 
 import pytest
-import torch
 
+import torch
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.profiler.profilers import PassThroughProfiler, SimpleProfiler
