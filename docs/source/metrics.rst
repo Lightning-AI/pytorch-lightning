@@ -266,12 +266,15 @@ Example:
     from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
     target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
     preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
-    metric_collection = MetricCollection([Accuracy(),
-                                          Precision(num_classes=3, average='macro'),
-                                          Recall(num_classes=3, average='macro')])
+    metric_collection = MetricCollection([
+        Accuracy(),
+        Precision(num_classes=3, average='macro'),
+        Recall(num_classes=3, average='macro')
+    ])
     print(metric_collection(preds, target))
 
 .. testoutput::
+    :options: +NORMALIZE_WHITESPACE
 
     {'Accuracy': torch.tensor(0.1250),
      'Precision': torch.tensor(0.0667),
