@@ -15,8 +15,8 @@ import os
 import platform
 
 import pytest
-import torch
 
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from tests.base import BoringModel

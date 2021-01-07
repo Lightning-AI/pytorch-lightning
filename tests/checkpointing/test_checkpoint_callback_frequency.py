@@ -15,8 +15,8 @@ import os
 from unittest import mock
 
 import pytest
-import torch
 
+import torch
 from pytorch_lightning import callbacks, seed_everything, Trainer
 from tests.base import BoringModel
 

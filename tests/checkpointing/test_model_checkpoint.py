@@ -20,14 +20,14 @@ from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
-import cloudpickle
 import pytest
-import torch
 import yaml
-from omegaconf import Container, OmegaConf
 
+import cloudpickle
 import pytorch_lightning as pl
 import tests.base.develop_utils as tutils
+import torch
+from omegaconf import Container, OmegaConf
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
