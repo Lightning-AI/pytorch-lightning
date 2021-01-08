@@ -30,15 +30,14 @@ class DDPPlugin(LightningPlugin):
     """
     Plugin to link a custom ddp implementation to any arbitrary accelerator.
 
-    This plugin forwards all constructor arguments to `LightningDistributedDataParallel`,
-    which in turn forwards all args to `DistributedDataParallel`.
+    This plugin forwards all constructor arguments to :class:`~torch.nn.parallel.DistributedDataParallel`.
 
     Example::
 
         class MyDDP(DDPPlugin):
 
             def configure_ddp(self, model, device_ids):
-                model = MyDDPWrapper(model, device_ids)
+                model = MyDDPWrapper(LightningDistributedWrapper(model), device_ids)
                 return model
 
         my_ddp = MyDDP()
@@ -55,14 +54,16 @@ class DDPPlugin(LightningPlugin):
         Pass through all customizations from constructor to :class:`~torch.nn.parallel.DistributedDataParallel`.
         Override to define a custom DDP implementation.
 
-        .. note:: Only requirement is that your DDP implementation subclasses
-            :class:`~torch.nn.parallel.DistributedDataParallel`
+        .. note:: This requires that your DDP implementation subclasses
+            :class:`~torch.nn.parallel.DistributedDataParallel`.
+            the original LightningModule gets wrapped by
+            :class:`pytorch_lightning.overrides.data_parallel.LightningDistributedWrapper`.
 
         The default implementation is::
 
             def configure_ddp(self, model, device_ids):
                 model = DistributedDataParallel(
-                    model, device_ids=device_ids, **self._ddp_kwargs,
+                    LightningDistributedWrapper(model), device_ids=device_ids, **self._ddp_kwargs,
                 )
                 return model
 
