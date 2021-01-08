@@ -18,11 +18,11 @@ from pytorch_lightning.metrics.classification.helpers import _input_format_class
 
 
 def _accuracy_update(
-    preds: torch.Tensor, 
-    target: torch.Tensor, 
-    threshold: float, 
-    class_weights: Optional[torch.Tensor], 
-    top_k: Optional[int], 
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    threshold: float,
+    class_weights: Optional[torch.Tensor],
+    top_k: Optional[int],
     subset_accuracy: bool
 ) -> Tuple[torch.Tensor, torch.Tensor]:
 
@@ -92,6 +92,10 @@ def accuracy(
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs.
+        class_weights:
+            Weight of each target class. Does not need to sum to one. 
+            Default value (``None``) would indicate that the classes are equally important 
+            (i.e. equal to one).
         top_k:
             Number of highest probability predictions considered to find the correct label, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The
