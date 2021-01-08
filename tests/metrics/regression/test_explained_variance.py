@@ -5,9 +5,9 @@ import pytest
 import torch
 from sklearn.metrics import explained_variance_score
 
-from pytorch_lightning.metrics.regression import ExplainedVariance
 from pytorch_lightning.metrics.functional import explained_variance
-from tests.metrics.utils import BATCH_SIZE, NUM_BATCHES, MetricTester
+from pytorch_lightning.metrics.regression import ExplainedVariance
+from tests.metrics.utils import BATCH_SIZE, MetricTester, NUM_BATCHES
 
 torch.manual_seed(42)
 

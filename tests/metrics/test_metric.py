@@ -6,6 +6,7 @@ import cloudpickle
 import numpy as np
 import pytest
 import torch
+
 from pytorch_lightning.metrics.metric import Metric, MetricCollection
 
 torch.manual_seed(42)
