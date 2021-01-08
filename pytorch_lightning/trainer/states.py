@@ -17,9 +17,10 @@ from functools import wraps
 from typing import Callable, Optional
 
 import pytorch_lightning
+from pytorch_lightning.utilities import LightningEnum
 
 
-class TrainerState(str, Enum):
+class TrainerState(LightningEnum):
     """ State which is set in the :class:`~pytorch_lightning.trainer.trainer.Trainer`
     to indicate what is currently or was executed.
 
@@ -34,6 +35,17 @@ class TrainerState(str, Enum):
     RUNNING = 'RUNNING'
     FINISHED = 'FINISHED'
     INTERRUPTED = 'INTERRUPTED'
+
+
+class TrainPhase(LightningEnum):
+    """Type of train phase.
+
+    >>> # you can math the type with string
+    >>> TrainPhase.TRAINING == 'train'
+    True
+    """
+    TRAINING = 'train'
+    TESTING = 'test'
 
 
 def trainer_state(*, entering: Optional[TrainerState] = None, exiting: Optional[TrainerState] = None) -> Callable:
