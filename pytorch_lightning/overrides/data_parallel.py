@@ -164,7 +164,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
 
 class LightningDistributedModule(torch.nn.Module):
 
-    def __init__(self, lightning_module: LightningModule):
+    def __init__(self, pl_module: LightningModule):
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
         method, either ``training_step``, ``validation_step`` or ```test_step``.
@@ -180,11 +180,11 @@ class LightningDistributedModule(torch.nn.Module):
             )
 
         Args:
-            lightning_module: the model to wrap
+            pl_module: the model to wrap
 
         """
         super().__init__()
-        self.module = lightning_module
+        self.module = pl_module
 
     def forward(self, *inputs, **kwargs):
         if self.module.training:
