@@ -485,11 +485,13 @@ model_evaluation.html#multiclass-and-multilabel-classification>`__.
     numerator = torch.where(zero_div_mask, torch.tensor(float(zero_division), device=numerator.device), numerator)
     denominator = torch.where(zero_div_mask | ignore_mask, torch.tensor(1.0, device=denominator.device), denominator)
     weights = torch.where(ignore_mask, torch.tensor(0.0, device=weights.device), weights)
-    weights = weights / weights.sum(dim=-1)
+
+    if average not in ["micro", "none", None]:
+        weights = weights / weights.sum(dim=-1, keepdim=True)
 
     scores = weights * (numerator / denominator)
 
-    # This is in case where sum(weights) = 0, which happens if we ignore the only present class
+    # This is in case where sum(weights) = 0, which happens if we ignore the only present class with average='weighted'
     scores = torch.where(torch.isnan(scores), torch.tensor(float(zero_division), device=scores.device), scores)
 
     if mdmc_average == "samplewise":
@@ -501,4 +503,5 @@ model_evaluation.html#multiclass-and-multilabel-classification>`__.
     else:
         scores = scores.sum()
 
+    # raise ValueError
     return scores

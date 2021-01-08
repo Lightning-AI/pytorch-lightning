@@ -5,7 +5,7 @@ import pytest
 import torch
 from sklearn.metrics import precision_score, recall_score
 
-from pytorch_lightning.metrics.classification.utils import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics import Precision, Recall
 from pytorch_lightning.metrics.functional import precision, recall
 from tests.metrics.classification.inputs import (
@@ -23,9 +23,7 @@ from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
 torch.manual_seed(42)
 
 
-def _sk_prec_recall(
-    preds, target, sk_fn, num_classes, average, is_multiclass, zero_division, ignore_index, mdmc_average=None
-):
+def _sk_prec_recall(preds, target, sk_fn, num_classes, average, is_multiclass, ignore_index, mdmc_average=None):
     if average == "none":
         average = None
     if num_classes == 1:
@@ -42,7 +40,7 @@ def _sk_prec_recall(
     )
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
 
-    sk_scores = sk_fn(sk_target, sk_preds, average=average, zero_division=zero_division, labels=labels)
+    sk_scores = sk_fn(sk_target, sk_preds, average=average, zero_division=0, labels=labels)
 
     if len(labels) != num_classes and not average:
         sk_scores = np.insert(sk_scores, ignore_index, np.nan)
@@ -50,9 +48,7 @@ def _sk_prec_recall(
     return sk_scores
 
 
-def _sk_prec_recall_mdmc(
-    preds, target, sk_fn, num_classes, average, is_multiclass, zero_division, ignore_index, mdmc_average
-):
+def _sk_prec_recall_mdmc(preds, target, sk_fn, num_classes, average, is_multiclass, ignore_index, mdmc_average):
     preds, target, _ = _input_format_classification(
         preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
     )
@@ -61,61 +57,49 @@ def _sk_prec_recall_mdmc(
         preds = torch.movedim(preds, 1, -1).reshape(-1, preds.shape[1])
         target = torch.movedim(target, 1, -1).reshape(-1, target.shape[1])
 
-        return _sk_prec_recall(preds, target, sk_fn, num_classes, average, False, zero_division, ignore_index)
-    else:  # mdmc_average == "samplewise"
+        return _sk_prec_recall(preds, target, sk_fn, num_classes, average, False, ignore_index)
+    elif mdmc_average == "samplewise":
         scores = []
 
         for i in range(preds.shape[0]):
             pred_i = preds[i, ...].T
             target_i = target[i, ...].T
-            scores_i = _sk_prec_recall(
-                pred_i, target_i, sk_fn, num_classes, average, False, zero_division, ignore_index
-            )
+            scores_i = _sk_prec_recall(pred_i, target_i, sk_fn, num_classes, average, False, ignore_index)
 
             scores.append(np.expand_dims(scores_i, 0))
 
-        return np.concatenate(scores).mean()
+        return np.concatenate(scores).mean(axis=0)
 
 
 @pytest.mark.parametrize("metric, fn_metric", [(Precision, precision), (Recall, recall)])
-def test_wrong_params(metric, fn_metric):
+@pytest.mark.parametrize(
+    "zero_division, average, mdmc_average",
+    [
+        (0.5, "micro", None),
+        (None, "micro", None),
+        (0, "wrong", None),
+        (0, "micro", "wrong"),
+    ],
+)
+def test_wrong_params(metric, fn_metric, zero_division, average, mdmc_average):
     with pytest.raises(ValueError):
-        metric(zero_division=None)
+        metric(zero_division=zero_division, average=average, mdmc_average=mdmc_average)
 
     with pytest.raises(ValueError):
-        fn_metric(_binary_inputs.preds[0], _binary_inputs.target[0], zero_division=None)
-
-
-######################################################################################
-# Testing for MDMC inputs is partially skipped, because some cases appear where
-# (with mdmc_average1 =! None, ignore_index=1, average='weighted') a sample in
-# target contains only labels "1" - and as we are ignoring this index, weights of
-# all labels will be zero. In this special edge case, sklearn handles the situation
-# differently for each metric (recall, precision, fscore), which breaks ours handling
-# everything in _reduce_scores (where the return value is 0 in this situation).
-######################################################################################
+        fn_metric(
+            _binary_inputs.preds[0],
+            _binary_inputs.target[0],
+            zero_division=zero_division,
+            average=average,
+            mdmc_average=mdmc_average,
+        )
 
 
 @pytest.mark.parametrize(
-    "preds, target, sk_metric, num_classes, multilabel",
-    [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_prec_recall_binary_prob, 1, False),
-        (_binary_inputs.preds, _binary_inputs.target, _sk_prec_recall_binary, 1, False),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target,
-         _sk_prec_recall_multilabel_prob, NUM_CLASSES, True),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_prec_recall_multilabel, NUM_CLASSES, True),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target,
-         _sk_prec_recall_multiclass_prob, NUM_CLASSES, False),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_prec_recall_multiclass, NUM_CLASSES, False),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target,
-         _sk_prec_recall_multidim_multiclass_prob, NUM_CLASSES, False),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target,
-         _sk_prec_recall_multidim_multiclass, NUM_CLASSES, False),
-    ],
+    "metric_class, metric_fn, sk_fn", [(Recall, recall, recall_score), (Precision, precision, precision_score)]
 )
 @pytest.mark.parametrize("average", ["micro", "macro", None, "weighted", "samples"])
-@pytest.mark.parametrize("zero_division", [0, 1])
-@pytest.mark.parametrize("ignore_index", [None, 1])
+@pytest.mark.parametrize("ignore_index", [None, 0])
 @pytest.mark.parametrize(
     "preds, target, num_classes, is_multiclass, mdmc_average, sk_wrapper",
     [
@@ -148,11 +132,13 @@ class TestPrecisionRecall(MetricTester):
         num_classes,
         average,
         mdmc_average,
-        zero_division,
         ignore_index,
     ):
         if num_classes == 1 and average != "micro":
             pytest.skip("Only test binary data for 'micro' avg (equivalent of 'binary' in sklearn)")
+
+        if ignore_index is not None and preds.ndim == 2:
+            pytest.skip("Skipping ignore_index test with binary inputs.")
 
         if average == "weighted" and ignore_index is not None and mdmc_average is not None:
             pytest.skip("Ignore special case where we are ignoring entire sample for 'weighted' average")
@@ -168,7 +154,6 @@ class TestPrecisionRecall(MetricTester):
                 average=average,
                 num_classes=num_classes,
                 is_multiclass=is_multiclass,
-                zero_division=zero_division,
                 ignore_index=ignore_index,
                 mdmc_average=mdmc_average,
             ),
@@ -178,7 +163,6 @@ class TestPrecisionRecall(MetricTester):
                 "average": average,
                 "threshold": THRESHOLD,
                 "is_multiclass": is_multiclass,
-                "zero_division": zero_division,
                 "ignore_index": ignore_index,
                 "mdmc_average": mdmc_average,
             },
@@ -198,11 +182,13 @@ class TestPrecisionRecall(MetricTester):
         num_classes,
         average,
         mdmc_average,
-        zero_division,
         ignore_index,
     ):
         if num_classes == 1 and average != "micro":
             pytest.skip("Only test binary data for 'micro' avg (equivalent of 'binary' in sklearn)")
+
+        if ignore_index is not None and preds.ndim == 2:
+            pytest.skip("Skipping ignore_index test with binary inputs.")
 
         if average == "weighted" and ignore_index is not None and mdmc_average is not None:
             pytest.skip("Ignore special case where we are ignoring entire sample for 'weighted' average")
@@ -217,7 +203,6 @@ class TestPrecisionRecall(MetricTester):
                 average=average,
                 num_classes=num_classes,
                 is_multiclass=is_multiclass,
-                zero_division=zero_division,
                 ignore_index=ignore_index,
                 mdmc_average=mdmc_average,
             ),
@@ -226,7 +211,6 @@ class TestPrecisionRecall(MetricTester):
                 "average": average,
                 "threshold": THRESHOLD,
                 "is_multiclass": is_multiclass,
-                "zero_division": zero_division,
                 "ignore_index": ignore_index,
                 "mdmc_average": mdmc_average,
             },

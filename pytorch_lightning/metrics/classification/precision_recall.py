@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Callable, Union
+from typing import Optional, Any, Callable
 
 import torch
 from pytorch_lightning.metrics.classification.stat_scores import StatScores
@@ -25,7 +25,8 @@ class Precision(StatScores):
     .. math:: \text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}
 
     Where :math:`\text{TP}` and :math:`\text{FP}` represent the number of true positives and
-    false positives respecitively.
+    false positives respecitively. With the use of ``top_k`` parameter, this metric can
+    generalize to Precision@K.
 
     The reduction method (how the precision scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
@@ -66,7 +67,8 @@ class Precision(StatScores):
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
         zero_division:
-            Score to use in the case of a 0 in the denominator in the calculation.
+            Score to use in the case of a 0 in the denominator in the calculation. Should be either
+            0 or 1.
 
         ignore_index:
             Integer specifying a target class to ignore. If given, this class index does not contribute
@@ -78,7 +80,7 @@ class Precision(StatScores):
 
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. 
+            (0,1) predictions, in the case of binary or multi-label inputs.
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
             only for inputs with probability predictions. If this parameter is set for multi-label
@@ -122,7 +124,7 @@ class Precision(StatScores):
         self,
         average: str = "micro",
         mdmc_average: Optional[str] = None,
-        zero_division: Union[float, int] = 0,
+        zero_division: int = 0,
         ignore_index: Optional[int] = None,
         num_classes: Optional[int] = None,
         threshold: float = 0.5,
@@ -137,8 +139,8 @@ class Precision(StatScores):
         if average not in allowed_average:
             raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
-        if not isinstance(zero_division, (float, int)):
-            raise ValueError(f"The `zero_division` has to be a number, got {zero_division}.")
+        if zero_division not in [0,1]:
+            raise ValueError(f"The `zero_division` has to be either 0 or 1.")
 
         super().__init__(
             reduce="macro" if average in ["weighted", "none", None] else average,
@@ -186,7 +188,8 @@ class Recall(StatScores):
     .. math:: \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}
 
     Where :math:`\text{TP}` and :math:`\text{FN}` represent the number of true positives and
-    false negatives respecitively.
+    false negatives respecitively. With the use of ``top_k`` parameter, this metric can
+    generalize to Recall@K.
 
     The reduction method (how the recall scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
@@ -227,7 +230,8 @@ class Recall(StatScores):
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
         zero_division:
-            Score to use in the case of a 0 in the denominator in the calculation.
+            Score to use in the case of a 0 in the denominator in the calculation. Should be either
+            0 or 1.
 
         ignore_index:
             Integer specifying a target class to ignore. If given, this class index does not contribute
@@ -239,7 +243,7 @@ class Recall(StatScores):
 
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. 
+            (0,1) predictions, in the case of binary or multi-label inputs.
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
             only for inputs with probability predictions. If this parameter is set for multi-label
@@ -284,7 +288,7 @@ class Recall(StatScores):
         self,
         average: str = "micro",
         mdmc_average: Optional[str] = None,
-        zero_division: Union[float, int] = 0,
+        zero_division: int = 0,
         ignore_index: Optional[int] = None,
         num_classes: Optional[int] = None,
         threshold: float = 0.5,
@@ -299,8 +303,8 @@ class Recall(StatScores):
         if average not in allowed_average:
             raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
-        if not isinstance(zero_division, (float, int)):
-            raise ValueError(f"The `zero_division` has to be a number, got {zero_division}.")
+        if zero_division not in [0,1]:
+            raise ValueError(f"The `zero_division` has to be either 0 or 1.")
 
         super().__init__(
             reduce="macro" if average in ["weighted", "none", None] else average,
