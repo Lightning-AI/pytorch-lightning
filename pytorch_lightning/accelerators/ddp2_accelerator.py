@@ -210,6 +210,7 @@ class DDP2Accelerator(Accelerator):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
+        self.ddp_plugin.device_ids = device_ids
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
