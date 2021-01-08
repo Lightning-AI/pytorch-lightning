@@ -258,25 +258,67 @@ def test_lightning_cli(cli_args, expected_model, expected_trainer, monkeypatch):
         assert hasattr(cli.trainer, 'ran_asserts') and cli.trainer.ran_asserts
 
 
-def test_lightning_cli_with_trial_mnist_datamodule(tmpdir):
-    reset_seed()
+class TestLightningCLI(LightningCLI):
+    def before_fit(self):
+        for key in ['validation_step',
+                    'validation_step_end',
+                    'validation_epoch_end',
+                    'test_step',
+                    'test_step_end',
+                    'test_epoch_end']:
+            setattr(self.model, key, None)
 
-    class TestModel(EvalModelTemplate):
-        pass
 
-    TestModel.validation_step = None
-    TestModel.validation_step_end = None
-    TestModel.validation_epoch_end = None
+def test_lightning_cli_mnist_args(tmpdir):
 
     cli_args = [
-        '--data.data_dir='+str(tmpdir),
-        '--trainer.default_root_dir='+str(tmpdir),
+        '--data.data_dir=' + str(tmpdir),
+        '--trainer.default_root_dir=' + str(tmpdir),
         '--trainer.max_epochs=1',
         '--trainer.weights_summary=null',
     ]
 
     with mock.patch('sys.argv', ['trial.py'] + cli_args):
-        cli = LightningCLI(TestModel, TrialMNISTDataModule)
+        cli = TestLightningCLI(EvalModelTemplate, TrialMNISTDataModule)
+        assert cli.fit_result == 1
+        config_path = os.path.join(str(tmpdir), 'lightning_logs', 'version_0', 'config.yaml')
+        assert os.path.isfile(config_path)
+        with open(config_path) as f:
+            config = yaml.safe_load(f.read())
+        assert config['model'] == cli.config['model']
+        assert config['data'] == cli.config['data']
+        assert config['trainer'] == cli.config['trainer']
+
+
+def test_lightning_cli_mnist_config_and_subclass_mode(tmpdir):
+
+    config = {
+        'model': {
+            'class_path': 'tests.base.EvalModelTemplate',
+        },
+        'data': {
+            'class_path': 'tests.base.datamodules.TrialMNISTDataModule',
+            'init_args': {
+                'data_dir': str(tmpdir),
+            },
+        },
+        'trainer': {
+            'default_root_dir': str(tmpdir),
+            'max_epochs': 1,
+            'weights_summary': None,
+        },
+    }
+    config_path = os.path.join(str(tmpdir), 'config.yaml')
+    with open(config_path, 'w') as f:
+        f.write(yaml.dump(config))
+
+    with mock.patch('sys.argv', ['trial.py', '--config', config_path]):
+        cli = TestLightningCLI(
+            EvalModelTemplate,
+            TrialMNISTDataModule,
+            subclass_mode_model=True,
+            subclass_mode_data=True
+        )
         assert cli.fit_result == 1
         config_path = os.path.join(str(tmpdir), 'lightning_logs', 'version_0', 'config.yaml')
         assert os.path.isfile(config_path)

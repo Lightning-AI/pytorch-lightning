@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import os
-from typing import Type, List, Optional
-from jsonargparse import ArgumentParser, ActionConfigFile
+from typing import Type, List, Optional, Dict, Any
+from jsonargparse import ArgumentParser, ActionConfigFile, SUPPRESS
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -30,7 +30,11 @@ class LightningArgumentParser(ArgumentParser):
         parse_as_dict: bool = True,
         **kwargs
     ):
-        """Initialize argument parser that supports configuration file input"""
+        """Initialize argument parser that supports configuration file input
+
+        For full details of accepted arguments see `ArgumentParser.__init__
+        <https://omni-us.github.io/jsonargparse/#jsonargparse.core.ArgumentParser.__init__>`_.
+        """
         super().__init__(*args, parse_as_dict=parse_as_dict, **kwargs)
         self.add_argument(
             '--config',
@@ -56,7 +60,8 @@ class LightningArgumentParser(ArgumentParser):
     def add_module_args(
         self,
         module_class: Type[LightningModule],
-        nested_key: str = 'module'
+        nested_key: str = 'module',
+        subclass_mode: bool = False
     ):
         """
         Adds arguments from a module class to a nested key of the parser
@@ -64,14 +69,18 @@ class LightningArgumentParser(ArgumentParser):
         Args:
             module_class: A LightningModule class.
             nested_key: Name of the nested namespace to store arguments.
+            subclass_mode: Whether allow any subclass of the given class.
         """
         assert issubclass(module_class, LightningModule)
+        if subclass_mode:
+            return self.add_subclass_arguments(module_class, nested_key)
         return self.add_class_arguments(module_class, nested_key)
 
     def add_datamodule_args(
         self,
         datamodule_class: Type[LightningDataModule],
-        nested_key: str = 'data'
+        nested_key: str = 'data',
+        subclass_mode: bool = False
     ):
         """
         Adds arguments from a datamodule class to a nested key of the parser
@@ -79,8 +88,11 @@ class LightningArgumentParser(ArgumentParser):
         Args:
             datamodule_class: A LightningDataModule class.
             nested_key: Name of the nested namespace to store arguments.
+            subclass_mode: Whether allow any subclass of the given class.
         """
         assert issubclass(datamodule_class, LightningDataModule)
+        if subclass_mode:
+            return self.add_subclass_arguments(datamodule_class, nested_key)
         return self.add_class_arguments(datamodule_class, nested_key)
 
 
@@ -103,16 +115,23 @@ class LightningCLI:
         datamodule_class: Type[LightningDataModule] = None,
         save_config_callback: Type[Callback] = SaveConfigCallback,
         trainer_class: Type[Trainer] = Trainer,
+        trainer_kwargs: Dict[str, Any] = None,
         description: str = 'pytorch-lightning trainer command line tool',
-        default_config_files: List[str] = None,
-        parse_env: bool = False,
-        **kwargs
+        env_prefix: str = 'PL',
+        env_parse: bool = False,
+        parser_kwargs: Dict[str, Any] = None,
+        subclass_mode_model: bool = False,
+        subclass_mode_data: bool = False
     ):
         """
         Implementation of a configurable command line tool for pytorch-lightning
 
-        Receives as input pytorch-lightning classes, which are instantiated using a
-        parsed configuration file or command line args and then runs trainer.fit.
+        Receives as input pytorch-lightning classes, which are instantiated
+        using a parsed configuration file and/or command line args and then runs
+        trainer.fit. Parsing of configuration from environment variables can
+        be enabled by setting :code:`env_parse=True`. A full configuration yaml would
+        be parsed from :code:`PL_CONFIG` if set. Individual settings are so parsed from
+        variables named for example :code:`PL_TRAINER__MAX_EPOCHS`.
 
         Example, first implement the trainer.py tool as::
 
@@ -131,47 +150,43 @@ class LightningCLI:
             datamodule_class: An optional LightningDataModule class.
             save_config_callback: A callback class to save the training config.
             trainer_class: An optional extension of the Trainer class.
+            trainer_kwargs: Additional arguments to instantiate Trainer.
             description: Description of the tool shown when running --help.
-            default_config_files: Default config file locations, e.g. :code:`['~/.config/myapp/*.yaml']`.
-            parse_env: Whether environment variables are also parsed.
-            **kwargs: Additional arguments to instantiate Trainer.
+            env_prefix: Prefix for environment variables.
+            env_parse: Whether environment variable parsing is enabled.
+            parser_kwargs: Additional arguments to instantiate LightningArgumentParser.
+            subclass_mode_model: Whether model can be any `subclass <https://omni-us.github.io/jsonargparse/#classes-as-type>`_ of the given class.
+            subclass_mode_data: Whether datamodule can be any `subclass <https://omni-us.github.io/jsonargparse/#classes-as-type>`_ of the given class.
         """
         self.model_class = model_class
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
         self.trainer_class = trainer_class
-        self.trainer_kwargs = kwargs
+        self.trainer_kwargs = {} if trainer_kwargs is None else trainer_kwargs
+        self.subclass_mode_model = subclass_mode_model
+        self.subclass_mode_data = subclass_mode_data
+        self.parser_kwargs = {} if parser_kwargs is None else parser_kwargs
+        self.parser_kwargs.update({
+            'description': description,
+            'env_prefix': env_prefix,
+            'default_env': env_parse
+        })
 
-        self.init_parser(description, default_config_files, parse_env)
+        self.init_parser()
         self.add_arguments_to_parser(self.parser)
         self.add_core_arguments_to_parser()
         self.before_parse_arguments(self.parser)
         self.parse_arguments()
         self.before_instantiate_classes()
         self.instantiate_classes()
+        self.prepare_fit_kwargs()
         self.before_fit()
         self.fit()
         self.after_fit()
 
-    def init_parser(
-        self,
-        description: str,
-        default_config_files: Optional[List[str]],
-        parse_env: bool
-    ):
-        """Method that instantiates the argument parser
-
-        Args:
-            description: Description of the tool shown when running --help.
-            default_config_files: Default config file locations, e.g. :code:`['~/.config/myapp/*.yaml']`.
-            parse_env: Whether environment variables are also parsed.
-        """
-        self.parser = LightningArgumentParser(
-            description=description,
-            default_config_files=default_config_files,
-            default_env=parse_env,
-            env_prefix='PL'
-        )
+    def init_parser(self):
+        """Method that instantiates the argument parser"""
+        self.parser = LightningArgumentParser(**self.parser_kwargs)
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser):
         """Implement to add extra arguments to parser
@@ -184,9 +199,9 @@ class LightningCLI:
     def add_core_arguments_to_parser(self):
         """Adds arguments from the core classes to the parser"""
         self.parser.add_trainer_args(self.trainer_class, 'trainer')
-        self.parser.add_module_args(self.model_class, 'model')
+        self.parser.add_module_args(self.model_class, 'model', subclass_mode=self.subclass_mode_model)
         if self.datamodule_class is not None:
-            self.parser.add_datamodule_args(self.datamodule_class, 'data')
+            self.parser.add_datamodule_args(self.datamodule_class, 'data', subclass_mode=self.subclass_mode_data)
 
     def before_parse_arguments(self, parser: LightningArgumentParser):
         """Implement to run some code before parsing arguments
@@ -208,18 +223,24 @@ class LightningCLI:
         """Instantiates the classes using settings from self.config"""
         self.config_init = self.parser.instantiate_subclasses(self.config)
         self.instantiate_model()
-        self.prepare_fit_kwargs()
+        self.instantiate_datamodule()
         self.instantiate_trainer()
 
     def instantiate_model(self):
         """Instantiates the model using self.config_init['model']"""
-        self.model = self.model_class(**self.config_init.get('model', {}))
+        if self.subclass_mode_model:
+            self.model = self.config_init['model']
+        else:
+            self.model = self.model_class(**self.config_init.get('model', {}))
 
-    def prepare_fit_kwargs(self):
-        """Prepares fit_kwargs including datamodule using self.config_init['data'] if given"""
-        self.fit_kwargs = {'model': self.model}
-        if self.datamodule_class is not None:
-            self.fit_kwargs['datamodule'] = self.datamodule_class(**self.config_init.get('data', {}))
+    def instantiate_datamodule(self):
+        """Instantiates the datamodule using self.config_init['data'] if given"""
+        if self.datamodule_class is None:
+            self.datamodule = None
+        elif self.subclass_mode_data:
+            self.datamodule = self.config_init['data']
+        else:
+            self.datamodule = self.datamodule_class(**self.config_init.get('data', {}))
 
     def instantiate_trainer(self):
         """Instantiates the trainer using self.config_init['trainer']"""
@@ -229,6 +250,12 @@ class LightningCLI:
         if self.save_config_callback is not None:
             self.trainer_kwargs['callbacks'].append(self.save_config_callback(self.parser, self.config))
         self.trainer = self.trainer_class(**self.trainer_kwargs)
+
+    def prepare_fit_kwargs(self):
+        """Prepares fit_kwargs including datamodule using self.config_init['data'] if given"""
+        self.fit_kwargs = {'model': self.model}
+        if self.datamodule is not None:
+            self.fit_kwargs['datamodule'] = self.datamodule
 
     def before_fit(self):
         """Implement to run some code before fit is started"""

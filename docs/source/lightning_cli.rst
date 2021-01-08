@@ -28,6 +28,9 @@
     def send_email(address, message):
         pass
 
+    MyModelBaseClass = MyModel
+    MyDataModuleBaseClass = MyDataModule
+
 .. testcleanup:: *
 
     LightningCLI.fit = original_fit
@@ -66,12 +69,12 @@ simple as:
 
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    LightningCLI(MyModel)
+    cli = LightningCLI(MyModel)
 
 The help of the tool describing all configurable options and default values can
 be shown by running :code:`python trainer.py --help`. Default options can be
 changed by providing individual command line arguments. However, it is better
-practice to create a configuration file and provide this to the trainer. A way
+practice to create a configuration file and provide this to the tool. A way
 to do this would be:
 
 .. code-block:: bash
@@ -83,13 +86,16 @@ to do this would be:
     # Run training using created configuration
     python trainer.py --config config.yaml
 
-The call to the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class
-takes care of parsing command line and config file options, instantiating the
-classes, setting up a callback to save the config in the log directory and
-finally running :func:`trainer.fit`.
+The instantiation of the :class:`~pytorch_lightning.utilities.cli.LightningCLI`
+class takes care of parsing command line and config file options, instantiating
+the classes, setting up a callback to save the config in the log directory and
+finally running :func:`trainer.fit`. The resulting object :code:`cli` can be
+used for instance to get the result of fit, i.e., :code:`cli.fit_result`.
 
-After multiple trainings with different configurations, a previous run can be
-trivially reproduced by using the config in the respective log directory, e.g.:
+After multiple trainings with different configurations, each run will have in
+its respective log directory a :code:`config.yaml` file. This file can be used
+for reference to know in detail all the settings that were used for each
+particular run, and also could be used to trivially reproduce a training, e.g.:
 
 .. code-block:: bash
 
@@ -102,7 +108,7 @@ class is required, the trainer tool just needs a small modification as follows:
 
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    LightningCLI(MyModel, MyDataModule)
+    cli = LightningCLI(MyModel, MyDataModule)
 
 The start of a possible implementation of :class:`MyModel` including the
 recommended argument descriptions in the docstring could be the one below. Note
@@ -183,35 +189,99 @@ the init parameters of the class. This grouping is also used in the formatting
 of the help shown previously.
 
 
+Trainer Callbacks and arguments with class type
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A very important argument of the
+:class:`~pytorch_lightning.trainer.trainer.Trainer` class is the
+:code:`callbacks`. In contrast to other more simple arguments which just require
+numbers or strings, :code:`callbacks` expects a list of instances of subclasses
+of :class:`~pytorch_lightning.callbacks.Callback`. To specify this kind of
+argument in a config file, each callback must be given as a dictionary including
+a :code:`class_path` entry with an import path of the class, and optionally an
+:code:`init_args` entry with arguments required to instantiate it. Therefore, a
+simple configuration file example that defines a couple of callbacks is the
+following:
+
+.. code-block:: yaml
+
+    trainer:
+      callbacks:
+        - class_path: pytorch_lightning.callbacks.EarlyStopping
+          init_args:
+            patience: 5
+        - class_path: pytorch_lightning.callbacks.LearningRateMonitor
+          init_args:
+            ...
+
+Similar to the callbacks, any arguments in
+:class:`~pytorch_lightning.trainer.trainer.Trainer` and user extended
+:class:`~pytorch_lightning.core.lightning.LightningModule` and
+:class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes that
+have as type hint a class can be configured the same way using
+:code:`class_path` and :code:`init_args`.
+
+
+Multiple models and/or datasets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the previous examples :class:`~pytorch_lightning.utilities.cli.LightningCLI`
+works only for a single model and datamodule class. However, there are many
+cases in which the objective is to easily be able to run many experiments for
+multiple models and datasets. For these cases the tool can be configured such
+that a model and/or a datamodule is specified by an import path and init
+arguments. For example, with a tool implemented as:
+
+.. testcode::
+
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+    cli = LightningCLI(
+        MyModelBaseClass,
+        MyDataModuleBaseClass,
+        subclass_mode_model=True,
+        subclass_mode_data=True
+    )
+
+A possible config file could be as follows:
+
+.. code-block:: yaml
+
+    model:
+      class_path: mycode.mymodels.MyModel
+      init_args:
+        decoder_layers:
+        - 2
+        - 4
+        encoder_layers: 12
+    data:
+      class_path: mycode.mydatamodules.MyDataModule
+      init_args:
+        ...
+    trainer:
+      callbacks:
+        - class_path: pytorch_lightning.callbacks.EarlyStopping
+          init_args:
+            patience: 5
+        ...
+
+Only model classes that are a subclass of :code:`MyModelBaseClass` would be
+allowed, and similarly only subclasses of :code:`MyDataModuleBaseClass`.
+
+
 Customizing LightningCLI
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 The init parameters of the
 :class:`~pytorch_lightning.utilities.cli.LightningCLI` class can be used to
-customize some things.
+customize some things, namely: the description of the tool, enabling parsing of
+environment variables and additional arguments to instantiate the trainer and
+configuration parser.
 
-- :code:`save_config_callback`: By default is
-  :class:`~pytorch_lightning.utilities.cli.SaveConfigCallback` which is the
-  callback that saves the config to the log directory. It could be extended for
-  example to log the config as an artifact.
-
-- :code:`description`: The command line tool description shown in the help.
-
-- :code:`parse_env`: A boolean that can be used to enable parsing of environment
-  variables. With this for instance the :code:`PL_TRAINER__MAX_EPOCHS`
-  environment variable if set would be used to override the default
-  :code:`max_epochs` of the trainer. Similarly options for the data module could
-  be set using variables that start with :code:`PL_DATA_` and likewise for the
-  modules.
-
-- :code:`**kwargs`: All other keyword arguments are used to initialize the
-  trainer class. Thus, this can be used for instance to set callbacks.
-
-Even though :class:`~pytorch_lightning.utilities.cli.LightningCLI` and its init
-parameters can reduce boilerplate code to a minimum, clearly there are cases in
-which it is not enough. The class is designed so that can be extended to
-customize different parts of the command line tool. The argument parser class
-used by :class:`~pytorch_lightning.utilities.cli.LightningCLI` is
+Nevertheless the init arguments are not enough for many use cases. For this
+reason the class is designed so that can be extended to customize different
+parts of the command line tool. The argument parser class used by
+:class:`~pytorch_lightning.utilities.cli.LightningCLI` is
 :class:`~pytorch_lightning.utilities.cli.LightningArgumentParser` which is an
 extension of python's argparse, thus adding arguments can be done using the
 :func:`add_argument` method. In contrast to argparse it has additional methods
@@ -227,9 +297,9 @@ configuration is stored in the :code:`config` attribute of the class instance.
 The :class:`~pytorch_lightning.utilities.cli.LightningCLI` class also has two
 methods that can be used to run code before and after :code:`trainer.fit` is
 executed: :meth:`~pytorch_lightning.utilities.cli.LightningCLI.before_fit` and
-:meth:`~pytorch_lightning.utilities.cli.LightningCLI.after_fit`. A simple
-example for these would be to send an email before and after fit. The code would
-be something like:
+:meth:`~pytorch_lightning.utilities.cli.LightningCLI.after_fit`. A realistic
+example for these would be to send an email before and after the execution of
+fit. The code would be something like:
 
 .. testcode::
 
@@ -252,7 +322,7 @@ be something like:
                 message='trainer.fit finished'
             )
 
-    MyLightningCLI(MyModel)
+    cli = MyLightningCLI(MyModel)
 
 Note that the config object :code:`self.config` is a dictionary whose keys are
 global options or groups of options. It has the same structure as the yaml
@@ -262,18 +332,4 @@ for instantiating the trainer class can be found in
 
 For more advanced use cases, other methods of the
 :class:`~pytorch_lightning.utilities.cli.LightningCLI` class could be extended.
-The complete list of methods is:
-
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.init_parser`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.add_arguments_to_parser`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.add_core_arguments_to_parser`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.before_parse_arguments`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.parse_arguments`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.before_instantiate_classes`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.instantiate_classes`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.instantiate_model`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.prepare_fit_kwargs`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.instantiate_trainer`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.before_fit`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.fit`
-- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.after_fit`
+For further information have a look at the corresponding API reference.

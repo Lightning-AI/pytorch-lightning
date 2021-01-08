@@ -100,6 +100,7 @@ PyTorch Lightning Documentation
    early_stopping
    fast_training
    hyperparameters
+   lightning_cli
    lr_finder
    multi_gpu
    multiple_loaders
