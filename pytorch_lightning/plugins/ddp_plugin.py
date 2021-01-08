@@ -55,15 +55,17 @@ class DDPPlugin(LightningPlugin):
         Override to define a custom DDP implementation.
 
         .. note:: This requires that your DDP implementation subclasses
-            :class:`~torch.nn.parallel.DistributedDataParallel`.
+            :class:`~torch.nn.parallel.DistributedDataParallel` and that
             the original LightningModule gets wrapped by
-            :class:`pytorch_lightning.overrides.data_parallel.LightningDistributedWrapper`.
+            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedWrapper`.
 
         The default implementation is::
 
             def configure_ddp(self, model, device_ids):
                 model = DistributedDataParallel(
-                    LightningDistributedWrapper(model), device_ids=device_ids, **self._ddp_kwargs,
+                    LightningDistributedWrapper(model),
+                    device_ids=device_ids,
+                    **self._ddp_kwargs,
                 )
                 return model
 

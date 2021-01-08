@@ -153,6 +153,24 @@ class LightningDataParallel(DataParallel):
 class LightningDistributedWrapper(torch.nn.Module):
 
     def __init__(self, lightning_module: LightningModule):
+        """
+        Wraps the user's LightningModule and redirects the forward call to the appropriate
+        method, either ``training_step``, ``validation_step`` or ```test_step``.
+        This class is used in combination with :class:`~torch.nn.parallel.DistributedDataParallel` as
+        shown in the example.
+
+        Example:
+
+            ddp_model = DistributedDataParallel(
+                module=LightningDistributedWrapper(lightning_module),
+                device_ids=[local_rank],
+                ...
+            )
+
+        Args:
+            lightning_module: the model to wrap
+
+        """
         super().__init__()
         self.module = lightning_module
 
