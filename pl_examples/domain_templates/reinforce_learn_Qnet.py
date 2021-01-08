@@ -420,7 +420,7 @@ if __name__ == '__main__':
     torch.manual_seed(0)
     np.random.seed(0)
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(add_help=False)
     parser = DQNLightning.add_model_specific_args(parser)
     args = parser.parse_args()
 
