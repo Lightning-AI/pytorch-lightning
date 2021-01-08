@@ -4,7 +4,6 @@ import pytest
 import torch
 from distutils.version import LooseVersion
 from sklearn.metrics import (
-    jaccard_score as sk_jaccard_score,
     precision_score as sk_precision,
     recall_score as sk_recall,
     roc_auc_score as sk_roc_auc_score,
@@ -303,8 +302,6 @@ def test_dice_score(pred, target, expected):
     pytest.param(True, 'elementwise_mean', None, torch.Tensor([0.5])),
     pytest.param(True, 'none', 0, torch.Tensor([0.5, 0.5])),
 ])
-
-
 @pytest.mark.parametrize('metric', [auroc])
 def test_error_on_multiclass_input(metric):
     """ check that these metrics raise an error if they are used for multiclass problems  """
