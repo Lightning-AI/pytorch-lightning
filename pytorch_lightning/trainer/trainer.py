@@ -421,16 +421,14 @@ class Trainer(
         # --------------------------
         # Setup??
         # --------------------------
-        ref_model = model
-        if self.data_parallel:
-            ref_model = model.module
+        ref_model = self.get_model()
 
         # set the ranks and devices
         self.accelerator_backend.dist.rank = self.global_rank
         self.accelerator_backend.dist.device = ref_model.device
 
         # set local properties on the model
-        self.model_connector.copy_trainer_model_properties(ref_model)
+        self.model_connector.copy_trainer_model_properties(model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
         if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:

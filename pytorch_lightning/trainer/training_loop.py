@@ -128,14 +128,11 @@ class TrainLoop:
         """
         Sanity check a few things before starting actual training.
         """
-        model = self.trainer.model
-        ref_model = model
-        if self.trainer.data_parallel:
-            ref_model = model.module
-
         # --------------------------
         # Pre-train
         # --------------------------
+        ref_model = self.trainer.get_model()
+
         # on pretrain routine start
         self.trainer.on_pretrain_routine_start(ref_model)
         if self.trainer.is_function_implemented("on_pretrain_routine_start"):
@@ -146,7 +143,7 @@ class TrainLoop:
             ref_model.summarize(mode=self.trainer.weights_summary)
 
         # restore training state and model weights before hpc is called
-        self.trainer.checkpoint_connector.restore_weights(model)
+        self.trainer.checkpoint_connector.restore_weights()
 
         # on pretrain routine end
         self.trainer.on_pretrain_routine_end(ref_model)

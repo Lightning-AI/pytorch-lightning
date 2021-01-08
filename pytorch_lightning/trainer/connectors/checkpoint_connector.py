@@ -44,7 +44,7 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
 
-    def restore_weights(self, model: LightningModule) -> None:
+    def restore_weights(self) -> None:
         """
         Attempt to restore a checkpoint (e.g. weights) in this priority:
         1. from HPC weights
