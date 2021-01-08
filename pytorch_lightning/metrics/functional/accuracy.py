@@ -18,7 +18,12 @@ from pytorch_lightning.metrics.classification.helpers import _input_format_class
 
 
 def _accuracy_update(
-    preds: torch.Tensor, target: torch.Tensor, threshold: float, class_weights: Optional[torch.Tensor], top_k: Optional[int], subset_accuracy: bool
+    preds: torch.Tensor, 
+    target: torch.Tensor, 
+    threshold: float, 
+    class_weights: Optional[torch.Tensor], 
+    top_k: Optional[int], 
+    subset_accuracy: bool
 ) -> Tuple[torch.Tensor, torch.Tensor]:
 
     preds, target, mode = _input_format_classification(preds, target, threshold=threshold, top_k=top_k)
