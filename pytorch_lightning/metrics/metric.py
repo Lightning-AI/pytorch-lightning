@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
+import inspect
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from copy import deepcopy
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
@@ -57,6 +58,7 @@ class Metric(nn.Module, ABC):
             Callback that performs the allgather operation on the metric state. When `None`, DDP
             will be used to perform the allgather. default: None
     """
+
     def __init__(
         self,
         compute_on_step: bool = True,
@@ -72,6 +74,7 @@ class Metric(nn.Module, ABC):
         self.dist_sync_fn = dist_sync_fn
         self._to_sync = True
 
+        self._update_signature = inspect.signature(self.update)
         self.update = self._wrap_update(self.update)
         self.compute = self._wrap_compute(self.compute)
         self._computed = None
@@ -120,7 +123,7 @@ class Metric(nn.Module, ABC):
         """
         if (
             not isinstance(default, torch.Tensor)
-            and not isinstance(default, list)                     # noqa: W503
+            and not isinstance(default, list)  # noqa: W503
             or (isinstance(default, list) and len(default) != 0)  # noqa: W503
         ):
             raise ValueError(
@@ -208,9 +211,11 @@ class Metric(nn.Module, ABC):
                 return self._computed
 
             dist_sync_fn = self.dist_sync_fn
-            if (dist_sync_fn is None
-                    and torch.distributed.is_available()
-                    and torch.distributed.is_initialized()):
+            if (
+                dist_sync_fn is None
+                and torch.distributed.is_available()
+                and torch.distributed.is_initialized()
+            ):
                 # User provided a bool, so we assume DDP if available
                 dist_sync_fn = gather_all_tensors
 
@@ -249,6 +254,10 @@ class Metric(nn.Module, ABC):
                 setattr(self, attr, deepcopy(default).to(current_val.device))
             else:
                 setattr(self, attr, deepcopy(default))
+
+    def clone(self):
+        """ Make a copy of the metric """
+        return deepcopy(self)
 
     def __getstate__(self):
         # ignore update and compute functions for pickling
@@ -292,3 +301,101 @@ class Metric(nn.Module, ABC):
                 current_val = getattr(self, key)
                 state_dict.update({key: current_val})
         return state_dict
+
+
+class MetricCollection(nn.ModuleDict):
+    """
+    MetricCollection class can be used to chain metrics that have the same
+    call pattern into one single class.
+
+    Args:
+        metrics: One of the following
+
+            * list or tuple: if metrics are passed in as a list, will use the
+              metrics class name as key for output dict. Therefore, two metrics
+              of the same class cannot be chained this way.
+
+            * dict: if metrics are passed in as a dict, will use each key in the
+              dict as key for output dict. Use this format if you want to chain
+              together multiple of the same metric with different parameters.
+
+    Example (input as list):
+
+        >>> from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
+        >>> target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
+        >>> preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
+        >>> metrics = MetricCollection([Accuracy(),
+        ...                             Precision(num_classes=3, average='macro'),
+        ...                             Recall(num_classes=3, average='macro')])
+        >>> metrics(preds, target)
+        {'Accuracy': tensor(0.1250), 'Precision': tensor(0.0667), 'Recall': tensor(0.1111)}
+
+    Example (input as dict):
+
+        >>> metrics = MetricCollection({'micro_recall': Recall(num_classes=3, average='micro'),
+        ...                             'macro_recall': Recall(num_classes=3, average='macro')})
+        >>> metrics(preds, target)
+        {'micro_recall': tensor(0.1250), 'macro_recall': tensor(0.1111)}
+
+    """
+    def __init__(self, metrics: Union[List[Metric], Tuple[Metric], Dict[str, Metric]]):
+        super().__init__()
+        if isinstance(metrics, dict):
+            # Check all values are metrics
+            for name, metric in metrics.items():
+                if not isinstance(metric, Metric):
+                    raise ValueError(f'Value {metric} belonging to key {name}'
+                                     ' is not an instance of `pl.metrics.Metric`')
+                self[name] = metric
+        elif isinstance(metrics, (tuple, list)):
+            for metric in metrics:
+                if not isinstance(metric, Metric):
+                    raise ValueError(f'Input {metric} to `MetricCollection` is not a instance'
+                                     ' of `pl.metrics.Metric`')
+                name = metric.__class__.__name__
+                if name in self:
+                    raise ValueError(f'Encountered two metrics both named {name}')
+                self[name] = metric
+        else:
+            raise ValueError('Unknown input to MetricCollection.')
+
+    def _filter_kwargs(self, metric: Metric, **kwargs):
+        """ filter kwargs such that they match the update signature of the metric """
+        return {k: v for k, v in kwargs.items() if k in metric._update_signature.parameters.keys()}
+
+    def forward(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=E0202
+        """
+        Iteratively call forward for each metric. Positional arguments (args) will
+        be passed to every metric in the collection, while keyword arguments (kwargs)
+        will be filtered based on the signature of the individual metric.
+        """
+        return {k: m(*args, **self._filter_kwargs(m, **kwargs)) for k, m in self.items()}
+
+    def update(self, *args, **kwargs):  # pylint: disable=E0202
+        """
+        Iteratively call update for each metric. Positional arguments (args) will
+        be passed to every metric in the collection, while keyword arguments (kwargs)
+        will be filtered based on the signature of the individual metric.
+        """
+        for _, m in self.items():
+            m_kwargs = self._filter_kwargs(m, **kwargs)
+            m.update(*args, **m_kwargs)
+
+    def compute(self) -> Dict[str, Any]:
+        return {k: m.compute() for k, m in self.items()}
+
+    def reset(self):
+        """ Iteratively call reset for each metric """
+        for _, m in self.items():
+            m.reset()
+
+    def clone(self):
+        """ Make a copy of the metric collection """
+        return deepcopy(self)
+
+    def persistent(self, mode: bool = True):
+        """ Method for post-init to change if metric states should be saved to
+            its state_dict
+        """
+        for _, m in self.items():
+            m.persistent(mode)
