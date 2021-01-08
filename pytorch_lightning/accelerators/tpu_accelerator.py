@@ -99,7 +99,9 @@ class TPUAccelerator(Accelerator):
         self.__load_weights_on_main_process()
         return results
 
-    def train(self, model: LightningModule):
+    def train(self):
+        model = self.trainer.model
+
         # train
         if self.trainer.tpu_id is not None:
             self.tpu_train_in_process(self.trainer.tpu_id, model, self.trainer, self.mp_queue)
@@ -132,7 +134,10 @@ class TPUAccelerator(Accelerator):
         # setup TPU training
         self.__setup_tpu_training(model, trainer)
 
-        results = super().train(model)
+        self.trainer.setup_trainer(model)
+
+        # train or test
+        results = self.train_or_test()
 
         # save weights at the end of training
         self.__save_end_of_training_weights(model, trainer)
