@@ -17,16 +17,16 @@ import csv
 import inspect
 import os
 from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable, MutableMapping, IO
+from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
 from warnings import warn
 
 import torch
 import yaml
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_warn, AttributeDict, OMEGACONF_AVAILABLE
-from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities import AttributeDict, OMEGACONF_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 PRIMITIVE_TYPES = (bool, int, float, str)
@@ -368,7 +368,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         for v in hparams.values():
             if OmegaConf.is_config(v):
                 with fs.open(config_yaml, "w", encoding="utf-8") as fp:
-                    OmegaConf.save(OmegaConf.create(hparams), fp, resolve=True)
+                    OmegaConf.save(OmegaConf.create(v), fp, resolve=True)
                 return
 
     assert isinstance(hparams, dict)

@@ -27,6 +27,7 @@ from pytorch_lightning.utilities.package_utils import _module_available
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable
 from pytorch_lightning.utilities.xla_device_utils import XLA_AVAILABLE, XLADeviceUtils
 
+OMEGACONF_AVAILABLE = _module_available("omegaconf")
 APEX_AVAILABLE = _module_available("apex.amp")
 NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 OMEGACONF_AVAILABLE = _module_available("omegaconf")

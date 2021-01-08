@@ -21,12 +21,6 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.package_utils import _module_available
 
-OMEGACONF_AVAILABLE = _module_available("omegaconf")
-
-if OMEGACONF_AVAILABLE:
-    from omegaconf import OmegaConf
-    from omegaconf.dictconfig import DictConfig
-
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
     """Possibly convert a string representation of truth to bool.
@@ -114,11 +108,6 @@ def parse_class_init_keys(cls) -> Tuple[str, str, str]:
     return n_self, n_args, n_kwargs
 
 
-def resolve_dict_config(data):
-    data = OmegaConf.to_container(data, resolve=True)
-    return OmegaConf.create(data)
-
-
 def get_init_args(frame) -> dict:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if '__class__' not in local_vars:
@@ -132,8 +121,6 @@ def get_init_args(frame) -> dict:
     local_args = {k: local_vars[k] for k in init_parameters.keys()}
     local_args.update(local_args.get(kwargs_var, {}))
     local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
-    if OMEGACONF_AVAILABLE:
-        local_args = apply_to_collection(local_args, DictConfig, resolve_dict_config)
     return local_args
 
 
