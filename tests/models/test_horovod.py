@@ -20,11 +20,9 @@ import sys
 
 import numpy as np
 import pytest
-import torch
 from sklearn.metrics import accuracy_score
+import torch
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
@@ -32,6 +30,8 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from tests.base.models import BasicGAN
 
 if _HOROVOD_AVAILABLE:
@@ -69,8 +69,7 @@ def _run_horovod(trainer_options, on_gpu=False):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_horovod_cpu(enable_pl_optimizer, tmpdir):
+def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -82,14 +81,12 @@ def test_horovod_cpu(enable_pl_optimizer, tmpdir):
         limit_val_batches=0.2,
         accelerator='horovod',
         deterministic=True,
-        enable_pl_optimizer=enable_pl_optimizer,
     )
     _run_horovod(trainer_options)
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_horovod_cpu_implicit(enable_pl_optimizer, tmpdir):
+def test_horovod_cpu_implicit(tmpdir):
     """Test Horovod without specifying a backend, inferring from env set by `horovodrun`."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -100,7 +97,6 @@ def test_horovod_cpu_implicit(enable_pl_optimizer, tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         deterministic=True,
-        enable_pl_optimizer=enable_pl_optimizer,
     )
     _run_horovod(trainer_options)
 
@@ -206,8 +202,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_horovod_multi_optimizer(enable_pl_optimizer, tmpdir):
+def test_horovod_multi_optimizer(tmpdir):
     model = BasicGAN(**EvalModelTemplate.get_default_hparams())
 
     # fit model
@@ -219,7 +214,6 @@ def test_horovod_multi_optimizer(enable_pl_optimizer, tmpdir):
         limit_val_batches=0.2,
         deterministic=True,
         accelerator='horovod',
-        enable_pl_optimizer=enable_pl_optimizer,
     )
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
@@ -241,8 +235,7 @@ def test_horovod_multi_optimizer(enable_pl_optimizer, tmpdir):
 
 @pytest.mark.skipif(not _HOROVOD_AVAILABLE, reason="Horovod is unavailable")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_result_reduce_horovod(enable_pl_optimizer, tmpdir):
+def test_result_reduce_horovod(tmpdir):
     """Make sure result logging works with Horovod.
 
     This test mirrors tests/core/test_results.py::_ddp_test_fn
@@ -282,7 +275,6 @@ def test_result_reduce_horovod(enable_pl_optimizer, tmpdir):
             max_epochs=1,
             log_every_n_steps=1,
             weights_summary=None,
-            enable_pl_optimizer=enable_pl_optimizer,
         )
 
         trainer.fit(model)

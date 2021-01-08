@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
+from os.path import abspath
 import subprocess
 import sys
-from os.path import abspath
 from time import sleep
 from typing import Any, List, Optional, Union
 
@@ -291,8 +291,6 @@ class DDPAccelerator(Accelerator):
 
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
-
-        self.trainer.convert_to_lightning_optimizers()
 
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()

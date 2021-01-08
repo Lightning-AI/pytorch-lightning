@@ -30,6 +30,7 @@ from pytorch_lightning.utilities import (
     rank_zero_info,
     rank_zero_only,
     rank_zero_warn,
+    TPU_AVAILABLE,
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -228,8 +229,6 @@ class TPUAccelerator(Accelerator):
         log.info(f'INIT TPU local core: {trainer.tpu_local_core_rank},'
                  f' global rank: {trainer.tpu_global_core_rank}'
                  f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
-
-        self.trainer.convert_to_lightning_optimizers()
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         # do backward pass

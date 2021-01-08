@@ -11,22 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
 import glob
 import logging as log
 import os
 import pickle
-from copy import deepcopy
 
 import cloudpickle
 import pytest
 import torch
 
+from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import BoringModel, EvalModelTemplate, GenericEvalModelTemplate
+from tests.base import BoringModel, EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
 
 
 class ModelTrainerPropertyParity(Callback):
@@ -51,8 +51,7 @@ class ModelTrainerPropertyParity(Callback):
         self._check_properties(trainer, pl_module)
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_model_properties_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
+def test_model_properties_resume_from_checkpoint(tmpdir):
     """ Test that properties like `current_epoch` and `global_step`
     in model and trainer are always the same. """
     model = EvalModelTemplate()
@@ -61,7 +60,6 @@ def test_model_properties_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=False,
-        enable_pl_optimizer=enable_pl_optimizer,
         callbacks=[checkpoint_callback, ModelTrainerPropertyParity()],  # this performs the assertions
     )
     trainer = Trainer(**trainer_args)
@@ -98,8 +96,7 @@ class CaptureCallbacksBeforeTraining(Callback):
         self.callbacks = deepcopy(trainer.callbacks)
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_callbacks_state_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
+def test_callbacks_state_resume_from_checkpoint(tmpdir):
     """ Test that resuming from a checkpoint restores callbacks that persist state. """
     model = EvalModelTemplate()
     callback_capture = CaptureCallbacksBeforeTraining()
@@ -110,7 +107,6 @@ def test_callbacks_state_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
             default_root_dir=tmpdir,
             max_steps=1,
             logger=False,
-            enable_pl_optimizer=enable_pl_optimizer,
             callbacks=[
                 checkpoint,
                 callback_capture,
@@ -137,11 +133,10 @@ def test_callbacks_state_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
             assert before.best_model_score == after.best_model_score
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_callbacks_references_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
+def test_callbacks_references_resume_from_checkpoint(tmpdir):
     """ Test that resuming from a checkpoint sets references as expected. """
     model = EvalModelTemplate()
-    args = {'default_root_dir': tmpdir, 'max_steps': 1, 'logger': False, "enable_pl_optimizer": enable_pl_optimizer}
+    args = {'default_root_dir': tmpdir, 'max_steps': 1, 'logger': False}
 
     # initial training
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)

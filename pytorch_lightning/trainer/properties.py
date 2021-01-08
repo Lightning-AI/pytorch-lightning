@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
-import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
+import inspect
+import os
 from typing import cast, List, Optional, Type, TypeVar, Union
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -66,6 +66,7 @@ class TrainerProperties(ABC):
     callbacks: List[Callback]
     num_nodes: int
     num_processes: int
+    _lightning_optimizers = None
 
     @property
     def log_dir(self):
@@ -267,15 +268,16 @@ class TrainerProperties(ABC):
     def get_model(self):
         return self.model_connector.get_model()
 
-    def __getstate__(self):
-        # unwrap optimizer
-        self.optimizers = [opt._optimizer if is_lightning_optimizer(opt) else opt for opt in self.optimizers]
-        return self.__dict__
+    @property
+    def lightning_optimizers(self):
+        if self._lightning_optimizers is None:
+            self.convert_to_lightning_optimizers()
+        return self._lightning_optimizers
 
-    def __setstate__(self, d):
-        self.__dict__ = d
-        # wrap optimizers in enable_pl_optimzer is True
-        self.convert_to_lightning_optimizers()
+    def __getstate__(self):
+        # remove lightning_optimizers
+        self._lightning_optimizers = None
+        return self.__dict__
 
     @property
     def require_distributed_sampler(self):

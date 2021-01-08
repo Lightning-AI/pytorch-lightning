@@ -64,6 +64,10 @@ class LightningOptimizer:
         self._optimizer_idx = None
 
     @property
+    def optimizer(self):
+        return self._optimizer
+
+    @property
     def defaults(self):
         return self._optimizer.defaults
 
@@ -103,9 +107,13 @@ class LightningOptimizer:
                 break
 
     @classmethod
-    def to_lightning_optimizer(cls, optimizer, trainer):
-        optimizer = cls(optimizer)
-        optimizer._on_trainer_init(trainer)
+    def _to_lightning_optimizer(cls, optimizer, trainer, opt_idx):
+        # apex overrides .step function and need to be wrapped on each step
+        if trainer.amp_backend == AMPType.APEX:
+            optimizer = cls(optimizer)
+            optimizer._on_trainer_init(trainer)
+        else:
+            optimizer = trainer.lightning_optimizers[opt_idx]
         return optimizer
 
     def _accumulated_batches_reached(self):
@@ -147,7 +155,7 @@ class LightningOptimizer:
                     **kwargs
                 )
 
-        trainer.train_loop.on_before_zero_grad(self)
+        trainer.train_loop.on_before_zero_grad(optimizer)
 
         model.optimizer_zero_grad(
             trainer.current_epoch,
