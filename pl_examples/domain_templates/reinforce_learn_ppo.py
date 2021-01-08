@@ -211,7 +211,7 @@ class PPOLightning(pl.LightningModule):
             actor_mlp = create_mlp(self.env.observation_space.shape, self.env.action_space.n)
             self.actor = ActorCategorical(actor_mlp)
         else:
-            raise NotImplementedError('Env action space should be of type Box (continous) or Discrete (categorical)'
+            raise NotImplementedError('Env action space should be of type Box (continous) or Discrete (categorical). '
                                       f'Got type: {type(self.env.action_space)}')
 
         self.batch_states = []
