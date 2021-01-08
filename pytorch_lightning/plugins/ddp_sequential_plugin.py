@@ -19,8 +19,8 @@ import torch.distributed as torch_distrib
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
+from pytorch_lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
