@@ -14,7 +14,7 @@
 from unittest.mock import patch
 
 import pytest
-from torch.optim import SGD, Adam
+from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
