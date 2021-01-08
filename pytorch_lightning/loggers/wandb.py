@@ -73,7 +73,7 @@ class WandbLogger(LightningLoggerBase):
 
     See Also:
         - `Tutorial <https://colab.research.google.com/drive/16d1uctGaw2y9KhGBlINNTsWpmlXdJwRW?usp=sharing>`__
-          on how to use W&B with Pytorch Lightning
+          on how to use W&B with PyTorch Lightning
         - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
 
     """
@@ -166,8 +166,8 @@ class WandbLogger(LightningLoggerBase):
         metrics = self._add_prefix(metrics)
         if self._sync_step and step is not None and step + self._step_offset < self.experiment.step:
             self.warning_cache.warn(
-                'Trying to log at a previous step. '
-                'Use `WandbLogger(sync_step=False)` or try logging with `commit=False` when calling manually `wandb.log`.')
+                'Trying to log at a previous step.'
+                ' Use `WandbLogger(sync_step=False)` or try logging with `commit=False` when calling manually `wandb.log`.')
         if self._sync_step:
             self.experiment.log(metrics, step=(step + self._step_offset) if step is not None else None)
         elif step is not None:
