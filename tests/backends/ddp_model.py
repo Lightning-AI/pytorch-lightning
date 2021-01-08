@@ -20,7 +20,7 @@ from argparse import ArgumentParser
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 def main():
@@ -35,7 +35,7 @@ def main():
     parser.set_defaults(accelerator="ddp")
     args = parser.parse_args()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer.from_argparse_args(args)
 
     result = {}

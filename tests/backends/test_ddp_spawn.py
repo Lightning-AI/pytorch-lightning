@@ -20,7 +20,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -38,7 +38,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
         accelerator='ddp_spawn',
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
 
 
@@ -56,7 +56,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
         progress_bar_refresh_rate=0,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
 
@@ -69,7 +69,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_master_port()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     fit_options = dict(train_dataloader=model.train_dataloader(),
                        val_dataloaders=model.val_dataloader())
 

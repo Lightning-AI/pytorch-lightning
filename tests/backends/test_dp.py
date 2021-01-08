@@ -19,14 +19,14 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 PRETEND_N_OF_GPUS = 16
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_early_stop_dp(tmpdir):
-    """Make sure DDP works. with early stopping"""
+    """Make sure DP works. with early stopping"""
     tutils.set_random_master_port()
 
     trainer_options = dict(
@@ -39,7 +39,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
         accelerator='dp',
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
 
 
@@ -57,7 +57,7 @@ def test_multi_gpu_model_dp(tmpdir):
         progress_bar_refresh_rate=0,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
 
@@ -72,7 +72,7 @@ def test_dp_test(tmpdir):
     import os
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
