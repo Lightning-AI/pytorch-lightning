@@ -204,11 +204,11 @@ class PPOLightning(pl.LightningModule):
         # value network
         self.critic = create_mlp(self.env.observation_space.shape, 1)
         # policy network (agent)
-        if type(self.env.action_space) == gym.spaces.box.Box:
+        if isinstance(self.env.action_space, gym.spaces.box.Box):
             act_dim = self.env.action_space.shape[0]
             actor_mlp = create_mlp(self.env.observation_space.shape, act_dim)
             self.actor = ActorContinous(actor_mlp, act_dim)
-        elif type(self.env.action_space) == gym.spaces.discrete.Discrete:
+        elif isinstance(self.env.action_space, gym.spaces.discrete.Discrete):
             actor_mlp = create_mlp(self.env.observation_space.shape, self.env.action_space.n)
             self.actor = ActorCategorical(actor_mlp)
         else:
