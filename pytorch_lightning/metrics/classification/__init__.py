@@ -14,7 +14,7 @@
 from pytorch_lightning.metrics.classification.accuracy import Accuracy  # noqa: F401
 from pytorch_lightning.metrics.classification.average_precision import AveragePrecision  # noqa: F401
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix  # noqa: F401
-from pytorch_lightning.metrics.classification.f_beta import FBeta, Fbeta, F1  # noqa: F401
+from pytorch_lightning.metrics.classification.f_beta import FBeta, F1  # noqa: F401
 from pytorch_lightning.metrics.classification.hamming_distance import HammingDistance  # noqa: F401
 from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall  # noqa: F401
 from pytorch_lightning.metrics.classification.precision_recall_curve import PrecisionRecallCurve  # noqa: F401
