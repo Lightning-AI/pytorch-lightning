@@ -95,7 +95,7 @@ def accuracy(
         class_weights:
             Weight of each target class. Does not need to sum to one. 
             Default value (``None``) would indicate that the classes are equally important 
-            (i.e. equal to one).
+            (i.e. equal to one). **Note that this is class weights and not sample weights**.
         top_k:
             Number of highest probability predictions considered to find the correct label, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The

@@ -44,6 +44,10 @@ class Accuracy(Metric):
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs.
+        class_weights:
+            Weight of each target class. Does not need to sum to one. 
+            Default value (``None``) would indicate that the classes are equally important 
+            (i.e. equal to one). **Note that this is class weights and not sample weights**.
         top_k:
             Number of highest probability predictions considered to find the correct label, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The
@@ -98,6 +102,7 @@ class Accuracy(Metric):
     def __init__(
         self,
         threshold: float = 0.5,
+        class_weights: Optional[torch.Tensor] = None,
         top_k: Optional[int] = None,
         subset_accuracy: bool = False,
         compute_on_step: bool = True,
@@ -122,6 +127,7 @@ class Accuracy(Metric):
             raise ValueError(f"The `top_k` should be an integer larger than 0, got {top_k}")
 
         self.threshold = threshold
+        self.class_weights = class_weights
         self.top_k = top_k
         self.subset_accuracy = subset_accuracy
 
@@ -136,7 +142,7 @@ class Accuracy(Metric):
         """
 
         correct, total = _accuracy_update(
-            preds, target, threshold=self.threshold, top_k=self.top_k, subset_accuracy=self.subset_accuracy
+            preds, target, threshold=self.threshold, class_weights=self.class_weights, top_k=self.top_k, subset_accuracy=self.subset_accuracy
         )
 
         self.correct += correct
