@@ -17,7 +17,7 @@ import torch.nn as nn
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 class SubSubModule(DeviceDtypeModuleMixin):
@@ -31,7 +31,7 @@ class SubModule(nn.Module):
         self.module = SubSubModule()
 
 
-class TopModule(EvalModelTemplate):
+class TopModule(BoringModel):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
