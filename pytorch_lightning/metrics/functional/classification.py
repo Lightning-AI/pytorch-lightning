@@ -11,19 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from distutils.version import LooseVersion
 from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
-from distutils.version import LooseVersion
-
 from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
+from pytorch_lightning.metrics.functional.iou import iou as __iou
 from pytorch_lightning.metrics.functional.precision_recall_curve import (
     _binary_clf_curve,
     precision_recall_curve as __prc
 )
 from pytorch_lightning.metrics.functional.roc import roc as __roc
-from pytorch_lightning.metrics.functional.iou import iou as __iou
 from pytorch_lightning.metrics.utils import (
     to_categorical as __tc,
     to_onehot as __to,
@@ -85,7 +84,7 @@ def get_num_classes(
         " `from pytorch_lightning.metrics.utils import get_num_classes`."
         " It will be removed in v1.3.0", DeprecationWarning
     )
-    return __gnc(pred,target, num_classes)
+    return __gnc(pred, target, num_classes)
 
 
 def stat_scores(
@@ -163,8 +162,8 @@ def stat_scores_multiple_classes(
         raise ValueError("reduction type %s not supported" % reduction)
 
     if reduction == 'none':
-        pred = pred.view((-1, )).long()
-        target = target.view((-1, )).long()
+        pred = pred.view((-1,)).long()
+        target = target.view((-1,)).long()
 
         tps = torch.zeros((num_classes + 1,), device=pred.device)
         fps = torch.zeros((num_classes + 1,), device=pred.device)
@@ -735,9 +734,9 @@ def iou(
 
     """
     return __iou(
-        pred=pred, 
-        target=target, 
-        ignore_index=ignore_index, 
+        pred=pred,
+        target=target,
+        ignore_index=ignore_index,
         absent_score=absent_score,
         threshold=0.5,
         num_classes=num_classes,
