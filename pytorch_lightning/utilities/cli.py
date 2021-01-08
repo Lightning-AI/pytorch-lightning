@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import os
-from typing import Type, List, Optional, Dict, Any
-from jsonargparse import ArgumentParser, ActionConfigFile, SUPPRESS
+from typing import Type, Dict, Any
+from jsonargparse import ArgumentParser, ActionConfigFile
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule

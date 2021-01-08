@@ -369,6 +369,7 @@ from pytorch_lightning.utilities import (
 )
 _TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
 
+_JSONARGPARSE_AVAILABLE = importlib.util.find_spec("jsonargparse") is not None
 
 """
 coverage_skip_undoc_in_source = True

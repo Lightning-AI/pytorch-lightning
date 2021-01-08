@@ -1,4 +1,5 @@
 .. testsetup:: *
+    :skipif: not _JSONARGPARSE_AVAILABLE
 
     from unittest import mock
     from typing import List
