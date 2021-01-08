@@ -687,7 +687,7 @@ def dice_score(
     return reduce(scores, reduction=reduction)
 
 
-# todo: remove in 1.3
+# todo: remove in 1.4
 def iou(
         pred: torch.Tensor,
         target: torch.Tensor,
