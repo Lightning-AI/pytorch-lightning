@@ -16,12 +16,12 @@ from contextlib import contextmanager
 from typing import Any, Dict, List, Union
 
 import torch.distributed as torch_distrib
-from torch.nn.parallel import DistributedDataParallel
+from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.data_parallel import LightningDistributedWrapper, prepare_for_backward
+from pytorch_lightning.overrides.data_parallel import LightningDistributedModule, prepare_for_backward
 from pytorch_lightning.plugins.plugin import LightningPlugin
 from pytorch_lightning.utilities import DeviceType
 
@@ -37,7 +37,7 @@ class DDPPlugin(LightningPlugin):
         class MyDDP(DDPPlugin):
 
             def configure_ddp(self, model, device_ids):
-                model = MyDDPWrapper(LightningDistributedWrapper(model), device_ids)
+                model = MyDDPWrapper(LightningDistributedModule(model), device_ids)
                 return model
 
         my_ddp = MyDDP()
@@ -57,13 +57,13 @@ class DDPPlugin(LightningPlugin):
         .. note:: This requires that your DDP implementation subclasses
             :class:`~torch.nn.parallel.DistributedDataParallel` and that
             the original LightningModule gets wrapped by
-            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedWrapper`.
+            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedModule`.
 
         The default implementation is::
 
             def configure_ddp(self, model, device_ids):
                 model = DistributedDataParallel(
-                    LightningDistributedWrapper(model),
+                    LightningDistributedModule(model),
                     device_ids=device_ids,
                     **self._ddp_kwargs,
                 )
@@ -78,7 +78,7 @@ class DDPPlugin(LightningPlugin):
 
         """
         model = DistributedDataParallel(
-            module=LightningDistributedWrapper(model),
+            module=LightningDistributedModule(model),
             device_ids=device_ids,
             **self._ddp_kwargs,
         )
@@ -153,7 +153,7 @@ class DDPPlugin(LightningPlugin):
         """
         if isinstance(model, DistributedDataParallel):
             model = model.module
-        if isinstance(model, LightningDistributedWrapper):
+        if isinstance(model, LightningDistributedModule):
             model = model.module
         return model
 

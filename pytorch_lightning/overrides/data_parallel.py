@@ -159,10 +159,10 @@ class LightningDistributedDataParallel(DistributedDataParallel):
             " From now on we recommend to directly sublcass `torch.nn.parallel.DistributedDataParallel`.",
             DeprecationWarning
         )
-        super().__init__(LightningDistributedWrapper(module), *args, **kwargs)
+        super().__init__(LightningDistributedModule(module), *args, **kwargs)
 
 
-class LightningDistributedWrapper(torch.nn.Module):
+class LightningDistributedModule(torch.nn.Module):
 
     def __init__(self, lightning_module: LightningModule):
         """
@@ -174,7 +174,7 @@ class LightningDistributedWrapper(torch.nn.Module):
         Example:
 
             ddp_model = DistributedDataParallel(
-                module=LightningDistributedWrapper(lightning_module),
+                module=LightningDistributedModule(lightning_module),
                 device_ids=[local_rank],
                 ...
             )
