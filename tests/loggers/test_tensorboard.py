@@ -226,7 +226,7 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
             self.log('loss', loss, on_step=True, on_epoch=True)
 
             if not self.trainer.train_loop.should_accumulate():
-                if self.trainer.logger_connector.should_update_logs or self.trainer.fast_dev_run is True:
+                if self.trainer.logger_connector.should_update_logs:
                     self._indexes.append(self.trainer.global_step)
 
             return loss
