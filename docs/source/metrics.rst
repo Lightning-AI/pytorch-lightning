@@ -81,6 +81,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.log('valid_acc', self.valid_acc, on_step=True, on_epoch=True)
 
 .. note::
+
     If using metrics in data parallel mode (dp), the metric update/logging should be done
     in the ``<mode>_step_end`` method (where ``<mode>`` is either ``training``, ``validation``
     or ``test``). This is due to metric states else being destroyed after each forward pass,
@@ -98,7 +99,6 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
             #update and log
             self.metric(outputs['preds'], outputs['target'])
             self.log('metric', self.metric)
-
 
 This metrics API is independent of PyTorch Lightning. Metrics can directly be used in PyTorch as shown in the example:
 
@@ -131,7 +131,17 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     Metrics contain internal states that keep track of the data seen so far.
     Do not mix metric states across training, validation and testing.
     It is highly recommended to re-initialize the metric per mode as
-    shown in the examples above.
+    shown in the examples above. For easy initializing the same metric multiple
+    times, the ``.clone()`` method can be used:
+
+    .. testcode::
+
+        def __init__(self):
+            ...
+            metric = pl.metrics.Accuracy()
+            self.train_acc = metric.clone()
+            self.val_acc = metric.clone()
+            self.test_acc = metric.clone()
 
 .. note::
 
@@ -240,6 +250,69 @@ In practise this means that:
     val = metric(pred, target) # this value can be backpropagated
     val = metric.compute() # this value cannot be backpropagated
 
+****************
+MetricCollection
+****************
+
+In many cases it is beneficial to evaluate the model output by multiple metrics.
+In this case the `MetricCollection` class may come in handy. It accepts a sequence
+of metrics and wraps theses into a single callable metric class, with the same
+interface as any other metric.
+
+Example:
+
+.. testcode::
+
+    from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
+    target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
+    preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
+    metric_collection = MetricCollection([
+        Accuracy(),
+        Precision(num_classes=3, average='macro'),
+        Recall(num_classes=3, average='macro')
+    ])
+    print(metric_collection(preds, target))
+
+.. testoutput::
+    :options: +NORMALIZE_WHITESPACE
+
+    {'Accuracy': tensor(0.1250), 
+     'Precision': tensor(0.0667), 
+     'Recall': tensor(0.1111)}
+
+Similarly it can also reduce the amount of code required to log multiple metrics
+inside your LightningModule
+
+.. code-block:: python
+
+    def __init__(self):
+        ...
+        metrics = pl.metrics.MetricCollection(...)
+        self.train_metrics = metrics.clone()
+        self.valid_metrics = metrics.clone()
+
+    def training_step(self, batch, batch_idx):
+        logits = self(x)
+        ...
+        self.train_metrics(logits, y)
+        # use log_dict instead of log
+        self.log_dict(self.train_metrics, on_step=True, on_epoch=False, prefix='train')
+
+    def validation_step(self, batch, batch_idx):
+        logits = self(x)
+        ...
+        self.valid_metrics(logits, y)
+        # use log_dict instead of log
+        self.log_dict(self.valid_metrics, on_step=True, on_epoch=True, prefix='val')
+
+.. note::
+
+    `MetricCollection` as default assumes that all the metrics in the collection
+    have the same call signature. If this is not the case, input that should be
+    given to different metrics can given as keyword arguments to the collection.
+
+.. autoclass:: pytorch_lightning.metrics.MetricCollection
+    :noindex:
 
 **********
 Metric API
