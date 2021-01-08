@@ -601,6 +601,13 @@ precision [func]
     :noindex:
 
 
+precision_recall [func]	
+~~~~~~~~~~~~~~~~~~~~~~~	
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall	
+    :noindex:
+
+
 precision_recall_curve [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

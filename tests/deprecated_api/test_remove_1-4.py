@@ -85,3 +85,18 @@ def test_v1_4_0_deprecated_metrics():
     with pytest.deprecated_call(match='will be removed in v1.4'):
         iou(torch.randint(0, 2, (10, 3, 3)),
             torch.randint(0, 2, (10, 3, 3)))
+
+    from pytorch_lightning.metrics.functional.classification import recall
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        recall(torch.randint(0, 2, (10, 3, 3)),
+            torch.randint(0, 2, (10, 3, 3)))
+
+    from pytorch_lightning.metrics.functional.classification import precision
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        precision(torch.randint(0, 2, (10, 3, 3)),
+            torch.randint(0, 2, (10, 3, 3)))
+
+    from pytorch_lightning.metrics.functional.classification import precision_recall
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        precision_recall(torch.randint(0, 2, (10, 3, 3)),
+            torch.randint(0, 2, (10, 3, 3)))
