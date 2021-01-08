@@ -45,8 +45,7 @@ class IoU(ConfusionMatrix):
         num_classes: Number of classes in the dataset.
         ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
             to the returned score, regardless of reduction method. Has no effect if given an int that is not in the
-            range [0, num_classes-1]. By default, no
-            index is ignored, and all classes are used.
+            range [0, num_classes-1]. By default, no index is ignored, and all classes are used.
         absent_score: score to use for an individual class, if no instances of the class index were present in
             `pred` AND no instances of the class index were present in `target`. For example, if we have 3 classes,
             [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be assigned the `absent_score`.
@@ -102,6 +101,6 @@ class IoU(ConfusionMatrix):
 
     def compute(self) -> torch.Tensor:
         """
-        Computes iou
+        Computes intersection over union (IoU)
         """
         return _iou_from_confmat(self.confmat, self.num_classes, self.ignore_index, self.absent_score, self.reduction)
