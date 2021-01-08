@@ -379,7 +379,7 @@ class EpochResultStore:
 
             if is_train:
                 # Only log and add to callback epoch step during evaluation, test.
-                logger_connector.logged_metrics.update(batch_log_metrics)
+                logger_connector._logged_metrics.update(batch_log_metrics)
                 callback_metrics.update(batch_pbar_metrics)
                 callback_metrics.update(batch_log_metrics)
         else:
@@ -389,8 +389,8 @@ class EpochResultStore:
 
             # get logged_metrics
             epoch_log_metrics = self.get_epoch_log_metrics()
-            logger_connector.logged_metrics.update(epoch_log_metrics)
-            logger_connector.logged_metrics.update(epoch=self.trainer.current_epoch)
+            logger_connector._logged_metrics.update(epoch_log_metrics)
+            logger_connector._logged_metrics.update({"epoch": self.trainer.current_epoch})
 
             # get forked_metrics
             forked_metrics = self.get_forked_metrics()
@@ -403,8 +403,8 @@ class EpochResultStore:
             logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         # update callback_metrics
-        logger_connector.callback_metrics.update(callback_metrics)
-        logger_connector.callback_metrics.pop("epoch", None)
+        logger_connector._callback_metrics.update(callback_metrics)
+        logger_connector._callback_metrics.pop("epoch", None)
 
         batch_pbar_metrics.pop("debug_epoch", None)
         return batch_pbar_metrics, batch_log_metrics
