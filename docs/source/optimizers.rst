@@ -34,7 +34,7 @@ to manually manage the optimization process. To do so, do the following:
         # `LightingOptimizer` simply wrapped your optimizer and behave the same way !
         # When calling `optimizer.step`, `LightingOptimizer` will just handle TPU, AMP, accumulate_grad_batches, etc ... for you.
 
-        # access your optimizers with `use_pl_optimizer=False` or `optimizer._optimizer` when using use_pl_optimizer=True
+        # access your optimizers with `use_pl_optimizer=False` or `optimizer.optimizer` when using use_pl_optimizer=True
         # use_pl_optimizer=True is the default
         (opt_g, opt_d) = self.optimizers(use_pl_optimizer=True)
 
@@ -255,12 +255,7 @@ Here we add a learning-rate warm up
 
     # function hook in LightningModule
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-
-      # this optimizer is a ``LightningOptimizer``
       optimizer.step(closure=closure)
-
-      # to access yours, do as follow
-      # user_optimizer = optimizer._optimizer
 
 .. note:: To access your wrapped Optimizer from ``LightningOptimizer``, do as follow.
 
@@ -272,9 +267,9 @@ Here we add a learning-rate warm up
     # function hook in LightningModule
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
 
-      # `optimizer_step` optimizer input is of type ``LightningOptimizer``
-      # to access your Adam Optimizer from ``configure_optimizers``, do as follow
-      optimizer = optimizer._optimizer
+      # `optimizer is a ``LightningOptimizer`` wrapping the optimizer.
+      # To access it, do as follow:
+      optimizer = optimizer.optimizer
 
       # run step. However, it won't work on TPU, AMP, etc...
       optimizer.step(closure=closure)

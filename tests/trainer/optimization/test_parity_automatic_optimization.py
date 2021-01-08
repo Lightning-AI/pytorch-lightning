@@ -95,7 +95,7 @@ class AutomaticOptimizationPurePytorchOptimizerModel(BaseParityAutomaticOptimiza
         Override the optimizer step to define manual optimizer steps, as we use LightningOptimizer wrapper as standard
         """
         # Get the unwrapped optimizer
-        optimizer = optimizer._optimizer
+        optimizer = optimizer.optimizer
         assert not isinstance(optimizer, LightningOptimizer)
 
         optimizer_closure()
@@ -145,7 +145,7 @@ class AutomaticOptimizationPurePytorchAMPOptimizerModel(BaseParityAutomaticOptim
         Override the optimizer step to define manual optimizer steps, as we use LightningOptimizer wrapper as standard
         """
         # Get the unwrapped optimizer
-        optimizer = optimizer._optimizer
+        optimizer = optimizer.optimizer
         assert not isinstance(optimizer, LightningOptimizer)
 
         optimizer_closure()

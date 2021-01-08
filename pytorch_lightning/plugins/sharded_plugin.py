@@ -66,7 +66,7 @@ class DDPShardedPlugin(DDPPlugin):
         optimizers = trainer.optimizers
         for x, optimizer in enumerate(optimizers):
             if is_lightning_optimizer(optimizer):
-                optimizer = optimizer._optimizer
+                optimizer = optimizer.optimizer
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(
