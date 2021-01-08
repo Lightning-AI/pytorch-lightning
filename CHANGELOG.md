@@ -42,6 +42,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `IoU` class interface ([#4704](https://github.com/PyTorchLightning/pytorch-lightning/pull/4704))
 
 
+- Added `LightningCLI` class to provide simple reproducibility with minimum boilerplate training cli code. ([#4492](https://github.com/PyTorchLightning/pytorch-lightning/pull/4492))
+
+
 ### Changed
 
 - Changed `automatic casting` for LoggerConnector `metrics` ([#5218](https://github.com/PyTorchLightning/pytorch-lightning/pull/5218))

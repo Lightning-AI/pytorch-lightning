@@ -26,7 +26,7 @@ import torch
 import tests.base.develop_utils as tutils
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
-from tests.base.develop_utils import reset_seed
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.utilities.cli import (
     LightningArgumentParser,
@@ -150,7 +150,8 @@ def test_parse_args_parsing(cli_args, expected):
 
     for k, v in expected.items():
         assert getattr(args, k) == v
-    assert Trainer.from_argparse_args(args)
+    if 'tpu_cores' not in expected or _TPU_AVAILABLE:
+        assert Trainer.from_argparse_args(args)
 
 
 @pytest.mark.parametrize(['cli_args', 'expected', 'instantiate'], [

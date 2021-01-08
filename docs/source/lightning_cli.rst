@@ -1,5 +1,6 @@
 .. testsetup:: *
 
+    from unittest import mock
     from typing import List
     from pytorch_lightning.core.lightning import LightningModule
     from pytorch_lightning.core.datamodule import LightningDataModule
@@ -31,9 +32,13 @@
     MyModelBaseClass = MyModel
     MyDataModuleBaseClass = MyDataModule
 
+    mock_argv = mock.patch("sys.argv", ["any.py"])
+    mock_argv.start()
+
 .. testcleanup:: *
 
     LightningCLI.fit = original_fit
+    mock_argv.stop()
 
 
 Lightning CLI and config files

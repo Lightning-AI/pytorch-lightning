@@ -155,8 +155,12 @@ class LightningCLI:
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.
             parser_kwargs: Additional arguments to instantiate LightningArgumentParser.
-            subclass_mode_model: Whether model can be any `subclass <https://omni-us.github.io/jsonargparse/#classes-as-type>`_ of the given class.
-            subclass_mode_data: Whether datamodule can be any `subclass <https://omni-us.github.io/jsonargparse/#classes-as-type>`_ of the given class.
+            subclass_mode_model: Whether model can be any `subclass
+                <https://omni-us.github.io/jsonargparse/#classes-as-type>`_ of the
+                given class.
+            subclass_mode_data: Whether datamodule can be any `subclass
+                <https://omni-us.github.io/jsonargparse/#classes-as-type>`_ of the
+                given class.
         """
         self.model_class = model_class
         self.datamodule_class = datamodule_class
