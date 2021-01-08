@@ -632,6 +632,7 @@ def multiclass_auroc(
     return torch.mean(class_aurocs)
 
 
+# TODO deprecate in 1.3
 def dice_score(
         pred: torch.Tensor,
         target: torch.Tensor,

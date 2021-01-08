@@ -14,72 +14,40 @@
 from typing import Tuple, Optional
 
 import torch
-from pytorch_lightning.metrics.utils import reduce, _input_format_classification_one_hot
+from pytorch_lightning.metrics.functional import f1
 
-
-def _dice_update(
+def dice_coefficient(
     preds: torch.Tensor,
     target: torch.Tensor,
-    bg: bool = False,
-) -> [torch.Tensor, torch.Tensor, torch.Tensor]:
-
-    preds, target = _input_format_classification_one_hot(4, preds, target)
-    print("preds", preds)
-    print("target", target)
-    dim = 0
-    tps = torch.sum((target == preds) * (preds == 1), dim=dim).float()
-    fps = torch.sum((target != preds) * (preds == 1), dim=dim).float()
-    fns = torch.sum((target != preds) * (preds == 0), dim=dim).float()
-    return tps, fps, fns
-
-
-def _dice_compute(
-    tps: torch.Tensor, fps: torch.Tensor, fns: torch.Tensor, reduction: str = "elementwise_mean", nan_score: float = 0.0
-) -> torch.Tensor:
-    num = 2 * tps
-    denom = 2 * tps + fps + fns
-    scores = num / denom
-    scores[scores != scores] = nan_score
-    return reduce(scores, reduction=reduction)
-
-
-def dice_score(
-    pred: torch.Tensor,
-    target: torch.Tensor,
-    bg: bool = False,
-    nan_score: float = 0.0,
-    reduction: str = "elementwise_mean",
+    num_classes: int,
+    threshold: float = 0.5,
+    average: str = "micro",
+    multilabel: bool = False
 ) -> torch.Tensor:
     """
-    Compute dice score from prediction scores
+    Computes Dice Coefficient.
 
     Args:
-        pred: estimated probabilities
+        preds: estimated probabilities
         target: ground-truth labels
-        bg: whether to also compute dice for the background
-        nan_score: score to return, if a NaN occurs during computation
-        no_fg_score: score to return, if no foreground pixel was found in target
-        reduction: a method to reduce metric score over labels.
+        num_classes: Number of classes in the dataset.
+        threshold:
+            Threshold value for binary or multi-label logits. default: 0.5
 
-            - ``'elementwise_mean'``: takes the mean (default)
-            - ``'sum'``: takes the sum
-            - ``'none'``: no reduction will be applied
+        average:
+            - ``'micro'`` computes metric globally
+            - ``'macro'`` computes metric for each class and uniformly averages them
+            - ``'weighted'`` computes metric for each class and does a weighted-average,
+              where each class is weighted by their support (accounts for class imbalance)
+            - ``'none'`` computes and returns the metric per class
 
-    Return:
-        Tensor containing dice score
+        multilabel: If predictions are from multilabel classification.
 
     Example:
-
-        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-        ...                      [0.05, 0.85, 0.05, 0.05],
-        ...                      [0.05, 0.05, 0.85, 0.05],
-        ...                      [0.05, 0.05, 0.05, 0.85]])
-        >>> target = torch.tensor([0, 1, 3, 2])
-        >>> dice_score(pred, target)
+        >>> from pytorch_lightning.metrics.functional import f1
+        >>> target = torch.tensor([0, 1, 2, 0, 1, 2])
+        >>> preds = torch.tensor([0, 2, 1, 0, 0, 1])
+        >>> f1(preds, target, num_classes=3)
         tensor(0.3333)
-
     """
-    tps, fps, fns = _dice_update(pred, target, bg)
-    print("TPs", "FPs", "FNs")
-    print(tps, fps, fns)
-    return _dice_compute(tps, fps, fns, reduction, nan_score)
+    return f1(preds, target, num_classes, threshold, average, multilabel)
