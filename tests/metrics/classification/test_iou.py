@@ -96,7 +96,7 @@ def _multidim_multiclass_sk_metric(preds, target, average=None):
         NUM_CLASSES
     )
 ])
-class TestConfusionMatrix(MetricTester):
+class TestIoU(MetricTester):
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_confusion_matrix(self, reduction, preds, target, sk_metric, num_classes, ddp, dist_sync_on_step):

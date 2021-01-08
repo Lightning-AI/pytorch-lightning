@@ -49,10 +49,9 @@ class IoU(ConfusionMatrix):
             index is ignored, and all classes are used.
         absent_score: score to use for an individual class, if no instances of the class index were present in
             `pred` AND no instances of the class index were present in `target`. For example, if we have 3 classes,
-            [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be assigned the `absent_score`. Default is
-            0.0.
+            [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be assigned the `absent_score`.
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
+            Threshold value for binary or multi-label logits.
         reduction: a method to reduce metric score over labels.
 
             - ``'elementwise_mean'``: takes the mean (default)
@@ -60,10 +59,10 @@ class IoU(ConfusionMatrix):
             - ``'none'``: no reduction will be applied
 
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
+            Forward only calls ``update()`` and return None if this is set to False.
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
+            before returning the value at the step.
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
 
