@@ -133,6 +133,7 @@ class DeprecatedDistDeviceAttributes:
 
     @property
     def training(self) -> bool:
+        # todo: consider rename as `is_training`
         return self._train_phase == TrainPhase.TRAINING
 
     @training.setter
@@ -144,6 +145,7 @@ class DeprecatedDistDeviceAttributes:
 
     @property
     def testing(self) -> bool:
+        # todo: consider rename as `is_testing`
         return self._train_phase == TrainPhase.TESTING
 
     @testing.setter
