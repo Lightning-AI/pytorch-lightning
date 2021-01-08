@@ -276,6 +276,7 @@ class LightningModule(
                 sync_dist_group,
                 accelerator.sync_tensor,
                 self._current_dataloader_idx,
+                self.device,
             )
 
     def log_dict(
@@ -733,7 +734,7 @@ class LightningModule(
                 out = self(x)
                 return out
 
-            def validation_epoch_end(self, val_step_outputs):
+            def validation_step_end(self, val_step_outputs):
                 for out in val_step_outputs:
                     # do something with these
 
@@ -741,9 +742,7 @@ class LightningModule(
             See the :ref:`multi_gpu` guide for more details.
         """
 
-    def validation_epoch_end(
-        self, outputs: List[Any]
-    ) -> None:
+    def validation_epoch_end(self, outputs: List[Any]) -> None:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -910,7 +909,7 @@ class LightningModule(
                 out = self.encoder(x)
                 return out
 
-            def test_epoch_end(self, output_results):
+            def test_step_end(self, output_results):
                 # this out is now the full size of the batch
                 all_test_step_outs = output_results.out
                 loss = nce_loss(all_test_step_outs)
@@ -1330,9 +1329,17 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
-        model_summary = ModelSummary(self, mode=mode)
-        log.info("\n" + str(model_summary))
+    def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
+        model_summary = None
+
+        if mode in ModelSummary.MODES:
+            model_summary = ModelSummary(self, mode=mode)
+            log.info("\n" + str(model_summary))
+        elif mode is not None:
+            raise MisconfigurationException(
+                f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}"
+            )
+
         return model_summary
 
     def freeze(self) -> None:
@@ -1391,12 +1398,15 @@ class LightningModule(
         """
         # call .item() only once but store elements without graphs
         running_train_loss = self.trainer.train_loop.running_loss.mean()
-        avg_training_loss = (
-            running_train_loss.cpu().item()
-            if running_train_loss is not None
-            else float("NaN")
-        )
-        tqdm_dict = {"loss": "{:.3g}".format(avg_training_loss)}
+        avg_training_loss = None
+        if running_train_loss is not None:
+            avg_training_loss = running_train_loss.cpu().item()
+        elif self.trainer.train_loop.automatic_optimization:
+            avg_training_loss = float('NaN')
+
+        tqdm_dict = {}
+        if avg_training_loss is not None:
+            tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
         if self.trainer.truncated_bptt_steps is not None:
             tqdm_dict["split_idx"] = self.trainer.split_idx
@@ -1701,6 +1711,7 @@ class LightningModule(
                 line = re.sub(r"\s+", "", line, flags=re.UNICODE)
                 if ".hparams=" in line:
                     return line.split("=")[1]
+        # todo: specify the possible exception
         except Exception:
             return "hparams"
 

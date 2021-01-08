@@ -96,9 +96,6 @@ class TestStepVariations(ABC):
             output = OrderedDict({f'test_loss_{dataloader_idx}': loss_test, f'test_acc_{dataloader_idx}': test_acc})
             return output
 
-    def test_step__empty(self, batch, batch_idx, *args, **kwargs):
-        return {}
-
     def test_step_result_preds(self, batch, batch_idx, optimizer_idx=None):
         x, y = batch
         x = x.view(x.size(0), -1)

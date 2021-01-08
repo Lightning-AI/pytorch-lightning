@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.metric import Metric  # noqa: F401
+from pytorch_lightning.metrics.metric import Metric, MetricCollection  # noqa: F401
 
 from pytorch_lightning.metrics.classification import (  # noqa: F401
     Accuracy,
@@ -24,6 +24,7 @@ from pytorch_lightning.metrics.classification import (  # noqa: F401
     ROC,
     FBeta,
     F1,
+    StatScores
 )
 
 from pytorch_lightning.metrics.regression import (  # noqa: F401
@@ -33,4 +34,5 @@ from pytorch_lightning.metrics.regression import (  # noqa: F401
     ExplainedVariance,
     PSNR,
     SSIM,
+    R2Score
 )

@@ -17,7 +17,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning import Trainer, seed_everything, LightningModule
-from pytorch_lightning.core.step_result import TrainResult
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.base.datamodules import MNISTDataModule
 from tests.base.develop_utils import set_random_master_port
@@ -57,7 +56,7 @@ class SyncBNModule(LightningModule):
         y_hat, _ = self(x, batch_idx)
         loss = F.cross_entropy(y_hat, y)
 
-        return TrainResult(loss)
+        return loss
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.linear.parameters(), lr=0.02)

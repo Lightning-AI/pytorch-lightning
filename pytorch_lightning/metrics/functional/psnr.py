@@ -46,8 +46,6 @@ def psnr(
             - ``'elementwise_mean'``: takes the mean (default)
             - ``'sum'``: takes the sum
             - ``'none'``: no reduction will be applied
-        return_state: returns a internal state that can be ddp reduced
-            before doing the final calculation
 
     Return:
         Tensor with PSNR score
