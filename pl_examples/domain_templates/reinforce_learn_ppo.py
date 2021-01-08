@@ -465,8 +465,7 @@ def main(args) -> None:
 
 if __name__ == '__main__':
     cli_lightning_logo()
-    torch.manual_seed(0)
-    np.random.seed(0)
+    pl.seed_everything(0)
 
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser = pl.Trainer.add_argparse_args(parent_parser)
