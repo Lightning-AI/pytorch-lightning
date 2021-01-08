@@ -27,14 +27,11 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
-from pytorch_lightning.utilities import AttributeDict, HYDRA_AVAILABLE, is_picklable
+from pytorch_lightning.utilities import AttributeDict, HYDRA_EXPERIMENTAL_AVAILABLE, is_picklable
 from tests.base import BoringModel, EvalModelTemplate, TrialMNIST
 
-if HYDRA_AVAILABLE:
-    try:
-        from hydra.experimental import compose, initialize
-    except Exception:
-        HYDRA_AVAILABLE = False
+if HYDRA_EXPERIMENTAL_AVAILABLE:
+    from hydra.experimental import compose, initialize
 
 
 class SaveHparamsModel(BoringModel):
@@ -651,8 +648,11 @@ def test_model_with_fsspec_as_parameter(tmpdir):
     trainer.test()
 
 
-@pytest.mark.skipif(not HYDRA_AVAILABLE, reason="Hydra is not available")
+@pytest.mark.skipif(not HYDRA_EXPERIMENTAL_AVAILABLE, reason="Hydra experimental is not available")
 def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
+    """
+    This test relies on configuration saved under tests/models/conf/config.yaml
+    """
 
     initialize(config_path="conf")
 
@@ -667,12 +667,3 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
             super().__init__()
 
     model = TestModel(cfg)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        limit_test_batches=2,
-        max_epochs=1,
-    )
-    trainer.fit(model)
-    trainer.test()
