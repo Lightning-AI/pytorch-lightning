@@ -29,60 +29,6 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
-
-
-def _make_trainable(module: Module) -> None:
-    """Unfreezes a given module.
-    Args:
-        module: The module to unfreeze
-    """
-    for param in module.parameters():
-        param.requires_grad = True
-    module.train()
-
-
-def _recursive_freeze(module: Module,
-                      train_bn: bool = True) -> None:
-    """Freezes the layers of a given module.
-    Args:
-        module: The module to freeze
-        train_bn: If True, leave the BatchNorm layers in training mode
-    """
-    children = list(module.children())
-    if not children:
-        if not (isinstance(module, BN_TYPES) and train_bn):
-            for param in module.parameters():
-                param.requires_grad = False
-            module.eval()
-        else:
-            # Make the BN layers trainable
-            _make_trainable(module)
-    else:
-        for child in children:
-            _recursive_freeze(module=child, train_bn=train_bn)
-
-
-def filter_params(module: Module,
-                  train_bn: bool = True) -> Generator:
-    """Yields the trainable parameters of a given module.
-    Args:
-        module: A given module
-        train_bn: If True, leave the BatchNorm layers in training mode
-    Returns:
-        Generator
-    """
-    children = list(module.children())
-    if not children:
-        if not (isinstance(module, BN_TYPES) and train_bn):
-            for param in module.parameters():
-                if param.requires_grad:
-                    yield param
-    else:
-        for child in children:
-            for param in filter_params(module=child, train_bn=train_bn):
-                yield param
-
 
 def multiplicative(epoch):
     return 2
@@ -92,9 +38,63 @@ class BaseFinetuningCallback(Callback):
 
     r"""
     BaseFinetuningCallback.
-    Overrides the finetunning_function and add your own logic there.
-
+    Overrides any functions with your own logic.
     """
+
+    BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
+
+    @staticmethod
+    def _make_trainable(module: Module) -> None:
+        """Unfreezes a given module.
+        Args:
+            module: The module to unfreeze
+        """
+        for param in module.parameters():
+            param.requires_grad = True
+        module.train()
+
+    @staticmethod
+    def _recursive_freeze(module: Module,
+                          train_bn: bool = True) -> None:
+        """Freezes the layers of a given module.
+        Args:
+            module: The module to freeze
+            train_bn: If True, leave the BatchNorm layers in training mode
+        """
+        children = list(module.children())
+        if not children:
+            if not (isinstance(module, BaseFinetuningCallback.BN_TYPES) and train_bn):
+                for param in module.parameters():
+                    param.requires_grad = False
+                module.eval()
+            else:
+                # Make the BN layers trainable
+                BaseFinetuningCallback._make_trainable(module)
+        else:
+            for child in children:
+                BaseFinetuningCallback._recursive_freeze(module=child, train_bn=train_bn)
+
+    @staticmethod
+    def filter_params(module: Module,
+                      train_bn: bool = True) -> Generator:
+        """Yields the trainable parameters of a given module.
+        Args:
+            module: A given module
+            train_bn: If True, leave the BatchNorm layers in training mode
+        Returns:
+            Generator
+        """
+        children = list(module.children())
+        if not children:
+            if not (isinstance(module, BaseFinetuningCallback.BN_TYPES) and train_bn):
+                for param in module.parameters():
+                    if param.requires_grad:
+                        yield param
+        else:
+            for child in children:
+                for param in BaseFinetuningCallback.filter_params(module=child, train_bn=train_bn):
+                    yield param
+
     @staticmethod
     def freeze(module: Module, train_bn: bool = True) -> None:
         """Freezes the layers up to index n (if n is not None).
@@ -103,8 +103,8 @@ class BaseFinetuningCallback(Callback):
             train_bn: If True, leave the BatchNorm layers in training mode
         """
         for mod in module.parameters():
-            if (isinstance(mod, BN_TYPES) and train_bn):
-                _make_trainable(mod)
+            if (isinstance(mod, BaseFinetuningCallback.BN_TYPES) and train_bn):
+                BaseFinetuningCallback._make_trainable(mod)
             else:
                 mod.requires_grad = False
 
@@ -113,15 +113,16 @@ class BaseFinetuningCallback(Callback):
         module: Module,
         optimizer: Optimizer,
         lr: Optional[float] = None,
-        train_bn: bool = True
+        train_bn: bool = True,
+        initial_denom_lr: float = 10.,
     ):
         """Unfreezes a module and adds its parameters to an optimizer."""
-        _make_trainable(module)
+        BaseFinetuningCallback._make_trainable(module)
         params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
-        denom_lr = 10. if lr is None else 1.
+        denom_lr = initial_denom_lr if lr is None else 1.
         optimizer.add_param_group(
             {
-                'params': filter_params(module=module, train_bn=train_bn),
+                'params': BaseFinetuningCallback.filter_params(module=module, train_bn=train_bn),
                 'lr': params_lr / denom_lr,
             }
         )
@@ -157,6 +158,11 @@ class BackboneLambdaFinetuningCallback(BaseFinetuningCallback):
             By default, we will use current_learning /  backbone_initial_ratio_lr
         should_align: Wheter to align with current learning rate when backbone learning
             reaches it.
+        initial_denom_lr: When unfreezing the backbone, the intial learning rate will
+            current_learning_rate /  initial_denom_lr.
+        train_bn: Wheter to make Batch Normalization trainable.
+        should_align: Wheter to align with current learning rate when backbone learning
+            reaches it.
         verbose: Display current learning rate for model and backbone
         round: Precision for displaying learning rate
     Example::
@@ -174,6 +180,8 @@ class BackboneLambdaFinetuningCallback(BaseFinetuningCallback):
         backbone_initial_ratio_lr: float = 10e-2,
         backbone_initial_lr: Optional[float] = None,
         should_align: bool = True,
+        initial_denom_lr: float = 10.,
+        train_bn: bool = True,
         verbose: bool = False,
         round: int = 12,
     ):
@@ -182,6 +190,8 @@ class BackboneLambdaFinetuningCallback(BaseFinetuningCallback):
         self.lambda_func = lambda_func
         self.backbone_initial_ratio_lr = backbone_initial_ratio_lr
         self.should_align = should_align
+        self.initial_denom_lr = initial_denom_lr
+        self.train_bn = train_bn
         self.round = round
         self.verbose = verbose
 
@@ -204,7 +214,13 @@ class BackboneLambdaFinetuningCallback(BaseFinetuningCallback):
             initial_backbone_lr = self.backbone_initial_lr if self.backbone_initial_lr is not None \
                 else current_lr * self.backbone_initial_ratio_lr
             self.previous_backbone_lr = initial_backbone_lr
-            self.unfreeze_and_add_param_group(pl_module.backbone, optimizer, initial_backbone_lr)
+            self.unfreeze_and_add_param_group(
+                pl_module.backbone,
+                optimizer,
+                initial_backbone_lr,
+                train_bn=self.train_bn,
+                initial_denom_lr=self.initial_denom_lr
+            )
             if self.verbose:
                 log.info(f"Current lr: {round(current_lr, self.round)}, "
                          f"Backbone lr: {round(initial_backbone_lr, self.round)}")
