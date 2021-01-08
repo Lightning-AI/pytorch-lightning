@@ -601,10 +601,10 @@ precision [func]
     :noindex:
 
 
-precision_recall [func]	
-~~~~~~~~~~~~~~~~~~~~~~~	
+precision_recall [func]
+~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall	
+.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall
     :noindex:
 
 
