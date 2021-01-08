@@ -39,7 +39,9 @@ RUN apt-get update -qq && \
         build-essential \
         cmake \
         git \
+        wget \
         curl \
+        unzip \
         ca-certificates \
     && \
 

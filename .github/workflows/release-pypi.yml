@@ -5,7 +5,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
   push:
     branches: [master, "release/*"]  # include release branches like release/1.0.x
   release:
-    types: [created, "release/*"]
+    types: [created]
 
 
 jobs:
@@ -61,3 +61,51 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
+
+    # Note: This uses an internal pip API and may not always work
+    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
+        pip install virtualenv
+        pip install awscli
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+        aws-region: us-east-1
+
+    - name: Pull files from S3
+      run: |
+        aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/ #  --acl public-read
+        ls -l legacy/checkpoints/
+
+    - name: Generate checkpoint
+      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+      run: |
+        virtualenv vEnv --system-site-packages
+        source vEnv/bin/activate
+        pip install dist/*
+
+        pl_ver=$(python -c "import pytorch_lightning as pl ; print(pl.__version__)" 2>&1)
+        # generate checkpoint to this version
+        bash legacy/generate_checkpoints.sh $pl_ver
+
+        deactivate
+        rm -rf vEnv
+
+    - name: Push files to S3
+      run: |
+        aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
+        cd legacy
+        zip -r checkpoints.zip checkpoints
+        aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
