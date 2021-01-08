@@ -52,26 +52,26 @@ class DDPPlugin(LightningPlugin):
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         """
-        Pass through all customizations from constructor to `LightningDistributedDataParallel`.
+        Pass through all customizations from constructor to :class:`~torch.nn.parallel.DistributedDataParallel`.
         Override to define a custom DDP implementation.
 
-        .. note:: Only requirement is that your DDP implementation subclasses LightningDistributedDataParallel
-
+        .. note:: Only requirement is that your DDP implementation subclasses
+            :class:`~torch.nn.parallel.DistributedDataParallel`
 
         The default implementation is::
 
             def configure_ddp(self, model, device_ids):
-                model = LightningDistributedDataParallel(
-                    model, device_ids=device_ids, find_unused_parameters=True
+                model = DistributedDataParallel(
+                    model, device_ids=device_ids, **self._ddp_kwargs,
                 )
                 return model
 
         Args:
-            model: the lightningModule
+            model: the LightningModule
             device_ids: the list of devices available
 
         Returns:
-            the model wrapped in LightningDistributedDataParallel
+            the model wrapped in :class:`~torch.nn.parallel.DistributedDataParallel`
 
         """
         model = DistributedDataParallel(
