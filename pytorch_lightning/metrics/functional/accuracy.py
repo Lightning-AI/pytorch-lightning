@@ -93,8 +93,8 @@ def accuracy(
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs.
         class_weights:
-            Weight of each target class. Does not need to sum to one. 
-            Default value (``None``) would indicate that the classes are equally important 
+            Weight of each target class. Does not need to sum to one.
+            Default value (``None``) would indicate that the classes are equally important
             (i.e. equal to one). **Note that this is class weights and not sample weights**.
         top_k:
             Number of highest probability predictions considered to find the correct label, relevant
