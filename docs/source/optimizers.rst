@@ -28,8 +28,15 @@ to manually manage the optimization process. To do so, do the following:
 .. code-block:: python
 
     def training_step(self, batch, batch_idx, optimizer_idx):
-        # ignore optimizer_idx
-        (opt_g, opt_d) = self.optimizers()
+
+        # 1. ignore optimizer_idx
+        # 2. `use_pl_optimizer=True` means `opt_g` and `opt_d` will be of type `LightingOptimizer`
+        # `LightingOptimizer` simply wrapped your optimizer and behave the same way !
+        # When calling `optimizer.step`, `LightingOptimizer` will just handle TPU, AMP, accumulate_grad_batches, etc ... for you.
+
+        # access your optimizers with `use_pl_optimizer=False` or `optimizer._optimizer` when using use_pl_optimizer=True
+        # use_pl_optimizer=True is the default
+        (opt_g, opt_d) = self.optimizers(use_pl_optimizer=True)
 
         # do anything you want
         loss_a = ...
