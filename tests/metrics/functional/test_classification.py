@@ -294,14 +294,6 @@ def test_dice_score(pred, target, expected):
     assert score == expected
 
 
-@pytest.mark.parametrize(['half_ones', 'reduction', 'ignore_index', 'expected'], [
-    pytest.param(False, 'none', None, torch.Tensor([1, 1, 1])),
-    pytest.param(False, 'elementwise_mean', None, torch.Tensor([1])),
-    pytest.param(False, 'none', 0, torch.Tensor([1, 1])),
-    pytest.param(True, 'none', None, torch.Tensor([0.5, 0.5, 0.5])),
-    pytest.param(True, 'elementwise_mean', None, torch.Tensor([0.5])),
-    pytest.param(True, 'none', 0, torch.Tensor([0.5, 0.5])),
-])
 @pytest.mark.parametrize('metric', [auroc])
 def test_error_on_multiclass_input(metric):
     """ check that these metrics raise an error if they are used for multiclass problems  """
