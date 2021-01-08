@@ -276,9 +276,7 @@ Example:
 .. testoutput::
     :options: +NORMALIZE_WHITESPACE
 
-    {'Accuracy': torch.tensor(0.1250),
-     'Precision': torch.tensor(0.0667),
-     'Recall': torch.tensor(0.1111)}
+    {'Accuracy': torch.tensor(0.1250), 'Precision': torch.tensor(0.0667), 'Recall': torch.tensor(0.1111)}
 
 Similarly it can also reduce the amount of code required to log multiple metrics
 inside your LightningModule
