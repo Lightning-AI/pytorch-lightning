@@ -19,7 +19,7 @@ from typing import Iterable, List
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from pytorch_lightning import PROJECT_ROOT, __homepage__, __version__
+from pytorch_lightning import __homepage__, __version__, _PROJECT_ROOT
 
 _PATH_BADGES = os.path.join('.', 'docs', 'source', '_images', 'badges')
 # badge to download
@@ -37,7 +37,7 @@ _DEFAULT_BADGES = [
 def _load_requirements(path_dir: str , file_name: str = 'requirements.txt', comment_char: str = '#') -> List[str]:
     """Load requirements from a file
 
-    >>> _load_requirements(PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> _load_requirements(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ['numpy...', 'torch...', ...]
     """
     with open(os.path.join(path_dir, file_name), 'r') as file:
@@ -155,7 +155,7 @@ def _download_badge(url_badge: str, badge_name: str, target_dir: str) -> str:
 def _load_long_description(path_dir: str) -> str:
     """Load readme as decribtion
 
-    >>> _load_long_description(PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> _load_long_description(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     '<div align="center">...'
     """
     path_readme = os.path.join(path_dir, "README.md")
@@ -172,11 +172,17 @@ def _load_long_description(path_dir: str) -> str:
 
     # readthedocs badge
     text = text.replace('badge/?version=stable', f'badge/?version={__version__}')
-    text = text.replace('pytorch-lightning.readthedocs.io/en/stable/', f'pytorch-lightning.readthedocs.io/en/{__version__}')
+    text = text.replace('pytorch-lightning.readthedocs.io/en/stable/',
+                        f'pytorch-lightning.readthedocs.io/en/{__version__}')
     # codecov badge
     text = text.replace('/branch/master/graph/badge.svg', f'/release/{__version__}/graph/badge.svg')
     # replace github badges for release ones
     text = text.replace('badge.svg?branch=master&event=push', f'badge.svg?tag={__version__}')
+
+    skip_begin = r'<!-- following section will be skipped from PyPI description -->'
+    skip_end = r'<!-- end skipping PyPI description -->'
+    # todo: wrap content as commented description
+    text = re.sub(rf"{skip_begin}.+?{skip_end}", '<!--  -->', text, flags=re.IGNORECASE + re.DOTALL)
 
     # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
     # github_release_url = os.path.join(__homepage__, "releases", "download", __version__)

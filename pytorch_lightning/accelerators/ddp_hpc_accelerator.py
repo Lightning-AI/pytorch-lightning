@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-import os
 from typing import Any, List, Optional, Union
 
 import torch
@@ -26,12 +25,8 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import _HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, rank_zero_only, sync_ddp_if_available
-
-if _HYDRA_AVAILABLE:
-    from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import get_original_cwd, to_absolute_path
 
 
 class DDPHPCAccelerator(Accelerator):
@@ -117,7 +112,6 @@ class DDPHPCAccelerator(Accelerator):
 
         Args:
             process_idx:
-            mp_queue: multiprocessing queue
             model:
 
         Returns:
@@ -126,6 +120,7 @@ class DDPHPCAccelerator(Accelerator):
         """
         # determine which process we are and world size
         self.set_world_ranks(process_idx)
+        self.init_device(process_idx)
 
         # toggle prog bar
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:

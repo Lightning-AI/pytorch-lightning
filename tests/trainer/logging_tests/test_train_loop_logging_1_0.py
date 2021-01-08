@@ -26,8 +26,8 @@ import torch
 from torch.utils.data import Dataset
 
 import pytorch_lightning as pl
-from pytorch_lightning import Trainer, callbacks
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning import callbacks, Trainer
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
@@ -320,8 +320,9 @@ def test_tbptt_log(tmpdir):
         def training_step(self, batch, batch_idx, hiddens):
             try:
                 assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            except Exception as e:
-                print(e)
+            # todo: specify the possible exception
+            except Exception as ex:
+                print(ex)
 
             self.test_hidden = torch.rand(1)
 
@@ -520,7 +521,8 @@ def test_log_works_in_train_callback(tmpdir):
         def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx,
                          on_steps=[], on_epochs=[], prob_bars=[]):
             self.funcs_called_count[func_name] += 1
-            for idx, (on_step, on_epoch, prog_bar) in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
+            iterate = list(itertools.product(*[on_steps, on_epochs, prob_bars]))
+            for idx, (on_step, on_epoch, prog_bar) in enumerate(iterate):
                 # run logging
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
                 pl_module.log(custom_func_name, self.count * func_idx, on_step=on_step,
@@ -685,6 +687,7 @@ def test_logging_sync_dist_true_cpu(tmpdir):
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
+            self.log('foo_2', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
             return acc
 
         def validation_step(self, batch, batch_idx):
@@ -704,7 +707,44 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     trainer.fit(model)
 
     assert trainer.logged_metrics['foo'] == fake_result
+    assert trainer.logged_metrics['foo_2'] == 2
     assert trainer.logged_metrics['bar'] == fake_result
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+def test_logging_sync_dist_true_ddp(tmpdir):
+    """
+    Tests to ensure that the sync_dist flag works with ddp
+    """
+    class TestLoggingSyncDistModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            acc = self.step(batch[0])
+            self.log('foo', 1, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='SUM')
+            return acc
+
+        def validation_step(self, batch, batch_idx):
+            self.training_step_called = True
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('bar', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='AVG')
+            return {"x": loss}
+
+    model = TestLoggingSyncDistModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=2,
+        weights_summary=None,
+        accelerator="ddp",
+        gpus=2,
+    )
+    trainer.fit(model)
+
+    assert trainer.logged_metrics['foo'] == 2
+    assert trainer.logged_metrics['bar'] == 2
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -816,3 +856,47 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         'on_epoch_end': 5,
         'on_train_epoch_end': 6}
     assert trainer.callback_metrics == expected
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+def test_metric_are_properly_reduced(tmpdir):
+    class TestingModel(BoringModel):
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+            self.val_acc = pl.metrics.Accuracy()
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            self.log("train_loss", output["loss"])
+            return output
+
+        def validation_step(self, batch, batch_idx):
+            preds = torch.tensor([[0.9, 0.1]], device=self.device)
+            targets = torch.tensor([1], device=self.device)
+            if batch_idx < 8:
+                preds = torch.tensor([[0.1, 0.9]], device=self.device)
+            self.val_acc(preds, targets)
+            self.log('val_acc', self.val_acc, on_step=True, on_epoch=True)
+            return super().validation_step(batch, batch_idx)
+
+    early_stop = EarlyStopping(monitor='val_acc', mode='max')
+
+    checkpoint = ModelCheckpoint(
+        monitor='val_acc',
+        save_last=True,
+        save_top_k=2,
+        mode='max',
+    )
+
+    model = TestingModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        max_epochs=2,
+        limit_train_batches=5,
+        limit_val_batches=32,
+        callbacks=[early_stop, checkpoint])
+    trainer.fit(model)
+
+    assert trainer.callback_metrics["val_acc"] == 8 / 32.
+    assert "train_loss" in trainer.callback_metrics

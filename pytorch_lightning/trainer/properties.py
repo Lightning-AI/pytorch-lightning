@@ -15,10 +15,10 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import List, Optional, Type, TypeVar, Union, cast
+from typing import cast, List, Optional, Type, TypeVar, Union
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.loggers.base import LightningLoggerBase
@@ -27,9 +27,12 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, argparse_utils, rank_zero_warn
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities.argparse import (
+    from_argparse_args, parse_argparser, parse_env_variables, add_argparse_args
+)
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -115,16 +118,16 @@ class TrainerProperties(ABC):
 
     @property
     def slurm_job_id(self) -> Optional[int]:
-        try:
-            job_id = os.environ['SLURM_JOB_ID']
-            job_id = int(job_id)
-
-            # in interactive mode, don't make logs use the same job id
-            in_slurm_interactive_mode = os.environ['SLURM_JOB_NAME'] == 'bash'
-            if in_slurm_interactive_mode:
+        job_id = os.environ.get('SLURM_JOB_ID')
+        if job_id:
+            try:
+                job_id = int(job_id)
+            except ValueError:
                 job_id = None
 
-        except Exception:
+        # in interactive mode, don't make logs use the same job id
+        in_slurm_interactive_mode = os.environ.get('SLURM_JOB_NAME') == 'bash'
+        if in_slurm_interactive_mode:
             job_id = None
         return job_id
 
@@ -150,19 +153,19 @@ class TrainerProperties(ABC):
 
     @classmethod
     def from_argparse_args(cls: Type['_T'], args: Union[Namespace, ArgumentParser], **kwargs) -> '_T':
-        return argparse_utils.from_argparse_args(cls, args, **kwargs)
+        return from_argparse_args(cls, args, **kwargs)
 
     @classmethod
     def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
-        return argparse_utils.parse_argparser(cls, arg_parser)
+        return parse_argparser(cls, arg_parser)
 
     @classmethod
     def match_env_arguments(cls) -> Namespace:
-        return argparse_utils.parse_env_variables(cls)
+        return parse_env_variables(cls)
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        return argparse_utils.add_argparse_args(cls, parent_parser)
+        return add_argparse_args(cls, parent_parser)
 
     @property
     def num_gpus(self) -> int:
@@ -196,7 +199,7 @@ class TrainerProperties(ABC):
         """ Check if we should run validation during training. """
         model_ref = self.model_connector.get_model()
         val_loop_enabled = is_overridden('validation_step', model_ref) and self.limit_val_batches > 0
-        return val_loop_enabled or self.fast_dev_run
+        return val_loop_enabled
 
     @property
     def default_root_dir(self) -> str:
@@ -219,17 +222,37 @@ class TrainerProperties(ABC):
         return self._weights_save_path
 
     @property
+    def early_stopping_callback(self) -> Optional[EarlyStopping]:
+        """
+        The first :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+        callback in the Trainer.callbacks list, or ``None`` if it doesn't exist.
+        """
+        callbacks = self.early_stopping_callbacks
+        return callbacks[0] if len(callbacks) > 0 else None
+
+    @property
+    def early_stopping_callbacks(self) -> List[EarlyStopping]:
+        """
+        A list of all instances of :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+        found in the Trainer.callbacks list.
+        """
+        return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
+
+    @property
     def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
         """
-        The first checkpoint callback in the Trainer.callbacks list, or ``None`` if
-        no checkpoint callbacks exist.
+        The first :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        callback in the Trainer.callbacks list, or ``None`` if it doesn't exist.
         """
         callbacks = self.checkpoint_callbacks
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
     def checkpoint_callbacks(self) -> List[ModelCheckpoint]:
-        """ A list of all instances of ModelCheckpoint found in the Trainer.callbacks list. """
+        """
+        A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        found in the Trainer.callbacks list.
+        """
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
 
     def save_checkpoint(self, filepath, weights_only: bool = False):

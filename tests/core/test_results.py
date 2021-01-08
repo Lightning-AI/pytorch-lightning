@@ -19,7 +19,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from pytorch_lightning import Trainer
-from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
+from pytorch_lightning.core.step_result import Result, EvalResult
 import tests.base.develop_utils as tutils
 
 from tests.base import EvalModelTemplate
@@ -45,7 +45,7 @@ def _ddp_test_fn(rank, worldsize, result_cls: Result):
     assert res["test_tensor"].item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
 
 
-@pytest.mark.parametrize("result_cls", [Result, TrainResult, EvalResult])
+@pytest.mark.parametrize("result_cls", [Result, EvalResult])
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_result_reduce_ddp(result_cls):
     """Make sure result logging works with DDP"""
@@ -87,7 +87,8 @@ def test_result_reduce_ddp(result_cls):
             7, True, 0, id='write_dict_predictions'
         ),
         pytest.param(
-            0, True, 1, id='full_loop_single_gpu', marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires single-GPU machine")
+            0, True, 1, id='full_loop_single_gpu',
+            marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires single-GPU machine")
         )
     ]
 )

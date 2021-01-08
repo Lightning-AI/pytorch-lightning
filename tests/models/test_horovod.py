@@ -27,9 +27,8 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
-from pytorch_lightning.core.step_result import EvalResult, Result, TrainResult
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE, _HOROVOD_AVAILABLE, _module_available
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE, _HOROVOD_AVAILABLE
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel
 from tests.base.models import BasicGAN
@@ -45,9 +44,9 @@ try:
     from horovod.common.util import nccl_built
     nccl_built()
 except (ImportError, ModuleNotFoundError, AttributeError):
-    HOROVOD_NCCL_AVAILABLE = False
+    _HOROVOD_NCCL_AVAILABLE = False
 finally:
-    HOROVOD_NCCL_AVAILABLE = True
+    _HOROVOD_NCCL_AVAILABLE = True
 
 
 def _run_horovod(trainer_options, on_gpu=False):
@@ -106,7 +105,7 @@ def test_horovod_cpu_implicit(enable_pl_optimizer, tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
@@ -126,7 +125,7 @@ def test_horovod_multi_gpu(tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_horovod_apex(tmpdir):
@@ -150,7 +149,7 @@ def test_horovod_apex(tmpdir):
 
 @pytest.mark.skip(reason="Skip till Horovod fixes integration with Native torch.cuda.amp")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires torch.cuda.amp")
 def test_horovod_amp(tmpdir):
@@ -173,7 +172,7 @@ def test_horovod_amp(tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_horovod_transfer_batch_to_gpu(tmpdir):
     class TestTrainingStepModel(EvalModelTemplate):

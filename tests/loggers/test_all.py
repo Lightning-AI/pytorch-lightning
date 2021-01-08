@@ -16,7 +16,7 @@ import os
 import pickle
 import platform
 from unittest import mock
-from unittest.mock import ANY, call
+from unittest.mock import ANY
 
 import pytest
 
@@ -31,7 +31,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
-from tests.base import BoringModel, EvalModelTemplate
+from tests.base import EvalModelTemplate
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
@@ -74,7 +74,9 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
         _test_loggers_fit_test(tmpdir, TestTubeLogger)
 
-    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
+        wandb.run = None
+        wandb.init().step = 0
         _test_loggers_fit_test(tmpdir, WandbLogger)
 
 
@@ -112,9 +114,9 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     trainer = Trainer(
         max_epochs=1,
         logger=logger,
-        limit_train_batches=0.2,
-        limit_val_batches=0.5,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        log_every_n_steps=1,
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
@@ -368,5 +370,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     # WandB
     with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
         logger = _instantiate_logger(WandbLogger, save_idr=tmpdir, prefix=prefix)
+        wandb.run = None
+        wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
