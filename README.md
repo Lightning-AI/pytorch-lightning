@@ -225,7 +225,8 @@ with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
 ```python
 class LitAutoEncoder(pl.LightningModule):
     def training_step(self, batch, batch_idx, opt_idx):
-        (opt_a, opt_b) = self.optimizers()
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
 
         loss_a = ...
         self.manual_backward(loss_a, opt_a)
