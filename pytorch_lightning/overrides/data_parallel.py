@@ -16,16 +16,14 @@ import itertools
 import threading
 from collections.abc import Iterable, Mapping
 from itertools import chain
-from typing import Optional
+from typing import Any, Optional
 
 import torch
-from torch.nn import Module
 from torch import Tensor
 from torch.cuda._utils import _get_device_index
-from torch.nn import DataParallel
-from torch.nn.parallel._functions import Gather
-from typing import Any
+from torch.nn import DataParallel, Module
 from torch.nn.parallel import DistributedDataParallel
+from torch.nn.parallel._functions import Gather
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
@@ -170,7 +168,8 @@ class LightningDistributedWrapper(torch.nn.Module):
             warn_if_output_is_none(output, "validation_step")
         return output
 
-# In manual_optimization, we need to call reducer prepare_for_backward.
+
+# In manual_optimization, we need to call reducer prepare_for_backward.
 # TODO: Keep track of Pytorch DDP and update if there is a change
 # https://github.com/pytorch/pytorch/blob/e6779d4357ae94cc9f9fedb83a87eb6126016769/torch/nn/parallel/distributed.py#L692
 def prepare_for_backward(model: DistributedDataParallel, output: Any):
@@ -186,7 +185,7 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any):
         else:
             model.reducer.prepare_for_backward([])
     else:
-        model.require_forward_param_sync = False    
+        model.require_forward_param_sync = False
 
 #
 # class LightningDistributedDataParallel(DistributedDataParallel):
