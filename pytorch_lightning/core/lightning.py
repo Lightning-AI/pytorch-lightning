@@ -381,8 +381,7 @@ class LightningModule(
         distributed processes
 
         Args:
-            tensor: int, float, tensor of shape (batch, ...),  or a collection of
-                int, float, tensor of shape (batch, ...)
+            tensor: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
             group: the process group to gather results from. Defaults to all processes (world)
             sync_grads: flag that allows users to synchronize gradients for all_gather op
 
