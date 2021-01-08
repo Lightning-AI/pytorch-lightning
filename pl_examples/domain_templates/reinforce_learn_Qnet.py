@@ -400,8 +400,6 @@ class DQNLightning(pl.LightningModule):
         parser.add_argument("--eps_start", type=float, default=1.0, help="starting value of epsilon")
         parser.add_argument("--eps_end", type=float, default=0.01, help="final value of epsilon")
         parser.add_argument("--episode_length", type=int, default=200, help="max length of an episode")
-        parser.add_argument("--max_episode_reward", type=int, default=200,
-                            help="max episode reward in the environment")
         return parser
 
 
