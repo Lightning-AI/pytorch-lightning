@@ -38,7 +38,12 @@ class BaseFinetuningCallback(Callback):
 
     r"""
     BaseFinetuningCallback.
+<<<<<<< HEAD
     Overrides any functions with your own logic.
+=======
+    Override the finetunning_function and add your own logic there.
+
+>>>>>>> 68c0bd31601033c592f952a9b9190fd686405c6d
     """
 
     BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)

@@ -332,7 +332,7 @@ def test_call_back_validator(tmpdir):
     ]
 
     assert (
-        sorted(funcs_name) == sorted(callbacks_func)
+        funcs_name == sorted(callbacks_func)
     ), """Detected new callback function.
         Need to add its logging permission to CallbackHookNameValidator and update this test"""
 
