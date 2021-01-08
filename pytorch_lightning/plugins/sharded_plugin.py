@@ -97,6 +97,3 @@ class DDPShardedPlugin(DDPPlugin):
 
     def on_before_manual_backward(self, model: 'LightningShardedDataParallel', output: Any):
         pass
-
-    def on_after_manual_backward(self, model: 'LightningShardedDataParallel'):
-        pass

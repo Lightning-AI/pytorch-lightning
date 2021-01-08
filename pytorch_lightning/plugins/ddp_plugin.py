@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.data_parallel import LightningDistributedWrapper
+from pytorch_lightning.overrides.data_parallel import LightningDistributedWrapper, prepare_for_backward
 from pytorch_lightning.plugins.plugin import LightningPlugin
 from pytorch_lightning.utilities import DeviceType
 
@@ -168,10 +168,7 @@ class DDPPlugin(LightningPlugin):
         yield model.no_sync()
 
     def on_before_manual_backward(self, model: DistributedDataParallel, output: Any):
-        model.reducer_prepare_for_backwards(output)
-
-    def on_after_manual_backward(self, model: DistributedDataParallel):
-        model.reducer_reset_hooks()
+        prepare_for_backward(model, output)
 
     def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
         return distributed_sampler_kwargs
