@@ -103,11 +103,6 @@ def test_v1_3_0_deprecated_metrics():
                      torch.randint(10, 20, (50,)).float(),
                      torch.randint(1, 100, (50,)).float())
 
-    from pytorch_lightning.metrics.functional.classification import iou
-    with pytest.deprecated_call(match='will be removed in v1.3'):
-        iou(torch.randint(0, 2, (10, 3, 3)),
-            torch.randint(0, 2, (10, 3, 3)))
-
 
 # TODO: remove bool from Trainer.profiler param in v1.3.0, update profiler_connector.py
 @pytest.mark.parametrize(['profiler', 'expected'], [

@@ -19,56 +19,56 @@ from tests.metrics.classification.inputs import (
 from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
 
 
-def _binary_prob_sk_metric(preds, target, average=None):
+def _sk_iou_binary_prob(preds, target, average=None):
     sk_preds = (preds.view(-1).numpy() >= THRESHOLD).astype(np.uint8)
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _binary_sk_metric(preds, target, average=None):
+def _sk_iou_binary(preds, target, average=None):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _multilabel_prob_sk_metric(preds, target, average=None):
+def _sk_iou_multilabel_prob(preds, target, average=None):
     sk_preds = (preds.view(-1).numpy() >= THRESHOLD).astype(np.uint8)
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _multilabel_sk_metric(preds, target, average=None):
+def _sk_iou_multilabel(preds, target, average=None):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _multiclass_prob_sk_metric(preds, target, average=None):
+def _sk_iou_multiclass_prob(preds, target, average=None):
     sk_preds = torch.argmax(preds, dim=len(preds.shape) - 1).view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _multiclass_sk_metric(preds, target, average=None):
+def _sk_iou_multiclass(preds, target, average=None):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _multidim_multiclass_prob_sk_metric(preds, target, average=None):
+def _sk_iou_multidim_multiclass_prob(preds, target, average=None):
     sk_preds = torch.argmax(preds, dim=len(preds.shape) - 2).view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _multidim_multiclass_sk_metric(preds, target, average=None):
+def _sk_iou_multidim_multiclass(preds, target, average=None):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
@@ -77,22 +77,22 @@ def _multidim_multiclass_sk_metric(preds, target, average=None):
 
 @pytest.mark.parametrize("reduction", ['elementwise_mean', 'none'])
 @pytest.mark.parametrize("preds, target, sk_metric, num_classes", [
-    (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 2),
-    (_binary_inputs.preds, _binary_inputs.target, _binary_sk_metric, 2),
-    (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _multilabel_prob_sk_metric, 2),
-    (_multilabel_inputs.preds, _multilabel_inputs.target, _multilabel_sk_metric, 2),
-    (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _multiclass_prob_sk_metric, NUM_CLASSES),
-    (_multiclass_inputs.preds, _multiclass_inputs.target, _multiclass_sk_metric, NUM_CLASSES),
+    (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_iou_binary_prob, 2),
+    (_binary_inputs.preds, _binary_inputs.target, _sk_iou_binary, 2),
+    (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _sk_iou_multilabel_prob, 2),
+    (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_iou_multilabel, 2),
+    (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _sk_iou_multiclass_prob, NUM_CLASSES),
+    (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_iou_multiclass, NUM_CLASSES),
     (
         _multidim_multiclass_prob_inputs.preds,
         _multidim_multiclass_prob_inputs.target,
-        _multidim_multiclass_prob_sk_metric,
+        _sk_iou_multidim_multiclass_prob,
         NUM_CLASSES
     ),
     (
         _multidim_multiclass_inputs.preds,
         _multidim_multiclass_inputs.target,
-        _multidim_multiclass_sk_metric,
+        _sk_iou_multidim_multiclass,
         NUM_CLASSES
     )
 ])

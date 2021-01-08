@@ -733,6 +733,11 @@ def iou(
         tensor(0.9660)
 
     """
+    rank_zero_warn(
+        "This `iou` was deprecated in v1.2.0 in favor of"
+        " `from pytorch_lightning.metrics.functional.iou import iou`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
     return __iou(
         pred=pred,
         target=target,
