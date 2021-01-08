@@ -331,6 +331,9 @@ class TPUAccelerator(Accelerator):
             mp_queue.put(last_path)
 
     def broadcast(self, obj, src=0):
+        if self.trainer.tpu_id is not None:
+            # running on a single core
+            return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
