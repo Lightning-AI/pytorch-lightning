@@ -14,6 +14,7 @@
 
 import itertools
 import threading
+import warnings
 from collections.abc import Iterable, Mapping
 from itertools import chain
 from typing import Any, Optional
@@ -148,6 +149,17 @@ class LightningDataParallel(DataParallel):
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
+
+
+class LightningDistributedDataParallel(DistributedDataParallel):
+
+    def __init__(self, module: LightningModule, *args, **kwargs):
+        warnings.warn(
+            "The usage of `LightningDistributedDataParallel` is deprecated since v1.2 and will be removed in v1.4."
+            " From now on we recommend to directly sublcass `torch.nn.parallel.DistributedDataParallel`.",
+            DeprecationWarning
+        )
+        super().__init__(LightningDistributedWrapper(module), *args, **kwargs)
 
 
 class LightningDistributedWrapper(torch.nn.Module):
