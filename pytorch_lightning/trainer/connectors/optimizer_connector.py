@@ -65,15 +65,20 @@ class OptimizerConnector:
                             RuntimeWarning,
                         )
                         continue
+
                 # update LR
                 if lr_scheduler['reduce_on_plateau']:
                     old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
                     lr_scheduler['scheduler'].step(monitor_val)
                     new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
-                else:
+                elif hasattr(lr_scheduler['scheduler'], 'get_last_lr'):
                     old_lr = lr_scheduler['scheduler'].get_last_lr()[0]
                     lr_scheduler['scheduler'].step()
                     new_lr = lr_scheduler['scheduler'].get_last_lr()[0]
+                else:
+                    old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+                    lr_scheduler['scheduler'].step()
+                    new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 
                 if self.trainer.dev_debugger.enabled:
                     self.trainer.dev_debugger.track_lr_schedulers_update(
