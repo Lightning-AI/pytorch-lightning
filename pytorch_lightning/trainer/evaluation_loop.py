@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+
+from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
-from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.utilities.distributed import rank_zero_warn
-from pytorch_lightning.utilities.warning_utils import WarningCache
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class EvaluationLoop(object):
@@ -89,14 +89,14 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_start', *args, **kwargs)
 
-    def on_evaluation_model_eval(self, *args, **kwargs):
+    def on_evaluation_model_eval(self, *_, **__):
         model_ref = self.trainer.get_model()
         if self.testing:
             model_ref.on_test_model_eval()
         else:
             model_ref.on_validation_model_eval()
 
-    def on_evaluation_model_train(self, *args, **kwargs):
+    def on_evaluation_model_train(self, *_, **__):
         model_ref = self.trainer.get_model()
         if self.testing:
             model_ref.on_test_model_train()
@@ -167,6 +167,7 @@ class EvaluationLoop(object):
         args = self.build_args(test_mode, batch, batch_idx, dataloader_idx)
 
         model_ref = self.trainer.get_model()
+        model_ref._results = Result()
         # run actual test step
         if self.testing:
             model_ref._current_fx_name = "test_step"
@@ -344,10 +345,8 @@ class EvaluationLoop(object):
         self.__log_result_step_metrics(step_log_metrics, step_pbar_metrics, batch_idx)
 
     def __log_result_step_metrics(self, step_log_metrics, step_pbar_metrics, batch_idx):
-        cached_batch_log_metrics = \
-            self.trainer.logger_connector.cached_results.get_latest_batch_log_metrics()
-        cached_batch_pbar_metrics = \
-            self.trainer.logger_connector.cached_results.get_latest_batch_pbar_metrics()
+        cached_results = self.trainer.logger_connector.cached_results
+        cached_batch_pbar_metrics, cached_batch_log_metrics = cached_results.update_logger_connector()
 
         step_log_metrics.update(cached_batch_log_metrics)
         step_pbar_metrics.update(cached_batch_pbar_metrics)

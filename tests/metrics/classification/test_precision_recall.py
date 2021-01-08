@@ -85,24 +85,16 @@ def _sk_prec_recall_multidim_multiclass(preds, target, sk_fn=precision_score, av
     [
         (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_prec_recall_binary_prob, 1, False),
         (_binary_inputs.preds, _binary_inputs.target, _sk_prec_recall_binary, 1, False),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _sk_prec_recall_multilabel_prob, NUM_CLASSES, True),
+        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target,
+         _sk_prec_recall_multilabel_prob, NUM_CLASSES, True),
         (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_prec_recall_multilabel, NUM_CLASSES, True),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _sk_prec_recall_multiclass_prob, NUM_CLASSES, False),
+        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target,
+         _sk_prec_recall_multiclass_prob, NUM_CLASSES, False),
         (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_prec_recall_multiclass, NUM_CLASSES, False),
-        (
-            _multidim_multiclass_prob_inputs.preds,
-            _multidim_multiclass_prob_inputs.target,
-            _sk_prec_recall_multidim_multiclass_prob,
-            NUM_CLASSES,
-            False,
-        ),
-        (
-            _multidim_multiclass_inputs.preds,
-            _multidim_multiclass_inputs.target,
-            _sk_prec_recall_multidim_multiclass,
-            NUM_CLASSES,
-            False,
-        ),
+        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target,
+         _sk_prec_recall_multidim_multiclass_prob, NUM_CLASSES, False),
+        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target,
+         _sk_prec_recall_multidim_multiclass, NUM_CLASSES, False),
     ],
 )
 @pytest.mark.parametrize(

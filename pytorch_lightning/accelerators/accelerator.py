@@ -11,19 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from enum import Enum
+from contextlib import contextmanager
 from typing import Any, Optional, Union
 
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
-import torch.distributed as torch_distrib
-from pytorch_lightning import _logger as log
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -34,7 +33,10 @@ else:
 
 class Accelerator(object):
 
-    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer: Optional = None,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         self.trainer = trainer
         self.nickname = None
         self.cluster_environment = cluster_environment
@@ -85,6 +87,12 @@ class Accelerator(object):
         return dataloader
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+
+        if not automatic_optimization and self.ddp_plugin is not None:
+            # Manually prepare for reduce as user calling backwards manually
+            self.ddp_plugin.on_before_manual_backward(self.trainer.model, closure_loss)
+
         if self.trainer.precision == 16:
             closure_loss = self.trainer.precision_connector.backend.backward(
                 closure_loss, optimizer, opt_idx, *args, **kwargs
@@ -96,41 +104,11 @@ class Accelerator(object):
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
+
+        if not automatic_optimization and self.ddp_plugin is not None:
+            # Manually prepare for reduce as user calling backwards manually
+            self.ddp_plugin.on_after_manual_backward(self.trainer.model)
         return closure_loss
-
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
-        model_ref = self.trainer.get_model()
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
-
-        # native amp + lbfgs is a no go right now
-        if using_native_amp and is_lbfgs:
-            raise MisconfigurationException(
-                'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-
-        # model hook
-        model_ref.optimizer_step(
-            epoch=self.trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=lambda_closure,
-            on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=using_native_amp,
-            using_lbfgs=is_lbfgs,
-            *args,
-            **kwargs,
-        )
-
-        # scale when native amp
-        if automatic_optimization and using_native_amp:
-            self.trainer.scaler.update()
-
-    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
-        model_ref = self.trainer.get_model()
-        model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
     def clip_gradients(self, optimizer, clip_val=None):
         # use the trainer's clip val if none passed
@@ -160,7 +138,7 @@ class Accelerator(object):
         return self.trainer.should_stop
 
     def setup_optimizers(self, model):
-        if self.trainer.testing is True:
+        if self.trainer.testing:
             return
 
         optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
@@ -171,18 +149,13 @@ class Accelerator(object):
     def init_ddp_connection(
             self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
-        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
-        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
-
-        if not torch.distributed.is_initialized():
-            log.info(
-                f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
-            )
-            torch_distrib.init_process_group(
-                torch_backend, rank=global_rank, world_size=world_size
-            )
+        self.ddp_plugin.init_ddp_connection(
+            self.trainer,
+            self.cluster_environment,
+            global_rank,
+            world_size,
+            is_slurm_managing_tasks,
+        )
 
     def sync_tensor(self,
                     tensor: Union[torch.Tensor],
@@ -202,6 +175,48 @@ class Accelerator(object):
         """
         raise NotImplementedError()
 
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        """
+        Function to gather a tensor from several distributed processes
+
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        raise NotImplementedError()
+
+    def optimizer_state(self, optimizer: Optimizer) -> dict:
+        """
+        Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
+        plugins.
+        Return:
+            Optimizer state dict
+        """
+        if self.ddp_plugin:
+            return self.ddp_plugin.optimizer_state(optimizer)
+        return optimizer.state_dict()
+
+    def get_reference_model(self, model) -> LightningModule:
+        """
+        Override to modify returning base :class:`LightningModule`
+        when accessing variable and functions if the accelerator has wrapped the model.
+
+        Example::
+            ref_model = accelerator.get_reference_model(model)
+            ref_model.training_step(...)
+
+        Args:
+            model: Accelerator model.
+
+        Returns: Reference :class:`LightningModule`.
+
+        """
+        return model
+
     def __getstate__(self):
         return {
             'trainer': self.trainer,
@@ -218,15 +233,27 @@ class Accelerator(object):
         self.dist = d['dist']
         self.ddp_plugin = d['ddp_plugin']
 
+    def on_save(self, checkpoint):
+        return checkpoint
 
-# TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
-class BackendType(Enum):
-    DP = 'dp'
-    DDP = 'ddp'
-    DDP2 = 'ddp2'
-    DDP_SPAWN = 'ddp_spawn'
-    # decuple distrib and device
-    DDP_CPU = 'ddp_cpu'
-    HOROVOD = 'horovod'
-    # this is rather device
-    TPU = 'tpu'
+    @property
+    def rpc_enabled(self):
+        return self.ddp_plugin is not None and isinstance(self.ddp_plugin, RPCPlugin)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        raise NotImplementedError
+
+    @property
+    def require_distributed_sampler(self):
+        raise NotImplementedError
+
+    @contextmanager
+    def block_ddp_plugin_sync_behaviour(self):
+        """
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        cm = self.ddp_plugin.block_backward_sync(self.trainer.model) if self.ddp_plugin else None
+        yield cm

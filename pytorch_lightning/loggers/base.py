@@ -29,6 +29,17 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_only
 
 
+def rank_zero_experiment(fn: Callable) -> Callable:
+    """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
+    @wraps(fn)
+    def experiment(self):
+        @rank_zero_only
+        def get_experiment():
+            return fn(self)
+        return get_experiment() or DummyExperiment()
+    return experiment
+
+
 class LightningLoggerBase(ABC):
     """
     Base class for experiment loggers.
@@ -189,6 +200,7 @@ class LightningLoggerBase(ABC):
                     if isinstance(_val, Callable):
                         return val.__name__
                     return _val
+                # todo: specify the possible exception
                 except Exception:
                     return getattr(val, "__name__", None)
             return val
@@ -196,7 +208,7 @@ class LightningLoggerBase(ABC):
         return {key: _sanitize_callable(val) for key, val in params.items()}
 
     @staticmethod
-    def _flatten_dict(params: Dict[str, Any], delimiter: str = '/') -> Dict[str, Any]:
+    def _flatten_dict(params: Dict[Any, Any], delimiter: str = '/') -> Dict[str, Any]:
         """
         Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
 
@@ -212,12 +224,15 @@ class LightningLoggerBase(ABC):
             {'a/b': 'c'}
             >>> LightningLoggerBase._flatten_dict({'a': {'b': 123}})
             {'a/b': 123}
+            >>> LightningLoggerBase._flatten_dict({5: {'a': 123}})
+            {'5/a': 123}
         """
 
         def _dict_generator(input_dict, prefixes=None):
             prefixes = prefixes[:] if prefixes else []
             if isinstance(input_dict, MutableMapping):
                 for key, value in input_dict.items():
+                    key = str(key)
                     if isinstance(value, (MutableMapping, Namespace)):
                         value = vars(value) if isinstance(value, Namespace) else value
                         for d in _dict_generator(value, prefixes + [key]):
@@ -251,7 +266,13 @@ class LightningLoggerBase(ABC):
          'namespace': 'Namespace(foo=3)',
          'string': 'abc'}
         """
-        return {k: v if type(v) in [bool, int, float, str, torch.Tensor] else str(v) for k, v in params.items()}
+        for k in params.keys():
+            # convert relevant np scalars to python types first (instead of str)
+            if isinstance(params[k], (np.bool_, np.integer, np.floating)):
+                params[k] = params[k].item()
+            elif type(params[k]) not in [bool, int, float, str, torch.Tensor]:
+                params[k] = str(params[k])
+        return params
 
     @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace):
@@ -306,6 +327,12 @@ class LightningLoggerBase(ABC):
     @abstractmethod
     def version(self) -> Union[int, str]:
         """Return the experiment version."""
+
+    def _add_prefix(self, metrics: Dict[str, float]):
+        if self._prefix:
+            metrics = {f'{self._prefix}{self.LOGGER_JOIN_CHAR}{k}': v for k, v in metrics.items()}
+
+        return metrics
 
 
 class LoggerCollection(LightningLoggerBase):
@@ -386,6 +413,11 @@ class DummyExperiment(object):
     def __getattr__(self, _):
         return self.nop
 
+    def __getitem__(self, idx):
+        # enables self.logger[0].experiment.add_image
+        # and self.logger.experiment[0].add_image(...)
+        return self
+
 
 class DummyLogger(LightningLoggerBase):
     """ Dummy logger for internal use. Is usefull if we want to disable users
@@ -398,9 +430,11 @@ class DummyLogger(LightningLoggerBase):
     def experiment(self):
         return self._experiment
 
+    @rank_zero_only
     def log_metrics(self, metrics, step):
         pass
 
+    @rank_zero_only
     def log_hyperparams(self, params):
         pass
 
@@ -411,6 +445,9 @@ class DummyLogger(LightningLoggerBase):
     @property
     def version(self):
         pass
+
+    def __getitem__(self, idx):
+        return self
 
 
 def merge_dicts(
@@ -465,14 +502,3 @@ def merge_dicts(
             d_out[k] = (fn or default_func)(values_to_agg)
 
     return d_out
-
-
-def rank_zero_experiment(fn: Callable) -> Callable:
-    """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
-    @wraps(fn)
-    def experiment(self):
-        @rank_zero_only
-        def get_experiment():
-            return fn(self)
-        return get_experiment() or DummyExperiment()
-    return experiment

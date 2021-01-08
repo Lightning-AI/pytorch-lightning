@@ -20,14 +20,14 @@ import cloudpickle
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
-from omegaconf import OmegaConf, Container
+from omegaconf import Container, OmegaConf
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from pytorch_lightning.utilities import AttributeDict, is_picklable
-from tests.base import EvalModelTemplate, TrialMNIST, BoringModel
+from tests.base import BoringModel, EvalModelTemplate, TrialMNIST
 
 
 class SaveHparamsModel(BoringModel):
@@ -354,8 +354,8 @@ class LocalVariableModelSuperLast(EvalModelTemplate):
 
     def __init__(self, arg1, arg2, *args, **kwargs):
         self.argument1 = arg1  # arg2 intentionally not set
-        arg1 = 'overwritten'
-        local_var = 1234
+        arg1 = 'overwritten'  # noqa: F841
+        local_var = 1234  # noqa: F841
         super().__init__(*args, **kwargs)  # this is intentionally here at the end
 
 
@@ -365,8 +365,8 @@ class LocalVariableModelSuperFirst(EvalModelTemplate):
     def __init__(self, arg1, arg2, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.argument1 = arg1  # arg2 intentionally not set
-        arg1 = 'overwritten'
-        local_var = 1234
+        arg1 = 'overwritten'  # noqa: F841
+        local_var = 1234  # noqa: F841
         self.save_hyperparameters()  # this is intentionally here at the end
 
 
@@ -595,13 +595,7 @@ class RuntimeParamChangeModelSaving(BoringModel):
         self.save_hyperparameters()
 
 
-class RuntimeParamChangeModelAssign(BoringModel):
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.hparams = kwargs
-
-
-@pytest.mark.parametrize("cls", [RuntimeParamChangeModelSaving, RuntimeParamChangeModelAssign])
+@pytest.mark.parametrize("cls", [RuntimeParamChangeModelSaving])
 def test_init_arg_with_runtime_change(tmpdir, cls):
     """Test that we save/export only the initial hparams, no other runtime change allowed"""
     model = cls(running_arg=123)

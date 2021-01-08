@@ -20,22 +20,20 @@ from argparse import Namespace
 from typing import Union, Dict, Any, Optional, Callable, MutableMapping, IO
 from warnings import warn
 
-import fsspec
 import torch
 import yaml
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
+from pytorch_lightning.utilities import rank_zero_warn, AttributeDict, _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
-try:
+
+if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
-except ImportError:
-    OmegaConf = None
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -176,7 +174,8 @@ class ModelIO(object):
             cls_kwargs_loaded.update(checkpoint.get(_new_hparam_key))
 
             # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
-            cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+            cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded,
+                                                        checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
 
             # 4. Update cls_kwargs_new with cls_kwargs_old, such that new has higher priority
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
@@ -362,7 +361,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         hparams = dict(hparams)
 
     # saving with OmegaConf objects
-    if OmegaConf is not None:
+    if _OMEGACONF_AVAILABLE:
         if OmegaConf.is_config(hparams):
             with fs.open(config_yaml, "w", encoding="utf-8") as fp:
                 OmegaConf.save(hparams, fp, resolve=True)
@@ -379,7 +378,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     for k, v in hparams.items():
         try:
             yaml.dump(v)
-        except TypeError as err:
+        except TypeError:
             warn(f"Skipping '{k}' parameter because it is not possible to safely dump to YAML.")
             hparams[k] = type(v).__name__
         else:

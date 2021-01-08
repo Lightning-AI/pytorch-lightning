@@ -18,14 +18,14 @@ import collections
 import itertools
 import os
 from unittest import mock
-from unittest.mock import call, patch
+from unittest.mock import call
 
 import numpy as np
 import pytest
 import torch
-from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import Trainer, callbacks, seed_everything
+from pytorch_lightning import callbacks, seed_everything, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import BoringModel, RandomDataset, SimpleModule
@@ -117,8 +117,8 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
 
         def validation_step_end(self, acc):
             self.validation_step_end_called = True
-            self.log('e', acc)
-            self.log('f', acc, on_step=True, on_epoch=True)
+            # self.log('e', acc)
+            # self.log('f', acc, on_step=True, on_epoch=True)
             return ['random_thing']
 
         def validation_epoch_end(self, outputs):
@@ -151,10 +151,10 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
         'd_step/epoch_0',
         'd_step/epoch_1',
         'd_epoch',
-        'e',
-        'f_step/epoch_0',
-        'f_step/epoch_1',
-        'f_epoch',
+        # 'e',
+        #  'f_step/epoch_0',
+        # 'f_step/epoch_1',
+        # 'f_epoch',
         'g',
     }
     assert expected_logged_metrics == logged_metrics
@@ -166,7 +166,8 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
     # we don't want to enable val metrics during steps because it is not something that users should do
     callback_metrics = set(trainer.callback_metrics.keys())
     callback_metrics.remove('debug_epoch')
-    expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'b_epoch', 'd_epoch', 'f_epoch', 'f', 'g', 'b_step'}
+    expected_cb_metrics = {'a', 'b', 'b_epoch', 'c', 'd', 'd_epoch', 'g', 'b_step'}
+    # expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'b_epoch', 'd_epoch', 'f_epoch', 'f', 'g', 'b_step'}
     assert expected_cb_metrics == callback_metrics
 
 
@@ -290,7 +291,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
-        checkpoint_callback=callbacks.ModelCheckpoint(dirpath='val_loss')
+        callbacks=[ModelCheckpoint(dirpath='val_loss')],
     )
     trainer.fit(model)
 
@@ -357,7 +358,7 @@ def test_monitor_val_epoch_end(tmpdir):
     trainer = Trainer(
         max_epochs=epoch_min_loss_override + 2,
         logger=False,
-        checkpoint_callback=checkpoint_callback,
+        callbacks=[checkpoint_callback],
     )
     trainer.fit(model)
 
@@ -483,6 +484,7 @@ def test_log_works_in_val_callback(tmpdir):
             self.make_logging(pl_module, 'on_validation_epoch_start', 3, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
 
+        """
         def on_batch_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_batch_start', 4, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -490,6 +492,7 @@ def test_log_works_in_val_callback(tmpdir):
         def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             self.make_logging(pl_module, 'on_validation_batch_start', 5, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
+        """
 
         def on_batch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_batch_end', 6, on_steps=self.choices,
@@ -537,14 +540,14 @@ def test_log_works_in_val_callback(tmpdir):
     trainer.test()
 
     assert test_callback.funcs_called_count["on_epoch_start"] == 1
-    assert test_callback.funcs_called_count["on_batch_start"] == 1
+    # assert test_callback.funcs_called_count["on_batch_start"] == 1
     assert test_callback.funcs_called_count["on_batch_end"] == 1
     assert test_callback.funcs_called_count["on_validation_start"] == 1
     assert test_callback.funcs_called_count["on_validation_epoch_start"] == 1
-    assert test_callback.funcs_called_count["on_validation_batch_start"] == 4
+    # assert test_callback.funcs_called_count["on_validation_batch_start"] == 4
     assert test_callback.funcs_called_count["on_validation_batch_end"] == 4
-    assert test_callback.funcs_called_count["on_validation_epoch_end"] == 1
     assert test_callback.funcs_called_count["on_epoch_end"] == 1
+    assert test_callback.funcs_called_count["on_validation_epoch_end"] == 1
 
     # Make sure the func_name exists within callback_metrics. If not, we missed some
     callback_metrics_keys = [*trainer.callback_metrics.keys()]
@@ -667,10 +670,6 @@ def test_log_works_in_test_callback(tmpdir):
             self.make_logging(pl_module, 'on_test_epoch_start', 3, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
 
-        def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_test_batch_start', 4, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
-
         def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             self.make_logging(pl_module, 'on_test_batch_end', 5, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -724,9 +723,7 @@ def test_log_works_in_test_callback(tmpdir):
     assert test_callback.funcs_called_count["on_test_start"] == 1
     assert test_callback.funcs_called_count["on_epoch_start"] == 2
     assert test_callback.funcs_called_count["on_test_epoch_start"] == 1
-    assert test_callback.funcs_called_count["on_test_batch_start"] == 4
     assert test_callback.funcs_called_count["on_test_batch_end"] == 4
-    assert test_callback.funcs_called_count["on_epoch_end"] == 2
     assert test_callback.funcs_called_count["on_test_epoch_end"] == 1
 
     # Make sure the func_name exists within callback_metrics. If not, we missed some
@@ -815,7 +812,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         def test_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.log('fake_test_acc', loss)
+            self.log('test_loss', loss)
             return {"y": loss}
 
     model = ExtendedModel()
@@ -827,7 +824,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         logger=TensorBoardLogger(tmpdir),
         limit_train_batches=2,
         limit_val_batches=2,
-        limit_test_batches=0,
+        limit_test_batches=2,
         max_epochs=2,
         progress_bar_refresh_rate=1,
     )
@@ -878,3 +875,16 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
     expected = torch.stack(model.val_losses[4:]).mean()
     assert get_metrics_at_idx(6)["valid_loss_1"] == expected
+
+    results = trainer.test(model)
+    expected_callback_metrics = {
+        'train_loss',
+        'valid_loss_0_epoch',
+        'valid_loss_0',
+        'debug_epoch',
+        'valid_loss_1',
+        'test_loss',
+        'val_loss'
+    }
+    assert set(trainer.callback_metrics) == expected_callback_metrics
+    assert set(results[0]) == {'test_loss', 'debug_epoch'}

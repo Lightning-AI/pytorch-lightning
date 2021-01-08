@@ -24,6 +24,7 @@ PyTorch Lightning Documentation
    style_guide
    performance
    Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
+   benchmarking
 
 
 .. toctree::
@@ -76,6 +77,7 @@ PyTorch Lightning Documentation
    :name: Examples
    :caption: Examples
 
+   pytorch_ecoystem
    community_examples
    Autoencoder <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#autoencoders>
    BYOL <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol>

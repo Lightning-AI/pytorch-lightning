@@ -37,23 +37,21 @@ class SLURMConnector:
                 job_name = os.environ['SLURM_JOB_NAME']
                 if job_name == 'bash':
                     self.trainer.is_slurm_managing_tasks = False
-
+            # todo: specify the possible exception
             except Exception:
                 # likely not on slurm, so set the slurm managed flag to false
                 self.trainer.is_slurm_managing_tasks = False
 
         # used for tests only, set this flag to simulate slurm managing a task
-        try:
-            should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
-            if should_fake:
-                self.trainer.is_slurm_managing_tasks = True
-        except Exception:
-            pass
+        should_fake = os.environ.get('FAKE_SLURM_MANAGING_TASKS')
+        if should_fake and int(should_fake):
+            self.trainer.is_slurm_managing_tasks = True
 
         # notify user the that slurm is managing tasks
         if self.trainer.is_slurm_managing_tasks:
             rank_zero_info('Multi-processing is handled by Slurm.')
 
+    # todo: the same function as slurm_environment.py `_resolve_root_node_address`
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
             name, numbers = root_node.split('[', maxsplit=1)
@@ -73,6 +71,7 @@ class SLURMConnector:
             job_name = os.environ['SLURM_JOB_NAME']
             if job_name != 'bash':
                 on_slurm = True
+        # todo: specify the possible exception
         except Exception:
             pass
 
@@ -82,6 +81,8 @@ class SLURMConnector:
             signal.signal(signal.SIGTERM, self.term_handler)
 
     def sig_handler(self, signum, frame):  # pragma: no-cover
+        # Todo: required argument `signum` is not used
+        # Todo: required argument `frame` is not used
         if self.trainer.is_global_zero:
             # save weights
             log.info('handling SIGUSR1')
@@ -105,39 +106,39 @@ class SLURMConnector:
             self.trainer.logger.close()
 
     def term_handler(self, signum, frame):
-        # save
+        # Todo: required argument `signum` is not used
+        # Todo: required argument `frame` is not used
         log.info("bypassing sigterm")
 
+    # todo: this is the same func as slurm_environment.py `master_port`
     def connect_ddp(self, global_rank: int, world_size: int) -> None:
-        """"""
         """
         Sets up environment variables necessary for pytorch distributed communications
         based on slurm environment.
         """
         # use slurm job id for the port number
         # guarantees unique ports across jobs from same grid search
-        try:
+        default_port = os.environ.get("SLURM_JOB_ID")
+        if default_port:
             # use the last 4 numbers in the job id as the id
-            default_port = os.environ["SLURM_JOB_ID"]
             default_port = default_port[-4:]
-
             # all ports should be in the 10k+ range
             default_port = int(default_port) + 15000
-
-        except Exception:
+        else:
             default_port = 12910
 
         # if user gave a port number, use that one instead
-        try:
+        if "MASTER_PORT" in os.environ:
             default_port = os.environ["MASTER_PORT"]
-        except Exception:
+        else:
             os.environ["MASTER_PORT"] = str(default_port)
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         # figure out the root node addr
-        try:
-            root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
-        except Exception:
+        root_node = os.environ.get("SLURM_NODELIST")
+        if root_node:
+            root_node = root_node.split(" ")[0]
+        else:
             root_node = "127.0.0.1"
 
         root_node = self.trainer.slurm_connector.resolve_root_node_address(root_node)

@@ -16,17 +16,18 @@ import os
 import pickle
 import platform
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import (
-    TensorBoardLogger,
+    CometLogger,
     MLFlowLogger,
     NeptuneLogger,
+    TensorBoardLogger,
     TestTubeLogger,
-    CometLogger,
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
@@ -44,6 +45,13 @@ def _get_logger_args(logger_class, save_dir):
     if 'offline' in inspect.getfullargspec(logger_class).args:
         logger_args.update(offline=True)
     return logger_args
+
+
+def _instantiate_logger(logger_class, save_idr, **override_kwargs):
+    args = _get_logger_args(logger_class, save_idr)
+    args.update(**override_kwargs)
+    logger = logger_class(**args)
+    return logger
 
 
 def test_loggers_fit_test_all(tmpdir, monkeypatch):
@@ -66,7 +74,9 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
         _test_loggers_fit_test(tmpdir, TestTubeLogger)
 
-    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
+        wandb.run = None
+        wandb.init().step = 0
         _test_loggers_fit_test(tmpdir, WandbLogger)
 
 
@@ -104,9 +114,9 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     trainer = Trainer(
         max_epochs=1,
         logger=logger,
-        limit_train_batches=0.2,
-        limit_val_batches=0.5,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        log_every_n_steps=1,
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
@@ -116,7 +126,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == TensorBoardLogger:
         expected = [
             (0, ['hp_metric']),
-            (0, ['epoch', 'train_some_val']),
+            (0, ['train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_acc']),
             (0, ['hp_metric']),
             (1, ['epoch', 'test_acc', 'test_loss'])
@@ -124,7 +134,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         assert log_metric_names == expected
     else:
         expected = [
-            (0, ['epoch', 'train_some_val']),
+            (0, ['train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_acc']),
             (1, ['epoch', 'test_acc', 'test_loss'])
         ]
@@ -132,7 +142,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
 
 def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
-    """ Test the combinations of save_dir, weights_save_path and default_root_dir.  """
+    """ Test the combinations of save_dir, weights_save_path and default_root_dir. """
 
     _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
 
@@ -308,7 +318,7 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     trainer = Trainer(
         logger=logger,
         default_root_dir=tmpdir,
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         num_processes=2,
         max_steps=1,
         checkpoint_callback=True,
@@ -316,3 +326,51 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     )
     result = trainer.fit(model)
     assert result == 1
+
+
+def test_logger_with_prefix_all(tmpdir, monkeypatch):
+    """
+    Test that prefix is added at the beginning of the metric keys.
+    """
+    prefix = 'tmp'
+
+    # Comet
+    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
+         mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+        _patch_comet_atexit(monkeypatch)
+        logger = _instantiate_logger(CometLogger, save_idr=tmpdir, prefix=prefix)
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
+
+    # MLflow
+    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
+         mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
+        logger = _instantiate_logger(MLFlowLogger, save_idr=tmpdir, prefix=prefix)
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.log_metric.assert_called_once_with(ANY, "tmp-test", 1.0, ANY, 0)
+
+    # Neptune
+    with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
+        logger = _instantiate_logger(NeptuneLogger, save_idr=tmpdir, prefix=prefix)
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.log_metric.assert_called_once_with("tmp-test", x=0, y=1.0)
+
+    # TensorBoard
+    with mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter'):
+        logger = _instantiate_logger(TensorBoardLogger, save_idr=tmpdir, prefix=prefix)
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
+
+    # TestTube
+    with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
+        logger = _instantiate_logger(TestTubeLogger, save_idr=tmpdir, prefix=prefix)
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.log.assert_called_once_with({"tmp-test": 1.0}, global_step=0)
+
+    # WandB
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
+        logger = _instantiate_logger(WandbLogger, save_idr=tmpdir, prefix=prefix)
+        wandb.run = None
+        wandb.init().step = 0
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)

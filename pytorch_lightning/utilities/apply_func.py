@@ -12,22 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import importlib
 from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import copy
-from typing import Any, Callable, Union
+from typing import Any, Callable, Union, Optional
 
 import torch
 
-TORCHTEXT_AVAILABLE = importlib.util.find_spec("torchtext") is not None
-if TORCHTEXT_AVAILABLE:
+from pytorch_lightning.utilities.imports import _TORCHTEXT_AVAILABLE
+
+if _TORCHTEXT_AVAILABLE:
     from torchtext.data import Batch
 else:
     Batch = type(None)
 
 
-def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args, **kwargs) -> Any:
+def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args,
+                        wrong_dtype: Optional[Union[type, tuple]] = None, **kwargs) -> Any:
     """
     Recursively applies a function to all elements of a certain dtype.
 
@@ -36,6 +37,8 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
         dtype: the given function will be applied to all elements of this dtype
         function: the function to apply
         *args: positional arguments (will be forwarded to calls of ``function``)
+        wrong_dtype: the given function won't be applied if this type is specified and the given collections is of
+            the :attr:`wrong_type` even if it is of type :attr`dtype`
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
 
     Returns:
@@ -45,7 +48,7 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
     elem_type = type(data)
 
     # Breaking condition
-    if isinstance(data, dtype):
+    if isinstance(data, dtype) and (wrong_dtype is None or not isinstance(data, wrong_dtype)):
         return function(data, *args, **kwargs)
 
     # Recursively apply to collection items
@@ -109,11 +112,13 @@ def move_data_to_device(batch: Any, device: torch.device):
 
     def batch_to(data):
         # try to move torchtext data first
-        if TORCHTEXT_AVAILABLE and isinstance(data, Batch):
+        if _TORCHTEXT_AVAILABLE and isinstance(data, Batch):
 
             # Shallow copy because each Batch has a reference to Dataset which contains all examples
             device_data = copy(data)
-            for field in data.fields:
+            for field, field_value in data.dataset.fields.items():
+                if field_value is None:
+                    continue
                 device_field = move_data_to_device(getattr(data, field), device)
                 setattr(device_data, field, device_field)
             return device_data
@@ -121,5 +126,5 @@ def move_data_to_device(batch: Any, device: torch.device):
         kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
         return data.to(device, **kwargs)
 
-    dtype = (TransferableDataType, Batch) if TORCHTEXT_AVAILABLE else TransferableDataType
+    dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)

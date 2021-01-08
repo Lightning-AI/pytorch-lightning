@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
 from typing import List, Tuple, Union
 
 import torch
@@ -19,13 +18,11 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
-from pytorch_lightning.utilities import AMPType
 
-try:
+if _APEX_AVAILABLE:
     from apex import amp
-except ImportError:
-    amp = None
 
 
 class ApexPlugin(PrecisionPlugin):
@@ -133,3 +130,15 @@ class ApexPlugin(PrecisionPlugin):
     @property
     def norm_clipping_epsilon(self):
         return 1e-5
+
+    def optimizer_step(self, trainer, optimizer, closure):
+        # apex amp does not yet support closures.
+        # TODO: pass the closure to the step ASAP
+        with trainer.profiler.profile("closure"):
+            closure()
+
+        if not self.trainer.train_loop.automatic_optimization:
+            trainer.call_hook("on_after_backward")
+
+        with trainer.profiler.profile("optimizer_step"):
+            optimizer.step()

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional
 
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.functional.mean_absolute_error import (
@@ -22,8 +22,12 @@ from pytorch_lightning.metrics.functional.mean_absolute_error import (
 
 
 class MeanAbsoluteError(Metric):
-    """
-    Computes mean absolute error.
+    r"""
+    Computes `mean absolute error <https://en.wikipedia.org/wiki/Mean_absolute_error>`_ (MAE):
+
+    .. math:: \text{MAE} = \frac{1}{N}\sum_i^N | y_i - \hat{y_i} |
+
+    Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a tensor of predictions.
 
     Args:
         compute_on_step:

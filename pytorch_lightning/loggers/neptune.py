@@ -17,21 +17,23 @@ Neptune Logger
 --------------
 """
 from argparse import Namespace
-from typing import Any, Dict, Iterable, List, Optional, Union
-
-try:
-    import neptune
-    from neptune.experiments import Experiment
-except ImportError:  # pragma: no-cover
-    neptune = None
-    Experiment = None
+from typing import Any, Dict, Iterable, Optional, Union
 
 import torch
 from torch import is_tensor
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only, _module_available
+
+_NEPTUNE_AVAILABLE = _module_available("neptune")
+
+if _NEPTUNE_AVAILABLE:
+    import neptune
+    from neptune.experiments import Experiment
+else:
+    # needed for test mocks, these tests shall be updated
+    neptune, Experiment = None, None
 
 
 class NeptuneLogger(LightningLoggerBase):
@@ -167,9 +169,12 @@ class NeptuneLogger(LightningLoggerBase):
             If specified, connect to experiment with experiment_id in project_name.
             Input arguments "experiment_name", "params", "properties" and "tags" will be overriden based
             on fetched experiment data.
+        prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `params`, `tags`, `properties`, etc. used by
             :func:`neptune.Session.create_experiment` can be passed as keyword arguments in this logger.
     """
+
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
@@ -179,6 +184,7 @@ class NeptuneLogger(LightningLoggerBase):
         offline_mode: bool = False,
         experiment_name: Optional[str] = None,
         experiment_id: Optional[str] = None,
+        prefix: str = '',
         **kwargs
     ):
         if neptune is None:
@@ -190,6 +196,7 @@ class NeptuneLogger(LightningLoggerBase):
         self.offline_mode = offline_mode
         self.close_after_fit = close_after_fit
         self.experiment_name = experiment_name
+        self._prefix = prefix
         self._kwargs = kwargs
         self.experiment_id = experiment_id
         self._experiment = self._create_or_get_experiment()
@@ -247,6 +254,8 @@ class NeptuneLogger(LightningLoggerBase):
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
+        metrics = self._add_prefix(metrics)
         for key, val in metrics.items():
             self.log_metric(key, val, step=step)
 

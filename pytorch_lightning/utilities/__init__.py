@@ -12,29 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
-from enum import Enum
 
 import numpy
-import torch
 
-from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
-from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable
+from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
+from pytorch_lightning.utilities.distributed import (  # noqa: F401
+    AllGatherGrad,
+    rank_zero_info,
+    rank_zero_only,
+    rank_zero_warn,
+)
+from pytorch_lightning.utilities.enums import (  # noqa: F401
+    LightningEnum,
+    AMPType,
+    DistributedType,
+    DeviceType,
+)
+from pytorch_lightning.utilities.imports import (  # noqa: F401
+    _APEX_AVAILABLE,
+    _NATIVE_AMP_AVAILABLE,
+    _XLA_AVAILABLE,
+    _OMEGACONF_AVAILABLE,
+    _HYDRA_AVAILABLE,
+    _HOROVOD_AVAILABLE,
+    _TORCHTEXT_AVAILABLE,
+    _FAIRSCALE_AVAILABLE,
+    _RPC_AVAILABLE,
+    _GROUP_AVAILABLE,
+    _FAIRSCALE_PIPE_AVAILABLE,
+    _BOLTS_AVAILABLE,
+    _module_available,
+)
+from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
+from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: F401
 
-try:
-    from apex import amp
-except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
 
-NATIVE_AMP_AVALAIBLE = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
+_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
 FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
-
-
-class AMPType(Enum):
-    APEX = 'apex'
-    NATIVE = 'native'
