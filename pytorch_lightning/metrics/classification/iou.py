@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Optional
+
 import torch
-from pytorch_lightning.metrics.functional.reduction import reduce
-from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_compute
-from pytorch_lightning.metrics.functional.iou import _iou_from_confmat
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
+from pytorch_lightning.metrics.functional.iou import _iou_from_confmat
 
 
 class IoU(ConfusionMatrix):
@@ -25,7 +24,8 @@ class IoU(ConfusionMatrix):
 
     .. math:: J(A,B) = \frac{|A\cap B|}{|A\cup B|}
 
-    Where: :math:`A` and :math:`B` are both tensors of the same size, containing integer class values. They may be subject to conversion from input data (see description below). Note that it is different from box IoU.
+    Where: :math:`A` and :math:`B` are both tensors of the same size, containing integer class values. 
+    They may be subject to conversion from input data (see description below). Note that it is different from box IoU.
 
     Works with binary, multiclass and multi-label data.
     Accepts logits from a model output or integer class values in prediction.
