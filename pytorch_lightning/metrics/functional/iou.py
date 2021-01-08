@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 from typing import Optional
-from pytorch_lightning.metrics.utils import get_num_classes
-from pytorch_lightning.metrics.functional.reduction import reduce
+
+import torch
 from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_update
+from pytorch_lightning.metrics.functional.reduction import reduce
+from pytorch_lightning.metrics.utils import get_num_classes
 
 
 def _iou_from_confmat(
@@ -58,7 +59,7 @@ def iou(
     Where: :math:`A` and :math:`B` are both tensors of the same size, 
     containing integer class values. They may be subject to conversion from 
     input data (see description below). 
-    
+
     Note that it is different from box IoU.
 
     If pred and target are the same shape and pred is a float tensor, 
