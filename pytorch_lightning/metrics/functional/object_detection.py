@@ -41,7 +41,7 @@ def mean_average_precision(
         mean of the average precision for each class in object detection task.
     """
     if box_iou is None:
-        raise ImportError('You want to use `torchvision` which is not installed yet,'
+        raise ImportError('`mean_average_precision` metric requires `torchvision`, which is not installed. '
                           ' install it with `pip install torchvision`.')
     classes = torch.cat([preds[:, 1], target[:, 1]]).unique()
     average_precisions = torch.zeros(len(classes))
