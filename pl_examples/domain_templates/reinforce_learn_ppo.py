@@ -354,12 +354,12 @@ class PPOLightning(pl.LightningModule):
                 self.avg_reward = sum(self.epoch_rewards) / self.steps_per_epoch
 
                 # if epoch ended upbruptly, exlude last cut-short episode to prevent stats skewness
+                epoch_rewards = self.epoch_rewards
                 if not done:
-                    total_epoch_reward = sum(self.epoch_rewards[:-1])
-                    nb_episodes = len(self.epoch_rewards) - 1
-                else:
-                    total_epoch_reward = sum(self.epoch_rewards)
-                    nb_episodes = len(self.epoch_rewards)
+                    epoch_rewards = epoch_rewards[:-1]
+
+                total_epoch_reward = sum(epoch_rewards)
+                nb_episodes = len(epoch_rewards)
 
                 self.avg_ep_reward = total_epoch_reward / nb_episodes
                 self.avg_ep_len = (self.steps_per_epoch - steps_before_cutoff) / nb_episodes
