@@ -139,7 +139,7 @@ class Precision(StatScores):
         if average not in allowed_average:
             raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
-        if zero_division not in [0,1]:
+        if zero_division not in [0, 1]:
             raise ValueError(f"The `zero_division` has to be either 0 or 1.")
 
         super().__init__(
@@ -303,7 +303,7 @@ class Recall(StatScores):
         if average not in allowed_average:
             raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
-        if zero_division not in [0,1]:
+        if zero_division not in [0, 1]:
             raise ValueError(f"The `zero_division` has to be either 0 or 1.")
 
         super().__init__(

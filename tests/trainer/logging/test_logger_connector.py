@@ -15,6 +15,7 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 from copy import deepcopy
+from typing import Any, Callable
 
 import pytest
 import torch
@@ -22,15 +23,17 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
-def decorator_with_arguments(fx_name='', hook_fx_name=None):
-    def decorator(func):
-        def wrapper(self, *args, **kwargs):
+def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Callable:
+    def decorator(func: Callable) -> Callable:
+        def wrapper(self, *args, **kwargs) -> Any:
             # Set information
             self._current_fx_name = fx_name
             self._current_hook_fx_name = hook_fx_name
@@ -43,7 +46,6 @@ def decorator_with_arguments(fx_name='', hook_fx_name=None):
             return result
 
         return wrapper
-
     return decorator
 
 
@@ -425,3 +427,28 @@ def test_epoch_results_cache_dp(tmpdir):
     )
     trainer.fit(model)
     trainer.test(model, ckpt_path=None)
+
+
+@pytest.mark.parametrize('to_float', [False, True])
+def test_metrics_holder(to_float, tmpdir):
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    preds = torch.tensor([[0.9, 0.1]], device=device)
+
+    def is_float(value: Any) -> bool:
+        return isinstance(value, float)
+
+    excepted_function = is_float if to_float else torch.is_tensor
+    targets = torch.tensor([1], device=device)
+    acc = Accuracy().to(device)
+    metric_holder = MetricsHolder(to_float=to_float)
+    metric_holder.update({
+        "x": 1,
+        "y": torch.tensor(2),
+        "z": acc(preds, targets),
+    })
+    metric_holder.convert(False, device)
+    metrics = metric_holder.metrics
+    assert excepted_function(metrics["x"])
+    assert excepted_function(metrics["y"])
+    assert excepted_function(metrics["z"])
