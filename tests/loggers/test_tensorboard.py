@@ -220,7 +220,6 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
             self._indexes = []
 
         def training_step(self, batch, batch_idx):
-            print(self._indexes)
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.log('count', self._count, on_step=True, on_epoch=True)

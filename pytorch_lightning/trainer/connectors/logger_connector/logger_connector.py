@@ -590,14 +590,15 @@ class LoggerConnector:
         return gathered_epoch_outputs
 
     def log_train_step_metrics(self, batch_output):
-        if not self.trainer.train_loop.should_accumulate():
-            _, batch_log_metrics = self.cached_results.update_logger_connector()
-            # when metrics should be logged
-            if self.should_update_logs or self.trainer.fast_dev_run is True:
-                # logs user requested information to logger
-                grad_norm_dic = batch_output.grad_norm_dic
-                if grad_norm_dic is None:
-                    grad_norm_dic = {}
-                if len(batch_log_metrics) > 0 or len(grad_norm_dic) > 0:
-                    self.log_metrics(batch_log_metrics, grad_norm_dic)
-                    self.callback_metrics.update(batch_log_metrics)
+        if self.trainer.train_loop.should_accumulate() and self.trainer.train_loop.automatic_optimization:
+            return
+        _, batch_log_metrics = self.cached_results.update_logger_connector()
+        # when metrics should be logged
+        if self.should_update_logs or self.trainer.fast_dev_run is True:
+            # logs user requested information to logger
+            grad_norm_dic = batch_output.grad_norm_dic
+            if grad_norm_dic is None:
+                grad_norm_dic = {}
+            if len(batch_log_metrics) > 0 or len(grad_norm_dic) > 0:
+                self.log_metrics(batch_log_metrics, grad_norm_dic)
+                self.callback_metrics.update(batch_log_metrics)
