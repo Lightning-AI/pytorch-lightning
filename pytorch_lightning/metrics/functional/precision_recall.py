@@ -155,7 +155,8 @@ def precision(
     if class_reduction:
         rank_zero_warn(
             "This `class_reduction` parameter was deprecated in v1.2.0 in favor of"
-            " `reduce`. It will be removed in v1.4.0", DeprecationWarning
+            " `reduce`. It will be removed in v1.4.0",
+            DeprecationWarning,
         )
         average = class_reduction
 
@@ -325,7 +326,8 @@ def recall(
     if class_reduction:
         rank_zero_warn(
             "This `class_reduction` parameter was deprecated in v1.2.0 in favor of"
-            " `reduce`. It will be removed in v1.4.0", DeprecationWarning
+            " `reduce`. It will be removed in v1.4.0",
+            DeprecationWarning,
         )
         average = class_reduction
 
