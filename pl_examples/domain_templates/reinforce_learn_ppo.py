@@ -423,7 +423,7 @@ class PPOLightning(pl.LightningModule):
         Run 'nb_optim_iters' number of iterations of gradient descent on actor and critic
         for each data sample.
         """
-        for i in range(self.nb_optim_iters):
+        for _ in range(self.nb_optim_iters):
             super().optimizer_step(*args, **kwargs)
 
     def _dataloader(self) -> DataLoader:
