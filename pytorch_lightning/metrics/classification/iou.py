@@ -24,7 +24,7 @@ class IoU(ConfusionMatrix):
 
     .. math:: J(A,B) = \frac{|A\cap B|}{|A\cup B|}
 
-    Where: :math:`A` and :math:`B` are both tensors of the same size, containing integer class values. 
+    Where: :math:`A` and :math:`B` are both tensors of the same size, containing integer class values.
     They may be subject to conversion from input data (see description below). Note that it is different from box IoU.
 
     Works with binary, multiclass and multi-label data.
