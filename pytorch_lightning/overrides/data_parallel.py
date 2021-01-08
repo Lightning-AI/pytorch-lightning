@@ -19,11 +19,13 @@ from itertools import chain
 from typing import Optional
 
 import torch
+from torch.nn import Module
 from torch import Tensor
 from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel._functions import Gather
 from typing import Any
+from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
@@ -167,6 +169,24 @@ class LightningDistributedWrapper(torch.nn.Module):
             output = self.module.validation_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "validation_step")
         return output
+
+# In manual_optimization, we need to call reducer prepare_for_backward.
+# TODO: Keep track of Pytorch DDP and update if there is a change
+# https://github.com/pytorch/pytorch/blob/e6779d4357ae94cc9f9fedb83a87eb6126016769/torch/nn/parallel/distributed.py#L692
+def prepare_for_backward(model: DistributedDataParallel, output: Any):
+    if torch.is_grad_enabled() and model.require_backward_grad_sync:
+        model.require_forward_param_sync = True
+        # We'll return the output object verbatim since it is a freeform
+        # object. We need to find any tensors in this object, though,
+        # because we need to figure out which parameters were used during
+        # this forward pass, to ensure we short circuit reduction for any
+        # unused parameters. Only if `find_unused_parameters` is set.
+        if model.find_unused_parameters:
+            model.reducer.prepare_for_backward(list(_find_tensors(output)))
+        else:
+            model.reducer.prepare_for_backward([])
+    else:
+        model.require_forward_param_sync = False    
 
 #
 # class LightningDistributedDataParallel(DistributedDataParallel):
