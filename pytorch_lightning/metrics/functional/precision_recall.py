@@ -148,7 +148,7 @@ def precision(
     if average not in allowed_average:
         raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
-    if zero_division not in [0,1]:
+    if zero_division not in [0, 1]:
         raise ValueError("The `zero_division` has to be either 0 or 1.")
 
     allowed_mdmc_average = [None, "samplewise", "global"]
@@ -307,8 +307,8 @@ def recall(
     if average not in allowed_average:
         raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
-    if zero_division not in [0,1]:
-        raise ValueError(f"The `zero_division` has to be either 0 or 1.")
+    if zero_division not in [0, 1]:
+        raise ValueError("The `zero_division` has to be either 0 or 1.")
 
     allowed_mdmc_average = [None, "samplewise", "global"]
     if mdmc_average not in allowed_mdmc_average:
