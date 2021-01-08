@@ -261,9 +261,6 @@ Here we add a learning-rate warm up
 
 .. testcode::
 
-    configure_optimizers(self):
-      return Adam(...)
-
     # function hook in LightningModule
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
 
