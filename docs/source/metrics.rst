@@ -33,10 +33,11 @@ The example below shows how to use a metric in your ``LightningModule``:
         self.accuracy = pl.metrics.Accuracy()
 
     def training_step(self, batch, batch_idx):
-        logits = self(x)
+        x, y = batch
+        preds = self(x)
         ...
         # log step metric
-        self.log('train_acc_step', self.accuracy(logits, y))
+        self.log('train_acc_step', self.accuracy(preds, y))
         ...
 
     def training_epoch_end(self, outs):
@@ -67,9 +68,10 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.valid_acc = pl.metrics.Accuracy()
 
     def training_step(self, batch, batch_idx):
-        logits = self(x)
+        x, y = batch
+        preds = self(x)
         ...
-        self.train_acc(logits, y)
+        self.train_acc(preds, y)
         self.log('train_acc', self.train_acc, on_step=True, on_epoch=False)
 
     def validation_step(self, batch, batch_idx):
@@ -88,7 +90,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
 
         def training_step(self, batch, batch_idx):
             data, target = batch
-            pred = self(data)
+            preds = self(data)
             ...
             return {'loss' : loss, 'preds' : preds, 'target' : target}
 
@@ -262,7 +264,7 @@ Classification Metrics
 Input types
 -----------
 
-For the purposes of classification metrics, inputs (predictions and targets) are split 
+For the purposes of classification metrics, inputs (predictions and targets) are split
 into these categories (``N`` stands for the batch size and ``C`` for number of classes):
 
 .. csv-table:: \*dtype ``binary`` means integers that are either 0 or 1
@@ -277,10 +279,10 @@ into these categories (``N`` stands for the batch size and ``C`` for number of c
     "Multi-dimensional multi-class with probabilities", "(N, C, ...)", "``float``", "(N, ...)", "``int``"
 
 .. note::
-    All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so 
+    All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so
     that, for example, a tensor of shape ``(N, 1)`` is treated as ``(N, )``.
 
-When predictions or targets are integers, it is assumed that class labels start at 0, i.e. 
+When predictions or targets are integers, it is assumed that class labels start at 0, i.e.
 the possible class labels are 0, 1, 2, 3, etc. Below are some examples of different input types
 
 .. testcode::
