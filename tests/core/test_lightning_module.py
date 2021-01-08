@@ -45,8 +45,7 @@ def test_automatic_optimization(tmpdir):
         assert "It ensures optimizer_step or optimizer_zero_grad are called on every batch" in str(e)
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
+def test_automatic_optimization_num_calls(tmpdir):
 
     with patch("torch.optim.SGD.step") as sgd_step, \
          patch("torch.optim.SGD.zero_grad") as sgd_zero_grad, \
@@ -90,7 +89,6 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
             default_root_dir=tmpdir,
             limit_train_batches=8,
             accumulate_grad_batches=1,
-            enable_pl_optimizer=enable_pl_optimizer
         )
 
         trainer.fit(model)
@@ -101,8 +99,7 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
     assert adam_zero_grad.call_count == 2
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_params_groups_and_state_are_accessible(enable_pl_optimizer, tmpdir):
+def test_params_groups_and_state_are_accessible(tmpdir):
 
     with patch("torch.optim.SGD.step") as sgd_step, \
          patch("torch.optim.SGD.zero_grad") as sgd_zero_grad, \
@@ -139,7 +136,6 @@ def test_params_groups_and_state_are_accessible(enable_pl_optimizer, tmpdir):
             default_root_dir=tmpdir,
             limit_train_batches=8,
             accumulate_grad_batches=1,
-            enable_pl_optimizer=enable_pl_optimizer
         )
 
         trainer.fit(model)

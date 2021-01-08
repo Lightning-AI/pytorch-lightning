@@ -76,7 +76,7 @@ class BaseParityManualOptimizationModel(BoringModel):
 class ManualOptimizationPurePytorchOptimizerModel(BaseParityManualOptimizationModel):
 
     def training_step(self, batch, batch_idx):
-        optimizer = self.optimizers()
+        optimizer = self.optimizers(use_pl_optimizer=False)
         output = self.layer(batch)
         loss = self.loss(batch, output)
         self.losses.append(loss.detach().item())
@@ -104,7 +104,7 @@ class ManualOptimizationPurePytorchAMPOptimizerModel(BaseParityManualOptimizatio
         self.scaler = torch.cuda.amp.GradScaler()
 
     def training_step(self, batch, batch_idx):
-        optimizer = self.optimizers()
+        optimizer = self.optimizers(use_pl_optimizer=False)
         with torch.cuda.amp.autocast():
             output = self.layer(batch)
             loss = self.loss(batch, output)
@@ -178,10 +178,8 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
 
     with patch("torch.optim.SGD.step") as mock_sgd_step, \
             patch("torch.optim.Adam.step") as mock_adam_step, \
-            patch("torch.optim.AdamW.step") as mock_adamw_step, \
             patch("torch.optim.SGD.zero_grad") as mock_sgd_zero_grad, \
-            patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad, \
-            patch("torch.optim.AdamW.zero_grad") as mock_adamw_zero_grad:
+            patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad:
 
         max_epochs = 2
         limit_train_batches = 10
@@ -206,6 +204,4 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         assert mock_sgd_step.call_count == (expected_num_batches // accumulate_grad_batches)
         assert mock_sgd_zero_grad.call_count == (expected_num_batches // accumulate_grad_batches)
         assert mock_sgd_step.call_count == mock_adam_step.call_count
-        assert mock_sgd_step.call_count == mock_adam_step.call_count
         assert mock_sgd_zero_grad.call_count == mock_adam_zero_grad.call_count
-        assert mock_sgd_zero_grad.call_count == mock_adamw_zero_grad.call_count

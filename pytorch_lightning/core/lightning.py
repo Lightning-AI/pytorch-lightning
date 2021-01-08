@@ -112,8 +112,11 @@ class LightningModule(
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
 
-    def optimizers(self):
-        opts = self.trainer.optimizers
+    def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
+        if use_pl_optimizer:
+            opts = list(self.trainer.lightning_optimizers.values())
+        else:
+            opts = self.trainer.optimizers
 
         # single optimizer
         if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):

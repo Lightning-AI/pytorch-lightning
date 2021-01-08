@@ -73,17 +73,7 @@ class ConfigValidator(object):
 
         trainer.overriden_optimizer_step = is_overridden('optimizer_step', model)
         trainer.overriden_optimizer_zero_grad = is_overridden('optimizer_zero_grad', model)
-
-        enable_pl_optimizer = trainer._enable_pl_optimizer
         automatic_optimization = trainer.train_loop.automatic_optimization
-        if trainer.overriden_optimizer_step and not enable_pl_optimizer and automatic_optimization:
-            rank_zero_warn(
-                "When overriding `LightningModule` optimizer_step with"
-                " `Trainer(..., enable_pl_optimizer=False, ...)`,"
-                " we won't be calling `.zero_grad` we can't assume when you call your `optimizer.step()`."
-                " For Lightning to take care of it, please use `Trainer(enable_pl_optimizer=True)`."
-            )
-
         going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
 
         has_overriden_optimization_functions = trainer.overriden_optimizer_step or trainer.overriden_optimizer_zero_grad
@@ -92,13 +82,6 @@ class ConfigValidator(object):
                 'When overriding `LightningModule` optimizer_step or optimizer_zero_grad'
                 ' , `accumulate_grad_batches` in `Trainer` should to be 1.'
                 ' It ensures optimizer_step or optimizer_zero_grad are called on every batch.'
-            )
-
-        if (enable_pl_optimizer) and trainer.overriden_optimizer_zero_grad and not automatic_optimization:
-            raise MisconfigurationException(
-                'When overriding `LightningModule` optimizer_zero_grad'
-                ' and preserving model property `automatic_optimization` as True with'
-                ' `Trainer(enable_pl_optimizer=True, ...) is not supported'
             )
 
     def __verify_eval_loop_configuration(self, model, eval_loop_name):
