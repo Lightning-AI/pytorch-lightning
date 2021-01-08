@@ -467,7 +467,7 @@ FBeta
     :noindex:
     
 IoU
-~~~~~~~~~~~~~~~
+~~~
 
 .. autoclass:: pytorch_lightning.metrics.classification.IoU
     :noindex:

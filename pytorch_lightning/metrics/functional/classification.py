@@ -700,7 +700,8 @@ def iou(
     Intersection over union, or Jaccard index calculation.
 
     .. warning :: Deprecated in favor of
-     :func:`~pytorch_lightning.metrics.functional.iou.iou`
+     :func:`~pytorch_lightning.metrics.functional.iou.iou`. Will be removed in
+     v1.4.0.
 
     Args:
         pred: Tensor containing integer predictions, with shape [N, d1, d2, ...]
