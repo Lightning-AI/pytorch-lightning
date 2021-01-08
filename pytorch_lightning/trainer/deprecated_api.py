@@ -139,6 +139,8 @@ class DeprecatedDistDeviceAttributes:
     def training(self, val: bool) -> None:
         if val:
             self._train_phase = TrainPhase.TRAINING
+        else:
+            self._train_phase = None
 
     @property
     def testing(self) -> bool:
@@ -148,3 +150,5 @@ class DeprecatedDistDeviceAttributes:
     def testing(self, val: bool) -> None:
         if val:
             self._train_phase = TrainPhase.TESTING
+        else:
+            self._train_phase = None
