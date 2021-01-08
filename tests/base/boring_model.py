@@ -145,7 +145,6 @@ class BoringDataModule(LightningDataModule):
         self.random_full = RandomDataset(32, 192)
 
     def setup(self, stage: Optional[str] = None):
-
         if stage == "fit" or stage is None:
             self.random_train, self.random_val, _ = random_split(
                 dataset=self.random_full,
