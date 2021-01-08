@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Union
+from typing import Optional
 
 import torch
 from pytorch_lightning.metrics.classification.helpers import _reduce_stat_scores
@@ -149,7 +149,7 @@ def precision(
         raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
     if zero_division not in [0,1]:
-        raise ValueError(f"The `zero_division` has to be either 0 or 1.")
+        raise ValueError("The `zero_division` has to be either 0 or 1.")
 
     allowed_mdmc_average = [None, "samplewise", "global"]
     if mdmc_average not in allowed_mdmc_average:
@@ -312,7 +312,7 @@ def recall(
 
     allowed_mdmc_average = [None, "samplewise", "global"]
     if mdmc_average not in allowed_mdmc_average:
-        raise ValueError(f"The `mdmc_average` has to be one of {allowed_mdmc_average}, got {mdmc_average}.")
+        raise ValueError("The `mdmc_average` has to be one of {allowed_mdmc_average}, got {mdmc_average}.")
 
     if average in ["macro", "weighted", "none", None] and (not num_classes or num_classes < 1):
         raise ValueError(f"When you set `average` as {average}, you have to provide the number of classes.")
