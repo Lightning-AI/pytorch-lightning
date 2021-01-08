@@ -67,7 +67,7 @@ def average_precision(
             which for binary problem is translate to 1. For multiclass problems
             this argument should not be set as we iteratively change it in the
             range [0,num_classes-1]
-        sample_weight: sample weights for each data point
+        sample_weights: sample weights for each data point
 
     Returns:
         tensor with average precision. If multiclass will return list
