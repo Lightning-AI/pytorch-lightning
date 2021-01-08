@@ -53,7 +53,7 @@ def retrieval_average_precision(
         target = target.bool()
 
     if target.sum() == 0:
-        return torch.tensor(0).to(preds)
+        return torch.tensor(0, device=preds.device)
 
     target = target[torch.argsort(preds, dim=-1, descending=True)]
     positions = torch.arange(1, len(target) + 1, device=target.device, dtype=torch.float32)[target > 0]
