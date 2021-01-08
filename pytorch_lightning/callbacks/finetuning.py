@@ -92,7 +92,7 @@ class BaseFinetuningCallback(Callback):
 
     r"""
     BaseFinetuningCallback.
-    Overrides the finetunning_function and add your own logic there.
+    Override the finetunning_function and add your own logic there.
 
     """
     @staticmethod
