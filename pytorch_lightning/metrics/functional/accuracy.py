@@ -18,23 +18,30 @@ from pytorch_lightning.metrics.classification.helpers import _input_format_class
 
 
 def _accuracy_update(
-    preds: torch.Tensor, target: torch.Tensor, threshold: float, top_k: Optional[int], subset_accuracy: bool
+    preds: torch.Tensor, target: torch.Tensor, threshold: float, class_weights: Optional[torch.Tensor], top_k: Optional[int], subset_accuracy: bool
 ) -> Tuple[torch.Tensor, torch.Tensor]:
 
     preds, target, mode = _input_format_classification(preds, target, threshold=threshold, top_k=top_k)
+
+    if class_weights is not None:
+        weights = class_weights.to(target.device)[target]
+    else:
+        weights = torch.ones_like(target)
 
     if mode == "multi-label" and top_k:
         raise ValueError("You can not use the `top_k` parameter to calculate accuracy for multi-label inputs.")
 
     if mode == "binary" or (mode == "multi-label" and subset_accuracy):
-        correct = (preds == target).all(dim=1).sum()
-        total = torch.tensor(target.shape[0], device=target.device)
+        correct = (weights * (preds == target).all(dim=1)).sum()
+        # total = torch.tensor(target.shape[0], device=target.device)
+        total = weights.sum()
     elif mode == "multi-label" and not subset_accuracy:
-        correct = (preds == target).sum()
-        total = torch.tensor(target.numel(), device=target.device)
+        correct = weights * (preds == target).sum()
+        # total = torch.tensor(target.numel(), device=target.device)
+        total = weights.sum()
     elif mode == "multi-class" or (mode == "multi-dim multi-class" and not subset_accuracy):
-        correct = (preds * target).sum()
-        total = target.sum()
+        correct = (weights * preds * target).sum()
+        total = (weights * target).sum()
     elif mode == "multi-dim multi-class" and subset_accuracy:
         sample_correct = (preds * target).sum(dim=(1, 2))
         correct = (sample_correct == target.shape[2]).sum()
@@ -51,6 +58,7 @@ def accuracy(
     preds: torch.Tensor,
     target: torch.Tensor,
     threshold: float = 0.5,
+    class_weights: Optional[torch.Tensor] = None,
     top_k: Optional[int] = None,
     subset_accuracy: bool = False,
 ) -> torch.Tensor:
@@ -115,5 +123,5 @@ def accuracy(
         tensor(0.6667)
     """
 
-    correct, total = _accuracy_update(preds, target, threshold, top_k, subset_accuracy)
+    correct, total = _accuracy_update(preds, target, threshold, class_weights, top_k, subset_accuracy)
     return _accuracy_compute(correct, total)
