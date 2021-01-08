@@ -26,7 +26,6 @@ from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categ
 
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'only_binary'], [
-    pytest.param(partial(sk_jaccard_score, average='macro'), iou, False, id='iou'),
     pytest.param(partial(sk_precision, average='micro'), precision, False, id='precision'),
     pytest.param(partial(sk_recall, average='micro'), recall, False, id='recall'),
     pytest.param(sk_roc_auc_score, auroc, True, id='auroc')
@@ -304,28 +303,6 @@ def test_dice_score(pred, target, expected):
     pytest.param(True, 'elementwise_mean', None, torch.Tensor([0.5])),
     pytest.param(True, 'none', 0, torch.Tensor([0.5, 0.5])),
 ])
-def test_iou(half_ones, reduction, ignore_index, expected):
-    pred = (torch.arange(120) % 3).view(-1, 1)
-    target = (torch.arange(120) % 3).view(-1, 1)
-    if half_ones:
-        pred[:60] = 1
-    iou_val = iou(
-        pred=pred,
-        target=target,
-        ignore_index=ignore_index,
-        reduction=reduction,
-    )
-    assert torch.allclose(iou_val, expected, atol=1e-9)
-
-
-def test_iou_input_check():
-    with pytest.raises(ValueError, match=r"'pred' shape (.*) must equal 'target' shape (.*)"):
-        _ = iou(pred=torch.randint(0, 2, (3, 4, 3)),
-                target=torch.randint(0, 2, (3, 3)))
-
-    with pytest.raises(ValueError, match="'pred' must contain integer targets."):
-        _ = iou(pred=torch.rand((3, 3)),
-                target=torch.randint(0, 2, (3, 3)))
 
 
 @pytest.mark.parametrize('metric', [auroc])
