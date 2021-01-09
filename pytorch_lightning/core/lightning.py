@@ -621,7 +621,7 @@ class LightningModule(
             for val_batch in val_data:
                 out = validation_step(val_batch)
                 val_outs.append(out)
-                validation_epoch_end(val_outs)
+            validation_epoch_end(val_outs)
 
         Args:
             batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
@@ -677,7 +677,7 @@ class LightningModule(
                     # log the outputs!
                     self.log_dict({'val_loss': loss, 'val_acc': val_acc})
 
-            If you pass in multiple val datasets, validation_step will have an additional argument.
+            If you pass in multiple val datasets, :meth:`validation_step` will have an additional argument.
 
             .. code-block:: python
 
@@ -853,7 +853,7 @@ class LightningModule(
                     # log the outputs!
                     self.log_dict({'test_loss': loss, 'test_acc': test_acc})
 
-            If you pass in multiple validation datasets, :meth:`test_step` will have an additional
+            If you pass in multiple test datasets, :meth:`test_step` will have an additional
             argument.
 
             .. code-block:: python
@@ -863,7 +863,7 @@ class LightningModule(
                     # dataloader_idx tells you which dataset this is.
 
         Note:
-            If you don't need to validate you don't need to implement this method.
+            If you don't need to test you don't need to implement this method.
 
         Note:
             When the :meth:`test_step` is called, the model has been put in eval mode and
