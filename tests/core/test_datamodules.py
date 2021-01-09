@@ -248,6 +248,8 @@ def test_dm_checkpoint_save(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=1,
         weights_summary=None,
         callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on')],
     )
