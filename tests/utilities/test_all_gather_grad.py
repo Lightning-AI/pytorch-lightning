@@ -69,7 +69,8 @@ def test_all_gather_collection(tmpdir):
                 "losses_list": [losses, losses]
             })
             assert gathered_loss["losses_np_ndarray"][0].dtype == torch.int64
-            assert gathered_loss["losses_bool"][0].dtype == torch.bool
+            # torch.bool can't be all_gathered
+            assert gathered_loss["losses_bool"][0].dtype == torch.int32
             assert gathered_loss["losses_float"][0].dtype == torch.float
             assert gathered_loss["losses_int"][0].dtype == torch.int
             assert gathered_loss["losses_list"][0].numel() == 2 * len(losses)

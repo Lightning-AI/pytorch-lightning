@@ -389,6 +389,7 @@ class LightningModule(
             A tensor of shape (world_size, batch, ...), or if the input was a collection
             the output will also be a collection with tensors of this shape.
         """
+        group = group if group is not None else torch.distributed.group.WORLD
         if self.trainer.accelerator_backend is not None:
             all_gather = self.trainer.accelerator_backend.all_gather
         else:

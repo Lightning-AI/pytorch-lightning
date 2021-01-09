@@ -30,11 +30,27 @@ else:
     Batch = type(None)
 
 
+def to_dtype_tensor(value, dtype:torch.dtype = None, device: torch.device = None):
+    if device is None:
+        raise MisconfigurationException(
+            "device (torch.device) should be provided."
+        )
+    return torch.tensor(value, dtype=dtype, device=device)
+
+
+def from_numpy(value, device: torch.device = None):
+    if device is None:
+        raise MisconfigurationException(
+            "device (torch.device) should be provided."
+        )
+    return torch.from_numpy(value).to(device)
+
 CONVERSION_DTYPES = [
-    (bool, torch.bool),
-    (int, torch.int),
-    (float, torch.float),
-    (np.ndarray, None),
+    # bool -> int as torch.bool: RuntimeError: Unsupported data type for NCCL process group
+    (bool, partial(to_dtype_tensor, dtype=torch.int)),
+    (int, partial(to_dtype_tensor, dtype=torch.int)),
+    (float, partial(to_dtype_tensor, dtype=torch.float)),
+    (np.ndarray, from_numpy),
 ]
 
 
@@ -131,23 +147,11 @@ def move_data_to_device(batch: Any, device: torch.device):
 
     dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
-
-
-def to_dtype_tensor(value, dtype:torch.dtype = None, device: torch.device = None):
-    if device is None:
-        raise MisconfigurationException(
-            "device (torch.device) should be provided."
-        )
-    if isinstance(value, np.ndarray):
-        return torch.from_numpy(value).to(device)
-    return torch.tensor(value, dtype=dtype, device=device)
-
-
 def convert_to_tensors(data, device: torch.device = None):
     if device is None:
         raise MisconfigurationException(
             "device (torch.device) should be provided."
         )
-    for src_dtype, dst_dtype in CONVERSION_DTYPES:
-        data = apply_to_collection(data, src_dtype, partial(to_dtype_tensor, dtype=dst_dtype, device=device))
+    for src_dtype, conversion_func in CONVERSION_DTYPES:
+        data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
     return data
