@@ -360,8 +360,6 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     if not fs.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(config_yaml)}.")
 
-    hparams = deepcopy(hparams)
-
     # convert Namespace or AD to dict
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
