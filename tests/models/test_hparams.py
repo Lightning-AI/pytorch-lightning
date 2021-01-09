@@ -15,6 +15,7 @@ import functools
 import os
 import pickle
 from argparse import Namespace
+from copy import deepcopy
 
 import cloudpickle
 import pytest
@@ -26,6 +27,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from pytorch_lightning.utilities import AttributeDict, HYDRA_EXPERIMENTAL_AVAILABLE, is_picklable
 from tests.base import BoringModel, EvalModelTemplate, TrialMNIST
@@ -654,16 +656,36 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
     This test relies on configuration saved under tests/models/conf/config.yaml
     """
 
-    initialize(config_path="conf")
+    class TestHydraModel(BoringModel):
 
-    cfg = compose(config_name="config")
-
-    class TestModel(BoringModel):
-
-        def __init__(self, cfg):
+        def __init__(self, args_1, args_2, kwarg_1=None):
             self.save_hyperparameters()
-            assert isinstance(self.hparams.cfg, DictConfig)
-            assert self.hparams.cfg.log == "Something"
+            self.test_hparams()
+            config_file = f"{tmpdir}/hparams.yaml"
+            save_hparams_to_yaml(config_file, self.hparams)
+            self.hparams = load_hparams_from_yaml(config_file)
+            self.test_hparams()
             super().__init__()
 
-    model = TestModel(cfg)
+        def test_hparams(self):
+            assert self.hparams.args_1['cfg'].log == "Something"
+            assert self.hparams.args_2[0].log == "Something"
+            assert self.hparams.kwarg_1['cfg'][0].log == "Something"
+
+    with initialize(config_path="conf"):
+        args_1 = {"cfg": compose(config_name="config")}
+        args_2 = [compose(config_name="config")]
+        kwarg_1 = {"cfg": [compose(config_name="config")]}
+        model = TestHydraModel(args_1, args_2, kwarg_1=kwarg_1)
+        epochs = 2
+        checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            callbacks=[checkpoint_callback],
+            limit_train_batches=10,
+            limit_val_batches=10,
+            max_epochs=epochs,
+            logger=False,
+        )
+        trainer.fit(model)
+        _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)

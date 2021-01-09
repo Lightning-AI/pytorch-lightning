@@ -17,14 +17,17 @@ import csv
 import inspect
 import os
 from argparse import Namespace
+from copy import deepcopy
 from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
 from warnings import warn
 
 import torch
 import yaml
+from omegaconf.dictconfig import DictConfig
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AttributeDict, OMEGACONF_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
@@ -337,6 +340,10 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
         rank_zero_warn(f"Missing Tags: {config_yaml}.", RuntimeWarning)
         return {}
 
+    if OMEGACONF_AVAILABLE:
+        with fs.open(config_yaml, "r") as fp:
+            return OmegaConf.load(fp)
+
     with fs.open(config_yaml, "r") as fp:
         tags = yaml.full_load(fp)
 
@@ -349,9 +356,12 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         config_yaml: path to new YAML file
         hparams: parameters to be saved
     """
+    print(config_yaml)
     fs = get_filesystem(config_yaml)
     if not fs.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(config_yaml)}.")
+
+    hparams = deepcopy(hparams)
 
     # convert Namespace or AD to dict
     if isinstance(hparams, Namespace):
@@ -361,15 +371,14 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
 
     # saving with OmegaConf objects
     if OMEGACONF_AVAILABLE:
-        if OmegaConf.is_config(hparams):
-            with fs.open(config_yaml, "w", encoding="utf-8") as fp:
-                OmegaConf.save(hparams, fp, resolve=True)
-            return
-        for v in hparams.values():
-            if OmegaConf.is_config(v):
-                with fs.open(config_yaml, "w", encoding="utf-8") as fp:
-                    OmegaConf.save(OmegaConf.create(v), fp, resolve=True)
-                return
+        def resolve_dict_config(data):
+            data = OmegaConf.to_container(data, resolve=True)
+            return OmegaConf.create(data)
+
+        hparams = apply_to_collection(hparams, DictConfig, resolve_dict_config)
+        with fs.open(config_yaml, "w", encoding="utf-8") as fp:
+            OmegaConf.save(hparams, fp)
+        return
 
     assert isinstance(hparams, dict)
     hparams_allowed = {}
