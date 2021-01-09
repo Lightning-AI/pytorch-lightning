@@ -1,11 +1,11 @@
 import os
 import sys
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities import AllGatherGrad
 from tests.base.boring_model import BoringModel
 
@@ -70,7 +70,7 @@ def test_all_gather_collection(tmpdir):
             })
             assert gathered_loss["losses_np_ndarray"][0].dtype == torch.int64
             # torch.bool can't be all_gathered
-            assert gathered_loss["losses_bool"][0].dtype == torch.int32
+            assert gathered_loss["losses_bool"][0].dtype == torch.uint8
             assert gathered_loss["losses_float"][0].dtype == torch.float
             assert gathered_loss["losses_int"][0].dtype == torch.int
             assert gathered_loss["losses_list"][0].numel() == 2 * len(losses)

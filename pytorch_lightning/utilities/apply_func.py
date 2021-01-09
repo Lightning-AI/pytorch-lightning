@@ -45,9 +45,10 @@ def from_numpy(value, device: torch.device = None):
         )
     return torch.from_numpy(value).to(device)
 
+
 CONVERSION_DTYPES = [
-    # bool -> int as torch.bool: RuntimeError: Unsupported data type for NCCL process group
-    (bool, partial(to_dtype_tensor, dtype=torch.int)),
+    # bool -> uint8 as bool -> torch.bool triggers RuntimeError: Unsupported data type for NCCL process group
+    (bool, partial(to_dtype_tensor, dtype=torch.uint8)),
     (int, partial(to_dtype_tensor, dtype=torch.int)),
     (float, partial(to_dtype_tensor, dtype=torch.float)),
     (np.ndarray, from_numpy),
@@ -147,6 +148,8 @@ def move_data_to_device(batch: Any, device: torch.device):
 
     dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
+
+
 def convert_to_tensors(data, device: torch.device = None):
     if device is None:
         raise MisconfigurationException(
