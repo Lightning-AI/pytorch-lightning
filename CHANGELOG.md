@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `transfer_batch_to_device` for DDP with `len(devices_ids) == 1` ([#5195](https://github.com/PyTorchLightning/pytorch-lightning/pull/5195))
 
+- Fixed a visual bug in the progress bar display at the very first iteration ([#4579](https://github.com/PyTorchLightning/pytorch-lightning/pull/4579))
 
 
 ## [1.1.3] - 2021-01-05
