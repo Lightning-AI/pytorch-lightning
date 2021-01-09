@@ -41,6 +41,7 @@ class LambdaCallback(Callback):
 
     def __init__(
         self,
+        on_before_accelerator_backend_setup: Optional[Callable] = None,
         setup: Optional[Callable] = None,
         teardown: Optional[Callable] = None,
         on_init_start: Optional[Callable] = None,
@@ -79,6 +80,8 @@ class LambdaCallback(Callback):
         on_after_backward: Optional[Callable] = None,
         on_before_zero_grad: Optional[Callable] = None,
     ):
+        if on_before_accelerator_backend_setup is not None:
+            self.on_before_accelerator_backend_setup = on_before_accelerator_backend_setup
         if setup is not None:
             self.setup = setup
         if teardown is not None:
