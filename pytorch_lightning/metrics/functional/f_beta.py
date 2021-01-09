@@ -75,7 +75,7 @@ def fbeta(
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
     Args:
-        pred: estimated probabilities
+        preds: estimated probabilities
         target: ground-truth labels
         num_classes: Number of classes in the dataset.
         beta: Beta coefficient in the F measure.
@@ -128,7 +128,7 @@ def f1(
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
     Args:
-        pred: estimated probabilities
+        preds: estimated probabilities
         target: ground-truth labels
         num_classes: Number of classes in the dataset.
         threshold:

@@ -64,7 +64,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu():
         accelerator='ddp_spawn',
         plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25,
+        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
 
 
@@ -79,7 +79,7 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
         accelerator='ddp_spawn',
         plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25,
+        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
 
 
@@ -94,7 +94,7 @@ def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
         accelerator='ddp_spawn',
         plugin='ddp_sharded',
         model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25,
+        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
 
 
@@ -141,7 +141,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
         gpus=2,
         accelerator='ddp_spawn',
         model_cls=SeedTrainLoaderMultipleOptimizersModel,
-        max_percent_speed_diff=0.25,  # Increase speed diff since only 2 GPUs sharding 2 optimizers
+        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
 
 
@@ -158,7 +158,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim_manual(tmpdir):
         gpus=2,
         accelerator='ddp_spawn',
         model_cls=SeedTrainLoaderManualModel,
-        max_percent_speed_diff=0.25,  # Increase speed diff since only 2 GPUs sharding 2 optimizers
+        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
 
 
