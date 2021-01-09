@@ -22,8 +22,8 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.callbacks.progress import ProgressBar, ProgressBarBase
 
 __all__ = [
-    'BackboneLambdaFinetuningCallback',  
-    'BaseFinetuningCallback',  
+    'BackboneLambdaFinetuningCallback',
+    'BaseFinetuningCallback',
     'Callback',
     'EarlyStopping',
     'GPUStatsMonitor',
