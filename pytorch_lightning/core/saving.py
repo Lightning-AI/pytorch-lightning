@@ -327,7 +327,7 @@ def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> 
             writer.writerow({"key": k, "value": v})
 
 
-def load_hparams_from_yaml(config_yaml: str, use_omegaconf:bool = True) -> Dict[str, Any]:
+def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict[str, Any]:
     """Load hparams from a file.
 
         Args:
