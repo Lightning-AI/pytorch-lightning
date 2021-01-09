@@ -24,7 +24,6 @@ from warnings import warn
 
 import torch
 import yaml
-from omegaconf.dictconfig import DictConfig
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AttributeDict, OMEGACONF_AVAILABLE, rank_zero_warn
@@ -38,6 +37,8 @@ ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
 if OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
+    from omegaconf.dictconfig import DictConfig
+
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
