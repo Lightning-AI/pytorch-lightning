@@ -40,7 +40,7 @@ To access TPUs, there are three main ways.
 ----------------
 
 Colab TPUs
------------
+----------
 Colab is like a jupyter notebook with a free GPU or TPU
 hosted on GCP.
 
@@ -129,8 +129,7 @@ That's it! Your model will train on all 8 TPU cores.
 ----------------
 
 TPU core training
-
-------------------------
+-----------------
 
 Lightning supports training on a single TPU core or 8 TPU cores.
 
@@ -177,7 +176,7 @@ on how to set up the instance groups and VMs needed to run TPU Pods.
 ----------------
 
 16 bit precision
------------------
+----------------
 Lightning also supports training in 16-bit precision with TPUs.
 By default, TPU training will use 32-bit precision. To enable 16-bit,
 set the 16-bit flag.
@@ -193,6 +192,12 @@ set the 16-bit flag.
 Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.
 
 ----------------
+
+Performance considerations
+--------------------------
+
+
+
 
 About XLA
 ----------
