@@ -369,7 +369,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
 
     # saving with OmegaConf objects
     if OMEGACONF_AVAILABLE:
-        # deepcopy: hparams from user is not resolved
+        # deepcopy: hparams from user shouldn't be resolved
         hparams = deepcopy(hparams)
         to_container = partial(OmegaConf.to_container, resolve=True)
         hparams = apply_to_collection(hparams, DictConfig, to_container)
