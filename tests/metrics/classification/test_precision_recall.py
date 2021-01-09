@@ -54,8 +54,8 @@ def _sk_prec_recall_mdmc(preds, target, sk_fn, num_classes, average, is_multicla
     )
 
     if mdmc_average == "global":
-        preds = torch.movedim(preds, 1, -1).reshape(-1, preds.shape[1])
-        target = torch.movedim(target, 1, -1).reshape(-1, target.shape[1])
+        preds = torch.transpose(preds, 1, 2).reshape(-1, preds.shape[1])
+        target = torch.transpose(target, 1, 2).reshape(-1, target.shape[1])
 
         return _sk_prec_recall(preds, target, sk_fn, num_classes, average, False, ignore_index)
     elif mdmc_average == "samplewise":

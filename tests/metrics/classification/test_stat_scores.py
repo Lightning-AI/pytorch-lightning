@@ -67,12 +67,8 @@ def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_mul
     )
 
     if mdmc_reduce == "global":
-        shape_permute = list(range(preds.ndim))
-        shape_permute[1] = shape_permute[-1]
-        shape_permute[2:] = range(1, len(shape_permute) - 1)
-
-        preds = preds.permute(*shape_permute).reshape(-1, preds.shape[1])
-        target = target.permute(*shape_permute).reshape(-1, target.shape[1])
+        preds = torch.transpose(preds, 1, 2).reshape(-1, preds.shape[1])
+        target = torch.transpose(target, 1, 2).reshape(-1, target.shape[1])
 
         return _sk_stat_scores(preds, target, reduce, None, False, ignore_index, top_k)
     elif mdmc_reduce == "samplewise":
