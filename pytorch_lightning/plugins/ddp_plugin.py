@@ -60,7 +60,7 @@ class DDPPlugin(LightningPlugin):
 
             def configure_ddp(self, model, device_ids):
                 model = LightningDistributedDataParallel(
-                    model, device_ids=device_ids, find_unused_parameters=True
+                    model, device_ids=device_ids, **self._ddp_kwargs
                 )
                 return model
 
