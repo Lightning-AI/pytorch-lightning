@@ -18,6 +18,7 @@ import inspect
 import os
 from argparse import Namespace
 from copy import deepcopy
+from functools import partial
 from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
 from warnings import warn
 
@@ -370,11 +371,8 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     if OMEGACONF_AVAILABLE:
         # deepcopy: hparams from user is not resolved
         hparams = deepcopy(hparams)
-
-        def resolve_dict_config(data):
-            return OmegaConf.to_container(data, resolve=True)
-
-        hparams = apply_to_collection(hparams, DictConfig, resolve_dict_config)
+        to_container = partial(OmegaConf.to_container, resolve=True)
+        hparams = apply_to_collection(hparams, DictConfig, to_container)
         with fs.open(config_yaml, "w", encoding="utf-8") as fp:
             OmegaConf.save(hparams, fp)
         return
