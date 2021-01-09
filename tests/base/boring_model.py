@@ -14,7 +14,7 @@
 from typing import Any, Dict, Optional
 
 import torch
-from torch.utils.data import DataLoader, Dataset, random_split
+from torch.utils.data import DataLoader, Dataset, Subset
 
 from pytorch_lightning import LightningDataModule, LightningModule
 
@@ -146,19 +146,12 @@ class BoringDataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
         if stage == "fit" or stage is None:
-            self.random_train, self.random_val, _ = random_split(
-                dataset=self.random_full,
-                lengths=[64, 64, 64],
-                generator=torch.Generator().manual_seed(7)
-            )
+            self.random_train = Subset(self.random_full, indices=range(64))
+            self.random_val = Subset(self.random_full, indices=range(64, 128))
             self.dims = self.random_train[0].shape
 
         if stage == "test" or stage is None:
-            _, _, self.random_test, = random_split(
-                dataset=self.random_full,
-                lengths=[64, 64, 64],
-                generator=torch.Generator().manual_seed(7)
-            )
+            self.random_test = Subset(self.random_full, indices=range(128, 192))
             self.dims = getattr(self, "dims", self.random_test[0].shape)
 
         self.non_picklable = lambda x: x ** 2
