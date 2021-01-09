@@ -489,13 +489,13 @@ def test_hparams_save_yaml(tmpdir):
     path_yaml = os.path.join(tmpdir, 'testing-hparams.yaml')
 
     save_hparams_to_yaml(path_yaml, hparams)
-    assert load_hparams_from_yaml(path_yaml) == hparams
+    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
 
     save_hparams_to_yaml(path_yaml, Namespace(**hparams))
-    assert load_hparams_from_yaml(path_yaml) == hparams
+    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
 
     save_hparams_to_yaml(path_yaml, AttributeDict(hparams))
-    assert load_hparams_from_yaml(path_yaml) == hparams
+    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
 
     save_hparams_to_yaml(path_yaml, OmegaConf.create(hparams))
     assert load_hparams_from_yaml(path_yaml) == hparams

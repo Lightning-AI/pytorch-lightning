@@ -38,6 +38,7 @@ ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 if OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
     from omegaconf.dictconfig import DictConfig
+    from omegaconf.errors import UnsupportedValueType, ValidationError
 
 
 # the older shall be on the top
@@ -326,8 +327,13 @@ def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> 
             writer.writerow({"key": k, "value": v})
 
 
-def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
+def load_hparams_from_yaml(config_yaml: str, use_omegaconf:bool = True) -> Dict[str, Any]:
     """Load hparams from a file.
+
+        Args:
+            config_yaml: Path to config yaml file
+            use_omegaconf: If both `OMEGACONF_AVAILABLE` and `use_omegaconf` are True,
+                the hparams will be converted to `DictConfig` if possible
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
     >>> path_yaml = './testing-hparams.yaml'
@@ -346,9 +352,11 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
         hparams = yaml.full_load(fp)
 
     if OMEGACONF_AVAILABLE:
-        for k, v in hparams.items():
-            hparams[k] = OmegaConf.create(v)
-
+        if use_omegaconf:
+            try:
+                return OmegaConf.create(hparams)
+            except (UnsupportedValueType, ValidationError):
+                pass
     return hparams
 
 
@@ -375,8 +383,11 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         to_container = partial(OmegaConf.to_container, resolve=True)
         hparams = apply_to_collection(hparams, DictConfig, to_container)
         with fs.open(config_yaml, "w", encoding="utf-8") as fp:
-            OmegaConf.save(hparams, fp)
-        return
+            try:
+                OmegaConf.save(hparams, fp)
+                return
+            except (UnsupportedValueType, ValidationError):
+                pass
 
     assert isinstance(hparams, dict)
     hparams_allowed = {}
