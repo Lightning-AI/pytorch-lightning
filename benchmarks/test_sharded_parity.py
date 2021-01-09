@@ -186,7 +186,8 @@ class SeedTrainLoaderModel(BoringModel):
 class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
     def training_step(self, batch, batch_idx, optimizer_idx):
         # manual
-        (opt_a, opt_b) = self.optimizers()
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
         loss_1 = self.step(batch)
 
         self.manual_backward(loss_1, opt_a)

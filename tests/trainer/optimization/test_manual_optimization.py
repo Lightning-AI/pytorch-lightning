@@ -21,7 +21,7 @@ import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities import APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
@@ -454,7 +454,6 @@ def test_manual_optimization_and_return_tensor(tmpdir):
         amp_backend='native',
         accelerator="ddp_spawn",
         gpus=2,
-        enable_pl_optimizer=True
     )
     trainer.fit(model)
 
@@ -573,7 +572,6 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         amp_backend='native',
         accumulate_grad_batches=4,
         gpus=1,
-        enable_pl_optimizer=True,
     )
     trainer.fit(model)
 
@@ -648,7 +646,6 @@ def test_multiple_optimizers_step(tmpdir):
         precision=16,
         amp_backend='native',
         gpus=1,
-        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
@@ -730,7 +727,6 @@ def test_step_with_optimizer_closure(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
@@ -795,7 +791,6 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         accumulate_grad_batches=2,
-        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
@@ -851,7 +846,6 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         accumulate_grad_batches=2,
-        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
@@ -929,7 +923,6 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
         max_epochs=1,
         log_every_n_steps=1,
         accumulate_grad_batches=2,
-        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
@@ -1037,7 +1030,6 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
         max_epochs=1,
         log_every_n_steps=1,
         accumulate_grad_batches=2,
-        enable_pl_optimizer=True,
         gpus=2,
         accelerator="ddp",
     )
@@ -1048,35 +1040,3 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
 
     expected_calls = [call(closure=ANY, optim='adam')] * 2
     mock_adam_step.assert_has_calls(expected_calls)
-
-
-def test_step_with_misconfiguraiton_error_when_overriding_optimizer_zero_grad(tmpdir):
-    """
-    Tests that `optimizer_zero_grad` in manual_optimization triggers a MisconfigurationException
-    """
-    try:
-        class TestModel(BoringModel):
-
-            def optimizer_zero_grad(self, *_):
-                pass
-
-            @property
-            def automatic_optimization(self) -> bool:
-                return False
-
-        model = TestModel()
-        model.val_dataloader = None
-        model.training_epoch_end = None
-
-        limit_train_batches = 8
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=limit_train_batches,
-            limit_val_batches=2,
-            max_epochs=1,
-            log_every_n_steps=1,
-            accumulate_grad_batches=2,
-            enable_pl_optimizer=True,
-        )
-    except MisconfigurationException as e:
-        assert "`Trainer(enable_pl_optimizer=True, ...) is not supported" in str(e)
