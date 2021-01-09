@@ -37,8 +37,7 @@ def test_auto_move_data(src_device, dest_device):
     model = model.to(dest_device)
     model.prepare_data()
     loader = model.train_dataloader()
-    x, y, = next(iter(loader))
-    x = x.flatten(1)
+    x = next(iter(loader))
 
     # test that data on source device gets moved to destination device
     x = x.to(src_device)
