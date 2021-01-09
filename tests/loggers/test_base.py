@@ -69,7 +69,6 @@ class CustomLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics, step):
-        print('sdfsdf', metrics)
         self.metrics_logged = metrics
 
     @rank_zero_only
@@ -157,14 +156,10 @@ def test_multiple_loggers_pickle(tmpdir):
     )
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
-    print('before inside', logger1.metrics_logged)
-    print('before inside', logger2.metrics_logged)
     trainer2.logger.log_metrics({"acc": 1.0}, 0)
-    print('after inside', logger1.metrics_logged)
-    print('after inside', logger2.metrics_logged)
 
-    assert logger1.metrics_logged != {}
-    assert logger2.metrics_logged != {}
+    assert trainer2.logger[0].metrics_logged != {}
+    assert trainer2.logger[1].metrics_logged != {}
 
 
 def test_adding_step_key(tmpdir):
