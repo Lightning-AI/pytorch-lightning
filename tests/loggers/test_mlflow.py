@@ -140,11 +140,13 @@ def test_mlflow_logger_dirs_creation(tmpdir):
             self.log('epoch', self.current_epoch)
 
     model = CustomModel()
+    limit_batches = 5
     trainer = Trainer(
         default_root_dir=tmpdir,
         logger=logger,
         max_epochs=1,
-        limit_val_batches=3,
+        limit_train_batches=limit_batches,
+        limit_val_batches=limit_batches,
         log_gpu_memory=True,
     )
     trainer.fit(model)
@@ -152,7 +154,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert 'epoch' in os.listdir(tmpdir / exp_id / run_id / 'metrics')
     assert set(os.listdir(tmpdir / exp_id / run_id / 'params')) == model.hparams.keys()
     assert trainer.checkpoint_callback.dirpath == (tmpdir / exp_id / run_id / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=63.ckpt'}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {f'epoch=0-step={limit_batches-1}.ckpt'}
 
 
 @mock.patch('pytorch_lightning.loggers.mlflow.mlflow')

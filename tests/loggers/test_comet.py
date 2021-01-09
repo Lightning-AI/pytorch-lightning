@@ -154,12 +154,19 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
     logger.experiment.id = '1'
     logger.experiment.project_name = 'test'
 
+    limit_batches = 5
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=limit_batches,
+        limit_val_batches=limit_batches,
+    )
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == (tmpdir / 'test' / "1" / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=63.ckpt'}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {f'epoch=0-step={limit_batches-1}.ckpt'}
 
 
 @patch('pytorch_lightning.loggers.comet.comet_ml')
