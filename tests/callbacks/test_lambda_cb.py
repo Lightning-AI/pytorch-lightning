@@ -21,19 +21,37 @@ from tests.base.boring_model import BoringModel
 def test_lambda_call(tmpdir):
     seed_everything(42)
 
+    class CustomModel(BoringModel):
+        def on_train_epoch_start(self):
+            if self.current_epoch > 1:
+                raise KeyboardInterrupt
+
     checker = set()
-
     hooks = [m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
-    model = BoringModel()
-
     hooks_args = {h: (lambda x: lambda *args: checker.add(x))(h) for h in hooks}
-    test_callback = LambdaCallback(**hooks_args)
+    hooks_args['on_save_checkpoint'] = (lambda x: lambda *args: [checker.add(x)])('on_save_checkpoint')
 
+    model = CustomModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        num_sanity_val_steps=1,
         max_epochs=1,
-        callbacks=[test_callback]
+        limit_train_batches=1,
+        limit_val_batches=1,
+        callbacks=[LambdaCallback(**hooks_args)],
+    )
+    results = trainer.fit(model)
+    assert results
+
+    model = CustomModel()
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        resume_from_checkpoint=ckpt_path,
+        callbacks=[LambdaCallback(**hooks_args)],
     )
     results = trainer.fit(model)
     trainer.test(model)
