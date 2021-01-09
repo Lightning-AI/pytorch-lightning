@@ -326,7 +326,7 @@ class ModelHooks:
         Example::
 
             def on_post_move_to_device(self):
-                self.decoder.weight.data = self.encoder.weight.data.transpose(0,1)
+                self.decoder.weight = self.encoder.weight
 
         """
 

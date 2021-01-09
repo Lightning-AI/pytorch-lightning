@@ -194,18 +194,6 @@ class TPUAccelerator(Accelerator):
             self.save_spawn_weights(model)
 
     def __setup_tpu_training(self, model: LightningModule, trainer):
-        # use the default device from the process
-        # tpu_device = xm.xla_device()
-
-        # if given an ordinal device, use this as the device
-        if trainer.tpu_id is not None:
-            tpu_device = xm.xla_device(trainer.tpu_id)
-        else:
-            tpu_device = xm.xla_device()
-        # track the device and move model to it
-        trainer._device = tpu_device
-        model.to(trainer._device)
-
         # get the appropriate tpu ranks
         trainer.tpu_local_core_rank = xm.get_local_ordinal()
         trainer.tpu_global_core_rank = xm.get_ordinal()
@@ -216,6 +204,15 @@ class TPUAccelerator(Accelerator):
 
         trainer.global_rank = trainer.tpu_local_core_rank
         rank_zero_only.rank = trainer.global_rank
+
+        # if given an ordinal device, use this as the device
+        if trainer.tpu_id is not None:
+            tpu_device = xm.xla_device(trainer.tpu_id)
+        else:
+            tpu_device = xm.xla_device()
+        # track the device and move model to it
+        trainer._device = tpu_device
+        model.to(trainer._device)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well

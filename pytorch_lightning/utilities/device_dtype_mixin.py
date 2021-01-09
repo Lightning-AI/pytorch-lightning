@@ -89,6 +89,9 @@ class DeviceDtypeModuleMixin(Module):
             ...     def __init__(self, weight: torch.Tensor):
             ...         super().__init__()
             ...         self.register_buffer('weight', weight)
+            ...
+            ...     def on_post_move_to_device(self):
+            ...         pass
             >>> _ = torch.manual_seed(0)
             >>> module = ExampleModule(torch.rand(3, 4))
             >>> module.weight #doctest: +ELLIPSIS
