@@ -200,8 +200,8 @@ class LightningDistributedModule(torch.nn.Module):
 
 
 # In manual_optimization, we need to call reducer prepare_for_backward.
-# TODO: Keep track of Pytorch DDP and update if there is a change
-# https://github.com/pytorch/pytorch/blob/e6779d4357ae94cc9f9fedb83a87eb6126016769/torch/nn/parallel/distributed.py#L692
+# Note: Keep track of Pytorch DDP and update if there is a change
+# https://github.com/pytorch/pytorch/blob/v1.7.1/torch/nn/parallel/distributed.py#L626-L638
 def prepare_for_backward(model: DistributedDataParallel, output: Any):
     if torch.is_grad_enabled() and model.require_backward_grad_sync:
         model.require_forward_param_sync = True
