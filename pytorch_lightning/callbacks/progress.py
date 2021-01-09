@@ -22,7 +22,6 @@ Use or override one of the progress bar callbacks.
 import importlib
 import sys
 
-
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
 if importlib.util.find_spec('ipywidgets') is not None:
@@ -323,7 +322,7 @@ class ProgressBar(ProgressBarBase):
         super().on_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
-        if total_train_batches != float('inf') and not trainer.fast_dev_run:
+        if total_train_batches != float('inf'):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
@@ -334,21 +333,22 @@ class ProgressBar(ProgressBarBase):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self.is_enabled and self.train_batch_idx % self.refresh_rate == 0:
-            self.main_progress_bar.update(self.refresh_rate)
+        if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
+            self._update_bar(self.main_progress_bar)
             self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
         if not trainer.running_sanity_check:
+            self._update_bar(self.main_progress_bar)  # fill up remaining
             self.val_progress_bar = self.init_validation_tqdm()
             self.val_progress_bar.reset(convert_inf(self.total_val_batches))
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self.is_enabled and self.val_batch_idx % self.refresh_rate == 0:
-            self.val_progress_bar.update(self.refresh_rate)
-            self.main_progress_bar.update(self.refresh_rate)
+        if self._should_update(self.val_batch_idx, self.total_val_batches):
+            self._update_bar(self.val_progress_bar)
+            self._update_bar(self.main_progress_bar)
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
@@ -366,12 +366,25 @@ class ProgressBar(ProgressBarBase):
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self.is_enabled and self.test_batch_idx % self.refresh_rate == 0:
-            self.test_progress_bar.update(self.refresh_rate)
+        if self._should_update(self.test_batch_idx, self.total_test_batches):
+            self._update_bar(self.test_progress_bar)
 
     def on_test_end(self, trainer, pl_module):
         super().on_test_end(trainer, pl_module)
         self.test_progress_bar.close()
+
+    def _should_update(self, current, total):
+        return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
+
+    def _update_bar(self, bar):
+        """ Updates the bar by the refresh rate without overshooting. """
+        if bar.total is not None:
+            delta = min(self.refresh_rate, bar.total - bar.n)
+        else:
+            # infinite / unknown size
+            delta = self.refresh_rate
+        if delta > 0:
+            bar.update(delta)
 
 
 def convert_inf(x):

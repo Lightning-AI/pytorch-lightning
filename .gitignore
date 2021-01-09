@@ -27,12 +27,14 @@ timit_data/
 # C extensions
 *.so
 
+# PyCharm
 .idea/
 
 # Distribution / packaging
 .Python
 ide_layouts/
 build/
+_build/
 develop-eggs/
 dist/
 downloads/
@@ -125,11 +127,14 @@ ENV/
 
 # mypy
 .mypy_cache/
+# pytest
+.pytest_cache/
 
 # data
 .data/
 Datasets/
 mnist/
+legacy/checkpoints/
 
 # pl tests
 ml-runs/
@@ -139,3 +144,4 @@ mlruns/
 pytorch\ lightning
 test-reports/
 wandb
+.forked/

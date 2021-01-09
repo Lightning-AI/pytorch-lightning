@@ -9,8 +9,8 @@
 Loggers
 *******
 
-Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...). TensorBoard is used by default, 
-but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combintation of the following loggers.
+Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...). TensorBoard is used by default,
+but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combination of the following loggers.
 
 .. note::
 
@@ -18,6 +18,15 @@ but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any 
     `Trainer(default_root_dir='/your/path/to/save/checkpoints')`
 
 Read more about :ref:`logging` options.
+
+To log arbitrary artifacts like images or audio samples use the `trainer.log_dir` property to resolve
+the path.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        img = ...
+        log_image(img, self.trainer.log_dir)
 
 Comet.ml
 ========
@@ -238,7 +247,7 @@ Lightning supports the use of multiple loggers, just pass a list to the
     logger1 = TensorBoardLogger('tb_logs', name='my_model')
     logger2 = TestTubeLogger('tb_logs', name='my_model')
     trainer = Trainer(logger=[logger1, logger2])
-   
+
 The loggers are available as a list anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 

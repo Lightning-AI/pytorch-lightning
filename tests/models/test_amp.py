@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 
 import pytest
 import torch
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from pytorch_lightning.utilities import APEX_AVAILABLE
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
@@ -36,7 +37,7 @@ def test_amp_single_gpu_dp(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
-        distributed_backend='dp',
+        accelerator='dp',
         precision=16,
     )
 
@@ -55,7 +56,7 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
     )
 
@@ -76,7 +77,7 @@ def test_amp_multi_gpu_dp(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=2,
-        distributed_backend='dp',
+        accelerator='dp',
         precision=16,
     )
 
@@ -95,7 +96,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=2,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
     )
 
@@ -126,9 +127,9 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=[0],
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
     )
     trainer.is_slurm_managing_tasks = True
@@ -152,7 +153,7 @@ def test_cpu_model_with_amp(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
-        precision=16
+        precision=16,
     )
 
     model = EvalModelTemplate()
@@ -161,9 +162,9 @@ def test_cpu_model_with_amp(tmpdir):
         tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_amp_without_apex(tmpdir):
     """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
-    os.environ['PL_DEV_DEBUG'] = '1'
     model = EvalModelTemplate()
 
     trainer = Trainer(
@@ -183,11 +184,11 @@ def test_amp_without_apex(tmpdir):
     assert trainer.dev_debugger.count_events('AMP') == 0
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 

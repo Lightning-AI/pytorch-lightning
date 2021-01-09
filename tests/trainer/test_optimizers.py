@@ -14,7 +14,7 @@
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel
@@ -176,6 +176,7 @@ def test_reducelronplateau_scheduling(tmpdir):
         frequency=1,
         reduce_on_plateau=True,
         strict=True,
+        name=None,
     ), 'lr scheduler was not correctly converted to dict'
 
 
@@ -213,7 +214,13 @@ def test_optimizer_return_options():
     assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        name=None,
     )
 
     # opt tuple of 1 list
@@ -223,7 +230,13 @@ def test_optimizer_return_options():
     assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        name=None,
     )
 
     # opt single dictionary
@@ -233,7 +246,13 @@ def test_optimizer_return_options():
     assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        name=None,
     )
 
     # opt multiple dictionaries with frequencies
@@ -245,7 +264,13 @@ def test_optimizer_return_options():
     assert len(optim) == len(lr_sched) == len(freq) == 2
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        name=None,
     )
     assert freq == [1, 5]
 
@@ -456,4 +481,21 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match='The lr scheduler dict must have the key "scheduler"'):
+        trainer.fit(model)
+
+
+def test_invalid_optimizer_in_scheduler(tmpdir):
+    """
+    Test exception when optimizer attatched to lr_schedulers wasn't returned
+    """
+    class InvalidOptimizerModel(BoringModel):
+        def configure_optimizers(self):
+            opt1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            opt2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(opt2, step_size=1)
+            return [opt1], [lr_scheduler]
+
+    model = InvalidOptimizerModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.raises(MisconfigurationException, match="attatched with an optimizer that wasn't returned"):
         trainer.fit(model)

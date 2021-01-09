@@ -1,6 +1,7 @@
 import pickle
-
+from collections import OrderedDict
 from distutils.version import LooseVersion
+
 import cloudpickle
 import numpy as np
 import pytest
@@ -17,6 +18,20 @@ class Dummy(Metric):
     def __init__(self):
         super().__init__()
         self.add_state("x", torch.tensor(0), dist_reduce_fx=None)
+
+    def update(self):
+        pass
+
+    def compute(self):
+        pass
+
+
+class DummyList(Metric):
+    name = "DummyList"
+
+    def __init__(self):
+        super().__init__()
+        self.add_state("x", list(), dist_reduce_fx=None)
 
     def update(self):
         pass
@@ -76,11 +91,20 @@ def test_reset():
     class A(Dummy):
         pass
 
+    class B(DummyList):
+        pass
+
     a = A()
     assert a.x == 0
     a.x = torch.tensor(5)
     a.reset()
     assert a.x == 0
+
+    b = B()
+    assert isinstance(b.x, list) and len(b.x) == 0
+    b.x = torch.tensor(5)
+    b.reset()
+    assert isinstance(b.x, list) and len(b.x) == 0
 
 
 def test_update():
@@ -167,3 +191,13 @@ def test_pickle(tmpdir):
     metric_loaded = cloudpickle.loads(metric_pickled)
 
     assert metric_loaded.compute() == 1
+
+
+def test_state_dict(tmpdir):
+    """ test that metric states can be removed and added to state dict """
+    metric = Dummy()
+    assert metric.state_dict() == OrderedDict()
+    metric.persistent(True)
+    assert metric.state_dict() == OrderedDict(x=0)
+    metric.persistent(False)
+    assert metric.state_dict() == OrderedDict()

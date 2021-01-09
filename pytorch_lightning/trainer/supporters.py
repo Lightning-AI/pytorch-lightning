@@ -43,14 +43,14 @@ class TensorRunningAccum(object):
 
     def __init__(self, window_length: int):
         self.window_length = window_length
-        self.memory = torch.zeros(self.window_length)
+        self.memory = None
         self.current_idx: int = 0
         self.last_idx: Optional[int] = None
         self.rotated: bool = False
 
     def reset(self) -> None:
         """Empty the accumulator."""
-        self = TensorRunningAccum(self.window_length)
+        self.__init__(self.window_length)
 
     def last(self):
         """Get the last added element."""
@@ -59,6 +59,9 @@ class TensorRunningAccum(object):
 
     def append(self, x):
         """Add an element to the accumulator."""
+        if self.memory is None:
+            self.memory = torch.zeros(self.window_length, *x.shape)
+
         # ensure same device and type
         if self.memory.device != x.device or self.memory.type() != x.type():
             x = x.to(self.memory)

@@ -16,7 +16,7 @@ jobs:
       matrix:
         # os: [ubuntu-20.04]
         python-version: [3.7]
-        pytorch-version: [1.3, 1.4, 1.5, 1.6, 1.7]
+        pytorch-version: [1.3, 1.4, 1.5, 1.6, 1.7, 1.8]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 35
@@ -34,14 +34,25 @@ jobs:
       # todo this probably does not work with docker images, rather cache dockers
       uses: actions/cache@v2
       with:
-        path: Datasets # This path is specific to Ubuntu
-        # Look to see if there is a cache hit for the corresponding requirements file
+        path: Datasets
         key: pl-dataset
+
+    - name: Pull checkpoints from S3
+      # todo: consider adding coma caching, but ATM all models have less then 100KB
+      run: |
+        # todo: remove unzip install after new nigtly docker is created
+        apt-get update -qq
+        apt-get install -y --no-install-recommends unzip
+        # enter legacy and update checkpoints from S3
+        cd legacy
+        curl https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip --output checkpoints.zip
+        unzip -o checkpoints.zip
+        ls -l checkpoints/
 
     - name: Tests
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        python -m pytest pytorch_lightning tests -v --color=yes --durations=0 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        python -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         # coverage report
       shell: bash -l {0}
 
@@ -50,5 +61,4 @@ jobs:
       with:
         name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
         path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
-      # Use always() to always run this step to publish test results when there are test failures
-      if: always()
+      if: failure()

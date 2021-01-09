@@ -12,22 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, List, Union
+"""Various hooks to be used in the Lightning code."""
+
+from typing import Any, Dict, List, Optional, Union
 
 import torch
-from pytorch_lightning.utilities import AMPType, move_data_to_device, rank_zero_warn
-from torch import Tensor
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
+from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 
 
 class ModelHooks:
+    """Hooks to be used in LightningModule."""
     def setup(self, stage: str):
         """
         Called at the beginning of fit and test.
@@ -297,6 +294,7 @@ class ModelHooks:
 
 
 class DataHooks:
+    """Hooks to be used with LightningDataModule."""
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
@@ -504,7 +502,7 @@ class DataHooks:
             will have an argument ``dataloader_idx`` which matches the order here.
         """
 
-    def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
+    def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
         wrapped in a custom data structure.
@@ -542,9 +540,9 @@ class DataHooks:
             any other device than the one passed in as argument (unless you know what you are doing).
 
         Note:
-            This hook only runs on single GPU training (no data-parallel). If you need multi-GPU support
-            for your custom batch objects, you need to define your custom
-            :class:`~torch.nn.parallel.DistributedDataParallel` or
+            This hook only runs on single GPU training and DDP.
+            If you need multi-GPU support for your custom batch objects in ``dp`` or ``ddp2``,
+            you need to define your custom :class:`~torch.nn.parallel.DistributedDataParallel` or
             :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
             override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
 
@@ -552,10 +550,12 @@ class DataHooks:
             - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
             - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
         """
+        device = device or self.device
         return move_data_to_device(batch, device)
 
 
 class CheckpointHooks:
+    """Hooks to be used with Checkpointing."""
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         r"""
         Called by Lightning to restore your model.

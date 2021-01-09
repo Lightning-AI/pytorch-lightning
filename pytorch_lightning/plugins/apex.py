@@ -11,21 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Tuple
+import math
+from typing import List, Tuple, Union
 
+import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities import APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
-from pytorch_lightning.utilities import AMPType
 
-try:
+if APEX_AVAILABLE:
     from apex import amp
-except ImportError:
-    amp = None
 
 
-class ApexPlugin:
+class ApexPlugin(PrecisionPlugin):
 
     def __init__(self, trainer=None):
         self.trainer = trainer
@@ -98,3 +99,47 @@ class ApexPlugin:
         """
         model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
         return model, optimizers
+
+    def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
+        """
+        This code is a modification of :meth:`torch.nn.utils.clip_grad_norm_` using a higher epsilon for fp16 weights.
+        This is important when setting amp_level to O2, and the master weights are in fp16.
+        Args:
+            grad_clip_val: Maximum norm of gradients.
+            optimizer: Optimizer with gradients that will be clipped.
+            norm_type: (float or int): type of the used p-norm. Can be ``'inf'`` for
+            infinity norm.
+        """
+        model = self.trainer.get_model()
+        parameters = model.parameters()
+        max_norm = float(grad_clip_val)
+
+        if isinstance(parameters, torch.Tensor):
+            parameters = [parameters]
+        parameters = [p for p in parameters if p.grad is not None]
+
+        if len(parameters) == 0:
+            return torch.tensor(0.)
+        device = parameters[0].grad.device
+        total_norm = torch.norm(
+            torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in parameters]), norm_type)
+        clip_coef = max_norm / (total_norm + self.norm_clipping_epsilon)
+        if clip_coef < 1:
+            for p in parameters:
+                p.grad.detach().mul_(clip_coef.to(p.grad.device))
+
+    @property
+    def norm_clipping_epsilon(self):
+        return 1e-5
+
+    def optimizer_step(self, trainer, optimizer, closure):
+        # apex amp does not yet support closures.
+        # TODO: pass the closure to the step ASAP
+        with trainer.profiler.profile("closure"):
+            closure()
+
+        if not self.trainer.train_loop.automatic_optimization:
+            trainer.call_hook("on_after_backward")
+
+        with trainer.profiler.profile("optimizer_step"):
+            optimizer.step()

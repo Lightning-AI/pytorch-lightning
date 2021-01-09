@@ -12,27 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from multiprocessing import Process, Queue
+from argparse import ArgumentParser
+from unittest import mock
 
 import pytest
 from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.accelerators.accelerator import BackendType
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.utilities import TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.develop_utils import pl_multi_process_test
 
-TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 if TPU_AVAILABLE:
     import torch_xla
-    import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
     SERIAL_EXEC = xmp.MpSerialExecutor()
 
@@ -219,6 +217,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
     ['tpu_cores', 'expected_tpu_id'],
     [pytest.param(1, None), pytest.param(8, None), pytest.param([1], 1), pytest.param([8], 8)],
 )
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires missing TPU")
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     """Test if trainer.tpu_id is set as expected"""
     assert Trainer(tpu_cores=tpu_cores).tpu_id == expected_tpu_id
@@ -233,56 +232,16 @@ def test_tpu_misconfiguration():
 @pytest.mark.skipif(TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available"""
-    model = EvalModelTemplate()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        tpu_cores=8,
-    )
 
-    with pytest.raises(MisconfigurationException, match='PyTorch XLA not installed.'):
-        trainer.fit(model)
+    with pytest.raises(MisconfigurationException, match='No TPU devices were found.'):
+        Trainer(tpu_cores=8)
 
 
 @pytest.mark.parametrize('tpu_cores', [1, 8, [1]])
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
     """Test if distributed_backend is set to `tpu` when tpu_cores is not None"""
     assert Trainer(tpu_cores=tpu_cores).distributed_backend == "tpu"
-
-
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-@pl_multi_process_test
-def test_result_obj_on_tpu(tmpdir):
-    seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
-
-    batches = 5
-    epochs = 2
-
-    model = EvalModelTemplate()
-    model.training_step = model.training_step_result_obj
-    model.training_step_end = None
-    model.training_epoch_end = None
-    model.validation_step = model.validation_step_result_obj
-    model.validation_step_end = None
-    model.validation_epoch_end = None
-    model.test_step = model.test_step_result_obj
-    model.test_step_end = None
-    model.test_epoch_end = None
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=epochs,
-        callbacks=[EarlyStopping()],
-        log_every_n_steps=2,
-        limit_train_batches=batches,
-        weights_summary=None,
-        tpu_cores=8
-    )
-
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
@@ -297,3 +256,51 @@ def test_broadcast_on_tpu():
         assert result == ("ver_0.5", "logger_name", 0)
 
     xmp.spawn(test_broadcast, nprocs=8, start_method='fork')
+
+
+@pytest.mark.parametrize(
+    ["tpu_cores", "expected_tpu_id", "error_expected"],
+    [
+        pytest.param(1, None, False),
+        pytest.param(8, None, False),
+        pytest.param([1], 1, False),
+        pytest.param([8], 8, False),
+        pytest.param("1,", 1, False),
+        pytest.param("1", None, False),
+        pytest.param("9, ", 9, True),
+        pytest.param([9], 9, True),
+        pytest.param([0], 0, True),
+        pytest.param(2, None, True),
+        pytest.param(10, None, True),
+    ],
+)
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
+def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
+    if error_expected:
+        with pytest.raises(MisconfigurationException, match=r".*tpu_cores` can only be 1, 8 or [<1-8>]*"):
+            Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
+    else:
+        trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
+        assert trainer.tpu_id == expected_tpu_id
+
+
+@pytest.mark.parametrize(['cli_args', 'expected'], [
+    pytest.param('--tpu_cores=8',
+                 {'tpu_cores': 8}),
+    pytest.param("--tpu_cores=1,",
+                 {'tpu_cores': '1,'})
+])
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
+def test_tpu_cores_with_argparse(cli_args, expected):
+    """Test passing tpu_cores in command line"""
+    cli_args = cli_args.split(' ') if cli_args else []
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
+        parser = ArgumentParser(add_help=False)
+        parser = Trainer.add_argparse_args(parent_parser=parser)
+        args = Trainer.parse_argparser(parser)
+
+    for k, v in expected.items():
+        assert getattr(args, k) == v
+    assert Trainer.from_argparse_args(args)

@@ -14,8 +14,9 @@
 
 import multiprocessing
 import platform
-from abc import ABC, abstractmethod
-from typing import Union, List, Tuple, Callable, Optional
+from abc import ABC
+from copy import deepcopy
+from typing import Callable, Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -24,29 +25,9 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
-from copy import deepcopy
-from typing import Iterable
-
-TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
-if TPU_AVAILABLE:
-    import torch_xla
-    import torch_xla.core.xla_model as xm
-
-try:
-    import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -88,12 +69,12 @@ class TrainerDataLoadingMixin(ABC):
             if dataloader.num_workers > 0 and using_spawn:
                 rank_zero_warn('Dataloader(num_workers>0) and ddp_spawn do not mix well!'
                                ' Your performance might suffer dramatically.'
-                               ' Please consider setting distributed_backend=ddp to use num_workers > 0'
+                               ' Please consider setting accelerator=ddp to use num_workers > 0'
                                ' (this is a bottleneck of Python .spawn() and PyTorch')
 
             elif dataloader.num_workers == 0 and using_spawn:
-                rank_zero_warn('You are using `distributed_backend=ddp_spawn` with num_workers=0.'
-                               ' For much faster performance, switch to `distributed_backend=ddp`'
+                rank_zero_warn('You are using `accelerator=ddp_spawn` with num_workers=0.'
+                               ' For much faster performance, switch to `accelerator=ddp`'
                                ' and set `num_workers>0`')
 
             elif dataloader.num_workers <= 2 and multiprocessing.cpu_count() > 2 and not using_spawn:
@@ -113,8 +94,7 @@ class TrainerDataLoadingMixin(ABC):
         if not is_dataloader or is_iterable_ds:
             return dataloader
 
-        is_in_dist = self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
-        need_dist_sampler = is_in_dist and not isinstance(dataloader.sampler, DistributedSampler)
+        need_dist_sampler = self.require_distributed_sampler and not isinstance(dataloader.sampler, DistributedSampler)
         if self.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
@@ -138,24 +118,13 @@ class TrainerDataLoadingMixin(ABC):
 
         dl_args['sampler'] = sampler
         dl_args['shuffle'] = False
+        multiprocessing_context = dataloader.multiprocessing_context
         dataloader = type(dataloader)(**dl_args)
+        dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
 
     def _get_distributed_sampler(self, dataloader, shuffle):
-        if self.use_tpu:
-            kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
-        elif self.use_horovod:
-            kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
-        else:
-            world_size = {
-                "ddp": self.num_nodes * self.num_processes,
-                "ddp_spawn": self.num_nodes * self.num_processes,
-                "ddp2": self.num_nodes,
-                "ddp_cpu": self.num_processes * self.num_nodes
-            }
-            assert self.distributed_backend is not None
-            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
-
+        kwargs = self.distributed_sampler_kwargs
         kwargs['shuffle'] = shuffle and not self.overfit_batches
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler

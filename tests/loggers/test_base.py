@@ -15,10 +15,12 @@ import pickle
 from typing import Optional
 from unittest.mock import MagicMock
 
+from argparse import Namespace
 import numpy as np
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
+from pytorch_lightning.loggers.base import DummyLogger, DummyExperiment
 from pytorch_lightning.utilities import rank_zero_only
 from tests.base import EvalModelTemplate
 
@@ -212,3 +214,52 @@ def test_with_accumulate_grad_batches():
     assert logger.history == {0: {'loss': 0.5623850983416314}}
     logger.close()
     assert logger.history == {0: {'loss': 0.5623850983416314}, 1: {'loss': 0.4778883735637184}}
+
+
+def test_dummyexperiment_support_indexing():
+    experiment = DummyExperiment()
+    assert experiment[0] == experiment
+
+
+def test_dummylogger_support_indexing():
+    logger = DummyLogger()
+    assert logger[0] == logger
+
+
+def test_np_sanitization():
+    class CustomParamsLogger(CustomLogger):
+        def __init__(self):
+            super().__init__()
+            self.logged_params = None
+
+        @rank_zero_only
+        def log_hyperparams(self, params):
+            params = self._convert_params(params)
+            params = self._sanitize_params(params)
+            self.logged_params = params
+
+    logger = CustomParamsLogger()
+    np_params = {
+        "np.bool_": np.bool_(1),
+        "np.byte": np.byte(2),
+        "np.intc": np.intc(3),
+        "np.int_": np.int_(4),
+        "np.longlong": np.longlong(5),
+        "np.single": np.single(6.0),
+        "np.double": np.double(8.9),
+        "np.csingle": np.csingle(7 + 2j),
+        "np.cdouble": np.cdouble(9 + 4j),
+    }
+    sanitized_params = {
+        "np.bool_": True,
+        "np.byte": 2,
+        "np.intc": 3,
+        "np.int_": 4,
+        "np.longlong": 5,
+        "np.single": 6.0,
+        "np.double": 8.9,
+        "np.csingle": "(7+2j)",
+        "np.cdouble": "(9+4j)",
+    }
+    logger.log_hyperparams(Namespace(**np_params))
+    assert logger.logged_params == sanitized_params

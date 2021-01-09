@@ -11,16 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, Callable, Optional, Union
+
 import torch
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class CPUAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
+        """
+        Runs training on CPU
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=CPUAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment)
         self.nickname = None
 
@@ -48,26 +60,29 @@ class CPUAccelerator(Accelerator):
         results = self.train_or_test()
         return results
 
-    def training_step(self, args):
+    def _step(self, model_step: Callable, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
-                output = self.trainer.model.training_step(*args)
+                output = model_step(*args)
         else:
-            output = self.trainer.model.training_step(*args)
+            output = model_step(*args)
         return output
+
+    def training_step(self, args):
+        return self._step(self.trainer.model.training_step, args)
 
     def validation_step(self, args):
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.trainer.model.validation_step(*args)
-        else:
-            output = self.trainer.model.validation_step(*args)
-        return output
+        return self._step(self.trainer.model.validation_step, args)
 
     def test_step(self, args):
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.trainer.model.test_step(*args)
-        else:
-            output = self.trainer.model.test_step(*args)
-        return output
+        return self._step(self.trainer.model.test_step, args)
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        return tensor
+
+    @property
+    def require_distributed_sampler(self):
+        return False

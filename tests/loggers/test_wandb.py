@@ -22,33 +22,63 @@ from pytorch_lightning.loggers import WandbLogger
 from tests.base import EvalModelTemplate, BoringModel
 
 
+def get_warnings(recwarn):
+    warnings_text = '\n'.join(str(w.message) for w in recwarn.list)
+    recwarn.clear()
+    return warnings_text
+
+
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_wandb_logger(wandb):
+def test_wandb_logger_init(wandb, recwarn):
     """Verify that basic functionality of wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here."""
-    logger = WandbLogger(anonymous=True, offline=True)
 
+    # test wandb.init called when there is no W&B run
+    wandb.run = None
+    logger = WandbLogger()
     logger.log_metrics({'acc': 1.0})
+    wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({'acc': 1.0}, step=None)
 
+    # mock wandb step
+    wandb.init().step = 0
+
+    # test wandb.init not called if there is a W&B run
     wandb.init().log.reset_mock()
+    wandb.init.reset_mock()
+    wandb.run = wandb.init()
+    logger = WandbLogger()
     logger.log_metrics({'acc': 1.0}, step=3)
+    wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({'acc': 1.0}, step=3)
 
-    # continue training on same W&B run
+    # continue training on same W&B run and offset step
     wandb.init().step = 3
     logger.finalize('success')
     logger.log_metrics({'acc': 1.0}, step=3)
     wandb.init().log.assert_called_with({'acc': 1.0}, step=6)
 
+    # log hyper parameters
     logger.log_hyperparams({'test': None, 'nested': {'a': 1}, 'b': [2, 3, 4]})
     wandb.init().config.update.assert_called_once_with(
         {'test': 'None', 'nested/a': 1, 'b': [2, 3, 4]},
         allow_val_change=True,
     )
 
+    # watch a model
     logger.watch('model', 'log', 10)
     wandb.init().watch.assert_called_once_with('model', log='log', log_freq=10)
+
+    # verify warning for logging at a previous step
+    assert 'Trying to log at a previous step' not in get_warnings(recwarn)
+    # current step from wandb should be 6 (last logged step)
+    logger.experiment.step = 6
+    # logging at step 2 should raise a warning (step_offset is still 3)
+    logger.log_metrics({'acc': 1.0}, step=2)
+    assert 'Trying to log at a previous step' in get_warnings(recwarn)
+    # logging again at step 2 should not display again the same warning
+    logger.log_metrics({'acc': 1.0}, step=2)
+    assert 'Trying to log at a previous step' not in get_warnings(recwarn)
 
     assert logger.name == wandb.init().project_name()
     assert logger.version == wandb.init().id
@@ -63,10 +93,12 @@ def test_wandb_pickle(wandb, tmpdir):
     class Experiment:
         """ """
         id = 'the_id'
+        step = 0
 
         def project_name(self):
             return 'the_project_name'
 
+    wandb.run = None
     wandb.init.return_value = Experiment()
     logger = WandbLogger(id='the_id', offline=True)
 
@@ -99,8 +131,11 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert logger.name is None
 
     # mock return values of experiment
+    wandb.run = None
+    wandb.init().step = 0
     logger.experiment.id = '1'
     logger.experiment.project_name.return_value = 'project'
+    logger.experiment.step = 0
 
     for _ in range(2):
         _ = logger.experiment

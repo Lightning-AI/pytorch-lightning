@@ -13,19 +13,16 @@
 # limitations under the License.
 import functools
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
+from collections.abc import Sequence
 from copy import deepcopy
-from distutils.version import LooseVersion
+from typing import Any, Callable, Optional, Union
 
-import os
 import torch
 from torch import nn
 
+from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import gather_all_tensors
-from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
 
 
 class Metric(nn.Module, ABC):
@@ -81,11 +78,12 @@ class Metric(nn.Module, ABC):
         self._forward_cache = None
 
         # initialize state
-        self._reductions = {}
         self._defaults = {}
+        self._persistent = {}
+        self._reductions = {}
 
     def add_state(
-        self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None, persistent: bool = True
+        self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None, persistent: bool = False
     ):
         """
         Adds metric state variable. Only used by subclasses.
@@ -96,9 +94,11 @@ class Metric(nn.Module, ABC):
                 reset to this value when ``self.reset()`` is called.
             dist_reduce_fx (Optional): Function to reduce state accross mutliple processes in distributed mode.
                 If value is ``"sum"``, ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``,
-                and ``torch.cat`` respectively, each with argument ``dim=0``. The user can also pass a custom
+                and ``torch.cat`` respectively, each with argument ``dim=0``. Note that the ``"cat"`` reduction
+                only makes sense if the state is a list, and not a tensor. The user can also pass a custom
                 function in this parameter.
             persistent (Optional): whether the state will be saved as part of the modules ``state_dict``.
+                Default is ``False``.
 
         Note:
             Setting ``dist_reduce_fx`` to None will return the metric state synchronized across different processes.
@@ -138,16 +138,10 @@ class Metric(nn.Module, ABC):
                 "`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]"
             )
 
-        if isinstance(default, torch.Tensor):
-            if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-                # persistent keyword is only supported in torch >= 1.6.0
-                self.register_buffer(name, default, persistent=persistent)
-            else:
-                self.register_buffer(name, default)
-        else:
-            setattr(self, name, default)
+        setattr(self, name, default)
 
         self._defaults[name] = deepcopy(default)
+        self._persistent[name] = persistent
         self._reductions[name] = dist_reduce_fx
 
     @torch.jit.unused
@@ -251,7 +245,7 @@ class Metric(nn.Module, ABC):
         """
         for attr, default in self._defaults.items():
             current_val = getattr(self, attr)
-            if isinstance(current_val, torch.Tensor):
+            if isinstance(default, torch.Tensor):
                 setattr(self, attr, deepcopy(default).to(current_val.device))
             else:
                 setattr(self, attr, deepcopy(default))
@@ -265,3 +259,36 @@ class Metric(nn.Module, ABC):
         self.__dict__.update(state)
         self.update = self._wrap_update(self.update)
         self.compute = self._wrap_compute(self.compute)
+
+    def _apply(self, fn):
+        """ Overwrite _apply function such that we can also move metric states
+            to the correct device when `.to`, `.cuda`, etc methods are called
+        """
+        self = super()._apply(fn)
+        # Also apply fn to metric states
+        for key in self._defaults.keys():
+            current_val = getattr(self, key)
+            if isinstance(current_val, torch.Tensor):
+                setattr(self, key, fn(current_val))
+            elif isinstance(current_val, Sequence):
+                setattr(self, key, [fn(cur_v) for cur_v in current_val])
+            else:
+                raise TypeError('Expected metric state to be either a torch.Tensor'
+                                f'or a list of torch.Tensor, but encountered {current_val}')
+        return self
+
+    def persistent(self, mode: bool = False):
+        """ Method for post-init to change if metric states should be saved to
+            its state_dict
+        """
+        for key in self._persistent.keys():
+            self._persistent[key] = mode
+
+    def state_dict(self, *args, **kwargs):
+        # Register metric states to be part of the state_dict
+        state_dict = super().state_dict()
+        for key in self._defaults.keys():
+            if self._persistent[key]:
+                current_val = getattr(self, key)
+                state_dict.update({key: current_val})
+        return state_dict

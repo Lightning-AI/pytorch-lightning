@@ -11,24 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import math
-from enum import Enum
+from contextlib import contextmanager
 from typing import Any, Optional, Union
 
 import torch
-
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
-from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict
 import torch.distributed as torch_distrib
-from pytorch_lightning import _logger as log
+from torch.optim import Optimizer
 
-try:
-    from apex import amp
-except ImportError:
-    amp = None
+from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
+from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -36,13 +31,13 @@ else:
     class ReduceOp:
         SUM = None
 
-EPSILON = 1e-6
-EPSILON_FP16 = 1e-5
-
 
 class Accelerator(object):
 
-    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer: Optional = None,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         self.trainer = trainer
         self.nickname = None
         self.cluster_environment = cluster_environment
@@ -93,6 +88,12 @@ class Accelerator(object):
         return dataloader
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+
+        if not automatic_optimization and self.ddp_plugin is not None:
+            # Manually prepare for reduce as user calling backwards manually
+            self.ddp_plugin.on_before_manual_backward(self.trainer.model, closure_loss)
+
         if self.trainer.precision == 16:
             closure_loss = self.trainer.precision_connector.backend.backward(
                 closure_loss, optimizer, opt_idx, *args, **kwargs
@@ -104,82 +105,29 @@ class Accelerator(object):
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
+
+        if not automatic_optimization and self.ddp_plugin is not None:
+            # Manually prepare for reduce as user calling backwards manually
+            self.ddp_plugin.on_after_manual_backward(self.trainer.model)
         return closure_loss
 
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):
-        model_ref = self.trainer.get_model()
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        native_amp = self.trainer.amp_backend == AMPType.NATIVE
-
-        # native amp + lbfgs is a no go right now
-        if native_amp and is_lbfgs:
-            raise MisconfigurationException(
-                'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-
-        # model hook
-        model_ref.optimizer_step(
-            epoch=self.trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=lambda_closure,
-            on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=native_amp,
-            using_lbfgs=is_lbfgs
-        )
-
-        # scale when native amp
-        if native_amp:
-            self.trainer.scaler.update()
-
-    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
-        model_ref = self.trainer.get_model()
-        model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
-
     def clip_gradients(self, optimizer, clip_val=None):
-        # TODO: separate TPU case from here
-        self._clip_gradients(optimizer, clip_val)
-
-    def _clip_gradients(self, optimizer, clip_val=None):
         # use the trainer's clip val if none passed
         grad_clip_val = self.trainer.gradient_clip_val
         if clip_val is not None:
             grad_clip_val = clip_val
         grad_clip_val = float(grad_clip_val)
 
-        # this code is a modification of torch.nn.utils.clip_grad_norm_
-        # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
         if grad_clip_val <= 0:
             return
+        self._clip_gradients(optimizer, grad_clip_val)
 
-        model = self.trainer.get_model()
-        if self.trainer.amp_backend == AMPType.APEX:
-            parameters = amp.master_params(optimizer)
+    def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
+        if self.trainer.amp_backend:
+            self.trainer.precision_connector.backend.clip_gradients(grad_clip_val, optimizer, norm_type)
         else:
-            parameters = model.parameters()
-
-        max_norm = grad_clip_val
-        norm_type = float(2.0)
-
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
-        parameters = list(filter(lambda p: p.grad is not None, parameters))
-
-        if norm_type == math.inf:
-            total_norm = max(p.grad.data.abs().max() for p in parameters)
-        else:
-            device = parameters[0].device
-            out = torch.empty(len(parameters), device=device)
-            for i, p in enumerate(parameters):
-                torch.norm(p.grad.data.to(device), norm_type, out=out[i])
-            total_norm = torch.norm(out, norm_type)
-
-        eps = EPSILON_FP16 if self.trainer.precision == 16 else EPSILON
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
-        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
-        for p in parameters:
-            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
+            model = self.trainer.get_model()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
 
     def on_train_epoch_end(self, outputs):
         pass
@@ -191,7 +139,7 @@ class Accelerator(object):
         return self.trainer.should_stop
 
     def setup_optimizers(self, model):
-        if self.trainer.testing is True:
+        if self.trainer.testing:
             return
 
         optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
@@ -200,20 +148,15 @@ class Accelerator(object):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
     def init_ddp_connection(
-        self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
+            self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
-        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
-        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
-
-        if not torch.distributed.is_initialized():
-            log.info(
-                f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
-            )
-            torch_distrib.init_process_group(
-                torch_backend, rank=global_rank, world_size=world_size
-            )
+        self.ddp_plugin.init_ddp_connection(
+            self.trainer,
+            self.cluster_environment,
+            global_rank,
+            world_size,
+            is_slurm_managing_tasks,
+        )
 
     def sync_tensor(self,
                     tensor: Union[torch.Tensor],
@@ -221,15 +164,59 @@ class Accelerator(object):
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         """
         Function to reduce a tensor from several distributed processes to one aggregated tensor.
+
         Args:
             tensor: the tensor to sync and reduce
             group: the process group to gather results from. Defaults to all processes (world)
             reduce_op: the reduction operation. Defaults to sum.
                 Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+
         Return:
             reduced value
         """
         raise NotImplementedError()
+
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        """
+        Function to gather a tensor from several distributed processes
+
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        raise NotImplementedError()
+
+    def optimizer_state(self, optimizer: Optimizer) -> dict:
+        """
+        Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
+        plugins.
+        Return:
+            Optimizer state dict
+        """
+        if self.ddp_plugin:
+            return self.ddp_plugin.optimizer_state(optimizer)
+        return optimizer.state_dict()
+
+    def get_reference_model(self, model) -> LightningModule:
+        """
+        Override to modify returning base :class:`LightningModule`
+        when accessing variable and functions if the accelerator has wrapped the model.
+
+        Example::
+            ref_model = accelerator.get_reference_model(model)
+            ref_model.training_step(...)
+
+        Args:
+            model: Accelerator model.
+
+        Returns: Reference :class:`LightningModule`.
+
+        """
+        return model
 
     def __getstate__(self):
         return {
@@ -247,15 +234,27 @@ class Accelerator(object):
         self.dist = d['dist']
         self.ddp_plugin = d['ddp_plugin']
 
+    def on_save(self, checkpoint):
+        return checkpoint
 
-# TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
-class BackendType(Enum):
-    DP = 'dp'
-    DDP = 'ddp'
-    DDP2 = 'ddp2'
-    DDP_SPAWN = 'ddp_spawn'
-    # decuple distrib and device
-    DDP_CPU = 'ddp_cpu'
-    HOROVOD = 'horovod'
-    # this is rather device
-    TPU = 'tpu'
+    @property
+    def rpc_enabled(self):
+        return self.ddp_plugin is not None and isinstance(self.ddp_plugin, RPCPlugin)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        raise NotImplementedError
+
+    @property
+    def require_distributed_sampler(self):
+        raise NotImplementedError
+
+    @contextmanager
+    def block_ddp_plugin_sync_behaviour(self):
+        """
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        cm = self.ddp_plugin.block_backward_sync(self.trainer.model) if self.ddp_plugin else None
+        yield cm
