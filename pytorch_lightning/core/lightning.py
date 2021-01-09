@@ -628,7 +628,7 @@ class LightningModule(
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
             batch_idx (int): The index of this batch
             dataloader_idx (int): The index of the dataloader that produced this batch
-                (only if multiple val datasets used)
+                (only if multiple val dataloaders used)
 
         Return:
            Any of.
@@ -677,11 +677,11 @@ class LightningModule(
                     # log the outputs!
                     self.log_dict({'val_loss': loss, 'val_acc': val_acc})
 
-            If you pass in multiple val datasets, :meth:`validation_step` will have an additional argument.
+            If you pass in multiple val dataloaders, :meth:`validation_step` will have an additional argument.
 
             .. code-block:: python
 
-                # CASE 2: multiple validation datasets
+                # CASE 2: multiple validation dataloaders
                 def validation_step(self, batch, batch_idx, dataloader_idx):
                     # dataloader_idx tells you which dataset this is.
 
@@ -813,7 +813,7 @@ class LightningModule(
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
             batch_idx (int): The index of this batch.
             dataloader_idx (int): The index of the dataloader that produced this batch
-                (only if multiple test datasets used).
+                (only if multiple test dataloaders used).
 
         Return:
            Any of.
@@ -853,12 +853,12 @@ class LightningModule(
                     # log the outputs!
                     self.log_dict({'test_loss': loss, 'test_acc': test_acc})
 
-            If you pass in multiple test datasets, :meth:`test_step` will have an additional
+            If you pass in multiple test dataloaders, :meth:`test_step` will have an additional
             argument.
 
             .. code-block:: python
 
-                # CASE 2: multiple test datasets
+                # CASE 2: multiple test dataloaders
                 def test_step(self, batch, batch_idx, dataloader_idx):
                     # dataloader_idx tells you which dataset this is.
 
