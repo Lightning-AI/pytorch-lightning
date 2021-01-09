@@ -340,14 +340,14 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
         rank_zero_warn(f"Missing Tags: {config_yaml}.", RuntimeWarning)
         return {}
 
-    if OMEGACONF_AVAILABLE:
-        with fs.open(config_yaml, "r") as fp:
-            return OmegaConf.load(fp)
-
     with fs.open(config_yaml, "r") as fp:
-        tags = yaml.full_load(fp)
+        hparams = yaml.full_load(fp)
 
-    return tags
+    if OMEGACONF_AVAILABLE:
+        for k, v in hparams.items():
+            hparams[k] = OmegaConf.create(v)
+
+    return hparams
 
 
 def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
@@ -356,7 +356,6 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         config_yaml: path to new YAML file
         hparams: parameters to be saved
     """
-    print(config_yaml)
     fs = get_filesystem(config_yaml)
     if not fs.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(config_yaml)}.")
@@ -372,8 +371,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     # saving with OmegaConf objects
     if OMEGACONF_AVAILABLE:
         def resolve_dict_config(data):
-            data = OmegaConf.to_container(data, resolve=True)
-            return OmegaConf.create(data)
+            return OmegaConf.to_container(data, resolve=True)
 
         hparams = apply_to_collection(hparams, DictConfig, resolve_dict_config)
         with fs.open(config_yaml, "w", encoding="utf-8") as fp:

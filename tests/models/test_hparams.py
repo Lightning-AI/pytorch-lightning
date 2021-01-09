@@ -658,7 +658,7 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
 
     class TestHydraModel(BoringModel):
 
-        def __init__(self, args_1, args_2, kwarg_1=None):
+        def __init__(self, args_0, args_1, args_2, kwarg_1=None):
             self.save_hyperparameters()
             self.test_hparams()
             config_file = f"{tmpdir}/hparams.yaml"
@@ -668,15 +668,17 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
             super().__init__()
 
         def test_hparams(self):
+            assert self.hparams.args_0.log == "Something"
             assert self.hparams.args_1['cfg'].log == "Something"
             assert self.hparams.args_2[0].log == "Something"
             assert self.hparams.kwarg_1['cfg'][0].log == "Something"
 
     with initialize(config_path="conf"):
+        args_0 = compose(config_name="config")
         args_1 = {"cfg": compose(config_name="config")}
         args_2 = [compose(config_name="config")]
         kwarg_1 = {"cfg": [compose(config_name="config")]}
-        model = TestHydraModel(args_1, args_2, kwarg_1=kwarg_1)
+        model = TestHydraModel(args_0, args_1, args_2, kwarg_1=kwarg_1)
         epochs = 2
         checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1)
         trainer = Trainer(
