@@ -38,11 +38,8 @@ class TrainerDataLoadingMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     global_rank: int
-    use_ddp2: bool
-    use_horovod: bool
     shown_warnings: ...
     val_check_interval: float
-    use_tpu: bool
     tpu_local_core_rank: int
     train_dataloader: DataLoader
     num_training_batches: Union[int, float]
