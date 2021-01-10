@@ -290,7 +290,7 @@ class TrainerProperties(ABC):
         if self._device_type == DeviceType.TPU:
             kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
-        elif self.use_horovod:
+        elif self._distrib_type == DistributedType.HOROVOD:
             kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
 
         else:
