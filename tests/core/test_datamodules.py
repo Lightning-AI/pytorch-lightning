@@ -13,6 +13,7 @@
 # limitations under the License.
 import pickle
 from argparse import ArgumentParser
+from typing import Any, Dict
 from unittest.mock import MagicMock
 
 import pytest
@@ -241,8 +242,15 @@ def test_dm_checkpoint_save(tmpdir):
             self.log('early_stop_on', out['loss'])
             return out
 
+    class CustomBoringDataModule(BoringDataModule):
+        def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+            checkpoint[self.__class__.__name__] = self.__class__.__name__
+
+        def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+            self.checkpoint_state = checkpoint.get(self.__class__.__name__)
+
     reset_seed()
-    dm = BoringDataModule()
+    dm = CustomBoringDataModule()
     model = CustomBoringModel()
 
     trainer = Trainer(

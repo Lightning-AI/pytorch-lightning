@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import torch
 from torch.utils.data import DataLoader, Dataset, Subset
@@ -154,8 +154,6 @@ class BoringDataModule(LightningDataModule):
             self.random_test = Subset(self.random_full, indices=range(128, 192))
             self.dims = getattr(self, "dims", self.random_test[0].shape)
 
-        self.non_picklable = lambda x: x ** 2
-
     def train_dataloader(self):
         return DataLoader(self.random_train)
 
@@ -164,9 +162,3 @@ class BoringDataModule(LightningDataModule):
 
     def test_dataloader(self):
         return DataLoader(self.random_test)
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        checkpoint[self.__class__.__name__] = self.__class__.__name__
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        self.checkpoint_state = checkpoint.get(self.__class__.__name__)
