@@ -9,7 +9,7 @@ jobs:
   # This label will then be managed by this action.
   #  It will be added to PRs with merge conflicts and removed from PRs without conflicts.
   #  https://github.com/mschilde/auto-label-merge-conflicts
-  label-conflicts:
+  pr-label-conflicts:
     name: Label PR conflits
     runs-on: ubuntu-20.04
     steps:
