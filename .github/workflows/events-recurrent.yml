@@ -1,7 +1,25 @@
+name: Recurrent events
+
 on:
-  push: {}
+  push:
+    branches: [master, "release/*"]
 
 jobs:
+
+  # This label will then be managed by this action.
+  #  It will be added to PRs with merge conflicts and removed from PRs without conflicts.
+  #  https://github.com/mschilde/auto-label-merge-conflicts
+  pr-label-conflicts:
+    name: Label PR conflits
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: mschilde/auto-label-merge-conflicts@v2
+        with:
+          CONFLICT_LABEL_NAME: "has conflicts"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAX_RETRIES: 3
+          WAIT_MS: 5000
+
   # autoupdate is a GitHub Action that auto-updates pull requests branches whenever changes land on their destination branch.
   # see: https://github.com/marketplace/actions/auto-update
   pr-auto-update:
