@@ -13,9 +13,17 @@
 # limitations under the License.
 import inspect
 
+import pytest
+
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
+
+
+def test_lambda_raise_misconfiguration():
+    with pytest.raises(MisconfigurationException, match="does not exist in supported callbacks function"):
+        LambdaCallback(invalid=lambda *args: args)
 
 
 def test_lambda_call(tmpdir):
@@ -29,7 +37,7 @@ def test_lambda_call(tmpdir):
     checker = set()
     hooks = [m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
     hooks_args = {h: (lambda x: lambda *args: checker.add(x))(h) for h in hooks}
-    hooks_args['on_save_checkpoint'] = (lambda x: lambda *args: [checker.add(x)])('on_save_checkpoint')
+    hooks_args["on_save_checkpoint"] = (lambda x: lambda *args: [checker.add(x)])("on_save_checkpoint")
 
     model = CustomModel()
     trainer = Trainer(
