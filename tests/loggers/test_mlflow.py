@@ -154,7 +154,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert 'epoch' in os.listdir(tmpdir / exp_id / run_id / 'metrics')
     assert set(os.listdir(tmpdir / exp_id / run_id / 'params')) == model.hparams.keys()
     assert trainer.checkpoint_callback.dirpath == (tmpdir / exp_id / run_id / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {f'epoch=0-step={limit_batches-1}.ckpt'}
+    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f'epoch=0-step={limit_batches - 1}.ckpt']
 
 
 @mock.patch('pytorch_lightning.loggers.mlflow.mlflow')

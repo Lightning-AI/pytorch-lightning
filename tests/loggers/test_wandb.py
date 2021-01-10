@@ -158,7 +158,7 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {f'epoch=0-step={limit_batches-1}.ckpt'}
+    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f'epoch=0-step={limit_batches - 1}.ckpt']
 
 
 def test_wandb_sanitize_callable_params(tmpdir):

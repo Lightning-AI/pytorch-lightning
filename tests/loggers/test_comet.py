@@ -166,7 +166,7 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == (tmpdir / 'test' / "1" / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {f'epoch=0-step={limit_batches-1}.ckpt'}
+    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f'epoch=0-step={limit_batches - 1}.ckpt']
 
 
 @patch('pytorch_lightning.loggers.comet.comet_ml')
