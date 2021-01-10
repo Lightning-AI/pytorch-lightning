@@ -294,7 +294,7 @@ class Trainer(
         super().__init__()
         self._device_type = DeviceType.CPU
         self._distrib_type = None
-        self._train_phase = None
+        self._runing_stage = None
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
