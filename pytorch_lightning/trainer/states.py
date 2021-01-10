@@ -27,7 +27,7 @@ class TrainerState(LightningEnum):
     >>> # you can math the type with string
     >>> TrainerState.RUNNING == 'RUNNING'
     True
-    >>> # which is case sensitive
+    >>> # which is case insensitive
     >>> TrainerState.FINISHED == 'finished'
     True
     """

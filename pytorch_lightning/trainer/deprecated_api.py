@@ -19,7 +19,7 @@ class DeprecatedDistDeviceAttributes:
 
     _distrib_type: DistributedType
     _device_type: DeviceType
-    _train_phase: RunningStage
+    _runing_stage: RunningStage
     num_gpus: int
 
     @property
