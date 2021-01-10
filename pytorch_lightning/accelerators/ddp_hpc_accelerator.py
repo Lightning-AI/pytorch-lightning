@@ -112,7 +112,6 @@ class DDPHPCAccelerator(Accelerator):
 
         Args:
             process_idx:
-            mp_queue: multiprocessing queue
             model:
 
         Returns:
