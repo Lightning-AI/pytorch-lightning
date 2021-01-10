@@ -460,6 +460,7 @@ class Trainer(
         # SET UP TRAINING
         # ----------------------------
         self.accelerator_backend = self.accelerator_connector.select_accelerator()
+        self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator_backend.setup(model)
 
         # ----------------------------
