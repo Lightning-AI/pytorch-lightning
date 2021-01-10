@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import random
 import sys
 from pathlib import Path
 
@@ -22,12 +23,12 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.core.step_result import Result, EvalResult
 import tests.base.develop_utils as tutils
 from pytorch_lightning.trainer.states import TrainerState
+from torch.utils.data import DataLoader
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.step_result import EvalResult, Result
-from tests.base import EvalModelTemplate
-from tests.base.datamodules import TrialMNISTDataModule
+from tests.base import BoringDataModule, BoringModel
 
 
 def _setup_ddp(rank, worldsize):
@@ -97,18 +98,84 @@ def test_result_reduce_ddp(result_cls):
     ]
 )
 def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
-    tutils.reset_seed()
+    class CustomBoringModel(BoringModel):
+        def test_step(self, batch, batch_idx, optimizer_idx=None):
+            output = self(batch)
+            test_loss = self.loss(batch, output)
+            self.log('test_loss', test_loss)
 
-    dm = TrialMNISTDataModule(tmpdir)
+            batch_size = batch.size(0)
+            lst_of_str = [random.choice(['dog', 'cat']) for i in range(batch_size)]
+            lst_of_int = [random.randint(500, 1000) for i in range(batch_size)]
+            lst_of_lst = [[x] for x in lst_of_int]
+            lst_of_dict = [{k: v} for k, v in zip(lst_of_str, lst_of_int)]
+
+            # This is passed in from pytest via parameterization
+            option = getattr(self, 'test_option', 0)
+            prediction_file = getattr(self, 'prediction_file', 'predictions.pt')
+
+            lazy_ids = torch.arange(batch_idx * batch_size, batch_idx * batch_size + batch_size)
+
+            # Base
+            if option == 0:
+                self.write_prediction('idxs', lazy_ids, prediction_file)
+                self.write_prediction('preds', output, prediction_file)
+
+            # Check mismatching tensor len
+            elif option == 1:
+                self.write_prediction('idxs', torch.cat((lazy_ids, lazy_ids)), prediction_file)
+                self.write_prediction('preds', output, prediction_file)
+
+            # write multi-dimension
+            elif option == 2:
+                self.write_prediction('idxs', lazy_ids, prediction_file)
+                self.write_prediction('preds', output, prediction_file)
+                self.write_prediction('x', batch, prediction_file)
+
+            # write str list
+            elif option == 3:
+                self.write_prediction('idxs', lazy_ids, prediction_file)
+                self.write_prediction('vals', lst_of_str, prediction_file)
+
+            # write int list
+            elif option == 4:
+                self.write_prediction('idxs', lazy_ids, prediction_file)
+                self.write_prediction('vals', lst_of_int, prediction_file)
+
+            # write nested list
+            elif option == 5:
+                self.write_prediction('idxs', lazy_ids, prediction_file)
+                self.write_prediction('vals', lst_of_lst, prediction_file)
+
+            # write dict list
+            elif option == 6:
+                self.write_prediction('idxs', lazy_ids, prediction_file)
+                self.write_prediction('vals', lst_of_dict, prediction_file)
+
+            elif option == 7:
+                self.write_prediction_dict({'idxs': lazy_ids, 'preds': output}, prediction_file)
+
+    class CustomBoringDataModule(BoringDataModule):
+        def train_dataloader(self):
+            return DataLoader(self.random_train, batch_size=4)
+
+        def val_dataloader(self):
+            return DataLoader(self.random_val, batch_size=4)
+
+        def test_dataloader(self):
+            return DataLoader(self.random_test, batch_size=4)
+
+    tutils.reset_seed()
     prediction_file = Path(tmpdir) / 'predictions.pt'
 
-    model = EvalModelTemplate()
-    model.test_option = test_option
-    model.prediction_file = prediction_file.as_posix()
-    model.test_step = model.test_step_result_preds
+    dm = BoringDataModule()
+    model = CustomBoringModel()
     model.test_step_end = None
     model.test_epoch_end = None
     model.test_end = None
+
+    model.test_option = test_option
+    model.prediction_file = prediction_file.as_posix()
 
     if prediction_file.exists():
         prediction_file.unlink()
@@ -125,19 +192,19 @@ def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
     assert not prediction_file.exists()
 
     if do_train:
-        trainer.fit(model, dm)
+        result = trainer.fit(model, dm)
         assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+        assert result
         result = trainer.test(datamodule=dm)
-        result = result[0]
-        assert result['test_loss'] < 0.6
-        assert result['test_acc'] > 0.8
+        # result = result[0]
+        # assert result['test_loss'] < 0.6
     else:
         result = trainer.test(model, datamodule=dm)
 
     # check prediction file now exists and is of expected length
     assert prediction_file.exists()
     predictions = torch.load(prediction_file)
-    assert len(predictions) == len(dm.mnist_test)
+    assert len(predictions) == len(dm.random_test)
 
 
 def test_result_gather_stack():
