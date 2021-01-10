@@ -14,14 +14,13 @@
 
 import pytest
 import torch
-from torch import nn
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import SimpleModule
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils
 from tests.base.boring_model import BoringModel
 from tests.base.develop_utils import pl_multi_process_test
+from tests.base.weight_sharing_module import WeightSharingModule
 
 
 @pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")
@@ -73,20 +72,6 @@ def test_weight_tying_warning(tmpdir, capsys=None):
     post moving to device.
     """
 
-    class WeightSharingModule(SimpleModule):
-        def __init__(self):
-            super().__init__()
-            self.layer_1 = nn.Linear(32, 10, bias=False)
-            self.layer_2 = nn.Linear(10, 32, bias=False)
-            self.layer_3 = nn.Linear(32, 10, bias=False)
-            self.layer_3.weight = self.layer_1.weight
-
-        def forward(self, x):
-            x = self.layer_1(x)
-            x = self.layer_2(x)
-            x = self.layer_3(x)
-            return x
-
     model = WeightSharingModule()
     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
 
@@ -103,24 +88,11 @@ def test_if_weights_tied(tmpdir, capsys=None):
     Ensure no warning for parameter mismatch is thrown.
     """
 
-    class WeightSharingModule(SimpleModule):
-        def __init__(self):
-            super().__init__()
-            self.layer_1 = nn.Linear(32, 10, bias=False)
-            self.layer_2 = nn.Linear(10, 32, bias=False)
-            self.layer_3 = nn.Linear(32, 10, bias=False)
-            self.layer_3.weight = self.layer_1.weight
-
-        def forward(self, x):
-            x = self.layer_1(x)
-            x = self.layer_2(x)
-            x = self.layer_3(x)
-            return x
-
+    class Model(WeightSharingModule):
         def on_post_move_to_device(self):
             self.layer_3.weight = self.layer_1.weight
 
-    model = WeightSharingModule()
+    model = Model()
     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
 
     with pytest.warns(UserWarning) as warnings:

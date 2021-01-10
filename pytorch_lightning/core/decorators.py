@@ -68,6 +68,23 @@ def auto_move_data(fn: Callable) -> Callable:
 
 
 def parameter_validation(fn: Callable) -> Callable:
+    """
+    Decorator for `~pytorch_lightning.core.LightningModule.to` method.
+    Validates that the module parameter lengths match after moving to the device. It is useful
+    when tying weights on TPU's.
+
+    Args:
+        fn: `.to` method
+
+    Note:
+        TPU's require weights to be tied/shared after moving the module to the device.
+        Failure to do this results in the initialization of new weights which are not tied.
+        To overcome this issue, weights should be tied using the `on_post_move_to_device` model hook
+        which is called after the module has been moved to the device.
+
+    See Also:
+        - `XLA Documentation <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks>`_
+    """
     @wraps(fn)
     def inner_f(self, *args, **kwargs):
         pre_param_count = len(list(self.parameters()))
