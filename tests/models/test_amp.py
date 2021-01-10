@@ -42,9 +42,9 @@ def test_amp_single_gpu_dp(tmpdir):
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -61,9 +61,9 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
@@ -82,9 +82,9 @@ def test_amp_multi_gpu_dp(tmpdir):
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -101,9 +101,9 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -132,10 +132,10 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         logger=logger,
     )
     trainer.is_slurm_managing_tasks = True
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert trainer.state == TrainerState.FINISHED, 'amp + ddp model failed to complete'
 
     # test root model address
     assert trainer.slurm_connector.resolve_root_node_address('abc') == 'abc'
@@ -181,7 +181,7 @@ def test_amp_without_apex(tmpdir):
     )
     assert trainer.amp_backend is None
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     assert trainer.dev_debugger.count_events('AMP') == 0
 
 
@@ -202,5 +202,5 @@ def test_amp_with_apex(tmpdir):
     )
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     assert trainer.dev_debugger.count_events('AMP') == 10

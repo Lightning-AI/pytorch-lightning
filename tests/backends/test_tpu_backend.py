@@ -16,6 +16,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils
 from tests.base.boring_model import BoringModel
 from tests.base.develop_utils import pl_multi_process_test
@@ -45,9 +46,8 @@ def test_resume_training_on_cpu(tmpdir):
         max_epochs=1,
         default_root_dir=tmpdir,
     )
-    result = trainer.fit(model)
-
-    assert result == 1
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
 
 @pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")

@@ -162,9 +162,9 @@ def test_early_stopping_no_val_step(tmpdir):
         overfit_batches=0.20,
         max_epochs=10,
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     assert trainer.current_epoch < trainer.max_epochs - 1
 
 

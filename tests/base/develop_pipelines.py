@@ -14,6 +14,7 @@
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.states import TrainerState
 from tests.base import BoringModel
 from tests.base.develop_utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
@@ -23,10 +24,10 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
 
     # fit model
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     pretrained_model = load_model_from_checkpoint(
         trainer.logger,
@@ -60,10 +61,10 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
 
     trainer = Trainer(**trainer_options)
     initial_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
-    result = trainer.fit(model)
+    trainer.fit(model)
     post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
-    assert result == 1, 'trainer failed'
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     # Check that the model is actually changed post-training
     change_ratio = torch.norm(initial_values - post_train_values)
     assert change_ratio > 0.1, f"the model is changed of {change_ratio}"

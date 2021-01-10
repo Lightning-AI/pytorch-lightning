@@ -17,6 +17,7 @@ from torch import optim
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
 
@@ -36,8 +37,8 @@ def test_lr_monitor_single_lr(tmpdir):
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert all(v is None for v in lr_monitor.last_momentum_values.values()), \
@@ -78,8 +79,8 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
         log_every_n_steps=1,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     assert all(v is not None for v in lr_monitor.last_momentum_values.values()), \
         'Expected momentum to be logged'
@@ -110,8 +111,8 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         callbacks=[lr_monitor],
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
-        result = trainer.fit(model)
-        assert result
+        trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     assert all(v == 0 for v in lr_monitor.last_momentum_values.values()), \
         'Expected momentum to be logged'
@@ -136,8 +137,8 @@ def test_lr_monitor_no_lr_scheduler(tmpdir):
     )
 
     with pytest.warns(RuntimeWarning, match='have no learning rate schedulers'):
-        result = trainer.fit(model)
-        assert result
+        trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
 
 def test_lr_monitor_no_logger(tmpdir):
@@ -176,8 +177,8 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
         limit_val_batches=0.1,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert len(lr_monitor.lrs) == len(trainer.lr_schedulers), \
@@ -209,8 +210,8 @@ def test_lr_monitor_param_groups(tmpdir):
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert len(lr_monitor.lrs) == 2 * len(trainer.lr_schedulers), \

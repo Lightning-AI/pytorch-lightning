@@ -22,6 +22,7 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from pytorch_lightning.trainer.states import TrainerState
 from tests.base import BoringModel
 
 
@@ -44,11 +45,11 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
         enable_pl_optimizer=enable_pl_optimizer,
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
     real_global_step = trainer.global_step
 
     # traning complete
-    assert result == 1, 'cpu model failed to complete'
+    assert trainer.state == TrainerState.FINISHED, 'cpu model failed to complete'
 
     # predict with trained model before saving
     # make a prediction
@@ -224,9 +225,9 @@ def test_running_test_after_fitting(tmpdir):
         callbacks=[checkpoint],
         logger=logger,
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     trainer.test()
 
@@ -265,9 +266,9 @@ def test_running_test_no_val(tmpdir):
         callbacks=[checkpoint],
         logger=logger,
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     trainer.test()
 
@@ -286,10 +287,10 @@ def test_simple_cpu(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=20,
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert trainer.state == TrainerState.FINISHED, 'amp + ddp model failed to complete'
 
 
 def test_cpu_model(tmpdir):
@@ -373,6 +374,6 @@ def test_tbptt_cpu_model(tmpdir):
         limit_val_batches=0,
         weights_summary=None,
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state

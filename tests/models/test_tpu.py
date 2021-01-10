@@ -209,7 +209,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
         max_epochs=1,
         tpu_cores=8
     )
-    result = trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
+    trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert result, "TPU doesn't work with dataloaders passed to fit()."
 
 

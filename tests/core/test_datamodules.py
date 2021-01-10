@@ -21,6 +21,7 @@ import torch
 from torch.utils.data import DataLoader, random_split
 
 from pytorch_lightning import LightningDataModule, Trainer
+from pytorch_lightning.trainer.states import TrainerState
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.datamodules import TrialMNISTDataModule
@@ -206,8 +207,8 @@ def test_train_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
-    assert result == 1
+    trainer.fit(model, dm)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     assert trainer.logger_connector.callback_metrics['loss'] < 0.6
 
 
@@ -228,8 +229,8 @@ def test_train_val_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
-    assert result == 1
+    trainer.fit(model, dm)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     assert trainer.logger_connector.callback_metrics['loss'] < 0.6
 
 
@@ -247,8 +248,8 @@ def test_dm_checkpoint_save(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
-    assert result
+    trainer.fit(model, dm)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
     assert dm.__class__.__name__ in checkpoint
@@ -285,8 +286,8 @@ def test_full_loop(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
-    assert result == 1
+    trainer.fit(model, dm)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     # test
     result = trainer.test(datamodule=dm)
@@ -309,8 +310,8 @@ def test_trainer_attached_to_dm(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
-    assert result == 1
+    trainer.fit(model, dm)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     assert dm.trainer is not None
 
     # test
@@ -336,8 +337,8 @@ def test_full_loop_single_gpu(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
-    assert result == 1
+    trainer.fit(model, dm)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     # test
     result = trainer.test(datamodule=dm)
@@ -363,8 +364,8 @@ def test_full_loop_dp(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
-    assert result == 1
+    trainer.fit(model, dm)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     # test
     result = trainer.test(datamodule=dm)

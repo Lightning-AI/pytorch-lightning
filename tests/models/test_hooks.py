@@ -19,6 +19,7 @@ from unittest.mock import MagicMock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
+from pytorch_lightning.trainer.states import TrainerState
 from tests.base import EvalModelTemplate, BoringModel
 
 
@@ -76,8 +77,8 @@ def test_training_epoch_end_metrics_collection(tmpdir):
         default_root_dir=tmpdir,
         overfit_batches=2,
     )
-    result = trainer.fit(model)
-    assert result == 1
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     metrics = trainer.progress_bar_dict
 
     # metrics added in training step should be unchanged by epoch end method
