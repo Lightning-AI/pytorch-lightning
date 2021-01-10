@@ -78,7 +78,7 @@ class DeprecatedDistDeviceAttributes:
     @property
     def use_ddp(self) -> bool:
         rank_zero_warn("Internal: `use_ddp` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        return self._distrib_type == DistributedType.DDP
+        return self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
 
     @use_ddp.setter
     def use_ddp(self, val: bool) -> None:
