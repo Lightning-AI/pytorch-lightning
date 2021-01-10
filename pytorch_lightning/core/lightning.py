@@ -85,6 +85,9 @@ class LightningModule(
         #: Pointer to the logger object
         self.logger = None
 
+        self._distrib_type = None
+        self._device_type = None
+
         #: True if using dp
         self.use_dp = False
 

@@ -38,7 +38,6 @@ class TrainerDataLoadingMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     global_rank: int
-    use_ddp: bool
     use_ddp2: bool
     use_horovod: bool
     shown_warnings: ...

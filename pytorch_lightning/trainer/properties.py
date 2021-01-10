@@ -278,7 +278,9 @@ class TrainerProperties(ABC):
     def require_distributed_sampler(self):
         if self.accelerator_backend is not None:
             return self.accelerator_backend.require_distributed_sampler
-        return self.use_ddp or self.use_ddp2 or self.use_horovod or self._device_type == DeviceType.TPU
+        return self._distrib_type in (
+            DistributedType.HOROVOD, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2
+        ) or self._device_type == DeviceType.TPU
 
     @property
     def distributed_sampler_kwargs(self):
