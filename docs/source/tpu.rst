@@ -202,7 +202,7 @@ The specialization makes it a strong choice for NLP tasks, sequential convolutio
 There are cases in which training on TPUs is slower when compared with GPUs, for possible reasons listed:
 
 - Too small batch size.
-- Explicit evaluation of tensors during training. e.g ``tensor.item()``
+- Explicit evaluation of tensors during training, e.g. ``tensor.item()``
 - Tensor shapes (e.g. model inputs) change often during training.
 - Limited resources when using TPU's with PyTorch `Link <https://github.com/pytorch/xla/issues/2054#issuecomment-627367729>`_
 - XLA Graph compilation during the initial steps `Reference <https://github.com/pytorch/xla/issues/2383#issuecomment-666519998>`_
