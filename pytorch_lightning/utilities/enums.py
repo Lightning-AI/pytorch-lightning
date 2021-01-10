@@ -32,9 +32,9 @@ class LightningEnum(str, Enum):
         return self.value.lower() == other.lower()
 
     def __hash__(self):
-        # re-enable hashtable so it can be used as dict key or form a set
+        # re-enable hashtable so it can be used as a dict key or in a set
         # example: set(LightningEnum)
-        return hash(self._name_)
+        return hash(self.name)
 
 
 class AMPType(LightningEnum):
