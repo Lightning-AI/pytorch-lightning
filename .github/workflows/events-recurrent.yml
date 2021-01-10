@@ -13,7 +13,7 @@ jobs:
     name: Label PR conflits
     runs-on: ubuntu-20.04
     steps:
-      - uses: mschilde/auto-label-merge-conflicts@v2
+      - uses: mschilde/auto-label-merge-conflicts@v2.0
         with:
           CONFLICT_LABEL_NAME: "has conflicts"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
