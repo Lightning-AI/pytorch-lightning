@@ -1,0 +1,21 @@
+on:
+  # We recommend `pull_request_target` so that github secrets are available.
+  # In `pull_request` we wouldn't be able to change labels of fork PRs
+  pull_request_target:
+    types: [ synchronize ]
+
+jobs:
+
+  # This label will then be managed by this action.
+  #  It will be added to PRs with merge conflicts and removed from PRs without conflicts.
+  #  https://github.com/mschilde/auto-label-merge-conflicts
+  pr-label-conflicts:
+    name: Label PR conflits
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: mschilde/auto-label-merge-conflicts@v2
+        with:
+          CONFLICT_LABEL_NAME: "has conflicts"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAX_RETRIES: 3
+          WAIT_MS: 5000

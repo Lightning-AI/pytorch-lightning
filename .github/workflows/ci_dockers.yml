@@ -14,7 +14,7 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
       - "environment.yml"
       - "requirements.txt"
       - ".github/workflows/ci_dockers.yml"
-      - ".github/workflows/nightly.yml"
+      - ".github/workflows/events-nightly.yml"
       - ".github/workflows/release-docker.yml"
       - "setup.py"
 
