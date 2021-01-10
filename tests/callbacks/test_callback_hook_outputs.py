@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from tests.base.boring_model import BoringModel
 
 
@@ -53,7 +53,7 @@ def test_train_step_no_return(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
-        callbacks=[CB()],
+        callbacks=CB(),
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
