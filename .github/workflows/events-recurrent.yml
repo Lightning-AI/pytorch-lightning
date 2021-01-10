@@ -14,5 +14,5 @@ jobs:
         with:
           CONFLICT_LABEL_NAME: "has conflicts"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAX_RETRIES: 5
+          MAX_RETRIES: 3
           WAIT_MS: 5000
