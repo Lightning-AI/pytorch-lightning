@@ -211,6 +211,7 @@ class AcceleratorConnector:
 
         cluster_env = self._select_environment()
 
+        # TODO: clean-up this branching as most just select class and uses the very same arguments
         # choose the appropriate accelerator backend
         if self.trainer._distrib_type == DistributedType.DDP2:
             accelerator_backend = accelerators.DDP2Accelerator(
