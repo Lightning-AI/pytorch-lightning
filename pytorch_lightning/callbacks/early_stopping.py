@@ -24,7 +24,7 @@ import numpy as np
 import torch
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn, _TPU_AVAILABLE, DeviceType
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

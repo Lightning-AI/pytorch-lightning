@@ -186,19 +186,19 @@ class AcceleratorConnector:
         # choose an accelerator for the user
         # ----------------------------------
         use_slurm_ddp = (
-                self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
-                and self.trainer.is_slurm_managing_tasks
+            self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
+            and self.trainer.is_slurm_managing_tasks
         )
 
         # torchelastic or general non_slurm ddp
         te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
         use_torchelastic_ddp = (
-                self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN) and te_flags_passed
+            self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN) and te_flags_passed
         )
 
         use_ddp_cpu_spawn = (
-                self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
-                and self.trainer._device_type == DeviceType.CPU
+            self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
+            and self.trainer._device_type == DeviceType.CPU
         )
 
         use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self._is_using_torchelastic()
@@ -355,7 +355,8 @@ class AcceleratorConnector:
             self._set_horovod_backend()
 
         # throw error to force user ddp or ddp2 choice
-        if self.trainer.num_nodes > 1 and self.trainer._distrib_type not in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2):
+        _ddp = (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
+        if (self.trainer.num_nodes > 1 and self.trainer._distrib_type not in _ddp):
             raise MisconfigurationException(
                 'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
                 'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
