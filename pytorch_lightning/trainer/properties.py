@@ -15,7 +15,7 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import cast, List, Optional, Type, TypeVar, Union
+from typing import cast, List, Optional, Type, TypeVar, Union, Any
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
@@ -358,13 +358,25 @@ class TrainerProperties(ABC):
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
 
     @property
-    def model(self):
+    def model(self) -> Any:
         """
         The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
         To access the pure LightningModule, use
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.lightning_module` instead.
         """
         return self.accelerator.model
+
+    @model.setter
+    def model(self, model: Any):
+        """
+        Setter for the model, pass-through to accelerator and plugin where the model reference is stored.
+        Used by the Tuner to reset the state of Trainer and Accelerator.
+
+        Args:
+            model: The LightningModule, possibly wrapped into DataParallel or DistributedDataParallel, depending
+                on the backend.
+        """
+        self.accelerator.model = model
 
     def get_model(self):
         # TODO: rename this to lightning_module (see training type plugin)
