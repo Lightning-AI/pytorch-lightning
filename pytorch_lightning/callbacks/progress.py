@@ -426,6 +426,20 @@ class ProgressBar(ProgressBarBase):
     def on_predict_end(self, trainer, pl_module):
         self.predict_progress_bar.close()
 
+    def print(self, *args, sep=' ', end='\n', file=None, nolock=False):
+        active_progress_bar = None
+
+        if not self.main_progress_bar.disable:
+            active_progress_bar = self.main_progress_bar
+        elif not self.val_progress_bar.disable:
+            active_progress_bar = self.val_progress_bar
+        elif not self.test_progress_bar.disable:
+            active_progress_bar = self.test_progress_bar
+
+        if active_progress_bar is not None:
+            s = sep.join(map(str, args))
+            active_progress_bar.write(s, end=end, file=file, nolock=nolock)
+
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
