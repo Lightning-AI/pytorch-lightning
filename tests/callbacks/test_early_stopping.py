@@ -22,6 +22,7 @@ import torch
 
 from pytorch_lightning import _logger, seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
 

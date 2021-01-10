@@ -35,7 +35,7 @@ def test_optimizer_with_scheduling(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    results = trainer.fit(model)
+    trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     init_lr = hparams.get('learning_rate')
@@ -66,7 +66,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    results = trainer.fit(model)
+    trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     init_lr = hparams.get('learning_rate')
@@ -101,7 +101,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    results = trainer.fit(model)
+    trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     init_lr = hparams.get('learning_rate')
@@ -167,7 +167,7 @@ def test_reducelronplateau_scheduling(tmpdir):
         'monitor': 'early_stop_on',
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    results = trainer.fit(model)
+    trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     lr_scheduler = trainer.lr_schedulers[0]
     assert lr_scheduler == dict(

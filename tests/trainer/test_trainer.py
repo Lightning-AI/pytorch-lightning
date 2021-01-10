@@ -758,8 +758,7 @@ def test_disabled_training(tmpdir):
         assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
     # check that limit_train_batches=0 turns off training
-    assert result == 1, "training failed to complete"
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     assert trainer.current_epoch == 0
     assert not model.training_step_invoked, "`training_step` should not run when `limit_train_batches=0`"
     assert not model.training_epoch_end_invoked, "`training_epoch_end` should not run when `limit_train_batches=0`"
@@ -812,7 +811,7 @@ def test_disabled_validation(tmpdir):
     )
 
     trainer = Trainer(**trainer_options)
-    trainer.fit(model)
+    result = trainer.fit(model)
 
     # check that limit_val_batches=0 turns off validation
     assert result == 1, "training failed to complete"
@@ -1320,8 +1319,7 @@ def test_trainer_subclassing():
 
     trainer = TrainerSubclass(123, custom_kwarg="custom", fast_dev_run=True)
     trainer.fit(model)
-    assert result == 1
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     assert trainer.custom_arg == 123
     assert trainer.custom_kwarg == "custom"
     assert trainer.fast_dev_run

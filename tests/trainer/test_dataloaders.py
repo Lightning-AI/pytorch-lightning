@@ -290,7 +290,7 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
         limit_test_batches=limit_test_batches,
     )
 
-    results = trainer.fit(model)
+    trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     assert trainer.num_training_batches == (0 if limit_train_batches == 0.0 else float('inf'))
     assert trainer.num_val_batches[0] == (0 if limit_val_batches == 0.0 else float('inf'))
@@ -318,7 +318,7 @@ def test_inf_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, lim
         limit_test_batches=limit_test_batches,
     )
 
-    results = trainer.fit(model)
+    trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     assert trainer.num_training_batches == limit_train_batches
     assert trainer.num_val_batches[0] == limit_val_batches
@@ -506,12 +506,12 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    results = trainer.fit(model, val_dataloaders=model.dataloader(train=False))
+    trainer.fit(model, val_dataloaders=model.dataloader(train=False))
     assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     # fit model
     trainer = Trainer(**trainer_options)
-    results = trainer.fit(model, val_dataloaders=model.dataloader(train=False))
+    trainer.fit(model, val_dataloaders=model.dataloader(train=False))
     assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
     if ckpt_path == 'specific':
         ckpt_path = trainer.checkpoint_callback.best_model_path
@@ -909,7 +909,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     # we expect the reduction for the metrics also to happen on the last batch
     # where we will get fewer metrics than gpus
     trainer.fit(model)
-    assert 1 == result
+    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
 
 @pytest.mark.parametrize(['multiple_trainloader_mode', 'num_training_batches'], [

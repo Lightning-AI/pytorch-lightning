@@ -45,7 +45,7 @@ def test_gpu_stats_monitor(tmpdir):
         logger=logger
     )
 
-    results = trainer.fit(model)
+    trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
 
     path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
