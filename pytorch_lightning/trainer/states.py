@@ -40,7 +40,7 @@ class TrainerState(LightningEnum):
 class RunningStage(LightningEnum):
     """Type of train phase.
 
-    >>> # you can math the type with string
+    >>> # you can match the Enum with string
     >>> RunningStage.TRAINING == 'train'
     True
     """
