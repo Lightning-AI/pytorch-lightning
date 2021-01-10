@@ -177,7 +177,9 @@ class TrainerProperties(ABC):
 
     @property
     def data_parallel(self) -> bool:
-        return self.use_dp or self.use_ddp or self.use_ddp2
+        return self._distrib_type in (
+            DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2
+        )
 
     @property
     def progress_bar_callback(self):
