@@ -26,19 +26,25 @@ from tests.base import BoringModel
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     """Make sure DDP works. with early stopping"""
+    class CustomBoringModel(BoringModel):
+        def validation_step(self, *args, **kwargs):
+            out = super().validation_step(*args, **kwargs)
+            self.log('val_loss', out['x'])
+            return out
+
     tutils.set_random_master_port()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
-        callbacks=[EarlyStopping()],
+        callbacks=[EarlyStopping(monitor='val_loss', min_delta=0.1)],
         max_epochs=50,
-        limit_train_batches=10,
-        limit_val_batches=10,
+        limit_train_batches=5,
+        limit_val_batches=5,
         gpus=[0, 1],
         accelerator='ddp_spawn',
     )
 
-    model = BoringModel()
+    model = CustomBoringModel()
     tpipes.run_model_test(trainer_options, model)
 
 

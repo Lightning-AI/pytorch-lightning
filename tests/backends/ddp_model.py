@@ -23,6 +23,12 @@ from pytorch_lightning import seed_everything, Trainer
 from tests.base import BoringModel
 
 
+class CustomBoringModel(BoringModel):
+    def test_step(self, *args, **kwargs):
+        super().test_step(*args, **kwargs)
+        self.log('test_loss', out['y'])
+        return out
+
 def main():
     seed_everything(1234)
 
@@ -35,7 +41,7 @@ def main():
     parser.set_defaults(accelerator="ddp")
     args = parser.parse_args()
 
-    model = BoringModel()
+    model = CustomBoringModel()
     trainer = Trainer.from_argparse_args(args)
 
     result = {}

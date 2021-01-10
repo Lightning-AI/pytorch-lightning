@@ -69,7 +69,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):
 
     model_outs = result['result']
     for out in model_outs:
-        assert out['test_acc'] > 0.90
+        assert out['test_loss'] > 0.90
 
 
 # START: test_cli ddp test
