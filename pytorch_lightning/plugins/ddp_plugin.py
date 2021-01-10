@@ -1,7 +1,8 @@
 import os
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
+import torch
 import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
@@ -47,7 +48,7 @@ class DDPPlugin(LightningPlugin):
 
             def configure_ddp(self, model, device_ids):
                 model = LightningDistributedDataParallel(
-                    model, device_ids=device_ids, find_unused_parameters=True
+                    model, device_ids=device_ids, find_unused_parameters=False
                 )
                 return model
 
@@ -59,9 +60,9 @@ class DDPPlugin(LightningPlugin):
             the model wrapped in LightningDistributedDataParallel
 
         """
-        # if unset, default `find_unused_parameters` `True`
+        # if unset, default `find_unused_parameters` `False`
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get(
-            "find_unused_parameters", True
+            "find_unused_parameters", False
         )
         model = LightningDistributedDataParallel(
             model,
@@ -91,22 +92,23 @@ class DDPPlugin(LightningPlugin):
                 torch_backend, rank=global_rank, world_size=world_size
             )
 
+    @property
+    def is_running_single_process_per_device(self) -> bool:
+        # objects do not need to be scattered in single process per device, move objects upfront to device
+        # This property is used in ``self.on_before_forward`` function.
+        return self.device_ids is not None and len(self.device_ids) == 1
+
     def on_before_forward(self, model: LightningModule, *args):
         """
-        Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
-        within the DDP wrapper.
-
-        Example::
-
-            def on_before_forward(self, model, *args):
-                batch, batch_idx = args
-                return batch.to(model.device)
+        Override to handle custom edge case.
 
         Args:
             args: Inputs to the model.
             model: Model to train.
         Returns: args moved to correct device if needed.
         """
+        if self.is_running_single_process_per_device:
+            args = model.transfer_batch_to_device(args, model.device)
         return args
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
