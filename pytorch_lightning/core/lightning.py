@@ -194,7 +194,11 @@ class LightningModule(
 
         """
         if self.trainer.is_global_zero:
-            print(*args, **kwargs)
+            progress_bar = self.trainer.progress_bar_callback
+            if progress_bar is not None and progress_bar.is_enabled:
+                progress_bar.print(*args, **kwargs)
+            else:
+                print(*args, **kwargs)
 
     def log(
         self,
