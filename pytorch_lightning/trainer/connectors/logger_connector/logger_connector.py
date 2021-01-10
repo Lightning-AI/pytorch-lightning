@@ -81,7 +81,7 @@ class LoggerConnector:
         metrics_holder = getattr(self, f"_{key}", None)
         model_ref = self.trainer.get_model()
         metrics_holder.convert(
-            self.trainer.use_tpu,
+            self.trainer._device_type == DeviceType.TPU,
             model_ref.device if model_ref is not None else model_ref
         )
         return metrics_holder.metrics
