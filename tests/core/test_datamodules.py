@@ -237,9 +237,9 @@ def test_train_val_loop_only(tmpdir):
 
 def test_dm_checkpoint_save(tmpdir):
     class CustomBoringModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            out = super().training_step(batch, batch_idx)
-            self.log('early_stop_on', out['loss'])
+        def validation_step(self, batch, batch_idx):
+            out = super().validation_step(batch, batch_idx)
+            self.log('early_stop_on', out['x'])
             return out
 
     class CustomBoringDataModule(BoringDataModule):
