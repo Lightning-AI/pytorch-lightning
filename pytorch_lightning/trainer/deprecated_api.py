@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.trainer.states import TrainPhase
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DistributedType, DeviceType, rank_zero_warn
 
 
@@ -19,7 +19,7 @@ class DeprecatedDistDeviceAttributes:
 
     _distrib_type: DistributedType
     _device_type: DeviceType
-    _train_phase: TrainPhase
+    _train_phase: RunningStage
     num_gpus: int
 
     @property
@@ -134,23 +134,23 @@ class DeprecatedDistDeviceAttributes:
     @property
     def training(self) -> bool:
         # todo: consider rename as `is_training`
-        return self._train_phase == TrainPhase.TRAINING
+        return self._train_phase == RunningStage.TRAINING
 
     @training.setter
     def training(self, val: bool) -> None:
         if val:
-            self._train_phase = TrainPhase.TRAINING
+            self._train_phase = RunningStage.TRAINING
         else:
             self._train_phase = None
 
     @property
     def testing(self) -> bool:
         # todo: consider rename as `is_testing`
-        return self._train_phase == TrainPhase.TESTING
+        return self._train_phase == RunningStage.TESTING
 
     @testing.setter
     def testing(self, val: bool) -> None:
         if val:
-            self._train_phase = TrainPhase.TESTING
+            self._train_phase = RunningStage.TESTING
         else:
             self._train_phase = None

@@ -29,7 +29,7 @@ class TrainerState(LightningEnum):
     True
     >>> # which is case sensitive
     >>> TrainerState.FINISHED == 'finished'
-    False
+    True
     """
     INITIALIZING = 'INITIALIZING'
     RUNNING = 'RUNNING'
@@ -37,11 +37,11 @@ class TrainerState(LightningEnum):
     INTERRUPTED = 'INTERRUPTED'
 
 
-class TrainPhase(LightningEnum):
+class RunningStage(LightningEnum):
     """Type of train phase.
 
     >>> # you can math the type with string
-    >>> TrainPhase.TRAINING == 'train'
+    >>> RunningStage.TRAINING == 'train'
     True
     """
     TRAINING = 'train'
