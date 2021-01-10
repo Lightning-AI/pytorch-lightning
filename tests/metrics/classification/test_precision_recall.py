@@ -73,17 +73,25 @@ def _sk_prec_recall_mdmc(preds, target, sk_fn, num_classes, average, is_multicla
 
 @pytest.mark.parametrize("metric, fn_metric", [(Precision, precision), (Recall, recall)])
 @pytest.mark.parametrize(
-    "zero_division, average, mdmc_average",
+    "zero_division, average, mdmc_average, num_classes, ignore_index",
     [
-        (0.5, "micro", None),
-        (None, "micro", None),
-        (0, "wrong", None),
-        (0, "micro", "wrong"),
+        (0.5, "micro", None, None, None),
+        (None, "micro", None, None, None),
+        (0, "wrong", None, None, None),
+        (0, "micro", "wrong", None, None),
+        (0, "macro", None, None, None),
+        (0, "macro", None, 1, 0),
     ],
 )
-def test_wrong_params(metric, fn_metric, zero_division, average, mdmc_average):
+def test_wrong_params(metric, fn_metric, zero_division, average, mdmc_average, num_classes, ignore_index):
     with pytest.raises(ValueError):
-        metric(zero_division=zero_division, average=average, mdmc_average=mdmc_average)
+        metric(
+            zero_division=zero_division,
+            average=average,
+            mdmc_average=mdmc_average,
+            num_classes=num_classes,
+            ignore_index=ignore_index,
+        )
 
     with pytest.raises(ValueError):
         fn_metric(
@@ -92,6 +100,8 @@ def test_wrong_params(metric, fn_metric, zero_division, average, mdmc_average):
             zero_division=zero_division,
             average=average,
             mdmc_average=mdmc_average,
+            num_classes=num_classes,
+            ignore_index=ignore_index,
         )
 
 
