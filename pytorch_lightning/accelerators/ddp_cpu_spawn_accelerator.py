@@ -152,8 +152,6 @@ class DDPCPUSpawnAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         # DDP spawn already spawned off each process... no need to do anything
         device_ids = self.get_device_ids()
 
@@ -241,6 +239,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
+        self.ddp_plugin.device_ids = device_ids
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 

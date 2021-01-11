@@ -15,8 +15,8 @@ import os
 from typing import Any, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 import torch.distributed as dist
+import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
@@ -183,8 +183,6 @@ class DDPHPCAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
 
@@ -211,6 +209,7 @@ class DDPHPCAccelerator(Accelerator):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
+        self.ddp_plugin.device_ids = device_ids
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         self.ddp_plugin.configure_ddp_comm_hook(model, self.trainer, self.is_single_process_single_device)
         return model
