@@ -238,7 +238,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
             mp_queue.put(best_model_path)
             mp_queue.put(results)
 
-    def on_before_backward_engine_execution(self):
+    def on_before_backward_engine_execution(self, loss: torch.Tensor) -> None:
         self.ddp_plugin.on_before_backward_engine_execution(self.trainer)
 
     def configure_ddp(

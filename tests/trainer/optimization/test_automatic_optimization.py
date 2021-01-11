@@ -50,6 +50,7 @@ class TestModel(BoringModel):
         return self._invalid_loss_strategy
 
     def on_train_epoch_end(self, *_) -> None:
+        assert not torch.isnan(self.layer.weight.data).any()
         clone_weight = self.layer.weight.data.clone()
         weight = self.layer.weight.data
         self.trainer.accelerator_backend.sync_tensor(weight)
@@ -105,11 +106,11 @@ def train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, l
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
-@pytest.mark.parametrize('accumulate_grad_batches', [1])
-@pytest.mark.parametrize('invalid_loss_strategy', ["never_skip"])
-@pytest.mark.parametrize('mock', [False])
+@pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
+@pytest.mark.parametrize('invalid_loss_strategy', ["normal", "skip_if_any", "never_skip"])
+@pytest.mark.parametrize('mock', [False, True])
 @pytest.mark.parametrize('accelerator', ["ddp"])
-@pytest.mark.parametrize('precision', [32])
+@pytest.mark.parametrize('precision', [16, 32])
 def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_batches, invalid_loss_strategy, mock, accelerator, precision):
     """
     Tests that training doesn't hang with returning nan loss

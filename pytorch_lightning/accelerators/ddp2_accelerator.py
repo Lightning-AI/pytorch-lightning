@@ -210,10 +210,10 @@ class DDP2Accelerator(Accelerator):
         torch.cuda.empty_cache()
         return results
 
-    def should_return_on_invalid_result(self, result):
-        self.ddp_plugin.should_return_on_invalid_result(result, self.trainer, self.sync_tensor)
+    def should_return_on_invalid_result(self, result) -> bool:
+        return self.ddp_plugin.should_return_on_invalid_result(result, self.trainer, self.sync_tensor)
 
-    def on_before_backward_engine_execution(self):
+    def on_before_backward_engine_execution(self, loss: torch.Tensor) -> None:
         self.ddp_plugin.on_before_backward_engine_execution(self.trainer)
 
     def configure_ddp(

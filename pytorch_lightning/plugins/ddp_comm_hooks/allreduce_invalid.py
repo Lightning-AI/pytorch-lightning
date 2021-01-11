@@ -23,7 +23,7 @@ from pytorch_lightning.utilities import LightningEnum, TORCH_GREATER_EQUAL_1_7_0
 init_allreduce_hook_with_invalid_tensors = None
 allreduce_hook_with_invalid_tensors = None
 update_allreduce_hook_with_invalid_tensors = None
-allreduce_hook_with_invalid_tensors_err_message = "Hint: `DDP_COMM_HOOKS` are introduced in PyTorch 1.7. Update PyTorch to use this feature"
+allreduce_hook_with_invalid_tensors_err_message = "HINT: `DDP_COMM_HOOKS` are introduced in PyTorch 1.7. Update PyTorch to use this feature"
 
 
 if TORCH_GREATER_EQUAL_1_7_0:
@@ -39,8 +39,17 @@ if TORCH_GREATER_EQUAL_1_7_0:
                        accumulate_grad_batches=trainer.accumulate_grad_batches,
                        world_size=trainer.world_size)
 
-    def update_allreduce_hook_with_invalid_tensors(trainer, state):
+    def update_allreduce_hook_with_invalid_tensors(loss: torch.Tensor, trainer, state: Dict):
+        is_invalid = torch.isnan(loss).any() or not torch.isfinite(loss).any()
+        is_invalid = torch.tensor(int(is_invalid), device=loss.device)
+        state["is_invalid"].append(is_invalid)
+
+        if is_invalid:
+            # set the loss to 0, so gradient are 0 too
+            loss.data = torch.tensor(0., device=loss.device, dtype=torch.float)
+
         state["should_accumulate"] = trainer.train_loop.should_accumulate()
+
 
     def allreduce_hook_with_invalid_tensors(state: Dict, bucket: torch_distrib._GradBucket):
         """
@@ -49,21 +58,15 @@ if TORCH_GREATER_EQUAL_1_7_0:
         group_to_use = torch_distrib.group.WORLD
         tensor = bucket.get_tensors()[0]
 
-        is_invalid = torch.isnan(tensor).any() or not torch.isfinite(tensor).any()
-        is_invalid = torch.tensor(int(is_invalid), device=tensor.device)
-
-        if is_invalid:
-            tensor = torch.zeros_like(tensor, device=tensor.device)
-
         if state["should_accumulate"]:
-            state["is_invalid"].append(is_invalid)
-            return [tensor]
+            fut = torch.futures.Future()
+            fut.set_result([tensor])
+            return fut
 
-        state["is_invalid"].append(is_invalid)
-        state["is_invalid"] = torch.vstack(state["is_invalid"]).sum()
+        is_invalid = torch.vstack(state["is_invalid"]).sum()
 
         dist.all_reduce(
-            state["is_invalid"],
+           tensor,
             group=group_to_use,
             async_op=False,
             op=torch_distrib.ReduceOp.SUM
@@ -75,9 +78,8 @@ if TORCH_GREATER_EQUAL_1_7_0:
 
         def then_callback(fut):
             tensor = fut.value()[0]
-
             if not state["should_accumulate"]:
-                total_invalid_batches = state["is_invalid"]
+                total_invalid_batches = is_invalid
                 total_batches = state["accumulate_grad_batches"] * state["world_size"]
                 number_seen_batches = max(total_batches - total_invalid_batches, 1)
 
@@ -85,7 +87,6 @@ if TORCH_GREATER_EQUAL_1_7_0:
 
                 state["is_invalid"] = []
                 state["should_accumulate"] = None
-
             return [tensor]
 
         return fut.then(then_callback)

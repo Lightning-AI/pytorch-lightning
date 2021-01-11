@@ -1184,7 +1184,7 @@ class LightningModule(
 
     def _backward_wrapper(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         if self.trainer.train_loop.automatic_optimization or self._running_manual_backward:
-            self.trainer.accelerator_backend.on_before_backward_engine_execution()
+            self.trainer.accelerator_backend.on_before_backward_engine_execution(loss)
             self.backward(loss, optimizer, optimizer_idx, *args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):

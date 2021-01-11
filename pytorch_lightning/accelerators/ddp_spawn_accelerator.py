@@ -270,10 +270,10 @@ class DDPSpawnAccelerator(Accelerator):
                 atomic_save(model.state_dict(), last_path)
             mp_queue.put(last_path)
 
-    def should_return_on_invalid_result(self, result):
-        self.ddp_plugin.should_return_on_invalid_result(result, self.trainer, self.sync_tensor)
+    def should_return_on_invalid_result(self, result) -> bool:
+        return self.ddp_plugin.should_return_on_invalid_result(result, self.trainer, self.sync_tensor)
 
-    def on_before_backward_engine_execution(self):
+    def on_before_backward_engine_execution(self, loss: torch.Tensor) -> None:
         self.ddp_plugin.on_before_backward_engine_execution(self.trainer)
 
     def configure_ddp(

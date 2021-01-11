@@ -199,7 +199,7 @@ class HorovodAccelerator(Accelerator):
     def require_distributed_sampler(self):
         return True
 
-    def should_return_on_invalid_result(self, result):
+    def should_return_on_invalid_result(self, result) -> bool:
         is_result_none = result is None
         model_ref = self.trainer.get_model()
         skip_if_any = model_ref.invalid_loss_strategy == InvalidLossStrategy.SKIP_IF_ANY

@@ -27,7 +27,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.ddp_comm_hooks import DDP_COMM_CALLBACK, initialize_ddp_comm_hooks
 from pytorch_lightning.plugins.plugin import LightningPlugin
-from pytorch_lightning.utilities import InvalidLossStrategy
+from pytorch_lightning.utilities import InvalidLossStrategy, TORCH_GREATER_EQUAL_1_7_0
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -105,7 +105,7 @@ class DDPPlugin(LightningPlugin):
             trainer: Lightning Trainer
             is_single_process_single_device: ddp_coom_hook doesn't work in SPMD mode.
         """
-        if isinstance(model, DistributedDataParallel) and is_single_process_single_device:
+        if isinstance(model, DistributedDataParallel) and is_single_process_single_device and TORCH_GREATER_EQUAL_1_7_0:
             initialize_ddp_comm_hooks(model, trainer)
 
     def init_ddp_connection(
@@ -147,11 +147,12 @@ class DDPPlugin(LightningPlugin):
         """
         return args
 
-    def on_before_backward_engine_execution(self, trainer):
+    def on_before_backward_engine_execution(self, loss: torch.Tensor, trainer):
         state = trainer.comm_hook_state
         callback_name = DDP_COMM_CALLBACK.ON_BEFORE_BACKWARD_ENGINE_EXECUTION.value
-        if callback_name in state:
-            state[callback_name](trainer)
+        for state_ in state.values():
+            if callback_name in state_:
+                state_[callback_name](loss, trainer)
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()
@@ -211,7 +212,7 @@ class DDPPlugin(LightningPlugin):
         """
         return torch_distrib.group.WORLD
 
-    def should_return_on_invalid_result(self, result, trainer, sync_tensor):
+    def should_return_on_invalid_result(self, result, trainer, sync_tensor: Dict):
         is_result_none = result is None
         model_ref = trainer.get_model()
         skip_if_any = model_ref.invalid_loss_strategy == InvalidLossStrategy.SKIP_IF_ANY
@@ -235,7 +236,6 @@ class DDPPlugin(LightningPlugin):
         else:
             is_invalid = 0
 
-        is_invalid = torch.tensor(is_invalid, device=model_ref.device, dtype=int)
-        sync_tensor(is_invalid)
-
+        is_invalid = torch.tensor(is_invalid, device=model_ref.device, dtype=torch.int)
+        is_invalid = sync_tensor(is_invalid).item()
         return is_invalid > 0

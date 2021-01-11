@@ -25,7 +25,11 @@ class DDP_COMM_CALLBACK(LightningEnum):
 
 
 def initialize_ddp_comm_hooks(model: LightningDistributedDataParallel, trainer):
-    if TORCH_GREATER_EQUAL_1_7_0 and model.module.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP:
+    if not TORCH_GREATER_EQUAL_1_7_0:
+        raise MisconfigurationException(
+            "Communication Hooks are introduced in PyTorch 1.7.0. Please, upgrade PyTorch to use this feature"
+        )
+    if model.module.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP:
         _ddp_comm_hook_wrapper(model, trainer, LightningDDPCommHookType["ALLREDUCE_INVALID"])
 
 
@@ -41,7 +45,7 @@ def _ddp_comm_hook_wrapper(model, trainer, ddp_comm_hook):
             "Hooks for DDP Comm Hook {hook_name} are not None. "
             f"{err_msg}"
         )
-
+    
     trainer.add_comm_hook_state(hook_name, init_hook=init_state_hook(trainer))
     state = trainer.comm_hook_state[hook_name]
     state[DDP_COMM_CALLBACK.ON_BEFORE_BACKWARD_ENGINE_EXECUTION.value] = partial(update_hook, state=state)

@@ -87,10 +87,10 @@ class Accelerator(object):
     def process_dataloader(self, dataloader):
         return dataloader
 
-    def on_before_backward_engine_execution(self) -> None:
+    def on_before_backward_engine_execution(self, loss: torch.Tensor) -> None:
         pass
 
-    def should_return_on_invalid_result(self, result):
+    def should_return_on_invalid_result(self, result) -> bool:
         return result is None
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
