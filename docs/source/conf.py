@@ -41,12 +41,12 @@ import pytorch_lightning  # noqa: E402
 #     # fp.write(pytorch_lightning.__doc__)
 
 # # export the READme
-# with open(os.path.join(PATH_ROOT, 'README.md'), 'r') as fp:
+# with open(os.path.join(_PATH_ROOT, 'README.md'), 'r') as fp:
 #     readme = fp.read()
 # # replace all paths to relative
-# for ndir in (os.path.basename(p) for p in glob.glob(os.path.join(PATH_ROOT, '*'))
+# for ndir in (os.path.basename(p) for p in glob.glob(os.path.join(_PATH_ROOT, '*'))
 #              if os.path.isdir(p)):
-#     readme = readme.replace('](%s/' % ndir, '](%s/%s/' % (PATH_ROOT, ndir))
+#     readme = readme.replace('](%s/' % ndir, '](%s/%s/' % (_PATH_ROOT, ndir))
 # with open('readme.md', 'w') as fp:
 #     fp.write(readme)
 
@@ -286,7 +286,7 @@ def setup(app):
 # path_nbs = os.path.join(PATH_HERE, 'notebooks')
 # if not os.path.isdir(path_nbs):
 #     os.mkdir(path_nbs)
-# for path_ipynb in glob.glob(os.path.join(PATH_ROOT, 'notebooks', '*.ipynb')):
+# for path_ipynb in glob.glob(os.path.join(_PATH_ROOT, 'notebooks', '*.ipynb')):
 #     path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
 #     shutil.copy(path_ipynb, path_ipynb2)
 
