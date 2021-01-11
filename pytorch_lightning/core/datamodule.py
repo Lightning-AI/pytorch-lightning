@@ -366,7 +366,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
     @classmethod
     def from_datasets(
         cls,
-        train_dataset: Optional[Dataset] = None,
+        train_dataset: Optional[Union[Dataset, List[Dataset], Dict[str, Dataset]] = None,
         val_dataset: Optional[Union[Dataset, List[Dataset]]] = None,
         test_dataset: Optional[Union[Dataset, List[Dataset]]] = None,
         batch_size: int = 1,
