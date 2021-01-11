@@ -48,5 +48,13 @@ jobs:
 
       - name: Install package
         run: |
-          pip install dist/*
-          cd .. & python -c "import pytorch_lightning as pl ; print(pl.__version__)"
+          here=$PWD
+          cd ..
+          # install as archive
+          pip install $here/dist/*.tar.gz
+          python -c "import pytorch_lightning as pl ; print(pl.__version__)"
+          pip uninstall -y pytorch-lightning
+          # install as wheel
+          pip install $here/dist/*.whl
+          python -c "import pytorch_lightning as pl ; print(pl.__version__)"
+          pip uninstall -y pytorch-lightning
