@@ -20,6 +20,7 @@ import shutil
 import sys
 
 import pt_lightning_sphinx_theme
+
 import pytorch_lightning  # noqa: E402
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
