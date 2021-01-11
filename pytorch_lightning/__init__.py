@@ -1,10 +1,13 @@
 """Root package info."""
 
+from datetime import now
+
+
 __version__ = '1.1.3'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
-__copyright__ = f'Copyright (c) 2018-{datetime.now().year}, %s.' % __author__
+__copyright__ = f'Copyright (c) 2018-{now().year}, %s.' % __author__
 __homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
 # this has to be simple string, see: https://github.com/pypa/twine/issues/522
 __docs__ = (
