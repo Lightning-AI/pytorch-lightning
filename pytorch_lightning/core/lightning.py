@@ -102,6 +102,7 @@ class LightningModule(
         self._running_manual_backward = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
+        self._automatic_optimization: bool = True
 
     def optimizers(self):
         opts = self.trainer.optimizers
@@ -151,7 +152,12 @@ class LightningModule(
         """
         If False you are responsible for calling .backward, .step, zero_grad.
         """
-        return True
+        return self._automatic_optimization
+
+    @automatic_optimization.setter
+    def automatic_optimization(self, automatic_optimization: bool) -> None:
+        self._automatic_optimization = automatic_optimization
+
 
     def print(self, *args, **kwargs) -> None:
         r"""
