@@ -16,8 +16,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pytorch_lightning import Trainer, seed_everything, LightningModule
+from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.core.step_result import TrainResult
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.base.datamodules import MNISTDataModule
 from tests.base.develop_utils import set_random_master_port
@@ -108,6 +109,7 @@ def test_sync_batchnorm_ddp(tmpdir):
         sync_batchnorm=True,
         num_sanity_val_steps=0,
         replace_sampler_ddp=False,
+        plugins=[DDPPlugin(find_unused_parameters=True)]
     )
 
     result = trainer.fit(model, dm)

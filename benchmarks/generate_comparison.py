@@ -16,7 +16,7 @@ import os
 import matplotlib.pylab as plt
 import pandas as pd
 
-from benchmarks.test_basic_parity import lightning_loop, vanilla_loop
+from benchmarks.test_basic_parity import measure_loops
 from tests.base.models import ParityModuleMNIST, ParityModuleRNN
 
 NUM_EPOCHS = 20
@@ -34,8 +34,9 @@ def _main():
         if os.path.isfile(path_csv):
             df_time = pd.read_csv(path_csv, index_col=0)
         else:
-            vanilla = vanilla_loop(cls_model, num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
-            lightning = lightning_loop(cls_model, num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
+            # todo: kind="Vanilla PT" -> use_lightning=False
+            vanilla = measure_loops(cls_model, kind="Vanilla PT", num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
+            lightning = measure_loops(cls_model, kind="PT Lightning", num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
 
             df_time = pd.DataFrame({'vanilla PT': vanilla['durations'][1:], 'PT Lightning': lightning['durations'][1:]})
             df_time /= NUM_RUNS

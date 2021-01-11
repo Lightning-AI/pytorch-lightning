@@ -114,9 +114,9 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     trainer = Trainer(
         max_epochs=1,
         logger=logger,
-        limit_train_batches=0.2,
-        limit_val_batches=0.5,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        log_every_n_steps=1,
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
@@ -126,7 +126,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == TensorBoardLogger:
         expected = [
             (0, ['hp_metric']),
-            (0, ['train_some_val']),
+            (0, ['epoch', 'train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_acc']),
             (0, ['hp_metric']),
             (1, ['epoch', 'test_acc', 'test_loss'])
@@ -134,7 +134,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         assert log_metric_names == expected
     else:
         expected = [
-            (0, ['train_some_val']),
+            (0, ['epoch', 'train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_acc']),
             (1, ['epoch', 'test_acc', 'test_loss'])
         ]
