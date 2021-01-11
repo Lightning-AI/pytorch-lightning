@@ -19,7 +19,7 @@ import inspect
 import os
 from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union, Dict
 
 import torch
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
@@ -366,7 +366,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
     @classmethod
     def from_datasets(
         cls,
-        train_dataset: Optional[Union[Dataset, List[Dataset], Dict[str, Dataset]] = None,
+        train_dataset: Optional[Union[Dataset, List[Dataset]], Dict[str, Dataset]] = None,
         val_dataset: Optional[Union[Dataset, List[Dataset]]] = None,
         test_dataset: Optional[Union[Dataset, List[Dataset]]] = None,
         batch_size: int = 1,
