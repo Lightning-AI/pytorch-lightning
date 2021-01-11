@@ -17,9 +17,10 @@
 from typing import Any, Dict, List, Optional, Union
 
 import torch
-from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
+
+from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 
 
 class ModelHooks:
@@ -74,7 +75,7 @@ class ModelHooks:
 
     def on_train_start(self) -> None:
         """
-        Called at the beginning of training before sanity check.
+        Called at the beginning of training after sanity check.
         """
         # do something at the start of training
 
@@ -83,6 +84,18 @@ class ModelHooks:
         Called at the end of training before logger experiment is closed.
         """
         # do something at the end of training
+
+    def on_validation_start(self):
+        """
+        Called at the beginning of validation.
+        """
+        # do something at the start of validation
+
+    def on_validation_end(self):
+        """
+        Called at the end of validation.
+        """
+        # do something at the end of validation
 
     def on_pretrain_routine_start(self) -> None:
         """
@@ -252,6 +265,18 @@ class ModelHooks:
         Called in the test loop at the very end of the epoch.
         """
         # do something when the epoch ends
+
+    def on_test_start(self):
+        """
+        Called at the beginning of testing.
+        """
+        # do something at the start of testing
+
+    def on_test_end(self):
+        """
+        Called at the end of testing.
+        """
+        # do something at the end of testing
 
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
         """
