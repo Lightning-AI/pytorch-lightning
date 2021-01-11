@@ -45,11 +45,9 @@ if TORCH_GREATER_EQUAL_1_7_0:
         state["is_invalid"].append(is_invalid)
 
         if is_invalid:
-            # set the loss to 0, so gradient are 0 too
             loss.data = torch.tensor(0., device=loss.device, dtype=torch.float)
 
         state["should_accumulate"] = trainer.train_loop.should_accumulate()
-
 
     def allreduce_hook_with_invalid_tensors(state: Dict, bucket: torch_distrib._GradBucket):
         """
@@ -66,7 +64,7 @@ if TORCH_GREATER_EQUAL_1_7_0:
         is_invalid = torch.vstack(state["is_invalid"]).sum()
 
         dist.all_reduce(
-           tensor,
+            tensor,
             group=group_to_use,
             async_op=False,
             op=torch_distrib.ReduceOp.SUM
