@@ -44,7 +44,9 @@ class RunningStage(LightningEnum):
     True
     """
     TRAINING = 'train'
+    EVALUATING = 'eval'
     TESTING = 'test'
+    TUNING = 'tune'
 
 
 def trainer_state(*, entering: Optional[TrainerState] = None, exiting: Optional[TrainerState] = None) -> Callable:
