@@ -27,7 +27,7 @@ jobs:
 
       - name: Prepare env
         run: |
-          pip install check-manifest "twine==3.2"
+          pip install check-manifest "twine==3.2" setuptools wheel
 
       - name: Create package
         run: |
