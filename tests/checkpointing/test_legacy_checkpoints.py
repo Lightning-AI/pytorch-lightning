@@ -24,13 +24,13 @@ LEGACY_CHECKPOINTS_PATH = os.path.join(LEGACY_PATH, 'checkpoints')
 CHECKPOINT_EXTENSION = ".ckpt"
 
 
-# todo: add more legacy checkpoints :] for < v0.8
+# todo: add more legacy checkpoints - for < v0.8
 @pytest.mark.parametrize("pl_version", [
     # "0.8.1",
     "0.8.3",
     "0.8.4",
-    "0.8.5",
-    "0.9.0",
+    # "0.8.5", # this version has problem with loading on PT<=1.4 as it seems to be archive
+    # "0.9.0", # this version has problem with loading on PT<=1.4 as it seems to be archive
     "0.10.0",
     "1.0.0",
     "1.0.1",
