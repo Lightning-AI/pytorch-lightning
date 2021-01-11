@@ -388,14 +388,14 @@ class ProgressBar(ProgressBarBase):
             bar.update(delta)
 
 
-def convert_inf(x: Union[int, float]) -> Optional[int]:
+def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
     """ The tqdm doesn't support inf values. We have to convert it to None. """
     if x == float('inf'):
         return None
     return x
 
 
-def reset(bar: tqdm, total: Optional[int]) -> None:
+def reset(bar: tqdm, total: Optional[int] = None) -> None:
     """ Resets the tqdm bar to 0 progress with a new total, unless it is disabled. """
     if not bar.disable:
         bar.reset(total=convert_inf(total))
