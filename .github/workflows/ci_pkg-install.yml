@@ -27,13 +27,13 @@ jobs:
 
       - name: Prepare env
         run: |
-          pip install check-manifest "twine==1.13.0"
+          pip install check-manifest "twine==3.2"
 
       - name: Create package
         run: |
           check-manifest
           # python setup.py check --metadata --strict
-          python setup.py sdist
+          python setup.py sdist bdist_wheel
 
       - name: Check package
         run: |
