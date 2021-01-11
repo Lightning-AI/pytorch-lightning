@@ -124,7 +124,6 @@ class PredictionCollection(object):
         self.global_rank = global_rank
         self.world_size = world_size
         self.predictions = {}
-        self.num_predictions = 0
 
     def _add_prediction(self, name, values, filename):
         if filename not in self.predictions:
@@ -139,7 +138,6 @@ class PredictionCollection(object):
             self.predictions[filename][name].extend(values)
 
     def add(self, predictions):
-
         if predictions is None:
             return
 
@@ -183,6 +181,9 @@ class PredictionCollection(object):
             # Write predictions for current file to disk
             with fs.open(filepath, "wb") as fp:
                 torch.save(outputs, fp)
+
+    def __len__(self):
+        return len(self.predictions.keys())
 
 
 class CycleIterator(object):

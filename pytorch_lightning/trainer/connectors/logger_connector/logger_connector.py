@@ -15,6 +15,7 @@ from copy import deepcopy
 import os
 from pprint import pprint
 from typing import Any, Iterable, Union, Dict
+from functools import partial
 
 import torch
 
@@ -312,6 +313,22 @@ class LoggerConnector:
 
         # clear mem
         self.eval_loop_results = []
+
+        return self._add_predictions_to_results(results)
+
+    @staticmethod
+    def _filter_predictions(x: Any, dl_idx: int = None) -> bool:
+        return x[1] == dl_idx
+
+    def _add_predictions_to_results(self, results):
+        if len(self.trainer.evaluation_loop.predictions):
+            model_ref = self.trainer.get_model()
+            predictions = self.trainer.evaluation_loop.predictions.predictions
+            # predictions = model_ref.all_gather(predictions)
+            predictions = [[path, dl_idx, pred] for path, values in predictions.items() for dl_idx, pred in values.items()]
+            for dl_idx, result in enumerate(results):
+                filter_ = partial(self._filter_predictions, dl_idx=dl_idx)
+                result["predictions"] = filter(filter_, predictions)
         return results
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
