@@ -192,7 +192,7 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
         max_epochs=num_epochs,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_model_checkpoint_format_checkpoint_name(tmpdir):

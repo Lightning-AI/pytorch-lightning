@@ -44,7 +44,7 @@ def test_amp_single_gpu_dp(tmpdir):
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -63,7 +63,7 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
@@ -84,7 +84,7 @@ def test_amp_multi_gpu_dp(tmpdir):
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -103,7 +103,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -181,7 +181,7 @@ def test_amp_without_apex(tmpdir):
     )
     assert trainer.amp_backend is None
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.dev_debugger.count_events('AMP') == 0
 
 
@@ -202,5 +202,5 @@ def test_amp_with_apex(tmpdir):
     )
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.dev_debugger.count_events('AMP') == 10

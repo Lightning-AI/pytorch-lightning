@@ -57,7 +57,7 @@ def run_test_from_config(trainer_options):
 
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # Horovod should be initialized following training. If not, this will raise an exception.
     assert hvd.size() == 2

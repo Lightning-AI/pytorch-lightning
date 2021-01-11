@@ -27,7 +27,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     trainer.fit(model)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     pretrained_model = load_model_from_checkpoint(
         trainer.logger,
@@ -64,7 +64,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
     trainer.fit(model)
     post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     # Check that the model is actually changed post-training
     change_ratio = torch.norm(initial_values - post_train_values)
     assert change_ratio > 0.1, f"the model is changed of {change_ratio}"

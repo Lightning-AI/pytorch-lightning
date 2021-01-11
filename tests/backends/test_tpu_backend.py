@@ -47,7 +47,7 @@ def test_resume_training_on_cpu(tmpdir):
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")

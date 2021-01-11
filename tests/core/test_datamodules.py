@@ -208,7 +208,7 @@ def test_train_loop_only(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.logger_connector.callback_metrics['loss'] < 0.6
 
 
@@ -230,7 +230,7 @@ def test_train_val_loop_only(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.logger_connector.callback_metrics['loss'] < 0.6
 
 
@@ -249,7 +249,7 @@ def test_dm_checkpoint_save(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
     assert dm.__class__.__name__ in checkpoint
@@ -287,7 +287,7 @@ def test_full_loop(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # test
     result = trainer.test(datamodule=dm)
@@ -311,7 +311,7 @@ def test_trainer_attached_to_dm(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert dm.trainer is not None
 
     # test
@@ -338,7 +338,7 @@ def test_full_loop_single_gpu(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # test
     result = trainer.test(datamodule=dm)
@@ -365,7 +365,7 @@ def test_full_loop_dp(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # test
     result = trainer.test(datamodule=dm)

@@ -227,7 +227,7 @@ def test_running_test_after_fitting(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     trainer.test()
 
@@ -268,7 +268,7 @@ def test_running_test_no_val(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     trainer.test()
 
@@ -376,4 +376,4 @@ def test_tbptt_cpu_model(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"

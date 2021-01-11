@@ -345,7 +345,7 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         callbacks=[RankZeroLoggerCheck()],
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_logger_with_prefix_all(tmpdir, monkeypatch):

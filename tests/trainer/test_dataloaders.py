@@ -121,7 +121,7 @@ def test_multiple_val_dataloader(tmpdir):
     trainer.fit(model)
 
     # verify training completed
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # verify there are 2 val loaders
     assert len(trainer.val_dataloaders) == 2, \
@@ -185,7 +185,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloader=model.dataloader(train=True))
     trainer.fit(model, **fit_options)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_train_val_dataloaders_passed_to_fit(tmpdir):
@@ -203,7 +203,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
                        val_dataloaders=model.dataloader(train=False))
 
     trainer.fit(model, **fit_options)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert len(trainer.val_dataloaders) == 1, \
         f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
 
@@ -231,7 +231,7 @@ def test_all_dataloaders_passed_to_fit(tmpdir, ckpt_path):
                         ckpt_path=ckpt_path)
     trainer.test(**test_options)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert len(trainer.val_dataloaders) == 1, \
         f'val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
     assert len(trainer.test_dataloaders) == 1, \
@@ -291,7 +291,7 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
     )
 
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.num_training_batches == (0 if limit_train_batches == 0.0 else float('inf'))
     assert trainer.num_val_batches[0] == (0 if limit_val_batches == 0.0 else float('inf'))
 
@@ -319,7 +319,7 @@ def test_inf_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, lim
     )
 
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.num_training_batches == limit_train_batches
     assert trainer.num_val_batches[0] == limit_val_batches
 
@@ -507,12 +507,12 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, val_dataloaders=model.dataloader(train=False))
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, val_dataloaders=model.dataloader(train=False))
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     if ckpt_path == 'specific':
         ckpt_path = trainer.checkpoint_callback.best_model_path
     trainer.test(test_dataloaders=model.dataloader(train=False), ckpt_path=ckpt_path)
@@ -570,7 +570,7 @@ def test_inf_train_dataloader(tmpdir, check_interval):
     )
     trainer.fit(model)
     # verify training completed
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize('check_interval', [1.0])
@@ -589,7 +589,7 @@ def test_inf_val_dataloader(tmpdir, check_interval):
     trainer.fit(model)
 
     # verify training completed
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_error_on_zero_len_dataloader(tmpdir):
@@ -909,7 +909,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     # we expect the reduction for the metrics also to happen on the last batch
     # where we will get fewer metrics than gpus
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize(['multiple_trainloader_mode', 'num_training_batches'], [
@@ -951,7 +951,7 @@ def test_val_dataloader_not_implemented_error(tmpdir, check_interval):
     )
     trainer.fit(model)
     # verify training completed
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize('check_interval', [50, 1.0])
@@ -970,7 +970,7 @@ def test_train_dataloader_not_implemented_error(tmpdir, check_interval):
     )
     trainer.fit(model)
     # verify training completed
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_train_dataloader_not_implemented_error_failed(tmpdir):
@@ -1019,7 +1019,7 @@ def test_dataloaders_load_only_once(tmpdir):
         max_epochs=3,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert len(trainer.dev_debugger.val_dataloader_calls) == 1
     assert len(trainer.dev_debugger.test_dataloader_calls) == 0
@@ -1050,7 +1050,7 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         max_epochs=3,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     trainer.test()
 
@@ -1094,7 +1094,7 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
         max_epochs=3,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert len(trainer.dev_debugger.val_dataloader_calls) == 1
     assert len(trainer.dev_debugger.test_dataloader_calls) == 0
@@ -1124,7 +1124,7 @@ def test_dataloaders_load_every_epoch(tmpdir):
         max_epochs=3,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     trainer.test()
 
@@ -1163,7 +1163,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         max_epochs=3,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     trainer.test()
 
@@ -1205,7 +1205,7 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
         max_epochs=3,
     )
     trainer.fit(model, train_loader, val_loader)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     trainer.test(test_dataloaders=test_loader)
 

@@ -154,7 +154,7 @@ def test_finished_state_after_fit(tmpdir, extra_params):
 
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_running_state_during_test(tmpdir):
@@ -188,7 +188,7 @@ def test_finished_state_after_test(tmpdir):
 
     trainer.test(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize("extra_params", [

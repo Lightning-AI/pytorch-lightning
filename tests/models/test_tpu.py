@@ -211,7 +211,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
         tpu_cores=8
     )
     trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize(

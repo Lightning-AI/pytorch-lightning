@@ -59,7 +59,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     # fit model
     trainer.fit(model)
     # training complete
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, "save_test.ckpt")
@@ -105,7 +105,7 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, "save_test.ckpt")
@@ -149,7 +149,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.state == TrainerState.FINISHED
 
     # save model
@@ -471,7 +471,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     # fit model
     trainer.fit(model)
     # training complete
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
 
@@ -581,7 +581,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.state == TrainerState.FINISHED
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
@@ -591,7 +591,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.global_step == num_train_samples * trainer.max_epochs
     assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
@@ -618,7 +618,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.state == TrainerState.FINISHED
     assert trainer.current_epoch > 0
     assert trainer.global_step >= num_train_samples, "Model did not train for at least min_epochs"
@@ -628,7 +628,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.current_epoch > 0
     assert trainer.global_step >= math.floor(num_train_samples * 1.5), "Model did not train for at least min_steps"
 
@@ -650,7 +650,7 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.state == TrainerState.FINISHED
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
@@ -673,7 +673,7 @@ def test_benchmark_option(tmpdir):
     trainer.fit(model)
 
     # verify training completed
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # verify torch.backends.cudnn.benchmark is not turned off
     assert torch.backends.cudnn.benchmark
@@ -758,7 +758,7 @@ def test_disabled_training(tmpdir):
         assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
     # check that limit_train_batches=0 turns off training
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 0
     assert not model.training_step_invoked, "`training_step` should not run when `limit_train_batches=0`"
     assert not model.training_epoch_end_invoked, "`training_epoch_end` should not run when `limit_train_batches=0`"
@@ -776,7 +776,7 @@ def test_disabled_training(tmpdir):
     for key in before_state_dict.keys():
         assert not torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 0
     assert model.training_step_invoked, "did not run `training_step` with `fast_dev_run=True`"
     assert model.training_epoch_end_invoked, "did not run `training_epoch_end` with `fast_dev_run=True`"
@@ -815,7 +815,7 @@ def test_disabled_validation(tmpdir):
 
     # check that limit_val_batches=0 turns off validation
     assert result == 1, "training failed to complete"
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 1
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
     assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
@@ -826,7 +826,7 @@ def test_disabled_validation(tmpdir):
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 0
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
@@ -1319,7 +1319,7 @@ def test_trainer_subclassing():
 
     trainer = TrainerSubclass(123, custom_kwarg="custom", fast_dev_run=True)
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.custom_arg == 123
     assert trainer.custom_kwarg == "custom"
     assert trainer.fast_dev_run
@@ -1334,7 +1334,7 @@ def test_trainer_subclassing():
 
     trainer = TrainerSubclass(custom_kwarg="custom", fast_dev_run=True)
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.custom_kwarg == "custom"
     assert trainer.fast_dev_run
 

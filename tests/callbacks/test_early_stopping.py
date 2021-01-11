@@ -165,7 +165,7 @@ def test_early_stopping_no_val_step(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.current_epoch < trainer.max_epochs - 1
 
 

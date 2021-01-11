@@ -110,7 +110,7 @@ def test_custom_logger(tmpdir):
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert logger.hparams_logged == model.hparams
     assert logger.metrics_logged != {}
     assert logger.finalized_status == "success"
@@ -135,7 +135,7 @@ def test_multiple_loggers(tmpdir):
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert logger1.hparams_logged == model.hparams
     assert logger1.metrics_logged != {}

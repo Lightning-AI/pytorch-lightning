@@ -77,7 +77,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     logged_metrics = trainer.dev_debugger.logged_metrics
     assert len(logged_metrics) == len(model.stored_grad_norms)
 

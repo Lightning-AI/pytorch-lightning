@@ -222,7 +222,7 @@ def test_horovod_multi_optimizer(enable_pl_optimizer, tmpdir):
         enable_pl_optimizer=enable_pl_optimizer,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert len(trainer.optimizers) == 2
     for i, optimizer in enumerate(trainer.optimizers):

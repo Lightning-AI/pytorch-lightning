@@ -46,7 +46,7 @@ def test_gpu_stats_monitor(tmpdir):
     )
 
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, "Training failed with %s" % trainer.state
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     met_data = np.genfromtxt(path_csv, delimiter=',', names=True, deletechars='', replace_space=' ')
