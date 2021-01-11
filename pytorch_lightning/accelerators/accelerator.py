@@ -145,43 +145,7 @@ class Accelerator(object):
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
     def clip_gradients(self, optimizer, clip_val):
-        # TODO: separate TPU case from here
-        self._clip_gradients(optimizer, clip_val)
-
-    def _clip_gradients(self, optimizer, grad_clip_val):
-        if grad_clip_val is None:
-            return
-
-        grad_clip_val = float(grad_clip_val)
-
-        if grad_clip_val <= 0:
-            return
-
-        parameters = self.precision_plugin.master_params(optimizer)
-
-        max_norm = grad_clip_val
-        norm_type = float(2.0)
-
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
-        parameters = list(filter(lambda p: p.grad is not None, parameters))
-
-        device = parameters[0].device
-
-        if norm_type == math.inf:
-            total_norm = max(p.grad.data.abs().max() for p in parameters)
-        else:
-            out = torch.empty(len(parameters), device=device)
-            for i, p in enumerate(parameters):
-                torch.norm(p.grad.data.to(device), norm_type, out=out[i])
-            total_norm = torch.norm(out, norm_type)
-
-        eps = self.precision_plugin.EPSILON
-
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
-        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
-        for p in parameters:
-            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
+        self.precision_plugin.clip_gradients(optimizer, clip_val)
 
     def on_train_epoch_end(self, outputs):
         pass
