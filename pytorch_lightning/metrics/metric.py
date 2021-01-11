@@ -535,7 +535,7 @@ class MetricCollection(nn.ModuleDict):
         be passed to every metric in the collection, while keyword arguments (kwargs)
         will be filtered based on the signature of the individual metric.
         """
-        return {k: m(*args, **self._filter_kwargs(m, **kwargs)) for k, m in self.items()}
+        return {k: m(*args, **m._filter_kwargs(**kwargs)) for k, m in self.items()}
 
     def update(self, *args, **kwargs):  # pylint: disable=E0202
         """
