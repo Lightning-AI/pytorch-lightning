@@ -359,7 +359,7 @@ def test_accuracy_metric_horovod():
 #             limit_train_batches=0.2,
 #             distributed_backend='horovod'
 #         )
-#         trainer.fit(model)
+#         results = trainer.fit(model)
 #         assert results == 1
 #
 #     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups][0]
