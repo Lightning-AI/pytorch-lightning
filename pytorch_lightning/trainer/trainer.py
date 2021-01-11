@@ -85,7 +85,7 @@ class Trainer(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
         checkpoint_callback: bool = True,
-        callbacks: Optional[List[Callback]] = None,
+        callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
         process_position: int = 0,
@@ -169,7 +169,7 @@ class Trainer(
 
             benchmark: If true enables cudnn.benchmark.
 
-            callbacks: Add a list of callbacks.
+            callbacks: Add a callback or list of callbacks.
 
             checkpoint_callback: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
