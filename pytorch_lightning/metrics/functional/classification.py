@@ -524,7 +524,11 @@ def auroc(
 ) -> torch.Tensor:
     """
     Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from prediction scores
-
+    
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.auroc.auroc`. Will be removed
+     in v1.4.0.
+    
     Args:
         pred: estimated probabilities
         target: ground-truth labels
@@ -543,6 +547,12 @@ def auroc(
         >>> auroc(x, y)
         tensor(0.5000)
     """
+    rank_zero_warn(
+        "This `auroc` was deprecated in v1.2.0 in favor of"
+        " `pytorch_lightning.metrics.functional.auroc import auroc`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+    
     if any(target > 1):
         raise ValueError('AUROC metric is meant for binary classification, but'
                          ' target tensor contains value different from 0 and 1.'
@@ -585,7 +595,11 @@ def multiclass_auroc(
     """
     Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from multiclass
     prediction scores
-
+    
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.auroc.auroc`. Will be removed
+     in v1.4.0.
+    
     Args:
         pred: estimated probabilities, with shape [N, C]
         target: ground-truth labels, with shape [N,]
@@ -605,6 +619,12 @@ def multiclass_auroc(
         >>> multiclass_auroc(pred, target, num_classes=4)
         tensor(0.6667)
     """
+    rank_zero_warn(
+        "This `multiclass_auroc` was deprecated in v1.2.0 in favor of"
+        " `pytorch_lightning.metrics.functional.auroc import auroc`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+    
     if not torch.allclose(pred.sum(dim=1), torch.tensor(1.0)):
         raise ValueError(
             "Multiclass AUROC metric expects the target scores to be"

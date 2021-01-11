@@ -2,11 +2,9 @@ from functools import partial
 
 import pytest
 import torch
-from distutils.version import LooseVersion
 from sklearn.metrics import (
     precision_score as sk_precision,
     recall_score as sk_recall,
-    roc_auc_score as sk_roc_auc_score,
 )
 
 from pytorch_lightning import seed_everything
@@ -16,9 +14,7 @@ from pytorch_lightning.metrics.functional.classification import (
     precision,
     recall,
     dice_score,
-    auroc,
-    multiclass_auroc,
-    auc,
+    iou,
 )
 from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
 from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categorical
@@ -27,7 +23,6 @@ from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categ
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'only_binary'], [
     pytest.param(partial(sk_precision, average='micro'), precision, False, id='precision'),
     pytest.param(partial(sk_recall, average='micro'), recall, False, id='recall'),
-    pytest.param(sk_roc_auc_score, auroc, True, id='auroc')
 ])
 def test_against_sklearn(sklearn_metric, torch_metric, only_binary):
     """Compare PL metrics to sklearn version. """
@@ -195,94 +190,6 @@ def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
     assert thresh.shape == (exp_shape,)
 
 
-@pytest.mark.parametrize(['pred', 'target', 'max_fpr', 'expected'], [
-    pytest.param([0, 1, 0, 1], [0, 1, 0, 1], None, 1.),
-    pytest.param([1, 1, 0, 0], [0, 0, 1, 1], None, 0.),
-    pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.8, 0.5),
-    pytest.param([0.5, 0.5, 0.5, 0.5], [1, 1, 0, 0], 0.2, 0.5),
-    pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 0.5, 1.),
-])
-def test_auroc(pred, target, max_fpr, expected):
-    if max_fpr is not None and LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
-        pytest.skip('requires torch v1.6 or higher to test max_fpr argument')
-
-    score = auroc(torch.tensor(pred), torch.tensor(target), max_fpr=max_fpr).item()
-    assert score == expected
-
-
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion('1.6.0'),
-                    reason='requires torch v1.6 or higher to test max_fpr argument')
-@pytest.mark.parametrize('max_fpr', [
-    None, 1, 0.99, 0.9, 0.75, 0.5, 0.25, 0.1, 0.01, 0.001,
-])
-def test_auroc_with_max_fpr_against_sklearn(max_fpr):
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    pred = torch.rand((300,), device=device)
-    # Supports only binary classification
-    target = torch.randint(2, (300,), dtype=torch.float64, device=device)
-    sk_score = sk_roc_auc_score(target.cpu().detach().numpy(),
-                                pred.cpu().detach().numpy(),
-                                max_fpr=max_fpr)
-    pl_score = auroc(pred, target, max_fpr=max_fpr)
-
-    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
-    assert torch.allclose(sk_score, pl_score)
-
-
-def test_multiclass_auroc():
-    with pytest.raises(ValueError,
-                       match=r".*probabilities, i.e. they should sum up to 1.0 over classes"):
-        _ = multiclass_auroc(pred=torch.tensor([[0.9, 0.9],
-                                                [1.0, 0]]),
-                             target=torch.tensor([0, 1]))
-
-    with pytest.raises(ValueError,
-                       match=r".*not defined when all of the classes do not occur in the target.*"):
-        _ = multiclass_auroc(pred=torch.rand((4, 3)).softmax(dim=1),
-                             target=torch.tensor([1, 0, 1, 0]))
-
-    with pytest.raises(ValueError,
-                       match=r".*does not equal the number of classes passed in 'num_classes'.*"):
-        _ = multiclass_auroc(pred=torch.rand((5, 4)).softmax(dim=1),
-                             target=torch.tensor([0, 1, 2, 2, 3]),
-                             num_classes=6)
-
-
-@pytest.mark.parametrize('n_cls', [2, 5, 10, 50])
-def test_multiclass_auroc_against_sklearn(n_cls):
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    n_samples = 300
-    pred = torch.rand(n_samples, n_cls, device=device).softmax(dim=1)
-    target = torch.randint(n_cls, (n_samples,), device=device)
-    # Make sure target includes all class labels so that multiclass AUROC is defined
-    target[10:10 + n_cls] = torch.arange(n_cls)
-
-    pl_score = multiclass_auroc(pred, target)
-    # For the binary case, sklearn expects an (n_samples,) array of probabilities of
-    # the positive class
-    pred = pred[:, 1] if n_cls == 2 else pred
-    sk_score = sk_roc_auc_score(target.cpu().detach().numpy(),
-                                pred.cpu().detach().numpy(),
-                                multi_class="ovr")
-
-    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
-    assert torch.allclose(sk_score, pl_score)
-
-
-@pytest.mark.parametrize(['x', 'y', 'expected'], [
-    pytest.param([0, 1], [0, 1], 0.5),
-    pytest.param([1, 0], [0, 1], 0.5),
-    pytest.param([1, 0, 0], [0, 1, 1], 0.5),
-    pytest.param([0, 1], [1, 1], 1),
-    pytest.param([0, 0.5, 1], [0, 0.5, 1], 0.5),
-])
-def test_auc(x, y, expected):
-    # Test Area Under Curve (AUC) computation
-    assert auc(torch.tensor(x), torch.tensor(y)) == expected
-
-
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
     pytest.param([[0, 0], [1, 1]], [[0, 0], [1, 1]], 1.),
     pytest.param([[1, 1], [0, 0]], [[0, 0], [1, 1]], 0.),
@@ -294,10 +201,103 @@ def test_dice_score(pred, target, expected):
     assert score == expected
 
 
-@pytest.mark.parametrize('metric', [auroc])
-def test_error_on_multiclass_input(metric):
-    """ check that these metrics raise an error if they are used for multiclass problems  """
-    pred = torch.randint(0, 10, (100,))
-    target = torch.randint(0, 10, (100,))
-    with pytest.raises(ValueError, match="AUROC metric is meant for binary classification"):
-        _ = metric(pred, target)
+@pytest.mark.parametrize(['half_ones', 'reduction', 'ignore_index', 'expected'], [
+    pytest.param(False, 'none', None, torch.Tensor([1, 1, 1])),
+    pytest.param(False, 'elementwise_mean', None, torch.Tensor([1])),
+    pytest.param(False, 'none', 0, torch.Tensor([1, 1])),
+    pytest.param(True, 'none', None, torch.Tensor([0.5, 0.5, 0.5])),
+    pytest.param(True, 'elementwise_mean', None, torch.Tensor([0.5])),
+    pytest.param(True, 'none', 0, torch.Tensor([0.5, 0.5])),
+])
+def test_iou(half_ones, reduction, ignore_index, expected):
+    pred = (torch.arange(120) % 3).view(-1, 1)
+    target = (torch.arange(120) % 3).view(-1, 1)
+    if half_ones:
+        pred[:60] = 1
+    iou_val = iou(
+        pred=pred,
+        target=target,
+        ignore_index=ignore_index,
+        reduction=reduction,
+    )
+    assert torch.allclose(iou_val, expected, atol=1e-9)
+
+
+def test_iou_input_check():
+    with pytest.raises(ValueError, match=r"'pred' shape (.*) must equal 'target' shape (.*)"):
+        _ = iou(pred=torch.randint(0, 2, (3, 4, 3)),
+                target=torch.randint(0, 2, (3, 3)))
+
+    with pytest.raises(ValueError, match="'pred' must contain integer targets."):
+        _ = iou(pred=torch.rand((3, 3)),
+                target=torch.randint(0, 2, (3, 3)))
+
+
+# TODO: When the jaccard_score of the sklearn version we use accepts `zero_division` (see
+#       https://github.com/scikit-learn/scikit-learn/pull/17866), consider adding a test here against our
+#       `absent_score`.
+@pytest.mark.parametrize(['pred', 'target', 'ignore_index', 'absent_score', 'num_classes', 'expected'], [
+    # Note that -1 is used as the absent_score in almost all tests here to distinguish it from the range of valid
+    # scores the function can return ([0., 1.] range, inclusive).
+    # 2 classes, class 0 is correct everywhere, class 1 is absent.
+    pytest.param([0], [0], None, -1., 2, [1., -1.]),
+    pytest.param([0, 0], [0, 0], None, -1., 2, [1., -1.]),
+    # absent_score not applied if only class 0 is present and it's the only class.
+    pytest.param([0], [0], None, -1., 1, [1.]),
+    # 2 classes, class 1 is correct everywhere, class 0 is absent.
+    pytest.param([1], [1], None, -1., 2, [-1., 1.]),
+    pytest.param([1, 1], [1, 1], None, -1., 2, [-1., 1.]),
+    # When 0 index ignored, class 0 does not get a score (not even the absent_score).
+    pytest.param([1], [1], 0, -1., 2, [1.0]),
+    # 3 classes. Only 0 and 2 are present, and are perfectly predicted. 1 should get absent_score.
+    pytest.param([0, 2], [0, 2], None, -1., 3, [1., -1., 1.]),
+    pytest.param([2, 0], [2, 0], None, -1., 3, [1., -1., 1.]),
+    # 3 classes. Only 0 and 1 are present, and are perfectly predicted. 2 should get absent_score.
+    pytest.param([0, 1], [0, 1], None, -1., 3, [1., 1., -1.]),
+    pytest.param([1, 0], [1, 0], None, -1., 3, [1., 1., -1.]),
+    # 3 classes, class 0 is 0.5 IoU, class 1 is 0 IoU (in pred but not target; should not get absent_score), class
+    # 2 is absent.
+    pytest.param([0, 1], [0, 0], None, -1., 3, [0.5, 0., -1.]),
+    # 3 classes, class 0 is 0.5 IoU, class 1 is 0 IoU (in target but not pred; should not get absent_score), class
+    # 2 is absent.
+    pytest.param([0, 0], [0, 1], None, -1., 3, [0.5, 0., -1.]),
+    # Sanity checks with absent_score of 1.0.
+    pytest.param([0, 2], [0, 2], None, 1.0, 3, [1., 1., 1.]),
+    pytest.param([0, 2], [0, 2], 0, 1.0, 3, [1., 1.]),
+])
+def test_iou_absent_score(pred, target, ignore_index, absent_score, num_classes, expected):
+    iou_val = iou(
+        pred=torch.tensor(pred),
+        target=torch.tensor(target),
+        ignore_index=ignore_index,
+        absent_score=absent_score,
+        num_classes=num_classes,
+        reduction='none',
+    )
+    assert torch.allclose(iou_val, torch.tensor(expected).to(iou_val))
+
+
+# example data taken from
+# https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/tests/test_ranking.py
+@pytest.mark.parametrize(['pred', 'target', 'ignore_index', 'num_classes', 'reduction', 'expected'], [
+    # Ignoring an index outside of [0, num_classes-1] should have no effect.
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], None, 3, 'none', [1, 1 / 2, 2 / 3]),
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], -1, 3, 'none', [1, 1 / 2, 2 / 3]),
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 255, 3, 'none', [1, 1 / 2, 2 / 3]),
+    # Ignoring a valid index drops only that index from the result.
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 0, 3, 'none', [1 / 2, 2 / 3]),
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 1, 3, 'none', [1, 2 / 3]),
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 2, 3, 'none', [1, 1 / 2]),
+    # When reducing to mean or sum, the ignored index does not contribute to the output.
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 0, 3, 'elementwise_mean', [7 / 12]),
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 0, 3, 'sum', [7 / 6]),
+])
+def test_iou_ignore_index(pred, target, ignore_index, num_classes, reduction, expected):
+    iou_val = iou(
+        pred=torch.tensor(pred),
+        target=torch.tensor(target),
+        ignore_index=ignore_index,
+        num_classes=num_classes,
+        reduction=reduction,
+    )
+    assert torch.allclose(iou_val, torch.tensor(expected).to(iou_val))
