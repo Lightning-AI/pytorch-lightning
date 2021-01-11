@@ -250,6 +250,50 @@ In practise this means that:
     val = metric(pred, target) # this value can be backpropagated
     val = metric.compute() # this value cannot be backpropagated
 
+******************
+Metric Arithmetics
+******************
+
+Metrics support most of python built-in operators for arithmetic, logic and bitwise operations.
+
+For example for a metric that should return the sum of two different metrics, implementing a new metric is an overhead that is not necessary. 
+It can now be done with:
+
+.. code-block:: python
+    first_metric = MyFirstMetric()
+    second_metric = MySecondMetric()
+
+    new_metric = first_metric + second_metric
+
+``new_metric.update(*args, **kwargs)`` now calls update of ``first_metric`` and ``second_metric``. It forwards all positional arguments but 
+forwards only the keyword arguments that are available in respective metric's update declaration.
+
+Similarly ``new_metric.compute()`` now calls compute of ``first_metric`` and ``second_metric`` and adds the results up.
+
+This pattern is implemented for the following operators (with ``a`` being metrics and ``b`` being metrics, tensors, integer or floats):
+
+* Addition (``a + b``)
+* Bitwise AND (``a & b``)
+* Equality (``a == b``)
+* Floordivision (``a // b``)
+* Greater Equal (``a >= b``)
+* Greater (``a >b ``)
+* Less Equal (``a <= b``)
+* Less (``a < b``)
+* Matrix Multiplication (``a @b ``)
+* Modulo (``a % b``)
+* Multiplication (``a * b``)
+* Inequality (``a != b``)
+* Bitwise OR (``a | b``)
+* Power (``a ** b``)
+* Substraction (``a - b``)
+* True Division (``a / b``)
+* Bitwise XOR (``a ^ b``)
+* Absolute Value (``abs(a)``)
+* Inversion (``~a``)
+* Negative Value (``neg(a)``)
+* Positive Value (``pos(a)``)
+
 ****************
 MetricCollection
 ****************
