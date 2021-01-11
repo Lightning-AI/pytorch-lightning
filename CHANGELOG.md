@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [1.1.4] - YYYY-MM-DD
+
+### Added
+
+
+### Changed
+
+- Changed depreceated `enable_pl_optimizer=True` ([#5244](https://github.com/PyTorchLightning/pytorch-lightning/pull/5244))
+
+
+### Deprecated
+
+
+### Removed
+
+
+### Fixed
+
+- Fixed `transfer_batch_to_device` for DDP with `len(devices_ids) == 1` ([#5195](https://github.com/PyTorchLightning/pytorch-lightning/pull/5195))
+
+
+
 ## [1.1.3] - 2021-01-05
 
 ### Added
