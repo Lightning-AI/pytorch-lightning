@@ -28,7 +28,7 @@ class TrainerState(LightningEnum):
     True
     >>> # which is case sensitive
     >>> TrainerState.FINISHED == 'finished'
-    False
+    True
     """
     INITIALIZING = 'INITIALIZING'
     RUNNING = 'RUNNING'
