@@ -1,6 +1,6 @@
 """Root package info."""
 
-from datetime import now
+from datetime.datetime import now
 
 __version__ = '1.1.3'
 __author__ = 'William Falcon et al.'
