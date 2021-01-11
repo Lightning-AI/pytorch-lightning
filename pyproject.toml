@@ -36,7 +36,6 @@ skip_glob = [
     "pytorch_lightning/trainer/*",
     "pytorch_lightning/tuner/*",
     "pytorch_lightning/utilities/*",
-    "tests/backends/*",
     "tests/base/*",
     "tests/callbacks/*",
     "tests/loggers/*",
