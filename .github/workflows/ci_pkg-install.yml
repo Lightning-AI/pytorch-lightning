@@ -46,7 +46,7 @@ jobs:
           # this is just a hotfix because of Win cannot install it directly
           pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 
-      - name: Install package - archive
+      - name: Install | Uninstall package - archive
         run: |
           # install as archive
           pip install dist/*.tar.gz
@@ -54,7 +54,7 @@ jobs:
           python -c "import pytorch_lightning as pl ; print(pl.__version__)"
           pip uninstall -y pytorch-lightning
 
-      - name: Install package - wheel
+      - name: Install | Uninstall package - wheel
         run: |
           # install as wheel
           pip install dist/*.whl
