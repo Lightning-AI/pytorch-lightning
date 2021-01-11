@@ -285,7 +285,7 @@ def parallel_apply(
                 if output is None:
                     warn_missing_output(fx_called)
 
-                if output is not None and module.distrib_type in ("dp", "ddp2"):
+                if output is not None and module._distrib_type in ('dp', 'ddp2'):
                     auto_squeeze_dim_zeros(output)
                 # ---------------
 
