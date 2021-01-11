@@ -238,14 +238,10 @@ class DDPCPUSpawnAccelerator(Accelerator):
             mp_queue.put(best_model_path)
             mp_queue.put(results)
 
-    def on_before_backward_engine_execution(self, loss: torch.Tensor) -> None:
-        self.ddp_plugin.on_before_backward_engine_execution(self.trainer)
-
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         model = self.ddp_plugin.configure_ddp(model, device_ids)
-        self.ddp_plugin.configure_ddp_comm_hook(model, self.trainer, self.is_single_process_single_device)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:

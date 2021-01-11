@@ -206,7 +206,7 @@ class DDPHPCAccelerator(Accelerator):
         return self.ddp_plugin.should_return_on_invalid_result(result, self.trainer, self.sync_tensor)
 
     def on_before_backward_engine_execution(self, loss: torch.Tensor) -> None:
-        self.ddp_plugin.on_before_backward_engine_execution(self.trainer)
+        self.ddp_plugin.on_before_backward_engine_execution(loss, self.trainer)
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]

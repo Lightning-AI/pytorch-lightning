@@ -81,9 +81,11 @@ def train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, l
     except Exception as e:
         msg = "LightningModule `invalid_loss_strategy` property should be within"
         if msg in str(e) and invalid_loss_strategy == "normal":
-            pass
-        else:
-            raise Exception(str(e))
+            return
+        msg = "Model invalid_loss_strategy invalid_loss_strategy=='never_skip' is not supported"
+        if invalid_loss_strategy == "never_skip" and accelerator == "ddp_cpu":
+            return
+        raise Exception(str(e))
 
 
 """
@@ -128,11 +130,27 @@ def test_automatic_optimization_with_nan_loss_and_ddp(tmpdir, accumulate_grad_ba
         train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, limit_train_batches, precision=precision)
 
 
+"""
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize('accumulate_grad_batches', [2])
 @pytest.mark.parametrize('invalid_loss_strategy', ["normal", "skip_if_any", "never_skip"])
 @pytest.mark.parametrize('accelerator', ["ddp_spawn"])
+"""
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize('accumulate_grad_batches', [2])
+@pytest.mark.parametrize('invalid_loss_strategy', ["never_skip"])
+@pytest.mark.parametrize('accelerator', ["ddp_spawn"])
 def test_automatic_optimization_with_nan_loss_and_ddp_spawn(tmpdir, accumulate_grad_batches, invalid_loss_strategy, accelerator):
+    """
+    Tests that training doesn't hang with returning nan loss
+    """
+    train(tmpdir, invalid_loss_strategy, accumulate_grad_batches, accelerator, 12)
+
+
+@pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
+@pytest.mark.parametrize('invalid_loss_strategy', ["normal", "skip_if_any", "never_skip"])
+@pytest.mark.parametrize('accelerator', ["ddp_cpu"])
+def test_automatic_optimization_with_nan_loss_and_ddp_cpu(tmpdir, accumulate_grad_batches, invalid_loss_strategy, accelerator):
     """
     Tests that training doesn't hang with returning nan loss
     """

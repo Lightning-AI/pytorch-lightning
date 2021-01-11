@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.core.lightning import InvalidLossStrategy, LightningModule
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_warn, InvalidLossStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
 
@@ -98,6 +98,12 @@ class ConfigValidator(object):
                 'When overriding `LightningModule` optimizer_zero_grad'
                 ' and preserving model property `automatic_optimization` as True with'
                 ' `Trainer(enable_pl_optimizer=True, ...) is not supported'
+            )
+
+        never_skip = model.invalid_loss_strategy == InvalidLossStrategy.NEVER_SKIP
+        if trainer.distributed_backend in ["ddp_cpu", "horovod"] and never_skip:
+            raise MisconfigurationException(
+                f"Model invalid_loss_strategy invalid_loss_strategy=='never_skip' is not supported for {self.trainer.distributed_backend}"
             )
 
     def __verify_eval_loop_configuration(self, model, eval_loop_name):
