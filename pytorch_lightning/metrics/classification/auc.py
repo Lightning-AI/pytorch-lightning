@@ -17,11 +17,31 @@ import torch
 
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.functional.auc import _auc_update, _auc_compute
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class AUC(Metric):
-    r""""""
+    r"""
+    Computes Area Under the Curve (AUC) using the trapezoidal rule    
 
+    Forward accepts two input tensors that should be 1D and have the same number
+    of elements
+
+    Args:
+        reorder: AUC expects its first input to be sorted. If this is not the case,
+            setting this argument to ``True`` will use a stable sorting algorithm to
+            sort the input in decending order
+        compute_on_step:
+            Forward only calls ``update()`` and return None if this is set to False. default: True
+        dist_sync_on_step:
+            Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. default: False
+        process_group:
+            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+        dist_sync_fn:
+            Callback that performs the allgather operation on the metric state. When ``None``, DDP
+            will be used to perform the allgather
+    """
     def __init__(
         self,
         reorder: bool = False,
@@ -41,6 +61,11 @@ class AUC(Metric):
 
         self.add_state("x", default=[], dist_reduce_fx=None)
         self.add_state("y", default=[], dist_reduce_fx=None)
+        
+        rank_zero_warn(
+            'Metric `AUC` will save all targets and predictions in buffer.'
+            ' For large datasets this may lead to large memory footprint.'
+        )
 
     def update(self, x: torch.Tensor, y: torch.Tensor):
         """
