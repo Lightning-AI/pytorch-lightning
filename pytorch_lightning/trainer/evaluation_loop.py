@@ -16,10 +16,9 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
-from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.utilities.warning_utils import WarningCache
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class EvaluationLoop(object):
@@ -93,14 +92,14 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_start', *args, **kwargs)
 
-    def on_evaluation_model_eval(self, *args, **kwargs):
+    def on_evaluation_model_eval(self, *_, **__):
         model_ref = self.trainer.get_model()
         if self.testing:
             model_ref.on_test_model_eval()
         else:
             model_ref.on_validation_model_eval()
 
-    def on_evaluation_model_train(self, *args, **kwargs):
+    def on_evaluation_model_train(self, *_, **__):
         model_ref = self.trainer.get_model()
         if self.testing:
             model_ref.on_test_model_train()

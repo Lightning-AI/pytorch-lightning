@@ -45,7 +45,7 @@ def _setup_ddp(rank, worldsize):
 
 def _ddp_test_fn(rank, worldsize):
     _setup_ddp(rank, worldsize)
-    tensor = torch.tensor([1.0])
+    torch.tensor([1.0])
 
     metric_a = DummyMetric()
     metric_b = DummyMetric()

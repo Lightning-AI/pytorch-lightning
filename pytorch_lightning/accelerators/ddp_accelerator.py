@@ -25,21 +25,32 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
-from pytorch_lightning.utilities.distributed import find_free_network_port, rank_zero_only, sync_ddp_if_available
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
+from pytorch_lightning.utilities import _HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities.distributed import (
+    all_gather_ddp_if_available,
+    find_free_network_port,
+    rank_zero_only,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
-if HYDRA_AVAILABLE:
+if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
 
 
 class DDPAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer: Optional = None,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         """
         Runs training using DDP strategy on a single machine (manually, not via cluster start)
 
@@ -83,13 +94,14 @@ class DDPAccelerator(Accelerator):
         os.environ['LOCAL_RANK'] = '0'
 
         # when user is using hydra find the absolute path
-        path_lib = abspath if not HYDRA_AVAILABLE else to_absolute_path
+        path_lib = abspath if not _HYDRA_AVAILABLE else to_absolute_path
 
         # pull out the commands used to run the script and resolve the abs file path
         command = sys.argv
         try:
             full_path = path_lib(command[0])
-        except Exception as e:
+        # todo: specify the possible exception
+        except Exception:
             full_path = abspath(command[0])
 
         command[0] = full_path
@@ -124,7 +136,7 @@ class DDPAccelerator(Accelerator):
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
             cwd: Optional[str] = None
-            if HYDRA_AVAILABLE:
+            if _HYDRA_AVAILABLE:
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
@@ -162,14 +174,17 @@ class DDPAccelerator(Accelerator):
         return output
 
     def barrier(self, name: Optional[str] = None):
-        if torch_distrib.is_initialized():
-            torch_distrib.barrier()
+        if self.rpc_enabled:
+            # Allow RPC to handle barrier on main RPC processes
+            self.ddp_plugin.barrier()
+        elif torch_distrib.is_initialized():
+            torch_distrib.barrier(group=self.ddp_plugin.data_parallel_group)
 
     def _check_can_spawn_children(self):
         if self._has_spawned_children:
             raise RuntimeError(
                 "You tried to run `.fit` or `.test` multiple times in the same script."
-                " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
+                " This is not supported in DDP mode, switch to `accelerator='ddp_spawn'` instead."
             )
 
     def set_world_ranks(self, process_idx):
@@ -177,9 +192,12 @@ class DDPAccelerator(Accelerator):
         self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
-    def model_to_device(self, model, process_idx):
+    def init_device(self, process_idx):
+        # Todo: required argument `process_idx` is not used
         self.trainer.root_gpu = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
         torch.cuda.set_device(self.trainer.root_gpu)
+
+    def model_to_device(self, model):
         model.cuda(self.trainer.root_gpu)
 
     def get_device_ids(self):
@@ -192,12 +210,12 @@ class DDPAccelerator(Accelerator):
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
         torch_distrib.all_reduce(stop, op=torch_distrib.reduce_op.SUM)
-        torch_distrib.barrier()
+        self.barrier('early_stopping')
         should_stop = stop == self.trainer.world_size
         return should_stop
 
     def broadcast(self, obj, src=0):
-        return self.dist.broadcast(obj)
+        return self.dist.broadcast(obj, group=self.ddp_plugin.data_parallel_group)
 
     def ddp_train(self, process_idx, model):
         """
@@ -205,7 +223,6 @@ class DDPAccelerator(Accelerator):
 
         Args:
             process_idx:
-            mp_queue: multiprocessing queue
             model:
 
         Returns:
@@ -226,6 +243,9 @@ class DDPAccelerator(Accelerator):
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
 
+        # Initialize cuda device
+        self.init_device(process_idx)
+
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
@@ -235,6 +255,15 @@ class DDPAccelerator(Accelerator):
             self.trainer.world_size,
             self.trainer.is_slurm_managing_tasks
         )
+
+        if isinstance(self.ddp_plugin, RPCPlugin):
+            if not self.ddp_plugin.is_main_rpc_process:
+                self.ddp_plugin.on_accelerator_exit_rpc_process(self.trainer)
+                self.ddp_plugin.exit_rpc_process()
+                if self.ddp_plugin.return_after_exit_rpc_process:
+                    return
+            else:
+                self.ddp_plugin.on_main_rpc_connection(self.trainer)
 
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
@@ -251,7 +280,7 @@ class DDPAccelerator(Accelerator):
             model = self.configure_sync_batchnorm(model)
 
         # move the model to the correct device
-        self.model_to_device(model, process_idx)
+        self.model_to_device(model)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -284,7 +313,7 @@ class DDPAccelerator(Accelerator):
         return results
 
     def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
+            self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
@@ -315,5 +344,33 @@ class DDPAccelerator(Accelerator):
         """
         return sync_ddp_if_available(tensor, group, reduce_op)
 
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        """
+        Function to gather a tensor from several distributed processes
+
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+
     def get_reference_model(self, model) -> LightningModule:
         return self.ddp_plugin.get_model_from_plugin(model)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        distributed_sampler_kwargs = dict(
+            num_replicas=self.trainer.num_nodes * self.trainer.num_processes,
+            rank=self.trainer.global_rank
+        )
+        if self.ddp_plugin is not None:
+            distributed_sampler_kwargs = self.ddp_plugin.distributed_sampler_kwargs(distributed_sampler_kwargs)
+        return distributed_sampler_kwargs
+
+    @property
+    def require_distributed_sampler(self):
+        return True

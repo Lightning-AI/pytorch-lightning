@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '1.1.0rc1'
+__version__ = '1.2.0dev'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -40,16 +40,16 @@ _logger = python_logging.getLogger("lightning")
 _logger.addHandler(python_logging.StreamHandler())
 _logger.setLevel(python_logging.INFO)
 
-PACKAGE_ROOT = os.path.dirname(__file__)
-PROJECT_ROOT = os.path.dirname(PACKAGE_ROOT)
+_PACKAGE_ROOT = os.path.dirname(__file__)
+_PROJECT_ROOT = os.path.dirname(_PACKAGE_ROOT)
 
 try:
     # This variable is injected in the __builtins__ by the build
     # process. It used to enable importing subpackages of skimage when
     # the binaries are not built
-    __LIGHTNING_SETUP__
+    _ = None if __LIGHTNING_SETUP__ else None
 except NameError:
-    __LIGHTNING_SETUP__ = False
+    __LIGHTNING_SETUP__: bool = False
 
 if __LIGHTNING_SETUP__:
     import sys  # pragma: no-cover

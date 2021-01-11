@@ -87,6 +87,7 @@ class InternalDebugger(object):
         for dl in dataloaders:
             try:
                 length = len(dl)
+            # todo: specify the possible exception
             except Exception:
                 length = -1
             lengths.append(length)

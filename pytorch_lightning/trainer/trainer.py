@@ -16,6 +16,7 @@
 
 import os
 import warnings
+from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
 
 import torch
@@ -24,11 +25,10 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.accelerators.cpu_accelerator import CPUAccelerator
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint
+from pytorch_lightning.trainer.deprecated_api import DeprecatedDistDeviceAttributes
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins.plugin_connector import PluginConnector
@@ -53,16 +53,16 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.trainer.states import TrainerState, trainer_state
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, DeviceType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -78,13 +78,14 @@ class Trainer(
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
+    DeprecatedDistDeviceAttributes,
 ):
     @overwrite_by_env_vars
     def __init__(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
         checkpoint_callback: bool = True,
-        callbacks: Optional[List[Callback]] = None,
+        callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
         process_position: int = 0,
@@ -98,7 +99,7 @@ class Trainer(
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
-        fast_dev_run: bool = False,
+        fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
         max_epochs: int = 1000,
         min_epochs: int = 1,
@@ -117,7 +118,7 @@ class Trainer(
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
-        resume_from_checkpoint: Optional[str] = None,
+        resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, bool, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
@@ -133,7 +134,8 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
-        enable_pl_optimizer: bool = True,
+        enable_pl_optimizer: bool = False,
+        multiple_trainloader_mode: str = 'max_size_cycle',
     ):
         r"""
         Customize every aspect of training via flags
@@ -167,7 +169,7 @@ class Trainer(
 
             benchmark: If true enables cudnn.benchmark.
 
-            callbacks: Add a list of callbacks.
+            callbacks: Add a callback or list of callbacks.
 
             checkpoint_callback: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
@@ -186,7 +188,8 @@ class Trainer(
 
             distributed_backend: deprecated. Please use 'accelerator'
 
-            fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
+            fast_dev_run: runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
+                of train, val and test to find any bugs (ie: a sort of unit test).
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
@@ -249,8 +252,9 @@ class Trainer(
                 train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
                 you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
-            resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
-                This can be a URL.
+            resume_from_checkpoint: Path/URL of the checkpoint from which training is resumed. If there is
+                no checkpoint file at the path, start from scratch. If resuming from mid-epoch checkpoint,
+                training will start from the beginning of the next epoch.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
@@ -281,8 +285,15 @@ class Trainer(
             enable_pl_optimizer: If True, each optimizer will be wrapped by
                 `pytorch_lightning.core.optimizer.LightningOptimizer`. It allows Lightning to
                 handle AMP, TPU, accumulated_gradients, etc..
+
+            multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
+                In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
+                and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
+                reload when reaching the minimum length of datasets.
         """
         super().__init__()
+        self._device_type = DeviceType.CPU
+        self._distrib_type = None
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -302,11 +313,10 @@ class Trainer(
         self.tuner = Tuner(self)
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
-        self.train_loop = TrainLoop(self)
+        self.train_loop = TrainLoop(self, multiple_trainloader_mode)
         self.plugin_connector = PluginConnector(self)
 
         # training state
-        self.weights_summary = weights_summary
         self.model = None
         self.shown_warnings = set()
 
@@ -355,7 +365,7 @@ class Trainer(
         )
 
         # init train loop related flags
-        # TODO: deprecate in 1.2.0
+        # TODO: remove in 1.3.0
         if automatic_optimization is None:
             automatic_optimization = True
         else:
@@ -369,7 +379,8 @@ class Trainer(
             max_steps,
             min_steps,
             num_sanity_val_steps,
-            automatic_optimization
+            automatic_optimization,
+            weights_summary,
         )
         self.evaluation_loop.on_trainer_init()
 
@@ -444,6 +455,7 @@ class Trainer(
         # SET UP TRAINING
         # ----------------------------
         self.accelerator_backend = self.accelerator_connector.select_accelerator()
+        self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator_backend.setup(model)
 
         # ----------------------------

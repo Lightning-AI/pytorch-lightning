@@ -26,9 +26,9 @@ sys.path = os.getenv('PYTHONPATH').split(':') + sys.path
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
-from pytorch_lightning.utilities import HOROVOD_AVAILABLE  # noqa: E402
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE  # noqa: E402
 
-if HOROVOD_AVAILABLE:
+if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd  # noqa: E402
 else:
     print('You requested to import Horovod which is missing or not supported for your OS.')
@@ -49,7 +49,7 @@ def run_test_from_config(trainer_options):
     reset_seed()
 
     ckpt_path = trainer_options['weights_save_path']
-    trainer_options.update(checkpoint_callback=ModelCheckpoint(dirpath=ckpt_path))
+    trainer_options.update(callbacks=[ModelCheckpoint(dirpath=ckpt_path)])
 
     model = EvalModelTemplate()
 
@@ -72,14 +72,16 @@ def run_test_from_config(trainer_options):
         test_loaders = [test_loaders]
 
     for dataloader in test_loaders:
-        run_prediction(dataloader, pretrained_model)
+        run_prediction(pretrained_model, dataloader)
 
-    # test HPC loading / saving
+    # test HPC saving
     trainer.checkpoint_connector.hpc_save(ckpt_path, trainer.logger)
-    trainer.checkpoint_connector.hpc_load(ckpt_path, on_gpu=args.on_gpu)
+    # test HPC loading
+    checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(ckpt_path)
+    trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=args.on_gpu)
 
     if args.on_gpu:
-        trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
+        trainer = Trainer(gpus=1, accelerator='horovod', max_epochs=1)
         # Test the root_gpu property
         assert trainer.root_gpu == hvd.local_rank()
 

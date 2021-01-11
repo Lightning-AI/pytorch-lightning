@@ -79,15 +79,6 @@ class ConfigureOptimizersPool(ABC):
 
         return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
-    def configure_optimizers__mixed_scheduling(self):
-        optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
-        optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
-        lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 4, gamma=0.1)
-        lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
-
-        return [optimizer1, optimizer2], \
-            [{'scheduler': lr_scheduler1, 'interval': 'step'}, lr_scheduler2]
-
     def configure_optimizers__param_groups(self):
         param_groups = [
             {'params': list(self.parameters())[:2], 'lr': self.learning_rate * 0.1},

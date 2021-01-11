@@ -22,7 +22,7 @@ import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.utilities import APEX_AVAILABLE
+from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
@@ -69,12 +69,15 @@ def test_multiple_optimizers_manual(tmpdir):
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = TestModel()
     model.val_dataloader = None
 
     limit_train_batches = 2
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -133,12 +136,15 @@ def test_multiple_optimizers_manual_return(tmpdir):
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = TestModel()
     model.val_dataloader = None
 
     limit_train_batches = 2
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -198,12 +204,15 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = TestModel()
     model.val_dataloader = None
 
     limit_train_batches = 2
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -265,12 +274,15 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = TestModel()
     model.val_dataloader = None
 
     limit_train_batches = 2
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -278,7 +290,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         log_every_n_steps=1,
         weights_summary=None,
         precision=16,
-        gpus=1
+        gpus=1,
     )
 
     trainer.fit(model)
@@ -289,7 +301,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
+@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_multiple_optimizers_manual_apex(tmpdir):
     """
     Tests that only training_step can be used
@@ -335,12 +347,15 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = TestModel()
     model.val_dataloader = None
 
     limit_train_batches = 2
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -395,12 +410,14 @@ class ManualOptimizationExtendedModel(BoringModel):
         if self.should_update:
             try:
                 assert not torch.equal(self.weight_before, after_before), self.count
+            # todo: specify the possible exception
             except Exception:
                 # TODO: Figure out why 1 every 3 runs, weights don't get updated on count = 4"
                 pass
         else:
             try:
                 assert torch.equal(self.weight_before, after_before)
+            # todo: specify the possible exception
             except Exception:
                 # almost no diff between before and after
                 assert torch.abs(torch.sum(self.weight_before) - torch.sum(after_before)).item() < 10e-6
@@ -411,6 +428,10 @@ class ManualOptimizationExtendedModel(BoringModel):
         assert self.called["training_step"] == 10
         assert self.called["on_train_batch_start"] == 10
         assert self.called["on_train_batch_end"] == 10
+
+    @property
+    def automatic_optimization(self) -> bool:
+        return False
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -431,7 +452,6 @@ def test_manual_optimization_and_return_tensor(tmpdir):
         limit_train_batches=10,
         limit_test_batches=0,
         limit_val_batches=0,
-        automatic_optimization=False,
         precision=16,
         amp_backend='native',
         accelerator="ddp_spawn",
@@ -461,7 +481,6 @@ def test_manual_optimization_and_return_detached_tensor(tmpdir):
         limit_train_batches=10,
         limit_test_batches=0,
         limit_val_batches=0,
-        automatic_optimization=False,
         precision=16,
         amp_backend='native',
         accelerator="ddp_spawn",
@@ -538,6 +557,10 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             assert self.called["on_train_batch_start"] == 20
             assert self.called["on_train_batch_end"] == 20
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = ExtendedModel()
     model.training_step_end = None
     model.training_epoch_end = None
@@ -548,7 +571,6 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         limit_train_batches=20,
         limit_test_batches=0,
         limit_val_batches=0,
-        automatic_optimization=False,
         precision=16,
         amp_backend='native',
         accumulate_grad_batches=4,
@@ -610,12 +632,15 @@ def test_multiple_optimizers_step(tmpdir):
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = TestModel()
     model.val_dataloader = None
 
     limit_train_batches = 2
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -692,13 +717,16 @@ def test_step_with_optimizer_closure(tmpdir):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = TestModel()
     model.val_dataloader = None
     model.training_epoch_end = None
 
     limit_train_batches = 2
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -753,13 +781,16 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = TestModel()
     model.val_dataloader = None
     model.training_epoch_end = None
 
     limit_train_batches = 4
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -796,7 +827,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                     retain_graph = num_backward != backward_idx # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
-            opt.step(1, closure=optimizer_closure, something="new")
+            opt.step(closure=optimizer_closure)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -806,13 +837,16 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = TestModel()
     model.val_dataloader = None
     model.training_epoch_end = None
 
     limit_train_batches = 4
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -823,7 +857,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     )
 
     trainer.fit(model)
-    expected_calls = [call(1, closure=ANY, something="new") for s in range(2)]
+    expected_calls = [call(closure=ANY) for s in range(2)]
     step_mock.assert_has_calls(expected_calls)
 
 
@@ -870,7 +904,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             if batch_idx % 4 == 0 :
                 # Note: Set make_optimizer_step to True or it will use by default
                 # Trainer(accumulate_grad_batches=x)
-                opt_dis.step(closure=dis_closure, make_optimizer_step=True, optim='adam')
+                opt_dis.step(closure=dis_closure, make_optimizer_step=True)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -881,13 +915,16 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
             return [optimizer_gen, optimizer_dis]
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = TestModel()
     model.val_dataloader = None
     model.training_epoch_end = None
 
     limit_train_batches = 8
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -900,15 +937,15 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     trainer.fit(model)
     expected_calls = [call(closure=ANY, optim='sgd') for s in range(4)]
     mock_sgd_step.assert_has_calls(expected_calls)
-
-    expected_calls = [call(closure=ANY, optim='adam') for s in range(2)]
+    expected_calls = [call(closure=ANY) for s in range(2)]
     mock_adam_step.assert_has_calls(expected_calls)
 
 
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_step, mock_adam_step, tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
@@ -985,6 +1022,10 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
             optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
             return [optimizer_gen, optimizer_dis]
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     seed_everything(42)
 
     model = TestModel()
@@ -993,7 +1034,6 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
 
     limit_train_batches = 8
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -1023,13 +1063,16 @@ def test_step_with_misconfiguraiton_error_when_overriding_optimizer_zero_grad(tm
             def optimizer_zero_grad(self, *_):
                 pass
 
+            @property
+            def automatic_optimization(self) -> bool:
+                return False
+
         model = TestModel()
         model.val_dataloader = None
         model.training_epoch_end = None
 
         limit_train_batches = 8
-        trainer = Trainer(
-            automatic_optimization=False,
+        Trainer(
             default_root_dir=tmpdir,
             limit_train_batches=limit_train_batches,
             limit_val_batches=2,
@@ -1038,5 +1081,5 @@ def test_step_with_misconfiguraiton_error_when_overriding_optimizer_zero_grad(tm
             accumulate_grad_batches=2,
             enable_pl_optimizer=True,
         )
-    except MisconfigurationException as e:
-        assert "`Trainer(automatic_optimization=False, enable_pl_optimizer=True, ...) is not supported" in str(e)
+    except MisconfigurationException as ex:
+        assert "`Trainer(enable_pl_optimizer=True, ...) is not supported" in str(ex)

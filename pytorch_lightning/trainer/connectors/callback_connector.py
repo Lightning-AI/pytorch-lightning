@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional, Union
+from typing import Union
 
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -41,6 +41,8 @@ class CallbackConnector:
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
 
         # init callbacks
+        if isinstance(callbacks, Callback):
+            callbacks = [callbacks]
         self.trainer.callbacks = callbacks or []
 
         # configure checkpoint callback
@@ -103,3 +105,8 @@ class CallbackConnector:
 
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0
+
+    def attach_model_logging_functions(self, model):
+        for callback in self.trainer.callbacks:
+            callback.log = model.log
+            callback.log_dict = model.log_dict

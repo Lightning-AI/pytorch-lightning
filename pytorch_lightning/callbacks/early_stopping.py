@@ -19,14 +19,12 @@ Early Stopping
 Monitor a metric and stop training when it stops improving.
 
 """
-import os
 
 import numpy as np
 import torch
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn, TPU_AVAILABLE
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 
 
 class EarlyStopping(Callback):
@@ -164,10 +162,10 @@ class EarlyStopping(Callback):
         self._run_early_stopping_check(trainer, pl_module)
 
     def on_validation_epoch_end(self, trainer, pl_module):
-        if trainer.running_sanity_check or trainer.evaluating:
+        if trainer.fast_dev_run or trainer.running_sanity_check or trainer.evaluating:
             return
 
-        if self._validate_condition_metric(trainer.logger_connector.callback_metrics):
+        if self._validate_condition_metric(trainer.callback_metrics):
             # turn off early stopping in on_train_epoch_end
             self.based_on_eval_results = True
 
@@ -176,36 +174,25 @@ class EarlyStopping(Callback):
         if self.based_on_eval_results:
             return
 
-        # early stopping can also work in the train loop when there is no val loop
-        should_check_early_stop = False
-
-        # fallback to monitor key in result dict
-        if trainer.logger_connector.callback_metrics.get(self.monitor, None) is not None:
-            should_check_early_stop = True
-
-        if should_check_early_stop:
-            self._run_early_stopping_check(trainer, pl_module)
+        self._run_early_stopping_check(trainer, pl_module)
 
     def _run_early_stopping_check(self, trainer, pl_module):
         """
         Checks whether the early stopping condition is met
         and if so tells the trainer to stop the training.
         """
-        logs = trainer.logger_connector.callback_metrics
+        logs = trainer.callback_metrics
 
-        if not self._validate_condition_metric(logs):
+        if (
+            trainer.fast_dev_run  # disable early_stopping with fast_dev_run
+            or not self._validate_condition_metric(logs)  # short circuit if metric not present
+        ):
             return  # short circuit if metric not present
 
         current = logs.get(self.monitor)
 
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
-
-        if not isinstance(current, torch.Tensor):
-            current = torch.tensor(current, device=pl_module.device)
-
-        if trainer.use_tpu and TPU_AVAILABLE:
-            current = current.cpu()
 
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current

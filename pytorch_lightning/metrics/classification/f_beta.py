@@ -20,6 +20,7 @@ from pytorch_lightning.metrics.functional.f_beta import (
     _fbeta_compute
 )
 from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class FBeta(Metric):
@@ -51,11 +52,11 @@ class FBeta(Metric):
             Threshold value for binary or multi-label logits. default: 0.5
 
         average:
-            * `'micro'` computes metric globally
-            * `'macro'` computes metric for each class and uniformly averages them
-            * `'weighted'` computes metric for each class and does a weighted-average,
-                where each class is weighted by their support (accounts for class imbalance)
-            * `None` computes and returns the metric per class
+            - ``'micro'`` computes metric globally
+            - ``'macro'`` computes metric for each class and uniformly averages them
+            - ``'weighted'`` computes metric for each class and does a weighted-average,
+              where each class is weighted by their support (accounts for class imbalance)
+            - ``'none'`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
@@ -156,11 +157,11 @@ class F1(FBeta):
             Threshold value for binary or multi-label logits. default: 0.5
 
         average:
-            * `'micro'` computes metric globally
-            * `'macro'` computes metric for each class and uniformly averages them
-            * `'weighted'` computes metric for each class and does a weighted-average,
-                where each class is weighted by their support (accounts for class imbalance)
-            * `None` computes and returns the metric per class
+            - ``'micro'`` computes metric globally
+            - ``'macro'`` computes metric for each class and uniformly averages them
+            - ``'weighted'`` computes metric for each class and does a weighted-average,
+              where each class is weighted by their support (accounts for class imbalance)
+            - ``'none'`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
@@ -183,7 +184,6 @@ class F1(FBeta):
     def __init__(
         self,
         num_classes: int = 1,
-        beta: float = 1.0,
         threshold: float = 0.5,
         average: str = "micro",
         multilabel: bool = False,
@@ -191,6 +191,9 @@ class F1(FBeta):
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
     ):
+        if multilabel is not False:
+            rank_zero_warn(f'The `multilabel={multilabel}` parameter is unused and will not have any effect.')
+
         super().__init__(
             num_classes=num_classes,
             beta=1.0,

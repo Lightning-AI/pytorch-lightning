@@ -46,22 +46,28 @@ Example: Imagenet (computer Vision)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. testcode::
-    :skipif: not TORCHVISION_AVAILABLE
+    :skipif: not _TORCHVISION_AVAILABLE
 
     import torchvision.models as models
 
     class ImagenetTransferLearning(LightningModule):
         def __init__(self):
+            super().__init__()
+
             # init a pretrained resnet
-            num_target_classes = 10
-            self.feature_extractor = models.resnet50(pretrained=True)
-            self.feature_extractor.eval()
+            backbone = models.resnet50(pretrained=True)
+            num_filters = backbone.fc.in_features
+            layers = list(backbone.children())[:-1]
+            self.feature_extractor = torch.nn.Sequential(*layers)
 
             # use the pretrained model to classify cifar-10 (10 image classes)
-            self.classifier = nn.Linear(2048, num_target_classes)
+            num_target_classes = 10
+            self.classifier = nn.Linear(num_filters, num_target_classes)
 
         def forward(self, x):
-            representations = self.feature_extractor(x)
+            self.feature_extractor.eval()
+            with torch.no_grad():
+                representations = self.feature_extractor(x).flatten(1)
             x = self.classifier(representations)
             ...
 

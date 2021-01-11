@@ -75,7 +75,9 @@ class TrainerOptimizersMixin(ABC):
                 ' * {"optimizer": `torch.optim.Optimizer`, (optional) "lr_scheduler": `torch.optim.lr_scheduler`}\n'
                 ' * A list of the previously described dict format, with an optional "frequency" key (int)'
             )
+
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor=monitor)
+        _validate_scheduler_optimizer(optimizers, lr_schedulers)
 
         return optimizers, lr_schedulers, optimizer_frequencies
 
@@ -94,6 +96,7 @@ class TrainerOptimizersMixin(ABC):
         lr_schedulers = []
         default_config = {
             'scheduler': None,
+            'name': None,  # no custom name
             'interval': 'epoch',  # after epoch is over
             'frequency': 1,  # every epoch/batch
             'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
@@ -124,7 +127,8 @@ class TrainerOptimizersMixin(ABC):
                 if monitor is None:
                     raise MisconfigurationException(
                         '`configure_optimizers` must include a monitor when a `ReduceLROnPlateau` scheduler is used.'
-                        ' For example: {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
+                        ' For example:'
+                        ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
                     )
                 lr_schedulers.append(
                     {**default_config, 'scheduler': scheduler, 'reduce_on_plateau': True, 'monitor': monitor}
@@ -182,3 +186,10 @@ class _MockOptimizer(Optimizer):
 
     def __repr__(self):
         return 'No Optimizer'
+
+
+def _validate_scheduler_optimizer(optimizers, lr_schedulers):
+    if any(sch['scheduler'].optimizer not in optimizers for sch in lr_schedulers):
+        raise MisconfigurationException(
+            "Some schedulers are attatched with an optimizer that wasn't returned from `configure_optimizers`."
+        )

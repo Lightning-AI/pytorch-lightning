@@ -135,7 +135,7 @@ Data
 Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIST.
 
 .. testcode::
-    :skipif: not TORCHVISION_AVAILABLE
+    :skipif: not _TORCHVISION_AVAILABLE
 
     from torch.utils.data import DataLoader, random_split
     from torchvision.datasets import MNIST
@@ -153,7 +153,7 @@ Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIS
 
 .. testoutput::
     :hide:
-    :skipif: os.path.isdir(os.path.join(os.getcwd(), 'MNIST')) or not TORCHVISION_AVAILABLE
+    :skipif: os.path.isdir(os.path.join(os.getcwd(), 'MNIST')) or not _TORCHVISION_AVAILABLE
 
     Downloading ...
     Extracting ...
@@ -601,8 +601,8 @@ In this method we do all the preparation we need to do once (instead of on every
         def setup(self, stage):
             # transform
             transform=transforms.Compose([transforms.ToTensor()])
-            MNIST(os.getcwd(), train=True, download=False, transform=transform)
-            MNIST(os.getcwd(), train=False, download=False, transform=transform)
+            mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
+            mnist_test = MNIST(os.getcwd(), train=False, download=False, transform=transform)
 
             # train/val split
             mnist_train, mnist_val = random_split(mnist_train, [55000, 5000])

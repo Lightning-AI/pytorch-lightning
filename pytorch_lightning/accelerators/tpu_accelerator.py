@@ -14,7 +14,7 @@
 import io
 import os
 import re
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -22,10 +22,10 @@ from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import (
-    TPU_AVAILABLE,
+    _TPU_AVAILABLE,
     move_data_to_device,
     rank_zero_info,
     rank_zero_only,
@@ -34,7 +34,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if TPU_AVAILABLE:
+if _TPU_AVAILABLE:
     import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -43,7 +43,7 @@ if TPU_AVAILABLE:
 
 class TPUAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using TPUs (colab, single machine or pod)
 
@@ -62,7 +62,7 @@ class TPUAccelerator(Accelerator):
         rank_zero_info(f'training on {self.trainer.tpu_cores} TPU cores')
 
         # TODO: Move this check to Trainer __init__ or device parser
-        if not TPU_AVAILABLE:
+        if not _TPU_AVAILABLE:
             raise MisconfigurationException('PyTorch XLA not installed.')
 
         # see: https://discuss.pytorch.org/t/segfault-with-multiprocessing-queue/81292/2
@@ -125,6 +125,7 @@ class TPUAccelerator(Accelerator):
         """
         Here we are inside each individual process
         """
+        # Todo: required argument `tpu_core_idx` is not used
         if not trainer:
             trainer = self.trainer
 
@@ -145,26 +146,18 @@ class TPUAccelerator(Accelerator):
         # persist info in spawn
         self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
+    def _step(self, model_step: Callable, args):
+        args[0] = self.to_device(args[0])
+        return model_step(*args)
+
     def training_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.training_step(*args)
-        return output
+        return self._step(self.trainer.model.training_step, args)
 
     def validation_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.validation_step(*args)
-        return output
+        return self._step(self.trainer.model.validation_step, args)
 
     def test_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.test_step(*args)
-        return output
+        return self._step(self.trainer.model.test_step, args)
 
     def process_dataloader(self, dataloader):
         device = xm.xla_device(self.trainer.tpu_id)
@@ -178,7 +171,6 @@ class TPUAccelerator(Accelerator):
 
         Args:
             batch: A tensor or collection of tensors.
-            tpu_id: The id of the TPU core. If omitted, the first available core is chosen.
 
         Return:
             the tensor on the TPU device.
@@ -186,7 +178,7 @@ class TPUAccelerator(Accelerator):
         See Also:
             - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
         """
-        if not TPU_AVAILABLE:
+        if not _TPU_AVAILABLE:
             raise MisconfigurationException(
                 'Requested to transfer batch to TPU but XLA is not available.'
                 ' Are you sure this machine has TPUs?'
@@ -288,6 +280,7 @@ class TPUAccelerator(Accelerator):
         """
         Dump a temporary checkpoint after ddp ends to get weights out of the process
         """
+        # Todo: required argument `model` is not used
         if self.trainer.is_global_zero:
             path = os.path.join(self.trainer.default_root_dir, '__temp_weight_distributed_end.ckpt')
             self.trainer.save_checkpoint(path)
@@ -364,3 +357,11 @@ class TPUAccelerator(Accelerator):
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
         return move_data_to_device(checkpoint, torch.device("cpu"))
+
+    @property
+    def distributed_sampler_kwargs(self):
+        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+
+    @property
+    def require_distributed_sampler(self):
+        return True
