@@ -2,11 +2,21 @@ name: CI build Docker
 # https://www.docker.com/blog/first-docker-github-action-is-here
 # https://github.com/docker/build-push-action
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on: # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
+    branches: [master, "release/*"] # include release branches like release/1.0.x
   pull_request:
     branches: [master, "release/*"]
+    paths:
+      - "dockers/**"
+      - "!dockers/README.md"
+      - "requirements/*.txt"
+      - "environment.yml"
+      - "requirements.txt"
+      - ".github/workflows/ci_dockers.yml"
+      - ".github/workflows/events-nightly.yml"
+      - ".github/workflows/release-docker.yml"
+      - "setup.py"
 
 jobs:
   build-PL:
@@ -55,7 +65,6 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             XLA_VERSION=${{ matrix.xla_version }}
-          cache-from: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
           file: dockers/base-xla/Dockerfile
           push: false
         timeout-minutes: 50
@@ -96,7 +105,6 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
-          cache-from: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
           file: dockers/base-cuda/Dockerfile
           push: false
         timeout-minutes: 50
@@ -139,7 +147,6 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             PYTORCH_CHANNEL=${{ steps.extend.outputs.CHANNEL }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
-          cache-from: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
           file: dockers/base-conda/Dockerfile
           push: false
         timeout-minutes: 50

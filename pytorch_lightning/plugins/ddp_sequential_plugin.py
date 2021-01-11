@@ -15,20 +15,20 @@ import os
 from typing import Any, List, Optional
 
 import torch
-import torch.distributed as torch_distrib
 from torch import nn
+import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
+from pytorch_lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if FAIRSCALE_PIPE_AVAILABLE:
-    import fairscale.nn.model_parallel as mpu
     from fairscale.nn import PipeRPCWrapper
+    import fairscale.nn.model_parallel as mpu
     from fairscale.nn.pipe import balance as pipe_balance
     from fairscale.nn.pipe import rpc as rpc_pipe
     from fairscale.nn.pipe.pipeline import PipelineStyle
@@ -228,7 +228,7 @@ class DDPSequentialPlugin(RPCPlugin):
         Returns: The appropriate balance for the model
         """
         if isinstance(self.balance, list):
-            if len(self.balance) != trainer.world_size:
+            if len(self.balance) != (trainer.world_size / trainer.num_nodes):
                 raise MisconfigurationException(
                     "Pipe currently only supports splitting the module onto all available GPUs"
                 )
@@ -380,7 +380,6 @@ def register_optimizers(ctx, model):
     model.trainer.optimizers = optimizers
     model.trainer.lr_schedulers = lr_schedulers
     model.trainer.optimizer_frequencies = optimizer_frequencies
-    model.trainer.convert_to_lightning_optimizers()
 
 
 def run_optimizer(ctx, model):
