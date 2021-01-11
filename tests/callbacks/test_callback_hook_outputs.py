@@ -64,7 +64,7 @@ def test_train_step_no_return(tmpdir, single_cb):
         log_every_n_steps=1,
         weights_summary=None,
     )
-    
+
     assert any(isinstance(c, CB) for c in trainer.callbacks)
 
     results = trainer.fit(model)
