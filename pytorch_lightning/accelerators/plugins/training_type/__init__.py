@@ -2,6 +2,7 @@ from pytorch_lightning.accelerators.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.accelerators.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.accelerators.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.accelerators.plugins.training_type.dp import DataParallelPlugin
+from pytorch_lightning.accelerators.plugins.training_type.sharded import ShardedPlugin
 from pytorch_lightning.accelerators.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.accelerators.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.accelerators.plugins.training_type.single_device import SingleDevicePlugin
