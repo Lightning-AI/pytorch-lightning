@@ -226,16 +226,9 @@ class LightningCLI:
     def instantiate_classes(self):
         """Instantiates the classes using settings from self.config"""
         self.config_init = self.parser.instantiate_subclasses(self.config)
-        self.instantiate_model()
         self.instantiate_datamodule()
+        self.instantiate_model()
         self.instantiate_trainer()
-
-    def instantiate_model(self):
-        """Instantiates the model using self.config_init['model']"""
-        if self.subclass_mode_model:
-            self.model = self.config_init['model']
-        else:
-            self.model = self.model_class(**self.config_init.get('model', {}))
 
     def instantiate_datamodule(self):
         """Instantiates the datamodule using self.config_init['data'] if given"""
@@ -245,6 +238,13 @@ class LightningCLI:
             self.datamodule = self.config_init['data']
         else:
             self.datamodule = self.datamodule_class(**self.config_init.get('data', {}))
+
+    def instantiate_model(self):
+        """Instantiates the model using self.config_init['model']"""
+        if self.subclass_mode_model:
+            self.model = self.config_init['model']
+        else:
+            self.model = self.model_class(**self.config_init.get('model', {}))
 
     def instantiate_trainer(self):
         """Instantiates the trainer using self.config_init['trainer']"""
