@@ -49,7 +49,7 @@ jobs:
       - name: Install package - archive
         run: |
           # install as archive
-          pip install $here/dist/*.tar.gz
+          pip install dist/*.tar.gz
           cd ..
           python -c "import pytorch_lightning as pl ; print(pl.__version__)"
           pip uninstall -y pytorch-lightning
@@ -57,7 +57,7 @@ jobs:
       - name: Install package - wheel
         run: |
           # install as wheel
-          pip install $here/dist/*.whl
+          pip install dist/*.whl
           cd ..
           python -c "import pytorch_lightning as pl ; print(pl.__version__)"
           pip uninstall -y pytorch-lightning
