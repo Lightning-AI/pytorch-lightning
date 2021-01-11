@@ -45,6 +45,11 @@ class CallbackHookNameValidator:
             )
 
     @staticmethod
+    def _on_before_accelerator_backend_setup_log():
+        """Called before accelerator is being setup"""
+        return None
+
+    @staticmethod
     def _setup_log():
         """Called when fit or test begins"""
         return None
