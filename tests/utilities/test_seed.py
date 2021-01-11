@@ -6,7 +6,7 @@ import pytest
 import pytorch_lightning.utilities.seed as seed_utils
 
 
-@mock.patch.dict(os.environ, {})
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_seed_stays_same_with_multiple_seed_everything_calls():
     """
     Ensure that after the initial seed everything,
@@ -24,7 +24,7 @@ def test_seed_stays_same_with_multiple_seed_everything_calls():
     assert initial_seed == seed
 
 
-@mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "2020"})
+@mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "2020"}, clear=True)
 def test_correct_seed_with_environment_variable():
     """
     Ensure that the PL_GLOBAL_SEED environment is read
@@ -32,7 +32,7 @@ def test_correct_seed_with_environment_variable():
     assert seed_utils.seed_everything() == 2020
 
 
-@mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"})
+@mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"}, clear=True)
 @mock.patch.object(seed_utils, attribute='_select_seed_randomly', new=lambda *_: 123)
 def test_invalid_seed():
     """
@@ -43,7 +43,7 @@ def test_invalid_seed():
     assert seed == 123
 
 
-@mock.patch.dict(os.environ, {})
+@mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch.object(seed_utils, attribute='_select_seed_randomly', new=lambda *_: 123)
 @pytest.mark.parametrize("seed", (10e9, -10e9))
 def test_out_of_bounds_seed(seed):
