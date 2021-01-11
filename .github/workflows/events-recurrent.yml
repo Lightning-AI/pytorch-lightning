@@ -1,8 +1,8 @@
+name: Recurrent events
+
 on:
-  # We recommend `pull_request_target` so that github secrets are available.
-  # In `pull_request` we wouldn't be able to change labels of fork PRs
-  pull_request_target:
-    types: [ synchronize ]
+  push:
+    branches: [master, "release/*"]
 
 jobs:
 
@@ -13,9 +13,25 @@ jobs:
     name: Label PR conflits
     runs-on: ubuntu-20.04
     steps:
-      - uses: mschilde/auto-label-merge-conflicts@v2
+      - uses: mschilde/auto-label-merge-conflicts@v2.0
         with:
           CONFLICT_LABEL_NAME: "has conflicts"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAX_RETRIES: 3
           WAIT_MS: 5000
+
+  # autoupdate is a GitHub Action that auto-updates pull requests branches whenever changes land on their destination branch.
+  # see: https://github.com/marketplace/actions/auto-update
+  pr-auto-update:
+    name: Auto-update PR
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: docker://chinthakagodawita/autoupdate-action:v1
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          DRY_RUN: "false"
+          PR_FILTER: "labelled"
+          PR_LABELS: "0:] Ready-To-Go"
+          MERGE_MSG: "Branch was auto-updated."
+          RETRY_COUNT: "3"
+          RETRY_SLEEP: "500"
