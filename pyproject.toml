@@ -47,7 +47,6 @@ skip_glob = [
     "tests/plugins/*",
     "tests/trainer/*",
     "tests/tuner/*",
-    "tests/utilities/*",
 ]
 profile = "black"
 line_length = 120

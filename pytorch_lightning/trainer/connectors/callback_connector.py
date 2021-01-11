@@ -14,7 +14,7 @@
 import os
 from typing import Union
 
-from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -41,6 +41,8 @@ class CallbackConnector:
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
 
         # init callbacks
+        if isinstance(callbacks, Callback):
+            callbacks = [callbacks]
         self.trainer.callbacks = callbacks or []
 
         # configure checkpoint callback
