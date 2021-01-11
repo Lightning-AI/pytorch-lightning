@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
+
 from pytorch_lightning import Callback, Trainer
 from tests.base.boring_model import BoringModel
 
@@ -62,5 +64,8 @@ def test_train_step_no_return(tmpdir, single_cb):
         log_every_n_steps=1,
         weights_summary=None,
     )
+    
+    assert any(isinstance(c, CB) for c in trainer.callbacks)
 
-    trainer.fit(model)
+    results = trainer.fit(model)
+    assert results
