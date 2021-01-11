@@ -21,7 +21,7 @@ serves the dual purpose of calling ``update()`` on its input and simultaneously 
 provided input.
 
 .. warning::
-    From v1.2 and foreward ``compute()`` will no longer automatically also call ``reset()``,
+    From v1.2 onward ``compute()`` will no longer automatically call ``reset()``,
     and it is up to the user to reset metrics between epochs, except in the case where the
     metric is directly passed to ``LightningModule``s ``self.log``.
 
