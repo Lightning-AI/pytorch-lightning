@@ -17,7 +17,6 @@ exclude = "(.eggs|.git|.hg|.mypy_cache|.nox|.tox|.venv|.svn|_build|buck-out|buil
 [tool.isort]
 known_first_party = [
     "benchmarks",
-    "docs",
     "pl_examples",
     "pytorch_lightning",
     "tests",

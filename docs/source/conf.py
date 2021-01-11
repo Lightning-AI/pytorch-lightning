@@ -21,11 +21,11 @@ import sys
 
 import pt_lightning_sphinx_theme
 
-import pytorch_lightning  # noqa: E402
+_PATH_HERE = os.path.abspath(os.path.dirname(__file__))
+_PATH_ROOT = os.path.join(_PATH_HERE, '..', '..')
+sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 
-PATH_HERE = os.path.abspath(os.path.dirname(__file__))
-PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
-sys.path.insert(0, os.path.abspath(PATH_ROOT))
+import pytorch_lightning  # noqa: E402
 
 builtins.__LIGHTNING_SETUP__ = True
 
@@ -41,20 +41,20 @@ SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
 #     # fp.write(pytorch_lightning.__doc__)
 
 # # export the READme
-# with open(os.path.join(PATH_ROOT, 'README.md'), 'r') as fp:
+# with open(os.path.join(_PATH_ROOT, 'README.md'), 'r') as fp:
 #     readme = fp.read()
 # # replace all paths to relative
-# for ndir in (os.path.basename(p) for p in glob.glob(os.path.join(PATH_ROOT, '*'))
+# for ndir in (os.path.basename(p) for p in glob.glob(os.path.join(_PATH_ROOT, '*'))
 #              if os.path.isdir(p)):
-#     readme = readme.replace('](%s/' % ndir, '](%s/%s/' % (PATH_ROOT, ndir))
+#     readme = readme.replace('](%s/' % ndir, '](%s/%s/' % (_PATH_ROOT, ndir))
 # with open('readme.md', 'w') as fp:
 #     fp.write(readme)
 
 # copy all documents from GH templates like contribution guide
-for md in glob.glob(os.path.join(PATH_ROOT, '.github', '*.md')):
-    shutil.copy(md, os.path.join(PATH_HERE, os.path.basename(md)))
+for md in glob.glob(os.path.join(_PATH_ROOT, '.github', '*.md')):
+    shutil.copy(md, os.path.join(_PATH_HERE, os.path.basename(md)))
 # copy also the changelog
-with open(os.path.join(PATH_ROOT, 'CHANGELOG.md'), 'r') as fp:
+with open(os.path.join(_PATH_ROOT, 'CHANGELOG.md'), 'r') as fp:
     chlog_lines = fp.readlines()
 # enrich short subsub-titles to be unique
 chlog_ver = ''
@@ -64,7 +64,7 @@ for i, ln in enumerate(chlog_lines):
     elif ln.startswith('### '):
         ln = ln.replace('###', f'### {chlog_ver} -')
         chlog_lines[i] = ln
-with open(os.path.join(PATH_HERE, 'CHANGELOG.md'), 'w') as fp:
+with open(os.path.join(_PATH_HERE, 'CHANGELOG.md'), 'w') as fp:
     fp.writelines(chlog_lines)
 
 # -- Project information -----------------------------------------------------
@@ -283,10 +283,10 @@ def setup(app):
 
 
 # copy all notebooks to local folder
-# path_nbs = os.path.join(PATH_HERE, 'notebooks')
+# path_nbs = os.path.join(_PATH_HERE, 'notebooks')
 # if not os.path.isdir(path_nbs):
 #     os.mkdir(path_nbs)
-# for path_ipynb in glob.glob(os.path.join(PATH_ROOT, 'notebooks', '*.ipynb')):
+# for path_ipynb in glob.glob(os.path.join(_PATH_ROOT, 'notebooks', '*.ipynb')):
 #     path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
 #     shutil.copy(path_ipynb, path_ipynb2)
 
@@ -320,9 +320,9 @@ PACKAGE_MAPPING = {
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements', 'extra.txt'))
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements', 'loggers.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(_PATH_ROOT, 'requirements.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(_PATH_ROOT, 'requirements', 'extra.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(_PATH_ROOT, 'requirements', 'loggers.txt'))
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES
