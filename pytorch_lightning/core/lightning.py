@@ -14,15 +14,16 @@
 
 """nn.Module with additional great features."""
 
-import collections
-import copy
-import inspect
-import os
-import re
-import tempfile
 from abc import ABC
 from argparse import Namespace
+import collections
+import copy
+from functools import partial
+import inspect
+import os
 from pathlib import Path
+import re
+import tempfile
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -35,10 +36,12 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
+from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
@@ -276,6 +279,7 @@ class LightningModule(
                 sync_dist_group,
                 accelerator.sync_tensor,
                 self._current_dataloader_idx,
+                self.device,
             )
 
     def log_dict(
@@ -363,7 +367,12 @@ class LightningModule(
 
         return on_epoch
 
-    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+    def all_gather(
+        self,
+        data: Union[torch.Tensor, Dict, List, Tuple],
+        group: Optional[Any] = None,
+        sync_grads: bool = False,
+    ):
         r"""
         Allows users to call ``self.all_gather()`` from the LightningModule, thus making
         the ```all_gather``` operation accelerator agnostic.
@@ -372,14 +381,23 @@ class LightningModule(
         distributed processes
 
         Args:
-            tensor: tensor of shape (batch, ...)
+            tensor: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
             group: the process group to gather results from. Defaults to all processes (world)
             sync_grads: flag that allows users to synchronize gradients for all_gather op
 
         Return:
-            A tensor of shape (world_size, batch, ...)
+            A tensor of shape (world_size, batch, ...), or if the input was a collection
+            the output will also be a collection with tensors of this shape.
         """
-        return self.trainer.accelerator_backend.all_gather(tensor, group=group, sync_grads=sync_grads)
+        group = group if group is not None else torch.distributed.group.WORLD
+        if self.trainer.accelerator_backend is not None:
+            all_gather = self.trainer.accelerator_backend.all_gather
+        else:
+            all_gather = all_gather_ddp_if_available
+
+        data = convert_to_tensors(data, device=self.device)
+        all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
+        return apply_to_collection(data, torch.Tensor, all_gather)
 
     def forward(self, *args, **kwargs):
         r"""
@@ -733,7 +751,7 @@ class LightningModule(
                 out = self(x)
                 return out
 
-            def validation_epoch_end(self, val_step_outputs):
+            def validation_step_end(self, val_step_outputs):
                 for out in val_step_outputs:
                     # do something with these
 
@@ -741,9 +759,7 @@ class LightningModule(
             See the :ref:`multi_gpu` guide for more details.
         """
 
-    def validation_epoch_end(
-        self, outputs: List[Any]
-    ) -> None:
+    def validation_epoch_end(self, outputs: List[Any]) -> None:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -910,7 +926,7 @@ class LightningModule(
                 out = self.encoder(x)
                 return out
 
-            def test_epoch_end(self, output_results):
+            def test_step_end(self, output_results):
                 # this out is now the full size of the batch
                 all_test_step_outs = output_results.out
                 loss = nce_loss(all_test_step_outs)
@@ -1330,9 +1346,17 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
-        model_summary = ModelSummary(self, mode=mode)
-        log.info("\n" + str(model_summary))
+    def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
+        model_summary = None
+
+        if mode in ModelSummary.MODES:
+            model_summary = ModelSummary(self, mode=mode)
+            log.info("\n" + str(model_summary))
+        elif mode is not None:
+            raise MisconfigurationException(
+                f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}"
+            )
+
         return model_summary
 
     def freeze(self) -> None:
@@ -1391,12 +1415,15 @@ class LightningModule(
         """
         # call .item() only once but store elements without graphs
         running_train_loss = self.trainer.train_loop.running_loss.mean()
-        avg_training_loss = (
-            running_train_loss.cpu().item()
-            if running_train_loss is not None
-            else float("NaN")
-        )
-        tqdm_dict = {"loss": "{:.3g}".format(avg_training_loss)}
+        avg_training_loss = None
+        if running_train_loss is not None:
+            avg_training_loss = running_train_loss.cpu().item()
+        elif self.trainer.train_loop.automatic_optimization:
+            avg_training_loss = float('NaN')
+
+        tqdm_dict = {}
+        if avg_training_loss is not None:
+            tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
         if self.trainer.truncated_bptt_steps is not None:
             tqdm_dict["split_idx"] = self.trainer.split_idx
@@ -1701,6 +1728,7 @@ class LightningModule(
                 line = re.sub(r"\s+", "", line, flags=re.UNICODE)
                 if ".hparams=" in line:
                     return line.split("=")[1]
+        # todo: specify the possible exception
         except Exception:
             return "hparams"
 

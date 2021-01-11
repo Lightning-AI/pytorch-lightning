@@ -55,7 +55,7 @@ def hamming_distance(preds: torch.Tensor, target: torch.Tensor, threshold: float
         target: Ground truth
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs.
+            (0 or 1) predictions, in the case of binary or multi-label inputs.
 
     Example:
 

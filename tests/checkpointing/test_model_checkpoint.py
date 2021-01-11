@@ -28,7 +28,7 @@ from omegaconf import Container, OmegaConf
 
 import pytorch_lightning as pl
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -238,25 +238,6 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
         monitor='early_stop_on', dirpath=None, filename='{epoch}_{val/loss:.5f}'
     ).format_checkpoint_name(4, 3, {'val/loss': 0.03})
     assert ckpt_name == 'epoch=4_val/loss=0.03000.ckpt'
-
-    # TODO: Checks with filepath. To be removed in v1.2
-    # CWD
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath='.').format_checkpoint_name(3, 2, {})
-    assert ckpt_name == str(Path('.').resolve() / 'epoch=3-step=2.ckpt')
-
-    # dir does not exist so it is used as filename
-    filepath = tmpdir / 'dir'
-    ckpt_name = ModelCheckpoint(
-        monitor='early_stop_on', filepath=filepath, prefix='test'
-    ).format_checkpoint_name(3, 2, {})
-    assert ckpt_name == tmpdir / 'test-dir.ckpt'
-
-    # now, dir exists
-    os.mkdir(filepath)
-    ckpt_name = ModelCheckpoint(
-        monitor='early_stop_on', filepath=filepath, prefix='test'
-    ).format_checkpoint_name(3, 2, {})
-    assert ckpt_name == filepath / 'test-epoch=3-step=2.ckpt'
 
 
 class ModelCheckpointExtensionTest(ModelCheckpoint):
@@ -512,10 +493,9 @@ def test_ckpt_metric_names_results(tmpdir):
             if batch_idx % 2 == 0:
                 log_val = log_val.item()
 
-            result = pl.core.step_result.TrainResult(loss_val)
-            result.log('some_val', log_val * log_val, prog_bar=True, logger=False)
-            result.log('train_some_val', log_val * log_val)
-            return result
+            self.log('some_val', log_val * log_val, prog_bar=True, logger=False)
+            self.log('train_some_val', log_val * log_val)
+            return loss_val
 
         def validation_step(self, batch, batch_idx):
             y_hat = self(batch)
@@ -571,7 +551,7 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
         model.validation_step = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir,
+        callbacks=[ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir,
                                    save_top_k=0, save_last=save_last)],
         max_epochs=max_epochs,
     )
@@ -765,32 +745,14 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
         model = ExtendedBoringModel()
         trainer.test(model)
         assert not trainer.checkpoint_connector.has_trained
-        assert trainer.global_step == epochs * limit_train_batches
-        assert trainer.current_epoch == epochs
-
+        # resume_from_checkpoint is resumed when calling `.fit`
+        assert trainer.global_step == 0
+        assert trainer.current_epoch == 0
         trainer.fit(model)
         assert not trainer.checkpoint_connector.has_trained
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
         assert_checkpoint_log_dir(idx)
-
-
-@pytest.mark.parametrize(
-    'filepath, dirpath, filename',
-    [
-        (None, None, None),
-        ('.', '.', None),
-        ('', None, None),
-        ('my/path/', 'my/', 'path'),
-        ('my/path/{val_loss:.2f}', 'my/path/', '{val_loss:.2f}'),
-    ]
-)
-def test_filepath_decomposition_dirpath_filename(tmpdir, filepath, dirpath, filename):
-    mc_cb = ModelCheckpoint(filepath=filepath)
-    dirpath = os.path.realpath(dirpath) if dirpath else dirpath
-
-    assert mc_cb.dirpath == dirpath
-    assert mc_cb.filename == filename
 
 
 def test_configure_model_checkpoint(tmpdir):
@@ -901,7 +863,8 @@ def test_current_score_when_nan(tmpdir, mode):
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
         weights_summary=None,
@@ -927,7 +890,8 @@ def test_hparams_type(tmpdir, hparams_type):
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
         weights_summary=None,
@@ -943,3 +907,42 @@ def test_hparams_type(tmpdir, hparams_type):
     else:
         # make sure it's not AttributeDict
         assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
+
+
+@pytest.mark.parametrize('max_epochs', [3, 4])
+@pytest.mark.parametrize(
+    'save_top_k, expected',
+    [
+        (1, ['curr_epoch.ckpt']),
+        (2, ['curr_epoch.ckpt', 'curr_epoch-v0.ckpt']),
+    ]
+)
+def test_model_checkpoint_file_already_exists(tmpdir, max_epochs, save_top_k, expected):
+    """
+    Test that version is added to filename if required and it already exists in dirpath.
+    """
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        filename='curr_epoch',
+        save_top_k=save_top_k,
+        monitor='epoch',
+        mode='max',
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[model_checkpoint],
+        max_epochs=max_epochs,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        logger=None,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+
+    model = BoringModel()
+    trainer.fit(model)
+    ckpt_files = os.listdir(tmpdir)
+    assert set(ckpt_files) == set(expected)
+
+    epochs_in_ckpt_files = [pl_load(os.path.join(tmpdir, f))['epoch'] - 1 for f in ckpt_files]
+    assert sorted(epochs_in_ckpt_files) == list(range(max_epochs - save_top_k, max_epochs))

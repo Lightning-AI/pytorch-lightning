@@ -13,17 +13,23 @@
 # limitations under the License.
 import os
 import pickle
-from unittest import mock
-from argparse import ArgumentParser
 import types
+from argparse import ArgumentParser
+from unittest import mock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
+
+
+def get_warnings(recwarn):
+    warnings_text = '\n'.join(str(w.message) for w in recwarn.list)
+    recwarn.clear()
+    return warnings_text
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_wandb_logger_init(wandb):
+def test_wandb_logger_init(wandb, recwarn):
     """Verify that basic functionality of wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here."""
 
@@ -33,6 +39,9 @@ def test_wandb_logger_init(wandb):
     logger.log_metrics({'acc': 1.0})
     wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({'acc': 1.0}, step=None)
+
+    # mock wandb step
+    wandb.init().step = 0
 
     # test wandb.init not called if there is a W&B run
     wandb.init().log.reset_mock()
@@ -49,14 +58,27 @@ def test_wandb_logger_init(wandb):
     logger.log_metrics({'acc': 1.0}, step=3)
     wandb.init().log.assert_called_with({'acc': 1.0}, step=6)
 
+    # log hyper parameters
     logger.log_hyperparams({'test': None, 'nested': {'a': 1}, 'b': [2, 3, 4]})
     wandb.init().config.update.assert_called_once_with(
         {'test': 'None', 'nested/a': 1, 'b': [2, 3, 4]},
         allow_val_change=True,
     )
 
+    # watch a model
     logger.watch('model', 'log', 10)
     wandb.init().watch.assert_called_once_with('model', log='log', log_freq=10)
+
+    # verify warning for logging at a previous step
+    assert 'Trying to log at a previous step' not in get_warnings(recwarn)
+    # current step from wandb should be 6 (last logged step)
+    logger.experiment.step = 6
+    # logging at step 2 should raise a warning (step_offset is still 3)
+    logger.log_metrics({'acc': 1.0}, step=2)
+    assert 'Trying to log at a previous step' in get_warnings(recwarn)
+    # logging again at step 2 should not display again the same warning
+    logger.log_metrics({'acc': 1.0}, step=2)
+    assert 'Trying to log at a previous step' not in get_warnings(recwarn)
 
     assert logger.name == wandb.init().project_name()
     assert logger.version == wandb.init().id
@@ -71,6 +93,7 @@ def test_wandb_pickle(wandb, tmpdir):
     class Experiment:
         """ """
         id = 'the_id'
+        step = 0
 
         def project_name(self):
             return 'the_project_name'
@@ -108,8 +131,11 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert logger.name is None
 
     # mock return values of experiment
+    wandb.run = None
+    wandb.init().step = 0
     logger.experiment.id = '1'
     logger.experiment.project_name.return_value = 'project'
+    logger.experiment.step = 0
 
     for _ in range(2):
         _ = logger.experiment
@@ -120,12 +146,19 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert not os.listdir(tmpdir)
 
     version = logger.version
-    model = EvalModelTemplate()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3)
+    model = BoringModel()
+    limit_batches = 5
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=limit_batches,
+        limit_val_batches=limit_batches,
+    )
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
+    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f'epoch=0-step={limit_batches - 1}.ckpt']
 
 
 def test_wandb_sanitize_callable_params(tmpdir):
