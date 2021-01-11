@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union, Callable
+from typing import Any, Callable, Optional, Union
 
 import torch
 
@@ -47,8 +47,6 @@ class CPUAccelerator(Accelerator):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.setup_optimizers(model)
-
-        self.trainer.convert_to_lightning_optimizers()
 
         self.trainer.model = model
 

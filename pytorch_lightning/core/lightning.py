@@ -116,8 +116,11 @@ class LightningModule(
         self._invalid_loss_strategy = InvalidLossStrategy.SKIP_IF_ANY
         self._invalid_loss_counts = []
 
-    def optimizers(self):
-        opts = self.trainer.optimizers
+    def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
+        if use_pl_optimizer:
+            opts = list(self.trainer.lightning_optimizers.values())
+        else:
+            opts = self.trainer.optimizers
 
         # single optimizer
         if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):

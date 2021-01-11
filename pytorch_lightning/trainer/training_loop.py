@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from contextlib import contextmanager
 from copy import copy, deepcopy
 
@@ -504,7 +503,7 @@ class TrainLoop:
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli')
 
         # wraps into LightingOptimizer only for running step
-        optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+        optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
         # model hook
         model_ref.optimizer_step(

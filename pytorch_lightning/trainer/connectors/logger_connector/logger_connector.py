@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 import os
+from copy import deepcopy
 from pprint import pprint
 from typing import Iterable, Union
 
@@ -158,7 +158,7 @@ class LoggerConnector:
         self.logged_metrics.update(logged_metrics_tmp)
         self.cached_results.legacy_batch_log_metrics.update(logged_metrics_tmp)
 
-    def log_metrics(self, metrics, grad_norm_dic, step=None, log_train_step_metrics=False):
+    def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
         If `step` parameter is None and `step` key is presented is metrics,
         uses metrics["step"] as a step
@@ -186,11 +186,8 @@ class LoggerConnector:
 
         elif step is None:
             # added metrics by Lightning for convenience
-            if log_train_step_metrics:
-                step = self.trainer.total_batch_idx
-            else:
-                scalar_metrics['epoch'] = self.trainer.current_epoch
-                step = self.trainer.global_step
+            scalar_metrics['epoch'] = self.trainer.current_epoch
+            step = self.trainer.global_step
 
         # log actual metrics
         if self.trainer.logger is not None:
@@ -593,6 +590,8 @@ class LoggerConnector:
         return gathered_epoch_outputs
 
     def log_train_step_metrics(self, batch_output):
+        if self.trainer.train_loop.should_accumulate() and self.trainer.train_loop.automatic_optimization:
+            return
         _, batch_log_metrics = self.cached_results.update_logger_connector()
         # when metrics should be logged
         if self.should_update_logs or self.trainer.fast_dev_run is True:
@@ -601,5 +600,5 @@ class LoggerConnector:
             if grad_norm_dic is None:
                 grad_norm_dic = {}
             if len(batch_log_metrics) > 0 or len(grad_norm_dic) > 0:
-                self.log_metrics(batch_log_metrics, grad_norm_dic, log_train_step_metrics=True)
+                self.log_metrics(batch_log_metrics, grad_norm_dic)
                 self.callback_metrics.update(batch_log_metrics)
