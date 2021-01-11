@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pickle
+from argparse import Namespace
 from typing import Optional
 from unittest.mock import MagicMock
 
-from argparse import Namespace
 import numpy as np
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
-from pytorch_lightning.loggers.base import DummyLogger, DummyExperiment
+from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
+from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities import rank_zero_only
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 def test_logger_collection():
@@ -56,7 +56,7 @@ class CustomLogger(LightningLoggerBase):
     def __init__(self):
         super().__init__()
         self.hparams_logged = None
-        self.metrics_logged = None
+        self.metrics_logged = {}
         self.finalized = False
 
     @property
@@ -93,45 +93,54 @@ class CustomLogger(LightningLoggerBase):
 
 
 def test_custom_logger(tmpdir):
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    class CustomModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('train_loss', loss)
+            return {"loss": loss}
 
     logger = CustomLogger()
-
+    model = CustomModel()
     trainer = Trainer(
-        max_epochs=1,
-        limit_train_batches=0.05,
+        max_steps=2,
+        log_every_n_steps=1,
         logger=logger,
         default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
-    assert result == 1, "Training failed"
-    assert logger.hparams_logged == hparams
+    assert result, "Training failed"
+    assert logger.hparams_logged == model.hparams
     assert logger.metrics_logged != {}
     assert logger.finalized_status == "success"
 
 
 def test_multiple_loggers(tmpdir):
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    class CustomModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('train_loss', loss)
+            return {"loss": loss}
 
+    model = CustomModel()
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
     trainer = Trainer(
-        max_epochs=1,
-        limit_train_batches=0.05,
+        max_steps=2,
+        log_every_n_steps=1,
         logger=[logger1, logger2],
         default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
     assert result == 1, "Training failed"
 
-    assert logger1.hparams_logged == hparams
+    assert logger1.hparams_logged == model.hparams
     assert logger1.metrics_logged != {}
     assert logger1.finalized_status == "success"
 
-    assert logger2.hparams_logged == hparams
+    assert logger2.hparams_logged == model.hparams
     assert logger2.metrics_logged != {}
     assert logger2.finalized_status == "success"
 
@@ -143,51 +152,52 @@ def test_multiple_loggers_pickle(tmpdir):
     logger2 = CustomLogger()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
         logger=[logger1, logger2],
     )
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0}, 0)
 
-    assert logger1.metrics_logged != {}
-    assert logger2.metrics_logged != {}
+    assert trainer2.logger[0].metrics_logged == {"acc": 1.0}
+    assert trainer2.logger[1].metrics_logged == {"acc": 1.0}
 
 
 def test_adding_step_key(tmpdir):
-    logged_step = 0
+    class CustomTensorBoardLogger(TensorBoardLogger):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.logged_step = 0
 
-    def _validation_epoch_end(outputs):
-        nonlocal logged_step
-        logged_step += 1
-        return {"log": {"step": logged_step, "val_acc": logged_step / 10}}
-
-    def _training_epoch_end(outputs):
-        nonlocal logged_step
-        logged_step += 1
-        return {"log": {"step": logged_step, "train_acc": logged_step / 10}}
-
-    def _log_metrics_decorator(log_metrics_fn):
-        def decorated(metrics, step):
+        def log_metrics(self, metrics, step):
             if "val_acc" in metrics:
-                assert step == logged_step
-            return log_metrics_fn(metrics, step)
+                assert step == self.logged_step
 
-        return decorated
+            super().log_metrics(metrics, step)
 
-    model = EvalModelTemplate()
-    model.validation_epoch_end = _validation_epoch_end
-    model.training_epoch_end = _training_epoch_end
+    class CustomModel(BoringModel):
+        def training_epoch_end(self, outputs):
+            self.logger.logged_step += 1
+            self.log_dict({
+                "step": self.logger.logged_step,
+                "train_acc": self.logger.logged_step / 10
+            })
+
+        def validation_epoch_end(self, outputs):
+            self.logger.logged_step += 1
+            self.log_dict({
+                "step": self.logger.logged_step,
+                "val_acc": self.logger.logged_step / 10
+            })
+
+    model = CustomModel()
     trainer = Trainer(
         max_epochs=3,
+        logger=CustomTensorBoardLogger(save_dir=tmpdir),
         default_root_dir=tmpdir,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
     )
-    trainer.logger.log_metrics = _log_metrics_decorator(
-        trainer.logger.log_metrics)
     trainer.fit(model)
 
 
