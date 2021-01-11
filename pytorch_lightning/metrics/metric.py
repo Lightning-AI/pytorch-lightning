@@ -126,9 +126,7 @@ class Metric(nn.Module, ABC):
             and not isinstance(default, list)  # noqa: W503
             or (isinstance(default, list) and len(default) != 0)  # noqa: W503
         ):
-            raise ValueError(
-                "state variable must be a tensor or any empty list (where you can append tensors)"
-            )
+            raise ValueError("state variable must be a tensor or any empty list (where you can append tensors)")
 
         if dist_reduce_fx == "sum":
             dist_reduce_fx = dim_zero_sum
@@ -137,9 +135,7 @@ class Metric(nn.Module, ABC):
         elif dist_reduce_fx == "cat":
             dist_reduce_fx = dim_zero_cat
         elif dist_reduce_fx is not None and not isinstance(dist_reduce_fx, Callable):
-            raise ValueError(
-                "`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]"
-            )
+            raise ValueError("`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]")
 
         setattr(self, name, default)
 
@@ -201,6 +197,7 @@ class Metric(nn.Module, ABC):
         def wrapped_func(*args, **kwargs):
             self._computed = None
             return update(*args, **kwargs)
+
         return wrapped_func
 
     def _wrap_compute(self, compute):
@@ -211,11 +208,7 @@ class Metric(nn.Module, ABC):
                 return self._computed
 
             dist_sync_fn = self.dist_sync_fn
-            if (
-                dist_sync_fn is None
-                and torch.distributed.is_available()
-                and torch.distributed.is_initialized()
-            ):
+            if dist_sync_fn is None and torch.distributed.is_available() and torch.distributed.is_initialized():
                 # User provided a bool, so we assume DDP if available
                 dist_sync_fn = gather_all_tensors
 
@@ -270,8 +263,8 @@ class Metric(nn.Module, ABC):
         self.compute = self._wrap_compute(self.compute)
 
     def _apply(self, fn):
-        """ Overwrite _apply function such that we can also move metric states
-            to the correct device when `.to`, `.cuda`, etc methods are called
+        """Overwrite _apply function such that we can also move metric states
+        to the correct device when `.to`, `.cuda`, etc methods are called
         """
         self = super()._apply(fn)
         # Also apply fn to metric states
@@ -282,13 +275,15 @@ class Metric(nn.Module, ABC):
             elif isinstance(current_val, Sequence):
                 setattr(self, key, [fn(cur_v) for cur_v in current_val])
             else:
-                raise TypeError('Expected metric state to be either a torch.Tensor'
-                                f'or a list of torch.Tensor, but encountered {current_val}')
+                raise TypeError(
+                    "Expected metric state to be either a torch.Tensor"
+                    f"or a list of torch.Tensor, but encountered {current_val}"
+                )
         return self
 
     def persistent(self, mode: bool = False):
-        """ Method for post-init to change if metric states should be saved to
-            its state_dict
+        """Method for post-init to change if metric states should be saved to
+        its state_dict
         """
         for key in self._persistent.keys():
             self._persistent[key] = mode
@@ -308,123 +303,153 @@ class Metric(nn.Module, ABC):
 
     def __add__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.add, self, other)
 
     def __and__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.bitwise_and, self, other)
 
     def __eq__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.eq, self, other)
 
     def __floordiv__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.floor_divide, self, other)
 
     def __ge__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.ge, self, other)
 
     def __gt__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.gt, self, other)
 
     def __le__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.le, self, other)
 
     def __lt__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.lt, self, other)
 
     def __matmul__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.matmul, self, other)
 
     def __mod__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.fmod, self, other)
 
     def __mul__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.mul, self, other)
 
     def __ne__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.ne, self, other)
-    
+
     def __or__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.bitwise_or, self, other)
 
     def __pow__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.pow, self, other)
 
     def __radd__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.add, other, self)
 
     def __rand__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         # swap them since bitwise_and only supports that way and it's commutative
         return CompositionalMetric(torch.bitwise_and, self, other)
 
     def __rfloordiv__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.floor_divide, other, self)
 
     def __rmatmul__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.matmul, other, self)
 
     def __rmod__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.fmod, other, self)
 
     def __rmul__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.mul, other, self)
 
     def __ror__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.bitwise_or, other, self)
 
     def __rpow__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.pow, other, self)
 
     def __rsub__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.sub, other, self)
 
     def __rtruediv__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.true_divide, other, self)
 
     def __rxor__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.bitwise_xor, other, self)
 
     def __sub__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.sub, self, other)
 
     def __truediv__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.true_divide, self, other)
 
     def __xor__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.bitwise_xor, self, other)
 
     def __abs__(self):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.abs, self, None)
 
     def __inv__(self):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.bitwise_not, self, None)
 
     def __invert__(self):
@@ -432,14 +457,18 @@ class Metric(nn.Module, ABC):
 
     def __neg__(self):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(_neg, self, None)
 
     def __pos__(self):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
+
         return CompositionalMetric(torch.abs, self, None)
+
 
 def _neg(tensor: torch.Tensor):
     return -torch.abs(tensor)
+
 
 class MetricCollection(nn.ModuleDict):
     """
@@ -476,26 +505,29 @@ class MetricCollection(nn.ModuleDict):
         {'micro_recall': tensor(0.1250), 'macro_recall': tensor(0.1111)}
 
     """
+
     def __init__(self, metrics: Union[List[Metric], Tuple[Metric], Dict[str, Metric]]):
         super().__init__()
         if isinstance(metrics, dict):
             # Check all values are metrics
             for name, metric in metrics.items():
                 if not isinstance(metric, Metric):
-                    raise ValueError(f'Value {metric} belonging to key {name}'
-                                     ' is not an instance of `pl.metrics.Metric`')
+                    raise ValueError(
+                        f"Value {metric} belonging to key {name}" " is not an instance of `pl.metrics.Metric`"
+                    )
                 self[name] = metric
         elif isinstance(metrics, (tuple, list)):
             for metric in metrics:
                 if not isinstance(metric, Metric):
-                    raise ValueError(f'Input {metric} to `MetricCollection` is not a instance'
-                                     ' of `pl.metrics.Metric`')
+                    raise ValueError(
+                        f"Input {metric} to `MetricCollection` is not a instance" " of `pl.metrics.Metric`"
+                    )
                 name = metric.__class__.__name__
                 if name in self:
-                    raise ValueError(f'Encountered two metrics both named {name}')
+                    raise ValueError(f"Encountered two metrics both named {name}")
                 self[name] = metric
         else:
-            raise ValueError('Unknown input to MetricCollection.')
+            raise ValueError("Unknown input to MetricCollection.")
 
     def forward(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=E0202
         """
@@ -528,8 +560,8 @@ class MetricCollection(nn.ModuleDict):
         return deepcopy(self)
 
     def persistent(self, mode: bool = True):
-        """ Method for post-init to change if metric states should be saved to
-            its state_dict
+        """Method for post-init to change if metric states should be saved to
+        its state_dict
         """
         for _, m in self.items():
             m.persistent(mode)
