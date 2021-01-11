@@ -169,7 +169,7 @@ class Trainer(
 
             benchmark: If true enables cudnn.benchmark.
 
-            callbacks: Add a list of callbacks.
+            callbacks: Add a callback or list of callbacks.
 
             checkpoint_callback: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
