@@ -20,7 +20,6 @@ def sk_auc(x, y, reorder=False):
         idx = np.argsort(x, kind='stable')
         x = x[idx]
         y = y[idx]
-        print('sk', x, y, idx)
     return _sk_auc(x, y)
 
 

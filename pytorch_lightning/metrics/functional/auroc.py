@@ -82,18 +82,18 @@ def _auroc_compute(
             # calculate average
             if average is None:
                 return auc_scores
-            elif average == 'macro':
+            if average == 'macro':
                 return torch.mean(torch.stack(auc_scores))
-            elif average == 'weighted':
+            if average == 'weighted':
                 if mode == 'multi-label':
                     support = torch.sum(target, dim=0)
                 else:
                     support = torch.bincount(target.flatten(), minlength=num_classes)
                 return torch.sum(torch.stack(auc_scores) * support / support.sum())
-            else:
-                allowed_average = (None, 'macro', 'weighted')
-                raise ValueError('Argument `average` expected to be one of the following:'
-                                 f' {allowed_average} but got {average}')
+
+            allowed_average = (None, 'macro', 'weighted')
+            raise ValueError('Argument `average` expected to be one of the following:'
+                             f' {allowed_average} but got {average}')
 
         return auc(fpr, tpr)
 
