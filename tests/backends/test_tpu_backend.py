@@ -64,7 +64,7 @@ def test_if_test_works_after_train(tmpdir):
     assert trainer.test() == 1
 
 
-@pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_weight_tying_warning(tmpdir, capsys=None):
     """
