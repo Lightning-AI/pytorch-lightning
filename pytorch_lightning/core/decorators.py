@@ -86,7 +86,7 @@ def parameter_validation(fn: Callable) -> Callable:
         - `XLA Documentation <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks>`_
     """
     @wraps(fn)
-    def inner_f(self, *args, **kwargs):
+    def inner_fn(self, *args, **kwargs):
         pre_param_count = len(list(self.parameters()))
         module = fn(self, *args, **kwargs)
         self.on_post_move_to_device()
