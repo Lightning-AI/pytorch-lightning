@@ -22,6 +22,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.plugin import LightningPlugin
+from pytorch_lightning.utilities import DeviceType
 
 
 class DDPPlugin(LightningPlugin):
@@ -95,7 +96,7 @@ class DDPPlugin(LightningPlugin):
         os.environ["MASTER_ADDR"] = str(cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
         os.environ["WORLD_SIZE"] = str(cluster_environment.world_size())
-        torch_backend = "nccl" if trainer.on_gpu else "gloo"
+        torch_backend = "nccl" if trainer._device_type == DeviceType.GPU else "gloo"
 
         if not torch_distrib.is_initialized():
             log.info(
