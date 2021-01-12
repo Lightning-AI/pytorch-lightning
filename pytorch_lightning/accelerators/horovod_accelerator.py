@@ -19,7 +19,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, AMPType
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, AMPType, DeviceType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
 if _HOROVOD_AVAILABLE:
@@ -46,7 +46,7 @@ class HorovodAccelerator(Accelerator):
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
 
-        if torch.cuda.is_available() and self.trainer.on_gpu:
+        if torch.cuda.is_available() and self.trainer._device_type == DeviceType.GPU:
             # Horovod: pin GPU to local rank
             assert self.trainer.root_gpu == hvd.local_rank()
             torch.cuda.set_device(self.trainer.root_gpu)
@@ -116,7 +116,7 @@ class HorovodAccelerator(Accelerator):
         return results
 
     def _step(self, model_step: Callable, args):
-        if self.trainer.on_gpu:
+        if self.trainer._device_type == DeviceType.GPU:
             args[0] = self.batch_to_device(args[0], hvd.local_rank())
 
         if self.trainer.amp_backend == AMPType.NATIVE:
@@ -141,7 +141,7 @@ class HorovodAccelerator(Accelerator):
         optimizer.synchronize()
 
     def on_train_epoch_end(self, outputs):
-        hvd.join(hvd.local_rank() if self.trainer.on_gpu else -1)
+        hvd.join(hvd.local_rank() if self.trainer._device_type == DeviceType.GPU else -1)
 
     def barrier(self, name: Optional[str] = None):
         hvd.join()

@@ -50,7 +50,7 @@ class DistributedType(LightningEnum):
     >>> DistributedType.DDP == 'ddp'
     True
     >>> # which is case invariant
-    >>> DistributedType.DDP2 == 'DDP2'
+    >>> DistributedType.DDP2 in ('ddp2', )
     True
     """
     DP = 'dp'
@@ -69,7 +69,7 @@ class DeviceType(LightningEnum):
     >>> DeviceType.GPU == 'GPU'
     True
     >>> # which is case invariant
-    >>> DeviceType.TPU == 'tpu'
+    >>> DeviceType.TPU in ('tpu', 'CPU')
     True
     """
     CPU = 'CPU'

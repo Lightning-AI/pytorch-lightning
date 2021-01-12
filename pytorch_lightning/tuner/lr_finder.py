@@ -29,7 +29,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, DeviceType
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 # check if ipywidgets is installed before importing tqdm.auto
@@ -192,7 +192,7 @@ def lr_find(
 
     # Reset model state
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer._device_type == DeviceType.GPU)
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)
