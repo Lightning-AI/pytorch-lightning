@@ -25,7 +25,7 @@ from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 
 class ModelHooks:
     """Hooks to be used in LightningModule."""
-    def setup(self, stage: str):
+    def setup(self, stage: str) -> None:
         """
         Called at the beginning of fit and test.
         This is a good hook when you need to build models dynamically or adjust something about them.
@@ -53,7 +53,7 @@ class ModelHooks:
 
         """
 
-    def teardown(self, stage: str):
+    def teardown(self, stage: str) -> None:
         """
         Called at the end of fit and test.
 
@@ -61,13 +61,13 @@ class ModelHooks:
             stage: either 'fit' or 'test'
         """
 
-    def on_fit_start(self):
+    def on_fit_start(self) -> None:
         """
         Called at the very beginning of fit.
         If on DDP it is called on every process
         """
 
-    def on_fit_end(self):
+    def on_fit_end(self) -> None:
         """
         Called at the very end of fit.
         If on DDP it is called on every process
@@ -85,13 +85,13 @@ class ModelHooks:
         """
         # do something at the end of training
 
-    def on_validation_start(self):
+    def on_validation_start(self) -> None:
         """
         Called at the beginning of validation.
         """
         # do something at the start of validation
 
-    def on_validation_end(self):
+    def on_validation_end(self) -> None:
         """
         Called at the end of validation.
         """
@@ -121,9 +121,7 @@ class ModelHooks:
         """
         # do something at the end of the pretrain routine
 
-    def on_train_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop before anything happens for that batch.
 
@@ -266,13 +264,13 @@ class ModelHooks:
         """
         # do something when the epoch ends
 
-    def on_test_start(self):
+    def on_test_start(self) -> None:
         """
         Called at the beginning of testing.
         """
         # do something at the start of testing
 
-    def on_test_end(self):
+    def on_test_end(self) -> None:
         """
         Called at the end of testing.
         """
