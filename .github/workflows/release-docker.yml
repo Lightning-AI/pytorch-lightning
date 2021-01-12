@@ -3,7 +3,7 @@ name: Publish Docker Releases
 # https://github.com/docker/build-push-action
 on:
   push:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
+    branches: [master, "release/*"]
   release:
     types: [created]
 
