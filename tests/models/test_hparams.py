@@ -33,6 +33,7 @@ from tests.base import BoringModel, EvalModelTemplate, TrialMNIST
 if _HYDRA_EXPERIMENTAL_AVAILABLE:
     from hydra.experimental import compose, initialize
 
+
 class SaveHparamsModel(BoringModel):
     """ Tests that a model can take an object """
     def __init__(self, hparams):
