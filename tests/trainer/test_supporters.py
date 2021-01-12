@@ -200,17 +200,17 @@ class IndexedRandomDataset(RandomDataset):
 
 class TestModel(BoringModel):
 
-    def __init__(self, numbers_test_dataloaders, save_predictions_on_dataloader_idx):
+    def __init__(self, numbers_test_dataloaders, save_preds_on_dl_idx):
         super().__init__()
         self._numbers_test_dataloaders = numbers_test_dataloaders
-        self._save_predictions_on_dataloader_idx = save_predictions_on_dataloader_idx
+        self._save_preds_on_dl_idx = save_preds_on_dl_idx
 
     def test_step(self, batch, batch_idx, dataloader_idx=None):
         indexes, x = batch["index"], batch["batch"]
         output = self.layer(x)
         loss = self.loss(batch, output)
 
-        if dataloader_idx is not None and dataloader_idx == 1 and not self._save_predictions_on_dataloader_idx:
+        if dataloader_idx is not None and dataloader_idx == 1 and not self._save_preds_on_dl_idx:
             return {"y": loss}
 
         predictions = []
@@ -230,8 +230,8 @@ class TestModel(BoringModel):
 
 
 def test_prediction_collection(tmpdir, numbers_test_dataloaders,
-                               save_predictions_on_dataloader_idx, accelerator, gpus=None):
-    model = TestModel(numbers_test_dataloaders, save_predictions_on_dataloader_idx)
+                               save_preds_on_dl_idx, accelerator, gpus=None):
+    model = TestModel(numbers_test_dataloaders, save_preds_on_dl_idx)
     model.test_epoch_end = None
     limit_test_batches = 2
     trainer = Trainer(
@@ -244,7 +244,7 @@ def test_prediction_collection(tmpdir, numbers_test_dataloaders,
     assert len(results) == numbers_test_dataloaders
     for dl_idx in range(numbers_test_dataloaders):
         result = results[dl_idx]
-        if not save_predictions_on_dataloader_idx and numbers_test_dataloaders == 2 and dl_idx == 1:
+        if not save_preds_on_dl_idx and numbers_test_dataloaders == 2 and dl_idx == 1:
             assert "predictions" not in result
         else:
             assert "predictions" in result
@@ -255,13 +255,13 @@ def test_prediction_collection(tmpdir, numbers_test_dataloaders,
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('save_predictions_on_dataloader_idx', [False, True])
+@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
 @pytest.mark.parametrize('numbers_test_dataloaders', [1, 2])
 @pytest.mark.parametrize('accelerator', ["ddp"])
 @pytest.mark.parametrize('gpus', [1, 2])
-def test_prediction_collection_ddp(tmpdir, numbers_test_dataloaders, save_predictions_on_dataloader_idx, accelerator, gpus):
+def test_prediction_collection_ddp(tmpdir, numbers_test_dataloaders, save_preds_on_dl_idx, accelerator, gpus):
 
     """
     Test `PredictionCollection` reduce properly in ddp mode
     """
-    test_prediction_collection(tmpdir, numbers_test_dataloaders, save_predictions_on_dataloader_idx, accelerator, gpus=gpus)
+    test_prediction_collection(tmpdir, numbers_test_dataloaders, save_preds_on_dl_idx, accelerator, gpus=gpus)
