@@ -33,7 +33,7 @@ from pytorch_lightning.metrics.functional.object_detection import mean_average_p
     [
         pytest.param("step", torch.tensor([2 / 3])),
         pytest.param("VOC2007", torch.tensor([7 / 11])),
-        pytest.param("VOC2012", torch.tensor([2 / 3])),
+        pytest.param("VOC2010", torch.tensor([2 / 3])),
         pytest.param("COCO", torch.tensor([67 / 101]))
     ]
 )
@@ -67,7 +67,7 @@ def test_mean_average_precision_0(pred, target, iou_threshold, ap_calculation, e
     [
         pytest.param("step", torch.tensor([1.])),
         pytest.param("VOC2007", torch.tensor([1.])),
-        pytest.param("VOC2012", torch.tensor([1.])),
+        pytest.param("VOC2010", torch.tensor([1.])),
         pytest.param("COCO", torch.tensor([1.]))
     ]
 )
@@ -96,7 +96,7 @@ def test_mean_average_precision_1(pred, target, iou_threshold, ap_calculation, e
     [
         pytest.param("step", torch.tensor([0.])),
         pytest.param("VOC2007", torch.tensor([0.])),
-        pytest.param("VOC2012", torch.tensor([0.])),
+        pytest.param("VOC2010", torch.tensor([0.])),
         pytest.param("COCO", torch.tensor([0.]))
     ]
 )
