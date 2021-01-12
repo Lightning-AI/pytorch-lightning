@@ -198,7 +198,7 @@ class Trainer(
 
             gradient_clip_val: 0 means don't clip.
 
-            gradient_clip_algorithm: 'value' means clip_by_value, regex '^norm[1-9]([0-9]{1,45}$)' means clip_by_norm.
+            gradient_clip_algorithm: 'value' means clip_by_value, regex '^norm[1-9]([0-9]{0,45}$)' means clip_by_norm.
 
             limit_train_batches: How much of training dataset to check (floats = percent, int = num_batches)
 

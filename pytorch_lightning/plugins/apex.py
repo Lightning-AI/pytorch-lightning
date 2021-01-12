@@ -110,7 +110,7 @@ class ApexPlugin(PrecisionPlugin):
         Args:
             optimizer: Optimizer with gradients that will be clipped.
             grad_clip_val: Maximum norm of gradients.
-            gradient_clip_algorithm: 'value' means clip_by_value, regex '^norm[1-9]([0-9]{1,45}$)' means clip_by_norm.
+            gradient_clip_algorithm: 'value' means clip_by_value, regex '^norm[1-9]([0-9]{0,45}$)' means clip_by_norm.
             norm_type: (float or int): type of the used p-norm. Can be ``'inf'`` for infinity norm.
         """
         model = self.trainer.get_model()
