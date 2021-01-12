@@ -23,7 +23,7 @@ class TrainerState(LightningEnum):
     """ State which is set in the :class:`~pytorch_lightning.trainer.trainer.Trainer`
     to indicate what is currently or was executed.
 
-    >>> # you can math the type with string
+    >>> # you can compare the type with a string
     >>> TrainerState.RUNNING == 'RUNNING'
     True
     >>> # which is case insensitive
