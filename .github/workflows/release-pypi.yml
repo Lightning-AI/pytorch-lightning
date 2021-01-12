@@ -94,7 +94,7 @@ jobs:
       run: |
         virtualenv vEnv --system-site-packages
         source vEnv/bin/activate
-        pip install dist/*
+        pip install dist/*.whl
 
         pl_ver=$(python -c "import pytorch_lightning as pl ; print(pl.__version__)" 2>&1)
         # generate checkpoint to this version
