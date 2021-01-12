@@ -63,7 +63,7 @@ def test_add_argparse_args_redefined(cli_args):
     tests the Trainer initialization correctness.
     """
     parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_trainer_args(Trainer, None)
+    parser.add_lightning_class_args(Trainer, None)
 
     args = parser.parse_args(cli_args)
 
@@ -94,7 +94,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
         raise _UnkArgError
 
     parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_trainer_args(Trainer, None)
+    parser.add_lightning_class_args(Trainer, None)
 
     monkeypatch.setattr(parser, 'exit', lambda *args: _raise(), raising=True)
 
@@ -143,7 +143,7 @@ def test_parse_args_parsing(cli_args, expected):
     """Test parsing simple types and None optionals not modified."""
     cli_args = cli_args.split(' ') if cli_args else []
     parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_trainer_args(Trainer, None)
+    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         args = parser.parse_args()
 
@@ -167,7 +167,7 @@ def test_parse_args_parsing(cli_args, expected):
 def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
     """Test parsing complex types."""
     parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_trainer_args(Trainer, None)
+    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         args = parser.parse_args()
 
@@ -186,7 +186,7 @@ def test_parse_args_parsing_gpus(cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
     cli_args = cli_args.split(' ') if cli_args else []
     parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
-    parser.add_trainer_args(Trainer, None)
+    parser.add_lightning_class_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         args = parser.parse_args()
 

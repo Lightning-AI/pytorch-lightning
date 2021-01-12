@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os
-from typing import Type, Dict, Any
+from typing import Type, Dict, Any, Union
 from jsonargparse import ArgumentParser, ActionConfigFile
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
@@ -42,58 +42,24 @@ class LightningArgumentParser(ArgumentParser):
             help='Path to a configuration file in json or yaml format.'
         )
 
-    def add_trainer_args(
+    def add_lightning_class_args(
         self,
-        trainer_class: Type[Trainer] = Trainer,
-        nested_key: str = 'trainer'
-    ):
-        """
-        Adds arguments from a trainer class to a nested key of the parser
-
-        Args:
-            trainer_class: Optional extension of the Trainer class.
-            nested_key: Name of the nested namespace to store arguments.
-        """
-        assert issubclass(trainer_class, Trainer)
-        return self.add_class_arguments(trainer_class, nested_key)
-
-    def add_module_args(
-        self,
-        module_class: Type[LightningModule],
-        nested_key: str = 'module',
+        lightning_class: Union[Type[Trainer], Type[LightningModule], Type[LightningDataModule]],
+        nested_key: str,
         subclass_mode: bool = False
     ):
         """
-        Adds arguments from a module class to a nested key of the parser
+        Adds arguments from a lightning class to a nested key of the parser
 
         Args:
-            module_class: A LightningModule class.
+            lightning_class: Any subclass of {Trainer,LightningModule,LightningDataModule}.
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
         """
-        assert issubclass(module_class, LightningModule)
+        assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule))
         if subclass_mode:
-            return self.add_subclass_arguments(module_class, nested_key)
-        return self.add_class_arguments(module_class, nested_key)
-
-    def add_datamodule_args(
-        self,
-        datamodule_class: Type[LightningDataModule],
-        nested_key: str = 'data',
-        subclass_mode: bool = False
-    ):
-        """
-        Adds arguments from a datamodule class to a nested key of the parser
-
-        Args:
-            datamodule_class: A LightningDataModule class.
-            nested_key: Name of the nested namespace to store arguments.
-            subclass_mode: Whether allow any subclass of the given class.
-        """
-        assert issubclass(datamodule_class, LightningDataModule)
-        if subclass_mode:
-            return self.add_subclass_arguments(datamodule_class, nested_key)
-        return self.add_class_arguments(datamodule_class, nested_key)
+            return self.add_subclass_arguments(lightning_class, nested_key)
+        return self.add_class_arguments(lightning_class, nested_key)
 
 
 class SaveConfigCallback(Callback):
@@ -162,6 +128,10 @@ class LightningCLI:
                 <https://omni-us.github.io/jsonargparse/#classes-as-type>`_ of the
                 given class.
         """
+        assert issubclass(trainer_class, Trainer)
+        assert issubclass(model_class, LightningModule)
+        if datamodule_class is not None:
+            assert issubclass(datamodule_class, LightningDataModule)
         self.model_class = model_class
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
@@ -202,10 +172,10 @@ class LightningCLI:
 
     def add_core_arguments_to_parser(self):
         """Adds arguments from the core classes to the parser"""
-        self.parser.add_trainer_args(self.trainer_class, 'trainer')
-        self.parser.add_module_args(self.model_class, 'model', subclass_mode=self.subclass_mode_model)
+        self.parser.add_lightning_class_args(self.trainer_class, 'trainer')
+        self.parser.add_lightning_class_args(self.model_class, 'model', subclass_mode=self.subclass_mode_model)
         if self.datamodule_class is not None:
-            self.parser.add_datamodule_args(self.datamodule_class, 'data', subclass_mode=self.subclass_mode_data)
+            self.parser.add_lightning_class_args(self.datamodule_class, 'data', subclass_mode=self.subclass_mode_data)
 
     def before_parse_arguments(self, parser: LightningArgumentParser):
         """Implement to run some code before parsing arguments
