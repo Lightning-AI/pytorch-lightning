@@ -200,7 +200,7 @@ class SequentialModelRPCManual(LightningModule):
 class SequentialModelRPCAutomatic(SequentialModelRPCManual):
     def __init__(self):
         super().__init__()
-        self.automatic_optimization = False
+        self.automatic_optimization = True
 
     def training_step(self, batch, batch_idx):
         output = self.sequential_module(batch)
