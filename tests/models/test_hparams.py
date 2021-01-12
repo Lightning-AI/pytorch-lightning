@@ -642,7 +642,7 @@ def test_model_with_fsspec_as_parameter(tmpdir):
     trainer.test()
 
 
-@pytest.mark.skipif(not HYDRA_EXPERIMENTAL_AVAILABLE, reason="Hydra experimental is not available")
+@pytest.mark.skipif(not _HYDRA_EXPERIMENTAL_AVAILABLE, reason="Hydra experimental is not available")
 def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
     """
     This test relies on configuration saved under tests/models/conf/config.yaml

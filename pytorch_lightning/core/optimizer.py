@@ -17,7 +17,7 @@ from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import _TPU_AVAILABLE, DeviceType
+from pytorch_lightning.utilities import _TPU_AVAILABLE, DeviceType, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TPU_AVAILABLE:

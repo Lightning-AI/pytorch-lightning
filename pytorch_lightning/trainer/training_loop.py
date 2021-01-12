@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.core.optimizer import LightningOptimizer
 
 
 class TrainLoop:
