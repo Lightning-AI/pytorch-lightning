@@ -19,15 +19,12 @@ import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.step_result import Result, EvalResult
-import tests.base.develop_utils as tutils
-from pytorch_lightning.trainer.states import TrainerState
 from torch.utils.data import DataLoader
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.trainer.states import TrainerState
 from tests.base import BoringDataModule, BoringModel
 
 
