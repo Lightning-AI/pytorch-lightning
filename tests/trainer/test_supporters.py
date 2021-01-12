@@ -255,7 +255,7 @@ def test_prediction_collection(tmpdir, num_test_dataloaders,
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('save_predictions_on_dataloader_idx', [True])
+@pytest.mark.parametrize('save_predictions_on_dataloader_idx', [False, True])
 @pytest.mark.parametrize('num_test_dataloaders', [1, 2])
 @pytest.mark.parametrize('accelerator', ["ddp"])
 @pytest.mark.parametrize('gpus', [1, 2])
