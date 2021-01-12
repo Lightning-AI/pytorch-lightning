@@ -335,7 +335,8 @@ optimizer behavior
 Example::
 
     def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        opt = self.optimizers(use_pl_optimizer=True)
 
         loss = ...
         self.manual_backward(loss, opt)
@@ -350,7 +351,8 @@ In the multi-optimizer case, ignore the optimizer_idx flag and use the optimizer
 Example::
 
     def training_step(self, batch, batch_idx, optimizer_idx):
-        (opt_a, opt_b) = self.optimizers()
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
 
         gen_loss = ...
         self.manual_backward(gen_loss, opt_a)
@@ -666,9 +668,9 @@ Under the hood the pseudocode looks like this when running *fast_dev_run* with a
 .. note::
 
     This argument is a bit different from ``limit_train/val/test_batches``. Setting this argument will
-    disable tuner, logger callbacks like ``LearningRateLogger`` and runs for only 1 epoch. This must be
-    used only for debugging purposes. ``limit_train/val/test_batches`` only limits the number of batches and won't
-    disable anything.
+    disable tuner, checkpoint callbacks, early stopping callbacks, loggers and logger callbacks like
+    ``LearningRateLogger`` and runs for only 1 epoch. This must be used only for debugging purposes.
+    ``limit_train/val/test_batches`` only limits the number of batches and won't disable anything.
 
 flush_logs_every_n_steps
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1328,7 +1330,8 @@ resume_from_checkpoint
 
 |
 
-To resume training from a specific checkpoint pass in the path here.
+To resume training from a specific checkpoint pass in the path here. If resuming from a mid-epoch
+checkpoint, training will start from the beginning of the next epoch.
 
 .. testcode::
 

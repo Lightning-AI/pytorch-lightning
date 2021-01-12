@@ -41,7 +41,7 @@ You can run the test set on multiple models using the same trainer instance.
 
     model1 = LitModel()
     model2 = GANModel()
-    
+
     trainer = Trainer()
     trainer.test(model1)
     trainer.test(model2)
@@ -87,7 +87,7 @@ is not available at the time your model was declared.
 
 You can either pass in a single dataloader or a list of them. This optional named
 parameter can be used in conjunction with any of the above use cases. Additionally,
-you can also pass in an :ref:`datamodules` that have overridden the 
+you can also pass in an :ref:`datamodules` that have overridden the
 :ref:`datamodule-test-dataloader-label` method.
 
 .. code-block:: python
@@ -102,6 +102,3 @@ you can also pass in an :ref:`datamodules` that have overridden the
 
     # test (pass in datamodule)
     trainer.test(datamodule=dm)
-    
-
-

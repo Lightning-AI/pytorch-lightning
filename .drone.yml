@@ -30,6 +30,7 @@ steps:
     MKL_THREADING_LAYER: GNU
 
   commands:
+    - set -e
     - python --version
     - pip --version
     - nvidia-smi
@@ -38,6 +39,14 @@ steps:
     # when Image has defined CUDa version we can switch to this package spec "nvidia-dali-cuda${CUDA_VERSION%%.*}0"
     - pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100 --upgrade-strategy only-if-needed
     - pip list
+    # todo: remove unzip install after new nigtly docker is created
+    - apt-get update -qq
+    - apt-get install -y --no-install-recommends unzip
+    # get legacy checkpoints
+    - wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
+    - unzip -o legacy/checkpoints.zip -d legacy/
+    - ls -l legacy/checkpoints/
+    # testing...
     - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
     # Running special tests
     - sh tests/special_tests.sh

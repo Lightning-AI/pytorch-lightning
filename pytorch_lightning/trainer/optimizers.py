@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
+from collections import OrderedDict
 from typing import List, Optional, Tuple
 
 import torch
@@ -75,7 +76,9 @@ class TrainerOptimizersMixin(ABC):
                 ' * {"optimizer": `torch.optim.Optimizer`, (optional) "lr_scheduler": `torch.optim.lr_scheduler`}\n'
                 ' * A list of the previously described dict format, with an optional "frequency" key (int)'
             )
+
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor=monitor)
+        _validate_scheduler_optimizer(optimizers, lr_schedulers)
 
         return optimizers, lr_schedulers, optimizer_frequencies
 
@@ -86,8 +89,10 @@ class TrainerOptimizersMixin(ABC):
             optimizer._on_trainer_init(trainer)
             return optimizer
 
-        if self._enable_pl_optimizer:
-            self.optimizers = [_convert_to_lightning_optimizer(self, opt) for opt in self.optimizers]
+        self._lightning_optimizers = {
+            opt_idx: _convert_to_lightning_optimizer(self, opt)
+            for opt_idx, opt in enumerate(self.optimizers)
+        }
 
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information
@@ -183,3 +188,10 @@ class _MockOptimizer(Optimizer):
 
     def __repr__(self):
         return 'No Optimizer'
+
+
+def _validate_scheduler_optimizer(optimizers, lr_schedulers):
+    if any(sch['scheduler'].optimizer not in optimizers for sch in lr_schedulers):
+        raise MisconfigurationException(
+            "Some schedulers are attatched with an optimizer that wasn't returned from `configure_optimizers`."
+        )

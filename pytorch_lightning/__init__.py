@@ -1,10 +1,15 @@
 """Root package info."""
 
-__version__ = '1.1.2'
+import logging as python_logging
+import os
+import time
+
+_this_year = time.strftime("%Y")
+__version__ = '1.1.4'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
-__copyright__ = 'Copyright (c) 2018-2020, %s.' % __author__
+__copyright__ = f'Copyright (c) 2018-{_this_year}, {__author__}.'
 __homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
 # this has to be simple string, see: https://github.com/pypa/twine/issues/522
 __docs__ = (
@@ -32,9 +37,6 @@ Documentation
 - https://pytorch-lightning.readthedocs.io/en/latest
 - https://pytorch-lightning.readthedocs.io/en/stable
 """
-
-import logging as python_logging
-import os
 
 _logger = python_logging.getLogger("lightning")
 _logger.addHandler(python_logging.StreamHandler())

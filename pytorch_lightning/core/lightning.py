@@ -14,15 +14,15 @@
 
 """nn.Module with additional great features."""
 
-from abc import ABC
-from argparse import Namespace
 import collections
 import copy
 import inspect
 import os
-from pathlib import Path
 import re
 import tempfile
+from abc import ABC
+from argparse import Namespace
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
@@ -111,9 +111,13 @@ class LightningModule(
         self._running_manual_backward = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
+        self._automatic_optimization: bool = True
 
-    def optimizers(self):
-        opts = self.trainer.optimizers
+    def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
+        if use_pl_optimizer:
+            opts = list(self.trainer.lightning_optimizers.values())
+        else:
+            opts = self.trainer.optimizers
 
         # single optimizer
         if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):
@@ -160,7 +164,11 @@ class LightningModule(
         """
         If False you are responsible for calling .backward, .step, zero_grad.
         """
-        return True
+        return self._automatic_optimization
+
+    @automatic_optimization.setter
+    def automatic_optimization(self, automatic_optimization: bool) -> None:
+        self._automatic_optimization = automatic_optimization
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -618,14 +626,14 @@ class LightningModule(
             for val_batch in val_data:
                 out = validation_step(val_batch)
                 val_outs.append(out)
-                validation_epoch_end(val_outs)
+            validation_epoch_end(val_outs)
 
         Args:
             batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
             batch_idx (int): The index of this batch
             dataloader_idx (int): The index of the dataloader that produced this batch
-                (only if multiple val datasets used)
+                (only if multiple val dataloaders used)
 
         Return:
            Any of.
@@ -674,11 +682,11 @@ class LightningModule(
                     # log the outputs!
                     self.log_dict({'val_loss': loss, 'val_acc': val_acc})
 
-            If you pass in multiple val datasets, validation_step will have an additional argument.
+            If you pass in multiple val dataloaders, :meth:`validation_step` will have an additional argument.
 
             .. code-block:: python
 
-                # CASE 2: multiple validation datasets
+                # CASE 2: multiple validation dataloaders
                 def validation_step(self, batch, batch_idx, dataloader_idx):
                     # dataloader_idx tells you which dataset this is.
 
@@ -810,7 +818,7 @@ class LightningModule(
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
             batch_idx (int): The index of this batch.
             dataloader_idx (int): The index of the dataloader that produced this batch
-                (only if multiple test datasets used).
+                (only if multiple test dataloaders used).
 
         Return:
            Any of.
@@ -850,17 +858,17 @@ class LightningModule(
                     # log the outputs!
                     self.log_dict({'test_loss': loss, 'test_acc': test_acc})
 
-            If you pass in multiple validation datasets, :meth:`test_step` will have an additional
+            If you pass in multiple test dataloaders, :meth:`test_step` will have an additional
             argument.
 
             .. code-block:: python
 
-                # CASE 2: multiple test datasets
+                # CASE 2: multiple test dataloaders
                 def test_step(self, batch, batch_idx, dataloader_idx):
                     # dataloader_idx tells you which dataset this is.
 
         Note:
-            If you don't need to validate you don't need to implement this method.
+            If you don't need to test you don't need to implement this method.
 
         Note:
             When the :meth:`test_step` is called, the model has been put in eval mode and
@@ -1327,9 +1335,17 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
-        model_summary = ModelSummary(self, mode=mode)
-        log.info("\n" + str(model_summary))
+    def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
+        model_summary = None
+
+        if mode in ModelSummary.MODES:
+            model_summary = ModelSummary(self, mode=mode)
+            log.info("\n" + str(model_summary))
+        elif mode is not None:
+            raise MisconfigurationException(
+                f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}"
+            )
+
         return model_summary
 
     def freeze(self) -> None:
