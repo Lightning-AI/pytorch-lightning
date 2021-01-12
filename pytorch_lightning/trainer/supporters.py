@@ -19,10 +19,12 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import Any, Callable, List, Optional, Union
 
 import torch
+from torch import Tensor
 from torch.utils.data import Dataset
 
 from pytorch_lightning.trainer.connectors.logger_connector.logger_connector import LoggerStages
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -132,6 +134,7 @@ class PredictionCollection(object):
         self.global_rank = global_rank
         self.world_size = world_size
         self.all_gather = all_gather
+        self._legacy_predictions = {}
         self._predictions = {stage: {} for stage in LoggerStages}
 
     @property
@@ -146,7 +149,7 @@ class PredictionCollection(object):
     def convert_to_numpy(value):
         return value.cpu().numpy()
 
-    def _add_prediction(self, predictions, dl_idx: int):
+    def _cache_prediction(self, predictions, dl_idx: int):
         internal_predictions = self.predictions
 
         if dl_idx not in internal_predictions:
@@ -183,7 +186,7 @@ class PredictionCollection(object):
 
             internal_predictions[dl_idx][key] = pred
 
-    def add(self, predictions: List, dl_idx: int, current_stage):
+    def cache(self, predictions: List, dl_idx: int, current_stage):
         if predictions is None:
             return
 
@@ -202,7 +205,7 @@ class PredictionCollection(object):
                 "Each contained element should contain at minimum an ID and a prediction tensor. "
             )
 
-        self._add_prediction(predictions, dl_idx)
+        self._cache_prediction(predictions, dl_idx)
 
     def attach_predictions(self, results, current_stage: str) -> list:
         self.current_stage = current_stage
@@ -235,6 +238,64 @@ class PredictionCollection(object):
                 for k in keys:
                     predictions[str(idx)][k] = all_preds[k][idx % self.world_size].cpu().tolist()
         return predictions
+
+    def _add_prediction(self, name, values, filename):
+        if filename not in self._legacy_predictions:
+            self._legacy_predictions[filename] = {name: values}
+        elif name not in self._legacy_predictions[filename]:
+            self._legacy_predictions[filename][name] = values
+        elif isinstance(values, Tensor):
+            self._legacy_predictions[filename][name] = torch.cat(
+                (self._legacy_predictions[filename][name], values)
+            )
+        elif isinstance(values, list):
+            self._legacy_predictions[filename][name].extend(values)
+
+    def add(self, predictions):
+
+        if predictions is None:
+            return
+
+        for filename, pred_dict in predictions.items():
+            for feature_name, values in pred_dict.items():
+                self._add_prediction(feature_name, values, filename)
+
+    def to_disk(self) -> None:
+        """Write predictions to file(s).
+        """
+        for filepath, predictions in self._legacy_predictions.items():
+            fs = get_filesystem(filepath)
+            # normalize local filepaths only
+            if fs.protocol == "file":
+                filepath = os.path.realpath(filepath)
+            if self.world_size > 1:
+                stem, extension = os.path.splitext(filepath)
+                filepath = f"{stem}_rank_{self.global_rank}{extension}"
+            dirpath = os.path.split(filepath)[0]
+            fs.mkdirs(dirpath, exist_ok=True)
+
+            # Convert any tensor values to list
+            predictions = {
+                k: v if not isinstance(v, Tensor) else v.tolist()
+                for k, v in predictions.items()
+            }
+
+            # Check if all features for this file add up to same length
+            feature_lens = {k: len(v) for k, v in predictions.items()}
+            if len(set(feature_lens.values())) != 1:
+                raise ValueError(
+                    "Mismatching feature column lengths found in stored EvalResult predictions."
+                )
+
+            # Switch predictions so each entry has its own dict
+            outputs = []
+            for values in zip(*predictions.values()):
+                output_element = {k: v for k, v in zip(predictions.keys(), values)}
+                outputs.append(output_element)
+
+            # Write predictions for current file to disk
+            with fs.open(filepath, "wb") as fp:
+                torch.save(outputs, fp)
 
     def __len__(self):
         return len(self.predictions.keys())

@@ -172,10 +172,6 @@ class LightningModule(
         if self.trainer.is_global_zero:
             print(*args, **kwargs)
 
-    def add_predictions(self, predictions):
-        dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
-        self.trainer.predictions.add(predictions, dl_idx, self.trainer.logger_connector._current_stage)
-
     def log(
         self,
         name: str,
@@ -330,6 +326,10 @@ class LightningModule(
                 tbptt_pad_token=tbptt_pad_token,
                 tbptt_reduce_fx=tbptt_reduce_fx,
             )
+
+    def add_predictions(self, predictions):
+        dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
+        self.trainer.predictions.cache(predictions, dl_idx, self.trainer.logger_connector._current_stage)
 
     def write_prediction(self, name, value, filename='predictions.pt'):
         self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
