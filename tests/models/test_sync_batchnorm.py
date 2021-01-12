@@ -17,6 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning import Trainer, seed_everything, LightningModule
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.base.datamodules import MNISTDataModule
 from tests.base.develop_utils import set_random_master_port
@@ -109,5 +110,5 @@ def test_sync_batchnorm_ddp(tmpdir):
         replace_sampler_ddp=False,
     )
 
-    result = trainer.fit(model, dm)
-    assert result == 1, "Sync batchnorm failing with DDP"
+    trainer.fit(model, dm)
+    assert trainer.state == TrainerState.FINISHED, "Sync batchnorm failing with DDP"

@@ -17,6 +17,7 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.trainer.states import TrainerState
 from tests.base import EvalModelTemplate
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
@@ -81,5 +82,5 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         gpus=[0, 1],
         accelerator='ddp_spawn',
     )
-    result = trainer.fit(model, **fit_options)
-    assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
+    trainer.fit(model, **fit_options)
+    assert trainer.state == TrainerState.FINISHED, "DDP doesn't work with dataloaders passed to fit()."
