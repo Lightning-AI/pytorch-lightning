@@ -1,4 +1,4 @@
-from pytorch_lightning.accelerators.plugins import DDPPlugin
+from pytorch_lightning.accelerators.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 
@@ -8,7 +8,7 @@ if _FAIRSCALE_AVAILABLE:
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
 
 
-class ShardedDDPPlugin(DDPPlugin):
+class DDPShardedPlugin(DDPPlugin):
     def configure_ddp(self):
         self._model = LightningShardedDataParallel(
             self.model,
