@@ -13,8 +13,14 @@
 # limitations under the License.
 
 import os
+import os.path as osp
+from pickle import INST
+import pickle
 from typing import Optional
-
+import errno
+import numpy as np
+from getpass import getuser
+from tempfile import NamedTemporaryFile as TempFile, gettempdir
 import torch
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from torch import Tensor
@@ -23,8 +29,16 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import get_len
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import Any, Union
-
+from pytorch_lightning.trainer.connectors.logger_connector.logger_connector import LoggerStages
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+
+def makedirs(path):
+    try:
+        os.makedirs(osp.expanduser(osp.normpath(path)))
+    except OSError as e:
+        if e.errno != errno.EEXIST and osp.isdir(path):
+            raise e
 
 
 class TensorRunningAccum(object):
@@ -120,67 +134,97 @@ class Accumulator(object):
 
 
 class PredictionCollection(object):
-    def __init__(self, global_rank: int, world_size: int):
-        self.global_rank = global_rank
-        self.world_size = world_size
-        self.predictions = {}
+    def __init__(self, trainer):
+        self.trainer = trainer
+        self.global_rank = self.trainer.global_rank
+        self.world_size = self.trainer.world_size
+        self._predictions = {stage: {} for stage in LoggerStages}
 
-    def _add_prediction(self, name, values, filename):
-        if filename not in self.predictions:
-            self.predictions[filename] = {name: values}
-        elif name not in self.predictions[filename]:
-            self.predictions[filename][name] = values
-        elif isinstance(values, Tensor):
-            self.predictions[filename][name] = torch.cat(
-                (self.predictions[filename][name], values)
-            )
-        elif isinstance(values, list):
-            self.predictions[filename][name].extend(values)
+    @property
+    def current_stage(self):
+        return self.trainer.logger_connector._current_stage
+
+    @property
+    def predictions(self):
+        return self._predictions[self.current_stage]    # type: ignore
+
+    @staticmethod
+    def convert_to_numpy(value):
+        return value.cpu().numpy()
+
+    def _add_prediction(self, predictions):
+        model_ref = self.trainer.get_model()
+        dl_idx = model_ref._current_dataloader_idx if model_ref._current_dataloader_idx is not None else 0
+
+        internal_predictions = self.predictions
+
+        if dl_idx not in internal_predictions:
+            internal_predictions[dl_idx] = {}
+
+        for pred in predictions:
+            if isinstance(pred, (list, tuple)):
+                key = pred[0]
+                pred = {i: v for i, v in enumerate(pred)}
+            else:
+                if "path" in pred:
+                    key = pred["path"]
+                elif "id" in pred:
+                    key = pred["id"]
+                else:
+                    raise MisconfigurationException(
+                        "When predictions are provided within a dict, we expect either a `path` or `id` key. "
+                    )
+            
+            if key not in internal_predictions[dl_idx]:
+                internal_predictions[dl_idx][key] = []
+            else:
+                raise MisconfigurationException("Prediction Collection doesn't support multiple prediction for one sample yet.")
+                
+            internal_predictions[dl_idx][key] = apply_to_collection(pred, torch.Tensor, PredictionCollection.convert_to_numpy)
 
     def add(self, predictions):
         if predictions is None:
             return
 
-        for filename, pred_dict in predictions.items():
-            for feature_name, values in pred_dict.items():
-                self._add_prediction(feature_name, values, filename)
+        assert isinstance(predictions, (list, tuple))
+        if not all([isinstance(p, (list, tuple, dict)) for p in predictions]):
+            raise MisconfigurationException(
+                "predictions objects should be a list or tuple. "
+                "Each contained element should be either a dict, list or tuple. "
+            )
+        if not all([len(p) > 1 for p in predictions]):
+            raise MisconfigurationException(
+                "predictions objects should be a list or tuple. "
+                "Each contained element should contain at minimum an ID and a prediction tensor. "
+            )
 
-    def to_disk(self) -> None:
-        """Write predictions to file(s).
-        """
-        for filepath, predictions in self.predictions.items():
-            fs = get_filesystem(filepath)
-            # normalize local filepaths only
-            if fs.protocol == "file":
-                filepath = os.path.realpath(filepath)
-            if self.world_size > 1:
-                stem, extension = os.path.splitext(filepath)
-                filepath = f"{stem}_rank_{self.global_rank}{extension}"
-            dirpath = os.path.split(filepath)[0]
-            fs.mkdirs(dirpath, exist_ok=True)
+        self._add_prediction(predictions)
 
-            # Convert any tensor values to list
-            predictions = {
-                k: v if not isinstance(v, Tensor) else v.tolist()
-                for k, v in predictions.items()
-            }
+    def attach_predictions(self, results) -> list:
+        if len(self) > 0:
+            predictions = self.predictions
+            for dl_idx, result in enumerate(results):
+                dl_predictions = predictions[dl_idx]
+                dl_predictions = self.reduce_predictions(dl_predictions)
+                result["predictions"] = [*dl_predictions.values()]
+        return results       
 
-            # Check if all features for this file add up to same length
-            feature_lens = {k: len(v) for k, v in predictions.items()}
-            if len(set(feature_lens.values())) != 1:
-                raise ValueError(
-                    "Mismatching feature column lengths found in stored EvalResult predictions."
-                )
-
-            # Switch predictions so each entry has its own dict
-            outputs = []
-            for values in zip(*predictions.values()):
-                output_element = {k: v for k, v in zip(predictions.keys(), values)}
-                outputs.append(output_element)
-
-            # Write predictions for current file to disk
-            with fs.open(filepath, "wb") as fp:
-                torch.save(outputs, fp)
+    def reduce_predictions(self, predictions):
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            path = os.path.join(gettempdir(), f'{getuser()}"_{self.global_rank}"')
+            makedirs(path)
+            with TempFile(mode='wb', delete=True, dir=path) as fp:
+                torch.save(predictions, fp)
+                self.trainer.accelerator_backend.barrier("reduce_predictions_start")
+                predictions = {}
+                if str(self.global_rank) == '0':
+                    predictions = {}
+                    for rank in range(int(self.world_size)):
+                        dir = os.path.join(gettempdir(), f'{getuser()}_{rank}')
+                        for path in os.listdir(dir):
+                            predictions.update(torch.load(osp.join(dir, path)))
+                self.trainer.accelerator_backend.barrier("reduce_predictions_end")
+        return predictions
 
     def __len__(self):
         return len(self.predictions.keys())

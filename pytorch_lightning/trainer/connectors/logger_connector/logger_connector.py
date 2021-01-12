@@ -36,7 +36,7 @@ class LoggerConnector:
         self._callback_metrics = MetricsHolder()
         self._evaluation_callback_metrics = MetricsHolder(to_float=True)
         self._logged_metrics = MetricsHolder()
-        self._progress_bar_metrics = MetricsHolder()
+        self._progress_bar_metrics = MetricsHolder(to_float=True)
         self.eval_loop_results = []
         self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in LoggerStages}
         self._callback_hook_validator = CallbackHookNameValidator()
@@ -316,20 +316,8 @@ class LoggerConnector:
 
         return self._add_predictions_to_results(results)
 
-    @staticmethod
-    def _filter_predictions(x: Any, dl_idx: int = None) -> bool:
-        return x[1] == dl_idx
-
     def _add_predictions_to_results(self, results):
-        if len(self.trainer.evaluation_loop.predictions):
-            model_ref = self.trainer.get_model()
-            predictions = self.trainer.evaluation_loop.predictions.predictions
-            # predictions = model_ref.all_gather(predictions)
-            predictions = [[path, dl_idx, pred] for path, values in predictions.items() for dl_idx, pred in values.items()]
-            for dl_idx, result in enumerate(results):
-                filter_ = partial(self._filter_predictions, dl_idx=dl_idx)
-                result["predictions"] = filter(filter_, predictions)
-        return results
+        return self.trainer.predictions.attach_predictions(results)
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
         if len(eval_results) > 0 and (eval_results[0] is None or not isinstance(eval_results[0], Result)):

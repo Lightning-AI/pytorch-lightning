@@ -33,6 +33,7 @@ from pytorch_lightning.utilities.argparse import (
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.trainer.supporters import PredictionCollection
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -299,6 +300,10 @@ class TrainerProperties(ABC):
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
 
         return kwargs
+
+    @property
+    def predictions(self) -> PredictionCollection:
+        return self.evaluation_loop.predictions
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

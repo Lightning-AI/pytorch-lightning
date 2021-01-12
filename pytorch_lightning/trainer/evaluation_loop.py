@@ -127,7 +127,7 @@ class EvaluationLoop(object):
 
         # bookkeeping
         self.outputs = []
-        self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
+        self.predictions = PredictionCollection(self.trainer)
 
         # convert max_batches to list
         if isinstance(max_batches, int):
