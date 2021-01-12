@@ -19,8 +19,9 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.accelerators.plugins import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
-    DataParallelPlugin, DDP2Plugin, HorovodPlugin
-from pytorch_lightning.accelerators.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
+    DataParallelPlugin, DDP2Plugin, HorovodPlugin, ShardedDDPPlugin, ShardedSpawnDDPPlugin
+from pytorch_lightning.accelerators.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, \
+    PrecisionPlugin, ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import AMPType, _NATIVE_AMP_AVAILABLE, _APEX_AVAILABLE, device_parser
 from pytorch_lightning.utilities import rank_zero_only
@@ -187,13 +188,15 @@ class BackendConnector(object):
                     self.amp_type = 'apex'
                 else:
                     log.info('Using native 16bit precision.')
+                    if self.distributed_backend == 'ddp_sharded' or self.distributed_backend == 'ddp_sharded_spawn':
+                        return ShardedNativeMixedPrecisionPlugin()
                     self.amp_type = AMPType.NATIVE
                     return NativeMixedPrecisionPlugin()
 
-            if self.amp_type =='apex':
+            if self.amp_type == 'apex':
                 if not _APEX_AVAILABLE:
                     rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
-                                ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
+                                   ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
                 else:
                     log.info('Using APEX 16bit precision.')
                     self.amp_type = AMPType.APEX
@@ -215,13 +218,19 @@ class BackendConnector(object):
             use_ddp_cpu_spawn = self.use_ddp and self.distributed_backend == "ddp_cpu"
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self.is_using_torchelastic
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
+            use_ddp_sharded = self.distributed_backend == "ddp_sharded"
+            use_ddp_sharded_spawn = self.distributed_backend == "ddp_sharded_spawn"
 
             # ddp script mode uses the same flags as TE
             # TODO: decouple from TE
             if os.environ.get('PL_IN_DDP_SUBPROCESS', False):
                 use_torchelastic_ddp = False
 
-            if use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
+            if use_ddp_sharded:
+                ddp_plugin_cls = ShardedDDPPlugin
+            elif use_ddp_sharded_spawn:
+                ddp_plugin_cls = ShardedSpawnDDPPlugin
+            elif use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
                 ddp_plugin_cls = DDPPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
                 ddp_plugin_cls = DDPSpawnPlugin
