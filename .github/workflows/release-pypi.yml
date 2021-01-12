@@ -3,7 +3,7 @@ name: PyPI Release
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
+    branches: [master, "release/*"]
   release:
     types: [created]
 
@@ -94,7 +94,7 @@ jobs:
       run: |
         virtualenv vEnv --system-site-packages
         source vEnv/bin/activate
-        pip install dist/*
+        pip install dist/*.whl
 
         pl_ver=$(python -c "import pytorch_lightning as pl ; print(pl.__version__)" 2>&1)
         # generate checkpoint to this version
