@@ -45,35 +45,43 @@ def test_v1_4_0_deprecated_trainer_attributes():
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.on_cpu = True
-    assert trainer.on_cpu
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.on_cpu
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.on_gpu = True
-    assert trainer.on_gpu
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.on_gpu
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.on_tpu = True
-    assert trainer.on_tpu
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.on_tpu
     trainer._device_type = None
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.use_tpu = True
-    assert trainer.use_tpu
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.use_tpu
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.use_dp = True
-    assert trainer.use_dp
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.use_dp
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.use_ddp = True
-    assert trainer.use_ddp
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.use_ddp
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.use_ddp2 = True
-    assert trainer.use_ddp2
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.use_ddp2
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.use_horovod = True
-    assert trainer.use_horovod
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.use_horovod
 
 
 def test_v1_4_0_deprecated_metrics():
