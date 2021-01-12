@@ -29,7 +29,13 @@ if importlib.util.find_spec('ipywidgets') is not None:
 else:
     from tqdm import tqdm
 
+from pytorch_lightning.utilities import _RICH_AVAILABLE
 from pytorch_lightning.callbacks import Callback
+
+if _RICH_AVAILABLE:
+    import rich
+    from rich.console import Console
+    from rich.progress import Progress
 
 
 class ProgressBarBase(Callback):
@@ -385,6 +391,23 @@ class ProgressBar(ProgressBarBase):
             delta = self.refresh_rate
         if delta > 0:
             bar.update(delta)
+
+RichProgressBar = None
+
+if _RICH_AVAILABLE:
+    
+    
+    class RichProgressBar(ProgressBar):
+
+    def __init__(self, refresh_rate: int = 1, process_position: int = 0):
+        super().__init__()
+        self._refresh_rate = refresh_rate
+        self._process_position = process_position
+        self._enabled = True
+        self.main_progress_bar = None
+        self.val_progress_bar = None
+        self.test_progress_bar = None
+        self.console = Console()
 
 
 def convert_inf(x):

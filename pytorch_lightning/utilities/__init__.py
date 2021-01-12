@@ -41,6 +41,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _GROUP_AVAILABLE,
     _FAIRSCALE_PIPE_AVAILABLE,
     _BOLTS_AVAILABLE,
+    _RICH_AVAILABLE,
     _module_available,
 )
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401

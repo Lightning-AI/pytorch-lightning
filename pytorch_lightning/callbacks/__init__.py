@@ -18,7 +18,8 @@ from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.callbacks.progress import ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks.progress import ProgressBar, ProgressBarBase, RichProgressBar
+from pytorch_lightning.utilities import _RICH_AVAILABLE
 
 __all__ = [
     'Callback',
@@ -32,3 +33,6 @@ __all__ = [
     'ProgressBar',
     'ProgressBarBase',
 ]
+
+if _RICH_AVAILABLE:
+   __all__ += ["RichProgressBar"] 

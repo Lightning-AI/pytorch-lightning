@@ -41,6 +41,7 @@ def _module_available(module_path: str) -> bool:
         return False
 
 
+_RICH_AVAILABLE = _module_available("rich")
 _APEX_AVAILABLE = _module_available("apex.amp")
 _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
