@@ -300,3 +300,8 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
         (trainer.global_step, max(min_steps, by_early_stopping, by_min_epochs), step_freeze, min_steps, min_epochs)
 
     _logger.disabled = False
+
+
+def test_early_stopping_mode_options():
+    with pytest.raises(MisconfigurationException, match="`mode` can be auto, .* got unknown_option"):
+        EarlyStopping(mode="unknown_option")
