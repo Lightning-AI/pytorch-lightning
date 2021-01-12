@@ -24,7 +24,7 @@ def _auc_update(x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.T
                          f' tensors with dimention {x.ndim=} and {y.ndim=}')
     if x.numel() != y.numel():
         raise ValueError('Expected the same number of elements in `x` and `y`'
-                         ' tensor but received {x.numel()=} and {y.numel()=}')
+                         f' tensor but received {x.numel()=} and {y.numel()=}')
     return x, y
 
 
