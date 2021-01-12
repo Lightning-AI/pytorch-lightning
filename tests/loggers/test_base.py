@@ -21,6 +21,7 @@ import numpy as np
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_only
 from tests.base import BoringModel
 
@@ -108,8 +109,8 @@ def test_custom_logger(tmpdir):
         logger=logger,
         default_root_dir=tmpdir,
     )
-    result = trainer.fit(model)
-    assert result, "Training failed"
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert logger.hparams_logged == model.hparams
     assert logger.metrics_logged != {}
     assert logger.finalized_status == "success"
@@ -133,8 +134,8 @@ def test_multiple_loggers(tmpdir):
         logger=[logger1, logger2],
         default_root_dir=tmpdir,
     )
-    result = trainer.fit(model)
-    assert result == 1, "Training failed"
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert logger1.hparams_logged == model.hparams
     assert logger1.metrics_logged != {}

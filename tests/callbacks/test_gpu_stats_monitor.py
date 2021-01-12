@@ -20,6 +20,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import GPUStatsMonitor
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.csv_logs import ExperimentWriter
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -44,8 +45,8 @@ def test_gpu_stats_monitor(tmpdir):
         logger=logger
     )
 
-    results = trainer.fit(model)
-    assert results
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     met_data = np.genfromtxt(path_csv, delimiter=',', names=True, deletechars='', replace_space=' ')
