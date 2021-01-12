@@ -1,8 +1,7 @@
 name: Recurrent events
 
 on:
-  push:
-    branches: [master, "release/*"]
+  push: {}
 
 jobs:
 
@@ -19,19 +18,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAX_RETRIES: 3
           WAIT_MS: 5000
-
-  # autoupdate is a GitHub Action that auto-updates pull requests branches whenever changes land on their destination branch.
-  # see: https://github.com/marketplace/actions/auto-update
-  pr-auto-update:
-    name: Auto-update PR
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: docker://chinthakagodawita/autoupdate-action:v1
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          DRY_RUN: "false"
-          PR_FILTER: "labelled"
-          PR_LABELS: "0:] Ready-To-Go"
-          MERGE_MSG: "Branch was auto-updated."
-          RETRY_COUNT: "3"
-          RETRY_SLEEP: "500"
