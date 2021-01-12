@@ -135,12 +135,8 @@ class PredictionCollection(object):
         self._predictions = {stage: {} for stage in LoggerStages}
 
     @property
-    def current_stage(self):
-        return self.trainer.logger_connector._current_stage
-
-    @property
     def predictions(self):
-        return self._predictions[self.current_stage]    # type: ignore
+        return self._predictions[self.current_stage]
 
     @property
     def should_all_gather(self):
@@ -185,9 +181,13 @@ class PredictionCollection(object):
                 raise MisconfigurationException(
                     "Prediction Collection doesn't support multiple prediction for one sample yet.")
 
-    def add(self, predictions: List, dl_idx: int):
+            internal_predictions[dl_idx][key] = pred 
+
+    def add(self, predictions: List, dl_idx: int, current_stage):
         if predictions is None:
             return
+
+        self.current_stage = current_stage
 
         assert isinstance(predictions, (list, tuple))
         if not all([isinstance(p, (dict)) for p in predictions]):
@@ -204,8 +204,9 @@ class PredictionCollection(object):
 
         self._add_prediction(predictions, dl_idx)
 
-    def attach_predictions(self, results) -> list:
+    def attach_predictions(self, results, current_stage: str) -> list:
         if len(self) > 0:
+            self.current_stage = current_stage
             predictions = self.predictions
             for dl_idx, result in enumerate(results):
                 if dl_idx in predictions:
@@ -225,6 +226,7 @@ class PredictionCollection(object):
 
         all_predictions = self.all_gather(predictions)
         predictions = {}
+        print(all_predictions)
         for all_preds in all_predictions.values():
             keys = [k for k in all_preds.keys() if k != 'id']
             for pred in all_preds["id"]:

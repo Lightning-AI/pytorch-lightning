@@ -173,7 +173,7 @@ If you need to save the predictions, nothing simpler ! This will works with ``DD
             for idx, id in enumerate(batch["id"]):
                 predictions.append({"id": id, "preds": preds[idx]})
 
-            self.trainer.predictions.add(predictions)
+            self.add_predictions(predictions)
 
     results = trainer.test(test_dataloaders=test_dataloaders)
     for dataloader_result in results:

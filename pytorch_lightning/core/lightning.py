@@ -174,7 +174,7 @@ class LightningModule(
 
     def add_predictions(self, predictions):
         dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
-        self.trainer.predictions.add(predictions, dl_idx)
+        self.trainer.predictions.add(predictions, dl_idx, self.trainer.logger_connector._current_stage)
 
     def log(
         self,

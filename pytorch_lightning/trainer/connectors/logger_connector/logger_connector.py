@@ -316,7 +316,7 @@ class LoggerConnector:
         return self._add_predictions_to_results(results)
 
     def _add_predictions_to_results(self, results):
-        return self.trainer.predictions.attach_predictions(results)
+        return self.trainer.predictions.attach_predictions(results, self._current_stage)
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
         if len(eval_results) > 0 and (eval_results[0] is None or not isinstance(eval_results[0], Result)):
