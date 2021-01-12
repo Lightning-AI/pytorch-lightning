@@ -12,24 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import errno
 import os
 import os.path as osp
-from pickle import INST
-import pickle
-from typing import Optional
-import errno
-import numpy as np
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from getpass import getuser
-from tempfile import NamedTemporaryFile as TempFile, gettempdir
+from tempfile import gettempdir
+from tempfile import NamedTemporaryFile as TempFile
+from typing import Any, Optional, Union
+
 import torch
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from torch import Tensor
 from torch.utils.data import Dataset
+
+from pytorch_lightning.trainer.connectors.logger_connector.logger_connector import LoggerStages
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import get_len
-from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any, Union
-from pytorch_lightning.trainer.connectors.logger_connector.logger_connector import LoggerStages
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -174,13 +171,15 @@ class PredictionCollection(object):
                     raise MisconfigurationException(
                         "When predictions are provided within a dict, we expect either a `path` or `id` key. "
                     )
-            
+
             if key not in internal_predictions[dl_idx]:
                 internal_predictions[dl_idx][key] = []
             else:
-                raise MisconfigurationException("Prediction Collection doesn't support multiple prediction for one sample yet.")
-                
-            internal_predictions[dl_idx][key] = apply_to_collection(pred, torch.Tensor, PredictionCollection.convert_to_numpy)
+                raise MisconfigurationException(
+                    "Prediction Collection doesn't support multiple prediction for one sample yet.")
+
+            internal_predictions[dl_idx][key] = apply_to_collection(
+                pred, torch.Tensor, PredictionCollection.convert_to_numpy)
 
     def add(self, predictions):
         if predictions is None:
@@ -207,7 +206,7 @@ class PredictionCollection(object):
                 dl_predictions = predictions[dl_idx]
                 dl_predictions = self.reduce_predictions(dl_predictions)
                 result["predictions"] = [*dl_predictions.values()]
-        return results       
+        return results
 
     def reduce_predictions(self, predictions):
         if torch.distributed.is_available() and torch.distributed.is_initialized():

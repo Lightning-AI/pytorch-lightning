@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 import os
+from copy import deepcopy
 from pprint import pprint
-from typing import Any, Iterable, Union, Dict
-from functools import partial
+from typing import Any, Dict, Iterable, Union
 
 import torch
 
@@ -36,7 +35,7 @@ class LoggerConnector:
         self._callback_metrics = MetricsHolder()
         self._evaluation_callback_metrics = MetricsHolder(to_float=True)
         self._logged_metrics = MetricsHolder()
-        self._progress_bar_metrics = MetricsHolder(to_float=True)
+        self._progress_bar_metrics = MetricsHolder()
         self.eval_loop_results = []
         self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in LoggerStages}
         self._callback_hook_validator = CallbackHookNameValidator()
