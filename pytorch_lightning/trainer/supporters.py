@@ -181,7 +181,7 @@ class PredictionCollection(object):
                 raise MisconfigurationException(
                     "Prediction Collection doesn't support multiple prediction for one sample yet.")
 
-            internal_predictions[dl_idx][key] = pred 
+            internal_predictions[dl_idx][key] = pred
 
     def add(self, predictions: List, dl_idx: int, current_stage):
         if predictions is None:
