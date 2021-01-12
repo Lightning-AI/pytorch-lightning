@@ -99,4 +99,4 @@ def parameter_validation(fn: Callable) -> Callable:
 
         return module
 
-    return inner_f
+    return inner_fn
