@@ -34,6 +34,10 @@ def test_multiple_optimizers_manual(tmpdir):
     """
     class TestModel(BoringModel):
 
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
@@ -70,10 +74,6 @@ def test_multiple_optimizers_manual(tmpdir):
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
 
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
-
     model = TestModel()
     model.val_dataloader = None
 
@@ -99,11 +99,6 @@ def test_multiple_optimizers_manual_return(tmpdir):
     Tests that only training_step can be used
     """
     class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
@@ -141,6 +136,10 @@ def test_multiple_optimizers_manual_return(tmpdir):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
+
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
 
     model = TestModel()
     model.val_dataloader = None
