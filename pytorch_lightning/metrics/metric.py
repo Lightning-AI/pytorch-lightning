@@ -314,6 +314,14 @@ class Metric(nn.Module, ABC):
             filtered_kwargs = kwargs
         return filtered_kwargs
 
+    def __hash__(self):
+        hash_vals = [self.__class__.__name__]
+
+        for key in self._defaults.keys():
+            hash_vals.append(getattr(self, key))
+
+        return hash(tuple(hash_vals))
+
     def __add__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
 
