@@ -306,7 +306,7 @@ class Metric(nn.Module, ABC):
             k: v
             for k, v in kwargs.items()
             if k in self._update_signature.parameters.keys()
-            and self.update.parameters[k].kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+            and self._update_signature.parameters[k].kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
         }
 
         # if no kwargs filtered, return al kwargs as default
