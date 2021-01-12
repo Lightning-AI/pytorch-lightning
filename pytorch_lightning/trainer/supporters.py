@@ -16,7 +16,7 @@ import errno
 import os
 import os.path as osp
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import torch
 from torch.utils.data import Dataset
@@ -128,10 +128,10 @@ class Accumulator(object):
 
 
 class PredictionCollection(object):
-    def __init__(self, trainer):
-        self.trainer = trainer
-        self.global_rank = self.trainer.global_rank
-        self.world_size = self.trainer.world_size
+    def __init__(self, global_rank: int, world_size: int, all_gather: Callable):
+        self.global_rank = global_rank
+        self.world_size = world_size
+        self.all_gather = all_gather
         self._predictions = {stage: {} for stage in LoggerStages}
 
     @property
@@ -150,41 +150,34 @@ class PredictionCollection(object):
     def convert_to_numpy(value):
         return value.cpu().numpy()
 
-    def _add_prediction(self, predictions):
-        model_ref = self.trainer.get_model()
-        dl_idx = model_ref._current_dataloader_idx if model_ref._current_dataloader_idx is not None else 0
-
+    def _add_prediction(self, predictions, dl_idx: int):
         internal_predictions = self.predictions
 
         if dl_idx not in internal_predictions:
             internal_predictions[dl_idx] = {}
 
         for pred in predictions:
-            if isinstance(pred, (list, tuple)):
-                key = pred[0]
-                pred = {i: v for i, v in enumerate(pred)}
-            else:
-                if "path" in pred:
-                    if self.should_all_gather:
-                        raise MisconfigurationException(
-                            "`path` key is not supported yet in distributed setting. Please, use `id`. "
-                        )
-                    key = pred["path"]
-
-                elif "id" in pred:
-                    key = pred["id"]
-                    if not isinstance(key, (int, float, torch.Tensor)):
-                        raise MisconfigurationException(
-                            f"`id` key should be either a int or float. Found {type(key)}."
-                        )
-
-                else:
+            if "path" in pred:
+                if self.should_all_gather:
                     raise MisconfigurationException(
-                        "When predictions are provided within a dict, we expect either a `path` or `id` key. "
+                        "`path` key is not supported yet in distributed setting. Please, use `id`. "
+                    )
+                key = pred["path"]
+
+            elif "id" in pred:
+                key = pred["id"]
+                if not isinstance(key, (int, float, torch.Tensor)):
+                    raise MisconfigurationException(
+                        f"`id` key should be either a int or float. Found {type(key)}."
                     )
 
-                if isinstance(key, torch.Tensor):
-                    key = str(key.item())
+            else:
+                raise MisconfigurationException(
+                    "When predictions are provided within a dict, we expect either a `path` or `id` key. "
+                )
+
+            if isinstance(key, torch.Tensor):
+                key = str(key.item())
 
             if key not in internal_predictions[dl_idx]:
                 internal_predictions[dl_idx][key] = []
@@ -192,26 +185,24 @@ class PredictionCollection(object):
                 raise MisconfigurationException(
                     "Prediction Collection doesn't support multiple prediction for one sample yet.")
 
-            internal_predictions[dl_idx][key] = apply_to_collection(
-                pred, torch.Tensor, PredictionCollection.convert_to_numpy)
-
-    def add(self, predictions):
+    def add(self, predictions: List, dl_idx: int):
         if predictions is None:
             return
 
         assert isinstance(predictions, (list, tuple))
-        if not all([isinstance(p, (list, tuple, dict)) for p in predictions]):
+        if not all([isinstance(p, (dict)) for p in predictions]):
             raise MisconfigurationException(
                 "predictions objects should be a list or tuple. "
-                "Each contained element should be either a dict, list or tuple. "
+                "Each contained element should be either a dict. "
             )
+
         if not all([len(p) > 1 for p in predictions]):
             raise MisconfigurationException(
                 "predictions objects should be a list or tuple. "
                 "Each contained element should contain at minimum an ID and a prediction tensor. "
             )
 
-        self._add_prediction(predictions)
+        self._add_prediction(predictions, dl_idx)
 
     def attach_predictions(self, results) -> list:
         if len(self) > 0:
@@ -232,8 +223,7 @@ class PredictionCollection(object):
         if not self.should_all_gather:
             return predictions
 
-        model_ref = self.trainer.get_model()
-        all_predictions = model_ref.all_gather(predictions)
+        all_predictions = self.all_gather(predictions)
         predictions = {}
         for all_preds in all_predictions.values():
             keys = [k for k in all_preds.keys() if k != 'id']

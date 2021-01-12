@@ -13,6 +13,7 @@
 # limitations under the License.
 import torch
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -121,13 +122,13 @@ class EvaluationLoop(object):
         using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
         return using_eval_result
 
-    def setup(self, model, max_batches, dataloaders):
+    def setup(self, model: LightningModule, max_batches, dataloaders):
         # copy properties for forward overrides
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # bookkeeping
         self.outputs = []
-        self.predictions = PredictionCollection(self.trainer)
+        self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size, model.all_gather)
 
         # convert max_batches to list
         if isinstance(max_batches, int):

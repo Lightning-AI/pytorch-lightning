@@ -14,16 +14,16 @@
 
 """nn.Module with additional great features."""
 
-from abc import ABC
-from argparse import Namespace
 import collections
 import copy
-from functools import partial
 import inspect
 import os
-from pathlib import Path
 import re
 import tempfile
+from abc import ABC
+from argparse import Namespace
+from functools import partial
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -171,6 +171,10 @@ class LightningModule(
         """
         if self.trainer.is_global_zero:
             print(*args, **kwargs)
+
+    def add_predictions(self, predictions):
+        dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
+        self.trainer.predictions.add(predictions, dl_idx)
 
     def log(
         self,

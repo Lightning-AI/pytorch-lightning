@@ -219,7 +219,7 @@ class TestModel(BoringModel):
             prediction = output[idx]
             predictions.append({"id": id, "prediction":prediction})
 
-        self.trainer.predictions.add(predictions)
+        self.add_predictions(predictions)
         return {"y": loss}
 
     def create_dataset(self):
