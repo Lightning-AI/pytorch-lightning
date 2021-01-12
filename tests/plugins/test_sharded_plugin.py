@@ -13,25 +13,12 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
 
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0",
-    },
-)
-@mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize(
-    ["accelerator", "gpus"],
-    [("ddp_sharded", 1), ("ddp_sharded_spawn", 1)]
+    ["accelerator"],
+    [("ddp_sharded",), ("ddp_sharded_spawn",)]
 )
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_choice_sharded(tmpdir, accelerator, gpus):
+def test_sharded_ddp_choice(tmpdir, accelerator):
     """
         Test to ensure that plugin is correctly chosen
     """
@@ -40,14 +27,13 @@ def test_ddp_choice_sharded(tmpdir, accelerator, gpus):
         def on_fit_start(self, trainer, pl_module):
             if accelerator == 'ddp_sharded':
                 assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPShardedPlugin)
-            if accelerator == 'ddp_sharded_spawn':
+            elif accelerator == 'ddp_sharded_spawn':
                 assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPSpawnShardedPlugin)
             raise SystemExit()
 
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        gpus=gpus,
         accelerator=accelerator,
         callbacks=[CB()],
     )
@@ -67,8 +53,7 @@ def test_invalid_apex_sharded(tmpdir):
     with pytest.raises(MisconfigurationException, match='Sharded Plugin is not supported with Apex AMP'):
         trainer = Trainer(
             fast_dev_run=True,
-            accelerator='ddp_spawn',
-            plugins=[DDPShardedPlugin()],
+            accelerator='ddp_sharded_spawn',
             precision=16,
             amp_backend='apex',
         )
