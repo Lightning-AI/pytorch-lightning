@@ -28,8 +28,15 @@ class ShardedNativeAMPPlugin(NativeAMPPlugin):
     def scaler(self):
         return ShardedGradScaler()
 
-    def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
-        max_norm = grad_clip_val
-        norm_type = float(2.0)
-        optimizer = cast(OSS, optimizer)
-        optimizer.clip_grad_norm(max_norm, norm_type=norm_type)
+    def clip_gradients(self,
+                       optimizer: Optimizer,
+                       grad_clip_val: Union[int, float],
+                       gradient_clip_algorithm: str,
+                       norm_type: Union[float, int]):
+        if gradient_clip_algorithm == 'value':
+            raise NotImplementedError("Value grad clipping with sharded ddp is not implemented yet")
+        elif gradient_clip_algorithm.startswith('norm'):
+            optimizer = cast(OSS, optimizer)
+            optimizer.clip_grad_norm(grad_clip_val, norm_type=norm_type)
+        else:
+            raise ValueError(f'gradient_clip_algorithm [{gradient_clip_algorithm}] is not valid.')

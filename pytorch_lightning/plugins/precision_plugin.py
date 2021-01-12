@@ -35,5 +35,9 @@ class PrecisionPlugin(LightningPlugin):
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         raise NotImplementedError
 
-    def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
+    def clip_gradients(self,
+                       optimizer: Optimizer,
+                       grad_clip_val: Union[int, float],
+                       gradient_clip_algorithm: str,
+                       norm_type: Union[float, int]):
         raise NotImplementedError

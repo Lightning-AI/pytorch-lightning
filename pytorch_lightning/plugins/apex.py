@@ -99,33 +99,43 @@ class ApexPlugin(PrecisionPlugin):
         model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
         return model, optimizers
 
-    def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
+    def clip_gradients(self,
+                       optimizer: Optimizer,
+                       grad_clip_val: Union[int, float],
+                       gradient_clip_algorithm: str,
+                       norm_type: Union[float, int]):
         """
-        This code is a modification of :meth:`torch.nn.utils.clip_grad_norm_` using a higher epsilon for fp16 weights.
-        This is important when setting amp_level to O2, and the master weights are in fp16.
+        This code contains a modification of :meth:`torch.nn.utils.clip_grad_norm_` using a higher epsilon
+        for fp16 weights. This is important when setting amp_level to O2, and the master weights are in fp16.
         Args:
-            grad_clip_val: Maximum norm of gradients.
             optimizer: Optimizer with gradients that will be clipped.
-            norm_type: (float or int): type of the used p-norm. Can be ``'inf'`` for
-            infinity norm.
+            grad_clip_val: Maximum norm of gradients.
+            gradient_clip_algorithm: 'value' means clip_by_value, regex '^norm[1-9]([0-9]{1,45}$)' means clip_by_norm.
+            norm_type: (float or int): type of the used p-norm. Can be ``'inf'`` for infinity norm.
         """
         model = self.trainer.get_model()
         parameters = model.parameters()
-        max_norm = float(grad_clip_val)
 
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
-        parameters = [p for p in parameters if p.grad is not None]
+        if gradient_clip_algorithm == 'value':
+            torch.nn.utils.clip_grad_value_(parameters, clip_value=grad_clip_val)
+        elif gradient_clip_algorithm.startswith('norm'):
+            max_norm = float(grad_clip_val)
 
-        if len(parameters) == 0:
-            return torch.tensor(0.)
-        device = parameters[0].grad.device
-        total_norm = torch.norm(
-            torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in parameters]), norm_type)
-        clip_coef = max_norm / (total_norm + self.norm_clipping_epsilon)
-        if clip_coef < 1:
-            for p in parameters:
-                p.grad.detach().mul_(clip_coef.to(p.grad.device))
+            if isinstance(parameters, torch.Tensor):
+                parameters = [parameters]
+            parameters = [p for p in parameters if p.grad is not None]
+
+            if len(parameters) == 0:
+                return torch.tensor(0.)
+            device = parameters[0].grad.device
+            total_norm = torch.norm(
+                torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in parameters]), norm_type)
+            clip_coef = max_norm / (total_norm + self.norm_clipping_epsilon)
+            if clip_coef < 1:
+                for p in parameters:
+                    p.grad.detach().mul_(clip_coef.to(p.grad.device))
+        else:
+            raise ValueError(f'gradient_clip_algorithm [{gradient_clip_algorithm}] is not valid.')
 
     @property
     def norm_clipping_epsilon(self):

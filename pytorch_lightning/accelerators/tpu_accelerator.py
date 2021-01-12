@@ -244,27 +244,35 @@ class TPUAccelerator(Accelerator):
 
         return closure_loss
 
-    def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
-        # this code is a modification of torch.nn.utils.clip_grad_norm_
+    def _clip_gradients(self,
+                        optimizer: Optimizer,
+                        grad_clip_val: Union[float, int],
+                        gradient_clip_algorithm: str,
+                        norm_type: Union[float, int]):
+        # this code contains a modification of torch.nn.utils.clip_grad_norm_
         # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
         model = self.trainer.get_model()
         parameters = model.parameters()
-        max_norm = grad_clip_val
+        if gradient_clip_algorithm == 'value':
+            torch.nn.utils.clip_grad_value_(parameters, clip_value=grad_clip_val)
+        elif gradient_clip_algorithm.startswith('norm'):
+            max_norm = grad_clip_val
+            if isinstance(parameters, torch.Tensor):
+                parameters = [parameters]
+            parameters = list(filter(lambda p: p.grad is not None, parameters))
 
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
-        parameters = list(filter(lambda p: p.grad is not None, parameters))
+            device = parameters[0].device
+            out = torch.empty(len(parameters), device=device)
+            for i, p in enumerate(parameters):
+                torch.norm(p.grad.data.to(device), norm_type, out=out[i])
+            total_norm = torch.norm(out, norm_type)
 
-        device = parameters[0].device
-        out = torch.empty(len(parameters), device=device)
-        for i, p in enumerate(parameters):
-            torch.norm(p.grad.data.to(device), norm_type, out=out[i])
-        total_norm = torch.norm(out, norm_type)
-
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + self.norm_clipping_epsilon)
-        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
-        for p in parameters:
-            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
+            clip_coef = torch.tensor(max_norm, device=device) / (total_norm + self.norm_clipping_epsilon)
+            clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
+            for p in parameters:
+                p.grad.data.mul_(clip_coef.to(p.grad.data.device))
+        else:
+            raise ValueError(f'gradient_clip_algorithm [{gradient_clip_algorithm}] is not valid.')
 
     def barrier(self, name: Optional[str] = None):
         torch_xla.core.xla_model.rendezvous(f"pl.Trainer.{name}")

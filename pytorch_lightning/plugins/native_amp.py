@@ -56,9 +56,19 @@ class NativeAMPPlugin(PrecisionPlugin):
 
         return closure_loss
 
-    def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
+    def clip_gradients(self,
+                       optimizer: Optimizer,
+                       grad_clip_val: Union[int, float],
+                       gradient_clip_algorithm: str,
+                       norm_type: Union[float, int]):
         model = self.trainer.get_model()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
+        if gradient_clip_algorithm == 'value':
+            torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=grad_clip_val)
+        elif gradient_clip_algorithm.startswith('norm'):
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
+        else:
+            raise ValueError(f'gradient_clip_algorithm [{gradient_clip_algorithm}] is not valid.')
 
     @property
     def scaler(self):
