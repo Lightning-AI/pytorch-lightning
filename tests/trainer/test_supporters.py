@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import Sequence
 import os
+from collections import Sequence
 
 import pytest
 import torch
@@ -219,8 +219,6 @@ class TestModel(BoringModel):
             prediction = output[idx]
             predictions.append({"id": id, "prediction":prediction})
 
-
-        print(predictions)
         self.trainer.predictions.add(predictions)
         return {"y": loss}
 
@@ -231,7 +229,8 @@ class TestModel(BoringModel):
         return [self.create_dataset() for _ in range(self._num_test_dataloaders)]
 
 
-def test_prediction_collection(tmpdir, num_test_dataloaders, save_predictions_on_dataloader_idx, accelerator, gpus=None):
+def test_prediction_collection(tmpdir, num_test_dataloaders,
+                               save_predictions_on_dataloader_idx, accelerator, gpus=None):
     model = TestModel(num_test_dataloaders, save_predictions_on_dataloader_idx)
     model.test_epoch_end = None
     limit_test_batches = 2

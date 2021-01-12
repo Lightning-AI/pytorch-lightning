@@ -157,6 +157,28 @@ Once you're done training, feel free to run the test set!
 
     trainer.test(test_dataloaders=test_dataloader)
 
+If you need to save the predictions, nothing simpler ! This will works with ``DDP``
+
+.. code-block:: python
+
+    class MyModel(LightningModule):
+
+        def test_step(self, batch, batch_idx):
+
+            preds = ...
+
+            # save predictions
+            # we need a unique int id to identify each sample.
+            predictions = []
+            for idx, id in enumerate(batch["id"]):
+                predictions.append({"id": id, "preds": preds[idx]})
+
+            self.trainer.predictions.add(predictions)
+
+    results = trainer.test(test_dataloaders=test_dataloaders)
+    for dataloader_result in results:
+        dataloader_result["predictions"]
+
 ------------
 
 Deployment / prediction

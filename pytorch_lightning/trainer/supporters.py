@@ -15,11 +15,7 @@
 import errno
 import os
 import os.path as osp
-import shutil
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from getpass import getuser
-from tempfile import gettempdir
-from tempfile import NamedTemporaryFile as TempFile
 from typing import Any, Optional, Union
 
 import torch
@@ -137,7 +133,7 @@ class PredictionCollection(object):
         self.global_rank = self.trainer.global_rank
         self.world_size = self.trainer.world_size
         self._predictions = {stage: {} for stage in LoggerStages}
-        
+
     @property
     def current_stage(self):
         return self.trainer.logger_connector._current_stage
@@ -145,6 +141,10 @@ class PredictionCollection(object):
     @property
     def predictions(self):
         return self._predictions[self.current_stage]    # type: ignore
+
+    @property
+    def should_all_gather(self):
+        return torch.distributed.is_available() or not torch.distributed.is_initialized() and self.world_size > 1
 
     @staticmethod
     def convert_to_numpy(value):
@@ -165,10 +165,10 @@ class PredictionCollection(object):
                 pred = {i: v for i, v in enumerate(pred)}
             else:
                 if "path" in pred:
-                    if not torch.distributed.is_available() or not torch.distributed.is_initialized():
+                    if self.should_all_gather:
                         raise MisconfigurationException(
-                            f"`path` key is not supported yet in distributed setting. Please, use `id`. "
-                        ) 
+                            "`path` key is not supported yet in distributed setting. Please, use `id`. "
+                        )
                     key = pred["path"]
 
                 elif "id" in pred:
@@ -176,7 +176,7 @@ class PredictionCollection(object):
                     if not isinstance(key, (int, float, torch.Tensor)):
                         raise MisconfigurationException(
                             f"`id` key should be either a int or float. Found {type(key)}."
-                        ) 
+                        )
 
                 else:
                     raise MisconfigurationException(
@@ -226,10 +226,10 @@ class PredictionCollection(object):
     def allgather_predictions(self, predictions):
         """
         This function all_gather predictions accross multiple processes
-        #todo: Implement a more stable version   
+        #todo: Implement a more stable version
         """
 
-        if not torch.distributed.is_available() or not torch.distributed.is_initialized() and self.world_size > 1:
+        if not self.should_all_gather:
             return predictions
 
         model_ref = self.trainer.get_model()
@@ -242,8 +242,7 @@ class PredictionCollection(object):
                 predictions[str(idx)] = {}
                 predictions[str(idx)]['id'] = idx
                 for k in keys:
-                    tensor = torch.FloatTensor([t[idx % self.world_size] for t in all_preds[k]])
-                    predictions[str(idx)][k] = tensor
+                    predictions[str(idx)][k] = all_preds[k][idx % self.world_size].cpu().tolist()
         return predictions
 
     def __len__(self):
