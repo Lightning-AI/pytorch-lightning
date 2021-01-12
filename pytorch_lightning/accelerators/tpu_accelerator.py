@@ -30,7 +30,6 @@ from pytorch_lightning.utilities import (
     rank_zero_info,
     rank_zero_only,
     rank_zero_warn,
-    TPU_AVAILABLE,
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
