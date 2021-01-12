@@ -133,6 +133,7 @@ class PredictionCollection(object):
         self.world_size = world_size
         self.all_gather = all_gather
         self._predictions = {stage: {} for stage in LoggerStages}
+        self.current_stage = LoggerStages.TEST
 
     @property
     def predictions(self):
