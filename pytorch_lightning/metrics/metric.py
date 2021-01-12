@@ -299,7 +299,20 @@ class Metric(nn.Module, ABC):
 
     def _filter_kwargs(self, **kwargs):
         """ filter kwargs such that they match the update signature of the metric """
-        return {k: v for k, v in kwargs.items() if k in self._update_signature.parameters.keys()}
+
+        # filter all parameters based on update signature except those of
+        # type VAR_POSITIONAL (*args) and VAR_KEYWORD (**kwargs)
+        filtered_kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k in self._update_signature.parameters.keys()
+            and self.update.parameters[k].kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+        }
+
+        # if no kwargs filtered, return al kwargs as default
+        if not filtered_kwargs:
+            filtered_kwargs = kwargs
+        return filtered_kwargs
 
     def __add__(self, other: Any):
         from pytorch_lightning.metrics.compositional import CompositionalMetric
