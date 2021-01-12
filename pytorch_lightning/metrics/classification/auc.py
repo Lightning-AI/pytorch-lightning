@@ -22,7 +22,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 class AUC(Metric):
     r"""
-    Computes Area Under the Curve (AUC) using the trapezoidal rule    
+    Computes Area Under the Curve (AUC) using the trapezoidal rule
 
     Forward accepts two input tensors that should be 1D and have the same number
     of elements
@@ -61,7 +61,7 @@ class AUC(Metric):
 
         self.add_state("x", default=[], dist_reduce_fx=None)
         self.add_state("y", default=[], dist_reduce_fx=None)
-        
+
         rank_zero_warn(
             'Metric `AUC` will save all targets and predictions in buffer.'
             ' For large datasets this may lead to large memory footprint.'

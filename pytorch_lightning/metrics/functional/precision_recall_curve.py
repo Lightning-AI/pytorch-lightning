@@ -74,8 +74,6 @@ def _precision_recall_curve_update(
         )
     # single class evaluation
     if len(preds.shape) == len(target.shape):
-        #if num_classes is not None and num_classes != 1:
-        #    raise ValueError('Preds and target have equal shape, but number of classes is different from 1')
         num_classes = 1
         if pos_label is None:
             rank_zero_warn('`pos_label` automatically set 1.')

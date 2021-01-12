@@ -1,5 +1,5 @@
 from collections import namedtuple
-from functools import partial 
+from functools import partial
 
 import pytest
 import torch
@@ -29,8 +29,8 @@ Input = namedtuple('Input', ["x", "y", "reorder"])
 _examples = []
 # generate already ordered samples, sorted in both directions
 for i in range(4):
-    x = np.random.randint(0, 5, (NUM_BATCHES*8))
-    y = np.random.randint(0, 5, (NUM_BATCHES*8))
+    x = np.random.randint(0, 5, (NUM_BATCHES * 8))
+    y = np.random.randint(0, 5, (NUM_BATCHES * 8))
     idx = np.argsort(x, kind='stable')
     x = x[idx] if i % 2 == 0 else x[idx[::-1]]
     y = y[idx] if i % 2 == 0 else x[idx[::-1]]
@@ -62,6 +62,7 @@ class TestAUC(MetricTester):
             sk_metric=partial(sk_auc, reorder=reorder),
             metric_args={"reorder": reorder}
         )
+
 
 @pytest.mark.parametrize(['x', 'y', 'expected'], [
     pytest.param([0, 1], [0, 1], 0.5),

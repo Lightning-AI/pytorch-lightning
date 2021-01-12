@@ -1,6 +1,5 @@
 from functools import partial
 
-import numpy as np
 import pytest
 import torch
 from distutils.version import LooseVersion
@@ -29,52 +28,76 @@ def _binary_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=
 def _multiclass_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
     sk_preds = preds.reshape(-1, num_classes).numpy()
     sk_target = target.view(-1).numpy()
-    return sk_roc_auc_score(y_true=sk_target, y_score=sk_preds, average=average, max_fpr=max_fpr, multi_class=multi_class)
+    return sk_roc_auc_score(
+        y_true=sk_target,
+        y_score=sk_preds,
+        average=average,
+        max_fpr=max_fpr,
+        multi_class=multi_class
+    )
 
 
 def _multidim_multiclass_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
     sk_preds = preds.transpose(0, 1).reshape(num_classes, -1).transpose(0, 1).numpy()
     sk_target = target.view(-1).numpy()
-    return sk_roc_auc_score(y_true=sk_target, y_score=sk_preds, average=average, max_fpr=max_fpr, multi_class=multi_class)
+    return sk_roc_auc_score(
+        y_true=sk_target,
+        y_score=sk_preds,
+        average=average,
+        max_fpr=max_fpr,
+        multi_class=multi_class
+    )
 
 
 def _multilabel_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
     sk_preds = preds.reshape(-1, num_classes).numpy()
     sk_target = target.reshape(-1, num_classes).numpy()
-    return sk_roc_auc_score(y_true=sk_target, y_score=sk_preds, average=average, max_fpr=max_fpr, multi_class=multi_class)
+    return sk_roc_auc_score(
+        y_true=sk_target,
+        y_score=sk_preds,
+        average=average,
+        max_fpr=max_fpr,
+        multi_class=multi_class
+    )
 
 
 def _multilabel_multidim_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
     sk_preds = preds.transpose(0, 1).reshape(num_classes, -1).transpose(0, 1).numpy()
     sk_target = target.transpose(0, 1).reshape(num_classes, -1).transpose(0, 1).numpy()
-    return sk_roc_auc_score(y_true=sk_target, y_score=sk_preds, average=average, max_fpr=max_fpr, multi_class=multi_class)
+    return sk_roc_auc_score(
+        y_true=sk_target,
+        y_score=sk_preds,
+        average=average,
+        max_fpr=max_fpr,
+        multi_class=multi_class
+    )
 
 
 @pytest.mark.parametrize("preds, target, sk_metric, num_classes", [
     (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 1),
     (
-         _multiclass_prob_inputs.preds, 
-         _multiclass_prob_inputs.target, 
-         _multiclass_prob_sk_metric, 
-         NUM_CLASSES
+        _multiclass_prob_inputs.preds,
+        _multiclass_prob_inputs.target,
+        _multiclass_prob_sk_metric,
+        NUM_CLASSES
     ),
     (
-         _multidim_multiclass_prob_inputs.preds, 
-         _multidim_multiclass_prob_inputs.target, 
-         _multidim_multiclass_prob_sk_metric, 
-         NUM_CLASSES
+        _multidim_multiclass_prob_inputs.preds,
+        _multidim_multiclass_prob_inputs.target,
+        _multidim_multiclass_prob_sk_metric,
+        NUM_CLASSES
     ),
     (
-         _multilabel_prob_inputs.preds, 
-         _multilabel_prob_inputs.target, 
-         _multilabel_prob_sk_metric, 
-         NUM_CLASSES
+        _multilabel_prob_inputs.preds,
+        _multilabel_prob_inputs.target,
+        _multilabel_prob_sk_metric,
+        NUM_CLASSES
     ),
     (
-         _multilabel_multidim_prob_inputs.preds, 
-         _multilabel_multidim_prob_inputs.target, 
-         _multilabel_multidim_prob_sk_metric, 
-         NUM_CLASSES
+        _multilabel_multidim_prob_inputs.preds,
+        _multilabel_multidim_prob_inputs.target,
+        _multilabel_multidim_prob_sk_metric,
+        NUM_CLASSES
     )
 ])
 @pytest.mark.parametrize("average", ['macro', 'weighted'])
@@ -82,11 +105,11 @@ def _multilabel_multidim_prob_sk_metric(preds, target, num_classes, average='mac
 class TestAUROC(MetricTester):
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-    def test_roc(self, preds, target, sk_metric, num_classes, average, max_fpr, ddp, dist_sync_on_step):
+    def test_auroc(self, preds, target, sk_metric, num_classes, average, max_fpr, ddp, dist_sync_on_step):
         # max_fpr different from None is not support in multi class
         if max_fpr is not None and num_classes != 1:
             pytest.skip('max_fpr parameter not support for multi class or multi label')
-        
+
         # max_fpr only supported for torch v1.6 or higher
         if max_fpr is not None and LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
             pytest.skip('requires torch v1.6 or higher to test max_fpr argument')
@@ -107,7 +130,7 @@ class TestAUROC(MetricTester):
         # max_fpr different from None is not support in multi class
         if max_fpr is not None and num_classes != 1:
             pytest.skip('max_fpr parameter not support for multi class or multi label')
-        
+
         # max_fpr only supported for torch v1.6 or higher
         if max_fpr is not None and LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
             pytest.skip('requires torch v1.6 or higher to test max_fpr argument')

@@ -448,6 +448,18 @@ AveragePrecision
 .. autoclass:: pytorch_lightning.metrics.classification.AveragePrecision
     :noindex:
 
+AUC
+~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.AUC
+    :noindex:
+
+AUROC
+~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.AUROC
+    :noindex:
+
 ConfusionMatrix
 ~~~~~~~~~~~~~~~
 
@@ -519,24 +531,18 @@ accuracy [func]
 .. autofunction:: pytorch_lightning.metrics.functional.accuracy
     :noindex:
 
+
 auc [func]
 ~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.auc
+.. autofunction:: pytorch_lightning.metrics.functional.auc
     :noindex:
 
 
 auroc [func]
 ~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.auroc
-    :noindex:
-
-
-multiclass_auroc [func]
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_auroc
+.. autofunction:: pytorch_lightning.metrics.functional.auroc
     :noindex:
 
 

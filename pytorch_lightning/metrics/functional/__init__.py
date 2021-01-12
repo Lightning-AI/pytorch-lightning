@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
-    auroc,
     dice_score,
     get_num_classes,
     multiclass_auroc,
@@ -26,6 +25,7 @@ from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
 # TODO: unify metrics between class and functional, add below
 from pytorch_lightning.metrics.functional.accuracy import accuracy  # noqa: F401
 from pytorch_lightning.metrics.functional.auc import auc  # noqa: F401
+from pytorch_lightning.metrics.functional.auroc import auroc  # noqa: F401
 from pytorch_lightning.metrics.functional.average_precision import average_precision  # noqa: F401
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix  # noqa: F401
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance  # noqa: F401
@@ -44,4 +44,3 @@ from pytorch_lightning.metrics.functional.roc import roc  # noqa: F401
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity  # noqa: F401
 from pytorch_lightning.metrics.functional.ssim import ssim  # noqa: F401
 from pytorch_lightning.metrics.functional.stat_scores import stat_scores  # noqa: F401
-
