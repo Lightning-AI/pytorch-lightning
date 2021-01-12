@@ -130,7 +130,6 @@ class TrainerDataLoadingMixin(ABC):
         kwargs = self.distributed_sampler_kwargs
         kwargs['shuffle'] = shuffle and not self.overfit_batches
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
-        print(len(sampler), len(dataloader.dataset))
         return sampler
 
     def reset_train_dataloader(self, model: LightningModule) -> None:

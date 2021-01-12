@@ -15,6 +15,7 @@
 import errno
 import os
 import os.path as osp
+import shutil
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from getpass import getuser
 from tempfile import gettempdir
@@ -136,7 +137,7 @@ class PredictionCollection(object):
         self.global_rank = self.trainer.global_rank
         self.world_size = self.trainer.world_size
         self._predictions = {stage: {} for stage in LoggerStages}
-
+        
     @property
     def current_stage(self):
         return self.trainer.logger_connector._current_stage
@@ -164,13 +165,26 @@ class PredictionCollection(object):
                 pred = {i: v for i, v in enumerate(pred)}
             else:
                 if "path" in pred:
+                    if not torch.distributed.is_available() or not torch.distributed.is_initialized():
+                        raise MisconfigurationException(
+                            f"`path` key is not supported yet in distributed setting. Please, use `id`. "
+                        ) 
                     key = pred["path"]
+
                 elif "id" in pred:
                     key = pred["id"]
+                    if not isinstance(key, (int, float, torch.Tensor)):
+                        raise MisconfigurationException(
+                            f"`id` key should be either a int or float. Found {type(key)}."
+                        ) 
+
                 else:
                     raise MisconfigurationException(
                         "When predictions are provided within a dict, we expect either a `path` or `id` key. "
                     )
+
+                if isinstance(key, torch.Tensor):
+                    key = str(key.item())
 
             if key not in internal_predictions[dl_idx]:
                 internal_predictions[dl_idx][key] = []
@@ -205,25 +219,31 @@ class PredictionCollection(object):
             for dl_idx, result in enumerate(results):
                 if dl_idx in predictions:
                     dl_predictions = predictions[dl_idx]
-                    dl_predictions = self.reduce_predictions(dl_predictions)
+                    dl_predictions = self.allgather_predictions(dl_predictions)
                     result["predictions"] = [*dl_predictions.values()]
         return results
 
-    def reduce_predictions(self, predictions):
-        if torch.distributed.is_available() and torch.distributed.is_initialized():
-            path = os.path.join(gettempdir(), f'{getuser()}"_{self.global_rank}"')
-            makedirs(path)
-            with TempFile(mode='wb', delete=True, dir=path) as fp:
-                torch.save(predictions, fp)
-                self.trainer.accelerator_backend.barrier("reduce_predictions_start")
-                predictions = {}
-                if str(self.global_rank) == '0':
-                    predictions = {}
-                    for rank in range(int(self.world_size)):
-                        dir = os.path.join(gettempdir(), f'{getuser()}_{rank}')
-                        for path in os.listdir(dir):
-                            predictions.update(torch.load(osp.join(dir, path)))
-                self.trainer.accelerator_backend.barrier("reduce_predictions_end")
+    def allgather_predictions(self, predictions):
+        """
+        This function all_gather predictions accross multiple processes
+        #todo: Implement a more stable version   
+        """
+
+        if not torch.distributed.is_available() or not torch.distributed.is_initialized() and self.world_size > 1:
+            return predictions
+
+        model_ref = self.trainer.get_model()
+        all_predictions = model_ref.all_gather(predictions)
+        predictions = {}
+        for all_preds in all_predictions.values():
+            keys = [k for k in all_preds.keys() if k != 'id']
+            for pred in all_preds["id"]:
+                idx = int(pred.item())
+                predictions[str(idx)] = {}
+                predictions[str(idx)]['id'] = idx
+                for k in keys:
+                    tensor = torch.FloatTensor([t[idx % self.world_size] for t in all_preds[k]])
+                    predictions[str(idx)][k] = tensor
         return predictions
 
     def __len__(self):

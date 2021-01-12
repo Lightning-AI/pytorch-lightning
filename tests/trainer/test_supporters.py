@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import Sequence
+import os
 
 import pytest
 import torch
@@ -218,6 +219,8 @@ class TestModel(BoringModel):
             prediction = output[idx]
             predictions.append({"id": id, "prediction":prediction})
 
+
+        print(predictions)
         self.trainer.predictions.add(predictions)
         return {"y": loss}
 
@@ -228,13 +231,15 @@ class TestModel(BoringModel):
         return [self.create_dataset() for _ in range(self._num_test_dataloaders)]
 
 
-def test_prediction_collection(tmpdir, num_test_dataloaders, save_predictions_on_dataloader_idx, accelerator):
+def test_prediction_collection(tmpdir, num_test_dataloaders, save_predictions_on_dataloader_idx, accelerator, gpus=None):
     model = TestModel(num_test_dataloaders, save_predictions_on_dataloader_idx)
     model.test_epoch_end = None
+    limit_test_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_test_batches=4,
+        limit_test_batches=limit_test_batches,
         accelerator=accelerator,
+        gpus=gpus
     )
     results = trainer.test(model)
     assert len(results) == num_test_dataloaders
@@ -244,14 +249,20 @@ def test_prediction_collection(tmpdir, num_test_dataloaders, save_predictions_on
             assert "predictions" not in result
         else:
             assert "predictions" in result
+            predictions = result["predictions"]
+            assert len(predictions) == limit_test_batches * 2 * trainer.world_size
 
 
-@pytest.mark.parametrize('save_predictions_on_dataloader_idx', [False, True])
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize('save_predictions_on_dataloader_idx', [True])
 @pytest.mark.parametrize('num_test_dataloaders', [1, 2])
-@pytest.mark.parametrize('accelerator', ["ddp_cpu"])
-def test_prediction_collection_ddp(tmpdir, num_test_dataloaders, save_predictions_on_dataloader_idx, accelerator):
+@pytest.mark.parametrize('accelerator', ["ddp"])
+@pytest.mark.parametrize('gpus', [2])
+def test_prediction_collection_ddp(tmpdir, num_test_dataloaders, save_predictions_on_dataloader_idx, accelerator, gpus):
 
     """
     Test `PredictionCollection` reduce properly in ddp mode
     """
-    test_prediction_collection(tmpdir, num_test_dataloaders, save_predictions_on_dataloader_idx, accelerator)
+    test_prediction_collection(tmpdir, num_test_dataloaders, save_predictions_on_dataloader_idx, accelerator, gpus=gpus)
