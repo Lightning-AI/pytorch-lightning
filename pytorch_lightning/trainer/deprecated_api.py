@@ -19,7 +19,7 @@ class DeprecatedDistDeviceAttributes:
 
     _distrib_type: DistributedType
     _device_type: DeviceType
-    _runing_stage: RunningStage
+    _running_stage: RunningStage
     num_gpus: int
 
     @property
@@ -134,23 +134,23 @@ class DeprecatedDistDeviceAttributes:
     @property
     def training(self) -> bool:
         # todo: consider rename as `is_training`
-        return self._runing_stage == RunningStage.TRAINING
+        return self._running_stage == RunningStage.TRAINING
 
     @training.setter
     def training(self, val: bool) -> None:
         if val:
-            self._runing_stage = RunningStage.TRAINING
+            self._running_stage = RunningStage.TRAINING
         else:
-            self._runing_stage = None
+            self._running_stage = None
 
     @property
     def testing(self) -> bool:
         # todo: consider rename as `is_testing`
-        return self._runing_stage == RunningStage.TESTING
+        return self._running_stage == RunningStage.TESTING
 
     @testing.setter
     def testing(self, val: bool) -> None:
         if val:
-            self._runing_stage = RunningStage.TESTING
+            self._running_stage = RunningStage.TESTING
         else:
-            self._runing_stage = None
+            self._running_stage = None
