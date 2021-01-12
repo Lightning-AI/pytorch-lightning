@@ -239,7 +239,6 @@ Example:
 
     model = WeightSharingModule()
     trainer = Trainer(max_epochs=1, tpu_cores=8)
-    result = trainer.fit(model)
 
 See `XLA Documentation <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks>`_
 
