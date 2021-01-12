@@ -35,7 +35,7 @@ class TrainingTricksConnector:
         self.trainer.terminate_on_nan = terminate_on_nan
 
         # gradient clipping
-        regex = '^norm[1-9]([0-9]{1,45}$)'
+        regex = '^norm[1-9]([0-9]{0,45}$)'
         if gradient_clip_algorithm != 'value' and re.match(regex, gradient_clip_algorithm) is None:
             raise MisconfigurationException(f"gradient_clip_algorithm should be value or match with regex {regex}")
         self.trainer.gradient_clip_val = gradient_clip_val
