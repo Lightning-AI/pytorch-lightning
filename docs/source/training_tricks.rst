@@ -26,8 +26,12 @@ The effect is a large effective batch size of size KxN.
 
 Gradient Clipping
 -----------------
-Gradient clipping may be enabled to avoid exploding gradients. Specifically, this will `clip the gradient
-norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ computed over all model parameters together.
+Gradient clipping may be enabled to avoid exploding gradients. Also, you can choose various criterion by
+`gradient_clip_algorithm` option. For example, if `gradient_clip_algorithm == 'value'`, this will `clip the gradient
+by value <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value_>`_ computed over all model parameters.
+If `gradient_clip_algorithm == 'norm1'` `clip the gradient
+norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ with l1 norm computed over
+all model parameters together.
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
@@ -36,8 +40,14 @@ norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ 
     # DEFAULT (ie: don't clip)
     trainer = Trainer(gradient_clip_val=0)
 
-    # clip gradients with norm above 0.5
+    # clip gradients with norm-2 above 0.5
     trainer = Trainer(gradient_clip_val=0.5)
+
+    # clip gradients with norm-1 above 0.5
+    trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm='norm1')
+
+    # clip gradients with value above 0.5
+    trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm='value' )
 
 ----------
 

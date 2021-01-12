@@ -47,6 +47,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `IoU` class interface ([#4704](https://github.com/PyTorchLightning/pytorch-lightning/pull/4704))
 
 
+- Added `gradient_clip_algorithm` argument to Trainer for gradient clipping by value ([#5477](https://github.com/PyTorchLightning/pytorch-lightning/pull/5477)).
+
+
 ### Changed
 
 - Changed `stat_scores` metric now calculates stat scores over all classes and gains new parameters, in line with the new `StatScores` metric ([#4839](https://github.com/PyTorchLightning/pytorch-lightning/pull/4839))
