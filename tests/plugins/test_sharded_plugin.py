@@ -6,10 +6,9 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
-from pytorch_lightning.plugins.sharded_plugin import _FAIRSCALE_AVAILABLE, DDPShardedPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
@@ -26,28 +25,30 @@ from tests.base.boring_model import BoringModel
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=2)
+@mock.patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize(
-    ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
+    ["accelerator", "gpus"],
+    [("ddp_sharded", 1), ("ddp_sharded_spawn", 1)]
 )
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_choice_sharded(tmpdir, ddp_backend, gpus, num_processes):
+def test_ddp_choice_sharded(tmpdir, accelerator, gpus):
     """
         Test to ensure that plugin is correctly chosen
     """
 
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.ddp_plugin, DDPShardedPlugin)
+            if accelerator == 'ddp_sharded':
+                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPShardedPlugin)
+            if accelerator == 'ddp_sharded_spawn':
+                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPSpawnShardedPlugin)
             raise SystemExit()
 
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
         gpus=gpus,
-        num_processes=num_processes,
-        accelerator=ddp_backend,
-        plugins=[DDPShardedPlugin()],
+        accelerator=accelerator,
         callbacks=[CB()],
     )
 

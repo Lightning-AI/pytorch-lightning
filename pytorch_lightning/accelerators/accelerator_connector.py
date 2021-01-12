@@ -19,7 +19,7 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.accelerators.plugins import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
-    DataParallelPlugin, DDP2Plugin, HorovodPlugin, ShardedDDPPlugin, ShardedSpawnDDPPlugin
+    DataParallelPlugin, DDP2Plugin, HorovodPlugin, DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.accelerators.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, \
     PrecisionPlugin, ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
@@ -227,9 +227,9 @@ class BackendConnector(object):
                 use_torchelastic_ddp = False
 
             if use_ddp_sharded:
-                ddp_plugin_cls = ShardedDDPPlugin
+                ddp_plugin_cls = DDPShardedPlugin
             elif use_ddp_sharded_spawn:
-                ddp_plugin_cls = ShardedSpawnDDPPlugin
+                ddp_plugin_cls = DDPSpawnShardedPlugin
             elif use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
                 ddp_plugin_cls = DDPPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
@@ -345,6 +345,10 @@ class BackendConnector(object):
                     "You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs."
                 )
             self.parallel_device_ids = None
+            self.use_ddp = True
+
+        # Sharded DDP
+        elif self.distributed_backend in ("ddp_sharded", "ddp_sharded_spawn"):
             self.use_ddp = True
 
         # HOROVOD
