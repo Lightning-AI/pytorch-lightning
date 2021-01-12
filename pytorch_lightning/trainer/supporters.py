@@ -133,7 +133,6 @@ class PredictionCollection(object):
         self.world_size = world_size
         self.all_gather = all_gather
         self._predictions = {stage: {} for stage in LoggerStages}
-        self.current_stage = LoggerStages.TEST
 
     @property
     def predictions(self):
@@ -206,8 +205,8 @@ class PredictionCollection(object):
         self._add_prediction(predictions, dl_idx)
 
     def attach_predictions(self, results, current_stage: str) -> list:
+        self.current_stage = current_stage
         if len(self) > 0:
-            self.current_stage = current_stage
             predictions = self.predictions
             for dl_idx, result in enumerate(results):
                 if dl_idx in predictions:
