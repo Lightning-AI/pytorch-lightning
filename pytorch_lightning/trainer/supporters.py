@@ -226,7 +226,6 @@ class PredictionCollection(object):
 
         all_predictions = self.all_gather(predictions)
         predictions = {}
-        print(all_predictions)
         for all_preds in all_predictions.values():
             keys = [k for k in all_preds.keys() if k != 'id']
             for pred in all_preds["id"]:
