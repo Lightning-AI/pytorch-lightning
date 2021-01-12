@@ -258,7 +258,7 @@ def test_prediction_collection(tmpdir, num_test_dataloaders,
 @pytest.mark.parametrize('save_predictions_on_dataloader_idx', [True])
 @pytest.mark.parametrize('num_test_dataloaders', [1, 2])
 @pytest.mark.parametrize('accelerator', ["ddp"])
-@pytest.mark.parametrize('gpus', [2])
+@pytest.mark.parametrize('gpus', [1, 2])
 def test_prediction_collection_ddp(tmpdir, num_test_dataloaders, save_predictions_on_dataloader_idx, accelerator, gpus):
 
     """
