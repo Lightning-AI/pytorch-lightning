@@ -203,9 +203,10 @@ class PredictionCollection(object):
         if len(self) > 0:
             predictions = self.predictions
             for dl_idx, result in enumerate(results):
-                dl_predictions = predictions[dl_idx]
-                dl_predictions = self.reduce_predictions(dl_predictions)
-                result["predictions"] = [*dl_predictions.values()]
+                if dl_idx in predictions:
+                    dl_predictions = predictions[dl_idx]
+                    dl_predictions = self.reduce_predictions(dl_predictions)
+                    result["predictions"] = [*dl_predictions.values()]
         return results
 
     def reduce_predictions(self, predictions):

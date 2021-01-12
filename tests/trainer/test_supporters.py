@@ -15,11 +15,18 @@ from collections import Sequence
 
 import pytest
 import torch
-
 from torch.utils.data import TensorDataset
+
+from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import (
-    CycleIterator, CombinedLoader, CombinedDataset, CombinedLoaderIterator, TensorRunningAccum)
+    CombinedDataset,
+    CombinedLoader,
+    CombinedLoaderIterator,
+    CycleIterator,
+    TensorRunningAccum,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import BoringModel, RandomDataset
 
 
 def test_tensor_running_accum_reset():
@@ -182,3 +189,69 @@ def test_combined_loader_sequence_max_size_cycle():
         assert len(item) == 2
 
     assert idx == len(combined_loader) - 1
+
+
+class IndexedRandomDataset(RandomDataset):
+
+    def __getitem__(self, index):
+        return {"index": index, "batch": self.data[index]}
+
+
+class TestModel(BoringModel):
+
+    def __init__(self, num_test_dataloaders, save_predictions_on_dataloader_idx):
+        super().__init__()
+        self._num_test_dataloaders = num_test_dataloaders
+        self._save_predictions_on_dataloader_idx = save_predictions_on_dataloader_idx
+
+    def test_step(self, batch, batch_idx, dataloader_idx=None):
+        indexes, x = batch["index"], batch["batch"]
+        output = self.layer(x)
+        loss = self.loss(batch, output)
+
+        if dataloader_idx is not None and dataloader_idx == 1 and not self._save_predictions_on_dataloader_idx:
+            return {"y": loss}
+
+        predictions = []
+        for idx in range(len(indexes)):
+            id = indexes[idx]
+            prediction = output[idx]
+            predictions.append({"id": id, "prediction":prediction})
+
+        self.trainer.predictions.add(predictions)
+        return {"y": loss}
+
+    def create_dataset(self):
+        return torch.utils.data.DataLoader(IndexedRandomDataset(32, 64), batch_size=2)
+
+    def test_dataloader(self):
+        return [self.create_dataset() for _ in range(self._num_test_dataloaders)]
+
+
+def test_prediction_collection(tmpdir, num_test_dataloaders, save_predictions_on_dataloader_idx, accelerator):
+    model = TestModel(num_test_dataloaders, save_predictions_on_dataloader_idx)
+    model.test_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_test_batches=4,
+        accelerator=accelerator,
+    )
+    results = trainer.test(model)
+    assert len(results) == num_test_dataloaders
+    for dl_idx in range(num_test_dataloaders):
+        result = results[dl_idx]
+        if not save_predictions_on_dataloader_idx and num_test_dataloaders == 2 and dl_idx == 1:
+            assert "predictions" not in result
+        else:
+            assert "predictions" in result
+
+
+@pytest.mark.parametrize('save_predictions_on_dataloader_idx', [False, True])
+@pytest.mark.parametrize('num_test_dataloaders', [1, 2])
+@pytest.mark.parametrize('accelerator', ["ddp_cpu"])
+def test_prediction_collection_ddp(tmpdir, num_test_dataloaders, save_predictions_on_dataloader_idx, accelerator):
+
+    """
+    Test `PredictionCollection` reduce properly in ddp mode
+    """
+    test_prediction_collection(tmpdir, num_test_dataloaders, save_predictions_on_dataloader_idx, accelerator)
