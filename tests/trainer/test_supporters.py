@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from collections import Sequence
+from typing import List
 
 import pytest
 import torch
@@ -240,7 +241,7 @@ def test_prediction_collection(tmpdir, numbers_test_dataloaders,
         accelerator=accelerator,
         gpus=gpus
     )
-    results = trainer.test(model)
+    results: List = trainer.test(model)
     assert len(results) == numbers_test_dataloaders
     for dl_idx in range(numbers_test_dataloaders):
         result = results[dl_idx]
@@ -256,12 +257,12 @@ def test_prediction_collection(tmpdir, numbers_test_dataloaders,
                     reason="test should be run outside of pytest")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
-@pytest.mark.parametrize('numbers_test_dataloaders', [1, 2])
 @pytest.mark.parametrize('accelerator', ["ddp"])
 @pytest.mark.parametrize('gpus', [1, 2])
-def test_prediction_collection_ddp(tmpdir, numbers_test_dataloaders, save_preds_on_dl_idx, accelerator, gpus):
+@pytest.mark.parametrize('dl_idx', [1, 2])
+def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gpus, dl_idx):
 
     """
     Test `PredictionCollection` reduce properly in ddp mode
     """
-    test_prediction_collection(tmpdir, numbers_test_dataloaders, save_preds_on_dl_idx, accelerator, gpus=gpus)
+    test_prediction_collection(tmpdir, dl_idx, save_preds_on_dl_idx, accelerator, gpus=gpus)
