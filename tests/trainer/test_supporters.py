@@ -293,7 +293,7 @@ def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gp
 def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
 
     """
-    Test `PredictionCollection` reduce properly in "ddp" mode
+    Test `PredictionCollection` reduce properly in 1 gpu mode
     """
     check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx)
 
