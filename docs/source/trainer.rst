@@ -176,8 +176,10 @@ Saving test predictions is simple !
             self.add_predictions(predictions)
 
     results = trainer.test(test_dataloaders=test_dataloaders)
-    for dataloader_result in results:
-        dataloader_result["predictions"]
+
+    # results is a list of dictionary. One for each test dataloader
+    for dl_idx, dl_result in enumerate(results):
+        dl_result["predictions"]
 
 ------------
 

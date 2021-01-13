@@ -196,6 +196,7 @@ class PredictionCollection(object):
         self._cache_prediction(predictions, dl_idx)
 
     def attach_predictions(self, results: List[Dict], current_stage: str) -> List[Dict]:
+        # indicates the current
         self.current_stage = current_stage
         predictions = self.predictions
         for dl_idx, result in enumerate(results):
