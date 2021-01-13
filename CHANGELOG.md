@@ -5,27 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+
+## [unreleased] - YYYY-MM-DD
+
+### Fixed
+
+- Fixed a visual bug in the progress bar display initialization ([#4579](https://github.com/PyTorchLightning/pytorch-lightning/pull/4579))
+
+
 ## [1.1.4] - YYYY-MM-DD
 
 ### Added
 
+- Add automatic optimization property setter to lightning module ([#5169](https://github.com/PyTorchLightning/pytorch-lightning/pull/5169))
 
 ### Changed
 
-- Changed depreceated `enable_pl_optimizer=True` ([#5244](https://github.com/PyTorchLightning/pytorch-lightning/pull/5244))
-
-
-### Deprecated
-
-
-### Removed
-
+- Changed deprecated `enable_pl_optimizer=True` ([#5244](https://github.com/PyTorchLightning/pytorch-lightning/pull/5244))
 
 ### Fixed
 
 - Fixed `transfer_batch_to_device` for DDP with `len(devices_ids) == 1` ([#5195](https://github.com/PyTorchLightning/pytorch-lightning/pull/5195))
-
-- Fixed a visual bug in the progress bar display initialization ([#4579](https://github.com/PyTorchLightning/pytorch-lightning/pull/4579))
+- Logging only on `not should_accumulate()` during training ([#5417](https://github.com/PyTorchLightning/pytorch-lightning/pull/5417))
+- Resolve interpolation bug with Hydra ([#5406](https://github.com/PyTorchLightning/pytorch-lightning/pull/5406)) 
+- Check environ before selecting a seed to prevent warning message ([#4743](https://github.com/PyTorchLightning/pytorch-lightning/pull/4743))
 
 
 ## [1.1.3] - 2021-01-05
