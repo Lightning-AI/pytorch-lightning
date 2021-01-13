@@ -33,6 +33,11 @@ class Precision(StatScores):
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
     Args:
+        num_classes:
+            Number of classes. Necessary for ``'macro'``, ``'weighted'`` and ``None`` average methods.
+        threshold:
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs.
         average:
             Defines the reduction that is applied. Should be one of the following:
 
@@ -48,6 +53,8 @@ class Precision(StatScores):
 
             Note that what is considered a sample in the multi-dimensional multi-class case
             depends on the value of ``mdmc_average``.
+        multilabel:
+            .. warning :: This parameter is deprecated and has no effect. Will be removed in v1.4.0.
 
         mdmc_average:
             Defines how averaging is done for multi-dimensional multi-class inputs (on top of the
@@ -71,12 +78,6 @@ class Precision(StatScores):
             to the returned score, regardless of reduction method. If an index is ignored, and ``average=None``
             or ``'none'``, the score for the ignored class will be returned as ``nan``.
 
-        num_classes:
-            Number of classes. Necessary for ``'macro'``, ``'weighted'`` and ``None`` average methods.
-
-        threshold:
-            Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs.
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
             only for inputs with probability predictions. If this parameter is set for multi-label
@@ -118,11 +119,12 @@ class Precision(StatScores):
 
     def __init__(
         self,
-        average: str = "micro",
-        mdmc_average: Optional[str] = None,
-        ignore_index: Optional[int] = None,
         num_classes: Optional[int] = None,
         threshold: float = 0.5,
+        average: str = "micro",
+        multilabel: bool = False,
+        mdmc_average: Optional[str] = None,
+        ignore_index: Optional[int] = None,
         top_k: Optional[int] = None,
         is_multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
@@ -187,6 +189,11 @@ class Recall(StatScores):
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
     Args:
+        num_classes:
+            Number of classes. Necessary for ``'macro'``, ``'weighted'`` and ``None`` average methods.
+        threshold:
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs.
         average:
             Defines the reduction that is applied. Should be one of the following:
 
@@ -202,6 +209,8 @@ class Recall(StatScores):
 
             Note that what is considered a sample in the multi-dimensional multi-class case
             depends on the value of ``mdmc_average``.
+        multilabel:
+            .. warning :: This parameter is deprecated and has no effect. Will be removed in v1.4.0.
 
         mdmc_average:
             Defines how averaging is done for multi-dimensional multi-class inputs (on top of the
@@ -225,12 +234,6 @@ class Recall(StatScores):
             to the returned score, regardless of reduction method. If an index is ignored, and ``average=None``
             or ``'none'``, the score for the ignored class will be returned as ``nan``.
 
-        num_classes:
-            Number of classes. Necessary for ``'macro'``, ``'weighted'`` and ``None`` average methods.
-
-        threshold:
-            Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs.
         top_k:
             Number of highest probability entries for each sample to convert to 1s - relevant
             only for inputs with probability predictions. If this parameter is set for multi-label
@@ -273,11 +276,12 @@ class Recall(StatScores):
 
     def __init__(
         self,
-        average: str = "micro",
-        mdmc_average: Optional[str] = None,
-        ignore_index: Optional[int] = None,
         num_classes: Optional[int] = None,
         threshold: float = 0.5,
+        average: str = "micro",
+        multilabel: bool = False,
+        mdmc_average: Optional[str] = None,
+        ignore_index: Optional[int] = None,
         top_k: Optional[int] = None,
         is_multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
