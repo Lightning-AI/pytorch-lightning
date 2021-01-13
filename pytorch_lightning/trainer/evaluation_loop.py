@@ -122,7 +122,7 @@ class EvaluationLoop(object):
         using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
         return using_eval_result
 
-    def setup(self, model: LightningModule, max_batches, dataloaders):
+    def setup(self, model: LightningModule, max_batches: int, dataloaders: List):
         # copy properties for forward overrides
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
