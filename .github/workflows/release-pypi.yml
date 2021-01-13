@@ -2,8 +2,9 @@ name: PyPI Release
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
-  push:
-    branches: [master, "release/*"]
+  push: {}
+# fixme
+#    branches: [master, "release/*"]
   release:
     types: [created]
 
@@ -26,6 +27,11 @@ jobs:
       run: |
         python setup.py sdist bdist_wheel
         ls -lh dist/
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: pypi-packages
+        path: dist
 
   publish-package:
     runs-on: ubuntu-20.04
@@ -95,6 +101,11 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-1
 
+    - uses: actions/download-artifact@v2
+      with:
+        name: pypi-packages
+        path: dist
+
     - name: Pull files from S3
       run: |
         aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/ #  --acl public-read
@@ -103,6 +114,7 @@ jobs:
     - name: Generate checkpoint
       # if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       run: |
+        ls -lh dist/
         pip install dist/*.whl
         pip uninstall -y pytorch-lightning
 
