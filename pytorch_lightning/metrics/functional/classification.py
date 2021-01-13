@@ -461,6 +461,10 @@ def auc(
     """
     Computes Area Under the Curve (AUC) using the trapezoidal rule
 
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.auc.auc`. Will be removed
+     in v1.4.0.
+
     Args:
         x: x-coordinates
         y: y-coordinates
@@ -475,6 +479,12 @@ def auc(
         >>> auc(x, y)
         tensor(4.)
     """
+    rank_zero_warn(
+        "This `auc` was deprecated in v1.2.0 in favor of"
+        " `pytorch_lightning.metrics.functional.auc import auc`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+
     dx = x[1:] - x[:-1]
     if (dx < 0).any():
         if (dx <= 0).all():
