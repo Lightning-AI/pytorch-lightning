@@ -343,7 +343,7 @@ class AcceleratorConnector:
         if self.trainer.num_nodes > 1 and not (self.trainer.use_ddp2 or self.trainer.use_ddp):
             raise MisconfigurationException(
                 'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
-                'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
+                'To avoid this exception, set `accelerator="ddp"` or `accelerator="ddp2"`'
             )
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.trainer.on_gpu}')
