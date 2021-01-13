@@ -37,8 +37,10 @@ def _auc_compute(x: torch.Tensor, y: torch.Tensor, reorder: bool = False) -> tor
         if (dx <= 0).all():
             direction = -1.
         else:
-            raise ValueError("The `x` tensor is neither increasing or decreasing."
-                             "Try setting the reorder argument to `True`.")
+            raise ValueError(
+                "The `x` tensor is neither increasing or decreasing."
+                " Try setting the reorder argument to `True`."
+            )
     else:
         direction = 1.
     return direction * torch.trapz(y, x)

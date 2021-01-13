@@ -58,7 +58,7 @@ class AUROC(Metric):
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
+            before returning the value at the step.
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
         dist_sync_fn:

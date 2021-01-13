@@ -32,10 +32,10 @@ class AUC(Metric):
             setting this argument to ``True`` will use a stable sorting algorithm to
             sort the input in decending order
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
+            Forward only calls ``update()`` and return None if this is set to False.
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
+            before returning the value at the step.
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
         dist_sync_fn:
@@ -72,8 +72,8 @@ class AUC(Metric):
         Update state with predictions and targets.
 
         Args:
-            preds: Predictions from model (probabilities, or labels)
-            target: Ground truth labels
+            x: Predictions from model (probabilities, or labels)
+            y: Ground truth labels
         """
         x, y = _auc_update(x, y)
 
