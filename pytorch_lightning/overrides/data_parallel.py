@@ -14,9 +14,10 @@
 
 import itertools
 import threading
+import warnings
 from collections.abc import Iterable, Mapping
 from itertools import chain
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 from torch import Tensor
@@ -25,6 +26,7 @@ from torch.nn import DataParallel, Module
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel._functions import Gather
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -150,73 +152,75 @@ class LightningDataParallel(DataParallel):
 
 
 class LightningDistributedDataParallel(DistributedDataParallel):
-    """
-    Override the forward call in lightning so it goes to training and validation step respectively
-    """
-    PREPARE_FOR_BACKWARDS = True
 
-    def parallel_apply(self, replicas, inputs, kwargs):
-        return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
+    def __init__(self, module: LightningModule, *args, **kwargs):
+        warnings.warn(
+            "The usage of `LightningDistributedDataParallel` is deprecated since v1.2 and will be removed in v1.4."
+            " From now on we recommend to directly sublcass `torch.nn.parallel.DistributedDataParallel`.",
+            DeprecationWarning
+        )
+        super().__init__(LightningDistributedModule(module), *args, **kwargs)
 
-    def forward(self, *inputs, **kwargs):  # pragma: no-cover
-        self._sync_params()
-        self.reducer_reset_hooks()
-        fx_called: str = ''
 
-        if self.device_ids:
+class LightningDistributedModule(torch.nn.Module):
 
-            inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
-            if len(self.device_ids) == 1:
-                # --------------
-                # LIGHTNING MOD
-                # --------------
-                # normal
-                # output = self.module(*inputs[0], **kwargs[0])
-                # lightning
-                if self.module.training:
-                    output = self.module.training_step(*inputs[0], **kwargs[0])
-                    fx_called = 'training_step'
-                elif self.module.testing:
-                    output = self.module.test_step(*inputs[0], **kwargs[0])
-                    fx_called = 'test_step'
-                else:
-                    output = self.module.validation_step(*inputs[0], **kwargs[0])
-                    fx_called = 'validation_step'
-            else:
-                outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
-                output = self.gather(outputs, self.output_device)
+    def __init__(self, pl_module: LightningModule):
+        """
+        Wraps the user's LightningModule and redirects the forward call to the appropriate
+        method, either ``training_step``, ``validation_step`` or ```test_step``.
+        This class is used in combination with :class:`~torch.nn.parallel.DistributedDataParallel` as
+        shown in the example.
+
+        Example:
+
+            ddp_model = DistributedDataParallel(
+                module=LightningDistributedModule(lightning_module),
+                device_ids=[local_rank],
+                ...
+            )
+
+        Args:
+            pl_module: the model to wrap
+
+        """
+        super().__init__()
+        self.module = pl_module
+
+    def forward(self, *inputs, **kwargs):
+        if self.module.training:
+            output = self.module.training_step(*inputs, **kwargs)
+            warn_if_output_is_none(output, "training_step")
+        elif self.module.testing:
+            output = self.module.test_step(*inputs, **kwargs)
+            warn_if_output_is_none(output, "test_step")
         else:
-            # output = self.module(*inputs, **kwargs)
-            # normal lightning (ddp_cpu)
-            if self.module.training:
-                output = self.module.training_step(*inputs, **kwargs)
-            elif self.module.testing:
-                output = self.module.test_step(*inputs, **kwargs)
-            else:
-                output = self.module.validation_step(*inputs, **kwargs)
-
-        if not self._reducer_prepared_for_backwards and self.PREPARE_FOR_BACKWARDS:
-            self.reducer_prepare_for_backwards(output)
-
-        if output is None:
-            warn_missing_output(f'{fx_called} returned None. Did you forget to return an output')
+            output = self.module.validation_step(*inputs, **kwargs)
+            warn_if_output_is_none(output, "validation_step")
         return output
 
-    def reducer_prepare_for_backwards(self, output):
-        self._reducer_prepared_for_backwards = True
-        if torch.is_grad_enabled():
-            # We'll return the output object verbatim since it is a freeform
-            # object. We need to find any tensors in this object, though,
-            # because we need to figure out which parameters were used during
-            # this forward pass, to ensure we short circuit reduction for any
-            # unused parameters. Only if `find_unused_parameters` is set.
-            if self.find_unused_parameters:
-                self.reducer.prepare_for_backward(list(_find_tensors(output)))
-            else:
-                self.reducer.prepare_for_backward([])
 
-    def reducer_reset_hooks(self):
-        self._reducer_prepared_for_backwards = False
+# In manual_optimization, we need to call reducer prepare_for_backward.
+# Note: Keep track of Pytorch DDP and update if there is a change
+# https://github.com/pytorch/pytorch/blob/v1.7.1/torch/nn/parallel/distributed.py#L626-L638
+def prepare_for_backward(model: DistributedDataParallel, output: Any):
+    if torch.is_grad_enabled() and model.require_backward_grad_sync:
+        model.require_forward_param_sync = True
+        # We'll return the output object verbatim since it is a freeform
+        # object. We need to find any tensors in this object, though,
+        # because we need to figure out which parameters were used during
+        # this forward pass, to ensure we short circuit reduction for any
+        # unused parameters. Only if `find_unused_parameters` is set.
+        if model.find_unused_parameters:
+            model.reducer.prepare_for_backward(list(_find_tensors(output)))
+        else:
+            model.reducer.prepare_for_backward([])
+    else:
+        model.require_forward_param_sync = False
+
+
+def warn_if_output_is_none(output: Any, method_name: str) -> None:
+    if output is None:
+        warning_cache.warn(f'Your {method_name} returned None. Did you forget to return an output?')
 
 
 def warn_missing_output(fx_called):

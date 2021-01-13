@@ -137,9 +137,7 @@ class TrainLoop:
         # --------------------------
         # Setup??
         # --------------------------
-        ref_model = model
-        if self.trainer.data_parallel:
-            ref_model = model.module
+        ref_model = self.trainer.get_model()
 
         # set the ranks and devices
         self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
