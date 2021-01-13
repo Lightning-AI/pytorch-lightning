@@ -1,6 +1,7 @@
 from typing import Callable, Union
 
 import torch
+
 from pytorch_lightning.metrics.metric import Metric
 
 
@@ -75,9 +76,17 @@ class CompositionalMetric(Metric):
 
         if isinstance(self.metric_b, Metric):
             self.metric_b.reset()
-            
+
     def persistent(self, mode: bool = False):
         if isinstance(self.metric_a, Metric):
             self.metric_a.persistent(mode=mode)
         if isinstance(self.metric_b, Metric):
             self.metric_b.persistent(mode=mode)
+
+    def __repr__(self):
+        repr_str = (
+            self.__class__.__name__
+            + f"(\n  {self.op.__name__}(\n    {repr(self.metric_a)},\n    {repr(self.metric_b)}\n  )\n)"
+        )
+
+        return repr_str
