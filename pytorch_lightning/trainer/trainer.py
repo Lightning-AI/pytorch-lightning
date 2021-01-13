@@ -134,7 +134,7 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
-        enable_pl_optimizer: bool = False,
+        enable_pl_optimizer: bool = None,  # todo: remove in v1.3
     ):
         r"""
         Customize every aspect of training via flags
@@ -283,7 +283,8 @@ class Trainer(
 
             enable_pl_optimizer: If True, each optimizer will be wrapped by
                 `pytorch_lightning.core.optimizer.LightningOptimizer`. It allows Lightning to
-                handle AMP, TPU, accumulated_gradients, etc..
+                handle AMP, TPU, accumulated_gradients, etc.
+                .. warning:: Currently deprecated and it will be removed in v1.3
         """
         super().__init__()
         self._device_type = DeviceType.CPU
