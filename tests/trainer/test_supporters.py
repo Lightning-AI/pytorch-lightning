@@ -270,48 +270,37 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
                     reason="test should be run outside of pytest")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
-@pytest.mark.parametrize('accelerator', ["ddp"])
-@pytest.mark.parametrize('gpus', [2])
 @pytest.mark.parametrize('num_dl_idx', [1, 2])
-def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
+def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, num_dl_idx):
     """
     Test `PredictionCollection` reduce properly in "ddp" mode
     """
-    check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx)
+    check_prediction_collection(tmpdir, save_preds_on_dl_idx, "ddp", 2, num_dl_idx)
 
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
 @pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
-@pytest.mark.parametrize('accelerator', [None])
-@pytest.mark.parametrize('gpus', [1])
 @pytest.mark.parametrize('num_dl_idx', [1, 2])
-def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
+def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, num_dl_idx):
     """
     Test `PredictionCollection` reduce properly in 1 gpu mode
     """
-    check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx)
+    check_prediction_collection(tmpdir, save_preds_on_dl_idx, None, 1, num_dl_idx)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('save_preds_on_dl_idx', [True])
-@pytest.mark.parametrize('accelerator', ["ddp_spawn"])
-@pytest.mark.parametrize('gpus', [2])
-@pytest.mark.parametrize('num_dl_idx', [2])
-def test_prediction_collection_ddp_spawn(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
+def test_prediction_collection_ddp_spawn(tmpdir):
     """
     Test `PredictionCollection` reduce properly in "ddp_spawn"
     """
-    check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx)
+    check_prediction_collection(tmpdir, True, "ddp_spawn", 2, 2)
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.parametrize('save_preds_on_dl_idx', [False])
-@pytest.mark.parametrize('accelerator', ["ddp_cpu"])
-@pytest.mark.parametrize('num_dl_idx', [2])
-def test_prediction_collection_ddp_cpu(tmpdir, save_preds_on_dl_idx, accelerator, num_dl_idx):
+def test_prediction_collection_ddp_cpu(tmpdir):
     """
     Test `PredictionCollection` reduce properly in "ddp_cpu"
     """
-    check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, None, num_dl_idx)
+    check_prediction_collection(tmpdir, False, "ddp_cpu", None, 2)

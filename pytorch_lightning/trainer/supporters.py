@@ -131,14 +131,13 @@ class PredictionCollection(object):
         self._predictions = {stage: {} for stage in LoggerStages}
 
     @property
-    def predictions(self):
+    def predictions(self) -> Dict:
         return self._predictions[self.current_stage]
 
-    def _cache_prediction(self, predictions: List[Dict], dl_idx: int):
+    def _cache_prediction(self, predictions: List[Dict], dl_idx: int) -> None:
         cache = self.predictions
 
-        if dl_idx not in cache:
-            cache[dl_idx] = {}
+        cache.setdefault(dl_idx, {})
 
         for pred in predictions:
             if self.ID_KEY in pred:
@@ -149,20 +148,20 @@ class PredictionCollection(object):
                     )
             else:
                 raise MisconfigurationException(
-                    "When predictions are provided within a dict, we expect an `id` key. "
+                    f"The predictions dict requires an `{self.ID_KEY}` key."
                 )
 
             if key in cache[dl_idx]:
                 raise MisconfigurationException(
-                    "Prediction Collection doesn't support multiple prediction for one sample yet.")
+                    "Prediction Collection doesn't support multiple predictions for one sample yet.")
 
             cache[dl_idx][key] = pred
 
     def cache(self, predictions: List[Dict], dl_idx: int, current_stage: str) -> None:
         """
         This function expects predictions to be a list of dictionnaries.
-        Each dictionnary should contain a key `id` being a unique number.
-        This number will be used to identify each sample.
+        Each dictionary should contain an unique key `id`.
+        The `id` key-value should be a unique number to identify each sample.
 
         Example::
 
@@ -183,31 +182,30 @@ class PredictionCollection(object):
         self.current_stage = current_stage
 
         assert isinstance(predictions, list)
-        if not all(isinstance(p, dict) for p in predictions):
+        if not all(isinstance(p, dict) and "id" in p for p in predictions):
             raise MisconfigurationException(
                 "predictions objects should be a list where each element is a dict. "
-                "Each dict should contain a unique number `id` to identify each sample."
+                "Each dict should contain an unique number `id` to identify each sample."
             )
 
-        if not all(len(p) > 1 for p in predictions):
+        if not all(len(p) > 1 in p for p in predictions):
             raise MisconfigurationException(
-                "each element should contain at least a unique number `id` and a prediction tensor."
+                "each element should contain at least an unique number `id` and a prediction tensor."
             )
 
         self._cache_prediction(predictions, dl_idx)
 
-    def attach_predictions(self, results, current_stage: str) -> list:
+    def attach_predictions(self, results: List[Dict], current_stage: str) -> List[Dict]:
         self.current_stage = current_stage
         predictions = self.predictions
-        if len(predictions) > 0:
-            for dl_idx, result in enumerate(results):
-                if dl_idx in predictions:
-                    dl_predictions = predictions[dl_idx]
-                    dl_predictions = self.all_gather_predictions(dl_predictions)
-                    result["predictions"] = list(dl_predictions.values())
+        for dl_idx, result in enumerate(results):
+            if dl_idx in predictions:
+                dl_predictions = predictions[dl_idx]
+                dl_predictions = self.all_gather_predictions(dl_predictions)
+                result["predictions"] = list(dl_predictions.values())
         return results
 
-    def all_gather_predictions(self, predictions):
+    def all_gather_predictions(self, predictions: Dict) -> Dict:
         """
         This function all_gather predictions accross multiple processes
         # todo: see https://github.com/PyTorchLightning/pytorch-lightning/issues/5493 for better details.

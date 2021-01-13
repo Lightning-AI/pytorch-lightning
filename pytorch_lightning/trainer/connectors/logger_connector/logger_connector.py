@@ -24,7 +24,7 @@ from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore, LoggerStages
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
-from pytorch_lightning.utilities import flatten_dict, DeviceType
+from pytorch_lightning.utilities import DeviceType, flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
@@ -313,9 +313,6 @@ class LoggerConnector:
         # clear mem
         self.eval_loop_results = []
 
-        return self._add_predictions_to_results(results)
-
-    def _add_predictions_to_results(self, results):
         return self.trainer.predictions.attach_predictions(results, self._current_stage)
 
     def _track_callback_metrics(self, eval_results, using_eval_result):

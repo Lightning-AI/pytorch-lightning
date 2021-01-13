@@ -167,7 +167,7 @@ Saving test predictions is simple !
             indexes = ...
             preds = ...
 
-            # we need an unique number id to identify each sample.
+            # we need an unique id to identify each sample.
             predictions = [
                 {"id": id, "prediction": prediction}
                 for id, prediction in zip(indexes, preds)
