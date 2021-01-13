@@ -216,6 +216,14 @@ class PredictionCollection(object):
             return predictions
 
         all_predictions = self.all_gather_fn(predictions)
+
+        def gather(all_preds, k, idx):
+            result = all_preds[k]
+            if isinstance(result, (list, tuple)):
+                return [r[idx % self.world_size].cpu().tolist() for r in result]
+            else:
+                return result[idx % self.world_size].cpu().tolist()
+
         out_predictions = {}
         for all_preds in all_predictions.values():
             keys = [k for k in all_preds if k != self.ID_KEY]
@@ -223,7 +231,7 @@ class PredictionCollection(object):
                 idx = int(pred.item())
                 if str(idx) in out_predictions:
                     continue
-                out_predictions[str(idx)] = {k: all_preds[k][idx % self.world_size].cpu().tolist() for k in keys}
+                out_predictions[str(idx)] = {k: gather(all_preds, k, idx) for k in keys}
                 out_predictions[str(idx)][self.ID_KEY] = idx
         return out_predictions
 
