@@ -10,9 +10,8 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 
 jobs:
   # based on https://github.com/pypa/gh-action-pypi-publish
-  build-publish:
+  build-package:
     runs-on: ubuntu-20.04
-
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
@@ -28,6 +27,16 @@ jobs:
         python setup.py sdist bdist_wheel
         ls -lh dist/
 
+    - uses: actions/upload-artifact@v2
+      with:
+        name: pypi-packages
+        path: dist
+
+  publish-package:
+    runs-on: ubuntu-20.04
+    needs: build-package
+    steps:
+    - uses: actions/checkout@v2
     - name: Upload to release
       if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       uses: svenstaro/upload-release-action@v2
@@ -62,6 +71,14 @@ jobs:
         user: __token__
         password: ${{ secrets.pypi_password }}
 
+  create-legacy-ckpt:
+    runs-on: ubuntu-20.04
+    needs: [build-package, publish-package]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
     - name: Cache pip
@@ -74,7 +91,6 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-        pip install virtualenv
         pip install awscli
 
     - name: Configure AWS credentials
@@ -84,24 +100,25 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-1
 
+    - uses: actions/download-artifact@v2
+      with:
+        name: pypi-packages
+        path: dist
+
     - name: Pull files from S3
       run: |
         aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/ #  --acl public-read
         ls -l legacy/checkpoints/
 
     - name: Generate checkpoint
-      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+      # if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       run: |
-        virtualenv vEnv --system-site-packages
-        source vEnv/bin/activate
+        ls -lh dist/
         pip install dist/*.whl
 
         pl_ver=$(python -c "import pytorch_lightning as pl ; print(pl.__version__)" 2>&1)
         # generate checkpoint to this version
         bash legacy/generate_checkpoints.sh $pl_ver
-
-        deactivate
-        rm -rf vEnv
 
     - name: Push files to S3
       run: |
