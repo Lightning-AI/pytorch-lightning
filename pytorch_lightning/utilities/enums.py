@@ -31,6 +31,11 @@ class LightningEnum(str, Enum):
         other = other.value if isinstance(other, Enum) else str(other)
         return self.value.lower() == other.lower()
 
+    def __hash__(self):
+        # re-enable hashtable so it can be used as a dict key or in a set
+        # example: set(LightningEnum)
+        return hash(self.name)
+
 
 class AMPType(LightningEnum):
     """Type of Automatic Mixed Precission used for training.
