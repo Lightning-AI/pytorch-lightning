@@ -2,6 +2,9 @@ name: Recurrent events
 
 on:
   push: {}
+  pull_request:
+    types: [synchronize]
+  pull_request_target: {}
 
 jobs:
 
