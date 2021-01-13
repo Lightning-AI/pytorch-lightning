@@ -327,9 +327,15 @@ class LightningModule(
                 tbptt_reduce_fx=tbptt_reduce_fx,
             )
 
-    def add_predictions(self, predictions):
-        dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
-        self.trainer.predictions.cache(predictions, dl_idx, self.trainer.logger_connector._current_stage)
+    def add_predictions(self, predictions: List[Dict]) -> None:
+        if getattr(self, "trainer", None) is not None:
+            dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
+            self.trainer.predictions.cache(predictions, dl_idx, self.trainer.logger_connector._current_stage)
+        else:
+            rank_zero_warn(
+                "Your LightningModule isn't attached to the Lightning Trainer and can't save predictions"
+                "HINT: This function works only within `results=trainer.test(model, datamodule=datamodule)`"
+            )
 
     def write_prediction(self, name, value, filename='predictions.pt'):
         self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)

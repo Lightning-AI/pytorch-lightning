@@ -164,14 +164,14 @@ Saving test predictions is simple !
     class MyModel(LightningModule):
 
         def test_step(self, batch, batch_idx):
-
+            indexes = ...
             preds = ...
 
-            # save predictions
             # we need an unique number id to identify each sample.
-            predictions = []
-            for idx, id in enumerate(batch["id"]):
-                predictions.append({"id": id, "preds": preds[idx]})
+            predictions = [
+                {"id": id, "prediction": prediction}
+                for id, prediction in zip(indexes, preds)
+            ]
 
             self.add_predictions(predictions)
 

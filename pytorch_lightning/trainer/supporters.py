@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import errno
 import os
-import os.path as osp
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -122,6 +120,9 @@ class Accumulator(object):
 
 
 class PredictionCollection(object):
+
+    ID_KEY = 'id'
+
     def __init__(self, global_rank: int, world_size: int, all_gather: Callable):
         self.global_rank = global_rank
         self.world_size = world_size
@@ -133,24 +134,16 @@ class PredictionCollection(object):
     def predictions(self):
         return self._predictions[self.current_stage]
 
-    @property
-    def should_all_gather(self):
-        return self.world_size > 1 and torch.distributed.is_available() or not torch.distributed.is_initialized()
+    def _cache_prediction(self, predictions: List[Dict], dl_idx: int):
+        cache = self.predictions
 
-    @staticmethod
-    def convert_to_numpy(value):
-        return value.cpu().numpy()
-
-    def _cache_prediction(self, predictions, dl_idx: int):
-        internal_predictions = self.predictions
-
-        if dl_idx not in internal_predictions:
-            internal_predictions[dl_idx] = {}
+        if dl_idx not in cache:
+            cache[dl_idx] = {}
 
         for pred in predictions:
-            if "id" in pred:
-                key = pred["id"]
-                if not isinstance(key, (int, float, torch.Tensor)):
+            if self.ID_KEY in pred:
+                key = pred[self.ID_KEY]
+                if not isinstance(key, (int, float)):
                     raise MisconfigurationException(
                         f"`id` key should be either a int or float. Found {type(key)}."
                     )
@@ -159,31 +152,32 @@ class PredictionCollection(object):
                     "When predictions are provided within a dict, we expect an `id` key. "
                 )
 
-            if key in internal_predictions[dl_idx]:
+            if key in cache[dl_idx]:
                 raise MisconfigurationException(
                     "Prediction Collection doesn't support multiple prediction for one sample yet.")
 
-            internal_predictions[dl_idx][key] = pred
+            cache[dl_idx][key] = pred
 
     def cache(self, predictions: List[Dict], dl_idx: int, current_stage: str) -> None:
         """
         This function expects predictions to be a list of dictionnaries.
-        Each dictionnary should contain a key `id` being a number.
-        It would be used to identify each sample.
+        Each dictionnary should contain a key `id` being a unique number.
+        This number will be used to identify each sample.
 
         Example::
 
+            indexes = ...
             preds = ...
 
-            # save predictions
             # we need an unique number id to identify each sample.
-            predictions = []
-            for idx, id in enumerate(batch["id"]):
-                predictions.append({"id": id, "preds": preds[idx]})
+            predictions = [
+                {"id": id, "prediction": prediction}
+                for id, prediction in zip(indexes, preds)
+            ]
 
             self.add_predictions(predictions)
         """
-        if predictions is None:
+        if predictions is None or (isinstance(predictions, list) and len(predictions) == 0):
             return
 
         self.current_stage = current_stage
@@ -204,34 +198,32 @@ class PredictionCollection(object):
 
     def attach_predictions(self, results, current_stage: str) -> list:
         self.current_stage = current_stage
-        if len(self) > 0:
-            predictions = self.predictions
+        predictions = self.predictions
+        if len(predictions) > 0:
             for dl_idx, result in enumerate(results):
                 if dl_idx in predictions:
                     dl_predictions = predictions[dl_idx]
-                    dl_predictions = self.allgather_predictions(dl_predictions)
+                    dl_predictions = self.all_gather_predictions(dl_predictions)
                     result["predictions"] = list(dl_predictions.values())
         return results
 
-    def allgather_predictions(self, predictions):
+    def all_gather_predictions(self, predictions):
         """
         This function all_gather predictions accross multiple processes
-        #todo: Implement a more stable version
+        # todo: see https://github.com/PyTorchLightning/pytorch-lightning/issues/5493 for better details.
         """
 
-        if not self.should_all_gather:
+        if not (self.world_size > 1 and torch.distributed.is_available() or not torch.distributed.is_initialized()):
             return predictions
 
         all_predictions = self.all_gather(predictions)
         predictions = {}
         for all_preds in all_predictions.values():
-            keys = [k for k in all_preds.keys() if k != 'id']
-            for pred in all_preds["id"]:
+            keys = [k for k in all_preds if k != self.ID_KEY]
+            for pred in all_preds[self.ID_KEY]:
                 idx = int(pred.item())
-                predictions[str(idx)] = {}
-                predictions[str(idx)]['id'] = idx
-                for k in keys:
-                    predictions[str(idx)][k] = all_preds[k][idx % self.world_size].cpu().tolist()
+                predictions[str(idx)] = {k: all_preds[k][idx % self.world_size].cpu().tolist() for k in keys}
+                predictions[str(idx)][self.ID_KEY] = idx
         return predictions
 
     def _add_prediction(self, name, values, filename):
@@ -247,7 +239,6 @@ class PredictionCollection(object):
             self._legacy_predictions[filename][name].extend(values)
 
     def add(self, predictions):
-
         if predictions is None:
             return
 
@@ -291,9 +282,6 @@ class PredictionCollection(object):
             # Write predictions for current file to disk
             with fs.open(filepath, "wb") as fp:
                 torch.save(outputs, fp)
-
-    def __len__(self):
-        return len(self.predictions)
 
 
 class CycleIterator(object):

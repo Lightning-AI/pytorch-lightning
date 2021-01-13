@@ -211,14 +211,13 @@ class TestModel(BoringModel):
         output = self.layer(x)
         loss = self.loss(batch, output)
 
-        if dataloader_idx is not None and dataloader_idx == 1 and not self._save_preds_on_dl_idx:
+        if dataloader_idx == 1 and not self._save_preds_on_dl_idx:
             return {"y": loss}
 
-        predictions = []
-        for idx in range(len(indexes)):
-            id = indexes[idx]
-            prediction = output[idx]
-            predictions.append({"id": id, "prediction":prediction})
+        predictions = [
+            {"id": id, "prediction": prediction}
+            for id, prediction in zip(indexes, output)
+        ]
 
         self.add_predictions(predictions)
         return {"y": loss}
@@ -236,13 +235,13 @@ class TestModel(BoringModel):
 @pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
 @pytest.mark.parametrize('accelerator', ["ddp"])
 @pytest.mark.parametrize('gpus', [1, 2])
-@pytest.mark.parametrize('dl_idx', [1, 2])
-def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gpus, dl_idx):
+@pytest.mark.parametrize('num_dl_idx', [1, 2])
+def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
 
     """
     Test `PredictionCollection` reduce properly in ddp mode
     """
-    model = TestModel(dl_idx, save_preds_on_dl_idx)
+    model = TestModel(num_dl_idx, save_preds_on_dl_idx)
     model.test_epoch_end = None
     limit_test_batches = 2
     trainer = Trainer(
@@ -252,10 +251,10 @@ def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gp
         gpus=gpus
     )
     results: List = trainer.test(model)
-    assert len(results) == dl_idx
-    for dl_idx in range(dl_idx):
+    assert len(results) == num_dl_idx
+    for dl_idx in range(num_dl_idx):
         result = results[dl_idx]
-        if not save_preds_on_dl_idx and dl_idx == 2 and dl_idx == 1:
+        if not save_preds_on_dl_idx and num_dl_idx == 2 and dl_idx == 1:
             assert "predictions" not in result
         else:
             assert "predictions" in result
