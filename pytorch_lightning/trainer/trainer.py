@@ -740,7 +740,7 @@ class Trainer(
             verbose: If True, prints the test results
 
         Returns:
-            Returns a list of dictionaries for each test dataloders
+            Returns a list of dictionaries for each test dataloder
         """
         # --------------------
         # SETUP HOOK

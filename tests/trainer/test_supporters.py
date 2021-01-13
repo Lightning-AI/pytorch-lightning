@@ -261,6 +261,9 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
             predictions = result["predictions"]
             print(trainer_args, predictions)
             assert len(predictions) == limit_test_batches * 2 * size
+            for idx, pred in enumerate(predictions):
+                assert pred["id"] == idx
+                assert pred["prediction"] == idx
 
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
@@ -271,7 +274,6 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
 @pytest.mark.parametrize('gpus', [2])
 @pytest.mark.parametrize('num_dl_idx', [1, 2])
 def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
-
     """
     Test `PredictionCollection` reduce properly in "ddp" mode
     """
@@ -286,7 +288,6 @@ def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gp
 @pytest.mark.parametrize('gpus', [1])
 @pytest.mark.parametrize('num_dl_idx', [1, 2])
 def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
-
     """
     Test `PredictionCollection` reduce properly in 1 gpu mode
     """
@@ -294,12 +295,11 @@ def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, accelerator, 
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
+@pytest.mark.parametrize('save_preds_on_dl_idx', [True])
 @pytest.mark.parametrize('accelerator', ["ddp_spawn"])
-@pytest.mark.parametrize('gpus', [1, 2])
-@pytest.mark.parametrize('num_dl_idx', [1, 2])
+@pytest.mark.parametrize('gpus', [2])
+@pytest.mark.parametrize('num_dl_idx', [2])
 def test_prediction_collection_ddp_spawn(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
-
     """
     Test `PredictionCollection` reduce properly in "ddp_spawn"
     """
@@ -310,7 +310,6 @@ def test_prediction_collection_ddp_spawn(tmpdir, save_preds_on_dl_idx, accelerat
 @pytest.mark.parametrize('accelerator', ["ddp_cpu"])
 @pytest.mark.parametrize('num_dl_idx', [1, 2])
 def test_prediction_collection_ddp_cpu(tmpdir, save_preds_on_dl_idx, accelerator, num_dl_idx):
-
     """
     Test `PredictionCollection` reduce properly in "ddp_cpu"
     """
