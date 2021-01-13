@@ -188,7 +188,7 @@ class PredictionCollection(object):
                 "Each dict should contain an unique number `id` to identify each sample."
             )
 
-        if not all(len(p) > 1 in p for p in predictions):
+        if not all(len(p) > 1 for p in predictions):
             raise MisconfigurationException(
                 "each element should contain at least an unique number `id` and a prediction tensor."
             )
