@@ -12,15 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest.mock import Mock, call
+from time import sleep
+from unittest import mock
+from unittest.mock import call, Mock
 
 import pytest
-from unittest import mock
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ProgressBarBase, ProgressBar, ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.utilities import _RICH_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate, BoringModel
+from tests.base import BoringModel, EvalModelTemplate
+
+if _RICH_AVAILABLE:
+    from pytorch_lightning.callbacks import RichProgressBar
 
 
 @pytest.mark.parametrize('callbacks,refresh_rate', [
@@ -328,3 +333,41 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches, refresh_rate, tes
     )
     trainer.test(model)
     progress_bar.test_progress_bar.update.assert_has_calls([call(delta) for delta in test_deltas])
+
+
+@pytest.mark.skipif(not _RICH_AVAILABLE, reason="test requires rich installed")
+def test_rich_progress_bar(tmpdir):
+    """Test different ways the progress bar can be turned on."""
+
+    class LoggingModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+            sleep(0.1)
+            return {"loss": loss}
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("val_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+            sleep(0.1)
+            return {"x": loss}
+
+        def test_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("test_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+            sleep(0.1)
+            return {"y": loss}
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=RichProgressBar(),
+        max_epochs=2,
+        limit_train_batches=10,
+        limit_val_batches=5
+    )
+
+    trainer.fit(LoggingModel())

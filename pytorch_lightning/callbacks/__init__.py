@@ -34,5 +34,6 @@ __all__ = [
     'ProgressBarBase',
 ]
 
+
 if _RICH_AVAILABLE:
-   __all__ += ["RichProgressBar"] 
+    __all__ += ["RichProgressBar"]
