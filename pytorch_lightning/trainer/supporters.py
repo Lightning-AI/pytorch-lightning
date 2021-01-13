@@ -216,14 +216,16 @@ class PredictionCollection(object):
             return predictions
 
         all_predictions = self.all_gather_fn(predictions)
-        predictions = {}
+        out_predictions = {}
         for all_preds in all_predictions.values():
             keys = [k for k in all_preds if k != self.ID_KEY]
             for pred in all_preds[self.ID_KEY]:
                 idx = int(pred.item())
-                predictions[str(idx)] = {k: all_preds[k][idx % self.world_size].cpu().tolist() for k in keys}
-                predictions[str(idx)][self.ID_KEY] = idx
-        return predictions
+                if str(idx) in out_predictions:
+                    continue
+                out_predictions[str(idx)] = {k: all_preds[k][idx % self.world_size].cpu().tolist() for k in keys}
+                out_predictions[str(idx)][self.ID_KEY] = idx
+        return out_predictions
 
     def _add_prediction(self, name, values, filename):
         if filename not in self._legacy_predictions:
