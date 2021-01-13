@@ -16,7 +16,7 @@ import errno
 import os
 import os.path as osp
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch import Tensor
@@ -27,14 +27,6 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-
-def makedirs(path):
-    try:
-        os.makedirs(osp.expanduser(osp.normpath(path)))
-    except OSError as e:
-        if e.errno != errno.EEXIST and osp.isdir(path):
-            raise e
 
 
 class TensorRunningAccum(object):
@@ -143,7 +135,7 @@ class PredictionCollection(object):
 
     @property
     def should_all_gather(self):
-        return torch.distributed.is_available() or not torch.distributed.is_initialized() and self.world_size > 1
+        return self.world_size > 1 and torch.distributed.is_available() or not torch.distributed.is_initialized()
 
     @staticmethod
     def convert_to_numpy(value):
@@ -156,53 +148,56 @@ class PredictionCollection(object):
             internal_predictions[dl_idx] = {}
 
         for pred in predictions:
-            if "path" in pred:
-                if self.should_all_gather:
-                    raise MisconfigurationException(
-                        "`path` key is not supported yet in distributed setting. Please, use `id`. "
-                    )
-                key = pred["path"]
-
-            elif "id" in pred:
+            if "id" in pred:
                 key = pred["id"]
                 if not isinstance(key, (int, float, torch.Tensor)):
                     raise MisconfigurationException(
                         f"`id` key should be either a int or float. Found {type(key)}."
                     )
-
             else:
                 raise MisconfigurationException(
-                    "When predictions are provided within a dict, we expect either a `path` or `id` key. "
+                    "When predictions are provided within a dict, we expect an `id` key. "
                 )
 
-            if isinstance(key, torch.Tensor):
-                key = str(key.item())
-
-            if key not in internal_predictions[dl_idx]:
-                internal_predictions[dl_idx][key] = []
-            else:
+            if key in internal_predictions[dl_idx]:
                 raise MisconfigurationException(
                     "Prediction Collection doesn't support multiple prediction for one sample yet.")
 
             internal_predictions[dl_idx][key] = pred
 
-    def cache(self, predictions: List, dl_idx: int, current_stage):
+    def cache(self, predictions: List[Dict], dl_idx: int, current_stage: str) -> None:
+        """
+        This function expects predictions to be a list of dictionnaries.
+        Each dictionnary should contain a key `id` being a number.
+        It would be used to identify each sample.
+
+        Example::
+
+            preds = ...
+
+            # save predictions
+            # we need an unique number id to identify each sample.
+            predictions = []
+            for idx, id in enumerate(batch["id"]):
+                predictions.append({"id": id, "preds": preds[idx]})
+
+            self.add_predictions(predictions)
+        """
         if predictions is None:
             return
 
         self.current_stage = current_stage
 
-        assert isinstance(predictions, (list, tuple))
-        if not all([isinstance(p, (dict)) for p in predictions]):
+        assert isinstance(predictions, list)
+        if not all(isinstance(p, dict) for p in predictions):
             raise MisconfigurationException(
-                "predictions objects should be a list or tuple. "
-                "Each contained element should be either a dict. "
+                "predictions objects should be a list where each element is a dict. "
+                "Each dict should contain a unique number `id` to identify each sample."
             )
 
-        if not all([len(p) > 1 for p in predictions]):
+        if not all(len(p) > 1 for p in predictions):
             raise MisconfigurationException(
-                "predictions objects should be a list or tuple. "
-                "Each contained element should contain at minimum an ID and a prediction tensor. "
+                "each element should contain at least a unique number `id` and a prediction tensor."
             )
 
         self._cache_prediction(predictions, dl_idx)
@@ -215,7 +210,7 @@ class PredictionCollection(object):
                 if dl_idx in predictions:
                     dl_predictions = predictions[dl_idx]
                     dl_predictions = self.allgather_predictions(dl_predictions)
-                    result["predictions"] = [*dl_predictions.values()]
+                    result["predictions"] = list(dl_predictions.values())
         return results
 
     def allgather_predictions(self, predictions):
@@ -298,7 +293,7 @@ class PredictionCollection(object):
                 torch.save(outputs, fp)
 
     def __len__(self):
-        return len(self.predictions.keys())
+        return len(self.predictions)
 
 
 class CycleIterator(object):

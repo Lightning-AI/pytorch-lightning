@@ -157,7 +157,7 @@ Once you're done training, feel free to run the test set!
 
     trainer.test(test_dataloaders=test_dataloader)
 
-If you need to save the predictions, nothing simpler ! This will works with ``DDP``
+Saving test predictions is simple !
 
 .. code-block:: python
 
@@ -168,7 +168,7 @@ If you need to save the predictions, nothing simpler ! This will works with ``DD
             preds = ...
 
             # save predictions
-            # we need a unique int id to identify each sample.
+            # we need an unique number id to identify each sample.
             predictions = []
             for idx, id in enumerate(batch["id"]):
                 predictions.append({"id": id, "preds": preds[idx]})
