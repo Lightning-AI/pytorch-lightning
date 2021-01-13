@@ -123,10 +123,10 @@ class PredictionCollection(object):
 
     ID_KEY = 'id'
 
-    def __init__(self, global_rank: int, world_size: int, all_gather: Callable):
+    def __init__(self, global_rank: int, world_size: int, all_gather_fn: Callable):
         self.global_rank = global_rank
         self.world_size = world_size
-        self.all_gather = all_gather
+        self.all_gather_fn = all_gather_fn
         self._legacy_predictions = {}
         self._predictions = {stage: {} for stage in LoggerStages}
 
@@ -215,7 +215,7 @@ class PredictionCollection(object):
         if not (torch.distributed.is_available() and torch.distributed.is_initialized()):
             return predictions
 
-        all_predictions = self.all_gather(predictions)
+        all_predictions = self.all_gather_fn(predictions)
         predictions = {}
         for all_preds in all_predictions.values():
             keys = [k for k in all_preds if k != self.ID_KEY]
