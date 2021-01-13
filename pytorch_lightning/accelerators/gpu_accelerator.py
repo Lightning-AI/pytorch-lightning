@@ -104,7 +104,7 @@ class GPUAccelerator(Accelerator):
         return tensor
 
     def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
-        raise tensor
+        return tensor
 
     @property
     def require_distributed_sampler(self):
