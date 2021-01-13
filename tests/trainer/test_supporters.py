@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from collections import Sequence
+from typing import List
 
 import pytest
 import torch
@@ -229,9 +230,19 @@ class TestModel(BoringModel):
         return [self.create_dataset() for _ in range(self._numbers_test_dataloaders)]
 
 
-def test_prediction_collection(tmpdir, numbers_test_dataloaders,
-                               save_preds_on_dl_idx, accelerator, gpus=None):
-    model = TestModel(numbers_test_dataloaders, save_preds_on_dl_idx)
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
+@pytest.mark.parametrize('accelerator', ["ddp"])
+@pytest.mark.parametrize('gpus', [1, 2])
+@pytest.mark.parametrize('dl_idx', [1, 2])
+def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gpus, dl_idx):
+
+    """
+    Test `PredictionCollection` reduce properly in ddp mode
+    """
+    model = TestModel(dl_idx, save_preds_on_dl_idx)
     model.test_epoch_end = None
     limit_test_batches = 2
     trainer = Trainer(
@@ -240,28 +251,13 @@ def test_prediction_collection(tmpdir, numbers_test_dataloaders,
         accelerator=accelerator,
         gpus=gpus
     )
-    results = trainer.test(model)
-    assert len(results) == numbers_test_dataloaders
-    for dl_idx in range(numbers_test_dataloaders):
+    results: List = trainer.test(model)
+    assert len(results) == dl_idx
+    for dl_idx in range(dl_idx):
         result = results[dl_idx]
-        if not save_preds_on_dl_idx and numbers_test_dataloaders == 2 and dl_idx == 1:
+        if not save_preds_on_dl_idx and dl_idx == 2 and dl_idx == 1:
             assert "predictions" not in result
         else:
             assert "predictions" in result
             predictions = result["predictions"]
             assert len(predictions) == limit_test_batches * 2 * trainer.world_size
-
-
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
-@pytest.mark.parametrize('numbers_test_dataloaders', [1, 2])
-@pytest.mark.parametrize('accelerator', ["ddp"])
-@pytest.mark.parametrize('gpus', [1, 2])
-def test_prediction_collection_ddp(tmpdir, numbers_test_dataloaders, save_preds_on_dl_idx, accelerator, gpus):
-
-    """
-    Test `PredictionCollection` reduce properly in ddp mode
-    """
-    test_prediction_collection(tmpdir, numbers_test_dataloaders, save_preds_on_dl_idx, accelerator, gpus=gpus)
