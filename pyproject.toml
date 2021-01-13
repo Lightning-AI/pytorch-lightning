@@ -39,15 +39,12 @@ skip_glob = [
     "tests/backends/*",
     "tests/base/*",
     "tests/callbacks/*",
-    "tests/checkpointing/*",
-    "tests/core/*",
     "tests/loggers/*",
     "tests/metrics/*",
     "tests/models/*",
     "tests/plugins/*",
     "tests/trainer/*",
     "tests/tuner/*",
-    "tests/utilities/*",
 ]
 profile = "black"
 line_length = 120

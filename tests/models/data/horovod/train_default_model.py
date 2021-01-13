@@ -22,6 +22,8 @@ import os
 import sys
 
 # this is need as e.g. Conda do not uses `PYTHONPATH` env var as pip or/and virtualenv
+from pytorch_lightning.trainer.states import TrainerState
+
 sys.path = os.getenv('PYTHONPATH').split(':') + sys.path
 
 from pytorch_lightning import Trainer  # noqa: E402
@@ -54,8 +56,8 @@ def run_test_from_config(trainer_options):
     model = EvalModelTemplate()
 
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result == 1
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # Horovod should be initialized following training. If not, this will raise an exception.
     assert hvd.size() == 2
