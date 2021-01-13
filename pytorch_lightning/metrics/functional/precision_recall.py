@@ -359,8 +359,8 @@ def precision_recall(
     r"""
     Computes `Precision and Recall <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
 
-    .. math:: 
-        \text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}} \qquad 
+    .. math::
+        \text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}} \qquad
         \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}
 
     Where :math:`\text{TP}`m :math:`\text{FN}` and :math:`\text{FP}` represent the number

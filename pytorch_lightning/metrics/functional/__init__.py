@@ -18,7 +18,6 @@ from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
     dice_score,
     get_num_classes,
     multiclass_auroc,
-    precision_recall,
     stat_scores_multiple_classes,
     to_categorical,
     to_onehot,
