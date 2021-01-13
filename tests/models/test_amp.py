@@ -24,7 +24,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
@@ -41,7 +41,7 @@ def test_amp_single_gpu_dp(tmpdir):
         precision=16,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
@@ -60,7 +60,7 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
         precision=16,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
@@ -81,7 +81,7 @@ def test_amp_multi_gpu_dp(tmpdir):
         precision=16,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
@@ -100,7 +100,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
         precision=16,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
@@ -108,13 +108,13 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@mock.patch.dict(os.environ, {"SLURM_LOCALID": "0"})
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     # simulate setting slurm flags
     tutils.set_random_master_port()
-    os.environ['SLURM_LOCALID'] = str(0)
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -156,7 +156,7 @@ def test_cpu_model_with_amp(tmpdir):
         precision=16,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
         tpipes.run_model_test(trainer_options, model, on_gpu=False)
@@ -165,7 +165,7 @@ def test_cpu_model_with_amp(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_amp_without_apex(tmpdir):
     """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,

@@ -36,7 +36,7 @@ if _HOROVOD_AVAILABLE:
 else:
     print('You requested to import Horovod which is missing or not supported for your OS.')
 
-from tests.base import EvalModelTemplate  # noqa: E402
+from tests.base import BoringModel  # noqa: E402
 from tests.helpers.pipelines import run_prediction  # noqa: E402
 from tests.helpers.utils import reset_seed, set_random_master_port  # noqa: E402
 
@@ -53,7 +53,7 @@ def run_test_from_config(trainer_options):
     ckpt_path = trainer_options['weights_save_path']
     trainer_options.update(callbacks=[ModelCheckpoint(dirpath=ckpt_path)])
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
@@ -66,7 +66,7 @@ def run_test_from_config(trainer_options):
         return
 
     # test model loading
-    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = BoringModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()

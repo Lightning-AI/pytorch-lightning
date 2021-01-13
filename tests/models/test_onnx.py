@@ -21,7 +21,6 @@ import torch
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
 
 
@@ -92,7 +91,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
         progress_bar_refresh_rate=0,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
 

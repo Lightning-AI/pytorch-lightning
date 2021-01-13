@@ -105,6 +105,7 @@ def test_early_stopping_cpu_model(tmpdir):
             val_loss = torch.stack([x["x"] for x in outputs]).mean()
             self.log('val_loss', val_loss)
 
+    tutils.reset_seed()
     stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
     trainer_options = dict(
         callbacks=[stopping],
