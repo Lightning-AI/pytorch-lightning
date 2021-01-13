@@ -2,9 +2,8 @@ name: PyPI Release
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
-  push: {}
-# todo
-#    branches: [master, "release/*"]
+  push:
+    branches: [master, "release/*"]
   release:
     types: [created]
 
@@ -87,7 +86,6 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-        pip install virtualenv
         pip install awscli
 
     - name: Configure AWS credentials
