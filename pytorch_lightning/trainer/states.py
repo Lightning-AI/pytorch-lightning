@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import Enum
 from functools import wraps
 from typing import Callable, Optional
 
 import pytorch_lightning
+from pytorch_lightning.utilities import LightningEnum
 
 
-class TrainerState(str, Enum):
+class TrainerState(LightningEnum):
     """ State which is set in the :class:`~pytorch_lightning.trainer.trainer.Trainer`
     to indicate what is currently or was executed.
 
@@ -28,7 +28,7 @@ class TrainerState(str, Enum):
     True
     >>> # which is case sensitive
     >>> TrainerState.FINISHED == 'finished'
-    False
+    True
     """
     INITIALIZING = 'INITIALIZING'
     RUNNING = 'RUNNING'
