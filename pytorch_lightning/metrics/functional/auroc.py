@@ -47,6 +47,10 @@ def _auroc_compute(
         max_fpr: Optional[float] = None,
         sample_weights: Optional[Sequence] = None,
 ) -> torch.Tensor:
+    # binary mode override num_classes
+    if mode == 'binary':
+        num_classes = 1
+
     # check max_fpr parameter
     if max_fpr is not None:
         if (not isinstance(max_fpr, float) and 0 < max_fpr <= 1):
@@ -62,9 +66,7 @@ def _auroc_compute(
                              "multilabel/multiclass setting, 'max_fpr' must be"
                              f" set to `None`, received `{max_fpr=}`.")
 
-    if mode == 'binary':
-        num_classes = 1
-
+    # calculate fpr, tpr
     if mode == 'multi-label':
         # for multilabel we iteratively evaluate roc in a binary fashion
         output = [roc(preds[:, i], target[:, i], num_classes=1, pos_label=1, sample_weights=sample_weights)
@@ -74,6 +76,7 @@ def _auroc_compute(
     else:
         fpr, tpr, _ = roc(preds, target, num_classes, pos_label, sample_weights)
 
+    # calculate standard roc auc score
     if max_fpr is None or max_fpr == 1:
         if num_classes != 1:
             # calculate auc scores per class
