@@ -104,6 +104,7 @@ jobs:
       if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       run: |
         pip install dist/*.whl
+        pip uninstall -y pytorch-lightning
 
         pl_ver=$(python -c "import pytorch_lightning as pl ; print(pl.__version__)" 2>&1)
         # generate checkpoint to this version
