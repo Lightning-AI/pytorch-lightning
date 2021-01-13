@@ -169,7 +169,7 @@ class Precision(StatScores):
         else:
             tp, fp, tn, fn = self.tp, self.fp, self.tn, self.fn
 
-        return _precision_compute(tp, fp, tn, fn, self.average, self.mdmc_reduce, self.zero_division)
+        return _precision_compute(tp, fp, tn, fn, self.average, self.mdmc_reduce)
 
 
 class Recall(StatScores):
