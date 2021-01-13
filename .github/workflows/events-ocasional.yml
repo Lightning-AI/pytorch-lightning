@@ -20,7 +20,7 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           DRY_RUN: "false"
           PR_FILTER: "labelled"
-          PR_LABELS: "0:] Ready-To-Go,has conflicts"
+          PR_LABELS: "0:] Ready-To-Go"
           MERGE_MSG: "Branch was auto-updated."
           RETRY_COUNT: "3"
           RETRY_SLEEP: "500"
