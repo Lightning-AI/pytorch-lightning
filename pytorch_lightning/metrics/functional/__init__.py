@@ -35,7 +35,7 @@ from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolu
 from pytorch_lightning.metrics.functional.mean_squared_error import mean_squared_error  # noqa: F401
 from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squared_log_error  # noqa: F401
 from pytorch_lightning.metrics.functional.nlp import bleu_score  # noqa: F401
-from pytorch_lightning.metrics.functional.precision_recall import precision, recall  # noqa: F401
+from pytorch_lightning.metrics.functional.precision_recall import precision, precision_recall, recall  # noqa: F401
 from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve  # noqa: F401
 from pytorch_lightning.metrics.functional.psnr import psnr  # noqa: F401
 from pytorch_lightning.metrics.functional.r2score import r2score  # noqa: F401

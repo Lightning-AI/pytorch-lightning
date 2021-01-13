@@ -7,7 +7,7 @@ from sklearn.metrics import precision_score, recall_score
 
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics import Precision, Recall
-from pytorch_lightning.metrics.functional import precision, recall
+from pytorch_lightning.metrics.functional import precision, recall, precision_recall
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
@@ -92,6 +92,16 @@ def test_wrong_params(metric, fn_metric, average, mdmc_average, num_classes, ign
 
     with pytest.raises(ValueError):
         fn_metric(
+            _binary_inputs.preds[0],
+            _binary_inputs.target[0],
+            average=average,
+            mdmc_average=mdmc_average,
+            num_classes=num_classes,
+            ignore_index=ignore_index,
+        )
+
+    with pytest.raises(ValueError):
+        precision_recall(
             _binary_inputs.preds[0],
             _binary_inputs.target[0],
             average=average,
@@ -261,3 +271,70 @@ class TestPrecisionRecall(MetricTester):
                 "mdmc_average": mdmc_average,
             },
         )
+
+
+@pytest.mark.parametrize("average", ["micro", "macro", None, "weighted", "samples"])
+def test_precision_recall_joint(average):
+    """A simple test of the joint precision_recall metric.
+
+    No need to test this thorougly, as it is just a combination of precision and recall,
+    which are already tested thoroughly.
+    """
+
+    precision_result = precision(_mc_prob.preds[0], _mc_prob.target[0], average=average, num_classes=NUM_CLASSES)
+    recall_result = recall(_mc_prob.preds[0], _mc_prob.target[0], average=average, num_classes=NUM_CLASSES)
+
+    prec_recall_result = precision_recall(
+        _mc_prob.preds[0], _mc_prob.target[0], average=average, num_classes=NUM_CLASSES
+    )
+
+    if average is None:
+        assert prec_recall_result.size() == torch.Size([2, NUM_CLASSES])
+    else:
+        assert prec_recall_result.size() == torch.Size([2])
+
+    assert torch.equal(torch.stack([precision_result, recall_result]), prec_recall_result)
+
+
+_mc_k_target = torch.tensor([0, 1, 2])
+_mc_k_preds = torch.tensor([[0.35, 0.4, 0.25], [0.1, 0.5, 0.4], [0.2, 0.1, 0.7]])
+_ml_k_target = torch.tensor([[0, 1, 0], [1, 1, 0], [0, 0, 0]])
+_ml_k_preds = torch.tensor([[0.9, 0.2, 0.75], [0.1, 0.7, 0.8], [0.6, 0.1, 0.7]])
+
+
+@pytest.mark.parametrize("metric_class, metric_fn", [(Recall, recall), (Precision, precision)])
+@pytest.mark.parametrize(
+    "k, preds, target, average, expected_prec, expected_recall",
+    [
+        (1, _mc_k_preds, _mc_k_target, "micro", torch.tensor(2 / 3), torch.tensor(2 / 3)),
+        (2, _mc_k_preds, _mc_k_target, "micro", torch.tensor(1 / 2), torch.tensor(1.0)),
+        (1, _ml_k_preds, _ml_k_target, "micro", torch.tensor(0.0), torch.tensor(0.0)),
+        (2, _ml_k_preds, _ml_k_target, "micro", torch.tensor(1 / 6), torch.tensor(1 / 3)),
+    ],
+)
+def test_top_k(
+    metric_class,
+    metric_fn,
+    k: int,
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    average: str,
+    expected_prec: torch.Tensor,
+    expected_recall: torch.Tensor,
+):
+    """A simple test to check that top_k works as expected.
+
+    Just a sanity check, the tests in StatScores should already guarantee
+    the corectness of results.
+    """
+
+    class_metric = metric_class(top_k=k, average=average, num_classes=3)
+    class_metric.update(preds, target)
+
+    if metric_class.__name__ == "Precision":
+        result = expected_prec
+    else:
+        result = expected_recall
+
+    assert torch.equal(class_metric.compute(), result)
+    assert torch.equal(metric_fn(preds, target, top_k=k, average=average, num_classes=3), result)
