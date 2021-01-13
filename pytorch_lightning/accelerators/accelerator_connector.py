@@ -342,7 +342,7 @@ class AcceleratorConnector:
         # throw error to force user ddp or ddp2 choice
         if self.trainer.num_nodes > 1 and not (self.trainer.use_ddp2 or self.trainer.use_ddp):
             raise MisconfigurationException(
-                'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
+                'DataParallel does not support num_nodes > 1. '
                 'To avoid this exception, set `accelerator="ddp"` or `accelerator="ddp2"`'
             )
 
