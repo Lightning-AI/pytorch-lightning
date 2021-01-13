@@ -18,8 +18,6 @@ from argparse import Namespace
 from typing import Dict, Tuple, Union
 
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.package_utils import _module_available
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
