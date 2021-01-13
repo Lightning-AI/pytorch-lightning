@@ -247,10 +247,10 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
 
     model = TestModel(num_dl_idx, save_preds_on_dl_idx)
     model.test_epoch_end = None
-    
+
     trainer = Trainer(**trainer_args)
     results: List = trainer.test(model)
-    
+
     assert len(results) == num_dl_idx
     for dl_idx in range(num_dl_idx):
         result = results[dl_idx]
@@ -261,12 +261,7 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
             predictions = result["predictions"]
             print(trainer_args, predictions)
             assert len(predictions) == limit_test_batches * 2 * size
-"""
-@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
-@pytest.mark.parametrize('accelerator', ["ddp"])
-@pytest.mark.parametrize('gpus', [1, 2])
-@pytest.mark.parametrize('num_dl_idx', [1, 2])
-"""
+
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
@@ -285,7 +280,7 @@ def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gp
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
 @pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
 @pytest.mark.parametrize('accelerator', [None])
 @pytest.mark.parametrize('gpus', [1])
@@ -309,6 +304,7 @@ def test_prediction_collection_ddp_spawn(tmpdir, save_preds_on_dl_idx, accelerat
     Test `PredictionCollection` reduce properly in "ddp_spawn"
     """
     check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx)
+
 
 @pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
 @pytest.mark.parametrize('accelerator', ["ddp_cpu"])
