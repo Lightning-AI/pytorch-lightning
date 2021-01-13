@@ -13,8 +13,8 @@
 # limitations under the License.
 import importlib
 import os
-from typing import List, Optional, Sequence, Union, Callable
 from functools import wraps
+from typing import Callable, List, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -27,10 +27,10 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
-from pytorch_lightning.utilities import rank_zero_warn, DeviceType
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
