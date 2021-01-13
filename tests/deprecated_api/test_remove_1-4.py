@@ -37,7 +37,7 @@ def test_v1_4_0_deprecated_imports():
         from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils  # noqa: F811 F401
 
 
-def test_v1_4_0_deprecated_trainer_attributes():
+def test_v1_4_0_deprecated_trainer_device_distrib():
     """Test that Trainer attributes works fine."""
     trainer = Trainer()
     trainer._distrib_type = None
@@ -45,38 +45,67 @@ def test_v1_4_0_deprecated_trainer_attributes():
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.on_cpu = True
-    assert trainer.on_cpu
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.on_cpu
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.on_gpu = True
-    assert trainer.on_gpu
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.on_gpu
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.on_tpu = True
-    assert trainer.on_tpu
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.on_tpu
     trainer._device_type = None
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.use_tpu = True
-    assert trainer.use_tpu
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.use_tpu
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.use_dp = True
-    assert trainer.use_dp
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.use_dp
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.use_ddp = True
-    assert trainer.use_ddp
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.use_ddp
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.use_ddp2 = True
-    assert trainer.use_ddp2
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.use_ddp2
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.use_horovod = True
-    assert trainer.use_horovod
+    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
+        assert trainer.use_horovod
+
+
+def test_v1_4_0_deprecated_trainer_phase():
+    """Test that Trainer attributes works fine."""
+    trainer = Trainer()
+
+    assert not trainer.training
+    assert not trainer.testing
+
+    trainer.training = True
+    assert trainer.training
+    assert not trainer.testing
+
+    trainer.testing = True
+    assert not trainer.training
+    assert trainer.testing
 
 
 def test_v1_4_0_deprecated_metrics():
     from pytorch_lightning.metrics.functional.classification import stat_scores_multiple_classes
     with pytest.deprecated_call(match='will be removed in v1.4'):
         stat_scores_multiple_classes(pred=torch.tensor([0, 1]), target=torch.tensor([0, 1]))
+
+    from pytorch_lightning.metrics.functional.classification import iou
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        iou(torch.randint(0, 2, (10, 3, 3)),
+            torch.randint(0, 2, (10, 3, 3)))

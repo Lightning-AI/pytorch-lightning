@@ -21,7 +21,8 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, _OMEGACONF_AVAILABLE, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import (
+    _APEX_AVAILABLE, AMPType, _OMEGACONF_AVAILABLE, rank_zero_info, rank_zero_warn, DeviceType)
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -50,7 +51,7 @@ class CheckpointConnector:
         3. don't restore
         """
         # clear cache before restore
-        if self.trainer.on_gpu:
+        if self.trainer._device_type == DeviceType.GPU:
             torch.cuda.empty_cache()
 
         # 1. Attempt to restore states from HPC checkpoint
@@ -58,18 +59,18 @@ class CheckpointConnector:
         max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_suffix is not None:
             checkpoint_path = f'{dir_path_hpc}/hpc_ckpt_{max_suffix}.ckpt'
-            self.hpc_load(checkpoint_path, self.trainer.on_gpu)
+            self.hpc_load(checkpoint_path, self.trainer._device_type == DeviceType.GPU)
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
         # 2. Attempt to restore states from `resume_from_checkpoint` file
         elif self.trainer.resume_from_checkpoint is not None and not self.trainer.testing:
-            self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
+            self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer._device_type == DeviceType.GPU)
 
         # wait for all to catch up
         self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')
 
         # clear cache after restore
-        if self.trainer.on_gpu:
+        if self.trainer._device_type == DeviceType.GPU:
             torch.cuda.empty_cache()
 
     def restore(self, checkpoint_path: str, on_gpu: bool) -> bool:
@@ -291,7 +292,7 @@ class CheckpointConnector:
 
             # dump amp scaling
             if (self.trainer.amp_backend == AMPType.NATIVE
-                    and not self.trainer.use_tpu
+                    and self.trainer._device_type != DeviceType.TPU
                     and self.trainer.scaler is not None):
                 checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
             elif self.trainer.amp_backend == AMPType.APEX:
@@ -345,10 +346,11 @@ class CheckpointConnector:
         model.on_hpc_load(checkpoint)
 
     def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
-        """List up files in `dir_path` with name_key, then yield maximum suffix number.
+        """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
 
         Args:
             dir_path: path of directory which may contain files whose name include `name_key`
+            name_key: file name prefix
 
         Returns:
             None if no-corresponding-file else maximum suffix number

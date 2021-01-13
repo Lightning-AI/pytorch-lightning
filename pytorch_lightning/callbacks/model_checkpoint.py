@@ -20,7 +20,6 @@ Automatically save model checkpoints during training.
 
 """
 
-import numbers
 import os
 import re
 from copy import deepcopy
@@ -33,7 +32,6 @@ import yaml
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -289,14 +287,12 @@ class ModelCheckpoint(Callback):
             "max": (-torch_inf, "max"),
         }
 
-        # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
         if mode not in mode_dict and mode != 'auto':
-            rank_zero_warn(
-                f"ModelCheckpoint mode {mode} is unknown, fallback to auto mode",
-                RuntimeWarning,
+            raise MisconfigurationException(
+                f"`mode` can be auto, {', '.join(mode_dict.keys())}, got {mode}"
             )
-            mode = "auto"
 
+        # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
         if mode == 'auto':
             rank_zero_warn(
                 "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
@@ -554,12 +550,6 @@ class ModelCheckpoint(Callback):
         epoch = metrics.get("epoch")
         step = metrics.get("step")
 
-        if current is not None:
-            if isinstance(current, Metric):
-                current = current.compute()
-            elif isinstance(current, numbers.Number):
-                current = torch.tensor(current, device=pl_module.device, dtype=torch.float)
-
         if self.check_monitor_top_k(current):
             self._update_best_and_save(current, epoch, step, trainer, pl_module, metrics)
         elif self.verbose:
@@ -587,7 +577,7 @@ class ModelCheckpoint(Callback):
             self.best_k_models.pop(del_filepath)
 
         # do not save nan, replace with +/- inf
-        if torch.isnan(current):
+        if isinstance(current, torch.Tensor) and torch.isnan(current):
             current = torch.tensor(float('inf' if self.mode == "min" else '-inf'))
 
         filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, epoch, step, del_filepath)

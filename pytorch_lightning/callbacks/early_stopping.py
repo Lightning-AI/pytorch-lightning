@@ -19,14 +19,13 @@ Early Stopping
 Monitor a metric and stop training when it stops improving.
 
 """
-import numbers
 
 import numpy as np
 import torch
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class EarlyStopping(Callback):
@@ -98,15 +97,12 @@ class EarlyStopping(Callback):
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
     def __init_monitor_mode(self):
-        # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
         if self.mode not in self.mode_dict and self.mode != 'auto':
-            if self.verbose > 0:
-                rank_zero_warn(
-                    f'EarlyStopping mode={self.mode} is unknown, fallback to auto mode.',
-                    RuntimeWarning,
-                )
-            self.mode = 'auto'
+            raise MisconfigurationException(
+                f"`mode` can be auto, {', '.join(self.mode_dict.keys())}, got {self.mode}"
+            )
 
+        # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
         if self.mode == 'auto':
             rank_zero_warn(
                 "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
@@ -195,15 +191,6 @@ class EarlyStopping(Callback):
 
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
-
-        if current is not None:
-            if isinstance(current, Metric):
-                current = current.compute()
-            elif isinstance(current, numbers.Number):
-                current = torch.tensor(current, device=pl_module.device, dtype=torch.float)
-
-        if trainer.use_tpu and _TPU_AVAILABLE:
-            current = current.cpu()
 
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
