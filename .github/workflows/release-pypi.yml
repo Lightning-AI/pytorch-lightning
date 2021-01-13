@@ -2,8 +2,9 @@ name: PyPI Release
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
-  push:
-    branches: [master, "release/*"]
+  push: {}
+# todo
+#    branches: [master, "release/*"]
   release:
     types: [created]
 
@@ -68,7 +69,7 @@ jobs:
 
   create-legacy-ckpt:
     runs-on: ubuntu-20.04
-    needs: publish-package
+    needs: [build-package, publish-package]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
