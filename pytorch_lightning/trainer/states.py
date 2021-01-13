@@ -23,10 +23,10 @@ class TrainerState(LightningEnum):
     """ State which is set in the :class:`~pytorch_lightning.trainer.trainer.Trainer`
     to indicate what is currently or was executed.
 
-    >>> # you can math the type with string
+    >>> # you can compare the type with a string
     >>> TrainerState.RUNNING == 'RUNNING'
     True
-    >>> # which is case sensitive
+    >>> # which is case insensitive
     >>> TrainerState.FINISHED == 'finished'
     True
     """
@@ -34,6 +34,19 @@ class TrainerState(LightningEnum):
     RUNNING = 'RUNNING'
     FINISHED = 'FINISHED'
     INTERRUPTED = 'INTERRUPTED'
+
+
+class RunningStage(LightningEnum):
+    """Type of train phase.
+
+    >>> # you can match the Enum with string
+    >>> RunningStage.TRAINING == 'train'
+    True
+    """
+    TRAINING = 'train'
+    EVALUATING = 'eval'
+    TESTING = 'test'
+    TUNING = 'tune'
 
 
 def trainer_state(*, entering: Optional[TrainerState] = None, exiting: Optional[TrainerState] = None) -> Callable:
