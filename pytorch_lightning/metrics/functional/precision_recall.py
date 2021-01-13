@@ -362,7 +362,7 @@ def precision_recall(
     .. math:: \text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}
 
 
-    .. math:: \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}
+    .. math:: \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}
 
     Where :math:`\text{TP}`m :math:`\text{FN}` and :math:`\text{FP}` represent the number
     of true positives, false negatives and false positives respecitively. With the use of
