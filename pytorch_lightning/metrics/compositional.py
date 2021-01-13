@@ -75,3 +75,9 @@ class CompositionalMetric(Metric):
 
         if isinstance(self.metric_b, Metric):
             self.metric_b.reset()
+            
+    def persistent(self, mode: bool = False):
+        if isinstance(self.metric_a, Metric):
+            self.metric_a.persistent(mode=mode)
+        if isinstance(self.metric_b, Metric):
+            self.metric_b.persistent(mode=mode)
