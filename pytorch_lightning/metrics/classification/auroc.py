@@ -119,8 +119,9 @@ class AUROC(Metric):
                 raise ValueError(f"`max_fpr` should be a float in range (0, 1], got: {max_fpr}")
 
             if LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
-                raise RuntimeError('`max_fpr` argument requires `torch.bucketize` which'
-                                   ' is not available below PyTorch version 1.6')
+                raise RuntimeError(
+                    '`max_fpr` argument requires `torch.bucketize` which is not available below PyTorch version 1.6'
+                )
 
         self.mode = None
         self.add_state("preds", default=[], dist_reduce_fx=None)
