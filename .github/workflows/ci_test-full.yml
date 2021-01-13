@@ -3,7 +3,7 @@ name: CI complete testing
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
 
@@ -47,26 +47,47 @@ jobs:
       if: runner.os == 'windows'
       run: |
         # remove Horovod from requirements
-        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
+        fname = 'requirements/extra.txt'
+        lines = [line for line in open(fname).readlines() if not line.startswith('horovod')]
+        open(fname, 'w').writelines(lines)
+      shell: python
 
     # versions <= 1.3 may have issues on mac with some BLAS ops due to missing mkl (https://github.com/pytorch/pytorch/issues/18996)
     - name: Adjust minimal for Python 3.8 and MacOS
       if: matrix.requires == 'minimal' && (runner.os == 'macOS' || matrix.python-version == 3.8)
       run : |
-        python -c "fname = 'requirements.txt' ; req = open(fname).read().replace('torch>=1.3', 'torch>=1.4') ; open(fname, 'w').write(req)"
-        python -c "fname = 'requirements/examples.txt' ; req = open(fname).read().replace('torchvision>=0.4.1', 'torchvision>=0.5.0') ; open(fname, 'w').write(req)"
-        python -c "fname = 'requirements/extra.txt' ; req = open(fname).read().replace('torchtext>=0.3.1', 'torchtext>=0.5.0') ; open(fname, 'w').write(req)"
+        fname = 'requirements.txt'
+        req = open(fname).read().replace('torch>=1.3', 'torch>=1.4')
+        open(fname, 'w').write(req)
+
+        fname = 'requirements/examples.txt'
+        req = open(fname).read().replace('torchvision>=0.4.1', 'torchvision>=0.5.0')
+        open(fname, 'w').write(req)
+
+        fname = 'requirements/extra.txt'
+        req = open(fname).read().replace('torchtext>=0.3.1', 'torchtext>=0.5.0')
+        open(fname, 'w').write(req)
+      shell: python
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
       run: |
-        python -c "fname = 'requirements.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
-        python -c "fname = 'requirements/extra.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
-        python -c "fname = 'requirements/loggers.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
-        python -c "fname = 'requirements/test.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
-        python -c "fname = 'requirements/examples.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        files = (
+            'requirements.txt',
+            'requirements/extra.txt',
+            'requirements/loggers.txt',
+            'requirements/test.txt',
+            'requirements/examples.txt',
+        )
+        for fname in files:
+            req = open(fname).read().replace('>=', '==')
+            open(fname, 'w').write(req)
+
         # remove Fairscale from requirements
-        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
+        fname = 'requirements/extra.txt'
+        lines = [line for line in open(fname).readlines() if 'fairscale' not in line]
+        open(fname, 'w').writelines(lines)
+      shell: python
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -82,6 +103,16 @@ jobs:
         key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
+
+    - name: Pull checkpoints from S3
+      # todo: consider adding some caching, but ATM all models have less then 100KB
+      run: |
+        cd legacy
+        # wget is simpler but does not work on Windows
+        python -c "from urllib.request import urlretrieve ; urlretrieve('https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip', 'checkpoints.zip')"
+        ls -l .
+        unzip -o checkpoints.zip
+        ls -l checkpoints/
 
     - name: Install dependencies
       env:
@@ -115,8 +146,7 @@ jobs:
     - name: Cache datasets
       uses: actions/cache@v2
       with:
-        path: Datasets # This path is specific to Ubuntu
-        # Look to see if there is a cache hit for the corresponding requirements file
+        path: Datasets
         key: pl-dataset
 
     - name: Tests

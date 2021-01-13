@@ -15,8 +15,8 @@ import os
 from typing import Any, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 import torch.distributed as dist
+import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
@@ -26,7 +26,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, rank_zero_only, sync_ddp_if_available
 
 if HYDRA_AVAILABLE:
@@ -126,6 +126,7 @@ class DDPHPCAccelerator(Accelerator):
         """
         # determine which process we are and world size
         self.set_world_ranks(process_idx)
+        self.init_device(process_idx)
 
         # toggle prog bar
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
@@ -182,8 +183,6 @@ class DDPHPCAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
 
@@ -204,6 +203,7 @@ class DDPHPCAccelerator(Accelerator):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
+        self.ddp_plugin.device_ids = device_ids
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 

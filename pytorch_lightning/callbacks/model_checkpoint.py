@@ -20,6 +20,7 @@ Automatically save model checkpoints during training.
 
 """
 
+import numbers
 import os
 import re
 from copy import deepcopy
@@ -32,8 +33,8 @@ import yaml
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
-from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -207,6 +208,7 @@ class ModelCheckpoint(Callback):
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
             "current_score": self.current_score,
+            "dirpath": self.dirpath
         }
 
     def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
@@ -223,7 +225,8 @@ class ModelCheckpoint(Callback):
         global_step = trainer.global_step
 
         if (
-            self.save_top_k == 0  # no models are saved
+            trainer.fast_dev_run  # disable checkpointing with fast_dev_run
+            or self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
@@ -300,8 +303,7 @@ class ModelCheckpoint(Callback):
             and len(self._fs.ls(dirpath)) > 0
         ):
             rank_zero_warn(
-                f"Checkpoint directory {dirpath} exists and is not empty. With save_top_k={save_top_k},"
-                " all files in this directory will be deleted when a checkpoint is saved!"
+                f"Checkpoint directory {dirpath} exists and is not empty."
             )
 
         if dirpath and self._fs.protocol == 'file':
@@ -478,14 +480,14 @@ class ModelCheckpoint(Callback):
             version, name = trainer.accelerator_backend.broadcast((version, trainer.logger.name))
 
             ckpt_path = os.path.join(
-                save_dir, name, version, "checkpoints"
+                save_dir, str(name), version, "checkpoints"
             )
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
         self.dirpath = ckpt_path
 
-        if trainer.is_global_zero:
+        if not trainer.fast_dev_run and trainer.is_global_zero:
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def _add_backward_monitor_support(self, trainer):
@@ -580,8 +582,11 @@ class ModelCheckpoint(Callback):
         epoch = metrics.get("epoch")
         step = metrics.get("step")
 
-        if not isinstance(current, torch.Tensor) and current is not None:
-            current = torch.tensor(current, device=pl_module.device)
+        if current is not None:
+            if isinstance(current, Metric):
+                current = current.compute()
+            elif isinstance(current, numbers.Number):
+                current = torch.tensor(current, device=pl_module.device, dtype=torch.float)
 
         if self.check_monitor_top_k(current):
             self._update_best_and_save(current, epoch, step, trainer, pl_module, metrics)

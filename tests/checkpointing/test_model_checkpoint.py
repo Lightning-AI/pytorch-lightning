@@ -28,7 +28,7 @@ from omegaconf import Container, OmegaConf
 
 import pytorch_lightning as pl
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -636,8 +636,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
+def test_checkpoint_repeated_strategy(tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callbacks list
     """
@@ -657,7 +656,6 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         callbacks=[checkpoint_callback],
-        enable_pl_optimizer=enable_pl_optimizer,
         weights_summary=None,
         progress_bar_refresh_rate=0,
     )
@@ -674,7 +672,6 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
             limit_val_batches=2,
             limit_test_batches=2,
             resume_from_checkpoint=checkpoint_callback.best_model_path,
-            enable_pl_optimizer=enable_pl_optimizer,
             weights_summary=None,
             progress_bar_refresh_rate=0,
         )
@@ -685,8 +682,7 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
+def test_checkpoint_repeated_strategy_extended(tmpdir):
     """
     This test validates checkpoint can be called several times without
     increasing internally its global step if nothing run.
@@ -731,7 +727,6 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=3,
         limit_test_batches=4,
-        enable_pl_optimizer=enable_pl_optimizer,
         callbacks=[checkpoint_cb],
     )
     trainer = pl.Trainer(**trainer_config)
@@ -760,9 +755,9 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
         model = ExtendedBoringModel()
         trainer.test(model)
         assert not trainer.checkpoint_connector.has_trained
-        assert trainer.global_step == epochs * limit_train_batches
-        assert trainer.current_epoch == epochs
-
+        # resume_from_checkpoint is resumed when calling `.fit`
+        assert trainer.global_step == 0
+        assert trainer.current_epoch == 0
         trainer.fit(model)
         assert not trainer.checkpoint_connector.has_trained
         assert trainer.global_step == epochs * limit_train_batches
@@ -896,7 +891,8 @@ def test_current_score_when_nan(tmpdir, mode):
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
         weights_summary=None,
@@ -922,7 +918,8 @@ def test_hparams_type(tmpdir, hparams_type):
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
         callbacks=[model_checkpoint],
         logger=False,
         weights_summary=None,
