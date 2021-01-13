@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import platform
 from collections import Sequence
 from typing import List
 
@@ -305,6 +306,7 @@ def test_prediction_collection_ddp_spawn(tmpdir, save_preds_on_dl_idx, accelerat
     check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx)
 
 
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.parametrize('save_preds_on_dl_idx', [False])
 @pytest.mark.parametrize('accelerator', ["ddp_cpu"])
 @pytest.mark.parametrize('num_dl_idx', [2])
