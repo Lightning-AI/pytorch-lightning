@@ -47,10 +47,10 @@ class CompositionalMetric(Metric):
 
     def update(self, *args, **kwargs):
         if isinstance(self.metric_a, Metric):
-            self.metric_a.update(*args, self.metric_a._filter_kwargs(**kwargs))
+            self.metric_a.update(*args, **self.metric_a._filter_kwargs(**kwargs))
 
         if isinstance(self.metric_b, Metric):
-            self.metric_b.update(*args, self.metric_b._filter_kwargs(**kwargs))
+            self.metric_b.update(*args, **self.metric_b._filter_kwargs(**kwargs))
 
     def compute(self):
 
