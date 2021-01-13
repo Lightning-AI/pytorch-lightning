@@ -217,7 +217,7 @@ class PredictionCollection(object):
 
         def gather(pred: Union[List[Tensor], Tensor], idx: int) -> Union[List[Tensor], Tensor]:
             def convert(p):
-                return p[idx % self.world_size].item()
+                return p[idx % self.world_size].tolist()
             return (
                 [convert(p) for p in pred]
                 if isinstance(pred, (list, tuple)) else
