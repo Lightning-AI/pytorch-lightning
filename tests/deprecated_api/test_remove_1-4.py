@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in vX.Y.Z"""
+import sys
+
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from tests.base import BoringModel
 from tests.deprecated_api import _soft_unimport_module
 
 
@@ -109,3 +114,32 @@ def test_v1_4_0_deprecated_metrics():
     with pytest.deprecated_call(match='will be removed in v1.4'):
         iou(torch.randint(0, 2, (10, 3, 3)),
             torch.randint(0, 2, (10, 3, 3)))
+
+
+class CustomDDPPlugin(DDPPlugin):
+
+    def configure_ddp(self, model, device_ids):
+        # old, deprecated implementation
+        with pytest.deprecated_call(
+            match='`LightningDistributedDataParallel` is deprecated since v1.2 and will be removed in v1.4.'
+        ):
+            model = LightningDistributedDataParallel(
+                module=model,
+                device_ids=device_ids,
+                **self._ddp_kwargs,
+            )
+        return model
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        gpus=2,
+        accelerator="ddp_spawn",
+        plugins=[CustomDDPPlugin()]
+    )
+    trainer.fit(model)
