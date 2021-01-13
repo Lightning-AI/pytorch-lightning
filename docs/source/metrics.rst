@@ -260,6 +260,7 @@ For example for a metric that should return the sum of two different metrics, im
 It can now be done with:
 
 .. code-block:: python
+
     first_metric = MyFirstMetric()
     second_metric = MySecondMetric()
 
