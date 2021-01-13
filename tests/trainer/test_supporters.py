@@ -259,7 +259,6 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
         else:
             assert "predictions" in result
             predictions = result["predictions"]
-            print(trainer_args, predictions)
             assert len(predictions) == limit_test_batches * 2 * size
             for idx, pred in enumerate(predictions):
                 assert pred["id"] == idx
