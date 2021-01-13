@@ -213,25 +213,27 @@ class PredictionCollection(object):
         if not (torch.distributed.is_available() and torch.distributed.is_initialized()):
             return predictions
 
-        all_predictions = self.all_gather_fn(predictions)
+        predictions = self.all_gather_fn(predictions)
 
-        def gather(all_preds, k, idx):
-            result = all_preds[k]
-            if isinstance(result, (list, tuple)):
-                return [r[idx % self.world_size].cpu().tolist() for r in result]
-            else:
-                return result[idx % self.world_size].cpu().tolist()
+        def gather(pred: Union[List[Tensor], Tensor], idx: int) -> Union[List[Tensor], Tensor]:
+            def convert(p):
+                return p[idx % self.world_size].item()
+            return (
+                [convert(p) for p in pred]
+                if isinstance(pred, (list, tuple)) else
+                convert(pred)
+            )
 
-        out_predictions = {}
-        for all_preds in all_predictions.values():
-            keys = [k for k in all_preds if k != self.ID_KEY]
-            for pred in all_preds[self.ID_KEY]:
-                idx = int(pred.item())
-                if str(idx) in out_predictions:
-                    continue
-                out_predictions[str(idx)] = {k: gather(all_preds, k, idx) for k in keys}
-                out_predictions[str(idx)][self.ID_KEY] = idx
-        return out_predictions
+        out = {}
+        for pred in predictions.values():
+            keys = [k for k in pred if k != self.ID_KEY]
+            ids = pred[self.ID_KEY].int().tolist()
+            for id_ in ids:
+                if id_ not in out:
+                    res = {k: gather(pred[k], id_) for k in keys}
+                    res[self.ID_KEY] = id_
+                    out[id_] = res
+        return out
 
     def _add_prediction(self, name, values, filename):
         if filename not in self._legacy_predictions:
