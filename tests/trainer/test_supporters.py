@@ -306,9 +306,9 @@ def test_prediction_collection_ddp_spawn(tmpdir, save_preds_on_dl_idx, accelerat
     check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx)
 
 
-@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
+@pytest.mark.parametrize('save_preds_on_dl_idx', [False])
 @pytest.mark.parametrize('accelerator', ["ddp_cpu"])
-@pytest.mark.parametrize('num_dl_idx', [1, 2])
+@pytest.mark.parametrize('num_dl_idx', [2])
 def test_prediction_collection_ddp_cpu(tmpdir, save_preds_on_dl_idx, accelerator, num_dl_idx):
     """
     Test `PredictionCollection` reduce properly in "ddp_cpu"
