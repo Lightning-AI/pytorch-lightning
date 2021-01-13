@@ -66,10 +66,6 @@ class Precision(StatScores):
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
-        zero_division:
-            Score to use in the case of a 0 in the denominator in the calculation. Should be either
-            0 or 1.
-
         ignore_index:
             Integer specifying a target class to ignore. If given, this class index does not contribute
             to the returned score, regardless of reduction method. If an index is ignored, and ``average=None``
@@ -124,7 +120,6 @@ class Precision(StatScores):
         self,
         average: str = "micro",
         mdmc_average: Optional[str] = None,
-        zero_division: int = 0,
         ignore_index: Optional[int] = None,
         num_classes: Optional[int] = None,
         threshold: float = 0.5,
@@ -138,9 +133,6 @@ class Precision(StatScores):
         allowed_average = ["micro", "macro", "weighted", "samples", "none", None]
         if average not in allowed_average:
             raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
-
-        if zero_division not in [0, 1]:
-            raise ValueError("The `zero_division` has to be either 0 or 1.")
 
         super().__init__(
             reduce="macro" if average in ["weighted", "none", None] else average,
@@ -156,7 +148,6 @@ class Precision(StatScores):
             dist_sync_fn=dist_sync_fn,
         )
 
-        self.zero_division = zero_division
         self.average = average
 
     def compute(self) -> torch.Tensor:
@@ -229,10 +220,6 @@ class Recall(StatScores):
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
-        zero_division:
-            Score to use in the case of a 0 in the denominator in the calculation. Should be either
-            0 or 1.
-
         ignore_index:
             Integer specifying a target class to ignore. If given, this class index does not contribute
             to the returned score, regardless of reduction method. If an index is ignored, and ``average=None``
@@ -288,7 +275,6 @@ class Recall(StatScores):
         self,
         average: str = "micro",
         mdmc_average: Optional[str] = None,
-        zero_division: int = 0,
         ignore_index: Optional[int] = None,
         num_classes: Optional[int] = None,
         threshold: float = 0.5,
@@ -302,9 +288,6 @@ class Recall(StatScores):
         allowed_average = ["micro", "macro", "weighted", "samples", "none", None]
         if average not in allowed_average:
             raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
-
-        if zero_division not in [0, 1]:
-            raise ValueError("The `zero_division` has to be either 0 or 1.")
 
         super().__init__(
             reduce="macro" if average in ["weighted", "none", None] else average,
@@ -320,7 +303,6 @@ class Recall(StatScores):
             dist_sync_fn=dist_sync_fn,
         )
 
-        self.zero_division = zero_division
         self.average = average
 
     def compute(self) -> torch.Tensor:
@@ -343,4 +325,4 @@ class Recall(StatScores):
         else:
             tp, fp, tn, fn = self.tp, self.fp, self.tn, self.fn
 
-        return _recall_compute(tp, fp, tn, fn, self.average, self.mdmc_reduce, self.zero_division)
+        return _recall_compute(tp, fp, tn, fn, self.average, self.mdmc_reduce)

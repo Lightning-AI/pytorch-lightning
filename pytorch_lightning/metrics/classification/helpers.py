@@ -446,7 +446,7 @@ def _reduce_stat_scores(
     weights: Optional[torch.Tensor],
     average: str,
     mdmc_average: Optional[str],
-    zero_division: int,
+    zero_division: int = 0,
 ) -> torch.Tensor:
     """
     Reduces scores of type ``numerator/denominator`` or

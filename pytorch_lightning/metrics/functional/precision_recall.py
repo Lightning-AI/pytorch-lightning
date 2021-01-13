@@ -26,7 +26,6 @@ def _precision_compute(
     fn: torch.Tensor,
     average: str,
     mdmc_average: Optional[str],
-    zero_division: int,
 ) -> torch.Tensor:
     return _reduce_stat_scores(
         numerator=tp,
@@ -34,7 +33,6 @@ def _precision_compute(
         weights=None if average != "weighted" else tp + fn,
         average=average,
         mdmc_average=mdmc_average,
-        zero_division=zero_division,
     )
 
 
@@ -43,7 +41,6 @@ def precision(
     target: torch.Tensor,
     average: str = "micro",
     mdmc_average: Optional[str] = None,
-    zero_division: int = 0,
     ignore_index: Optional[int] = None,
     num_classes: Optional[int] = None,
     threshold: float = 0.5,
@@ -103,10 +100,6 @@ def precision(
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
-        zero_division:
-            Score to use in the case of a 0 in the denominator in the calculation. Should be either
-            0 or 1.
-
         ignore_index:
             Integer specifying a target class to ignore. If given, this class index does not contribute
             to the returned score, regardless of reduction method. If an index is ignored, and ``average=None``
@@ -164,9 +157,6 @@ def precision(
     if average not in allowed_average:
         raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
-    if zero_division not in [0, 1]:
-        raise ValueError("The `zero_division` has to be either 0 or 1.")
-
     allowed_mdmc_average = [None, "samplewise", "global"]
     if mdmc_average not in allowed_mdmc_average:
         raise ValueError(f"The `mdmc_average` has to be one of {allowed_mdmc_average}, got {mdmc_average}.")
@@ -190,7 +180,7 @@ def precision(
         ignore_index=ignore_index,
     )
 
-    return _precision_compute(tp, fp, tn, fn, average, mdmc_average, zero_division)
+    return _precision_compute(tp, fp, tn, fn, average, mdmc_average)
 
 
 def _recall_compute(
@@ -200,7 +190,6 @@ def _recall_compute(
     fn: torch.Tensor,
     average: str,
     mdmc_average: Optional[str],
-    zero_division: int,
 ) -> torch.Tensor:
     return _reduce_stat_scores(
         numerator=tp,
@@ -208,7 +197,6 @@ def _recall_compute(
         weights=None if average != "weighted" else tp + fn,
         average=average,
         mdmc_average=mdmc_average,
-        zero_division=zero_division,
     )
 
 
@@ -217,7 +205,6 @@ def recall(
     target: torch.Tensor,
     average: str = "micro",
     mdmc_average: Optional[str] = None,
-    zero_division: int = 0,
     ignore_index: Optional[int] = None,
     num_classes: Optional[int] = None,
     threshold: float = 0.5,
@@ -273,10 +260,6 @@ def recall(
             - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`metrics:Input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
-
-        zero_division:
-            Score to use in the case of a 0 in the denominator in the calculation. Should be either
-            0 or 1.
 
         ignore_index:
             Integer specifying a target class to ignore. If given, this class index does not contribute
@@ -335,9 +318,6 @@ def recall(
     if average not in allowed_average:
         raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
 
-    if zero_division not in [0, 1]:
-        raise ValueError("The `zero_division` has to be either 0 or 1.")
-
     allowed_mdmc_average = [None, "samplewise", "global"]
     if mdmc_average not in allowed_mdmc_average:
         raise ValueError("The `mdmc_average` has to be one of {allowed_mdmc_average}, got {mdmc_average}.")
@@ -361,4 +341,4 @@ def recall(
         ignore_index=ignore_index,
     )
 
-    return _recall_compute(tp, fp, tn, fn, average, mdmc_average, zero_division)
+    return _recall_compute(tp, fp, tn, fn, average, mdmc_average)
