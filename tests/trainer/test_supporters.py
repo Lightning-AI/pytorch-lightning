@@ -215,8 +215,8 @@ class TestModel(BoringModel):
             return {"y": loss}
 
         predictions = [
-            {"id": id, "prediction": prediction}
-            for id, prediction in zip(indexes, output)
+            {"id": id.item(), "prediction": id}
+            for id in indexes
         ]
 
         self.add_predictions(predictions)
@@ -229,28 +229,28 @@ class TestModel(BoringModel):
         return [self.create_dataset() for _ in range(self._numbers_test_dataloaders)]
 
 
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
-@pytest.mark.parametrize('accelerator', ["ddp"])
-@pytest.mark.parametrize('gpus', [1, 2])
-@pytest.mark.parametrize('num_dl_idx', [1, 2])
-def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
+def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
+    num_processes = 2
+    limit_test_batches = 2
+    trainer_args = {
+        "default_root_dir": tmpdir,
+        "limit_test_batches" : limit_test_batches,
+        "accelerator": accelerator,
+    }
 
-    """
-    Test `PredictionCollection` reduce properly in ddp mode
-    """
+    if accelerator == "ddp_cpu":
+        trainer_args["num_processes"] = num_processes
+        size = num_processes
+    else:
+        trainer_args["gpus"] = gpus
+        size = gpus
+
     model = TestModel(num_dl_idx, save_preds_on_dl_idx)
     model.test_epoch_end = None
-    limit_test_batches = 2
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_test_batches=limit_test_batches,
-        accelerator=accelerator,
-        gpus=gpus
-    )
+    
+    trainer = Trainer(**trainer_args)
     results: List = trainer.test(model)
+    
     assert len(results) == num_dl_idx
     for dl_idx in range(num_dl_idx):
         result = results[dl_idx]
@@ -259,4 +259,63 @@ def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gp
         else:
             assert "predictions" in result
             predictions = result["predictions"]
-            assert len(predictions) == limit_test_batches * 2 * trainer.world_size
+            print(trainer_args, predictions)
+            assert len(predictions) == limit_test_batches * 2 * size
+"""
+@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
+@pytest.mark.parametrize('accelerator', ["ddp"])
+@pytest.mark.parametrize('gpus', [1, 2])
+@pytest.mark.parametrize('num_dl_idx', [1, 2])
+"""
+
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
+@pytest.mark.parametrize('accelerator', ["ddp"])
+@pytest.mark.parametrize('gpus', [2])
+@pytest.mark.parametrize('num_dl_idx', [1, 2])
+def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
+
+    """
+    Test `PredictionCollection` reduce properly in "ddp" mode
+    """
+    check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx)
+
+
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
+@pytest.mark.parametrize('accelerator', [None])
+@pytest.mark.parametrize('gpus', [1])
+@pytest.mark.parametrize('num_dl_idx', [1, 2])
+def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
+
+    """
+    Test `PredictionCollection` reduce properly in "ddp" mode
+    """
+    check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
+@pytest.mark.parametrize('accelerator', ["ddp_spawn"])
+@pytest.mark.parametrize('gpus', [1, 2])
+@pytest.mark.parametrize('num_dl_idx', [1, 2])
+def test_prediction_collection_ddp_spawn(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
+
+    """
+    Test `PredictionCollection` reduce properly in "ddp_spawn"
+    """
+    check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx)
+
+@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
+@pytest.mark.parametrize('accelerator', ["ddp_cpu"])
+@pytest.mark.parametrize('num_dl_idx', [1, 2])
+def test_prediction_collection_ddp_cpu(tmpdir, save_preds_on_dl_idx, accelerator, num_dl_idx):
+
+    """
+    Test `PredictionCollection` reduce properly in "ddp_cpu"
+    """
+    check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, None, num_dl_idx)

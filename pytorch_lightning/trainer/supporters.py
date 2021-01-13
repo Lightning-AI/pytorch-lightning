@@ -212,8 +212,7 @@ class PredictionCollection(object):
         This function all_gather predictions accross multiple processes
         # todo: see https://github.com/PyTorchLightning/pytorch-lightning/issues/5493 for better details.
         """
-
-        if not (self.world_size > 1 and torch.distributed.is_available() or not torch.distributed.is_initialized()):
+        if not (torch.distributed.is_available() and torch.distributed.is_initialized()):
             return predictions
 
         all_predictions = self.all_gather(predictions)
