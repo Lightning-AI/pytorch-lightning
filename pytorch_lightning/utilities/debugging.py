@@ -134,7 +134,7 @@ class InternalDebugger(object):
         self.saved_lr_scheduler_updates.append(loss_dict)
 
     @enabled_only
-    def track_eval_loss_history(self, test_mode, batch_idx, dataloader_idx, output):
+    def track_eval_loss_history(self, batch_idx, dataloader_idx, output):
         loss_dict = {
             'sanity_check': self.trainer.running_sanity_check,
             'dataloader_idx': dataloader_idx,
@@ -143,7 +143,7 @@ class InternalDebugger(object):
             'output': output
         }
 
-        if test_mode:
+        if self.trainer.testing:
             self.saved_test_losses.append(loss_dict)
         else:
             self.saved_val_losses.append(loss_dict)

@@ -56,7 +56,7 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities import AMPType, DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -421,6 +421,46 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
+    def setup_trainer(self, model: LightningModule):
+        """
+        Sanity check a few things before starting actual training or testing.
+
+        Args:
+            model: The model to run sanity test on.
+        """
+        # --------------------------
+        # Setup??
+        # --------------------------
+        ref_model = self.get_model()
+
+        # set the ranks and devices
+        self.accelerator_backend.dist.rank = self.global_rank
+        self.accelerator_backend.dist.device = ref_model.device
+
+        # set local properties on the model
+        self.model_connector.copy_trainer_model_properties(model)
+
+        # init amp. Must be done here instead of __init__ to allow ddp to work
+        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
+            self.scaler = self.precision_connector.backend.scaler
+
+        # log hyper-parameters
+        if self.logger is not None:
+            # save exp to get started (this is where the first experiment logs are written)
+            self.logger.log_hyperparams(ref_model.hparams_initial)
+            self.logger.log_graph(ref_model)
+            self.logger.save()
+
+        # wait for all to join if on distributed
+        self.accelerator_backend.barrier("setup_trainer")
+
+        # register auto-resubmit when on SLURM
+        self.slurm_connector.register_slurm_signal_handlers()
+
+        # track model now.
+        # if cluster resets state, the model will update with the saved weights
+        self.model = model
+
     def fit(
         self,
         model: LightningModule,
@@ -455,10 +495,6 @@ class Trainer(
 
         # hook
         self.data_connector.prepare_data(model)
-
-        # bookkeeping
-        # we reuse fit in .test() but change its behavior using this flag
-        self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
 
         # ----------------------------
         # SET UP TRAINING
@@ -590,14 +626,14 @@ class Trainer(
             # hook
             self.train_loop.on_train_end()
 
-    def run_evaluation(self, test_mode: bool = False, max_batches=None):
+    def run_evaluation(self, max_batches=None):
 
         # used to know if we are logging for val, test + reset cached results
         self._set_wide_running_stage(RunningStage.TESTING if test_mode else RunningStage.EVALUATING)
         self.logger_connector.reset()
 
         # bookkeeping
-        self.evaluation_loop.testing = test_mode
+        self.evaluation_loop.testing = self.testing
 
         # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
@@ -701,7 +737,7 @@ class Trainer(
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
         with self.profiler.profile("run_test_evaluation"):
-            eval_loop_results, _ = self.run_evaluation(test_mode=True)
+            eval_loop_results, _ = self.run_evaluation()
 
         if len(eval_loop_results) == 0:
             return 1
@@ -732,7 +768,7 @@ class Trainer(
             self.on_sanity_check_start()
 
             # run eval step
-            _, eval_results = self.run_evaluation(test_mode=False, max_batches=self.num_sanity_val_batches)
+            _, eval_results = self.run_evaluation(max_batches=self.num_sanity_val_batches)
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
@@ -835,11 +871,9 @@ class Trainer(
         # run tests
         self.tested_ckpt_path = ckpt_path
         self.testing = True
-        os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
         results = self.fit(model)
         self.testing = False
-        del os.environ['PL_TESTING_MODE']
 
         # teardown
         if self.is_function_implemented('teardown'):

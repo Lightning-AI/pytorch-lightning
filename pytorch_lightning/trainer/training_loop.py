@@ -35,7 +35,6 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainLoop:
-
     def __init__(self, trainer, multiple_trainloader_mode):
         self.trainer = trainer
         self.early_stopping_accumulator = None
@@ -130,68 +129,26 @@ class TrainLoop:
         # check that model is configured correctly
         self.trainer.config_validator.verify_loop_configurations(model)
 
-        # attach model log function to callback
-        self.trainer.callback_connector.attach_model_logging_functions(model)
-
-    def setup_training(self, model: LightningModule):
-        """Sanity check a few things before starting actual training.
-
-        Args:
-            model: The model to run sanity test on.
+    def setup_training(self):
         """
-        # --------------------------
-        # Setup??
-        # --------------------------
-        ref_model = self.trainer.get_model()
-
-        # set the ranks and devices
-        self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
-        self.trainer.accelerator_backend.dist.device = ref_model.device
-
-        # give model convenience properties
-        ref_model.trainer = self.trainer
-
-        # set local properties on the model
-        self.trainer.model_connector.copy_trainer_model_properties(ref_model)
-
-        # init amp. Must be done here instead of __init__ to allow ddp to work
-        if (
-            self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16
-            and self.trainer._device_type != DeviceType.TPU
-        ):
-            self.trainer.scaler = self.trainer.precision_connector.backend.scaler
-
-        # log hyper-parameters
-        if self.trainer.logger is not None:
-            # save exp to get started (this is where the first experiment logs are written)
-            self.trainer.logger.log_hyperparams(ref_model.hparams_initial)
-            self.trainer.logger.log_graph(ref_model)
-            self.trainer.logger.save()
-
-        # wait for all to join if on distributed
-        self.trainer.accelerator_backend.barrier("setup_training")
-
-        # register auto-resubmit when on SLURM
-        self.trainer.slurm_connector.register_slurm_signal_handlers()
-
+        Sanity check a few things before starting actual training.
+        """
         # --------------------------
         # Pre-train
         # --------------------------
+        ref_model = self.trainer.get_model()
+
         # on pretrain routine start
         self.trainer.on_pretrain_routine_start(ref_model)
         if self.trainer.is_function_implemented("on_pretrain_routine_start"):
             ref_model.on_pretrain_routine_start()
 
         # print model summary
-        if self.trainer.is_global_zero and not self.trainer.testing:
+        if self.trainer.is_global_zero:
             ref_model.summarize(mode=self.trainer.weights_summary)
 
-        # track model now.
-        # if cluster resets state, the model will update with the saved weights
-        self.trainer.model = model
-
         # restore training state and model weights before hpc is called
-        self.trainer.checkpoint_connector.restore_weights(model)
+        self.trainer.checkpoint_connector.restore_weights()
 
         # on pretrain routine end
         self.trainer.on_pretrain_routine_end(ref_model)
@@ -500,8 +457,7 @@ class TrainLoop:
         if using_native_amp and is_lbfgs:
             raise MisconfigurationException(
                 'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli'
-            )
+                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
 
         # wraps into LightingOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
@@ -644,7 +600,10 @@ class TrainLoop:
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
-            epoch_output, self.checkpoint_accumulator, self.early_stopping_accumulator, self.num_optimizers
+            epoch_output,
+            self.checkpoint_accumulator,
+            self.early_stopping_accumulator,
+            self.num_optimizers
         )
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
@@ -699,8 +658,11 @@ class TrainLoop:
                     # automatic_optimization=False: don't block synchronization here
                     with self.block_ddp_sync_behaviour():
                         self.training_step_and_backward(
-                            split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
-                        )
+                            split_batch,
+                            batch_idx,
+                            opt_idx,
+                            optimizer,
+                            self.trainer.hiddens)
 
                     batch_outputs = self._process_closure_result(
                         batch_outputs=batch_outputs,
@@ -717,7 +679,11 @@ class TrainLoop:
 
                         def train_step_and_backward_closure():
                             result = self.training_step_and_backward(
-                                split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
+                                split_batch,
+                                batch_idx,
+                                opt_idx,
+                                optimizer,
+                                self.trainer.hiddens
                             )
                             return None if result is None else result.loss
 
@@ -726,7 +692,10 @@ class TrainLoop:
 
                     else:
                         self._curr_step_result = self.training_step(
-                            split_batch, batch_idx, opt_idx, self.trainer.hiddens
+                            split_batch,
+                            batch_idx,
+                            opt_idx,
+                            self.trainer.hiddens
                         )
 
                     if self._curr_step_result is None:
@@ -773,7 +742,9 @@ class TrainLoop:
         else:
             yield None
 
-    def _process_closure_result(self, batch_outputs: list, opt_idx: int) -> list:
+    def _process_closure_result(
+        self, batch_outputs: list, opt_idx: int
+    ) -> list:
         opt_closure_result = self._curr_step_result
 
         if opt_closure_result is not None:

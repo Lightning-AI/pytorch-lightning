@@ -116,10 +116,10 @@ def test_torchscript_retain_training_state():
     ParityModuleRNN,
     BasicGAN,
 ])
-def test_torchscript_properties(modelclass):
+def test_torchscript_properties(tmpdir, modelclass):
     """ Test that scripted LightningModule has unnecessary methods removed. """
     model = modelclass()
-    model.datamodule = TrialMNISTDataModule()
+    model.datamodule = TrialMNISTDataModule(tmpdir)
     script = model.to_torchscript()
     assert not hasattr(script, "datamodule")
     assert not hasattr(model, "batch_size") or hasattr(script, "batch_size")

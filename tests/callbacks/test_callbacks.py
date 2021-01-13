@@ -111,8 +111,6 @@ def test_trainer_callback_system(torch_save):
         call.on_before_accelerator_backend_setup(trainer, model),
         call.setup(trainer, model, 'test'),
         call.on_fit_start(trainer, model),
-        call.on_pretrain_routine_start(trainer, model),
-        call.on_pretrain_routine_end(trainer, model),
         call.on_test_start(trainer, model),
         call.on_test_epoch_start(trainer, model),
         call.on_test_batch_start(trainer, model, ANY, 0, 0),
