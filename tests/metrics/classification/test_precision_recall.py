@@ -101,6 +101,46 @@ def test_wrong_params(metric, fn_metric, average, mdmc_average, num_classes, ign
         )
 
 
+@pytest.mark.parametrize("metric_class, metric_fn", [(Recall, recall), (Precision, precision)])
+def test_zero_division(metric_class, metric_fn):
+    """ Test that zero_division works correctly (currently should just set to 0). """
+
+    preds = torch.tensor([1, 2, 1, 1])
+    target = torch.tensor([2, 1, 2, 1])
+
+    cl_metric = metric_class(average="none", num_classes=3)
+    cl_metric(preds, target)
+
+    result_cl = cl_metric.compute()
+    result_fn = metric_fn(preds, target, average="none", num_classes=3)
+
+    assert result_cl[0] == result_fn[0] == 0
+
+
+@pytest.mark.parametrize("metric_class, metric_fn", [(Recall, recall), (Precision, precision)])
+def test_no_support(metric_class, metric_fn):
+    """This tests a rare edge case, where there is only one class present
+    in target, and ignore_index is set to exactly that class - and the
+    average method is equal to 'weighted'.
+
+    This would mean that the sum of weights equals zero, and would, without
+    taking care of this case, return NaN. However, the reduction function
+    should catch that and set the metric to equal the value of zero_division
+    in this case (zero_division is for now not configurable and equals 0).
+    """
+
+    preds = torch.tensor([1, 1, 0, 0])
+    target = torch.tensor([0, 0, 0, 0])
+
+    cl_metric = metric_class(average="weighted", num_classes=2, ignore_index=0)
+    cl_metric(preds, target)
+
+    result_cl = cl_metric.compute()
+    result_fn = metric_fn(preds, target, average="weighted", num_classes=2, ignore_index=0)
+
+    assert result_cl == result_fn == 0
+
+
 @pytest.mark.parametrize(
     "metric_class, metric_fn, sk_fn", [(Recall, recall, recall_score), (Precision, precision, precision_score)]
 )
