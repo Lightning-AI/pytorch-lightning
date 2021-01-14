@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import BatchSampler
-from torch.utils.data import DataLoader
 
 
 class LightningBatchSampler(BatchSampler):
@@ -36,9 +36,9 @@ class LightningBatchSampler(BatchSampler):
             yield batch
 
     @staticmethod
-    def to_new_dataloader(dataloader):
-        if  getattr(dataloader, "dataset", None) is not None and getattr(dataloader, "sampler", None) is not None:
-            return type(dataloader)(
+    def to_new_dataloader(dataloader) -> DataLoader:
+        if getattr(dataloader, "dataset", None) is not None and getattr(dataloader, "sampler", None) is not None:
+            dataloader = type(dataloader)(
                 dataloader.dataset,
                 batch_size=1,
                 shuffle=None,

@@ -333,8 +333,8 @@ class LightningModule(
             if self.trainer.batch_indices is None:
                 rank_zero_warn(
                     "Lightning failed to wrap your BatchSampler and indices can't be retrieved automatically"
-                )      
-                return           
+                )
+                return
 
             self.trainer.predictions.cache(
                 predictions,

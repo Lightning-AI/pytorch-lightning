@@ -307,8 +307,7 @@ class EvaluationLoop(object):
 
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx, batch_samplers):
         # save batch indices
-        batch_sampler = batch_samplers[dataloader_idx]
-        self.trainer.batch_indices = batch_sampler.batch_indices if isinstance(batch_sampler, LightningBatchSampler) else None
+        self._set_batch_indices(dataloader_idx, batch_samplers)
 
         # set dataloader_idx to model and track batch_size
         self.trainer.logger_connector.on_evaluation_batch_start(
@@ -374,3 +373,8 @@ class EvaluationLoop(object):
 
         if len(step_pbar_metrics) > 0:
             self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)
+
+    def _set_batch_indices(self, dataloader_idx: int, batch_samplers):
+        batch_sampler = batch_samplers[dataloader_idx]
+        batch_indices = batch_sampler.batch_indices if isinstance(batch_sampler, LightningBatchSampler) else None
+        self.trainer.batch_indices = batch_indices
