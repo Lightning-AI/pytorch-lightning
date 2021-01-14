@@ -15,8 +15,8 @@
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import Any, Callable, Dict, List, Optional, Union
-import pandas as pd
 
+import pandas as pd
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
@@ -148,7 +148,8 @@ class PredictionCollection(object):
                 raise MisconfigurationException(
                     "Prediction Collection doesn't support multiple predictions for one sample yet.")
 
-            cache[dl_idx][batch_index] = {self.ID_KEY: batch_index, "predictions": apply_to_collection(pred, torch.Tensor, convert)}
+            cache[dl_idx][batch_index] = {
+                self.ID_KEY: batch_index, "predictions": apply_to_collection(pred, torch.Tensor, convert)}
 
     def cache(self, predictions: List, dl_idx: int, batch_indices: List[int], current_stage: str) -> None:
         """

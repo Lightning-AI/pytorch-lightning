@@ -14,6 +14,7 @@
 
 from torch.utils.data.sampler import BatchSampler
 
+
 class LightningBatchSampler(BatchSampler):
     """
     This sampler is used to capture indices from the sampler.
@@ -36,17 +37,17 @@ class LightningBatchSampler(BatchSampler):
     @classmethod
     def to_new_dataloader(cls, dataloader, shuffle=False):
         return type(dataloader)(
-            dataloader.dataset, 
-            batch_size=1, 
-            shuffle=None, 
+            dataloader.dataset,
+            batch_size=1,
+            shuffle=None,
             sampler=None,
-            batch_sampler=cls(dataloader.sampler, dataloader.batch_size, dataloader.drop_last), 
-            num_workers=dataloader.num_workers, 
+            batch_sampler=cls(dataloader.sampler, dataloader.batch_size, dataloader.drop_last),
+            num_workers=dataloader.num_workers,
             collate_fn=dataloader.collate_fn,
-            pin_memory=dataloader.pin_memory, 
-            drop_last=None, 
+            pin_memory=dataloader.pin_memory,
+            drop_last=None,
             timeout=dataloader.timeout,
-            worker_init_fn=dataloader.worker_init_fn, 
+            worker_init_fn=dataloader.worker_init_fn,
             multiprocessing_context=dataloader.multiprocessing_context,
-            generator=dataloader.generator            
+            generator=dataloader.generator
         )

@@ -18,6 +18,7 @@ from typing import List
 
 import pytest
 import torch
+from pandas import DataFrame
 from torch.utils.data import TensorDataset
 
 from pytorch_lightning import Trainer
@@ -208,13 +209,13 @@ class TestModel(BoringModel):
         self._save_preds_on_dl_idx = save_preds_on_dl_idx
 
     def test_step(self, batch, batch_idx, dataloader_idx=None):
-        indexes, x = batch["index"], batch["batch"]
+        x = batch["batch"]
         output = self.layer(x)
         loss = self.loss(batch, output)
 
         if dataloader_idx == 1 and not self._save_preds_on_dl_idx:
             return {"y": loss}
-        
+
         if dataloader_idx == 1:
             self.add_predictions([{"a": o, "b": o} for o in output])
         else:
@@ -260,10 +261,7 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
             assert "predictions" in result
             predictions = result["predictions"]
             assert len(predictions) == limit_test_batches * 2 * size
-            print(predictions)
-            #for idx, pred in enumerate(predictions):
-            #    assert pred["id"] == idx
-            #    assert pred["prediction"] == idx
+            assert isinstance(predictions, DataFrame)
 
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',

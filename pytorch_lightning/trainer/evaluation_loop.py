@@ -16,12 +16,12 @@ from typing import List
 import torch
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.sampler import LightningBatchSampler
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
-from pytorch_lightning.core.sampler import LightningBatchSampler
 
 
 class EvaluationLoop(object):
@@ -308,7 +308,7 @@ class EvaluationLoop(object):
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx, batch_samplers):
         # save batch indices
         self.trainer.batch_indices = batch_samplers[dataloader_idx].batch_indices
-        
+
         # set dataloader_idx to model and track batch_size
         self.trainer.logger_connector.on_evaluation_batch_start(
             self.testing, batch, dataloader_idx, self.num_dataloaders)
