@@ -186,17 +186,10 @@ Saving test predictions is simple !
             return {"y": loss}
 
     results = trainer.test(test_dataloaders=test_dataloaders)
-<<<<<<< HEAD
     for dataloader_idx, dataloader_result in enumerate(results_:
         
         # predictions will be a pandas DataFrame
         dataloader_result["predictions"]
-=======
-
-    # results is a list of dictionary. One for each test dataloader
-    for dl_idx, dl_result in enumerate(results):
-        dl_result["predictions"]
->>>>>>> e10a9b80726e7ab58ef9515e003dad68884a59cb
 
 ------------
 
