@@ -46,6 +46,7 @@ def test_metric_lightning(tmpdir):
         def training_epoch_end(self, outs):
             assert torch.allclose(self.sum, self.metric.compute())
             self.sum = 0.0
+            self.metric.reset()
 
     model = TestModel()
     model.val_dataloader = None

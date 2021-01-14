@@ -294,6 +294,7 @@ class Trainer(
         super().__init__()
         self._device_type = DeviceType.CPU
         self._distrib_type = None
+        self._running_stage = None
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -787,7 +788,7 @@ class Trainer(
                     f'specify a path for a checkpoint .test(ckpt_path=PATH)'
                 )
                 return {}
-            if self.accelerator_backend is not None and not self.use_tpu:
+            if self.accelerator_backend is not None and not self._device_type == DeviceType.TPU:
                 self.accelerator_backend.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
