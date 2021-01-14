@@ -22,23 +22,18 @@ from tests.base.boring_model import BoringModel
 
 def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     """
-    This tests ensures reduction works in un-balanced logging settings
+    This tests ensures reduction works in unbalanced logging settings,
+    even when a Callback also logs.
     """
     class TestModel(BoringModel):
-
-        loss_1 = []
-        loss_2 = []
+        actual = {0: [], 1: []}
 
         def training_step(self, batch, batch_idx, optimizer_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            if optimizer_idx == 0 and self.trainer.global_step > 10:
-                self.log("loss_1", loss, on_epoch=True, prog_bar=True)
-                self.loss_1.append(loss.detach().clone())
-            elif optimizer_idx == 1:
-                self.log("loss_2", loss, on_epoch=True, prog_bar=True)
-                self.loss_2.append(loss.detach().clone())
-            return {"loss": loss}
+            out = super().training_step(batch, batch_idx)
+            loss = out["loss"]
+            self.log(f"loss_{optimizer_idx}", loss, on_epoch=True)
+            self.actual[optimizer_idx].append(loss)
+            return out
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.001)
@@ -48,16 +43,19 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     model = TestModel()
     model.training_epoch_end = None
 
+    class TestCallback(pl.Callback):
+        def on_train_batch_end(self, trainer, pl_module, *args):
+            pl_module.log("test", -1)
+
     # Initialize a trainer
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
+        callbacks=[TestCallback()]
     )
-
     trainer.fit(model)
 
-    assert torch.equal(trainer.callback_metrics["loss_2_step"], model.loss_2[-1])
-    assert torch.equal(trainer.callback_metrics["loss_1_step"], model.loss_1[-1])
-    # test loss are properly reduced
-    assert torch.abs(trainer.callback_metrics["loss_2_epoch"] - torch.FloatTensor(model.loss_2).mean()) < 1e-6
-    assert torch.abs(trainer.callback_metrics["loss_1_epoch"] - torch.FloatTensor(model.loss_1).mean()) < 1e-6
+    for k, v in model.actual.items():
+        assert torch.equal(trainer.callback_metrics[f"loss_{k}_step"], v[-1])
+        # test loss is properly reduced
+        torch.testing.assert_allclose(trainer.callback_metrics[f"loss_{k}_epoch"], torch.tensor(v).mean())
