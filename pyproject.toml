@@ -40,7 +40,6 @@ skip_glob = [
     "tests/base/*",
     "tests/callbacks/*",
     "tests/loggers/*",
-    "tests/metrics/*",
     "tests/models/*",
     "tests/trainer/*",
     "tests/tuner/*",
