@@ -74,7 +74,7 @@ def parameter_validation(fn: Callable) -> Callable:
     when tying weights on TPU's.
 
     Args:
-        fn: `.to` method
+        fn: ``.to`` method
 
     Note:
         TPU's require weights to be tied/shared after moving the module to the device.
