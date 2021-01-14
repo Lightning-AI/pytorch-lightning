@@ -127,8 +127,8 @@ def test_v1_4_0_deprecated_metrics():
 
     from pytorch_lightning.metrics.functional.classification import multiclass_auroc
     with pytest.deprecated_call(match='will be removed in v1.4'):
-        multiclass_auroc(torch.rand(10, 5).softmax(dim=-1),
-                         torch.randint(0, 5, (10, )))
+        multiclass_auroc(torch.rand(20, 5).softmax(dim=-1),
+                         torch.randint(0, 5, (20, )))
 
 
 class CustomDDPPlugin(DDPPlugin):
