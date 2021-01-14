@@ -9,11 +9,11 @@ from sklearn.metrics import recall_score as sk_recall
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.functional.classification import (
-    stat_scores,
-    stat_scores_multiple_classes,
+    dice_score,
     precision,
     recall,
-    dice_score,
+    stat_scores,
+    stat_scores_multiple_classes,
 )
 from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
 from pytorch_lightning.metrics.utils import get_num_classes, to_categorical, to_onehot
