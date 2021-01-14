@@ -327,10 +327,14 @@ class LightningModule(
                 tbptt_reduce_fx=tbptt_reduce_fx,
             )
 
-    def add_predictions(self, predictions: List[Dict]) -> None:
+    def add_predictions(self, predictions: List) -> None:
         if getattr(self, "trainer", None) is not None:
             dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
-            self.trainer.predictions.cache(predictions, dl_idx, self.trainer.logger_connector._current_stage)
+            self.trainer.predictions.cache(
+                predictions, 
+                dl_idx, 
+                self.trainer.batch_indices,
+                self.trainer.logger_connector._current_stage)
         else:
             rank_zero_warn(
                 "Your LightningModule isn't attached to the Lightning Trainer and can't save predictions"

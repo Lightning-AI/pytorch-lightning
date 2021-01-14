@@ -15,6 +15,7 @@
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import Any, Callable, Dict, List, Optional, Union
+import pandas as pd
 
 import torch
 from torch import Tensor
@@ -134,45 +135,25 @@ class PredictionCollection(object):
     def predictions(self) -> Dict:
         return self._predictions[self.current_stage]
 
-    def _cache_prediction(self, predictions: List[Dict], dl_idx: int) -> None:
+    def _cache_prediction(self, predictions: List[Dict], dl_idx: int, batch_indices: List[int]) -> None:
         cache = self.predictions
 
         cache.setdefault(dl_idx, {})
 
-        for pred in predictions:
-            if self.ID_KEY in pred:
-                key = pred[self.ID_KEY]
-                if not isinstance(key, (int, float)):
-                    raise MisconfigurationException(
-                        f"`id` key should be either a int or float. Found {type(key)}."
-                    )
-            else:
-                raise MisconfigurationException(
-                    f"The predictions dict requires an `{self.ID_KEY}` key."
-                )
+        def convert(value):
+            return value.cpu().tolist()
 
-            if key in cache[dl_idx]:
+        for batch_index, pred in zip(batch_indices, predictions):
+            if batch_index in cache[dl_idx]:
                 raise MisconfigurationException(
                     "Prediction Collection doesn't support multiple predictions for one sample yet.")
 
-            cache[dl_idx][key] = pred
+            cache[dl_idx][batch_index] = {self.ID_KEY: batch_index, "predictions": apply_to_collection(pred, torch.Tensor, convert)}
 
-    def cache(self, predictions: List[Dict], dl_idx: int, current_stage: str) -> None:
+    def cache(self, predictions: List, dl_idx: int, batch_indices: List[int], current_stage: str) -> None:
         """
-        This function expects predictions to be a list of dictionnaries.
-        Each dictionary should contain an unique key `id`.
-        The `id` key-value should be a unique number to identify each sample.
-
+        This function expects predictions to be a list of tensors or dictionnaries of tensors.
         Example::
-
-            indexes = ...
-            preds = ...
-
-            # we need an unique number id to identify each sample.
-            predictions = [
-                {"id": id, "prediction": prediction}
-                for id, prediction in zip(indexes, preds)
-            ]
 
             self.add_predictions(predictions)
         """
@@ -181,19 +162,9 @@ class PredictionCollection(object):
 
         self.current_stage = current_stage
 
-        assert isinstance(predictions, list)
-        if not all(isinstance(p, dict) and "id" in p for p in predictions):
-            raise MisconfigurationException(
-                "predictions objects should be a list where each element is a dict. "
-                "Each dict should contain an unique number `id` to identify each sample."
-            )
-
-        if not all(len(p) > 1 for p in predictions):
-            raise MisconfigurationException(
-                "each element should contain at least an unique number `id` and a prediction tensor."
-            )
-
-        self._cache_prediction(predictions, dl_idx)
+        assert isinstance(predictions, (list, torch.Tensor))
+        assert len(predictions) == len(batch_indices)
+        self._cache_prediction(predictions, dl_idx, batch_indices)
 
     def attach_predictions(self, results: List[Dict], current_stage: str) -> List[Dict]:
         self.current_stage = current_stage
@@ -202,7 +173,7 @@ class PredictionCollection(object):
             if dl_idx in predictions:
                 dl_predictions = predictions[dl_idx]
                 dl_predictions = self.all_gather_predictions(dl_predictions)
-                result["predictions"] = list(dl_predictions.values())
+                result["predictions"] = pd.json_normalize(dl_predictions.values(), sep='_')
         return results
 
     def all_gather_predictions(self, predictions: Dict) -> Dict:
@@ -220,7 +191,7 @@ class PredictionCollection(object):
                 return p[idx % self.world_size].tolist()
             return (
                 [convert(p) for p in pred]
-                if isinstance(pred, (list, tuple)) else
+                if isinstance(pred, (list)) else
                 convert(pred)
             )
 
@@ -230,7 +201,7 @@ class PredictionCollection(object):
             ids = pred[self.ID_KEY].int().tolist()
             for id_ in ids:
                 if id_ not in out:
-                    res = {k: gather(pred[k], id_) for k in keys}
+                    res = {k: apply_to_collection(pred[k], (torch.Tensor, list), gather, id_) for k in keys}
                     res[self.ID_KEY] = id_
                     out[id_] = res
         return out

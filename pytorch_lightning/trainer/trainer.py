@@ -588,7 +588,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_start()
 
         # set up the eval loop
-        self.evaluation_loop.setup(model, max_batches, dataloaders)
+        dataloaders, batch_samplers = self.evaluation_loop.setup(model, max_batches, dataloaders)
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_start()
@@ -609,7 +609,7 @@ class Trainer(
                     break
 
                 # hook
-                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
+                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx, batch_samplers)
 
                 # lightning module methods
                 with self.profiler.profile("evaluation_step_and_end"):
@@ -629,7 +629,7 @@ class Trainer(
             self.evaluation_loop.outputs.append(dl_outputs)
 
         # lightning module method
-        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
+        eval_results = self.evaluation_loop.evaluation_epoch_end()
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
@@ -647,7 +647,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_model_train()
         torch.set_grad_enabled(True)
 
-        return eval_loop_results, deprecated_eval_results
+        return eval_loop_results, eval_results
 
     def track_output_for_epoch_end(self, outputs, output):
         if output is not None:
@@ -666,7 +666,7 @@ class Trainer(
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
         with self.profiler.profile("run_test_evaluation"):
-            eval_loop_results, _ = self.run_evaluation(test_mode=True)
+            eval_loop_results, eval_results = self.run_evaluation(test_mode=True)
 
         if len(eval_loop_results) == 0:
             return 1

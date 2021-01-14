@@ -163,20 +163,32 @@ Saving test predictions is simple !
 
     class MyModel(LightningModule):
 
-        def test_step(self, batch, batch_idx):
-            indexes = ...
-            preds = ...
+        # VERSION 1
+        def test_step(self, batch, batch_idx, dataloader_idx=None):
+            x, y = batch
+            output = self.layer(x)
+            loss = self.loss(y, output)
+            
+            # Add directly a tensor
+            self.add_predictions(output)
+            
+            return {"y": loss}
 
-            # we need an unique id to identify each sample.
-            predictions = [
-                {"id": id, "prediction": prediction}
-                for id, prediction in zip(indexes, preds)
-            ]
-
-            self.add_predictions(predictions)
+        # VERSION 2
+        def test_step(self, batch, batch_idx, dataloader_idx=None):
+            x, y = batch
+            output = self.layer(x)
+            loss = self.loss(y, output)
+            
+            # Support list of dictionaries.
+            self.add_predictions([{"pred": o, "target": t} for o, t in zip(output, y)])
+            
+            return {"y": loss}
 
     results = trainer.test(test_dataloaders=test_dataloaders)
-    for dataloader_result in results:
+    for dataloader_idx, dataloader_result in enumerate(results_:
+        
+        # predictions will be a pandas DataFrame
         dataloader_result["predictions"]
 
 ------------
