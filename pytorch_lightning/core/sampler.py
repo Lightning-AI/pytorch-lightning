@@ -49,5 +49,4 @@ class LightningBatchSampler(BatchSampler):
             timeout=getattr(dataloader, "timeout", 0),
             worker_init_fn=getattr(dataloader, "worker_init_fn", None),
             multiprocessing_context=getattr(dataloader, "multiprocessing_context", None),
-            generator=getattr(dataloader, "generator", None)
         )
