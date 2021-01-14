@@ -142,6 +142,7 @@ def test_v1_4_0_deprecated_metrics():
                torch.randint(0, 2, (10, 3)),
                class_reduction='micro')
 
+
 class CustomDDPPlugin(DDPPlugin):
 
     def configure_ddp(self, model, device_ids):

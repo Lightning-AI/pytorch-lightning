@@ -5,19 +5,15 @@ import pytest
 import torch
 from sklearn.metrics import precision_score, recall_score
 
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics import Precision, Recall
-from pytorch_lightning.metrics.functional import precision, recall, precision_recall
-from tests.metrics.classification.inputs import (
-    _binary_inputs,
-    _binary_prob_inputs,
-    _multiclass_inputs,
-    _multiclass_prob_inputs as _mc_prob,
-    _multidim_multiclass_inputs as _mdmc,
-    _multidim_multiclass_prob_inputs as _mdmc_prob,
-    _multilabel_inputs as _ml,
-    _multilabel_prob_inputs as _ml_prob,
-)
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification
+from pytorch_lightning.metrics.functional import precision, precision_recall, recall
+from tests.metrics.classification.inputs import _binary_inputs, _binary_prob_inputs, _multiclass_inputs
+from tests.metrics.classification.inputs import _multiclass_prob_inputs as _mc_prob
+from tests.metrics.classification.inputs import _multidim_multiclass_inputs as _mdmc
+from tests.metrics.classification.inputs import _multidim_multiclass_prob_inputs as _mdmc_prob
+from tests.metrics.classification.inputs import _multilabel_inputs as _ml
+from tests.metrics.classification.inputs import _multilabel_prob_inputs as _ml_prob
 from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 torch.manual_seed(42)
