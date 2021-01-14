@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pytorch_lightning import Trainer, seed_everything, LightningModule
+from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import FLOAT16_EPSILON
