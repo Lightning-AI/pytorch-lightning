@@ -93,9 +93,9 @@ def parameter_validation(fn: Callable) -> Callable:
         post_param_count = len(list(self.parameters()))
 
         if not pre_param_count == post_param_count:
-            rank_zero_warn('The model parameters do not match after moving to the target device. '
-                           'If your model employs weight sharing on TPU,'
-                           'please tie your weights using the `on_post_move_to_device` model hook.')
+            rank_zero_warn('The model parameters do not match after moving to the target device.'
+                           ' If your model employs weight sharing on TPU,'
+                           ' please tie your weights using the `on_post_move_to_device` model hook.')
 
         return module
 
