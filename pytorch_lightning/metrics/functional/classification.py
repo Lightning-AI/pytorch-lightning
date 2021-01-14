@@ -226,9 +226,8 @@ def precision_recall(
     """
     Computes precision and recall for different thresholds
 
-    .. warning :: Deprecated in favor of using
-     :func:`~pytorch_lightning.metrics.functional.recall` and
-     :func:`~pytorch_lightning.metrics.functional.precision` separately.
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.precision_recall`.
      Will be removed in v1.4.0.
 
     Args:
@@ -259,7 +258,7 @@ def precision_recall(
     """
     rank_zero_warn(
         "This `precision_recall` was deprecated in v1.2.0 in favor of"
-        " `using `precision` and `recall` separately."
+        " `from pytorch_lightning.metrcs.functional import precision_recall`."
         " It will be removed in v1.4.0", DeprecationWarning
     )
 
