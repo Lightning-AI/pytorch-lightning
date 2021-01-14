@@ -216,7 +216,7 @@ class TestModel(BoringModel):
             return {"y": loss}
 
         if dataloader_idx == 1:
-            self.add_predictions([{"a": o, "b": o} for o in output])
+            self.add_predictions([{"a": o, "b": o} for idx, o in enumerate(output)])
         else:
             self.add_predictions(output)
 
@@ -262,7 +262,10 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
             assert len(predictions) == limit_test_batches * 2 * size
             for idx, pred in enumerate(predictions):
                 assert pred["id"] == idx
-                assert pred["prediction"] == idx
+                if dl_idx == 1:
+                    assert 'a' in pred["predictions"] and 'b' in pred["predictions"]
+                else:
+                    assert isinstance(pred["predictions"], list) and len(pred["predictions"]) == 2
 
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
