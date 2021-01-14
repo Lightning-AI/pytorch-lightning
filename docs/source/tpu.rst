@@ -195,7 +195,7 @@ Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia
 -----------------
 
 Weight Sharing/Tying
------------------------
+--------------------
 Weight Tying/Sharing is a technique where in the module weights are shared among two or more layers.
 This is a common method to reduce memory consumption and is utilized in many State of the Art
 architectures today.
