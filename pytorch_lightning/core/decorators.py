@@ -79,7 +79,7 @@ def parameter_validation(fn: Callable) -> Callable:
     Note:
         TPU's require weights to be tied/shared after moving the module to the device.
         Failure to do this results in the initialization of new weights which are not tied.
-        To overcome this issue, weights should be tied using the `on_post_move_to_device` model hook
+        To overcome this issue, weights should be tied using the ``on_post_move_to_device`` model hook
         which is called after the module has been moved to the device.
 
     See Also:
