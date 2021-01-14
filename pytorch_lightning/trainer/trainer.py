@@ -95,7 +95,7 @@ class Trainer(
         auto_select_gpus: bool = False,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         log_gpu_memory: Optional[str] = None,
-        progress_bar_refresh_rate: int = 1,
+        progress_bar_refresh_rate: Optional[int] = None,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
@@ -219,7 +219,7 @@ class Trainer(
             process_position: orders the progress bar when running multiple models on same machine.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
-                Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
+                Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`. Default: 1
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks. Passing bool
                 value is deprecated in v1.1 and will be removed in v1.3.
