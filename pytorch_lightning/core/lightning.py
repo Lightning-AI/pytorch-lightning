@@ -331,15 +331,9 @@ class LightningModule(
         """
         This function enables to save add predictions and retrieved them into results objects.
 
-        Args:
-            predictions: Predictions to be saved by the user
-
-        Return:
-            None
-
         .. code-block:: python
 
-		    import pandas as pd
+            import pandas as pd
 
             class MyModel(LightningModule):
 
@@ -367,8 +361,13 @@ class LightningModule(
 
             results = trainer.test(test_dataloaders=test_dataloaders)
             for dataloader_idx, dataloader_result in enumerate(results_:
-
                 df = pd.json_normalize(dataloader_result["predictions"], sep='_')
+
+        Args:
+            predictions: Predictions to be saved by the user
+
+        Return:
+            None
         """
         if getattr(self, "trainer", None) is not None:
             dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
