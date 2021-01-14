@@ -37,8 +37,7 @@ else:
 
 from tests.base import EvalModelTemplate  # noqa: E402
 from tests.base.develop_pipelines import run_prediction  # noqa: E402
-from tests.base.develop_utils import set_random_master_port, reset_seed  # noqa: E402
-
+from tests.base.develop_utils import reset_seed, set_random_master_port  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--trainer-options', required=True)
