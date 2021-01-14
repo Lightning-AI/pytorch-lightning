@@ -327,7 +327,49 @@ class LightningModule(
                 tbptt_reduce_fx=tbptt_reduce_fx,
             )
 
-    def add_predictions(self, predictions: List) -> None:
+    def add_predictions(self, predictions: Union[torch.Tensor, List]) -> None:
+        """
+        This function enables to save add predictions and retrieved them into results objects.
+
+        Args:
+            predictions: Predictions to be saved by the user
+
+        Return:
+            None
+
+        .. code-block:: python
+
+		    import pandas as pd
+
+            class MyModel(LightningModule):
+
+                # VERSION 1
+                def test_step(self, batch, batch_idx, dataloader_idx=None):
+                    x, y = batch
+                    output = self.layer(x)
+                    loss = self.loss(y, output)
+
+                    # Add directly a tensor
+                    self.add_predictions(output)
+
+                    return {"y": loss}
+
+                # VERSION 2
+                def test_step(self, batch, batch_idx, dataloader_idx=None):
+                    x, y = batch
+                    output = self.layer(x)
+                    loss = self.loss(y, output)
+
+                    # Support list of dictionaries.
+                    self.add_predictions([{"pred": o, "target": t} for o, t in zip(output, y)])
+
+                    return {"y": loss}
+
+            results = trainer.test(test_dataloaders=test_dataloaders)
+            for dataloader_idx, dataloader_result in enumerate(results_:
+
+                df = pd.json_normalize(dataloader_result["predictions"], sep='_')
+        """
         if getattr(self, "trainer", None) is not None:
             dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
             if self.trainer.batch_indices is None:
