@@ -18,7 +18,6 @@ from typing import List
 
 import pytest
 import torch
-from pandas import DataFrame
 from torch.utils.data import TensorDataset
 
 from pytorch_lightning import Trainer
@@ -261,7 +260,9 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
             assert "predictions" in result
             predictions = result["predictions"]
             assert len(predictions) == limit_test_batches * 2 * size
-            assert isinstance(predictions, DataFrame)
+            for idx, pred in enumerate(predictions):
+                assert pred["id"] == idx
+                assert pred["prediction"] == idx
 
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',

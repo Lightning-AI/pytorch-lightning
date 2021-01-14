@@ -161,6 +161,8 @@ Saving test predictions is simple !
 
 .. code-block:: python
 
+    import pandas as pd
+
     class MyModel(LightningModule):
 
         # VERSION 1
@@ -168,10 +170,10 @@ Saving test predictions is simple !
             x, y = batch
             output = self.layer(x)
             loss = self.loss(y, output)
-            
+
             # Add directly a tensor
             self.add_predictions(output)
-            
+
             return {"y": loss}
 
         # VERSION 2
@@ -179,17 +181,16 @@ Saving test predictions is simple !
             x, y = batch
             output = self.layer(x)
             loss = self.loss(y, output)
-            
+
             # Support list of dictionaries.
             self.add_predictions([{"pred": o, "target": t} for o, t in zip(output, y)])
-            
+
             return {"y": loss}
 
     results = trainer.test(test_dataloaders=test_dataloaders)
     for dataloader_idx, dataloader_result in enumerate(results_:
-        
-        # predictions will be a pandas DataFrame
-        dataloader_result["predictions"]
+
+        df = pd.json_normalize(dataloader_result["predictions"], sep='_')
 
 ------------
 
