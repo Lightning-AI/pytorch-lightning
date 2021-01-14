@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 from functools import partial
 
 import pytest
