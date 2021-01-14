@@ -94,14 +94,6 @@ skip_glob = [
 
 
     # todo
-    "tests/models/*",
-
-
-    # todo
-    "tests/trainer/*",
-
-
-    # todo
     "tests/tuner/*",
 ]
 profile = "black"

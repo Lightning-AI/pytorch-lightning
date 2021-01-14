@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import warnings
 from unittest import mock
 
-from tests.base.boring_model import BoringModel
 from pytorch_lightning import Trainer
-import warnings
+from tests.base.boring_model import BoringModel
 
 
 class TestModel(BoringModel):

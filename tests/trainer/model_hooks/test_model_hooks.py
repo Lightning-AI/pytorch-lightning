@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from tests.base.boring_model import BoringModel
-from pytorch_lightning import Trainer
 from unittest import mock
+
+from pytorch_lightning import Trainer
+from tests.base.boring_model import BoringModel
 
 
 @mock.patch('pytorch_lightning.core.hooks.ModelHooks.on_validation_model_eval')
