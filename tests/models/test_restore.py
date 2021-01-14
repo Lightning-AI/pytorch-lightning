@@ -16,6 +16,7 @@ import logging as log
 import os
 import pickle
 from copy import deepcopy
+from typing import Generic, TypeVar
 
 import cloudpickle
 import pytest
@@ -26,7 +27,6 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
-from tests.base import EvalModelTemplate, GenericEvalModelTemplate
 from tests.helpers import BoringModel
 
 
@@ -52,11 +52,41 @@ class ModelTrainerPropertyParity(Callback):
         self._check_properties(trainer, pl_module)
 
 
+class ValTestLossBoringModel(BoringModel):
+    def __init__(self, batch_size=64):
+        super().__init__()
+        self.save_hyperparameters()
+
+    def validation_step(self, batch, batch_idx):
+        out = super().validation_step(batch, batch_idx)
+        self.log('val_loss', out['x'])
+        return out
+
+    def test_step(self, batch, batch_idx):
+        out = super().test_step(batch, batch_idx)
+        self.log('test_loss', out['y'])
+        return out
+
+
+T = TypeVar('T')
+
+
+class GenericParentValTestLossBoringModel(Generic[T], ValTestLossBoringModel):
+    def __init__(self, batch_size: int = 64):
+        super().__init__(batch_size=batch_size)
+
+
+class GenericValTestLossBoringModel(GenericParentValTestLossBoringModel[int]):
+    pass
+
+
 def test_model_properties_resume_from_checkpoint(tmpdir):
-    """ Test that properties like `current_epoch` and `global_step`
-    in model and trainer are always the same. """
-    model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    """
+    Test that properties like `current_epoch` and `global_step`
+    in model and trainer are always the same.
+    """
+    model = ValTestLossBoringModel()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     trainer_args = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -73,8 +103,8 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
     """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
-    model = BoringModel()
-    checkpoint_cb = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    model = ValTestLossBoringModel()
+    checkpoint_cb = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -99,11 +129,11 @@ class CaptureCallbacksBeforeTraining(Callback):
 
 def test_callbacks_state_resume_from_checkpoint(tmpdir):
     """ Test that resuming from a checkpoint restores callbacks that persist state. """
-    model = EvalModelTemplate()
+    model = ValTestLossBoringModel()
     callback_capture = CaptureCallbacksBeforeTraining()
 
     def get_trainer_args():
-        checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+        checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
             default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[
                 checkpoint,
@@ -133,17 +163,17 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
 
 def test_callbacks_references_resume_from_checkpoint(tmpdir):
     """ Test that resuming from a checkpoint sets references as expected. """
-    model = EvalModelTemplate()
+    model = ValTestLossBoringModel()
     args = {'default_root_dir': tmpdir, 'max_steps': 1, 'logger': False}
 
     # initial training
-    checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     trainer = Trainer(**args, callbacks=[checkpoint])
     assert checkpoint is trainer.callbacks[-1] is trainer.checkpoint_callback
     trainer.fit(model)
 
     # resumed training
-    new_checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    new_checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     # pass in a new checkpoint object, which should take
     # precedence over the one in the last.ckpt file
     trainer = Trainer(**args, callbacks=[new_checkpoint], resume_from_checkpoint=str(tmpdir / "last.ckpt"))
@@ -158,7 +188,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 
     tutils.set_random_master_port()
 
-    model = EvalModelTemplate()
+    model = ValTestLossBoringModel()
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -184,7 +214,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = ValTestLossBoringModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
@@ -208,7 +238,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     """Verify `test()` on pretrained model."""
     tutils.set_random_master_port()
 
-    model = EvalModelTemplate()
+    model = ValTestLossBoringModel()
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -236,7 +266,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
 
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = ValTestLossBoringModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
@@ -256,7 +286,8 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
 
 def test_running_test_pretrained_model_cpu(tmpdir):
     """Verify test() on pretrained model."""
-    model = EvalModelTemplate()
+    tutils.reset_seed()
+    model = ValTestLossBoringModel()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -280,27 +311,27 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = ValTestLossBoringModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(new_trainer)
+    tutils.assert_ok_model_acc(new_trainer, key='test_loss')
 
 
-@pytest.mark.parametrize('model_template', [EvalModelTemplate, GenericEvalModelTemplate])
+@pytest.mark.parametrize('model_template', [ValTestLossBoringModel, GenericValTestLossBoringModel])
 def test_load_model_from_checkpoint(tmpdir, model_template):
     """Verify test() on pretrained model."""
-    hparams = model_template.get_default_hparams()
-    model = model_template(**hparams)
+    tutils.reset_seed()
+    model = model_template()
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1)],
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='val_loss', save_top_k=-1)],
         default_root_dir=tmpdir,
     )
 
@@ -315,7 +346,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     # load last checkpoint
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
 
-    # Since `EvalModelTemplate` has `_save_hparams = True` by default, check that ckpt has hparams
+    # Since `BoringModel` has `_save_hparams = True` by default, check that ckpt has hparams
     ckpt = torch.load(last_checkpoint)
     assert model_template.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), 'hyper_parameters missing from checkpoints'
 
@@ -323,8 +354,8 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     pretrained_model = model_template.load_from_checkpoint(last_checkpoint)
 
     # test that hparams loaded correctly
-    for k, v in hparams.items():
-        assert getattr(pretrained_model, k) == v
+    for k, v in model.hparams.items():
+        assert getattr(pretrained_model.hparams, k) == v
 
     # assert weights are the same
     for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
@@ -335,14 +366,13 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     new_trainer.test(pretrained_model)
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(new_trainer)
+    tutils.assert_ok_model_acc(new_trainer, key='test_loss')
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    model = BoringModel()
 
     trainer_options = dict(max_epochs=1, gpus=2, accelerator='dp', default_root_dir=tmpdir)
 
@@ -397,7 +427,7 @@ def test_dp_resume(tmpdir):
         tpipes.run_prediction(dp_model, dataloader, dp=True)
 
     # new model
-    model = EvalModelTemplate(**hparams)
+    model = BoringModel()
     model.on_train_start = assert_good_acc
 
     # fit new model which should load hpc weights
@@ -410,7 +440,7 @@ def test_dp_resume(tmpdir):
 
 def test_model_saving_loading(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -432,16 +462,11 @@ def test_model_saving_loading(tmpdir):
     if not isinstance(dataloaders, list):
         dataloaders = [dataloaders]
 
-    for dataloader in dataloaders:
-        for batch in dataloader:
-            break
-
-    x, y = batch
-    x = x.view(x.size(0), -1)
+    batch = next(iter(dataloaders[0]))
 
     # generate preds before saving model
     model.eval()
-    pred_before_saving = model(x)
+    pred_before_saving = model(batch)
 
     # save model
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
@@ -450,15 +475,12 @@ def test_model_saving_loading(tmpdir):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
-    model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
-        hparams_file=hparams_path,
-    )
+    model_2 = BoringModel.load_from_checkpoint(checkpoint_path=new_weights_path, hparams_file=hparams_path,)
     model_2.eval()
 
     # make prediction
     # assert that both predictions are the same
-    new_pred = model_2(x)
+    new_pred = model_2(batch)
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
 
 
@@ -468,9 +490,9 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv('TORCH_HOME', tmpdir)
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     # Extra layer
-    model.c_d3 = torch.nn.Linear(model.hidden_dim, model.hidden_dim)
+    model.c_d3 = torch.nn.Linear(32, 32)
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -496,17 +518,13 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
     hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
     ckpt_path = hparams_url if url_ckpt else new_weights_path
 
-    EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=ckpt_path,
-        hparams_file=hparams_path,
-        strict=False,
+    BoringModel.load_from_checkpoint(
+        checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=False,
     )
 
     with pytest.raises(RuntimeError, match=r'Unexpected key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
-        EvalModelTemplate.load_from_checkpoint(
-            checkpoint_path=ckpt_path,
-            hparams_file=hparams_path,
-            strict=True,
+        BoringModel.load_from_checkpoint(
+            checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=True,
         )
 
 
@@ -516,7 +534,7 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv('TORCH_HOME', tmpdir)
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -542,7 +560,7 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
     hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
     ckpt_path = hparams_url if url_ckpt else new_weights_path
 
-    class CurrentModel(EvalModelTemplate):
+    class CurrentModel(BoringModel):
 
         def __init__(self):
             super().__init__()
@@ -563,6 +581,6 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
 
 def test_model_pickle(tmpdir):
-    model = EvalModelTemplate()
+    model = BoringModel()
     pickle.dumps(model)
     cloudpickle.dumps(model)
