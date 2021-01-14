@@ -152,7 +152,7 @@ class PredictionCollection(object):
 
     def cache(self, predictions: List, dl_idx: int, batch_indices: List[int], current_stage: str) -> None:
         """
-        This function expects predictions to be a list of tensors or dictionnaries of tensors.
+        This function expects predictions to be a list of tensors or dictionary of tensors.
         Example::
 
             self.add_predictions(predictions)
