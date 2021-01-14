@@ -174,7 +174,7 @@ class PredictionCollection(object):
             if dl_idx in predictions:
                 dl_predictions = predictions[dl_idx]
                 dl_predictions = self.all_gather_predictions(dl_predictions)
-                result["predictions"] = dl_predictions.values()
+                result["predictions"] = list(dl_predictions.values())
         return results
 
     def all_gather_predictions(self, predictions: Dict) -> Dict:
