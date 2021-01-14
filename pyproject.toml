@@ -23,23 +23,73 @@ known_first_party = [
     "tests",
 ]
 skip_glob = [
+
+
+    # todo
     "pytorch_lightning/accelerators/*",
+
+
+    # todo
     "pytorch_lightning/callbacks/*",
+
+
+    # todo
     "pytorch_lightning/cluster_environments/*",
+
+
+    # todo
     "pytorch_lightning/core/*",
+
+
+    # todo
     "pytorch_lightning/distributed/*",
+
+
+    # todo
     "pytorch_lightning/loggers/*",
+
+
+    # todo
     "pytorch_lightning/metrics/*",
+
+
+    # todo
     "pytorch_lightning/overrides/*",
+
+
+    # todo
     "pytorch_lightning/plugins/*",
+
+
+    # todo
     "pytorch_lightning/profiler/*",
+
+
+    # todo
     "pytorch_lightning/trainer/*",
+
+
+    # todo
     "pytorch_lightning/tuner/*",
+
+
+    # todo
     "pytorch_lightning/utilities/*",
+
+
+    # todo
     "tests/base/*",
+
+
+    # todo
     "tests/callbacks/*",
+
+
+    # todo
     "tests/loggers/*",
-    "tests/models/*",
+
+
+    # todo
     "tests/tuner/*",
 ]
 profile = "black"
