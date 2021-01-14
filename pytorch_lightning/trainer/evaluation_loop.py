@@ -142,7 +142,7 @@ class EvaluationLoop(object):
 
         # wrap user samplers, so we can capture batch indices
         dataloaders = [LightningBatchSampler.to_new_dataloader(dataloader) for dataloader in dataloaders]
-        batch_samplers = [dataloader.batch_sampler for dataloader in dataloaders]
+        batch_samplers = [getattr(dataloader, "batch_sampler", None) for dataloader in dataloaders]
         return dataloaders, batch_samplers
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
@@ -307,7 +307,8 @@ class EvaluationLoop(object):
 
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx, batch_samplers):
         # save batch indices
-        self.trainer.batch_indices = batch_samplers[dataloader_idx].batch_indices
+        batch_sampler = batch_samplers[dataloader_idx]
+        self.trainer.batch_indices = batch_sampler.batch_indices if isinstance(batch_sampler, LightningBatchSampler) else None
 
         # set dataloader_idx to model and track batch_size
         self.trainer.logger_connector.on_evaluation_batch_start(

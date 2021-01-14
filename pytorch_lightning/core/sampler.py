@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from torch.utils.data.sampler import BatchSampler
+from torch.utils.data import DataLoader
 
 
 class LightningBatchSampler(BatchSampler):
@@ -34,19 +35,21 @@ class LightningBatchSampler(BatchSampler):
             self.batch_indices = batch
             yield batch
 
-    @classmethod
-    def to_new_dataloader(cls, dataloader, shuffle=False):
-        return type(dataloader)(
-            dataloader.dataset,
-            batch_size=1,
-            shuffle=None,
-            sampler=None,
-            batch_sampler=cls(dataloader.sampler, dataloader.batch_size, dataloader.drop_last),
-            num_workers=getattr(dataloader, "num_workers", None),
-            collate_fn=getattr(dataloader, "collate_fn", None),
-            pin_memory=getattr(dataloader, "pin_memory", False),
-            drop_last=getattr(dataloader, "pin_memory", None),
-            timeout=getattr(dataloader, "timeout", 0),
-            worker_init_fn=getattr(dataloader, "worker_init_fn", None),
-            multiprocessing_context=getattr(dataloader, "multiprocessing_context", None),
-        )
+    @staticmethod
+    def to_new_dataloader(dataloader):
+        if  getattr(dataloader, "dataset", None) is not None and getattr(dataloader, "sampler", None) is not None:
+            return type(dataloader)(
+                dataloader.dataset,
+                batch_size=1,
+                shuffle=None,
+                sampler=None,
+                batch_sampler=LightningBatchSampler(dataloader.sampler, dataloader.batch_size, dataloader.drop_last),
+                num_workers=getattr(dataloader, "num_workers", None),
+                collate_fn=getattr(dataloader, "collate_fn", None),
+                pin_memory=getattr(dataloader, "pin_memory", False),
+                drop_last=getattr(dataloader, "pin_memory", None),
+                timeout=getattr(dataloader, "timeout", 0),
+                worker_init_fn=getattr(dataloader, "worker_init_fn", None),
+                multiprocessing_context=getattr(dataloader, "multiprocessing_context", None),
+            )
+        return dataloader

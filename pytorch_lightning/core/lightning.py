@@ -330,6 +330,12 @@ class LightningModule(
     def add_predictions(self, predictions: List) -> None:
         if getattr(self, "trainer", None) is not None:
             dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
+            if self.trainer.batch_indices is None:
+                rank_zero_warn(
+                    "Lightning failed to wrap your BatchSampler and indices can't be retrieved automatically"
+                )      
+                return           
+
             self.trainer.predictions.cache(
                 predictions,
                 dl_idx,
