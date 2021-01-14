@@ -16,7 +16,8 @@ from shutil import copyfile
 
 import torch
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 KEYS_MAPPING = {

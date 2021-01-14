@@ -30,7 +30,8 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary

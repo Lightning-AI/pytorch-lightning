@@ -25,7 +25,8 @@ from warnings import warn
 import torch
 import yaml
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.utilities import AttributeDict, OMEGACONF_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem

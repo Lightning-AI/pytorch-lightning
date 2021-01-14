@@ -6,7 +6,8 @@ import torch
 import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.plugin import LightningPlugin

@@ -58,7 +58,8 @@ from torchvision.datasets.utils import download_and_extract_archive
 
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 
 BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"

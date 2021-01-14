@@ -24,7 +24,8 @@ from typing import Any, Dict, Optional, Union
 import torch
 from torch import is_tensor
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, _module_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

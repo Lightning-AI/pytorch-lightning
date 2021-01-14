@@ -22,7 +22,8 @@ from time import time
 from typing import Any, Dict, Optional, Union
 
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, _module_available
 

@@ -22,7 +22,8 @@ from typing import Dict, Iterable, List, Optional, Union
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.callbacks import Callback

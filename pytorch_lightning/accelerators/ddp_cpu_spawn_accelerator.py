@@ -19,7 +19,8 @@ import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule

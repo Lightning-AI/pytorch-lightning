@@ -38,7 +38,7 @@ Documentation
 - https://pytorch-lightning.readthedocs.io/en/stable
 """
 
-_logger = python_logging.getLogger("lightning")
+_logger = python_logging.getLogger(__name__)
 _logger.addHandler(python_logging.StreamHandler())
 _logger.setLevel(python_logging.INFO)
 

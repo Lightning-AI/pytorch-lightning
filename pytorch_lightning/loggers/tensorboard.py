@@ -25,7 +25,8 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment

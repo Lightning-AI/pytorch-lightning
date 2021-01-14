@@ -17,7 +17,8 @@ from abc import ABC, abstractmethod
 import torch
 from torch import Tensor
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.core.lightning import LightningModule
 
 EPSILON = 1e-6

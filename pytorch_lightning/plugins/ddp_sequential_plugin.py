@@ -19,7 +19,8 @@ from torch import nn
 import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin

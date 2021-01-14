@@ -13,7 +13,8 @@
 # limitations under the License
 from typing import Optional
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.accelerators.ddp_hpc_accelerator import DDPHPCAccelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin

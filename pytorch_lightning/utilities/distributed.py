@@ -19,7 +19,8 @@ from typing import Any, Optional, Union
 
 import torch
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp, group

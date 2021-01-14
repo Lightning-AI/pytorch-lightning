@@ -22,7 +22,8 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule

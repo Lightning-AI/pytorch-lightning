@@ -21,7 +21,8 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 

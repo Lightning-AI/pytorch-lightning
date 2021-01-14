@@ -16,7 +16,8 @@ import os
 import torch
 
 from pytorch_lightning.utilities import HOROVOD_AVAILABLE
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning import accelerators
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment

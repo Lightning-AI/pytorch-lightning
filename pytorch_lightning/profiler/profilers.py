@@ -27,7 +27,8 @@ from typing import Optional, Union
 import fsspec
 import numpy as np
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 

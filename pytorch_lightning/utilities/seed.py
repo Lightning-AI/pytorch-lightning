@@ -20,7 +20,8 @@ from typing import Optional
 
 import numpy as np
 import torch
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 from pytorch_lightning.utilities import rank_zero_warn
 
 
