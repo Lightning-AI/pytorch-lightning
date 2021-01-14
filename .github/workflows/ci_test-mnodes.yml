@@ -25,7 +25,7 @@ name: Multi Nodes GPU Tests
 
 #on:  # todo
 #  push:
-#    branches: [master, "release/*"]  # include release branches like release/1.0.x
+#    branches: [master, "release/*"]  # include release branches like release/1.1.x
 
 on: push
 
@@ -85,7 +85,7 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCES_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
         aws-region: us-east-2
 
     - name: Get Current Sha Commit
