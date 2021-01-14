@@ -101,9 +101,10 @@ def test_early_stopping_cpu_model(tmpdir):
 
     class ModelTrainVal(BoringModel):
 
-        def validation_epoch_end(self, outputs) -> None:
-            val_loss = torch.stack([x["x"] for x in outputs]).mean()
-            self.log('val_loss', val_loss)
+        def validation_step(self, *args, **kwargs):
+            output = super().validation_step(*args, **kwargs)
+            self.log('val_loss', output['x'])
+            return output
 
     tutils.reset_seed()
     stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
@@ -198,14 +199,15 @@ def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
 
     class ModelTrainValTest(BoringModel):
+        def validation_step(self, *args, **kwargs):
+            output = super().validation_step(*args, **kwargs)
+            self.log('val_loss', output['x'])
+            return output
 
-        def validation_epoch_end(self, outputs) -> None:
-            val_loss = torch.stack([x["x"] for x in outputs]).mean()
-            self.log('val_loss', val_loss)
-
-        def test_epoch_end(self, outputs) -> None:
-            test_loss = torch.stack([x["y"] for x in outputs]).mean()
-            self.log('test_loss', test_loss)
+        def test_step(self, *args, **kwargs):
+            output = super().test_step(*args, **kwargs)
+            self.log('test_loss', output['y'])
+            return output
 
     model = ModelTrainValTest()
 
@@ -245,9 +247,10 @@ def test_running_test_no_val(tmpdir):
         def val_dataloader(self):
             pass
 
-        def test_epoch_end(self, outputs) -> None:
-            test_loss = torch.stack([x["y"] for x in outputs]).mean()
-            self.log('test_loss', test_loss)
+        def test_step(self, *args, **kwargs):
+            output = super().test_step(*args, **kwargs)
+            self.log('test_loss', output['y'])
+            return output
 
     model = ModelTrainTest()
 
