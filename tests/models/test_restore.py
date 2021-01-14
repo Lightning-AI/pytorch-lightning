@@ -53,7 +53,7 @@ class ModelTrainerPropertyParity(Callback):
 
 
 class ValTestLossBoringModel(BoringModel):
-    def __init__(self, batch_size=64):
+    def __init__(self, batch_size=4):
         super().__init__()
         self.save_hyperparameters()
 
@@ -72,7 +72,7 @@ T = TypeVar('T')
 
 
 class GenericParentValTestLossBoringModel(Generic[T], ValTestLossBoringModel):
-    def __init__(self, batch_size: int = 64):
+    def __init__(self, batch_size: int = 4):
         super().__init__(batch_size=batch_size)
 
 
