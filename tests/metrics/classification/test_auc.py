@@ -1,5 +1,4 @@
 from collections import namedtuple
-from functools import partial
 
 import numpy as np
 import pytest
@@ -13,17 +12,13 @@ from tests.metrics.utils import MetricTester, NUM_BATCHES
 torch.manual_seed(42)
 
 
-def sk_auc(x, y, reorder=False):
+def sk_auc(x, y):
     x = x.flatten()
     y = y.flatten()
-    if reorder:
-        idx = np.argsort(x, kind='stable')
-        x = x[idx]
-        y = y[idx]
     return _sk_auc(x, y)
 
 
-Input = namedtuple('Input', ["x", "y", "reorder"])
+Input = namedtuple('Input', ["x", "y"])
 
 _examples = []
 # generate already ordered samples, sorted in both directions
@@ -35,31 +30,30 @@ for i in range(4):
     y = y[idx] if i % 2 == 0 else x[idx[::-1]]
     x = x.reshape(NUM_BATCHES, 8)
     y = y.reshape(NUM_BATCHES, 8)
-    _examples.append(Input(x=torch.tensor(x), y=torch.tensor(y), reorder=False))
+    _examples.append(Input(x=torch.tensor(x), y=torch.tensor(y)))
 
 
-@pytest.mark.parametrize("x, y, reorder", _examples)
+@pytest.mark.parametrize("x, y", _examples)
 class TestAUC(MetricTester):
-    @pytest.mark.parametrize("ddp", [True, False])
+    @pytest.mark.parametrize("ddp", [False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-    def test_auc(self, x, y, reorder, ddp, dist_sync_on_step):
+    def test_auc(self, x, y, ddp, dist_sync_on_step):
         self.run_class_metric_test(
             ddp=ddp,
             preds=x,
             target=y,
             metric_class=AUC,
-            sk_metric=partial(sk_auc, reorder=reorder),
+            sk_metric=sk_auc,
             dist_sync_on_step=dist_sync_on_step,
-            metric_args={"reorder": reorder}
         )
 
-    def test_auc_functional(self, x, y, reorder):
+    def test_auc_functional(self, x, y):
         self.run_functional_metric_test(
             x,
             y,
             metric_functional=auc,
-            sk_metric=partial(sk_auc, reorder=reorder),
-            metric_args={"reorder": reorder}
+            sk_metric=sk_auc,
+            metric_args={"reorder": False}
         )
 
 

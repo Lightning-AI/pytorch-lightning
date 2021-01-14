@@ -32,6 +32,7 @@ def _auc_compute(x: torch.Tensor, y: torch.Tensor, reorder: bool = False) -> tor
     if reorder:
         x, x_idx = _stable_1d_sort(x)
         y = y[x_idx]
+
     dx = x[1:] - x[:-1]
     if (dx < 0).any():
         if (dx <= 0).all():
