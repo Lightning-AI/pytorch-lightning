@@ -196,8 +196,7 @@ def test_amp_with_apex(tmpdir):
             optimizer2 = optim.SGD(self.parameters(), lr=self.learning_rate)
             lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
             lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
-
-        return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
+            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
     model = CustomModel()
     trainer = Trainer(
