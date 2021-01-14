@@ -93,7 +93,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
 
     model = BoringModel()
 
-    tpipes.run_model_test(trainer_options, model)
+    tpipes.run_model_test(trainer_options, model, min_acc=0.08)
 
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path)

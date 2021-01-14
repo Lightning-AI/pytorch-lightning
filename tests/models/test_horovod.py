@@ -175,15 +175,11 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
     class TestTrainingStepModel(BoringModel):
 
         def training_step(self, batch, *args, **kwargs):
-            x, y = batch
-            assert str(x.device) != 'cpu'
-            assert str(y.device) != 'cpu'
+            assert str(batch.device) != 'cpu'
             return super(TestTrainingStepModel, self).training_step(batch, *args, **kwargs)
 
         def validation_step(self, batch, *args, **kwargs):
-            x, y = batch
-            assert str(x.device) != 'cpu'
-            assert str(y.device) != 'cpu'
+            assert str(batch.device) != 'cpu'
             return super(TestTrainingStepModel, self).validation_step(batch, *args, **kwargs)
 
     model = TestTrainingStepModel()
