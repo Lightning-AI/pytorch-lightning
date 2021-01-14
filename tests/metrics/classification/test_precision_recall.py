@@ -288,12 +288,8 @@ def test_precision_recall_joint(average):
         _mc_prob.preds[0], _mc_prob.target[0], average=average, num_classes=NUM_CLASSES
     )
 
-    if average is None:
-        assert prec_recall_result.size() == torch.Size([2, NUM_CLASSES])
-    else:
-        assert prec_recall_result.size() == torch.Size([2])
-
-    assert torch.equal(torch.stack([precision_result, recall_result]), prec_recall_result)
+    assert torch.equal(precision_result, prec_recall_result[0])
+    assert torch.equal(recall_result, prec_recall_result[1])
 
 
 _mc_k_target = torch.tensor([0, 1, 2])

@@ -105,7 +105,7 @@ class Precision(StatScores):
 
     Example:
 
-        >>> from pytorch_lightning.metrics.classification import Precision
+        >>> from pytorch_lightning.metrics import Precision
         >>> preds  = torch.tensor([2, 0, 2, 1])
         >>> target = torch.tensor([1, 1, 2, 0])
         >>> precision = Precision(average='macro', num_classes=3)
@@ -262,7 +262,7 @@ class Recall(StatScores):
 
     Example:
 
-        >>> from pytorch_lightning.metrics.classification import Recall
+        >>> from pytorch_lightning.metrics import Recall
         >>> preds  = torch.tensor([2, 0, 2, 1])
         >>> target = torch.tensor([1, 1, 2, 0])
         >>> recall = Recall(average='macro', num_classes=3)

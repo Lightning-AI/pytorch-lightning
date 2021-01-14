@@ -436,13 +436,12 @@ def precision_recall(
             .. warning :: This parameter is deprecated, use ``average``. Will be removed in v1.4.0.
 
     Return:
-        The shape of the returned tensor depends on the ``average`` parameter
+        The function returns a tuple with two elements: precision and recall. Their shape
+        depends on the ``average`` parameter
 
-        - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a ``(2, )`` tensor will be returned
-        - If ``average in ['none', None]``, the shape will be ``(2, C)``, where ``C`` stands  for the number
-          of classes
-
-        The first element (in the first dimension) corresponds to precision, the second one to recall.
+        - If ``average in ['micro', 'macro', 'weighted', 'samples']``, they are a single element tensor
+        - If ``average in ['none', None]``, they are a tensor of shape ``(C, )``, where ``C`` stands for
+          the number of classes
 
     Example:
 
@@ -450,9 +449,9 @@ def precision_recall(
         >>> preds  = torch.tensor([2, 0, 2, 1])
         >>> target = torch.tensor([1, 1, 2, 0])
         >>> precision_recall(preds, target, average='macro', num_classes=3)
-        tensor([0.1667, 0.3333])
+        (tensor(0.1667), tensor(0.3333))
         >>> precision_recall(preds, target, average='micro')
-        tensor([0.2500, 0.2500])
+        (tensor(0.2500), tensor(0.2500))
 
     """
     if class_reduction:
@@ -493,4 +492,4 @@ def precision_recall(
     precision = _precision_compute(tp, fp, tn, fn, average, mdmc_average)
     recall = _recall_compute(tp, fp, tn, fn, average, mdmc_average)
 
-    return torch.stack([precision, recall])
+    return precision, recall
