@@ -50,7 +50,7 @@ class LightningBatchSampler(BatchSampler):
                 "num_workers": getattr(dataloader, "num_workers", 0),
                 "collate_fn": getattr(dataloader, "collate_fn", None),
                 "pin_memory": getattr(dataloader, "pin_memory", False),
-                "drop_last": getattr(dataloader, "pin_memory", None),
+                "drop_last": getattr(dataloader, "drop_last", False),
                 "timeout": getattr(dataloader, "timeout", 0),
                 "worker_init_fn": getattr(dataloader, "worker_init_fn", None),
                 "multiprocessing_context": getattr(dataloader, "multiprocessing_context", None),
