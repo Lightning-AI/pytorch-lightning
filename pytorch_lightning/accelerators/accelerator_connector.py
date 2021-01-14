@@ -198,6 +198,11 @@ class BackendConnector(object):
                     rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
                                    ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
                 else:
+                    if self.distributed_backend == 'ddp_sharded' or self.distributed_backend == 'ddp_sharded_spawn':
+                        raise MisconfigurationException(
+                            'Sharded Plugin is not supported with Apex AMP, '
+                            'please using native AMP for 16-bit precision.'
+                        )
                     log.info('Using APEX 16bit precision.')
                     self.amp_type = AMPType.APEX
                     return ApexMixedPrecisionPlugin(self.amp_level)
