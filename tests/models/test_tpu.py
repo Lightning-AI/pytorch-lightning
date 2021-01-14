@@ -99,7 +99,7 @@ def test_model_tpu_cores_8(tmpdir):
     model.train_dataloader = _serial_train_loader
     model.val_dataloader = _serial_train_loader
 
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.24)
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
@@ -164,17 +164,23 @@ def test_model_16bit_tpu_cores_8(tmpdir):
     model.train_dataloader = _serial_train_loader
     model.val_dataloader = _serial_train_loader
 
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.24)
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
+    class CustomBoringModel(BoringModel):
+        def validation_step(*args, **kwargs):
+            out = super().validation_step(*args, **kwargs)
+            self.log('val_loss', out['x'])
+            return out
+
     tutils.reset_seed()
-    model = BoringModel()
+    model = CustomBoringModel()
     trainer = Trainer(
-        callbacks=[EarlyStopping()],
+        callbacks=[EarlyStopping(monitor='val_loss')],
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=50,
