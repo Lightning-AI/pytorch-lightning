@@ -57,14 +57,14 @@ def _auroc_compute(
             raise ValueError(f"`max_fpr` should be a float in range (0, 1], got: {max_fpr}")
 
         if LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
-            raise RuntimeError('`max_fpr` argument requires `torch.bucketize` which'
-                               ' is not available below PyTorch version 1.6')
+            raise RuntimeError("`max_fpr` argument requires `torch.bucketize` which"
+                               " is not available below PyTorch version 1.6")
 
         # max_fpr parameter is only support for binary
         if mode != 'binary':
-            raise ValueError("Partial AUC computation not available in "
-                             "multilabel/multiclass setting, 'max_fpr' must be"
-                             f" set to `None`, received `{max_fpr=}`.")
+            raise ValueError(f"Partial AUC computation not available in "
+                             f"multilabel/multiclass setting, 'max_fpr' must be"
+                             f" set to `None`, received `{max_fpr}`.")
 
     # calculate fpr, tpr
     if mode == 'multi-label':
@@ -95,8 +95,8 @@ def _auroc_compute(
                 return torch.sum(torch.stack(auc_scores) * support / support.sum())
 
             allowed_average = (None, 'macro', 'weighted')
-            raise ValueError('Argument `average` expected to be one of the following:'
-                             f' {allowed_average} but got {average}')
+            raise ValueError(f"Argument `average` expected to be one of the following:"
+                             f" {allowed_average} but got {average}")
 
         return auc(fpr, tpr)
 
