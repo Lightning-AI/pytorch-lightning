@@ -40,7 +40,6 @@ skip_glob = [
     "tests/base/*",
     "tests/callbacks/*",
     "tests/loggers/*",
-    "tests/models/*",
     "tests/tuner/*",
 ]
 profile = "black"
