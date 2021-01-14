@@ -42,7 +42,6 @@ class Precision(Metric):
 
     Args:
         num_classes: Number of classes in the dataset.
-        beta: Beta coefficient in the F measure.
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
 
