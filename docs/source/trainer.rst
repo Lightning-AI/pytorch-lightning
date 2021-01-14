@@ -1257,7 +1257,7 @@ How often to refresh progress bar (in steps).
     trainer = Trainer(progress_bar_refresh_rate=0)
 
 Note:
-    - In notebooks (Jupyter, Google Colab), faster refresh rates (lower number) is known to crash them because of their screen refresh rates.
+    - In Google Colab notebooks, faster refresh rates (lower number) is known to crash them because of their screen refresh rates.
       Lightning will set it to 20 in these environments if the user does not provide a value.
     - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 

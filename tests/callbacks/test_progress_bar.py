@@ -247,6 +247,7 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
 
 
 def test_progress_bar_default_value(tmpdir):
+    """ Test that a value of None defaults to refresh rate 1. """
     trainer = Trainer(default_root_dir=tmpdir)
     assert trainer.progress_bar_callback.refresh_rate == 1
 
@@ -256,6 +257,7 @@ def test_progress_bar_default_value(tmpdir):
 
 @mock.patch.dict(os.environ, {'COLAB_GPU': '1'})
 def test_progress_bar_value_on_colab(tmpdir):
+    """ Test that Trainer will override the default in Google COLAB. """
     trainer = Trainer(default_root_dir=tmpdir)
     assert trainer.progress_bar_callback.refresh_rate == 20
 
