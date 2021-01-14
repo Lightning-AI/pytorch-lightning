@@ -251,13 +251,15 @@ class NeptuneLogger(LightningLoggerBase):
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
-            step: Step number at which the metrics should be recorded, must be strictly increasing
+            step: Step number at which the metrics should be recorded, currently ignored
         """
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         metrics = self._add_prefix(metrics)
         for key, val in metrics.items():
-            self.log_metric(key, val, step=step)
+            # `step` is ignored because Neptune expects strictly increasing step values which
+            # Lighting does not always guarantee.
+            self.log_metric(key, val)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
@@ -302,9 +304,10 @@ class NeptuneLogger(LightningLoggerBase):
         if is_tensor(metric_value):
             metric_value = metric_value.cpu().detach()
 
-        # Step is ignored because Neptune expects strictly increasing step values which
-        # Lighting does not always guarantee.
-        self.experiment.log_metric(metric_name, metric_value)
+        if step is None:
+            self.experiment.log_metric(metric_name, metric_value)
+        else:
+            self.experiment.log_metric(metric_name, x=step, y=metric_value)
 
     @rank_zero_only
     def log_text(self, log_name: str, text: str, step: Optional[int] = None) -> None:
