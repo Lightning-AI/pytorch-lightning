@@ -82,15 +82,12 @@ skip_glob = [
 
 
     # todo
-    "tests/callbacks/*",
-
-
-    # todo
     "tests/loggers/*",
 
 
     # todo
     "tests/tuner/*",
+    "tests/utilities/*",
 ]
 profile = "black"
 line_length = 120
