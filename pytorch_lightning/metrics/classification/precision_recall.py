@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Callable
+from typing import Any, Callable, Optional
 
 import torch
+
 from pytorch_lightning.metrics.classification.stat_scores import StatScores
 from pytorch_lightning.metrics.functional.precision_recall import _precision_compute, _recall_compute
 
@@ -163,14 +164,7 @@ class Precision(StatScores):
             - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
               of classes
         """
-        if isinstance(self.tp, list):
-            tp = torch.cat(self.tp)
-            fp = torch.cat(self.fp)
-            tn = torch.cat(self.tn)
-            fn = torch.cat(self.fn)
-        else:
-            tp, fp, tn, fn = self.tp, self.fp, self.tn, self.fn
-
+        tp, fp, tn, fn = self._get_final_stats()
         return _precision_compute(tp, fp, tn, fn, self.average, self.mdmc_reduce)
 
 
@@ -320,13 +314,5 @@ class Recall(StatScores):
             - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
               of classes
         """
-
-        if isinstance(self.tp, list):
-            tp = torch.cat(self.tp)
-            fp = torch.cat(self.fp)
-            tn = torch.cat(self.tn)
-            fn = torch.cat(self.fn)
-        else:
-            tp, fp, tn, fn = self.tp, self.fp, self.tn, self.fn
-
+        tp, fp, tn, fn = self._get_final_stats()
         return _recall_compute(tp, fp, tn, fn, self.average, self.mdmc_reduce)

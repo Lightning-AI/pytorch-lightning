@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Callable
+from typing import Any, Callable, Optional, Tuple
 
 import torch
+
 from pytorch_lightning.metrics import Metric
-from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_update, _stat_scores_compute
+from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_compute, _stat_scores_update
 
 
 class StatScores(Metric):
@@ -206,6 +207,21 @@ class StatScores(Metric):
             self.tn.append(tn)
             self.fn.append(fn)
 
+    def _get_final_stats(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Performs concatenation on the stat scores if neccesary,
+        before passing them to a compute function.
+        """
+
+        if isinstance(self.tp, list):
+            tp = torch.cat(self.tp)
+            fp = torch.cat(self.fp)
+            tn = torch.cat(self.tn)
+            fn = torch.cat(self.fn)
+        else:
+            tp, fp, tn, fn = self.tp, self.fp, self.tn, self.fn
+
+        return tp, fp, tn, fn
+
     def compute(self) -> torch.Tensor:
         """
         Computes the stat scores based on inputs passed in to ``update`` previously.
@@ -239,12 +255,5 @@ class StatScores(Metric):
               - If ``reduce='samples'``, the shape will be ``(N, X, 5)``
 
         """
-        if isinstance(self.tp, list):
-            tp = torch.cat(self.tp)
-            fp = torch.cat(self.fp)
-            tn = torch.cat(self.tn)
-            fn = torch.cat(self.fn)
-        else:
-            tp, fp, tn, fn = self.tp, self.fp, self.tn, self.fn
-
+        tp, fp, tn, fn = self._get_final_stats()
         return _stat_scores_compute(tp, fp, tn, fn)
