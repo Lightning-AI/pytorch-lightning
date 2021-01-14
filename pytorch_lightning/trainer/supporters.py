@@ -157,7 +157,7 @@ class PredictionCollection(object):
 
             self.add_predictions(predictions)
         """
-        if predictions is None or (isinstance(predictions, list) and len(predictions) == 0):
+        if predictions is None or (isinstance(predictions, list) and not predictions):
             return
 
         self.current_stage = current_stage
@@ -167,6 +167,7 @@ class PredictionCollection(object):
         self._cache_prediction(predictions, dl_idx, batch_indices)
 
     def attach_predictions(self, results: List[Dict], current_stage: str) -> List[Dict]:
+        # indicates the current
         self.current_stage = current_stage
         predictions = self.predictions
         for dl_idx, result in enumerate(results):
