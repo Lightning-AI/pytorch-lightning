@@ -1,8 +1,8 @@
+from distutils.version import LooseVersion
 from functools import partial
 
 import pytest
 import torch
-from distutils.version import LooseVersion
 from sklearn.metrics import roc_auc_score as sk_roc_auc_score
 
 from pytorch_lightning.metrics.classification.auroc import AUROC
@@ -11,10 +11,10 @@ from tests.metrics.classification.inputs import (
     _binary_prob_inputs,
     _multiclass_prob_inputs,
     _multidim_multiclass_prob_inputs,
-    _multilabel_prob_inputs,
     _multilabel_multidim_prob_inputs,
+    _multilabel_prob_inputs,
 )
-from tests.metrics.utils import NUM_CLASSES, MetricTester
+from tests.metrics.utils import MetricTester, NUM_CLASSES
 
 torch.manual_seed(42)
 

@@ -2,7 +2,6 @@ from functools import partial
 
 import pytest
 import torch
-
 from sklearn.metrics import precision_score as sk_precision
 from sklearn.metrics import recall_score as sk_recall
 
