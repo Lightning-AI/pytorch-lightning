@@ -1,6 +1,8 @@
+from typing import Optional
+
 from pytorch_lightning.accelerators.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -10,14 +12,11 @@ if _FAIRSCALE_AVAILABLE:
 
 class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def configure_ddp(self):
+        self._wrap_optimizers()
         self._model = LightningShardedDataParallel(
             self.model,
             sharded_optimizer=self.lightning_module.trainer.optimizers
         )
-
-    def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
-        super().init_ddp_connection(global_rank, world_size)
-        self._reinit_optimizers_with_oss()
 
     def _reinit_optimizers_with_oss(self):
         optimizers = self.lightning_module.trainer.optimizers
@@ -33,4 +32,25 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
                 )
                 optimizers[x] = zero_optimizer
                 del optimizer
-        self.lightning_module.trainer.convert_to_lightning_optimizers()
+        trainer = self.lightning_module.trainer
+        trainer.optimizers = trainer.convert_to_lightning_optimizers(optimizers)
+
+    def _wrap_optimizers(self):
+        trainer = self.model.trainer
+        if trainer.testing is True:
+            return
+        self._reinit_optimizers_with_oss()
+
+    def optimizer_state(self, optimizer: 'OSS') -> Optional[dict]:
+        if is_lightning_optimizer(optimizer):
+            optimizer = optimizer._optimizer
+        optimizer.consolidate_state_dict()
+        return self._optim_state_dict(optimizer)
+
+    @rank_zero_only
+    def _optim_state_dict(self, optimizer):
+        """
+        Retrieves state dict only on rank 0, which contains the entire optimizer state after calling
+        :meth:`consolidate_state_dict`.
+        """
+        return optimizer.state_dict()
