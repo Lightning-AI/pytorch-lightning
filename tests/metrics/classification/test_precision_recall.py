@@ -18,7 +18,7 @@ from tests.metrics.classification.inputs import (
     _multilabel_inputs as _ml,
     _multilabel_prob_inputs as _ml_prob,
 )
-from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
+from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 torch.manual_seed(42)
 
