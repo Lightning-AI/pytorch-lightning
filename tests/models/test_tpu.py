@@ -172,7 +172,7 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
     class CustomBoringModel(BoringModel):
-        def validation_step(*args, **kwargs):
+        def validation_step(self, *args, **kwargs):
             out = super().validation_step(*args, **kwargs)
             self.log('val_loss', out['x'])
             return out
