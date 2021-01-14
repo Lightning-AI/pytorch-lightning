@@ -13,8 +13,8 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Trainer, Callback
-from pytorch_lightning.trainer.states import TrainerState, trainer_state
+from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.trainer.states import trainer_state, TrainerState
 from tests.base import EvalModelTemplate
 
 

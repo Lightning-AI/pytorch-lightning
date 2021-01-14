@@ -42,12 +42,12 @@ class LightningBatchSampler(BatchSampler):
             shuffle=None,
             sampler=None,
             batch_sampler=cls(dataloader.sampler, dataloader.batch_size, dataloader.drop_last),
-            num_workers=dataloader.num_workers,
-            collate_fn=dataloader.collate_fn,
-            pin_memory=dataloader.pin_memory,
-            drop_last=None,
-            timeout=dataloader.timeout,
-            worker_init_fn=dataloader.worker_init_fn,
-            multiprocessing_context=dataloader.multiprocessing_context,
-            generator=dataloader.generator
+            num_workers=getattr(dataloader, "num_workers", None),
+            collate_fn=getattr(dataloader, "collate_fn", None),
+            pin_memory=getattr(dataloader, "pin_memory", False),
+            drop_last=getattr(dataloader, "pin_memory", None),
+            timeout=getattr(dataloader, "timeout", 0),
+            worker_init_fn=getattr(dataloader, "worker_init_fn", None),
+            multiprocessing_context=getattr(dataloader, "multiprocessing_context", None),
+            generator=getattr(dataloader, "generator", None)
         )
