@@ -302,10 +302,9 @@ class NeptuneLogger(LightningLoggerBase):
         if is_tensor(metric_value):
             metric_value = metric_value.cpu().detach()
 
-        if step is None:
-            self.experiment.log_metric(metric_name, metric_value)
-        else:
-            self.experiment.log_metric(metric_name, x=step, y=metric_value)
+        # Step is ignored because Neptune expects strictly increasing step values which
+        # Lighting does not always guarantee.
+        self.experiment.log_metric(metric_name, metric_value)
 
     @rank_zero_only
     def log_text(self, log_name: str, text: str, step: Optional[int] = None) -> None:
@@ -317,7 +316,7 @@ class NeptuneLogger(LightningLoggerBase):
             text: The value of the log (data-point).
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
-        self.log_metric(log_name, text, step=step)
+        self.experiment.log_text(log_name, text, step=step)
 
     @rank_zero_only
     def log_image(self,
