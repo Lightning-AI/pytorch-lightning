@@ -191,7 +191,7 @@ def test_amp_without_apex(tmpdir):
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
     class CustomModel(EvalModelTemplate):
-        def configure_optimizers__multiple_schedulers(self):
+        def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
             optimizer2 = optim.SGD(self.parameters(), lr=self.learning_rate)
             lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
