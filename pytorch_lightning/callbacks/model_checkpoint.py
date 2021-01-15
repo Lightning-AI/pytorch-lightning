@@ -133,6 +133,7 @@ class ModelCheckpoint(Callback):
     CHECKPOINT_JOIN_CHAR = "-"
     CHECKPOINT_NAME_LAST = "last"
     FILE_EXTENSION = ".ckpt"
+    STARTING_VERSION = 1
 
     def __init__(
         self,
@@ -491,7 +492,7 @@ class ModelCheckpoint(Callback):
         del_filepath: Optional[str] = None
     ) -> str:
         filepath = self.format_checkpoint_name(epoch, step, monitor_candidates)
-        version = 1
+        version = self.STARTING_VERSION
         while self._fs.exists(filepath) and filepath != del_filepath:
             filepath = self.format_checkpoint_name(epoch, step, monitor_candidates, ver=version)
             version += 1
@@ -519,7 +520,7 @@ class ModelCheckpoint(Callback):
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
         else:
             last_filepath = self._get_metric_interpolated_filepath_name(
-                ckpt_name_metrics, trainer.current_epoch, trainer.global_step
+                monitor_candidates, trainer.current_epoch, trainer.global_step
             )
 
         accelerator_backend = trainer.accelerator_backend

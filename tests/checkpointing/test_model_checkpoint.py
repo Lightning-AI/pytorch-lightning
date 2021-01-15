@@ -951,6 +951,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     version suffix when the same trainer instance is used
     """
     mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test")
+    mc.STARTING_VERSION = 9
     trainer = Trainer(
         max_epochs=2,
         limit_train_batches=1,
@@ -965,8 +966,8 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     trainer.max_epochs = 4
     trainer.fit(BoringModel())
 
-    # TODO(carmocca): remove `+ 1` when #5007 is fixed
-    expected = {'test.ckpt', *[f"test-v{i}.ckpt" for i in range(1, trainer.max_epochs + 1)]}
+    ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION)
+    expected = {'test.ckpt', *[f"test-v{i}.ckpt" for i in ckpt_range]}
     # check best_k_models state
     assert {Path(f).name for f in mc.best_k_models.keys()} == expected
     # check created ckpts
