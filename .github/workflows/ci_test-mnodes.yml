@@ -152,11 +152,11 @@ jobs:
       run: |
         from dtrun.configs import prepare_multi_nodes_gpu_config
         import os
-        print(os.listdir('.'))
-        print(os.getcwd())
+        print(os.listdir(os.path.join(os.getcwd(), 'tests')))
+        path = os.listdir(os.path.join(os.getcwd(), 'tests', 'mnode-tests.txt'))
         prepare_multi_nodes_gpu_config(
             './.github/multi-nodes-gpu.yaml',
-            '~/home/runner/work/pytorch-lightning/pytorch-lightning/tests/mnode-tests.txt',
+            path,
             sha="${{ steps.vars.outputs.SHA }}",
             tcp_address="${{ steps.tcp.outputs.TCP_ADDRESS }}",
             python_version="${{ matrix.python-version }}",
