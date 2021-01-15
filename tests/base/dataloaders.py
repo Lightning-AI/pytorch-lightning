@@ -21,6 +21,7 @@ class CustomInfDataloader:
         self.iter = iter(dataloader)
         self.count = 0
         self.dataloader.num_workers = 0  # reduce chance for hanging pytest
+        self.batch_sampler = None
 
     def __iter__(self):
         self.count = 0
