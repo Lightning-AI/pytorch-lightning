@@ -23,15 +23,11 @@ import torch
 import yaml
 
 import tests.base.develop_utils as tutils
-from tests.base import EvalModelTemplate
-from tests.base.datamodules import TrialMNISTDataModule
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.utilities.cli import (
-    LightningArgumentParser,
-    SaveConfigCallback,
-    LightningCLI
-)
+from pytorch_lightning.utilities.cli import LightningArgumentParser, SaveConfigCallback, LightningCLI
+from tests.base import EvalModelTemplate
+from tests.base.datamodules import TrialMNISTDataModule
 
 
 @mock.patch('argparse.ArgumentParser.parse_args')
