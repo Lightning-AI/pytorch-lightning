@@ -95,11 +95,12 @@ def test_model_tpu_cores_8(tmpdir):
     )
 
     model = BoringModel()
-    # 8 cores needs a big dataset
-    model.train_dataloader = _serial_train_loader
-    model.val_dataloader = _serial_train_loader
 
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.24)
+    # 8 cores needs a big dataset
+    model.train_dataloader = DataLoader(RandomDataset(32, 2000), batch_size=32)
+    model.val_dataloader = DataLoader(RandomDataset(32, 2000), batch_size=32)
+
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.05)
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
@@ -160,11 +161,12 @@ def test_model_16bit_tpu_cores_8(tmpdir):
     )
 
     model = BoringModel()
-    # 8 cores needs a big dataset
-    model.train_dataloader = _serial_train_loader
-    model.val_dataloader = _serial_train_loader
 
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.24)
+    # 8 cores needs a big dataset
+    model.train_dataloader = DataLoader(RandomDataset(32, 2000), batch_size=32)
+    model.val_dataloader = DataLoader(RandomDataset(32, 2000), batch_size=32)
+
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.05)
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
