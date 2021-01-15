@@ -25,7 +25,7 @@ name: Multi Nodes GPU Tests
 
 #on:  # todo
 #  push:
-#    branches: [master, "release/*"]  # include release branches like release/1.1.x.
+#    branches: [master, "release/*"]  # include release branches like release/1.1.x..
 
 on: push
 
