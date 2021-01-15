@@ -177,8 +177,8 @@ jobs:
         )
         config = template % filling
 
-        assert os.path.splitext(path_out)[-1] in ('.yaml', '.yml')
-        with open(path_out, 'w') as fp:
+        assert os.path.splitext(_PATH_CONFIG)[-1] in ('.yaml', '.yml')
+        with open(_PATH_CONFIG, 'w') as fp:
             fp.write(config)
       shell: python
 
