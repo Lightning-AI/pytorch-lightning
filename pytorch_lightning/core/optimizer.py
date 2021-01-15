@@ -17,7 +17,7 @@ from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE, DeviceType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TPU_AVAILABLE:
@@ -125,7 +125,7 @@ class LightningOptimizer:
         optimizer = self._optimizer
         model = trainer.get_model()
 
-        if trainer.on_tpu:
+        if trainer._device_type == DeviceType.TPU:
             with trainer.profiler.profile(profiler_name):
                 xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
 

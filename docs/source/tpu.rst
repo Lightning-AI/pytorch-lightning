@@ -40,7 +40,7 @@ To access TPUs, there are three main ways.
 ----------------
 
 Colab TPUs
------------
+----------
 Colab is like a jupyter notebook with a free GPU or TPU
 hosted on GCP.
 
@@ -129,8 +129,7 @@ That's it! Your model will train on all 8 TPU cores.
 ----------------
 
 TPU core training
-
-------------------------
+-----------------
 
 Lightning supports training on a single TPU core or 8 TPU cores.
 
@@ -177,7 +176,7 @@ on how to set up the instance groups and VMs needed to run TPU Pods.
 ----------------
 
 16 bit precision
------------------
+----------------
 Lightning also supports training in 16-bit precision with TPUs.
 By default, TPU training will use 32-bit precision. To enable 16-bit,
 set the 16-bit flag.
@@ -193,6 +192,28 @@ set the 16-bit flag.
 Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.
 
 ----------------
+
+Performance considerations
+--------------------------
+
+The TPU was designed for specific workloads and operations to carry out large volumes of matrix multiplication,
+convolution operations and other commonly used ops in applied deep learning.
+The specialization makes it a strong choice for NLP tasks, sequential convolutional networks, and under low precision operation.
+There are cases in which training on TPUs is slower when compared with GPUs, for possible reasons listed:
+
+- Too small batch size.
+- Explicit evaluation of tensors during training, e.g. ``tensor.item()``
+- Tensor shapes (e.g. model inputs) change often during training.
+- Limited resources when using TPU's with PyTorch `Link <https://github.com/pytorch/xla/issues/2054#issuecomment-627367729>`_
+- XLA Graph compilation during the initial steps `Reference <https://github.com/pytorch/xla/issues/2383#issuecomment-666519998>`_
+- Some tensor ops are not fully supported on TPU, or not supported at all. These operations will be performed on CPU (context switch).
+- PyTorch integration is still experimental. Some performance bottlenecks may simply be the result of unfinished implementation.
+
+The official PyTorch XLA `performance guide <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#known-performance-caveats>`_
+has more detailed information on how PyTorch code can be optimized for TPU. In particular, the
+`metrics report <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#get-a-metrics-report>`_ allows
+one to identify operations that lead to context switching.
+
 
 About XLA
 ----------

@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-
 from unittest import mock
 from unittest.mock import MagicMock
-import pytest
 
+import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
@@ -104,7 +103,7 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
     assert logger.version == "run-id"
     assert logger.name == "exp-id"
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         logger=logger,
@@ -135,12 +134,19 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         assert set(os.listdir(tmpdir)) == {'.trash', exp_id}
         assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
 
-    model = EvalModelTemplate()
+    class CustomModel(BoringModel):
+        def training_epoch_end(self, *args, **kwargs):
+            super().training_epoch_end(*args, **kwargs)
+            self.log('epoch', self.current_epoch)
+
+    model = CustomModel()
+    limit_batches = 5
     trainer = Trainer(
         default_root_dir=tmpdir,
         logger=logger,
         max_epochs=1,
-        limit_val_batches=3,
+        limit_train_batches=limit_batches,
+        limit_val_batches=limit_batches,
         log_gpu_memory=True,
     )
     trainer.fit(model)
@@ -148,7 +154,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert 'epoch' in os.listdir(tmpdir / exp_id / run_id / 'metrics')
     assert set(os.listdir(tmpdir / exp_id / run_id / 'params')) == model.hparams.keys()
     assert trainer.checkpoint_callback.dirpath == (tmpdir / exp_id / run_id / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
+    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f'epoch=0-step={limit_batches - 1}.ckpt']
 
 
 @mock.patch('pytorch_lightning.loggers.mlflow.mlflow')

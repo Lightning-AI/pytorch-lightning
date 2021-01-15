@@ -276,6 +276,7 @@ def test_call_back_validator(tmpdir):
         'on_after_backward',
         'on_batch_end',
         'on_batch_start',
+        'on_before_accelerator_backend_setup',
         'on_before_zero_grad',
         'on_epoch_end',
         'on_epoch_start',
@@ -313,6 +314,7 @@ def test_call_back_validator(tmpdir):
     ]
 
     not_supported = [
+        "on_before_accelerator_backend_setup",
         "on_fit_end",
         "on_fit_start",
         "on_init_end",
@@ -332,7 +334,7 @@ def test_call_back_validator(tmpdir):
     ]
 
     assert (
-        funcs_name == callbacks_func
+        funcs_name == sorted(callbacks_func)
     ), """Detected new callback function.
         Need to add its logging permission to CallbackHookNameValidator and update this test"""
 

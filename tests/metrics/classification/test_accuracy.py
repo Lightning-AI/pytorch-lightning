@@ -6,8 +6,8 @@ import torch
 from sklearn.metrics import accuracy_score as sk_accuracy
 
 from pytorch_lightning.metrics import Accuracy
-from pytorch_lightning.metrics.functional import accuracy
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
+from pytorch_lightning.metrics.functional import accuracy
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
@@ -16,11 +16,11 @@ from tests.metrics.classification.inputs import (
     _multidim_multiclass_inputs,
     _multidim_multiclass_prob_inputs,
     _multilabel_inputs,
-    _multilabel_prob_inputs,
-    _multilabel_multidim_prob_inputs,
     _multilabel_multidim_inputs,
+    _multilabel_multidim_prob_inputs,
+    _multilabel_prob_inputs,
 )
-from tests.metrics.utils import THRESHOLD, MetricTester
+from tests.metrics.utils import MetricTester, THRESHOLD
 
 torch.manual_seed(42)
 

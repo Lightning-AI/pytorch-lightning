@@ -15,10 +15,15 @@ from collections import Sequence
 
 import pytest
 import torch
-
 from torch.utils.data import TensorDataset
+
 from pytorch_lightning.trainer.supporters import (
-    CycleIterator, CombinedLoader, CombinedDataset, CombinedLoaderIterator, TensorRunningAccum)
+    CombinedDataset,
+    CombinedLoader,
+    CombinedLoaderIterator,
+    CycleIterator,
+    TensorRunningAccum,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
