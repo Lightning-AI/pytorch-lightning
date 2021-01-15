@@ -12,16 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
+
 from torch.utils.data import IterableDataset
 from torch.utils.data.dataloader import DataLoader
+<<<<<<< HEAD
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
 import inspect
+=======
+>>>>>>> 0dc6d1f7dff1f55fed86a0501d881e319bd90a64
 
 
 class LightningBatchSamplerWrapper:
     """
-    This class wraps user batch sampler, so we can extract 
+    This class wraps user batch sampler, so we can extract
     the batch_indices for tracking each sample.
     """
 
@@ -32,7 +37,6 @@ class LightningBatchSamplerWrapper:
     def __iter__(self):
         for batch_indices in self.batch_sampler:
             self.batch_indices = batch_indices
-            print(batch_indices)
             yield batch_indices
 
     @staticmethod
