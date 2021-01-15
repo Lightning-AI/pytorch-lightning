@@ -31,7 +31,6 @@ class LightningBatchSamplerWrapper:
     def __iter__(self):
         for batch_indices in self.batch_sampler:
             self.batch_indices = batch_indices
-            print(batch_indices)
             yield batch_indices
 
     @staticmethod
