@@ -313,7 +313,7 @@ def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, num_dl_idx):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_misconfiguration_on_dataloader(tmpdir):
     """
-    Test Datl
+    Test Lightning raise a MisConfiguration error as we can't re-instantiate user Dataloader
     """
     check_prediction_collection(tmpdir, True, "ddp", 2, 2, failure=1)
 
