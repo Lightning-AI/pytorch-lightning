@@ -14,7 +14,7 @@
 import io
 import os
 import re
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -22,8 +22,16 @@ from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_info, rank_zero_only, rank_zero_warn, move_data_to_device
+from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.utilities import (
+    move_data_to_device,
+    rank_zero_info,
+    rank_zero_only,
+    rank_zero_warn,
+    TPU_AVAILABLE,
+)
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -36,7 +44,7 @@ if TPU_AVAILABLE:
 
 class TPUAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using TPUs (colab, single machine or pod)
 
@@ -126,8 +134,7 @@ class TPUAccelerator(Accelerator):
         # setup TPU training
         self.__setup_tpu_training(model, trainer)
 
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        self.trainer.setup_trainer(model)
 
         # train or test
         results = self.train_or_test()
@@ -138,26 +145,18 @@ class TPUAccelerator(Accelerator):
         # persist info in spawn
         self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
+    def _step(self, model_step: Callable, args):
+        args[0] = self.to_device(args[0])
+        return model_step(*args)
+
     def training_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.training_step(*args)
-        return output
+        return self._step(self.trainer.model.training_step, args)
 
     def validation_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.validation_step(*args)
-        return output
+        return self._step(self.trainer.model.validation_step, args)
 
     def test_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.test_step(*args)
-        return output
+        return self._step(self.trainer.model.test_step, args)
 
     def process_dataloader(self, dataloader):
         device = xm.xla_device(self.trainer.tpu_id)
@@ -230,8 +229,6 @@ class TPUAccelerator(Accelerator):
                  f' global rank: {trainer.tpu_global_core_rank}'
                  f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
 
-        self.trainer.convert_to_lightning_optimizers()
-
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         # do backward pass
         if self.trainer.train_loop.automatic_optimization:
@@ -244,24 +241,6 @@ class TPUAccelerator(Accelerator):
         closure_loss = closure_loss.detach()
 
         return closure_loss
-
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
-        model_ref = self.trainer.get_model()
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-
-        # model hook
-        model_ref.optimizer_step(
-            epoch=self.trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=lambda_closure,
-            on_tpu=True,
-            using_native_amp=False,
-            using_lbfgs=is_lbfgs,
-            *args,
-            **kwargs,
-        )
 
     def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
         # this code is a modification of torch.nn.utils.clip_grad_norm_
@@ -375,3 +354,11 @@ class TPUAccelerator(Accelerator):
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
         return move_data_to_device(checkpoint, torch.device("cpu"))
+
+    @property
+    def distributed_sampler_kwargs(self):
+        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+
+    @property
+    def require_distributed_sampler(self):
+        return True

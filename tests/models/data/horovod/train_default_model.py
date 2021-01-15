@@ -21,22 +21,17 @@ import json
 import os
 import sys
 
-
-try:
-    import horovod.torch as hvd
-except ImportError:
-    print('You requested to import Horovod which is missing or not supported for your OS.')
-
-PATH_HERE = os.path.abspath(os.path.dirname(__file__))
-PATH_ROOT = os.path.abspath(os.path.join(PATH_HERE, '..', '..', '..', '..'))
-sys.path.insert(0, os.path.abspath(PATH_ROOT))
+# this is need as e.g. Conda do not uses `PYTHONPATH` env var as pip or/and virtualenv
+sys.path = os.getenv('PYTHONPATH').split(':') + sys.path
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
+from pytorch_lightning.utilities import HOROVOD_AVAILABLE  # noqa: E402
 
-# Move project root to the front of the search path, as some imports may have reordered things
-idx = sys.path.index(PATH_ROOT)
-sys.path[0], sys.path[idx] = sys.path[idx], sys.path[0]
+if HOROVOD_AVAILABLE:
+    import horovod.torch as hvd  # noqa: E402
+else:
+    print('You requested to import Horovod which is missing or not supported for your OS.')
 
 from tests.base import EvalModelTemplate  # noqa: E402
 from tests.base.develop_pipelines import run_prediction  # noqa: E402
@@ -54,7 +49,7 @@ def run_test_from_config(trainer_options):
     reset_seed()
 
     ckpt_path = trainer_options['weights_save_path']
-    trainer_options.update(checkpoint_callback=ModelCheckpoint(dirpath=ckpt_path))
+    trainer_options.update(callbacks=[ModelCheckpoint(dirpath=ckpt_path)])
 
     model = EvalModelTemplate()
 
@@ -79,12 +74,14 @@ def run_test_from_config(trainer_options):
     for dataloader in test_loaders:
         run_prediction(dataloader, pretrained_model)
 
-    # test HPC loading / saving
+    # test HPC saving
     trainer.checkpoint_connector.hpc_save(ckpt_path, trainer.logger)
-    trainer.checkpoint_connector.hpc_load(ckpt_path, on_gpu=args.on_gpu)
+    # test HPC loading
+    checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(ckpt_path)
+    trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=args.on_gpu)
 
     if args.on_gpu:
-        trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
+        trainer = Trainer(gpus=1, accelerator='horovod', max_epochs=1)
         # Test the root_gpu property
         assert trainer.root_gpu == hvd.local_rank()
 

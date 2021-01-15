@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union
+from typing import Optional, Union
 
 import torch
 from torch import optim
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed import LightningDistributed
@@ -27,7 +29,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class DataParallelAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using DP via manual start (not HPC cluster)
 
@@ -62,8 +64,6 @@ class DataParallelAccelerator(Accelerator):
         # init half precision
         if self.trainer.amp_backend:
             model = self.__init_half_precision(model)
-
-        self.trainer.convert_to_lightning_optimizers()
 
         self.trainer.model = model
 
@@ -101,22 +101,12 @@ class DataParallelAccelerator(Accelerator):
 
         return model
 
-    def train(self):
-        model = self.trainer.model
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
-
-        # train or test
-        results = self.train_or_test()
-
-        return results
-
     def teardown(self):
         # replace the original fwd function
         self.trainer.model.forward = self.model_autocast_original_forward
         self.barrier()
 
-    def training_step(self, args):
+    def _step(self, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
@@ -124,13 +114,14 @@ class DataParallelAccelerator(Accelerator):
             output = self.trainer.model(*args)
         return output
 
+    def training_step(self, args):
+        return self._step(args)
+
     def validation_step(self, args):
-        output = self.training_step(args)
-        return output
+        return self._step(args)
 
     def test_step(self, args):
-        output = self.training_step(args)
-        return output
+        return self._step(args)
 
     def training_step_end(self, output):
         if isinstance(output, Result):
@@ -181,3 +172,7 @@ class DataParallelAccelerator(Accelerator):
         if isinstance(model, LightningDataParallel):
             return model.module
         return model
+
+    @property
+    def require_distributed_sampler(self):
+        return False

@@ -13,19 +13,16 @@
 # limitations under the License.
 import functools
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
+from collections.abc import Sequence
 from copy import deepcopy
-from distutils.version import LooseVersion
+from typing import Any, Callable, Optional, Union
 
-import os
 import torch
 from torch import nn
 
+from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import gather_all_tensors
-from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
 
 
 class Metric(nn.Module, ABC):
@@ -97,7 +94,8 @@ class Metric(nn.Module, ABC):
                 reset to this value when ``self.reset()`` is called.
             dist_reduce_fx (Optional): Function to reduce state accross mutliple processes in distributed mode.
                 If value is ``"sum"``, ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``,
-                and ``torch.cat`` respectively, each with argument ``dim=0``. The user can also pass a custom
+                and ``torch.cat`` respectively, each with argument ``dim=0``. Note that the ``"cat"`` reduction
+                only makes sense if the state is a list, and not a tensor. The user can also pass a custom
                 function in this parameter.
             persistent (Optional): whether the state will be saved as part of the modules ``state_dict``.
                 Default is ``False``.
@@ -247,7 +245,7 @@ class Metric(nn.Module, ABC):
         """
         for attr, default in self._defaults.items():
             current_val = getattr(self, attr)
-            if isinstance(current_val, torch.Tensor):
+            if isinstance(default, torch.Tensor):
                 setattr(self, attr, deepcopy(default).to(current_val.device))
             else:
                 setattr(self, attr, deepcopy(default))
