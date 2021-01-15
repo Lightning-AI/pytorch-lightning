@@ -13,8 +13,8 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Trainer, Callback
-from pytorch_lightning.trainer.states import TrainerState, trainer_state
+from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.trainer.states import trainer_state, TrainerState
 from tests.base import EvalModelTemplate
 
 
@@ -154,7 +154,7 @@ def test_finished_state_after_fit(tmpdir, extra_params):
 
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_running_state_during_test(tmpdir):
@@ -188,7 +188,7 @@ def test_finished_state_after_test(tmpdir):
 
     trainer.test(model)
 
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize("extra_params", [

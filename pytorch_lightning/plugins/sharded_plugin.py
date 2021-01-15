@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional, Union, Any
+from typing import Any, List, Optional, Union
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
-from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, AMPType, rank_zero_only
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, AMPType, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if FAIRSCALE_AVAILABLE:
+if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
 
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
@@ -46,7 +46,7 @@ class DDPShardedPlugin(DDPPlugin):
         return model.transfer_batch_to_device(args, model.trainer.root_gpu)
 
     def _check_fairscale(self):
-        if not FAIRSCALE_AVAILABLE:
+        if not _FAIRSCALE_AVAILABLE:
             raise MisconfigurationException(
                 'Sharded DDP Plugin requires Fairscale to be installed.'
             )
@@ -96,7 +96,4 @@ class DDPShardedPlugin(DDPPlugin):
         return []
 
     def on_before_manual_backward(self, model: 'LightningShardedDataParallel', output: Any):
-        pass
-
-    def on_after_manual_backward(self, model: 'LightningShardedDataParallel'):
         pass

@@ -14,17 +14,18 @@
 
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
-from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
+
+from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 
 
 class ModelHooks:
     """Hooks to be used in LightningModule."""
-    def setup(self, stage: str):
+    def setup(self, stage: str) -> None:
         """
         Called at the beginning of fit and test.
         This is a good hook when you need to build models dynamically or adjust something about them.
@@ -52,7 +53,7 @@ class ModelHooks:
 
         """
 
-    def teardown(self, stage: str):
+    def teardown(self, stage: str) -> None:
         """
         Called at the end of fit and test.
 
@@ -60,13 +61,13 @@ class ModelHooks:
             stage: either 'fit' or 'test'
         """
 
-    def on_fit_start(self):
+    def on_fit_start(self) -> None:
         """
         Called at the very beginning of fit.
         If on DDP it is called on every process
         """
 
-    def on_fit_end(self):
+    def on_fit_end(self) -> None:
         """
         Called at the very end of fit.
         If on DDP it is called on every process
@@ -74,7 +75,7 @@ class ModelHooks:
 
     def on_train_start(self) -> None:
         """
-        Called at the beginning of training before sanity check.
+        Called at the beginning of training after sanity check.
         """
         # do something at the start of training
 
@@ -83,6 +84,18 @@ class ModelHooks:
         Called at the end of training before logger experiment is closed.
         """
         # do something at the end of training
+
+    def on_validation_start(self) -> None:
+        """
+        Called at the beginning of validation.
+        """
+        # do something at the start of validation
+
+    def on_validation_end(self) -> None:
+        """
+        Called at the end of validation.
+        """
+        # do something at the end of validation
 
     def on_pretrain_routine_start(self) -> None:
         """
@@ -108,9 +121,7 @@ class ModelHooks:
         """
         # do something at the end of the pretrain routine
 
-    def on_train_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop before anything happens for that batch.
 
@@ -252,6 +263,18 @@ class ModelHooks:
         Called in the test loop at the very end of the epoch.
         """
         # do something when the epoch ends
+
+    def on_test_start(self) -> None:
+        """
+        Called at the beginning of testing.
+        """
+        # do something at the start of testing
+
+    def on_test_end(self) -> None:
+        """
+        Called at the end of testing.
+        """
+        # do something at the end of testing
 
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
         """
@@ -501,7 +524,7 @@ class DataHooks:
             will have an argument ``dataloader_idx`` which matches the order here.
         """
 
-    def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
+    def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
         wrapped in a custom data structure.
@@ -541,14 +564,14 @@ class DataHooks:
         Note:
             This hook only runs on single GPU training (no data-parallel). If you need multi-GPU support
             for your custom batch objects, you need to define your custom
-            :class:`~torch.nn.parallel.DistributedDataParallel` or
-            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
+            :class:`~torch.nn.parallel.DistributedDataParallel` and
             override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
 
         See Also:
             - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
             - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
         """
+        device = device or self.device
         return move_data_to_device(batch, device)
 
 

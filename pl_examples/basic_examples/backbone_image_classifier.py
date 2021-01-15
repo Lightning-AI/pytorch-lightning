@@ -19,16 +19,23 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
-from pl_examples import DATASETS_PATH, TORCHVISION_AVAILABLE
+from pl_examples import _DATASETS_PATH, _TORCHVISION_AVAILABLE, cli_lightning_logo
 
-if TORCHVISION_AVAILABLE:
-    from torchvision.datasets.mnist import MNIST
+if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
+    from torchvision.datasets.mnist import MNIST
 else:
     from tests.base.datasets import MNIST
 
 
 class Backbone(torch.nn.Module):
+    """
+    >>> Backbone()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    Backbone(
+      (l1): Linear(...)
+      (l2): Linear(...)
+    )
+    """
     def __init__(self, hidden_dim=128):
         super().__init__()
         self.l1 = torch.nn.Linear(28 * 28, hidden_dim)
@@ -42,6 +49,12 @@ class Backbone(torch.nn.Module):
 
 
 class LitClassifier(pl.LightningModule):
+    """
+    >>> LitClassifier(Backbone())  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    LitClassifier(
+      (backbone): ...
+    )
+    """
     def __init__(self, backbone, learning_rate=1e-3):
         super().__init__()
         self.save_hyperparameters()
@@ -98,8 +111,8 @@ def cli_main():
     # ------------
     # data
     # ------------
-    dataset = MNIST(DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
-    mnist_test = MNIST(DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
+    dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
+    mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
     mnist_train, mnist_val = random_split(dataset, [55000, 5000])
 
     train_loader = DataLoader(mnist_train, batch_size=args.batch_size)
@@ -125,4 +138,5 @@ def cli_main():
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     cli_main()

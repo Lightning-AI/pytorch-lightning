@@ -24,10 +24,10 @@ import os
 import shutil
 import subprocess
 import time
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only, DeviceType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 
@@ -104,7 +104,7 @@ class GPUStatsMonitor(Callback):
                 'Cannot use GPUStatsMonitor callback with Trainer that has no logger.'
             )
 
-        if not trainer.on_gpu:
+        if trainer._device_type != DeviceType.GPU:
             raise MisconfigurationException(
                 'You are using GPUStatsMonitor but are not running on GPU'
                 f' since gpus attribute in Trainer is set to {trainer.gpus}.'
@@ -213,5 +213,4 @@ class GPUStatsMonitor(Callback):
             or trainer.should_stop
         )
 
-        should_log = should_log and not trainer.fast_dev_run
         return should_log

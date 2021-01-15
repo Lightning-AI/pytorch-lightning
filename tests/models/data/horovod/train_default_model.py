@@ -22,21 +22,22 @@ import os
 import sys
 
 # this is need as e.g. Conda do not uses `PYTHONPATH` env var as pip or/and virtualenv
+from pytorch_lightning.trainer.states import TrainerState
+
 sys.path = os.getenv('PYTHONPATH').split(':') + sys.path
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
-from pytorch_lightning.utilities import HOROVOD_AVAILABLE  # noqa: E402
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE  # noqa: E402
 
-if HOROVOD_AVAILABLE:
+if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd  # noqa: E402
 else:
     print('You requested to import Horovod which is missing or not supported for your OS.')
 
 from tests.base import EvalModelTemplate  # noqa: E402
 from tests.base.develop_pipelines import run_prediction  # noqa: E402
-from tests.base.develop_utils import set_random_master_port, reset_seed  # noqa: E402
-
+from tests.base.develop_utils import reset_seed, set_random_master_port  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--trainer-options', required=True)
@@ -54,8 +55,8 @@ def run_test_from_config(trainer_options):
     model = EvalModelTemplate()
 
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result == 1
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # Horovod should be initialized following training. If not, this will raise an exception.
     assert hvd.size() == 2
@@ -72,11 +73,13 @@ def run_test_from_config(trainer_options):
         test_loaders = [test_loaders]
 
     for dataloader in test_loaders:
-        run_prediction(dataloader, pretrained_model)
+        run_prediction(pretrained_model, dataloader)
 
-    # test HPC loading / saving
+    # test HPC saving
     trainer.checkpoint_connector.hpc_save(ckpt_path, trainer.logger)
-    trainer.checkpoint_connector.hpc_load(ckpt_path, on_gpu=args.on_gpu)
+    # test HPC loading
+    checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(ckpt_path)
+    trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=args.on_gpu)
 
     if args.on_gpu:
         trainer = Trainer(gpus=1, accelerator='horovod', max_epochs=1)

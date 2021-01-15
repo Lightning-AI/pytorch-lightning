@@ -15,7 +15,7 @@
 from functools import wraps
 from typing import Callable
 
-from pytorch_lightning.utilities.argparse_utils import parse_env_variables, get_init_arguments_and_types
+from pytorch_lightning.utilities.argparse import parse_env_variables, get_init_arguments_and_types
 
 
 def overwrite_by_env_vars(fn: Callable) -> Callable:

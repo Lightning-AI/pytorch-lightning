@@ -3,6 +3,7 @@ import re
 import signal
 from subprocess import call
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.distributed import rank_zero_info
 import torch.distributed as torch_distrib
 import torch
@@ -22,7 +23,7 @@ class SLURMConnector:
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
-        if self.trainer.use_ddp or self.trainer.use_ddp2:
+        if self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2):
             self.trainer.num_requested_gpus = self.trainer.num_gpus * num_gpu_nodes
             self.trainer.num_slurm_tasks = 0
             try:
@@ -37,18 +38,15 @@ class SLURMConnector:
                 job_name = os.environ['SLURM_JOB_NAME']
                 if job_name == 'bash':
                     self.trainer.is_slurm_managing_tasks = False
-
+            # todo: specify the possible exception
             except Exception:
                 # likely not on slurm, so set the slurm managed flag to false
                 self.trainer.is_slurm_managing_tasks = False
 
         # used for tests only, set this flag to simulate slurm managing a task
-        try:
-            should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
-            if should_fake:
-                self.trainer.is_slurm_managing_tasks = True
-        except Exception:
-            pass
+        should_fake = os.environ.get('FAKE_SLURM_MANAGING_TASKS')
+        if should_fake and int(should_fake):
+            self.trainer.is_slurm_managing_tasks = True
 
         # notify user the that slurm is managing tasks
         if self.trainer.is_slurm_managing_tasks:
@@ -74,6 +72,7 @@ class SLURMConnector:
             job_name = os.environ['SLURM_JOB_NAME']
             if job_name != 'bash':
                 on_slurm = True
+        # todo: specify the possible exception
         except Exception:
             pass
 
@@ -83,6 +82,8 @@ class SLURMConnector:
             signal.signal(signal.SIGTERM, self.term_handler)
 
     def sig_handler(self, signum, frame):  # pragma: no-cover
+        # Todo: required argument `signum` is not used
+        # Todo: required argument `frame` is not used
         if self.trainer.is_global_zero:
             # save weights
             log.info('handling SIGUSR1')
@@ -106,7 +107,8 @@ class SLURMConnector:
             self.trainer.logger.close()
 
     def term_handler(self, signum, frame):
-        # save
+        # Todo: required argument `signum` is not used
+        # Todo: required argument `frame` is not used
         log.info("bypassing sigterm")
 
     # todo: this is the same func as slurm_environment.py `master_port`
@@ -117,35 +119,34 @@ class SLURMConnector:
         """
         # use slurm job id for the port number
         # guarantees unique ports across jobs from same grid search
-        try:
+        default_port = os.environ.get("SLURM_JOB_ID")
+        if default_port:
             # use the last 4 numbers in the job id as the id
-            default_port = os.environ["SLURM_JOB_ID"]
             default_port = default_port[-4:]
-
             # all ports should be in the 10k+ range
             default_port = int(default_port) + 15000
-
-        except Exception:
+        else:
             default_port = 12910
 
         # if user gave a port number, use that one instead
-        try:
+        if "MASTER_PORT" in os.environ:
             default_port = os.environ["MASTER_PORT"]
-        except Exception:
+        else:
             os.environ["MASTER_PORT"] = str(default_port)
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         # figure out the root node addr
-        try:
-            root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
-        except Exception:
+        root_node = os.environ.get("SLURM_NODELIST")
+        if root_node:
+            root_node = root_node.split(" ")[0]
+        else:
             root_node = "127.0.0.1"
 
         root_node = self.trainer.slurm_connector.resolve_root_node_address(root_node)
         os.environ["MASTER_ADDR"] = root_node
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
 
-        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
+        torch_backend = "nccl" if self.trainer._device_type == DeviceType.GPU else "gloo"
 
         if not torch.distributed.is_initialized():
             log.info(

@@ -29,10 +29,10 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, OMEGACONF_AVAILABLE
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
-if OMEGACONF_AVAILABLE:
+if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
 
@@ -149,7 +149,7 @@ class TensorBoardLogger(LightningLoggerBase):
         params = self._convert_params(params)
 
         # store params to output
-        if OMEGACONF_AVAILABLE and isinstance(params, Container):
+        if _OMEGACONF_AVAILABLE and isinstance(params, Container):
             self.hparams = OmegaConf.merge(self.hparams, params)
         else:
             self.hparams.update(params)
@@ -187,9 +187,10 @@ class TensorBoardLogger(LightningLoggerBase):
             else:
                 try:
                     self.experiment.add_scalar(k, v, step)
-                except Exception as e:
+                # todo: specify the possible exception
+                except Exception as ex:
                     m = f'\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
-                    type(e)(e.message + m)
+                    type(ex)(ex.message + m)
 
     @rank_zero_only
     def log_graph(self, model: LightningModule, input_array=None):
@@ -217,7 +218,7 @@ class TensorBoardLogger(LightningLoggerBase):
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file if it doesn't exist
-        if not os.path.isfile(hparams_file):
+        if not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only

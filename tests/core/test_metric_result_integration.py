@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
 import sys
+
+import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
+import tests.base.develop_utils as tutils
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.metrics import Metric
-import tests.base.develop_utils as tutils
 
 
 class DummyMetric(Metric):
@@ -45,7 +46,7 @@ def _setup_ddp(rank, worldsize):
 
 def _ddp_test_fn(rank, worldsize):
     _setup_ddp(rank, worldsize)
-    tensor = torch.tensor([1.0])
+    torch.tensor([1.0])
 
     metric_a = DummyMetric()
     metric_b = DummyMetric()

@@ -14,9 +14,8 @@
 """
 Tests to ensure that the training loop works with a dict
 """
-import os
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
+from pytorch_lightning.core.lightning import LightningModule
 from tests.base.deterministic_model import DeterministicModel
 
 

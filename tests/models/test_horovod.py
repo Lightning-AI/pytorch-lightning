@@ -27,14 +27,14 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
-from pytorch_lightning.core.step_result import EvalResult, Result, TrainResult
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, HOROVOD_AVAILABLE, _module_available
+from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel
 from tests.base.models import BasicGAN
 
-if HOROVOD_AVAILABLE:
+if _HOROVOD_AVAILABLE:
     import horovod
     import horovod.torch as hvd
 
@@ -45,9 +45,9 @@ try:
     from horovod.common.util import nccl_built
     nccl_built()
 except (ImportError, ModuleNotFoundError, AttributeError):
-    HOROVOD_NCCL_AVAILABLE = False
+    _HOROVOD_NCCL_AVAILABLE = False
 finally:
-    HOROVOD_NCCL_AVAILABLE = True
+    _HOROVOD_NCCL_AVAILABLE = True
 
 
 def _run_horovod(trainer_options, on_gpu=False):
@@ -106,7 +106,7 @@ def test_horovod_cpu_implicit(enable_pl_optimizer, tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
@@ -126,9 +126,9 @@ def test_horovod_multi_gpu(tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
+@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_horovod_apex(tmpdir):
     """Test Horovod with multi-GPU support using apex amp."""
     trainer_options = dict(
@@ -150,9 +150,9 @@ def test_horovod_apex(tmpdir):
 
 @pytest.mark.skip(reason="Skip till Horovod fixes integration with Native torch.cuda.amp")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="test requires torch.cuda.amp")
+@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires torch.cuda.amp")
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
@@ -173,7 +173,7 @@ def test_horovod_amp(tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_horovod_transfer_batch_to_gpu(tmpdir):
     class TestTrainingStepModel(EvalModelTemplate):
@@ -221,8 +221,8 @@ def test_horovod_multi_optimizer(enable_pl_optimizer, tmpdir):
         accelerator='horovod',
         enable_pl_optimizer=enable_pl_optimizer,
     )
-    result = trainer.fit(model)
-    assert result == 1, 'model failed to complete'
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert len(trainer.optimizers) == 2
     for i, optimizer in enumerate(trainer.optimizers):
@@ -239,7 +239,7 @@ def test_horovod_multi_optimizer(enable_pl_optimizer, tmpdir):
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
 
 
-@pytest.mark.skipif(not HOROVOD_AVAILABLE, reason="Horovod is unavailable")
+@pytest.mark.skipif(not _HOROVOD_AVAILABLE, reason="Horovod is unavailable")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 def test_result_reduce_horovod(enable_pl_optimizer, tmpdir):
@@ -290,7 +290,7 @@ def test_result_reduce_horovod(enable_pl_optimizer, tmpdir):
     horovod.run(hvd_test_fn, np=2)
 
 
-@pytest.mark.skipif(not HOROVOD_AVAILABLE, reason="Horovod is unavailable")
+@pytest.mark.skipif(not _HOROVOD_AVAILABLE, reason="Horovod is unavailable")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_accuracy_metric_horovod():
     num_batches = 10

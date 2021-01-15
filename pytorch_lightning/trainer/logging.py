@@ -14,12 +14,12 @@
 
 from abc import ABC
 import inspect
-from typing import Union, Iterable, Mapping
+from typing import Union, Mapping
 
 import torch
 
-from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
+from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 
@@ -29,13 +29,12 @@ class TrainerLoggingMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     current_epoch: int
-    on_gpu: bool
+    _device_type: DeviceType
+    _distrib_type: DistributedType
     log_gpu_memory: ...
     logger: Union[LightningLoggerBase, bool]
     global_step: int
     global_rank: int
-    use_dp: bool
-    use_ddp2: bool
     default_root_dir: str
     slurm_job_id: int
     num_gpus: int
@@ -97,7 +96,7 @@ class TrainerLoggingMixin(ABC):
                 if k not in ['progress_bar', 'log', 'hiddens']:
                     callback_metrics[k] = v
 
-        if train and (self.use_dp or self.use_ddp2):
+        if train and self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
             num_gpus = self.num_gpus
             callback_metrics = self.reduce_distributed_output(callback_metrics, num_gpus)
 
@@ -108,11 +107,12 @@ class TrainerLoggingMixin(ABC):
             progress_output = output['progress_bar']
 
             # reduce progress metrics for progress bar when using dp
-            if train and (self.use_dp or self.use_ddp2):
+            if train and self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
                 num_gpus = self.num_gpus
                 progress_output = self.reduce_distributed_output(progress_output, num_gpus)
 
             progress_bar_metrics = progress_output
+        # todo: specify the possible exception
         except Exception:
             progress_bar_metrics = {}
 
@@ -124,11 +124,12 @@ class TrainerLoggingMixin(ABC):
             log_output = output['log']
 
             # reduce progress metrics for progress bar when using dp
-            if train and (self.use_dp or self.use_ddp2):
+            if train and self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
                 num_gpus = self.num_gpus
                 log_output = self.reduce_distributed_output(log_output, num_gpus)
 
             log_metrics = log_output
+        # todo: specify the possible exception
         except Exception:
             log_metrics = {}
 
@@ -141,6 +142,7 @@ class TrainerLoggingMixin(ABC):
         if train:
             try:
                 loss = output['loss']
+            # todo: specify the possible exception
             except Exception as exp:
                 if isinstance(output, torch.Tensor):
                     loss = output
@@ -150,7 +152,7 @@ class TrainerLoggingMixin(ABC):
                     ) from exp
 
             # when using dp need to reduce the loss
-            if self.use_dp or self.use_ddp2:
+            if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
                 loss = self.reduce_distributed_output(loss, self.num_gpus)
 
         # ---------------

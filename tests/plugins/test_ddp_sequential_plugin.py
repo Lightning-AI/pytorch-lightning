@@ -21,7 +21,7 @@ from torch import nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
-from pytorch_lightning.utilities import FAIRSCALE_PIPE_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import RandomDataset
 
@@ -33,7 +33,7 @@ def cleanup(ctx, model):
     del model
 
 
-@pytest.mark.skipif(not FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
+@pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
@@ -47,7 +47,8 @@ def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
         limit_test_batches=2,
         gpus=2,
         distributed_backend="ddp",
-        plugins=[DDPSequentialPlugin(balance=[2, 1])],
+        plugins=[DDPSequentialPlugin(balance=[2, 1], rpc_timeout_sec=5 * 60)],
+        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
@@ -60,7 +61,7 @@ def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
         trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
 
 
-@pytest.mark.skipif(not FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
+@pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
@@ -87,7 +88,7 @@ def test_ddp_sequential_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
         assert str(e) == 'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision'
 
 
-@pytest.mark.skipif(not FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
+@pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
@@ -115,7 +116,7 @@ def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
         trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
 
 
-@pytest.mark.skipif(not FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
+@pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',

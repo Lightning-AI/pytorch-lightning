@@ -13,13 +13,14 @@
 # limitations under the License.
 import os
 from copy import deepcopy
+
 import pytest
 import torch
-from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import MNISTDataModule
@@ -328,7 +329,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
 def test_auto_scale_batch_size_with_amp(tmpdir):
     model = EvalModelTemplate()
     batch_size_before = model.batch_size

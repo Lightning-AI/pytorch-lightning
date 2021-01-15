@@ -8,7 +8,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
-from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
@@ -27,7 +27,7 @@ from tests.base.boring_model import BoringModel
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
+    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 def test_ddp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
@@ -62,7 +62,7 @@ def test_ddp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
+    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 def test_ddp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class MyDDP(DDPPlugin):
@@ -101,10 +101,10 @@ def test_ddp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
+    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed sharded plugin is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
@@ -139,7 +139,7 @@ def test_ddp_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
+    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 def test_ddp_invalid_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     with pytest.raises(MisconfigurationException, match='not a supported lightning custom plugin'):
@@ -166,10 +166,10 @@ def test_ddp_invalid_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_proces
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
+    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed sharded plugin is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_invalid_choice_string_and_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     """
     Test passing a lightning custom ddp plugin and a default ddp plugin throws an error.
@@ -202,7 +202,7 @@ def test_ddp_invalid_choice_string_and_custom_ddp_cpu(tmpdir, ddp_backend, gpus,
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
+    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 def test_ddp_choice_custom_ddp_cpu_custom_args(
         tmpdir, ddp_backend, gpus, num_processes

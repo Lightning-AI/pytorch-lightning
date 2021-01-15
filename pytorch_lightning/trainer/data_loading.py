@@ -27,7 +27,10 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
+
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.trainer.supporters import CombinedLoader
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -35,12 +38,8 @@ class TrainerDataLoadingMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     global_rank: int
-    use_ddp: bool
-    use_ddp2: bool
-    use_horovod: bool
     shown_warnings: ...
     val_check_interval: float
-    use_tpu: bool
     tpu_local_core_rank: int
     train_dataloader: DataLoader
     num_training_batches: Union[int, float]
@@ -137,6 +136,7 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         self.train_dataloader = self.request_dataloader(model.train_dataloader)
+
         if (self.overfit_batches > 0):
             if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
                 rank_zero_warn('You requested to overfit but enabled training dataloader shuffling.'
@@ -147,13 +147,17 @@ class TrainerDataLoadingMixin(ABC):
         # debugging
         self.dev_debugger.track_load_dataloader_call('train_dataloader', dataloaders=[self.train_dataloader])
 
-        self.num_training_batches = 0
-
         # automatically add samplers
-        self.train_dataloader = self.auto_add_sampler(self.train_dataloader, shuffle=True)
+        self.train_dataloader = apply_to_collection(
+            self.train_dataloader, DataLoader, self.auto_add_sampler, shuffle=True)
+
+        # check the workers recursively
+        apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, 'train dataloader')
+
+        # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
+        self.train_dataloader = CombinedLoader(self.train_dataloader, self._multiple_trainloader_mode)
 
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
-        self._worker_check(self.train_dataloader, 'train dataloader')
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))

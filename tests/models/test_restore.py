@@ -20,14 +20,13 @@ from copy import deepcopy
 import cloudpickle
 import pytest
 import torch
-from torch.nn import functional as F
-from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Callback, LightningModule, Trainer, seed_everything
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.base import EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
+from pytorch_lightning.trainer.states import TrainerState
+from tests.base import BoringModel, EvalModelTemplate, GenericEvalModelTemplate
 
 
 class ModelTrainerPropertyParity(Callback):
@@ -71,6 +70,25 @@ def test_model_properties_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
     trainer_args.update(max_epochs=2)
     trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
     trainer.fit(model)
+
+
+def test_try_resume_from_non_existing_checkpoint(tmpdir):
+    """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
+    model = BoringModel()
+    checkpoint_cb = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=False,
+        callbacks=[checkpoint_cb],
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+    )
+    # Generate checkpoint `last.ckpt` with BoringModel
+    trainer.fit(model)
+    # `True` if resume/restore successfully else `False`
+    assert trainer.checkpoint_connector.restore(str(tmpdir / "last.ckpt"), trainer.on_gpu)
+    assert not trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
 
 
 class CaptureCallbacksBeforeTraining(Callback):
@@ -144,6 +162,7 @@ def test_callbacks_references_resume_from_checkpoint(enable_pl_optimizer, tmpdir
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
+
     tutils.set_random_master_port()
 
     model = EvalModelTemplate()
@@ -168,10 +187,10 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
@@ -188,7 +207,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(dataloader, pretrained_model)
+        tpipes.run_prediction(pretrained_model, dataloader)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -218,12 +237,12 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     log.info(os.listdir(tutils.get_data_path(logger, path_dir=tmpdir)))
 
     # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
@@ -239,7 +258,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(dataloader, pretrained_model)
+        tpipes.run_prediction(pretrained_model, dataloader)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -264,10 +283,10 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     new_trainer = Trainer(**trainer_options)
@@ -294,11 +313,11 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
+    trainer.fit(model)
     trainer.test(ckpt_path=None)
 
     # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # load last checkpoint
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
@@ -348,13 +367,13 @@ def test_dp_resume(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.is_slurm_managing_tasks = True
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
     real_global_epoch = trainer.current_epoch + 1
 
     # correct result and ok accuracy
-    assert result == 1, 'amp + dp model failed to complete'
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # ---------------------------
     # HPC LOAD/SAVE
@@ -381,7 +400,7 @@ def test_dp_resume(tmpdir):
         dp_model.eval()
 
         dataloader = trainer.train_dataloader
-        tpipes.run_prediction(dataloader, dp_model, dp=True)
+        tpipes.run_prediction(dp_model, dataloader, dp=True)
 
     # new model
     model = EvalModelTemplate(**hparams)
@@ -409,10 +428,10 @@ def test_model_saving_loading(tmpdir):
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
         default_root_dir=tmpdir,
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # make a prediction
     dataloaders = model.test_dataloader()
@@ -464,10 +483,10 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
         default_root_dir=tmpdir, max_epochs=1, logger=logger,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # traning complete
-    assert result == 1
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
@@ -504,10 +523,10 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
         default_root_dir=tmpdir, max_epochs=1, logger=logger,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # traning complete
-    assert result == 1
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')

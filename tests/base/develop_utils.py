@@ -14,31 +14,11 @@
 import functools
 import os
 
-import numpy as np
-
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
-from tests import TEMP_PATH, RANDOM_PORTS
+from tests import _TEMP_PATH, RANDOM_PORTS
 from tests.base.model_template import EvalModelTemplate
-
-
-def assert_speed_parity_relative(pl_times, pt_times, max_diff: float = 0.1):
-    # assert speeds
-    diffs = np.asarray(pl_times) - np.asarray(pt_times)
-    # norm by vanila time
-    diffs = diffs / np.asarray(pt_times)
-    assert np.alltrue(diffs < max_diff), \
-        f"lightning {diffs} was slower than PT (threshold {max_diff})"
-
-
-def assert_speed_parity_absolute(pl_times, pt_times, nb_epochs, max_diff: float = 0.55):
-    # assert speeds
-    diffs = np.asarray(pl_times) - np.asarray(pt_times)
-    # norm by vanila time
-    diffs = diffs / nb_epochs
-    assert np.alltrue(diffs < max_diff), \
-        f"lightning {diffs} was slower than PT (threshold {max_diff})"
 
 
 def get_default_logger(save_dir, version=None):
@@ -63,7 +43,7 @@ def get_data_path(expt_logger, path_dir=None):
         if hasattr(expt_logger, 'save_dir') and expt_logger.save_dir:
             path_dir = expt_logger.save_dir
         else:
-            path_dir = TEMP_PATH
+            path_dir = _TEMP_PATH
     path_expt = os.path.join(path_dir, name, 'version_%s' % version)
 
     # try if the new sub-folder exists, typical case for test-tube
@@ -80,7 +60,7 @@ def load_model_from_checkpoint(logger, root_weights_dir, module_class=EvalModelT
 
 def assert_ok_model_acc(trainer, key='test_acc', thr=0.5):
     # this model should get 0.80+ acc
-    acc = trainer.logger_connector.callback_metrics[key]
+    acc = trainer.callback_metrics[key]
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
@@ -112,6 +92,7 @@ def pl_multi_process_test(func):
             try:
                 func(**kwargs)
                 queue.put(1)
+            # todo: specify the possible exception
             except Exception:
                 import traceback
                 traceback.print_exc()

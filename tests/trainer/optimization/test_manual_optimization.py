@@ -21,8 +21,8 @@ import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
-from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.utilities import APEX_AVAILABLE
+from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
@@ -301,7 +301,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
+@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_multiple_optimizers_manual_apex(tmpdir):
     """
     Tests that only training_step can be used
@@ -410,12 +410,14 @@ class ManualOptimizationExtendedModel(BoringModel):
         if self.should_update:
             try:
                 assert not torch.equal(self.weight_before, after_before), self.count
+            # todo: specify the possible exception
             except Exception:
                 # TODO: Figure out why 1 every 3 runs, weights don't get updated on count = 4"
                 pass
         else:
             try:
                 assert torch.equal(self.weight_before, after_before)
+            # todo: specify the possible exception
             except Exception:
                 # almost no diff between before and after
                 assert torch.abs(torch.sum(self.weight_before) - torch.sum(after_before)).item() < 10e-6
@@ -942,7 +944,8 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_step, mock_adam_step, tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
@@ -1069,7 +1072,7 @@ def test_step_with_misconfiguraiton_error_when_overriding_optimizer_zero_grad(tm
         model.training_epoch_end = None
 
         limit_train_batches = 8
-        trainer = Trainer(
+        Trainer(
             default_root_dir=tmpdir,
             limit_train_batches=limit_train_batches,
             limit_val_batches=2,
@@ -1078,5 +1081,5 @@ def test_step_with_misconfiguraiton_error_when_overriding_optimizer_zero_grad(tm
             accumulate_grad_batches=2,
             enable_pl_optimizer=True,
         )
-    except MisconfigurationException as e:
-        assert "`Trainer(enable_pl_optimizer=True, ...) is not supported" in str(e)
+    except MisconfigurationException as ex:
+        assert "`Trainer(enable_pl_optimizer=True, ...) is not supported" in str(ex)

@@ -11,20 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from unittest.mock import patch
 
-import pytest
 import torch
-import torch.nn as nn
 from torch.optim import Adam, Optimizer
 
-import pytorch_lightning as pl
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel, RandomDataset, RandomDictDataset, RandomDictStringDataset
+from tests.base.boring_model import BoringModel
 
 
 def test_lightning_optimizer(tmpdir):
@@ -40,7 +35,7 @@ def test_lightning_optimizer(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
@@ -68,7 +63,7 @@ def test_lightning_optimizer_from_user(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
@@ -122,7 +117,7 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
     model.training_step_end = None
     model.training_epoch_end = None
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=8,
         limit_val_batches=1,
         max_epochs=1,
@@ -175,7 +170,7 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
     model.training_step_end = None
     model.training_epoch_end = None
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=8,
         limit_val_batches=1,
         max_epochs=1,
@@ -212,13 +207,16 @@ def test_state(tmpdir):
     assert isinstance(lightning_optimizer, LightningOptimizer)
     assert isinstance(lightning_optimizer, Adam)
     assert isinstance(lightning_optimizer, Optimizer)
+
     lightning_dict = {}
     special_attrs = ["_accumulate_grad_batches", "_optimizer", "_optimizer_idx", "_support_closure",
                      "_trainer", "__getstate__", "__setstate__", "state_dict", "load_state_dict",
                      "zero_grad", "__setstate__", "add_param_group"]
+
     for k, v in lightning_optimizer.__dict__.items():
         if k not in special_attrs:
             lightning_dict[k] = v
+
     assert lightning_dict == optimizer.__dict__
     assert optimizer.state_dict() == lightning_optimizer.state_dict()
     assert optimizer.state == lightning_optimizer.state
@@ -256,7 +254,7 @@ def test_lightning_optimizer_automatic_optimization(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=10,
         limit_val_batches=1,
         max_epochs=1,
@@ -309,7 +307,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
 
         model = TestModel()
         trainer = Trainer(
-            default_root_dir=os.getcwd(),
+            default_root_dir=tmpdir,
             limit_train_batches=10,
             limit_val_batches=1,
             max_epochs=1,
@@ -369,7 +367,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad_make_opt
 
             model = TestModel()
             trainer = Trainer(
-                default_root_dir=os.getcwd(),
+                default_root_dir=tmpdir,
                 limit_train_batches=20,
                 limit_val_batches=1,
                 max_epochs=1,
@@ -422,7 +420,7 @@ def test_lightning_optimizer_automatic_optimization_make_optimizer_step_2(tmpdir
 
         model = TestModel()
         trainer = Trainer(
-            default_root_dir=os.getcwd(),
+            default_root_dir=tmpdir,
             limit_train_batches=20,
             limit_val_batches=1,
             max_epochs=1,

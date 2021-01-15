@@ -21,12 +21,11 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if FAIRSCALE_PIPE_AVAILABLE:
+if _FAIRSCALE_PIPE_AVAILABLE:
     import fairscale.nn.model_parallel as mpu
     from fairscale.nn import PipeRPCWrapper
     from fairscale.nn.pipe import balance as pipe_balance
@@ -137,7 +136,7 @@ class DDPSequentialPlugin(RPCPlugin):
                 self._infer_model_balance(trainer)
             self._assert_valid_model_balance(trainer)
 
-    def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
+    def on_before_manual_backward(self, model: DistributedDataParallel, output: Any):
         pass
 
     def _infer_model_balance(self, trainer):
@@ -228,7 +227,7 @@ class DDPSequentialPlugin(RPCPlugin):
         Returns: The appropriate balance for the model
         """
         if isinstance(self.balance, list):
-            if len(self.balance) != trainer.world_size:
+            if len(self.balance) != (trainer.world_size / trainer.num_nodes):
                 raise MisconfigurationException(
                     "Pipe currently only supports splitting the module onto all available GPUs"
                 )
@@ -267,10 +266,10 @@ class DDPSequentialPlugin(RPCPlugin):
     def configure_ddp(
             self,
             model: LightningModule, device_ids: List[int]) -> DistributedDataParallel:
-        ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
+        model = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
         # Plugin handle backwards across processes. Currently not supported for DDP + pipe parallel
-        ddp_plugin.PREPARE_FOR_BACKWARDS = False
-        return ddp_plugin
+        model.require_backward_grad_sync = False
+        return model
 
     @rank_zero_only
     def rpc_save_model(
@@ -327,7 +326,7 @@ class DDPSequentialPlugin(RPCPlugin):
             torch_distrib.barrier(group=self.data_parallel_group)
 
     def _check_pipe_available(self):
-        if not FAIRSCALE_PIPE_AVAILABLE:
+        if not _FAIRSCALE_PIPE_AVAILABLE:
             raise MisconfigurationException(
                 'PipeRPCPlugin requires FairScale and currently is only supported on PyTorch 1.6.'
             )

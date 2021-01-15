@@ -20,9 +20,8 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import APEX_AVAILABLE
+from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -43,9 +42,9 @@ def test_amp_single_gpu_dp(tmpdir):
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -62,9 +61,9 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
@@ -83,9 +82,9 @@ def test_amp_multi_gpu_dp(tmpdir):
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -102,9 +101,9 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -133,10 +132,10 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         logger=logger,
     )
     trainer.is_slurm_managing_tasks = True
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert trainer.state == TrainerState.FINISHED, 'amp + ddp model failed to complete'
 
     # test root model address
     assert trainer.slurm_connector.resolve_root_node_address('abc') == 'abc'
@@ -182,13 +181,13 @@ def test_amp_without_apex(tmpdir):
     )
     assert trainer.amp_backend is None
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.dev_debugger.count_events('AMP') == 0
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
+@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
 
@@ -203,5 +202,5 @@ def test_amp_with_apex(tmpdir):
     )
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.dev_debugger.count_events('AMP') == 10

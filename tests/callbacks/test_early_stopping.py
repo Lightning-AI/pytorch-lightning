@@ -13,18 +13,18 @@
 # limitations under the License.
 import os
 import pickle
+from unittest import mock
 
 import cloudpickle
 import numpy as np
 import pytest
 import torch
-from unittest import mock
 
-from pytorch_lightning import _logger
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import _logger, seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from tests.base import EvalModelTemplate, BoringModel
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import BoringModel, EvalModelTemplate
 
 
 class EarlyStoppingTestRestore(EarlyStopping):
@@ -87,15 +87,18 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
     model = EvalModelTemplate()
+    early_stop_callback = EarlyStopping()
     expected_count = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[EarlyStopping()],
+        callbacks=[early_stop_callback],
         val_check_interval=1.0,
         max_epochs=expected_count,
     )
     trainer.fit(model)
 
+    assert trainer.early_stopping_callback == early_stop_callback
+    assert trainer.early_stopping_callbacks == [early_stop_callback]
     assert len(trainer.dev_debugger.early_stopping_history) == expected_count
 
 
@@ -160,9 +163,9 @@ def test_early_stopping_no_val_step(tmpdir):
         overfit_batches=0.20,
         max_epochs=10,
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.current_epoch < trainer.max_epochs - 1
 
 
@@ -213,11 +216,14 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
     IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
     THEN the trainer should continue until reaching `trainer.global_step` == `min_steps`, and stop.
 
-    IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step` when `early_stopping` is being triggered,
-    THEN the trainer should continue until reaching `trainer.global_step` == `min_epochs * len(train_dataloader)`, and stop.
+    IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step`
+        when `early_stopping` is being triggered,
+    THEN the trainer should continue until reaching
+        `trainer.global_step` == `min_epochs * len(train_dataloader)`, and stop.
     This test validate this expected behaviour
 
-    IF both `min_epochs` and `min_steps` are provided and higher than the `trainer.global_step` when `early_stopping` is being triggered,
+    IF both `min_epochs` and `min_steps` are provided and higher than the `trainer.global_step`
+        when `early_stopping` is being triggered,
     THEN the highest between `min_epochs * len(train_dataloader)` and `min_steps` would be reached.
 
     Caviat: IF min_steps is divisible by len(train_dataloader), then it will do min_steps + len(train_dataloader)
@@ -294,3 +300,8 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
         (trainer.global_step, max(min_steps, by_early_stopping, by_min_epochs), step_freeze, min_steps, min_epochs)
 
     _logger.disabled = False
+
+
+def test_early_stopping_mode_options():
+    with pytest.raises(MisconfigurationException, match="`mode` can be auto, .* got unknown_option"):
+        EarlyStopping(mode="unknown_option")

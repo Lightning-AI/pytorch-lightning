@@ -62,7 +62,7 @@ def explained_variance(
     Computes explained variance.
 
     Args:
-        pred: estimated labels
+        preds: estimated labels
         target: ground truth labels
         multioutput: Defines aggregation in the case of multiple output scores. Can be one
             of the following strings (default is `'uniform_average'`.):

@@ -1,4 +1,4 @@
-from pytorch_lightning.utilities.argparse_utils import parse_args_from_docstring
+from pytorch_lightning.utilities.argparse import parse_args_from_docstring
 
 
 def test_parse_args_from_docstring_normal():

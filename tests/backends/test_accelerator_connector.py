@@ -17,10 +17,11 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning import Trainer, accelerators
+from pytorch_lightning import accelerators, Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.cluster_environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.utilities import DistributedType
 from tests.base.boring_model import BoringModel
 
 
@@ -41,7 +42,7 @@ def test_accelerator_choice_cpu(tmpdir):
 def test_accelerator_choice_ddp_cpu(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp
+            assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSpawnAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
@@ -50,6 +51,7 @@ def test_accelerator_choice_ddp_cpu(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator='ddp_cpu',
+        num_processes=2,
         callbacks=[CB()],
     )
 
@@ -62,7 +64,7 @@ def test_accelerator_choice_ddp_cpu(tmpdir):
 def test_accelerator_choice_ddp(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp
+            assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
@@ -84,7 +86,7 @@ def test_accelerator_choice_ddp(tmpdir):
 def test_accelerator_choice_ddp_spawn(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp
+            assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPSpawnAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
@@ -112,7 +114,7 @@ def test_accelerator_choice_ddp_spawn(tmpdir):
 def test_accelerator_choice_ddp_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp
+            assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
             assert trainer.accelerator_backend.task_idx == 10
@@ -143,7 +145,7 @@ def test_accelerator_choice_ddp_slurm(tmpdir):
 def test_accelerator_choice_ddp2_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp2
+            assert trainer._distrib_type == DistributedType.DDP2
             assert isinstance(trainer.accelerator_backend, accelerators.DDP2Accelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
             assert trainer.accelerator_backend.task_idx == 10
@@ -173,7 +175,7 @@ def test_accelerator_choice_ddp2_slurm(tmpdir):
 def test_accelerator_choice_ddp_te(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp
+            assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             assert trainer.accelerator_backend.task_idx == 10
@@ -202,7 +204,7 @@ def test_accelerator_choice_ddp_te(tmpdir):
 def test_accelerator_choice_ddp2_te(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp2
+            assert trainer._distrib_type == DistributedType.DDP2
             assert isinstance(trainer.accelerator_backend, accelerators.DDP2Accelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             assert trainer.accelerator_backend.task_idx == 10
@@ -230,7 +232,7 @@ def test_accelerator_choice_ddp2_te(tmpdir):
 def test_accelerator_choice_ddp_cpu_te(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp
+            assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             assert trainer.accelerator_backend.task_idx == 10
@@ -242,7 +244,7 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator='ddp_cpu',
-        num_processes=1,
+        num_processes=2,
         callbacks=[CB()],
     )
 
@@ -251,7 +253,7 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
 
 
 @mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
+    "SLURM_NTASKS": "2",
     "SLURM_JOB_NAME": "SOME_NAME",
     "SLURM_NODEID": "0",
     "LOCAL_RANK": "0",
@@ -261,7 +263,7 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
 def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp
+            assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
             raise SystemExit()
@@ -270,7 +272,7 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator='ddp_cpu',
-        num_processes=1,
+        num_processes=2,
         callbacks=[CB()],
     )
 
@@ -279,7 +281,7 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
 
 
 @mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
+    "SLURM_NTASKS": "2",
     "SLURM_JOB_NAME": "SOME_NAME",
     "SLURM_NODEID": "0",
     "LOCAL_RANK": "0",
@@ -297,7 +299,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
 
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp
+            assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, CustomCluster)
             raise SystemExit()
@@ -307,7 +309,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
         plugins=[CustomCluster()],
         fast_dev_run=True,
         accelerator='ddp_cpu',
-        num_processes=1,
+        num_processes=2,
         callbacks=[CB()],
     )
 
@@ -316,7 +318,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
 
 
 @mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
+    "SLURM_NTASKS": "2",
     "SLURM_JOB_NAME": "SOME_NAME",
     "SLURM_NODEID": "0",
     "LOCAL_RANK": "0",
@@ -341,7 +343,7 @@ def test_custom_accelerator(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator=Accel(),
-        num_processes=1,
+        num_processes=2,
         callbacks=[CB()]
     )
 
@@ -350,7 +352,7 @@ def test_custom_accelerator(tmpdir):
 
 
 @mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
+    "SLURM_NTASKS": "2",
     "SLURM_JOB_NAME": "SOME_NAME",
     "SLURM_NODEID": "0",
     "LOCAL_RANK": "0",
@@ -367,8 +369,8 @@ def test_dist_backend_accelerator_mapping(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator='ddp_cpu',
-        num_processes=1,
-        callbacks=[CB()]
+        num_processes=2,
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):

@@ -17,11 +17,10 @@ Runs either `.fit()` or `.test()` on a single node across multiple gpus.
 import os
 from argparse import ArgumentParser
 
-import tests as pl_tests
-from pytorch_lightning import Trainer, seed_everything
-from tests.base import EvalModelTemplate
-
 import torch
+
+from pytorch_lightning import seed_everything, Trainer
+from tests.base import EvalModelTemplate
 
 
 def main():

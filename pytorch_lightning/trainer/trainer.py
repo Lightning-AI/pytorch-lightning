@@ -16,6 +16,7 @@
 
 import os
 import warnings
+from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
 
 import torch
@@ -61,7 +62,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -84,7 +85,7 @@ class Trainer(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
         checkpoint_callback: bool = True,
-        callbacks: Optional[List[Callback]] = None,
+        callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
         process_position: int = 0,
@@ -117,7 +118,7 @@ class Trainer(
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
-        resume_from_checkpoint: Optional[str] = None,
+        resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, bool, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
@@ -133,7 +134,8 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
-        enable_pl_optimizer: bool = True,
+        enable_pl_optimizer: bool = False,
+        multiple_trainloader_mode: str = 'max_size_cycle',
     ):
         r"""
         Customize every aspect of training via flags
@@ -167,7 +169,7 @@ class Trainer(
 
             benchmark: If true enables cudnn.benchmark.
 
-            callbacks: Add a list of callbacks.
+            callbacks: Add a callback or list of callbacks.
 
             checkpoint_callback: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
@@ -250,8 +252,9 @@ class Trainer(
                 train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
                 you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
-            resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
-                This can be a URL.
+            resume_from_checkpoint: Path/URL of the checkpoint from which training is resumed. If there is
+                no checkpoint file at the path, start from scratch. If resuming from mid-epoch checkpoint,
+                training will start from the beginning of the next epoch.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
@@ -282,10 +285,16 @@ class Trainer(
             enable_pl_optimizer: If True, each optimizer will be wrapped by
                 `pytorch_lightning.core.optimizer.LightningOptimizer`. It allows Lightning to
                 handle AMP, TPU, accumulated_gradients, etc..
+
+            multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
+                In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
+                and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
+                reload when reaching the minimum length of datasets.
         """
         super().__init__()
         self._device_type = DeviceType.CPU
         self._distrib_type = None
+        self._running_stage = None
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -305,11 +314,10 @@ class Trainer(
         self.tuner = Tuner(self)
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
-        self.train_loop = TrainLoop(self)
+        self.train_loop = TrainLoop(self, multiple_trainloader_mode)
         self.plugin_connector = PluginConnector(self)
 
         # training state
-        self.weights_summary = weights_summary
         self.model = None
         self.shown_warnings = set()
 
@@ -372,7 +380,8 @@ class Trainer(
             max_steps,
             min_steps,
             num_sanity_val_steps,
-            automatic_optimization
+            automatic_optimization,
+            weights_summary,
         )
         self.evaluation_loop.on_trainer_init()
 
@@ -451,6 +460,7 @@ class Trainer(
         # SET UP TRAINING
         # ----------------------------
         self.accelerator_backend = self.accelerator_connector.select_accelerator()
+        self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator_backend.setup(model)
 
         # ----------------------------
@@ -778,7 +788,7 @@ class Trainer(
                     f'specify a path for a checkpoint .test(ckpt_path=PATH)'
                 )
                 return {}
-            if self.accelerator_backend is not None and not self.use_tpu:
+            if self.accelerator_backend is not None and not self._device_type == DeviceType.TPU:
                 self.accelerator_backend.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)

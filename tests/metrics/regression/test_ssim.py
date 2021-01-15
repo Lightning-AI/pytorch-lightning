@@ -5,9 +5,9 @@ import pytest
 import torch
 from skimage.metrics import structural_similarity
 
-from pytorch_lightning.metrics.regression import SSIM
 from pytorch_lightning.metrics.functional import ssim
-from tests.metrics.utils import BATCH_SIZE, NUM_BATCHES, MetricTester
+from pytorch_lightning.metrics.regression import SSIM
+from tests.metrics.utils import BATCH_SIZE, MetricTester, NUM_BATCHES
 
 torch.manual_seed(42)
 
@@ -53,9 +53,7 @@ def _sk_metric(preds, target, data_range, multichannel):
 class TestSSIM(MetricTester):
     atol = 6e-5
 
-    # TODO: for some reason this test hangs with ddp=True
-    # @pytest.mark.parametrize("ddp", [True, False])
-    @pytest.mark.parametrize("ddp", [False])
+    @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_ssim(self, preds, target, multichannel, ddp, dist_sync_on_step):
         self.run_class_metric_test(
