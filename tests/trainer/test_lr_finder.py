@@ -20,6 +20,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
+from tests.base import BoringModel
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -262,3 +263,30 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
     assert before_lr == after_lr, \
         'Learning rate was altered because of non-finite loss values'
+
+
+@pytest.mark.parametrize('use_hparams', [False, True])
+def test_lr_finder_fails_fast_on_bad_config(tmpdir, use_hparams):
+    """ Test that setting trainer arg to bool works """
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+    before_lr = hparams.get('learning_rate')
+    if use_hparams:
+        del model.learning_rate
+        # model.configure_optimizers = model.configure_optimizers__lr_from_hparams
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        auto_lr_find=True,
+    )
+
+    trainer.tune(model)
+    if use_hparams:
+        after_lr = model.hparams.learning_rate
+    else:
+        after_lr = model.learning_rate
+
+    assert before_lr != after_lr, \
+        'Learning rate was not altered after running learning rate finder'
