@@ -86,7 +86,7 @@ class DDPSpawnAccelerator(Accelerator):
         self.__recover_child_process_weights(model, best_path, last_path)
         return results
 
-    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, mp_queue, model, is_master: bool = False, proc_offset: int = 0):
         """
         Entry point for ddp
 

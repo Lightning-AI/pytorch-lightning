@@ -15,6 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel
@@ -34,8 +35,8 @@ def test_optimizer_with_scheduling(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    results = trainer.fit(model)
-    assert results == 1
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     init_lr = hparams.get('learning_rate')
     adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
@@ -65,8 +66,8 @@ def test_multi_optimizer_with_scheduling(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    results = trainer.fit(model)
-    assert results == 1
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     init_lr = hparams.get('learning_rate')
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
@@ -100,8 +101,8 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    results = trainer.fit(model)
-    assert results == 1
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     init_lr = hparams.get('learning_rate')
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
@@ -166,8 +167,8 @@ def test_reducelronplateau_scheduling(tmpdir):
         'monitor': 'early_stop_on',
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    results = trainer.fit(model)
-    assert results == 1
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     lr_scheduler = trainer.lr_schedulers[0]
     assert lr_scheduler == dict(
         scheduler=lr_scheduler['scheduler'],
@@ -300,10 +301,10 @@ def test_none_optimizer(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # verify training completed
-    assert result == 1
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_configure_optimizer_from_dict(tmpdir):
@@ -324,8 +325,8 @@ def test_configure_optimizer_from_dict(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
     )
-    result = trainer.fit(model)
-    assert result == 1
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_configure_optimizers_with_frequency(tmpdir):
@@ -339,8 +340,8 @@ def test_configure_optimizers_with_frequency(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_init_optimizers_during_testing(tmpdir):
@@ -482,4 +483,21 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match='The lr scheduler dict must have the key "scheduler"'):
+        trainer.fit(model)
+
+
+def test_invalid_optimizer_in_scheduler(tmpdir):
+    """
+    Test exception when optimizer attatched to lr_schedulers wasn't returned
+    """
+    class InvalidOptimizerModel(BoringModel):
+        def configure_optimizers(self):
+            opt1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            opt2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(opt2, step_size=1)
+            return [opt1], [lr_scheduler]
+
+    model = InvalidOptimizerModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.raises(MisconfigurationException, match="attatched with an optimizer that wasn't returned"):
         trainer.fit(model)

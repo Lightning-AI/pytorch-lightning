@@ -20,6 +20,11 @@ The metrics API provides ``update()``, ``compute()``, ``reset()`` functions to t
 serves the dual purpose of calling ``update()`` on its input and simultaneously returning the value of the metric over the
 provided input.
 
+.. warning::
+    From v1.2 onward ``compute()`` will no longer automatically call ``reset()``,
+    and it is up to the user to reset metrics between epochs, except in the case where the
+    metric is directly passed to ``LightningModule``s ``self.log``.
+
 These metrics work with DDP in PyTorch and PyTorch Lightning by default. When ``.compute()`` is called in
 distributed mode, the internal state of each metric is synced and reduced across each process, so that the
 logic present in ``.compute()`` is applied to state information from all processes.
@@ -33,10 +38,11 @@ The example below shows how to use a metric in your ``LightningModule``:
         self.accuracy = pl.metrics.Accuracy()
 
     def training_step(self, batch, batch_idx):
-        logits = self(x)
+        x, y = batch
+        preds = self(x)
         ...
         # log step metric
-        self.log('train_acc_step', self.accuracy(logits, y))
+        self.log('train_acc_step', self.accuracy(preds, y))
         ...
 
     def training_epoch_end(self, outs):
@@ -67,9 +73,10 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.valid_acc = pl.metrics.Accuracy()
 
     def training_step(self, batch, batch_idx):
-        logits = self(x)
+        x, y = batch
+        preds = self(x)
         ...
-        self.train_acc(logits, y)
+        self.train_acc(preds, y)
         self.log('train_acc', self.train_acc, on_step=True, on_epoch=False)
 
     def validation_step(self, batch, batch_idx):
@@ -79,6 +86,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.log('valid_acc', self.valid_acc, on_step=True, on_epoch=True)
 
 .. note::
+
     If using metrics in data parallel mode (dp), the metric update/logging should be done
     in the ``<mode>_step_end`` method (where ``<mode>`` is either ``training``, ``validation``
     or ``test``). This is due to metric states else being destroyed after each forward pass,
@@ -88,7 +96,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
 
         def training_step(self, batch, batch_idx):
             data, target = batch
-            pred = self(data)
+            preds = self(data)
             ...
             return {'loss' : loss, 'preds' : preds, 'target' : target}
 
@@ -96,7 +104,6 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
             #update and log
             self.metric(outputs['preds'], outputs['target'])
             self.log('metric', self.metric)
-
 
 This metrics API is independent of PyTorch Lightning. Metrics can directly be used in PyTorch as shown in the example:
 
@@ -129,13 +136,73 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     Metrics contain internal states that keep track of the data seen so far.
     Do not mix metric states across training, validation and testing.
     It is highly recommended to re-initialize the metric per mode as
-    shown in the examples above.
+    shown in the examples above. For easy initializing the same metric multiple
+    times, the ``.clone()`` method can be used:
+
+    .. testcode::
+
+        def __init__(self):
+            ...
+            metric = pl.metrics.Accuracy()
+            self.train_acc = metric.clone()
+            self.val_acc = metric.clone()
+            self.test_acc = metric.clone()
 
 .. note::
 
     Metric states are **not** added to the models ``state_dict`` by default.
     To change this, after initializing the metric, the method ``.persistent(mode)`` can
     be used to enable (``mode=True``) or disable (``mode=False``) this behaviour.
+
+*******************
+Metrics and devices
+*******************
+
+Metrics are simple subclasses of :class:`~torch.nn.Module` and their metric states behave
+similar to buffers and parameters of modules. This means that metrics states should
+be moved to the same device as the input of the metric:
+
+.. code-block:: python
+
+    import torch
+    from pytorch_lightning.metrics import Accuracy
+
+    target = torch.tensor([1, 1, 0, 0], device=torch.device("cuda", 0))
+    preds = torch.tensor([0, 1, 0, 0], device=torch.device("cuda", 0))
+
+    # Metric states are always initialized on cpu, and needs to be moved to
+    # the correct device
+    confmat = Accuracy(num_classes=2).to(torch.device("cuda", 0))
+    out = confmat(preds, target)
+    print(out.device) # cuda:0
+
+However, when **properly defined** inside a :class:`~pytorch_lightning.core.lightning.LightningModule`
+, Lightning will automatically move the metrics to the same device as the data. Being
+**properly defined** means that the metric is correctly identified as a child module of the
+model (check ``.children()`` attribute of the model). Therefore, metrics cannot be placed
+in native python ``list`` and ``dict``, as they will not be correctly identified
+as child modules. Instead of ``list`` use :class:`~torch.nn.ModuleList` and instead of
+``dict`` use :class:`~torch.nn.ModuleDict`.
+
+.. testcode::
+
+    class MyModule(LightningModule):
+        def __init__(self):
+            ...
+            # valid ways metrics will be identified as child modules
+            self.metric1 = pl.metrics.Accuracy()
+            self.metric2 = torch.nn.ModuleList(pl.metrics.Accuracy())
+            self.metric3 = torch.nn.ModuleDict({'accuracy': Accuracy()})
+
+        def training_step(self, batch, batch_idx):
+            # all metrics will be on the same device as the input batch
+            data, target = batch
+            preds = self(data)
+            ...
+            val1 = self.metric1(preds, target)
+            val2 = self.metric2[0](preds, target)
+            val3 = self.metric3['accuracy'](preds, target)
+
 
 *********************
 Implementing a Metric
@@ -188,6 +255,69 @@ In practise this means that:
     val = metric(pred, target) # this value can be backpropagated
     val = metric.compute() # this value cannot be backpropagated
 
+****************
+MetricCollection
+****************
+
+In many cases it is beneficial to evaluate the model output by multiple metrics.
+In this case the `MetricCollection` class may come in handy. It accepts a sequence
+of metrics and wraps theses into a single callable metric class, with the same
+interface as any other metric.
+
+Example:
+
+.. testcode::
+
+    from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
+    target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
+    preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
+    metric_collection = MetricCollection([
+        Accuracy(),
+        Precision(num_classes=3, average='macro'),
+        Recall(num_classes=3, average='macro')
+    ])
+    print(metric_collection(preds, target))
+
+.. testoutput::
+    :options: +NORMALIZE_WHITESPACE
+
+    {'Accuracy': tensor(0.1250), 
+     'Precision': tensor(0.0667), 
+     'Recall': tensor(0.1111)}
+
+Similarly it can also reduce the amount of code required to log multiple metrics
+inside your LightningModule
+
+.. code-block:: python
+
+    def __init__(self):
+        ...
+        metrics = pl.metrics.MetricCollection(...)
+        self.train_metrics = metrics.clone()
+        self.valid_metrics = metrics.clone()
+
+    def training_step(self, batch, batch_idx):
+        logits = self(x)
+        ...
+        self.train_metrics(logits, y)
+        # use log_dict instead of log
+        self.log_dict(self.train_metrics, on_step=True, on_epoch=False, prefix='train')
+
+    def validation_step(self, batch, batch_idx):
+        logits = self(x)
+        ...
+        self.valid_metrics(logits, y)
+        # use log_dict instead of log
+        self.log_dict(self.valid_metrics, on_step=True, on_epoch=True, prefix='val')
+
+.. note::
+
+    `MetricCollection` as default assumes that all the metrics in the collection
+    have the same call signature. If this is not the case, input that should be
+    given to different metrics can given as keyword arguments to the collection.
+
+.. autoclass:: pytorch_lightning.metrics.MetricCollection
+    :noindex:
 
 **********
 Metric API
@@ -340,6 +470,12 @@ FBeta
 
 .. autoclass:: pytorch_lightning.metrics.classification.FBeta
     :noindex:
+    
+IoU
+~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.IoU
+    :noindex:
 
 Hamming Distance
 ~~~~~~~~~~~~~~~~
@@ -452,7 +588,7 @@ hamming_distance [func]
 iou [func]
 ~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.iou
+.. autofunction:: pytorch_lightning.metrics.functional.iou
     :noindex:
 
 
@@ -589,6 +725,13 @@ explained_variance [func]
     :noindex:
 
 
+image_gradients [func]
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.image_gradients
+    :noindex:
+
+
 mean_absolute_error [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -622,6 +765,7 @@ ssim [func]
 
 .. autofunction:: pytorch_lightning.metrics.functional.ssim
     :noindex:
+
 
 r2score [func]
 ~~~~~~~~~~~~~~
