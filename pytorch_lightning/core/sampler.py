@@ -53,9 +53,12 @@ class LightningBatchSamplerWrapper:
         params = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
 
         valid_kwargs = [*inspect.signature(dataloader.__init__).parameters]
-        if isinstance(dataloader, DataLoader):
+        contains_dataset = True
+        
+        if dataloader.__class__ != DataLoader:
+            contains_dataset = "dataset" in valid_kwargs
             valid_kwargs += [*inspect.signature(DataLoader.__init__).parameters]
-        valid_kwargs = inspect.signature(dataloader.__init__).parameters
+        
         valid_kwargs = set(valid_kwargs)
 
         dl_args = dict(
@@ -82,6 +85,10 @@ class LightningBatchSamplerWrapper:
                 f"Missing attributes are {missing_kwargs}", UserWarning
             )
             return dataloader
+
+        if not contains_dataset:
+            dl_args.pop('dataset')
+
         dataloader = type(dataloader)(**dl_args)
         dataloader.multiprocessing_context = multiprocessing_context
         return dataloader

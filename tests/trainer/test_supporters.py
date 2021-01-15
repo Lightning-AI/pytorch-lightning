@@ -213,6 +213,13 @@ class FailureCustomDataLoader(DataLoader):
         super().__init__(dataset, *args, **kwargs)
 
 
+class CustomDataLoader2(DataLoader):
+
+    def __init__(self, num_features, *args, **kwargs):
+        self.num_features = num_features
+        super().__init__(num_features, *args, **kwargs)
+
+
 class TestModel(BoringModel):
 
     def __init__(self, numbers_test_dataloaders, save_preds_on_dl_idx, failure):
@@ -237,6 +244,8 @@ class TestModel(BoringModel):
         return {"y": loss}
 
     def create_dataset(self):
+        if self._failure  == 3:
+            return CustomDataLoader2(IndexedRandomDataset(32, 64), batch_size=2)
         dataloader_cls = FailureCustomDataLoader if self._failure > 0 else CustomDataLoader
         return dataloader_cls(32, IndexedRandomDataset(32, 64), batch_size=2)
 
@@ -310,12 +319,13 @@ def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, num_dl_idx):
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
+@pytest.mark.parametrize("failure", [1, 3])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_misconfiguration_on_dataloader(tmpdir):
+def test_misconfiguration_on_dataloader(tmpdir, failure):
     """
     Test Lightning raise a MisConfiguration error as we can't re-instantiate user Dataloader
     """
-    check_prediction_collection(tmpdir, True, "ddp", 2, 2, failure=1)
+    check_prediction_collection(tmpdir, True, "ddp", 2, 2, failure=failure)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")

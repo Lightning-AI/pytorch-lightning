@@ -115,8 +115,12 @@ class TrainerDataLoadingMixin(ABC):
         params = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
 
         valid_kwargs = [*inspect.signature(dataloader.__init__).parameters]
-        if isinstance(dataloader, DataLoader):
+        contains_dataset = True
+        
+        if dataloader.__class__ != DataLoader:
+            contains_dataset = "dataset" in valid_kwargs
             valid_kwargs += [*inspect.signature(DataLoader.__init__).parameters]
+        
         valid_kwargs = set(valid_kwargs)
 
         dl_args = dict(
@@ -126,7 +130,6 @@ class TrainerDataLoadingMixin(ABC):
         dl_args['sampler'] = sampler
         dl_args['shuffle'] = False
         dl_args['batch_sampler'] = None
-        dl_args['dataset'] = dataloader.dataset
         multiprocessing_context = dataloader.multiprocessing_context
         dl_args['multiprocessing_context'] = multiprocessing_context
 
@@ -148,6 +151,10 @@ class TrainerDataLoadingMixin(ABC):
                 "manually add DistributedSampler as "
                 f"{dataloader_cls_name}(dataset, ..., sampler=DistributedSampler(dataset, ...)).",
             )
+
+        if not contains_dataset:
+            dl_args.pop('dataset')
+
         dataloader = type(dataloader)(**dl_args)
         dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
