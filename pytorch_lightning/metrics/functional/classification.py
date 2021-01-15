@@ -283,8 +283,7 @@ def precision(
     Computes precision score.
 
     .. warning :: Deprecated in favor of
-     :func:`~pytorch_lightning.metrics.functional.recall`. Will be removed in
-     v1.4.0.
+     :func:`~pytorch_lightning.metrics.functional.recall`. Will be removed in v1.4.0.
 
     Args:
         pred: estimated probabilities
@@ -328,8 +327,7 @@ def recall(
     Computes recall score.
 
     .. warning :: Deprecated in favor of
-     :func:`~pytorch_lightning.metrics.functional.recall`. Will be removed in
-     v1.4.0.
+     :func:`~pytorch_lightning.metrics.functional.recall`. Will be removed in v1.4.0.
 
     Args:
         pred: estimated probabilities

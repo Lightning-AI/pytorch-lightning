@@ -467,7 +467,7 @@ def _reduce_stat_scores(
             corresponds to `sklearn averaging methods <https://scikit-learn.org/stable/modules/\
 model_evaluation.html#multiclass-and-multilabel-classification>`__.
         mdmc_average:
-            The method to average the scores if inputs were multi-dimensional multi-class.
+            The method to average the scores if inputs were multi-dimensional multi-class (MDMC).
             Should be either ``'global'`` or ``'samplewise'``. If inputs were not
             multi-dimensional multi-class, it should be ``None`` (default).
         zero_division:
@@ -503,5 +503,4 @@ model_evaluation.html#multiclass-and-multilabel-classification>`__.
     else:
         scores = scores.sum()
 
-    # raise ValueError
     return scores
