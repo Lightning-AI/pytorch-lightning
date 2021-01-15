@@ -54,11 +54,11 @@ class LightningBatchSamplerWrapper:
 
         valid_kwargs = [*inspect.signature(dataloader.__init__).parameters]
         contains_dataset = True
-        
+
         if dataloader.__class__ != DataLoader:
             contains_dataset = "dataset" in valid_kwargs
             valid_kwargs += [*inspect.signature(DataLoader.__init__).parameters]
-        
+
         valid_kwargs = set(valid_kwargs)
 
         dl_args = dict(
