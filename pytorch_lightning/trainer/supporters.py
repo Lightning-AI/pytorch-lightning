@@ -181,9 +181,11 @@ class LightningBatchSamplerWrapper:
         if len(missing_kwargs) != 0:
             dataloader_cls_name = dataloader.__class__.__name__
             rank_zero_warn(
-                f"Trying to replace your BatchSampler for {dataloader_cls_name} dataloader."
+                f"Trying to replace to wrap your BatchSampler in your {dataloader_cls_name} dataloader."
                 "This would fail as your DataLoader doesn't expose as attributes all its __init__ parameters. "
-                f"Missing attributes are {missing_kwargs}", UserWarning
+                f"Missing attributes are {missing_kwargs}"
+                "HINT: use Trainer(replace_batch_sampler_auto_id=False) and provide your own id. "
+                "Check out the doc for Testing. ", UserWarning
             )
             return dataloader
 
@@ -291,12 +293,14 @@ class PredictionCollection(object):
 
         if replace_batch_sampler_auto_id:
             assert isinstance(predictions, (list, torch.Tensor))
+            if batch_indices is None:
+                return              
             assert len(predictions) == len(batch_indices)
         else:
             if not all(isinstance(p, dict) and "id" in p for p in predictions):
                 raise MisconfigurationException(
                     "predictions objects should be a list where each element is a dict. "
-                    "Each dict should contain an unique number `id` to identify each sample."
+                    "each dict should contain an unique number `id` to identify each sample."
                 )
 
             if not all(len(p) > 1 for p in predictions):

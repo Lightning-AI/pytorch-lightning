@@ -290,7 +290,7 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
             return
 
     elif failure == 2:
-        with pytest.warns(UserWarning, match='BatchSampler and indices'):
+        with pytest.warns(UserWarning, match='wrap your BatchSampler in your'):
             results: List = trainer.test(model)
         assert 'y' in results[0]
         return
