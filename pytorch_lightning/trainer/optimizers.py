@@ -145,6 +145,7 @@ class TrainerOptimizersMixin(ABC):
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
             scheduler = scheduler['scheduler']
+            state = None
 
             for optimizer in optimizers:
                 # check that we dont mix users optimizers and schedulers
@@ -152,14 +153,13 @@ class TrainerOptimizersMixin(ABC):
                     # Find the mro belonging to the base lr scheduler class
                     for i, mro in enumerate(scheduler.__class__.__mro__):
                         if mro in (optim.lr_scheduler._LRScheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                            idx = i
                             state = scheduler.state_dict()
-                        else:
-                            state = None
+                            scheduler.__class__.__mro__[i].__init__(scheduler, optimizer)
+                            scheduler.load_state_dict(state)
+                            break
 
-                scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
                 if state is not None:
-                    scheduler.load_state_dict(state)
+                    break
 
 
 class _MockOptimizer(Optimizer):
