@@ -349,7 +349,7 @@ class LightningModule(
 
             results = trainer.test(test_dataloaders=test_dataloaders)
             print(pd.DataFrame(results[0]["predictions"]))
-            
+
             Out:
                     id                                predictions
                 0   48  [0.5610447525978088, 0.43895524740219116]
@@ -375,7 +375,6 @@ class LightningModule(
                     return {"y": loss}
 
             results = trainer.test(test_dataloaders=test_dataloaders)
-<<<<<<< HEAD
             print(pd.json_normalize(results[0]["predictions"], sep='_')
 
             Out:
@@ -385,10 +384,6 @@ class LightningModule(
                 2   50                   0   [0.41347551345825195, 0.586524486541748]
                 3   51                   0  [0.6546469926834106, 0.34535300731658936]
                 4   52                   0   [0.6412515044212341, 0.3587484657764435]
-=======
-            for dataloader_idx, dataloader_result in enumerate(results):
-                df = pd.json_normalize(dataloader_result["predictions"], sep='_')
->>>>>>> c5ec8e3e97ee4d2c8c3520470387c0e7ccf6fa6d
 
         Args:
             predictions: Predictions to be saved by the user. Should either be a ``torch.Tensor``
