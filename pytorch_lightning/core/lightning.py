@@ -331,7 +331,7 @@ class LightningModule(
         """
         This function enables to save add predictions and retrieved them into results objects.
         To make this possible, Lightning will re-instantiate your DataLoader.
-        When using custom DataLoader, there might be some issues. 
+        When using custom DataLoader, there might be some issues.
         Hopefully, Lightning provides an opt-out option to make this work !
 
         .. code-block:: python
@@ -396,7 +396,7 @@ class LightningModule(
             class MyDataset(RandomDataset):
 
                 def __getitem__(self, index):
-                    return {"index": index, "batch": self.data[index]}   
+                    return {"index": index, "batch": self.data[index]}
 
             class MyModel(LightningModule):
 
@@ -406,9 +406,9 @@ class LightningModule(
                     loss = self.loss(batch, output)
 
                     self.add_predictions([
-                        {"id": idx.item(), "predictions": o} 
+                        {"id": idx.item(), "predictions": o}
                         for idx, o in zip(batch["index"], output)])
-        
+
             trainer = Trainer(replace_batch_sampler_auto_id=False)
 
         Args:

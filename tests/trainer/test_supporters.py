@@ -222,7 +222,7 @@ class CustomDataLoader2(DataLoader):
 
 class TestModel(BoringModel):
 
-    def __init__(self, numbers_test_dataloaders, 
+    def __init__(self, numbers_test_dataloaders,
                  save_preds_on_dl_idx, failure, replace_batch_sampler_auto_id):
         super().__init__()
         self._numbers_test_dataloaders = numbers_test_dataloaders
@@ -245,7 +245,7 @@ class TestModel(BoringModel):
                 self.add_predictions(output)
         else:
             self.add_predictions([
-                {"id": idx.item(), "predictions": o} 
+                {"id": idx.item(), "predictions": o}
                 for idx, o in zip(batch["index"], output)])
 
         return {"y": loss}
@@ -260,7 +260,7 @@ class TestModel(BoringModel):
         return [self.create_dataset()] * self._numbers_test_dataloaders
 
 
-def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, 
+def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
                                 num_dl_idx, failure=0, replace_batch_sampler_auto_id=True):
     num_processes = 2
     limit_test_batches = 2
@@ -346,7 +346,7 @@ def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, num_dl_idx, r
     Test `PredictionCollection` reduce properly in 1 gpu mode
     """
     check_prediction_collection(
-        tmpdir, save_preds_on_dl_idx, None, 
+        tmpdir, save_preds_on_dl_idx, None,
         1, num_dl_idx, replace_batch_sampler_auto_id=replace_batch_sampler_auto_id)
 
 

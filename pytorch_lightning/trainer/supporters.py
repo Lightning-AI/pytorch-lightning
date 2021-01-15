@@ -151,10 +151,10 @@ class PredictionCollection(object):
         return self._predictions[self.current_stage]
 
     def _cache_prediction(
-        self, 
-        predictions: List[Dict], 
-        dl_idx: int, 
-        batch_indices: List[int], 
+        self,
+        predictions: List[Dict],
+        dl_idx: int,
+        batch_indices: List[int],
         replace_batch_sampler_auto_id: bool
     ) -> None:
 
@@ -168,7 +168,7 @@ class PredictionCollection(object):
         for batch_idx, pred in enumerate(predictions):
             if replace_batch_sampler_auto_id:
                 sample_id = batch_indices[batch_idx]
-            
+
             else:
                 if self.ID_KEY in pred:
                     sample_id = pred[self.ID_KEY]
@@ -195,11 +195,11 @@ class PredictionCollection(object):
             cache[dl_idx][sample_id] = apply_to_collection(cache[dl_idx][sample_id], torch.Tensor, convert)
 
     def cache(
-        self, 
-        predictions: List, 
-        dl_idx: int, 
-        batch_indices: List[int], 
-        current_stage: str, 
+        self,
+        predictions: List,
+        dl_idx: int,
+        batch_indices: List[int],
+        current_stage: str,
         replace_batch_sampler_auto_id: bool
     ) -> None:
         """

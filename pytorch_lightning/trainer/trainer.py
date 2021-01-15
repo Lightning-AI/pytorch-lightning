@@ -292,11 +292,11 @@ class Trainer(
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
 
-            replace_batch_sampler_auto_id: Explicitly enables or disables sampler replacement. 
-                This would be used in `LightningModule.add_predictions` function to automatically 
+            replace_batch_sampler_auto_id: Explicitly enables or disables sampler replacement.
+                This would be used in `LightningModule.add_predictions` function to automatically
                 associate each sample to its prediction.
                 When set to False, one can still use `LightningModule.add_predictions` by providing a key `id`.
-                The user can get this `id` by returning the index given to their datasets __getittem__ function. 
+                The user can get this `id` by returning the index given to their datasets __getittem__ function.
         """
         super().__init__()
         self._device_type = DeviceType.CPU
