@@ -17,9 +17,8 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.sampler import LightningBatchSamplerWrapper
 from pytorch_lightning.core.step_result import EvalResult, Result
-from pytorch_lightning.trainer.supporters import PredictionCollection
+from pytorch_lightning.trainer.supporters import LightningBatchSamplerWrapper, PredictionCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
