@@ -85,7 +85,7 @@ class LightningCLI:
         self,
         model_class: Type[LightningModule],
         datamodule_class: Type[LightningDataModule] = None,
-        save_config_callback: Type[Callback] = SaveConfigCallback,
+        save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
         trainer_class: Type[Trainer] = Trainer,
         trainer_kwargs: Dict[str, Any] = None,
         description: str = 'pytorch-lightning trainer command line tool',

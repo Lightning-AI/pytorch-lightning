@@ -15,12 +15,12 @@
 import os
 import pickle
 import sys
-import yaml
 from argparse import Namespace
 from unittest import mock
 
 import pytest
 import torch
+import yaml
 
 import tests.base.develop_utils as tutils
 from tests.base import EvalModelTemplate
