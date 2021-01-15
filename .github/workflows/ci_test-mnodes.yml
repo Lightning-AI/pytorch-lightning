@@ -146,7 +146,7 @@ jobs:
       run: |
         import os
 
-        _PATH_CONFIG = './.github/multi-nodes-gpu.yaml'
+        _PATH_CONFIG = './.github/template/multi-nodes-gpu.yaml'
         _RUN_FIRST = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_FIRST} "
         _RUN_NEXT = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_AFTER} "
 
@@ -183,8 +183,8 @@ jobs:
 
     - name: Apply Multi Node Testing
       run: |
-        cat .github/multi-nodes-gpu.yaml
-        kubectl apply -f .github/multi-nodes-gpu.yaml
+        cat ./.github/template/multi-nodes-gpu.yaml
+        kubectl apply -f ./.github/template/multi-nodes-gpu.yaml
       shell: bash
 
     - name: Wait
