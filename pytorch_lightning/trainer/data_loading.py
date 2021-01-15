@@ -14,6 +14,7 @@
 
 import multiprocessing
 import platform
+import inspect
 from abc import ABC
 from copy import deepcopy
 from typing import Callable, Iterable, List, Optional, Tuple, Union
@@ -110,14 +111,43 @@ class TrainerDataLoadingMixin(ABC):
 
     def replace_sampler(self, dataloader, sampler):
         skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
+        skip_valid_keys = ['args', 'kwargs', 'self']
 
-        dl_args = {
-            k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys
-        }
-
+        params = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
+        
+        valid_kwargs = [*inspect.signature(dataloader.__init__).parameters]
+        if isinstance(dataloader, DataLoader):
+            valid_kwargs += [*inspect.signature(DataLoader.__init__).parameters]
+        valid_kwargs = set(valid_kwargs)
+        
+        dl_args = dict(
+            (name, params[name]) for name in valid_kwargs 
+            if name in params and name not in skip_keys
+        )
         dl_args['sampler'] = sampler
         dl_args['shuffle'] = False
+        dl_args['batch_sampler'] = None
+        dl_args['dataset'] = dataloader.dataset
         multiprocessing_context = dataloader.multiprocessing_context
+        dl_args['multiprocessing_context'] = multiprocessing_context
+        
+        missing_kwargs = valid_kwargs.difference(skip_valid_keys).difference(set(dl_args))
+        if len(missing_kwargs) != 0:
+            """
+            Example: 
+            class CustomDataLoader(DataLoader):
+                def __init__(self, num_features, dataset, *args, **kwargs):
+                    self.num_features = num_features
+                    super().__init__(dataset, *args, **kwargs)
+            """
+            dataloader_cls_name = dataloader.__class__.__name__
+            raise MisconfigurationException(
+                f"Trying to inject DistributedSampler within {dataloader_cls_name} class."
+                "This would fail as your DataLoader doesn't expose all its __init__ parameters as attributes. "
+                f"Missing attributes are {missing_kwargs}. "
+                f"HINT: If you wrote the {dataloader_cls_name} class, add the `__init__` arguments as attributes or ",
+                f"manually add DistributedSampler as {dataloader_cls_name}(dataset, ..., sampler=DistributedSampler(dataset, ...)).",
+            )
         dataloader = type(dataloader)(**dl_args)
         dataloader.multiprocessing_context = multiprocessing_context
         return dataloader

@@ -18,7 +18,7 @@ from typing import List
 
 import pytest
 import torch
-from torch.utils.data import TensorDataset
+from torch.utils.data import TensorDataset, DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import (
@@ -97,8 +97,8 @@ def test_combined_dataset_length_mode_error():
 
 def test_combined_loader_iterator_dict_min_size():
     """Test `CombinedLoaderIterator` given mapping loaders"""
-    loaders = {'a': torch.utils.data.DataLoader(range(10), batch_size=4),
-               'b': torch.utils.data.DataLoader(range(20), batch_size=5)}
+    loaders = {'a': DataLoader(range(10), batch_size=4),
+               'b': DataLoader(range(20), batch_size=5)}
 
     combined_iter = CombinedLoaderIterator(loaders)
 
@@ -130,8 +130,8 @@ def test_combined_loader_calc_length_mode_error():
 
 def test_combined_loader_dict_min_size():
     """Test `CombinedLoader` of mode 'min_size' given mapping loaders"""
-    loaders = {'a': torch.utils.data.DataLoader(range(10), batch_size=4),
-               'b': torch.utils.data.DataLoader(range(20), batch_size=5)}
+    loaders = {'a': DataLoader(range(10), batch_size=4),
+               'b': DataLoader(range(20), batch_size=5)}
 
     combined_loader = CombinedLoader(loaders, 'min_size')
 
@@ -147,8 +147,8 @@ def test_combined_loader_dict_min_size():
 
 def test_combined_loader_dict_max_size_cycle():
     """Test `CombinedLoader` of mode 'max_size_cycle' given mapping loaders"""
-    loaders = {'a': torch.utils.data.DataLoader(range(10), batch_size=4),
-               'b': torch.utils.data.DataLoader(range(20), batch_size=5)}
+    loaders = {'a': DataLoader(range(10), batch_size=4),
+               'b': DataLoader(range(20), batch_size=5)}
 
     combined_loader = CombinedLoader(loaders, 'max_size_cycle')
 
@@ -164,8 +164,8 @@ def test_combined_loader_dict_max_size_cycle():
 
 def test_combined_loader_sequence_min_size():
     """Test `CombinedLoader` of mode 'min_size' given sequence loaders"""
-    loaders = [torch.utils.data.DataLoader(range(10), batch_size=4),
-               torch.utils.data.DataLoader(range(20), batch_size=5)]
+    loaders = [DataLoader(range(10), batch_size=4),
+               DataLoader(range(20), batch_size=5)]
 
     combined_loader = CombinedLoader(loaders, 'min_size')
 
@@ -180,8 +180,8 @@ def test_combined_loader_sequence_min_size():
 
 def test_combined_loader_sequence_max_size_cycle():
     """Test `CombinedLoader` of mode 'max_size_cycle' given sequence loaders"""
-    loaders = [torch.utils.data.DataLoader(range(10), batch_size=4),
-               torch.utils.data.DataLoader(range(20), batch_size=5)]
+    loaders = [DataLoader(range(10), batch_size=4),
+               DataLoader(range(20), batch_size=5)]
 
     combined_loader = CombinedLoader(loaders, 'max_size_cycle')
 
@@ -199,13 +199,25 @@ class IndexedRandomDataset(RandomDataset):
     def __getitem__(self, index):
         return {"index": index, "batch": self.data[index]}
 
+class CustomDataLoader(DataLoader):
+
+    def __init__(self, num_features, dataset, *args, **kwargs):
+        self.num_features = num_features
+        super().__init__(dataset, *args, **kwargs)
+
+class FailureCustomDataLoader(DataLoader):
+
+    def __init__(self, num_features, dataset, *args, **kwargs):
+        super().__init__(dataset, *args, **kwargs)
+
 
 class TestModel(BoringModel):
 
-    def __init__(self, numbers_test_dataloaders, save_preds_on_dl_idx):
+    def __init__(self, numbers_test_dataloaders, save_preds_on_dl_idx, failure):
         super().__init__()
         self._numbers_test_dataloaders = numbers_test_dataloaders
         self._save_preds_on_dl_idx = save_preds_on_dl_idx
+        self._failure = failure
 
     def test_step(self, batch, batch_idx, dataloader_idx=None):
         x = batch["batch"]
@@ -223,13 +235,14 @@ class TestModel(BoringModel):
         return {"y": loss}
 
     def create_dataset(self):
-        return torch.utils.data.DataLoader(IndexedRandomDataset(32, 64), batch_size=2)
+        dataloader_cls = FailureCustomDataLoader if self._failure > 0 else CustomDataLoader
+        return dataloader_cls(32, IndexedRandomDataset(32, 64), batch_size=2)
 
     def test_dataloader(self):
-        return [self.create_dataset() for _ in range(self._numbers_test_dataloaders)]
+        return [self.create_dataset()] * self._numbers_test_dataloaders
 
 
-def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx):
+def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx, failure=0):
     num_processes = 2
     limit_test_batches = 2
     trainer_args = {
@@ -245,11 +258,24 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
         trainer_args["gpus"] = gpus
         size = gpus
 
-    model = TestModel(num_dl_idx, save_preds_on_dl_idx)
+    model = TestModel(num_dl_idx, save_preds_on_dl_idx, failure)
     model.test_epoch_end = None
 
     trainer = Trainer(**trainer_args)
-    results: List = trainer.test(model)
+    if failure == 1:
+        try:
+            results: List = trainer.test(model)
+        except MisconfigurationException as e:
+            assert "Missing attributes are {'num_features'}." in str(e)
+            return
+
+    elif failure == 2:
+        with pytest.warns(UserWarning, match='BatchSampler and indices'):
+            results: List = trainer.test(model)
+        assert 'y' in results[0]
+        return
+    else:
+        results: List = trainer.test(model)
 
     assert len(results) == num_dl_idx
     for dl_idx in range(num_dl_idx):
@@ -282,6 +308,14 @@ def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, num_dl_idx):
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_misconfiguration_on_dataloader(tmpdir):
+    """
+    Test Datl
+    """
+    check_prediction_collection(tmpdir, True, "ddp", 2, 2, failure=1)
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
 @pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
 @pytest.mark.parametrize('num_dl_idx', [1, 2])
@@ -290,6 +324,14 @@ def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, num_dl_idx):
     Test `PredictionCollection` reduce properly in 1 gpu mode
     """
     check_prediction_collection(tmpdir, save_preds_on_dl_idx, None, 1, num_dl_idx)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
+def test_prediction_collection_1_gpu_failure(tmpdir):
+    """
+    Test `PredictionCollection` will raise warning as we are using an invalid custom Dataloader
+    """
+    check_prediction_collection(tmpdir, True, None, 1, 1, failure=2)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")

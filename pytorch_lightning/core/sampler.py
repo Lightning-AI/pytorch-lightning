@@ -14,6 +14,8 @@
 
 from torch.utils.data import IterableDataset
 from torch.utils.data.dataloader import DataLoader
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import rank_zero_warn
 import inspect
 
 
@@ -34,38 +36,51 @@ class LightningBatchSamplerWrapper:
             yield batch_indices
 
     @staticmethod
-    def to_new_dataloader(dataloader) -> DataLoader:
+    def to_new_dataloader(dataloader: DataLoader) -> DataLoader:
         """
         This function will wrap the user batch_sampler to track the returned batch indices
         """
-        dataset = dataloader.dataset
-        if isinstance(dataset, IterableDataset):
+        if not isinstance(dataloader, DataLoader):
+            raise MisconfigurationException('Autoid only works with torch dataloaders or derived classes!')
+        
+        if isinstance(dataloader.dataset, IterableDataset):
             return dataloader
 
-        if getattr(dataloader, "dataset", None) is not None and getattr(dataloader, "batch_sampler", None) is not None:
-            dl_args = {
-                "batch_size": 1,
-                "sampler": None,
-                "batch_sampler": LightningBatchSamplerWrapper(dataloader.batch_sampler),
-                "num_workers": getattr(dataloader, "num_workers", 0),
-                "collate_fn": getattr(dataloader, "collate_fn", None),
-                "pin_memory": getattr(dataloader, "pin_memory", False),
-                "drop_last": False,
-                "timeout": getattr(dataloader, "timeout", 0),
-                "worker_init_fn": getattr(dataloader, "worker_init_fn", None),
-                "multiprocessing_context": getattr(dataloader, "multiprocessing_context", None),
-            }
+        skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
+        skip_valid_keys = ['args', 'kwargs', 'self']
 
-            dataset = dataloader.dataset
+        params = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
+        
+        valid_kwargs = [*inspect.signature(dataloader.__init__).parameters]
+        if isinstance(dataloader, DataLoader):
+            valid_kwargs += [*inspect.signature(DataLoader.__init__).parameters]
+        valid_kwargs = inspect.signature(dataloader.__init__).parameters
+        valid_kwargs = set(valid_kwargs)
+        
+        dl_args = dict(
+            (name, params[name]) for name in valid_kwargs 
+            if name in params and name not in skip_keys
+        )
 
-            params = vars(dataloader)
+        multiprocessing_context = dataloader.multiprocessing_context
+        
+        # override parameters to enable batch_sampler injection
+        dl_args["batch_size"] = 1
+        dl_args["sampler"] = None
+        dl_args["shuffle"] = None
+        dl_args["batch_sampler"] = LightningBatchSamplerWrapper(dataloader.batch_sampler)
+        dl_args["drop_last"] = False
+        dl_args['multiprocessing_context'] = multiprocessing_context
 
-            valid_kwargs = inspect.signature(dataloader.__init__).parameters
-            extra_args = dict(
-                (name, params[name]) for name in valid_kwargs 
-                if name in params and name not in dl_args and name != 'dataset'
+        missing_kwargs = valid_kwargs.difference(skip_valid_keys).difference(set(dl_args))
+        if len(missing_kwargs) != 0:
+            dataloader_cls_name = dataloader.__class__.__name__
+            rank_zero_warn(
+                f"Trying to replace your BatchSampler for {dataloader_cls_name} dataloader."
+                "This would fail as your DataLoader doesn't expose as attributes all its __init__ parameters. "
+                f"Missing attributes are {missing_kwargs}", UserWarning
             )
-            dl_args.update(**extra_args)
-
-            dataloader = type(dataloader)(dataset, **dl_args)
+            return dataloader
+        dataloader = type(dataloader)(**dl_args)
+        dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
