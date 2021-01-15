@@ -147,6 +147,7 @@ jobs:
         import os
 
         _PATH_CONFIG = './.github/template/multi-nodes-gpu.yaml'
+        _PATH_TESTS = './tests/mnode_tests.txt'
         _RUN_FIRST = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_FIRST} "
         _RUN_NEXT = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_AFTER} "
 
@@ -154,7 +155,7 @@ jobs:
         with open(_PATH_CONFIG, 'r') as fp:
             template = fp.read()
 
-        with open(path_tests, 'r') as fp:
+        with open(_PATH_TESTS, 'r') as fp:
             list_tests = [ln.strip() for ln in fp.readlines()]
 
         list_tests = [(_RUN_FIRST if i == 0 else _RUN_NEXT) + ln for i, ln in enumerate(list_tests)]
