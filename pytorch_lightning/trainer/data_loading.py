@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import multiprocessing
 import platform
-import inspect
 from abc import ABC
 from copy import deepcopy
 from typing import Callable, Iterable, List, Optional, Tuple, Union
@@ -24,14 +24,13 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.trainer.supporters import CombinedLoader
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -114,14 +113,14 @@ class TrainerDataLoadingMixin(ABC):
         skip_valid_keys = ['args', 'kwargs', 'self']
 
         params = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
-        
+
         valid_kwargs = [*inspect.signature(dataloader.__init__).parameters]
         if isinstance(dataloader, DataLoader):
             valid_kwargs += [*inspect.signature(DataLoader.__init__).parameters]
         valid_kwargs = set(valid_kwargs)
-        
+
         dl_args = dict(
-            (name, params[name]) for name in valid_kwargs 
+            (name, params[name]) for name in valid_kwargs
             if name in params and name not in skip_keys
         )
         dl_args['sampler'] = sampler
@@ -130,11 +129,11 @@ class TrainerDataLoadingMixin(ABC):
         dl_args['dataset'] = dataloader.dataset
         multiprocessing_context = dataloader.multiprocessing_context
         dl_args['multiprocessing_context'] = multiprocessing_context
-        
+
         missing_kwargs = valid_kwargs.difference(skip_valid_keys).difference(set(dl_args))
         if len(missing_kwargs) != 0:
             """
-            Example: 
+            Example:
             class CustomDataLoader(DataLoader):
                 def __init__(self, num_features, dataset, *args, **kwargs):
                     self.num_features = num_features
@@ -146,7 +145,8 @@ class TrainerDataLoadingMixin(ABC):
                 "This would fail as your DataLoader doesn't expose all its __init__ parameters as attributes. "
                 f"Missing attributes are {missing_kwargs}. "
                 f"HINT: If you wrote the {dataloader_cls_name} class, add the `__init__` arguments as attributes or ",
-                f"manually add DistributedSampler as {dataloader_cls_name}(dataset, ..., sampler=DistributedSampler(dataset, ...)).",
+                "manually add DistributedSampler as "
+                f"{dataloader_cls_name}(dataset, ..., sampler=DistributedSampler(dataset, ...)).",
             )
         dataloader = type(dataloader)(**dl_args)
         dataloader.multiprocessing_context = multiprocessing_context

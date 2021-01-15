@@ -16,12 +16,9 @@ import inspect
 
 from torch.utils.data import IterableDataset
 from torch.utils.data.dataloader import DataLoader
-<<<<<<< HEAD
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 from pytorch_lightning.utilities import rank_zero_warn
-import inspect
-=======
->>>>>>> 0dc6d1f7dff1f55fed86a0501d881e319bd90a64
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class LightningBatchSamplerWrapper:
@@ -46,7 +43,7 @@ class LightningBatchSamplerWrapper:
         """
         if not isinstance(dataloader, DataLoader):
             raise MisconfigurationException('Autoid only works with torch dataloaders or derived classes!')
-        
+
         if isinstance(dataloader.dataset, IterableDataset):
             return dataloader
 
@@ -54,20 +51,20 @@ class LightningBatchSamplerWrapper:
         skip_valid_keys = ['args', 'kwargs', 'self']
 
         params = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
-        
+
         valid_kwargs = [*inspect.signature(dataloader.__init__).parameters]
         if isinstance(dataloader, DataLoader):
             valid_kwargs += [*inspect.signature(DataLoader.__init__).parameters]
         valid_kwargs = inspect.signature(dataloader.__init__).parameters
         valid_kwargs = set(valid_kwargs)
-        
+
         dl_args = dict(
-            (name, params[name]) for name in valid_kwargs 
+            (name, params[name]) for name in valid_kwargs
             if name in params and name not in skip_keys
         )
 
         multiprocessing_context = dataloader.multiprocessing_context
-        
+
         # override parameters to enable batch_sampler injection
         dl_args["batch_size"] = 1
         dl_args["sampler"] = None

@@ -18,7 +18,7 @@ from typing import List
 
 import pytest
 import torch
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import (
@@ -199,11 +199,13 @@ class IndexedRandomDataset(RandomDataset):
     def __getitem__(self, index):
         return {"index": index, "batch": self.data[index]}
 
+
 class CustomDataLoader(DataLoader):
 
     def __init__(self, num_features, dataset, *args, **kwargs):
         self.num_features = num_features
         super().__init__(dataset, *args, **kwargs)
+
 
 class FailureCustomDataLoader(DataLoader):
 
