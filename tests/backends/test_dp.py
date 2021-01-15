@@ -48,7 +48,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
     )
 
     model = CustomBoringModel()
-    tpipes.run_model_test(trainer_options, model)
+    tpipes.run_model_test(trainer_options, model, min_acc=0.009)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -97,12 +97,12 @@ def test_dp_test(tmpdir):
     results = trainer.test()
     assert 'test_loss' in results[0]
 
-    old_weights = model.c_d1.weight.clone().detach().cpu()
+    old_weights = model.layer.weight.clone().detach().cpu()
 
     results = trainer.test(model)
     assert 'test_loss' in results[0]
 
     # make sure weights didn't change
-    new_weights = model.c_d1.weight.clone().detach().cpu()
+    new_weights = model.layer.weight.clone().detach().cpu()
 
     assert torch.all(torch.eq(old_weights, new_weights))

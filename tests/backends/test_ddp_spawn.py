@@ -23,15 +23,16 @@ from pytorch_lightning.trainer.states import TrainerState
 from tests.base import BoringModel
 
 
+class ValLossBoringModel(BoringModel):
+    def validation_step(self, *args, **kwargs):
+        out = super().validation_step(*args, **kwargs)
+        self.log('val_loss', out['x'])
+        return out
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     """Make sure DDP works. with early stopping"""
-    class CustomBoringModel(BoringModel):
-        def validation_step(self, *args, **kwargs):
-            out = super().validation_step(*args, **kwargs)
-            self.log('val_loss', out['x'])
-            return out
-
     tutils.set_random_master_port()
 
     trainer_options = dict(
@@ -44,7 +45,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
         accelerator='ddp_spawn',
     )
 
-    model = CustomBoringModel()
+    model = ValLossBoringModel()
     tpipes.run_model_test(trainer_options, model)
 
 
@@ -63,8 +64,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
     )
 
     model = BoringModel()
-
-    tpipes.run_model_test(trainer_options, model)
+    tpipes.run_model_test(trainer_options, model, min_acc=0.08)
 
     # test memory helper functions
     memory.get_memory_profile('min_max')
