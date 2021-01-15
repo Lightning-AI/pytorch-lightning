@@ -131,6 +131,7 @@ def test_v1_4_0_deprecated_metrics():
                          torch.randint(0, 2, (10, 3, 3)))
 
     from pytorch_lightning.metrics.functional import precision
+
     # Testing deprecation of class_reduction arg in the *new* precision
     with pytest.deprecated_call(match='will be removed in v1.4'):
         precision(torch.randint(0, 2, (10,)),
@@ -138,6 +139,7 @@ def test_v1_4_0_deprecated_metrics():
                   class_reduction='micro')
 
     from pytorch_lightning.metrics.functional import recall
+
     # Testing deprecation of class_reduction arg in the *new* recall
     with pytest.deprecated_call(match='will be removed in v1.4'):
         recall(torch.randint(0, 2, (10,)),
