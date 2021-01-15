@@ -150,8 +150,8 @@ class TensorBoardLogger(LightningLoggerBase):
         metrics: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
-        Record hyperparameters. Tensorboard logs with and without saved hyperparameters
-        are incompatible, the hyperparameters are then not displayed in the Tensorboard.
+        Record hyperparameters. TensorBoard logs with and without saved hyperparameters
+        are incompatible, the hyperparameters are then not displayed in the TensorBoard.
         Please delete or move the previously saved logs to display the new ones with hyperparameters.
 
         Args:
