@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
+
 from torch.utils.data import IterableDataset
 from torch.utils.data.dataloader import DataLoader
-import inspect
 
 
 class LightningBatchSamplerWrapper:
     """
-    This class wraps user batch sampler, so we can extract 
+    This class wraps user batch sampler, so we can extract
     the batch_indices for tracking each sample.
     """
 
@@ -62,7 +63,7 @@ class LightningBatchSamplerWrapper:
 
             valid_kwargs = inspect.signature(dataloader.__init__).parameters
             extra_args = dict(
-                (name, params[name]) for name in valid_kwargs 
+                (name, params[name]) for name in valid_kwargs
                 if name in params and name not in dl_args and name != 'dataset'
             )
             dl_args.update(**extra_args)
