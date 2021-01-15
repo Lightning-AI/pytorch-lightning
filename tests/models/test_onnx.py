@@ -92,6 +92,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
     )
 
     model = BoringModel()
+    model.example_input_array = torch.randn(5, 32)
 
     tpipes.run_model_test(trainer_options, model, min_acc=0.08)
 
