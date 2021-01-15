@@ -204,22 +204,18 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 @pytest.mark.parametrize('num_dataloaders', [1, 2])
 def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, monkeypatch, num_dataloaders):
     """
-    Tests that LoggerConnector will properly capture logged information in multi_dataloaders scenario
+    Tests that LoggerConnector will properly capture logged information in multi dataloaders scenario
     """
     monkeypatch.setenv("PL_DEV_DEBUG", "1")
 
     class TestModel(BoringModel):
-
-        test_losses = {}
+        test_losses = {dl_idx: [] for dl_idx in range(num_dataloaders)}
 
         @decorator_with_arguments(fx_name="test_step")
         def test_step(self, batch, batch_idx, dl_idx=0):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-
-            self.test_losses.setdefault(dl_idx, [])
             self.test_losses[dl_idx].append(loss)
-
             self.log("test_loss", loss, on_step=True, on_epoch=True)
             return {"test_loss": loss}
 
@@ -232,12 +228,10 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, m
             self.reduce_results = deepcopy(self.trainer.logger_connector.cached_results)
 
         def test_dataloader(self):
-            return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
+            return [super().test_dataloader()] * num_dataloaders
 
     model = TestModel()
-    model.val_dataloader = None
     model.test_epoch_end = None
-
     limit_test_batches = 4
 
     trainer = Trainer(
@@ -257,15 +251,15 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, m
     assert len(generated) == num_dataloaders
 
     for dl_idx in range(num_dataloaders):
-        generated = len(test_results(fx_name="test_step", dl_idx=dl_idx))
-        assert generated == limit_test_batches
+        generated = test_results(fx_name="test_step", dl_idx=dl_idx)
+        assert len(generated) == limit_test_batches
 
     test_results = model.reduce_results
 
     for dl_idx in range(num_dataloaders):
         expected = torch.stack(model.test_losses[dl_idx]).mean()
         generated = test_results(fx_name="test_step", dl_idx=dl_idx, reduced=True)["test_loss_epoch"]
-        assert abs(expected.item() - generated.item()) < 1e-6
+        torch.testing.assert_allclose(generated, expected)
 
 
 def test_call_back_validator(tmpdir):
