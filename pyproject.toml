@@ -23,8 +23,6 @@ known_first_party = [
     "tests",
 ]
 skip_glob = [
-
-
     # todo
     "pytorch_lightning/accelerators/*",
 
@@ -43,10 +41,6 @@ skip_glob = [
 
     # todo
     "pytorch_lightning/distributed/*",
-
-
-    # todo
-    "pytorch_lightning/loggers/*",
 
 
     # todo
@@ -75,26 +69,6 @@ skip_glob = [
 
     # todo
     "pytorch_lightning/utilities/*",
-
-
-    # todo
-    "tests/backends/*",
-
-
-    # todo
-    "tests/base/*",
-
-
-    # todo
-    "tests/callbacks/*",
-
-
-    # todo
-    "tests/loggers/*",
-
-
-    # todo
-    "tests/tuner/*",
 ]
 profile = "black"
 line_length = 120

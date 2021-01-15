@@ -13,9 +13,10 @@
 # limitations under the License.
 from abc import ABC
 from collections import OrderedDict
-from pytorch_lightning.core.step_result import EvalResult
 
 import torch
+
+from pytorch_lightning.core.step_result import EvalResult
 
 
 class ValidationStepVariations(ABC):
