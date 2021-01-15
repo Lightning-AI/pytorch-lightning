@@ -148,7 +148,7 @@ jobs:
         import os.path as osp
         from dtrun.configs import prepare_multi_nodes_gpu_config
 
-        path = osp(os.getcwd(), "tests", "mnode-tests.txt")
+        path = osp.join(os.getcwd(), "tests", "mnode-tests.txt")
 
         prepare_multi_nodes_gpu_config(
             './.github/multi-nodes-gpu.yaml',
