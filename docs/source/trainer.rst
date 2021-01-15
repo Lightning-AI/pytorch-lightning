@@ -157,7 +157,7 @@ Once you're done training, feel free to run the test set!
 
     trainer.test(test_dataloaders=test_dataloader)
 
-Saving test predictions is simple !
+Saving test predictions is simple ! You can provide directly a tensor or list of dictionaries.
 
 .. code-block:: python
 
@@ -165,7 +165,6 @@ Saving test predictions is simple !
 
     class MyModel(LightningModule):
 
-        # VERSION 1
         def test_step(self, batch, batch_idx, dataloader_idx=None):
             x, y = batch
             output = self.layer(x)
@@ -176,7 +175,17 @@ Saving test predictions is simple !
 
             return {"y": loss}
 
-        # VERSION 2
+    results = trainer.test(test_dataloaders=test_dataloaders)
+    for dataloader_idx, dataloader_result in enumerate(results_:
+
+        df = pd.json_normalize(dataloader_result["predictions"], sep='_')
+
+.. code-block:: python
+
+    import pandas as pd
+
+    class MyModel(LightningModule):
+
         def test_step(self, batch, batch_idx, dataloader_idx=None):
             x, y = batch
             output = self.layer(x)
@@ -191,6 +200,7 @@ Saving test predictions is simple !
     for dataloader_idx, dataloader_result in enumerate(results_:
 
         df = pd.json_normalize(dataloader_result["predictions"], sep='_')
+
 
 ------------
 

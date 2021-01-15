@@ -121,6 +121,22 @@ class Accumulator(object):
 
 class PredictionCollection(object):
 
+    """
+    This class is used to collect predictions.
+
+    The legacy API built using the following functions:
+        - add
+        - _add_prediction
+        - to_disk
+
+    The new API built using the following functions:
+        - cache: Receive a new predictions to cache. Handle validation
+        - _cache_prediction: Handle storing
+        - attach_predictions: When the epoch is finished, add predictions to results object
+        - all_gather_predictions: Gather predictions accross multiple processses.
+
+    """
+
     ID_KEY = 'id'
 
     def __init__(self, global_rank: int, world_size: int, all_gather_fn: Callable):
@@ -147,12 +163,13 @@ class PredictionCollection(object):
                 raise MisconfigurationException(
                     "Prediction Collection doesn't support multiple predictions for one sample yet.")
 
+            # apply convert to store memory
             cache[dl_idx][batch_index] = {
                 self.ID_KEY: batch_index, "predictions": apply_to_collection(pred, torch.Tensor, convert)}
 
     def cache(self, predictions: List, dl_idx: int, batch_indices: List[int], current_stage: str) -> None:
         """
-        This function expects predictions to be a list of tensors or dictionnaries of tensors.
+        This function expects predictions to be a list of tensors or dictionary of tensors.
         Example::
 
             self.add_predictions(predictions)
@@ -188,6 +205,9 @@ class PredictionCollection(object):
         predictions = self.all_gather_fn(predictions)
 
         def gather(pred: Union[List[Tensor], Tensor], idx: int) -> Union[List[Tensor], Tensor]:
+            # all_gather: tensor [(N, C), ..., (N, C)] -> [(WORLD_SIZE, N, C), ..., (WORLD_SIZE, N, C)]
+            # `convert` function is used to get the right tensor
+            # depending the data id.
             def convert(p):
                 return p[idx % self.world_size].tolist()
             return (
