@@ -80,10 +80,10 @@ class ModelCheckpoint(Callback):
             the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
             if ``save_top_k == -1``, all models are saved.
-            Please note that the monitors are checked every `period` epochs.
+            Please note that the monitors are checked every ``period`` epochs.
             if ``save_top_k >= 2`` and the callback is called multiple
             times inside an epoch, the name of the saved file will be
-            appended with a version count starting with `v1`.
+            appended with a version count starting with ``v1``.
         mode: one of {auto, min, max}.
             If ``save_top_k != 0``, the decision
             to overwrite the current save file is made
