@@ -151,7 +151,6 @@ jobs:
         _RUN_FIRST = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_FIRST} "
         _RUN_NEXT = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_AFTER} "
 
-
         with open(_PATH_CONFIG, 'r') as fp:
             template = fp.read()
 
@@ -159,6 +158,7 @@ jobs:
             list_tests = [ln.strip() for ln in fp.readlines()]
 
         list_tests = [(_RUN_FIRST if i == 0 else _RUN_NEXT) + ln for i, ln in enumerate(list_tests)]
+
         # get the spacing to be aligned with other lines
         tmp_lines = template.split(os.linesep)
         tln = [ln for ln in tmp_lines if "LIST_TESTS" in ln][0]
