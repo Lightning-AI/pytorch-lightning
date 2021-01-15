@@ -73,10 +73,6 @@ skip_glob = [
 
     # todo
     "pytorch_lightning/utilities/*",
-
-
-    # todo
-    "tests/backends/*",
 ]
 profile = "black"
 line_length = 120
