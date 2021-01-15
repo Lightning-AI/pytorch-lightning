@@ -165,7 +165,6 @@ class HookResultStore:
             self._internals[dataloader_idx][opt_idx].setdefault(batch_idx, [])
             self._internals[dataloader_idx][opt_idx][batch_idx].append(result)
         else:
-            # [dataloader_idx] is a list
             self._internals.setdefault(dataloader_idx, [])
             self._internals[dataloader_idx].append(result)
 
