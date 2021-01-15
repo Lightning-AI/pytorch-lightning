@@ -44,14 +44,21 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     model.training_epoch_end = None
 
     class TestCallback(pl.Callback):
-        def on_train_batch_end(self, trainer, pl_module, *args):
-            pl_module.log("test", -1)
+        def on_train_batch_end(self, trainer, pl_module, output, batch, batch_idx, dl_idx):
+            # when this is called, the EpochResultStore state has not been reset yet because we are still
+            # "INSIDE_BATCH_TRAIN_LOOP" and the LoggerConnector runs its `on_train_batch_end` after the
+            # Callback (see `TrainLoop.on_train_batch_end`). For this reason, opt_idx here is the index
+            # of the last optimizer updated (the second, index 1). This produced a KeyError as reported in #5459
+            pl_module.log("test_train_batch_end", trainer.logger_connector.cached_results._opt_idx)
 
     # Initialize a trainer
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        callbacks=[TestCallback()]
+        limit_train_batches=5,
+        limit_val_batches=5,
+        callbacks=[TestCallback()],
+        weights_summary=None,
     )
     trainer.fit(model)
 
@@ -59,3 +66,5 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
         assert torch.equal(trainer.callback_metrics[f"loss_{k}_step"], v[-1])
         # test loss is properly reduced
         torch.testing.assert_allclose(trainer.callback_metrics[f"loss_{k}_epoch"], torch.tensor(v).mean())
+
+    assert trainer.callback_metrics["test_train_batch_end"] == len(model.optimizers()) - 1
