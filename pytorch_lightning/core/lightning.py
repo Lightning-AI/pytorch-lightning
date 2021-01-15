@@ -32,7 +32,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import rank_zero_warn, AMPType, TPU_AVAILABLE
+from pytorch_lightning.utilities import rank_zero_warn, AMPType, TPU_AVAILABLE, PYSYFT_AVAILABLE
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
@@ -1395,6 +1395,8 @@ class LightningModule(
             # apex amp does not yet support closures.
             # TODO: pass the closure to the step ASAP
             optimizer_closure()
+            optimizer.step(*args, **kwargs)
+        elif PYSYFT_AVAILABLE:
             optimizer.step(*args, **kwargs)
         else:
             optimizer.step(closure=optimizer_closure, *args, **kwargs)
