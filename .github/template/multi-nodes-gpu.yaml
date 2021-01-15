@@ -1,0 +1,47 @@
+apiVersion: elastic.pytorch.org/v1alpha1
+kind: ElasticJob
+metadata:
+  name: s-%(SHA)s-%(PYTHON_VERSION_DASH)s-%(TORCH_VERSION_DASH)s-e
+  namespace: elastic-job
+spec:
+  # Use "etcd-service:2379" if you already apply etcd.yaml
+  rdzvEndpoint: etcd://%(TCP_ADDRESS)s/s-%(SHA)s-%(PYTHON_VERSION_DASH)s-%(TORCH_VERSION_DASH)s-e?min_workers=2&max_workers=2
+  minReplicas: 2
+  maxReplicas: 2
+  replicaSpecs:
+    Worker:
+      replicas: 2
+      restartPolicy: ExitCode
+      template:
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+            - name: s-%(SHA)s-%(PYTHON_VERSION_DASH)s-%(TORCH_VERSION_DASH)s-e
+              image: pytorchlightning/pytorch_lightning:base-cuda-py%(PYTHON_VERSION)s-torch%(TORCH_VERSION)s
+              imagePullPolicy: Always
+              command:
+              - bash
+              - -ce
+              - |
+                mkdir -p /home/runner/work/pytorch-lightning && cd /home/runner/work/pytorch-lightning
+                git clone https://github.com/tchaton/pytorch-lightning.git
+                cd pytorch-lightning
+                echo $PWD
+                git fetch --all
+                git checkout %(SHA)s
+                pip install -e .
+                pip install torchelastic
+                export PL_RUNNING_SPECIAL_TESTS=1
+                DEFAULTS_ELASTIC=" -m torchelastic.distributed.launch --nnodes=2 --nproc_per_node=1 --rdzv_id=s-%(SHA)s-%(PYTHON_VERSION_DASH)s-%(TORCH_VERSION_DASH)s-e --rdzv_backend=etcd --rdzv_endpoint=%(TCP_ADDRESS)s"
+                DEFAULTS_FIRST=" -m coverage run --source pytorch_lightning -m pytest --verbose --capture=no"
+                DEFAULTS_AFTER=" -m coverage run --source pytorch_lightning -a -m pytest --verbose --capture=no"
+                # special tests list
+                %(LIST_TESTS)s
+                coverage report
+                # special tests list
+                echo "END_TOKEN"
+                cat .coverage | base64
+              resources:
+                limits:
+                  nvidia.com/gpu: %(NUM_GPUS)s
