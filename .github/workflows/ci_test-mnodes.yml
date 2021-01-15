@@ -169,7 +169,7 @@ jobs:
             SHA="${{ steps.vars.outputs.SHA }}",
             TCP_ADDRESS="${{ steps.tcp.outputs.TCP_ADDRESS }}",
             PYTHON_VERSION="${{ matrix.python-version }}",
-            PYTHON_VERSION_DASH=python_version.replace('.', '-'),
+            PYTHON_VERSION_DASH="${{ matrix.python-version }}".replace('.', '-'),
             TORCH_VERSION="${{ matrix.pytorch-version }}",
             TORCH_VERSION_DASH="${{ matrix.pytorch-version }}".replace('.', '-'),
             NUM_GPUS=1,
