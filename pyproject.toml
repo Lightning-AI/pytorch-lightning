@@ -65,10 +65,6 @@ skip_glob = [
 
     # todo
     "pytorch_lightning/tuner/*",
-
-
-    # todo
-    "pytorch_lightning/utilities/*",
 ]
 profile = "black"
 line_length = 120
