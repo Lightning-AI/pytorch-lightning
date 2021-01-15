@@ -142,7 +142,7 @@ class EvaluationLoop(object):
         self.max_batches = max_batches
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
 
-        # wrap user samplers, so we can capture batch indices
+        # wrap user batch samplers, so we can capture batch indices
         dataloaders = [
             LightningBatchSamplerWrapper.to_new_dataloader(dataloader)
             if isinstance(dataloader, DataLoader) and self.testing
