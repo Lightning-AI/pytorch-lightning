@@ -13,7 +13,7 @@
 # limitations under the License.
 import torch
 from torch import nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import DistributedType
