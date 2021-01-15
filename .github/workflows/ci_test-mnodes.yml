@@ -144,10 +144,15 @@ jobs:
 
     - name: Update Test Configuration File
       run: |
+        import os
+        import os.path as osp
         from dtrun.configs import prepare_multi_nodes_gpu_config
+
+        path = osp(os.getcwd(), "tests", "mnode-tests.txt")
+
         prepare_multi_nodes_gpu_config(
             './.github/multi-nodes-gpu.yaml',
-            '~/home/runner/work/pytorch-lightning/pytorch-lightning/tests/mnode-tests.txt',
+            path,
             sha="${{ steps.vars.outputs.SHA }}",
             tcp_address="${{ steps.tcp.outputs.TCP_ADDRESS }}",
             python_version="${{ matrix.python-version }}",
