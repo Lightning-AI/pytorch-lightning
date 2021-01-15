@@ -294,7 +294,7 @@ class PredictionCollection(object):
         if replace_batch_sampler_auto_id:
             assert isinstance(predictions, (list, torch.Tensor))
             if batch_indices is None:
-                return              
+                return
             assert len(predictions) == len(batch_indices)
         else:
             if not all(isinstance(p, dict) and "id" in p for p in predictions):
