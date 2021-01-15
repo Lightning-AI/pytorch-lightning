@@ -244,7 +244,7 @@ class TestModel(BoringModel):
         return {"y": loss}
 
     def create_dataset(self):
-        if self._failure  == 3:
+        if self._failure == 3:
             return CustomDataLoader2(IndexedRandomDataset(32, 64), batch_size=2)
         dataloader_cls = FailureCustomDataLoader if self._failure > 0 else CustomDataLoader
         return dataloader_cls(32, IndexedRandomDataset(32, 64), batch_size=2)
