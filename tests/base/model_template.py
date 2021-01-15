@@ -11,21 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Generic, TypeVar
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from typing import Generic, TypeVar
-
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.datasets import TrialMNIST, PATH_DATASETS
+from tests.base.datasets import PATH_DATASETS, TrialMNIST
 from tests.base.model_optimizers import ConfigureOptimizersPool
 from tests.base.model_test_dataloaders import TestDataloaderVariations
 from tests.base.model_test_epoch_ends import TestEpochEndVariations
 from tests.base.model_test_steps import TestStepVariations
 from tests.base.model_train_dataloaders import TrainDataloaderVariations
 from tests.base.model_train_steps import TrainingStepVariations
-from tests.base.model_utilities import ModelTemplateUtils, ModelTemplateData
+from tests.base.model_utilities import ModelTemplateData, ModelTemplateUtils
 from tests.base.model_valid_dataloaders import ValDataloaderVariations
 from tests.base.model_valid_epoch_ends import ValidationEpochEndVariations
 from tests.base.model_valid_steps import ValidationStepVariations
