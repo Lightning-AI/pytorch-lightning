@@ -13,12 +13,18 @@
 # limitations under the License.
 
 import os
+import importlib
 from typing import Type, Dict, Any, Union
-from jsonargparse import ArgumentParser, ActionConfigFile
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.callbacks import Callback
+
+
+if importlib.util.find_spec("jsonargparse") is not None:
+    from jsonargparse import ArgumentParser, ActionConfigFile
+else:
+    ArgumentParser = object
 
 
 class LightningArgumentParser(ArgumentParser):
