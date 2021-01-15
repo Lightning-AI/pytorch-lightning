@@ -128,6 +128,14 @@ class ModelCheckpoint(Callback):
         model = ...
         trainer.fit(model)
         checkpoint_callback.best_model_path
+
+    Note:
+        For extra customization, ModelCheckpoint includes the following attributes:
+        - CHECKPOINT_JOIN_CHAR = "-"
+        - CHECKPOINT_NAME_LAST = "last"
+        - FILE_EXTENSION = ".ckpt"
+        - STARTING_VERSION = 1
+        For example: ``checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"``
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
