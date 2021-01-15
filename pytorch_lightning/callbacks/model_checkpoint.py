@@ -105,6 +105,17 @@ class ModelCheckpoint(Callback):
             .. warning::
                This argument has been deprecated in v1.1 and will be removed in v1.3
 
+    Note:
+        For extra customization, ModelCheckpoint includes the following attributes:
+
+        - ``CHECKPOINT_JOIN_CHAR = "-"``
+        - ``CHECKPOINT_NAME_LAST = "last"``
+        - ``FILE_EXTENSION = ".ckpt"``
+        - ``STARTING_VERSION = 1``
+
+        For example, you can change the default last checkpoint name by doing
+        ``checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"``
+
     Example::
 
         >>> from pytorch_lightning import Trainer
@@ -129,13 +140,6 @@ class ModelCheckpoint(Callback):
         trainer.fit(model)
         checkpoint_callback.best_model_path
 
-    Note:
-        For extra customization, ModelCheckpoint includes the following attributes:
-        - CHECKPOINT_JOIN_CHAR = "-"
-        - CHECKPOINT_NAME_LAST = "last"
-        - FILE_EXTENSION = ".ckpt"
-        - STARTING_VERSION = 1
-        For example: ``checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"``
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
