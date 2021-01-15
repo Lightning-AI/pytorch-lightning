@@ -47,7 +47,7 @@ steps:
     - unzip -o legacy/checkpoints.zip -d legacy/
     - ls -l legacy/checkpoints/
     # testing...
-    - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
+    - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 -k "with_apex" # --flake8
     # Running special tests
     - sh tests/special_tests.sh
     - coverage report
