@@ -44,10 +44,6 @@ skip_glob = [
 
 
     # todo
-    "pytorch_lightning/loggers/*",
-
-
-    # todo
     "pytorch_lightning/metrics/*",
 
 
