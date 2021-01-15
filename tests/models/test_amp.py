@@ -211,5 +211,5 @@ def test_amp_with_apex(tmpdir):
     assert trainer.state == TrainerState.FINISHED
     assert trainer.dev_debugger.count_events('AMP') == 20
 
-    assert isinstance(trainer.lr_schedulers[0].optimizer, optim.Adam)
-    assert isinstance(trainer.lr_schedulers[1].optimizer, optim.SGD)
+    assert isinstance(trainer.lr_schedulers[0]['scheduler'].optimizer, optim.Adam)
+    assert isinstance(trainer.lr_schedulers[1]['scheduler'].optimizer, optim.SGD)
