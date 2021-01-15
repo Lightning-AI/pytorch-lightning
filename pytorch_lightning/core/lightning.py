@@ -360,7 +360,7 @@ class LightningModule(
                     return {"y": loss}
 
             results = trainer.test(test_dataloaders=test_dataloaders)
-            for dataloader_idx, dataloader_result in enumerate(results_:
+            for dataloader_idx, dataloader_result in enumerate(results):
                 df = pd.json_normalize(dataloader_result["predictions"], sep='_')
 
         Args:
