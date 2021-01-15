@@ -155,7 +155,7 @@ class TensorBoardLogger(LightningLoggerBase):
         Please delete or move the previously saved logs to display the new ones with hyperparameters.
 
         Args:
-            params: :class:`~argparse.Namespace` containing the hyperparameters
+            params: a dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
         """
 
