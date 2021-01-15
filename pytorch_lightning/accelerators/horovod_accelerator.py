@@ -17,8 +17,6 @@ from typing import Any, Callable, Optional, Union
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-import logging
-log = logging.getLogger(__name__)
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType, HOROVOD_AVAILABLE

@@ -16,8 +16,6 @@ from typing import Optional, Union
 import torch
 from torch import optim
 
-import logging
-log = logging.getLogger(__name__)
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
