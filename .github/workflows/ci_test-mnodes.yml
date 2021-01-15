@@ -152,7 +152,7 @@ jobs:
             tcp_address="${{ steps.tcp.outputs.TCP_ADDRESS }}",
             python_version="${{ matrix.python-version }}",
             torch_version="${{ matrix.pytorch-version }}",
-            num_gpus=$NUM_GPUS
+            num_gpus=1
         )
       shell: python
 
