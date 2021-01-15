@@ -16,7 +16,7 @@ from typing import List
 import torch
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.sampler import LightningBatchSampler
+from pytorch_lightning.core.sampler import LightningBatchSamplerWrapper
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -141,7 +141,7 @@ class EvaluationLoop(object):
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
 
         # wrap user samplers, so we can capture batch indices
-        dataloaders = [LightningBatchSampler.to_new_dataloader(dataloader) for dataloader in dataloaders]
+        dataloaders = [LightningBatchSamplerWrapper.to_new_dataloader(dataloader) for dataloader in dataloaders]
         batch_samplers = [getattr(dataloader, "batch_sampler", None) for dataloader in dataloaders]
         return dataloaders, batch_samplers
 
@@ -376,5 +376,5 @@ class EvaluationLoop(object):
 
     def _set_batch_indices(self, dataloader_idx: int, batch_samplers):
         batch_sampler = batch_samplers[dataloader_idx]
-        batch_indices = batch_sampler.batch_indices if isinstance(batch_sampler, LightningBatchSampler) else None
+        batch_indices = batch_sampler.batch_indices if isinstance(batch_sampler, LightningBatchSamplerWrapper) else None
         self.trainer.batch_indices = batch_indices
