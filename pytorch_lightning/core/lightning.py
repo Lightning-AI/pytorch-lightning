@@ -360,11 +360,12 @@ class LightningModule(
                     return {"y": loss}
 
             results = trainer.test(test_dataloaders=test_dataloaders)
-            for dataloader_idx, dataloader_result in enumerate(results_:
+            for dataloader_idx, dataloader_result in enumerate(results):
                 df = pd.json_normalize(dataloader_result["predictions"], sep='_')
 
         Args:
-            predictions: Predictions to be saved by the user
+            predictions: Predictions to be saved by the user. Should either be a ``torch.Tensor``
+                or a list of dictionaries containing tensors.
 
         Return:
             None
