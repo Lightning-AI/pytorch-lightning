@@ -153,7 +153,7 @@ jobs:
         from dtrun.configs import prepare_multi_nodes_gpu_config
         import os
         print(os.listdir(os.path.join(os.getcwd(), 'tests')))
-        path = os.listdir(os.path.join(os.getcwd(), 'tests', 'mnode_tests.txt'))
+        path = os.path.join(os.getcwd(), "tests/mnode_tests.txt")
         prepare_multi_nodes_gpu_config(
             './.github/multi-nodes-gpu.yaml',
             path,
