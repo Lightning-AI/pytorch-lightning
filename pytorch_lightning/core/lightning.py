@@ -330,6 +330,9 @@ class LightningModule(
     def add_predictions(self, predictions: Union[torch.Tensor, List]) -> None:
         """
         This function enables to save add predictions and retrieved them into results objects.
+        To make this possible, Lightning will re-instantiate your DataLoader.
+        When using custom DataLoader, there might be some issues. 
+        Hopefully, Lightning provides an opt-out option to make this work !
 
         .. code-block:: python
 
@@ -385,6 +388,29 @@ class LightningModule(
                 3   51                   0  [0.6546469926834106, 0.34535300731658936]
                 4   52                   0   [0.6412515044212341, 0.3587484657764435]
 
+
+        .. note:: Opt-out solution.
+
+        .. code-block:: python
+
+            class MyDataset(RandomDataset):
+
+                def __getitem__(self, index):
+                    return {"index": index, "batch": self.data[index]}   
+
+            class MyModel(LightningModule):
+
+                def test_step(self, batch, batch_idx, dataloader_idx=None):
+                    x = batch["batch"]
+                    output = self.layer(x)
+                    loss = self.loss(batch, output)
+
+                    self.add_predictions([
+                        {"id": idx.item(), "predictions": o} 
+                        for idx, o in zip(batch["index"], output)])
+        
+            trainer = Trainer(replace_batch_sampler_auto_id=False)
+
         Args:
             predictions: Predictions to be saved by the user. Should either be a ``torch.Tensor``
                 or a list of dictionaries containing tensors.
@@ -394,17 +420,12 @@ class LightningModule(
         """
         if getattr(self, "trainer", None) is not None:
             dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
-            if self.trainer.evaluation_loop.batch_indices is None:
-                rank_zero_warn(
-                    "Lightning failed to wrap your BatchSampler and indices can't be retrieved automatically"
-                )
-                return
-
             self.trainer.predictions.cache(
                 predictions,
                 dl_idx,
                 self.trainer.evaluation_loop.batch_indices,
-                self.trainer.logger_connector._current_stage)
+                self.trainer.logger_connector._current_stage,
+                self.trainer.evaluation_loop.replace_batch_sampler_auto_id)
         else:
             rank_zero_warn(
                 "Your LightningModule isn't attached to the Lightning Trainer and can't save predictions"

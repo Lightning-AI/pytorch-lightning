@@ -222,11 +222,13 @@ class CustomDataLoader2(DataLoader):
 
 class TestModel(BoringModel):
 
-    def __init__(self, numbers_test_dataloaders, save_preds_on_dl_idx, failure):
+    def __init__(self, numbers_test_dataloaders, 
+                 save_preds_on_dl_idx, failure, replace_batch_sampler_auto_id):
         super().__init__()
         self._numbers_test_dataloaders = numbers_test_dataloaders
         self._save_preds_on_dl_idx = save_preds_on_dl_idx
         self._failure = failure
+        self.replace_batch_sampler_auto_id = replace_batch_sampler_auto_id
 
     def test_step(self, batch, batch_idx, dataloader_idx=None):
         x = batch["batch"]
@@ -236,10 +238,15 @@ class TestModel(BoringModel):
         if dataloader_idx == 1 and not self._save_preds_on_dl_idx:
             return {"y": loss}
 
-        if dataloader_idx == 1:
-            self.add_predictions([{"a": o, "b": o} for idx, o in enumerate(output)])
+        if self.replace_batch_sampler_auto_id:
+            if dataloader_idx == 1:
+                self.add_predictions([{"a": o, "b": o} for idx, o in enumerate(output)])
+            else:
+                self.add_predictions(output)
         else:
-            self.add_predictions(output)
+            self.add_predictions([
+                {"id": idx.item(), "predictions": o} 
+                for idx, o in zip(batch["index"], output)])
 
         return {"y": loss}
 
@@ -253,13 +260,15 @@ class TestModel(BoringModel):
         return [self.create_dataset()] * self._numbers_test_dataloaders
 
 
-def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx, failure=0):
+def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus, 
+                                num_dl_idx, failure=0, replace_batch_sampler_auto_id=True):
     num_processes = 2
     limit_test_batches = 2
     trainer_args = {
         "default_root_dir": tmpdir,
         "limit_test_batches" : limit_test_batches,
         "accelerator": accelerator,
+        "replace_batch_sampler_auto_id": replace_batch_sampler_auto_id
     }
 
     if accelerator == "ddp_cpu":
@@ -269,7 +278,7 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
         trainer_args["gpus"] = gpus
         size = gpus
 
-    model = TestModel(num_dl_idx, save_preds_on_dl_idx, failure)
+    model = TestModel(num_dl_idx, save_preds_on_dl_idx, failure, replace_batch_sampler_auto_id)
     model.test_epoch_end = None
 
     trainer = Trainer(**trainer_args)
@@ -299,7 +308,7 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
             assert len(predictions) == limit_test_batches * 2 * size
             for idx, pred in enumerate(predictions):
                 assert pred["id"] == idx
-                if dl_idx == 1:
+                if dl_idx == 1 and replace_batch_sampler_auto_id:
                     assert 'a' in pred["predictions"] and 'b' in pred["predictions"]
                 else:
                     assert isinstance(pred["predictions"], list) and len(pred["predictions"]) == 2
@@ -331,11 +340,14 @@ def test_misconfiguration_on_dataloader(tmpdir, failure):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
 @pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
 @pytest.mark.parametrize('num_dl_idx', [1, 2])
-def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, num_dl_idx):
+@pytest.mark.parametrize('replace_batch_sampler_auto_id', [False, True])
+def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, num_dl_idx, replace_batch_sampler_auto_id):
     """
     Test `PredictionCollection` reduce properly in 1 gpu mode
     """
-    check_prediction_collection(tmpdir, save_preds_on_dl_idx, None, 1, num_dl_idx)
+    check_prediction_collection(
+        tmpdir, save_preds_on_dl_idx, None, 
+        1, num_dl_idx, replace_batch_sampler_auto_id=replace_batch_sampler_auto_id)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")

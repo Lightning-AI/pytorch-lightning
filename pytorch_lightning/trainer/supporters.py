@@ -150,7 +150,14 @@ class PredictionCollection(object):
     def predictions(self) -> Dict:
         return self._predictions[self.current_stage]
 
-    def _cache_prediction(self, predictions: List[Dict], dl_idx: int, batch_indices: List[int]) -> None:
+    def _cache_prediction(
+        self, 
+        predictions: List[Dict], 
+        dl_idx: int, 
+        batch_indices: List[int], 
+        replace_batch_sampler_auto_id: bool
+    ) -> None:
+
         cache = self.predictions
 
         cache.setdefault(dl_idx, {})
@@ -158,16 +165,43 @@ class PredictionCollection(object):
         def convert(value):
             return value.cpu().tolist()
 
-        for batch_index, pred in zip(batch_indices, predictions):
-            if batch_index in cache[dl_idx]:
+        for batch_idx, pred in enumerate(predictions):
+            if replace_batch_sampler_auto_id:
+                sample_id = batch_indices[batch_idx]
+            
+            else:
+                if self.ID_KEY in pred:
+                    sample_id = pred[self.ID_KEY]
+                    if not isinstance(sample_id, (int, float)):
+                        raise MisconfigurationException(
+                            f"`id` key should be either a int or float. Found {type(sample_id)}."
+                        )
+                else:
+                    raise MisconfigurationException(
+                        f"The predictions dict requires an `{self.ID_KEY}` key."
+                    )
+
+            if sample_id in cache[dl_idx]:
                 raise MisconfigurationException(
                     "Prediction Collection doesn't support multiple predictions for one sample yet.")
 
-            # apply convert to store memory
-            cache[dl_idx][batch_index] = {
-                self.ID_KEY: batch_index, "predictions": apply_to_collection(pred, torch.Tensor, convert)}
+            if replace_batch_sampler_auto_id:
+                cache[dl_idx][sample_id] = {
+                    self.ID_KEY: sample_id, "predictions": pred}
+            else:
+                cache[dl_idx][sample_id] = pred
 
-    def cache(self, predictions: List, dl_idx: int, batch_indices: List[int], current_stage: str) -> None:
+            # apply convert to store memory
+            cache[dl_idx][sample_id] = apply_to_collection(cache[dl_idx][sample_id], torch.Tensor, convert)
+
+    def cache(
+        self, 
+        predictions: List, 
+        dl_idx: int, 
+        batch_indices: List[int], 
+        current_stage: str, 
+        replace_batch_sampler_auto_id: bool
+    ) -> None:
         """
         This function expects predictions to be a list of tensors or dictionary of tensors.
         Example::
@@ -179,9 +213,22 @@ class PredictionCollection(object):
 
         self.current_stage = current_stage
 
-        assert isinstance(predictions, (list, torch.Tensor))
-        assert len(predictions) == len(batch_indices)
-        self._cache_prediction(predictions, dl_idx, batch_indices)
+        if replace_batch_sampler_auto_id:
+            assert isinstance(predictions, (list, torch.Tensor))
+            assert len(predictions) == len(batch_indices)
+        else:
+            if not all(isinstance(p, dict) and "id" in p for p in predictions):
+                raise MisconfigurationException(
+                    "predictions objects should be a list where each element is a dict. "
+                    "Each dict should contain an unique number `id` to identify each sample."
+                )
+
+            if not all(len(p) > 1 for p in predictions):
+                raise MisconfigurationException(
+                    "each element should contain at least an unique number `id` and a prediction tensor."
+                )
+
+        self._cache_prediction(predictions, dl_idx, batch_indices, replace_batch_sampler_auto_id)
 
     def attach_predictions(self, results: List[Dict], current_stage: str) -> List[Dict]:
         # indicates the current

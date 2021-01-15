@@ -213,6 +213,29 @@ Saving test predictions is simple ! You can provide directly a tensor or list of
         3   51                   0  [0.6546469926834106, 0.34535300731658936]
         4   52                   0   [0.6412515044212341, 0.3587484657764435]
 
+.. note:: When using custom DataLoader, there might be some problem. Here is the opt-out solution.
+
+.. code-block:: python
+
+    class MyDataset(RandomDataset):
+
+        def __getitem__(self, index):
+            return {"index": index, "batch": self.data[index]}   
+
+    class MyModel(LightningModule):
+
+        def test_step(self, batch, batch_idx, dataloader_idx=None):
+            x = batch["batch"]
+            output = self.layer(x)
+            loss = self.loss(batch, output)
+
+            # need to provide a key `id` being a number.
+            self.add_predictions([
+                {"id": idx.item(), "predictions": o} 
+                for idx, o in zip(batch["index"], output)])
+
+    trainer = Trainer(replace_batch_sampler_auto_id=False)
+
 
 ------------
 
