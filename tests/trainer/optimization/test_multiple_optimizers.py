@@ -20,11 +20,18 @@ import pytorch_lightning as pl
 from tests.base.boring_model import BoringModel
 
 
+class MultiOptModel(BoringModel):
+    def configure_optimizers(self):
+        opt_a = torch.optim.SGD(self.layer.parameters(), lr=0.001)
+        opt_b = torch.optim.SGD(self.layer.parameters(), lr=0.001)
+        return opt_a, opt_b
+
+
 def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     """
     This tests ensures reduction works in un-balanced logging settings
     """
-    class TestModel(BoringModel):
+    class TestModel(MultiOptModel):
 
         loss_1 = []
         loss_2 = []
@@ -39,11 +46,6 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
                 self.log("loss_2", loss, on_epoch=True, prog_bar=True)
                 self.loss_2.append(loss.detach().clone())
             return {"loss": loss}
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.001)
-            optimizer2 = torch.optim.SGD(self.layer.parameters(), lr=0.001)
-            return [optimizer, optimizer2]
 
     model = TestModel()
     model.training_epoch_end = None
@@ -61,3 +63,79 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     # test loss are properly reduced
     assert torch.abs(trainer.callback_metrics["loss_2_epoch"] - torch.FloatTensor(model.loss_2).mean()) < 1e-6
     assert torch.abs(trainer.callback_metrics["loss_1_epoch"] - torch.FloatTensor(model.loss_1).mean()) < 1e-6
+
+
+def test_multiple_optimizers(tmpdir):
+    class TestModel(MultiOptModel):
+        seen = [False, False]
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            self.seen[optimizer_idx] = True
+            return super().training_step(batch, batch_idx)
+
+        def training_epoch_end(self, outputs) -> None:
+            # outputs should be an array with an entry per optimizer
+            assert len(outputs) == 2
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            return optimizer, optimizer_2
+
+    model = TestModel()
+    model.val_dataloader = None
+
+    trainer = pl.Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    assert all(model.seen)
+
+
+def test_multiple_optimizers_manual(tmpdir):
+    class TestModel(MultiOptModel):
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            self.training_step_called = True
+
+            # manual optimization
+            opt_a, opt_b = self.optimizers()
+            loss_1 = self.step(batch[0])
+
+            # fake generator
+            self.manual_backward(loss_1, opt_a)
+            opt_a.step()
+            opt_a.zero_grad()
+
+            # fake discriminator
+            loss_2 = self.step(batch[0])
+            self.manual_backward(loss_2, opt_b)
+            opt_b.step()
+            opt_b.zero_grad()
+
+        def training_epoch_end(self, outputs) -> None:
+            # outputs should be an array with an entry per optimizer
+            assert len(outputs) == 2
+
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
+    model = TestModel()
+    model.val_dataloader = None
+
+    trainer = pl.Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    assert model.training_step_called
