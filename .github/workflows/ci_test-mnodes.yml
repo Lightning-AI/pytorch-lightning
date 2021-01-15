@@ -147,7 +147,7 @@ jobs:
         from dtrun.configs import prepare_multi_nodes_gpu_config
         prepare_multi_nodes_gpu_config(
             './.github/multi-nodes-gpu.yaml',
-            './tests/mnode-tests.txt',
+            './python-lightnin/tests/mnode-tests.txt',
             sha="${{ steps.vars.outputs.SHA }}",
             tcp_address="${{ steps.tcp.outputs.TCP_ADDRESS }}",
             python_version="${{ matrix.python-version }}",
@@ -158,7 +158,6 @@ jobs:
 
     - name: Apply Multi Node Testing
       run: |
-        cat .github/multi-nodes-gpu.yaml
         kubectl apply -f .github/multi-nodes-gpu.yaml
       shell: bash
 
