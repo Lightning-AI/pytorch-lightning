@@ -329,10 +329,10 @@ class LightningModule(
 
     def add_predictions(self, predictions: Union[torch.Tensor, List]) -> None:
         """
-        This function enables to save add predictions and retrieved them into results objects.
+        This function enables adding predictions into a result object.
         To make this possible, Lightning will re-instantiate your DataLoader.
         When using custom DataLoader, there might be some issues.
-        Hopefully, Lightning provides an opt-out option to make this work !
+        Thankfully, an opt-out Trainer argument is provided!
 
         .. code-block:: python
 
@@ -409,7 +409,7 @@ class LightningModule(
                         {"id": idx.item(), "predictions": o}
                         for idx, o in zip(batch["index"], output)])
 
-            trainer = Trainer(replace_batch_sampler_auto_id=False)
+            trainer = Trainer(enable_predict_auto_id=False)
 
         Args:
             predictions: Predictions to be saved by the user. Should either be a ``torch.Tensor``
@@ -419,17 +419,17 @@ class LightningModule(
             None
         """
         if getattr(self, "trainer", None) is not None:
-            dl_idx = self._current_dataloader_idx if self._current_dataloader_idx is not None else 0
+            dl_idx = self._current_dataloader_idx or 0
             self.trainer.predictions.cache(
                 predictions,
                 dl_idx,
                 self.trainer.evaluation_loop.batch_indices,
                 self.trainer.logger_connector._current_stage,
-                self.trainer.evaluation_loop.replace_batch_sampler_auto_id)
+                self.trainer.evaluation_loop.enable_predict_auto_id)
         else:
             rank_zero_warn(
                 "Your LightningModule isn't attached to the Lightning Trainer and can't save predictions"
-                "HINT: This function works only within `results=trainer.test(model, datamodule=datamodule)`"
+                "HINT: This function works only within `results=trainer.test(model, data)`"
             )
 
     def write_prediction(self, name, value, filename='predictions.pt'):

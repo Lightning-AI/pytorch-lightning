@@ -114,19 +114,17 @@ class TrainerDataLoadingMixin(ABC):
 
         params = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
 
-        valid_kwargs = [*inspect.signature(dataloader.__init__).parameters]
+        valid_kwargs = set(inspect.signature(dataloader.__init__).parameters)
         contains_dataset = True
 
-        if dataloader.__class__ != DataLoader:
+        if type(dataloader) is not DataLoader:
             contains_dataset = "dataset" in valid_kwargs
-            valid_kwargs += [*inspect.signature(DataLoader.__init__).parameters]
+            valid_kwargs.update(inspect.signature(DataLoader.__init__).parameters)
 
-        valid_kwargs = set(valid_kwargs)
-
-        dl_args = dict(
-            (name, params[name]) for name in valid_kwargs
+        dl_args = {
+            name: params[name] for name in valid_kwargs
             if name in params and name not in skip_keys
-        )
+        }
         dl_args['sampler'] = sampler
         dl_args['shuffle'] = False
         dl_args['batch_sampler'] = None

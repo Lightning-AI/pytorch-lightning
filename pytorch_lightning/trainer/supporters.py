@@ -153,19 +153,17 @@ class LightningBatchSamplerWrapper:
 
         params = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
 
-        valid_kwargs = [*inspect.signature(dataloader.__init__).parameters]
+        valid_kwargs = set(inspect.signature(dataloader.__init__).parameters)
         contains_dataset = True
 
-        if dataloader.__class__ != DataLoader:
+        if type(dataloader) is not DataLoader:
             contains_dataset = "dataset" in valid_kwargs
-            valid_kwargs += [*inspect.signature(DataLoader.__init__).parameters]
+            valid_kwargs.update(inspect.signature(DataLoader.__init__).parameters)
 
-        valid_kwargs = set(valid_kwargs)
-
-        dl_args = dict(
-            (name, params[name]) for name in valid_kwargs
+        dl_args = {
+            name: params[name] for name in valid_kwargs
             if name in params and name not in skip_keys
-        )
+        }
 
         multiprocessing_context = dataloader.multiprocessing_context
 
@@ -184,7 +182,7 @@ class LightningBatchSamplerWrapper:
                 f"Trying to replace to wrap your BatchSampler in your {dataloader_cls_name} dataloader."
                 "This would fail as your DataLoader doesn't expose as attributes all its __init__ parameters. "
                 f"Missing attributes are {missing_kwargs}"
-                "HINT: use Trainer(replace_batch_sampler_auto_id=False) and provide your own id. "
+                "HINT: use Trainer(enable_predict_auto_id=False) and provide your own id. "
                 "Check out the doc for Testing. ", UserWarning
             )
             return dataloader
@@ -233,7 +231,7 @@ class PredictionCollection(object):
         predictions: List[Dict],
         dl_idx: int,
         batch_indices: List[int],
-        replace_batch_sampler_auto_id: bool
+        enable_predict_auto_id: bool
     ) -> None:
 
         cache = self.predictions
@@ -244,7 +242,7 @@ class PredictionCollection(object):
             return value.cpu().tolist()
 
         for batch_idx, pred in enumerate(predictions):
-            if replace_batch_sampler_auto_id:
+            if enable_predict_auto_id:
                 sample_id = batch_indices[batch_idx]
 
             else:
@@ -263,7 +261,7 @@ class PredictionCollection(object):
                 raise MisconfigurationException(
                     "Prediction Collection doesn't support multiple predictions for one sample yet.")
 
-            if replace_batch_sampler_auto_id:
+            if enable_predict_auto_id:
                 cache[dl_idx][sample_id] = {
                     self.ID_KEY: sample_id, "predictions": pred}
             else:
@@ -278,7 +276,7 @@ class PredictionCollection(object):
         dl_idx: int,
         batch_indices: List[int],
         current_stage: str,
-        replace_batch_sampler_auto_id: bool
+        enable_predict_auto_id: bool
     ) -> None:
         """
         This function expects predictions to be a list of tensors or dictionary of tensors.
@@ -291,7 +289,7 @@ class PredictionCollection(object):
 
         self.current_stage = current_stage
 
-        if replace_batch_sampler_auto_id:
+        if enable_predict_auto_id:
             assert isinstance(predictions, (list, torch.Tensor))
             if batch_indices is None:
                 return
@@ -308,7 +306,7 @@ class PredictionCollection(object):
                     "each element should contain at least an unique number `id` and a prediction tensor."
                 )
 
-        self._cache_prediction(predictions, dl_idx, batch_indices, replace_batch_sampler_auto_id)
+        self._cache_prediction(predictions, dl_idx, batch_indices, enable_predict_auto_id)
 
     def attach_predictions(self, results: List[Dict], current_stage: str) -> List[Dict]:
         # indicates the current

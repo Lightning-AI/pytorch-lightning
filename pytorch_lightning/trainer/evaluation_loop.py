@@ -36,7 +36,7 @@ class EvaluationLoop(object):
         self.num_dataloaders = None
         self.batch_indices = None
 
-    def on_trainer_init(self, replace_batch_sampler_auto_id: bool):
+    def on_trainer_init(self, enable_predict_auto_id: bool):
         self.trainer.num_val_batches = []
         self.trainer.num_sanity_val_batches = []
         self.trainer.num_test_batches = []
@@ -44,7 +44,7 @@ class EvaluationLoop(object):
         self.trainer.val_dataloaders = None
         self.trainer.running_sanity_check = False
         self.trainer.testing = False
-        self.replace_batch_sampler_auto_id = replace_batch_sampler_auto_id
+        self.enable_predict_auto_id = enable_predict_auto_id
 
         # when .test() is called, it sets this
         self.trainer.tested_ckpt_path = None
@@ -145,7 +145,7 @@ class EvaluationLoop(object):
         # wrap user batch samplers, so we can capture batch indices
         dataloaders = [
             LightningBatchSamplerWrapper.to_new_dataloader(dataloader)
-            if isinstance(dataloader, DataLoader) and self.testing and self.replace_batch_sampler_auto_id
+            if isinstance(dataloader, DataLoader) and self.testing and self.enable_predict_auto_id
             else dataloader for dataloader in dataloaders]
 
         # extract batch samplers

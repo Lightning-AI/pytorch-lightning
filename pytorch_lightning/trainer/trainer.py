@@ -136,7 +136,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         enable_pl_optimizer: bool = False,
         multiple_trainloader_mode: str = 'max_size_cycle',
-        replace_batch_sampler_auto_id: bool = True
+        enable_predict_auto_id: bool = True
     ):
         r"""
         Customize every aspect of training via flags
@@ -292,7 +292,7 @@ class Trainer(
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
 
-            replace_batch_sampler_auto_id: Explicitly enables or disables sampler replacement.
+            enable_predict_auto_id: Explicitly enables or disables sampler replacement.
                 This would be used in `LightningModule.add_predictions` function to automatically
                 associate each sample to its prediction.
                 When set to False, one can still use `LightningModule.add_predictions` by providing a key `id`.
@@ -390,7 +390,7 @@ class Trainer(
             automatic_optimization,
             weights_summary,
         )
-        self.evaluation_loop.on_trainer_init(replace_batch_sampler_auto_id)
+        self.evaluation_loop.on_trainer_init(enable_predict_auto_id)
 
         # configure tuner
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
@@ -673,7 +673,7 @@ class Trainer(
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
         with self.profiler.profile("run_test_evaluation"):
-            eval_loop_results, eval_results = self.run_evaluation(test_mode=True)
+            eval_loop_results, _ = self.run_evaluation(test_mode=True)
 
         if len(eval_loop_results) == 0:
             return 1

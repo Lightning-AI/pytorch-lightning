@@ -220,7 +220,7 @@ Saving test predictions is simple ! You can provide directly a tensor or list of
     class MyDataset(RandomDataset):
 
         def __getitem__(self, index):
-            return {"index": index, "batch": self.data[index]}   
+            return {"index": index, "batch": self.data[index]}
 
     class MyModel(LightningModule):
 
@@ -231,10 +231,10 @@ Saving test predictions is simple ! You can provide directly a tensor or list of
 
             # need to provide a key `id` being a number.
             self.add_predictions([
-                {"id": idx.item(), "predictions": o} 
+                {"id": idx.item(), "predictions": o}
                 for idx, o in zip(batch["index"], output)])
 
-    trainer = Trainer(replace_batch_sampler_auto_id=False)
+    trainer = Trainer(enable_predict_auto_id=False)
 
 
 ------------
