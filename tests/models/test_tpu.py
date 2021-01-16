@@ -42,6 +42,14 @@ def _serial_train_loader():
     return DataLoader(_LARGER_DATASET, batch_size=32)
 
 
+class SerialLoaderBoringModel(BoringModel):
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(32, 2000), batch_size=32)
+
+    def val_dataloader(self):
+        return DataLoader(RandomDataset(32, 2000), batch_size=32)
+
+
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_tpu_cores_1(tmpdir):
@@ -94,12 +102,8 @@ def test_model_tpu_cores_8(tmpdir):
         limit_val_batches=0.4,
     )
 
-    model = BoringModel()
-
     # 8 cores needs a big dataset
-    model.train_dataloader = DataLoader(RandomDataset(32, 2000), batch_size=32)
-    model.val_dataloader = DataLoader(RandomDataset(32, 2000), batch_size=32)
-
+    model = SerialLoaderBoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.05)
 
 
@@ -160,12 +164,8 @@ def test_model_16bit_tpu_cores_8(tmpdir):
         limit_val_batches=0.4,
     )
 
-    model = BoringModel()
-
     # 8 cores needs a big dataset
-    model.train_dataloader = DataLoader(RandomDataset(32, 2000), batch_size=32)
-    model.val_dataloader = DataLoader(RandomDataset(32, 2000), batch_size=32)
-
+    model = SerialLoaderBoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.05)
 
 
