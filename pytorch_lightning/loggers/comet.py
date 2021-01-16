@@ -21,17 +21,18 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-try:
-    import comet_ml
+import torch
+from torch import is_tensor
 
-except ModuleNotFoundError:  # pragma: no-cover
-    comet_ml = None
-    CometExperiment = None
-    CometExistingExperiment = None
-    CometOfflineExperiment = None
-    API = None
-    generate_guid = None
-else:
+from pytorch_lightning import _logger as log
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.utilities import rank_zero_only, _module_available
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+_COMET_AVAILABLE = _module_available("comet_ml")
+
+if _COMET_AVAILABLE:
+    import comet_ml
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import Experiment as CometExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
@@ -41,14 +42,11 @@ else:
     except ImportError:  # pragma: no-cover
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API  # pragma: no-cover
-
-import torch
-from torch import is_tensor
-
-from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+else:
+    # needed for test mocks, these tests shall be updated
+    comet_ml = None
+    CometExperiment, CometExistingExperiment, CometOfflineExperiment = None, None, None
+    API = None
 
 
 class CometLogger(LightningLoggerBase):

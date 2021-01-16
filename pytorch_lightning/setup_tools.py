@@ -19,7 +19,7 @@ from typing import Iterable, List
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from pytorch_lightning import PROJECT_ROOT, __homepage__, __version__
+from pytorch_lightning import __homepage__, __version__, PROJECT_ROOT
 
 _PATH_BADGES = os.path.join('.', 'docs', 'source', '_images', 'badges')
 # badge to download
@@ -161,6 +161,9 @@ def _load_long_description(path_dir: str) -> str:
     path_readme = os.path.join(path_dir, "README.md")
     text = open(path_readme, encoding="utf-8").read()
 
+    # drop images from readme
+    text = text.replace('![PT to PL](docs/source/_images/general/pl_quick_start_full_compressed.gif)', '')
+
     # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
     github_source_url = os.path.join(__homepage__, "raw", __version__)
     # replace relative repository path to absolute link to the release
@@ -174,6 +177,11 @@ def _load_long_description(path_dir: str) -> str:
     text = text.replace('/branch/master/graph/badge.svg', f'/release/{__version__}/graph/badge.svg')
     # replace github badges for release ones
     text = text.replace('badge.svg?branch=master&event=push', f'badge.svg?tag={__version__}')
+
+    skip_begin = r'<!-- following section will be skipped from PyPI description -->'
+    skip_end = r'<!-- end skipping PyPI description -->'
+    # todo: wrap content as commented description
+    text = re.sub(rf"{skip_begin}.+?{skip_end}", '<!--  -->', text, flags=re.IGNORECASE + re.DOTALL)
 
     # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
     # github_release_url = os.path.join(__homepage__, "releases", "download", __version__)

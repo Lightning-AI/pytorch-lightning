@@ -47,7 +47,8 @@ def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
         limit_test_batches=2,
         gpus=2,
         distributed_backend="ddp",
-        plugins=[DDPSequentialPlugin(balance=[2, 1])],
+        plugins=[DDPSequentialPlugin(balance=[2, 1], rpc_timeout_sec=5 * 60)],
+        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
@@ -148,6 +149,7 @@ class SequentialModelRPCManual(LightningModule):
     def __init__(self):
         super().__init__()
         self.sequential_module = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
+        self.automatic_optimization = False
 
     def forward(self, x):
         return self.sequential_module(x)
@@ -194,19 +196,14 @@ class SequentialModelRPCManual(LightningModule):
     def test_dataloader(self):
         return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
-    @property
-    def automatic_optimization(self) -> bool:
-        return False
-
 
 class SequentialModelRPCAutomatic(SequentialModelRPCManual):
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = True
 
     def training_step(self, batch, batch_idx):
         output = self.sequential_module(batch)
         loss = self.loss(output)
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
         return loss
-
-    @property
-    def automatic_optimization(self) -> bool:
-        return True
