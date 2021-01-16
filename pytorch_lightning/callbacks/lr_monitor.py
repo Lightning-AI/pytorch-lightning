@@ -39,6 +39,10 @@ class LearningRateMonitor(Callback):
         log_momentum: option to also log the momentum values of the optimizer, if the optimizer
             has the ``momentum`` or ``betas`` attribute. Defaults to ``False``.
 
+    Raises:
+        MisconfigurationException:
+            If ``logging_interval`` is none of ``"step"``, ``"epoch"``, or ``None``.
+
     Example::
 
         >>> from pytorch_lightning import Trainer
@@ -79,6 +83,10 @@ class LearningRateMonitor(Callback):
         Called before training, determines unique names for all lr
         schedulers in the case of multiple of the same type or in
         the case of multiple parameter groups
+
+        Raises:
+            MisconfigurationException:
+                If ``Trainer`` has no ``logger``.
         """
         if not trainer.logger:
             raise MisconfigurationException(
