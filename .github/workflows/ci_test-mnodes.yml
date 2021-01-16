@@ -23,11 +23,12 @@ name: Multi Nodes GPU Tests
 #  20. Upload coverage to Codecov
 #  21. Delete Group Node
 
-#on:  # todo
-#  push:
-#    branches: [master, "release/*"]  # include release branches like release/1.1.x..
-
-on: push
+on:
+  pull_request:
+    branches:
+      - master
+      - release/*
+    types: [closed]
 
 env:
   AWS_CLUSTER: pl-lightning-torchelastic
@@ -50,7 +51,7 @@ jobs:
     timeout-minutes: 50
 
     # runs only when merged happened.
-    #if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true
     steps:
 
     - name: Checkout Pytorch Lightning
@@ -193,7 +194,7 @@ jobs:
       if: always()
       shell: bash
       run: |
-        sleep 500
+        sleep 200
 
     - name: Listen to Jobs Logging
       shell: bash
@@ -226,5 +227,5 @@ jobs:
     - name: Delete Group Node
       if: always()
       run: |
-       # kubectl delete  ElasticJob ${{ steps.job.outputs.ID_NAME }} -n elastic-job
+       kubectl delete  ElasticJob ${{ steps.job.outputs.ID_NAME }} -n elastic-job
        eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER
