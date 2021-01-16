@@ -154,7 +154,8 @@ class WandbLogger(LightningLoggerBase):
             self._step_offset = self._experiment.step
 
             # save checkpoints in wandb dir to upload on W&B servers
-            self._save_dir = self._experiment.dir
+            if self._save_dir is None:
+                self._save_dir = self._experiment.dir
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):

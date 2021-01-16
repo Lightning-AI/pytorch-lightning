@@ -35,9 +35,11 @@ def test_tensorboard_hparams_reload(tmpdir):
     model = EvalModelTemplate()
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
 
-    folder_path = trainer.logger.log_dir
+    assert trainer.log_dir == trainer.logger.log_dir
+    folder_path = trainer.log_dir
 
     # make sure yaml is there
     with open(os.path.join(folder_path, "hparams.yaml")) as file:
