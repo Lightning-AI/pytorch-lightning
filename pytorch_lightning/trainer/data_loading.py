@@ -131,7 +131,7 @@ class TrainerDataLoadingMixin(ABC):
         multiprocessing_context = dataloader.multiprocessing_context
         dl_args['multiprocessing_context'] = multiprocessing_context
 
-        missing_kwargs = valid_kwargs.difference(skip_valid_keys).difference(set(dl_args))
+        missing_kwargs = valid_kwargs.difference(skip_valid_keys).difference(dl_args)
         if len(missing_kwargs) != 0:
             """
             Example:

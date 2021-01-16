@@ -35,6 +35,7 @@ class EvaluationLoop(object):
         self.warning_cache = WarningCache()
         self.num_dataloaders = None
         self.batch_indices = None
+        self.batch_samplers = None
 
     def on_trainer_init(self, enable_predict_auto_id: bool):
         self.trainer.num_val_batches = []
@@ -149,12 +150,12 @@ class EvaluationLoop(object):
             else dataloader for dataloader in dataloaders]
 
         # extract batch samplers
-        batch_samplers = self._get_batch_samplers(dataloaders)
+        self.batch_samplers = self._get_batch_samplers(dataloaders)
 
         # reset batch_indices
         self.batch_indices = None
 
-        return dataloaders, batch_samplers
+        return dataloaders
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
         if self.testing:
@@ -316,9 +317,9 @@ class EvaluationLoop(object):
 
         return eval_results
 
-    def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx, batch_samplers):
+    def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # save batch indices
-        self._set_batch_indices(dataloader_idx, batch_samplers)
+        self._set_batch_indices(dataloader_idx)
 
         # set dataloader_idx to model and track batch_size
         self.trainer.logger_connector.on_evaluation_batch_start(
@@ -385,8 +386,8 @@ class EvaluationLoop(object):
         if len(step_pbar_metrics) > 0:
             self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)
 
-    def _set_batch_indices(self, dataloader_idx: int, batch_samplers):
-        batch_sampler = batch_samplers[dataloader_idx]
+    def _set_batch_indices(self, dataloader_idx: int):
+        batch_sampler = self.batch_samplers[dataloader_idx]
         batch_indices = None
         if isinstance(batch_sampler, LightningBatchSamplerWrapper):
             batch_indices = batch_sampler.batch_indices

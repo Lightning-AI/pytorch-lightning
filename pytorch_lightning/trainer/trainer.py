@@ -595,7 +595,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_start()
 
         # set up the eval loop
-        dataloaders, batch_samplers = self.evaluation_loop.setup(model, max_batches, dataloaders)
+        dataloaders = self.evaluation_loop.setup(model, max_batches, dataloaders)
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_start()
@@ -616,7 +616,7 @@ class Trainer(
                     break
 
                 # hook
-                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx, batch_samplers)
+                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
                 # lightning module methods
                 with self.profiler.profile("evaluation_step_and_end"):
