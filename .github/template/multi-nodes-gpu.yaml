@@ -25,7 +25,7 @@ spec:
               - -ce
               - |
                 mkdir -p /home/runner/work/pytorch-lightning && cd /home/runner/work/pytorch-lightning
-                git clone https://github.com/tchaton/pytorch-lightning.git
+                git clone https://github.com/PyTorchLightning/pytorch-lightning.git
                 cd pytorch-lightning
                 echo $PWD
                 git fetch --all
