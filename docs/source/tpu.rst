@@ -214,11 +214,11 @@ Example:
 
 .. testcode::
 
-    import pytorch_lightning as pl
+    from pytorch_lightning.core.lightning import LightningModule
     from torch import nn
 
 
-    class WeightSharingModule(pl.LightningModule):
+    class WeightSharingModule(LightningModule):
         def __init__(self):
             super().__init__()
             self.layer_1 = nn.Linear(32, 10, bias=False)
