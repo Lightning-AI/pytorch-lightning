@@ -23,7 +23,8 @@ from typing import Any, Dict, List, Optional, Union
 import torch.nn as nn
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, _module_available
+from pytorch_lightning.utilities import _module_available, rank_zero_only
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
 _WANDB_AVAILABLE = _module_available("wandb")
@@ -98,6 +99,13 @@ class WandbLogger(LightningLoggerBase):
         if wandb is None:
             raise ImportError('You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
                               ' install it with `pip install wandb`.')
+
+        if offline and log_model:
+            raise MisconfigurationException(
+                f'log_model={log_model} and offline={offline} is an invalid configuration'
+                ' since model checkpoints cannot be uploaded in offline mode.'
+            )
+
         super().__init__()
         self._name = name
         self._save_dir = save_dir
@@ -141,11 +149,12 @@ class WandbLogger(LightningLoggerBase):
             self._experiment = wandb.init(
                 name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
                 id=self._id, resume='allow', **self._kwargs) if wandb.run is None else wandb.run
+
             # offset logging step when resuming a run
             self._step_offset = self._experiment.step
+
             # save checkpoints in wandb dir to upload on W&B servers
-            if self._log_model:
-                self._save_dir = self._experiment.dir
+            self._save_dir = self._experiment.dir
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
