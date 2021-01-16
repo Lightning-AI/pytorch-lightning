@@ -277,7 +277,7 @@ class ModelCheckpoint(Callback):
             self._save_top_k_checkpoints(trainer, pl_module, monitor_candidates)
 
         # Mode 2: save the last checkpoint
-        self._save_last_checkpoint(trainer, pl_module, monitor_candidates)
+        self._save_last_checkpoint(trainer, pl_module, monitor_candidates, is_last=is_last)
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
@@ -571,14 +571,15 @@ class ModelCheckpoint(Callback):
         ckpt_name_metrics.update({"step": trainer.global_step, "epoch": trainer.current_epoch})
         return ckpt_name_metrics
 
-    def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics):
+    def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics, is_last=False):
         should_save_last = self.monitor is None or self.save_last
         if not should_save_last:
             return
 
         # when user ALSO asked for the 'last.ckpt' change the name
         if self.save_last:
-            rank_zero_info("Saving latest checkpoint...")
+            if is_last:
+                rank_zero_info("Saving latest checkpoint...")
             last_filepath = self._format_checkpoint_name(
                 self.CHECKPOINT_NAME_LAST,
                 trainer.current_epoch,
