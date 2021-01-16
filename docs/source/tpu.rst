@@ -216,6 +216,7 @@ Example:
 
     from pytorch_lightning.core.lightning import LightningModule
     from torch import nn
+    from pytorch_lightning import Trainer
 
 
     class WeightSharingModule(LightningModule):
