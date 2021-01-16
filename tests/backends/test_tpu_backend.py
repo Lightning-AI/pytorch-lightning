@@ -14,16 +14,32 @@
 
 import pytest
 import torch
+from torch import nn
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities.xla_device import XLADeviceUtils
+from pytorch_lightning.utilities import _TPU_AVAILABLE
+from tests.base import SimpleModule
 from tests.base.boring_model import BoringModel
 from tests.base.develop_utils import pl_multi_process_test
-from tests.base.weight_sharing_module import WeightSharingModule
 
 
-@pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")
+class WeightSharingModule(SimpleModule):
+    def __init__(self):
+        super().__init__()
+        self.layer_1 = nn.Linear(32, 10, bias=False)
+        self.layer_2 = nn.Linear(10, 32, bias=False)
+        self.layer_3 = nn.Linear(32, 10, bias=False)
+        self.layer_3.weight = self.layer_1.weight
+
+    def forward(self, x):
+        x = self.layer_1(x)
+        x = self.layer_2(x)
+        x = self.layer_3(x)
+        return x
+
+
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_resume_training_on_cpu(tmpdir):
     """ Checks if training can be resumed from a saved checkpoint on CPU"""
@@ -51,7 +67,7 @@ def test_resume_training_on_cpu(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_if_test_works_after_train(tmpdir):
     """ Ensure that .test() works after .fit() """
@@ -80,7 +96,7 @@ def test_weight_tying_warning(tmpdir, capsys=None):
         assert result
 
 
-@pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_if_weights_tied(tmpdir, capsys=None):
     """
