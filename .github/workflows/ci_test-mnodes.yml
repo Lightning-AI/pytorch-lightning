@@ -30,7 +30,7 @@ name: Multi Nodes GPU Tests
 on: push
 
 env:
-  AWS_CLUSTER: pytorch-lightning-torchelastic
+  AWS_CLUSTER: pl-lightning-torchelastic
   NODE_TYPE: p3.2xlarge
   NODES: 2
   NUM_GPUS: 1
