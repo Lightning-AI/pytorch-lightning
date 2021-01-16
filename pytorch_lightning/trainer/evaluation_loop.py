@@ -149,7 +149,7 @@ class EvaluationLoop(object):
             else dataloader for dataloader in dataloaders]
 
         # extract batch samplers
-        batch_samplers = self.get_batch_samplers(dataloaders)
+        batch_samplers = self._get_batch_samplers(dataloaders)
 
         # reset batch_indices
         self.batch_indices = None
@@ -392,5 +392,5 @@ class EvaluationLoop(object):
             batch_indices = batch_sampler.batch_indices
         self.batch_indices = batch_indices
 
-    def get_batch_samplers(self, dataloaders):
+    def _get_batch_samplers(self, dataloaders):
         return [getattr(dataloader, "batch_sampler", None) for dataloader in dataloaders]
