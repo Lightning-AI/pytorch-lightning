@@ -9,10 +9,10 @@ assignees: ''
 
 ## ❓ Questions and Help
 
-### Before asking: 
+### Before asking:
 1. Try to find answers to your questions in [the Lightning Forum!](https://forums.pytorchlightning.ai/)
-2. Search for similar [issues](https://github.com/PyTorchLightning/pytorch-lightning/issues).   
-3. Search the [docs](https://pytorch-lightning.readthedocs.io/en/latest/).    
+2. Search for similar [issues](https://github.com/PyTorchLightning/pytorch-lightning/issues).
+3. Search the [docs](https://pytorch-lightning.readthedocs.io/en/latest/).
 
 <!-- If you still can't find what you need: -->
 
@@ -20,7 +20,7 @@ assignees: ''
 
 #### Code
 
-<!-- Please paste a code snippet if your question requires it! -->   
+<!-- Please paste a code snippet if your question requires it! -->
 
 #### What have you tried?
 

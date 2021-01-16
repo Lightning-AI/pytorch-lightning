@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
-import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import List, Optional, Type, TypeVar, Union, cast
+import inspect
+import os
+from typing import cast, List, Optional, Type, TypeVar, Union
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.loggers.base import LightningLoggerBase
@@ -27,7 +27,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import HOROVOD_AVAILABLE, TPU_AVAILABLE, argparse_utils, rank_zero_warn
+from pytorch_lightning.utilities import argparse_utils, HOROVOD_AVAILABLE, rank_zero_warn, TPU_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_utils import is_overridden
 
@@ -59,6 +59,7 @@ class TrainerProperties(ABC):
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
     callbacks: List[Callback]
+    _lightning_optimizers = None
 
     @property
     def log_dir(self):
@@ -196,7 +197,7 @@ class TrainerProperties(ABC):
         """ Check if we should run validation during training. """
         model_ref = self.model_connector.get_model()
         val_loop_enabled = is_overridden('validation_step', model_ref) and self.limit_val_batches > 0
-        return val_loop_enabled or self.fast_dev_run
+        return val_loop_enabled
 
     @property
     def default_root_dir(self) -> str:
@@ -219,17 +220,37 @@ class TrainerProperties(ABC):
         return self._weights_save_path
 
     @property
+    def early_stopping_callback(self) -> Optional[EarlyStopping]:
+        """
+        The first :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+        callback in the Trainer.callbacks list, or ``None`` if it doesn't exist.
+        """
+        callbacks = self.early_stopping_callbacks
+        return callbacks[0] if len(callbacks) > 0 else None
+
+    @property
+    def early_stopping_callbacks(self) -> List[EarlyStopping]:
+        """
+        A list of all instances of :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+        found in the Trainer.callbacks list.
+        """
+        return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
+
+    @property
     def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
         """
-        The first checkpoint callback in the Trainer.callbacks list, or ``None`` if
-        no checkpoint callbacks exist.
+        The first :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        callback in the Trainer.callbacks list, or ``None`` if it doesn't exist.
         """
         callbacks = self.checkpoint_callbacks
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
     def checkpoint_callbacks(self) -> List[ModelCheckpoint]:
-        """ A list of all instances of ModelCheckpoint found in the Trainer.callbacks list. """
+        """
+        A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        found in the Trainer.callbacks list.
+        """
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
@@ -238,15 +259,16 @@ class TrainerProperties(ABC):
     def get_model(self):
         return self.model_connector.get_model()
 
-    def __getstate__(self):
-        # unwrap optimizer
-        self.optimizers = [opt._optimizer if is_lightning_optimizer(opt) else opt for opt in self.optimizers]
-        return self.__dict__
+    @property
+    def lightning_optimizers(self):
+        if self._lightning_optimizers is None:
+            self.convert_to_lightning_optimizers()
+        return self._lightning_optimizers
 
-    def __setstate__(self, d):
-        self.__dict__ = d
-        # wrap optimizers in enable_pl_optimzer is True
-        self.convert_to_lightning_optimizers()
+    def __getstate__(self):
+        # remove lightning_optimizers
+        self._lightning_optimizers = None
+        return self.__dict__
 
     @property
     def require_distributed_sampler(self):

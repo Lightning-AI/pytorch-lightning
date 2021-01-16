@@ -34,7 +34,6 @@ import yaml
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -223,6 +222,7 @@ class ModelCheckpoint(Callback):
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
             "current_score": self.current_score,
+            "dirpath": self.dirpath
         }
 
     def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
@@ -234,7 +234,8 @@ class ModelCheckpoint(Callback):
         global_step = trainer.global_step
         should_save = not (
             # negative conditions
-            self.save_top_k == 0
+            trainer.fast_dev_run  # disable checkpointing with fast_dev_run
+            or self.save_top_k == 0
             or self.period < 1
             or (epoch + 1) % self.period
             or trainer.running_sanity_check
@@ -329,8 +330,7 @@ class ModelCheckpoint(Callback):
             and len(self._fs.ls(dirpath)) > 0
         ):
             rank_zero_warn(
-                f"Checkpoint directory {dirpath} exists and is not empty. With save_top_k={save_top_k},"
-                " all files in this directory will be deleted when a checkpoint is saved!"
+                f"Checkpoint directory {dirpath} exists and is not empty."
             )
 
         if dirpath and self._fs.protocol == 'file':
@@ -507,14 +507,14 @@ class ModelCheckpoint(Callback):
             version, name = trainer.accelerator_backend.broadcast((version, trainer.logger.name))
 
             ckpt_path = os.path.join(
-                save_dir, name, version, "checkpoints"
+                save_dir, str(name), version, "checkpoints"
             )
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
         self.dirpath = ckpt_path
 
-        if trainer.is_global_zero:
+        if not trainer.fast_dev_run and trainer.is_global_zero:
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def _add_backward_monitor_support(self, trainer):

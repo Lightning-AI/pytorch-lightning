@@ -12,59 +12,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#pull_request_rules:
-#
-#  - name: Automatic merge on approval
-#    conditions:
-#      - base=master
-#      # number of review approvals
-#      - "#approved-reviews-by>=3"
-#      # no waiting or assigned review
-#      - "#review-requested=0"
-#      # no requested chnages from any reviewer
-#      - "#changes-requested-reviews-by=0"
-#      # this serves as ALL check has to pass as we have actually around 40 tests in total
-#      - "#status-success>=54"
-#      # this is just in case since we rely on GPU tests (note: redundand to the above)
-#      - status-success=continuous-integration/drone/pr
-#      - "status-success=ci/circleci: TPU-tests"
-#      # this is patter-like, unofrunatly serves as `any(...)` (note: redundand to the above)
-#      #- "status-success~=^ci/circleci:"
-#      # no conflict with master branch
-#      - -conflict
-#      # was not closed yet
-#      - -closed
-#      # filter-out GH draft PRs
-#      - -draft
-#    actions:
-#      delete_head_branch: {}
-#      merge:
-#        # https://doc.mergify.io/merge-action.html#strict-merge
-#        # (on head branch) $ git merge --no-ff base
-#        # (on head branch) # Wait for CI to go green
-#        # (on head branch) # Squash all commits
-#        # (on base branch) $ git merge --ff head
-#        strict: true
-#        method: squash
-#      comment:
-#        message: Great job! =)
-#
-#  - name: warn on conflicts
-#    conditions:
-#      - conflict
-#      # filter-out GH draft PRs
-#      - -draft
-#    actions:
-#      comment:
-#        message: This pull request is now in conflict... :(
-#
-#  - name: add core reviewer
-#    conditions:
-#      # filter-out GH draft PRs
-#      - -draft
-#      # number of review approvals
-#      - "#approved-reviews-by<3"
-#    actions:
-#      request_reviews:
-#        teams:
-#          - core-contributors
+pull_request_rules:
+
+  - name: warn on conflicts
+    conditions:
+      - conflict
+      - -draft # filter-out GH draft PRs
+      - -label="has conflicts"
+    actions:
+      # comment:
+      #   message: This pull request is now in conflict... :(
+      label:
+        add: [ "has conflicts" ]
+
+  - name: resolved conflicts
+    conditions:
+      - -conflict
+      - label="has conflicts"
+      - -draft # filter-out GH draft PRs
+      - -merged # not merged yet
+      - -closed
+    actions:
+      label:
+        remove: [ "has conflicts" ]
+
+  - name: update PR
+    conditions:
+      - conflict
+      - -draft # filter-out GH draft PRs
+      - label="0:] Ready-To-Go"
+    actions:
+      update: {}
+
+  - name: add core reviewer
+    conditions:
+      - -conflict # skip if conflict
+      - -draft # filter-out GH draft PRs
+      - label="0:] Ready-To-Go"
+      - "#approved-reviews-by<3" # number of review approvals
+    actions:
+      request_reviews:
+        teams:
+          - core-contributors

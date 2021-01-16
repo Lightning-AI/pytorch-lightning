@@ -33,10 +33,11 @@ The example below shows how to use a metric in your ``LightningModule``:
         self.accuracy = pl.metrics.Accuracy()
 
     def training_step(self, batch, batch_idx):
-        logits = self(x)
+        x, y = batch
+        preds = self(x)
         ...
         # log step metric
-        self.log('train_acc_step', self.accuracy(logits, y))
+        self.log('train_acc_step', self.accuracy(preds, y))
         ...
 
     def training_epoch_end(self, outs):
@@ -67,9 +68,10 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.valid_acc = pl.metrics.Accuracy()
 
     def training_step(self, batch, batch_idx):
-        logits = self(x)
+        x, y = batch
+        preds = self(x)
         ...
-        self.train_acc(logits, y)
+        self.train_acc(preds, y)
         self.log('train_acc', self.train_acc, on_step=True, on_epoch=False)
 
     def validation_step(self, batch, batch_idx):
@@ -88,7 +90,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
 
         def training_step(self, batch, batch_idx):
             data, target = batch
-            pred = self(data)
+            preds = self(data)
             ...
             return {'loss' : loss, 'preds' : preds, 'target' : target}
 
@@ -136,6 +138,56 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     Metric states are **not** added to the models ``state_dict`` by default.
     To change this, after initializing the metric, the method ``.persistent(mode)`` can
     be used to enable (``mode=True``) or disable (``mode=False``) this behaviour.
+
+*******************
+Metrics and devices
+*******************
+
+Metrics are simple subclasses of :class:`~torch.nn.Module` and their metric states behave
+similar to buffers and parameters of modules. This means that metrics states should
+be moved to the same device as the input of the metric:
+
+.. code-block:: python
+
+    import torch
+    from pytorch_lightning.metrics import Accuracy
+
+    target = torch.tensor([1, 1, 0, 0], device=torch.device("cuda", 0))
+    preds = torch.tensor([0, 1, 0, 0], device=torch.device("cuda", 0))
+
+    # Metric states are always initialized on cpu, and needs to be moved to
+    # the correct device
+    confmat = Accuracy(num_classes=2).to(torch.device("cuda", 0))
+    out = confmat(preds, target)
+    print(out.device) # cuda:0
+
+However, when **properly defined** inside a :class:`~pytorch_lightning.core.lightning.LightningModule`
+, Lightning will automatically move the metrics to the same device as the data. Being
+**properly defined** means that the metric is correctly identified as a child module of the
+model (check ``.children()`` attribute of the model). Therefore, metrics cannot be placed
+in native python ``list`` and ``dict``, as they will not be correctly identified
+as child modules. Instead of ``list`` use :class:`~torch.nn.ModuleList` and instead of
+``dict`` use :class:`~torch.nn.ModuleDict`.
+
+.. testcode::
+
+    class MyModule(LightningModule):
+        def __init__(self):
+            ...
+            # valid ways metrics will be identified as child modules
+            self.metric1 = pl.metrics.Accuracy()
+            self.metric2 = torch.nn.ModuleList(pl.metrics.Accuracy())
+            self.metric3 = torch.nn.ModuleDict({'accuracy': Accuracy()})
+
+        def training_step(self, batch, batch_idx):
+            # all metrics will be on the same device as the input batch
+            data, target = batch
+            preds = self(data)
+            ...
+            val1 = self.metric1(preds, target)
+            val2 = self.metric2[0](preds, target)
+            val3 = self.metric3['accuracy'](preds, target)
+
 
 *********************
 Implementing a Metric
@@ -212,7 +264,7 @@ Classification Metrics
 Input types
 -----------
 
-For the purposes of classification metrics, inputs (predictions and targets) are split 
+For the purposes of classification metrics, inputs (predictions and targets) are split
 into these categories (``N`` stands for the batch size and ``C`` for number of classes):
 
 .. csv-table:: \*dtype ``binary`` means integers that are either 0 or 1
@@ -227,10 +279,10 @@ into these categories (``N`` stands for the batch size and ``C`` for number of c
     "Multi-dimensional multi-class with probabilities", "(N, C, ...)", "``float``", "(N, ...)", "``int``"
 
 .. note::
-    All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so 
+    All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so
     that, for example, a tensor of shape ``(N, 1)`` is treated as ``(N, )``.
 
-When predictions or targets are integers, it is assumed that class labels start at 0, i.e. 
+When predictions or targets are integers, it is assumed that class labels start at 0, i.e.
 the possible class labels are 0, 1, 2, 3, etc. Below are some examples of different input types
 
 .. testcode::

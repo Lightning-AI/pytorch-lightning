@@ -3,7 +3,7 @@ name: "Docs check"
 
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
 
@@ -105,8 +105,7 @@ jobs:
       - name: Upload built docs
         uses: actions/upload-artifact@v2
         with:
-          name: docs-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
+          name: docs-results-${{ github.sha }}
           path: docs/build/html/
         # Use always() to always run this step to publish test results when there are test failures
         if: success()
-
