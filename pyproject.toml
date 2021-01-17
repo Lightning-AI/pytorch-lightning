@@ -24,10 +24,6 @@ known_first_party = [
 ]
 skip_glob = [
     # todo
-    "pytorch_lightning/accelerators/*",
-
-
-    # todo
     "pytorch_lightning/core/*",
 
 
