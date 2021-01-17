@@ -70,16 +70,16 @@ def _sk_prec_recall_mdmc(preds, target, sk_fn, num_classes, average, is_multicla
 
 @pytest.mark.parametrize("metric, fn_metric", [(Precision, precision), (Recall, recall)])
 @pytest.mark.parametrize(
-    "average, mdmc_average, num_classes, ignore_index",
+    "average, mdmc_average, num_classes, ignore_index, match_str",
     [
-        ("wrong", None, None, None),
-        ("micro", "wrong", None, None),
-        ("macro", None, None, None),
-        ("macro", None, 1, 0),
+        ("wrong", None, None, None, "`average`"),
+        ("micro", "wrong", None, None, "`mdmc"),
+        ("macro", None, None, None, "number of classes"),
+        ("macro", None, 1, 0, "ignore_index"),
     ],
 )
-def test_wrong_params(metric, fn_metric, average, mdmc_average, num_classes, ignore_index):
-    with pytest.raises(ValueError):
+def test_wrong_params(metric, fn_metric, average, mdmc_average, num_classes, ignore_index, match_str):
+    with pytest.raises(ValueError, match=match_str):
         metric(
             average=average,
             mdmc_average=mdmc_average,
@@ -87,7 +87,7 @@ def test_wrong_params(metric, fn_metric, average, mdmc_average, num_classes, ign
             ignore_index=ignore_index,
         )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=match_str):
         fn_metric(
             _binary_inputs.preds[0],
             _binary_inputs.target[0],
@@ -97,7 +97,7 @@ def test_wrong_params(metric, fn_metric, average, mdmc_average, num_classes, ign
             ignore_index=ignore_index,
         )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=match_str):
         precision_recall(
             _binary_inputs.preds[0],
             _binary_inputs.target[0],
@@ -236,7 +236,7 @@ class TestPrecisionRecall(MetricTester):
         average: str,
         mdmc_average: Optional[str],
         ignore_index: Optional[int],
-    ):bool
+    ):
         if num_classes == 1 and average != "micro":
             pytest.skip("Only test binary data for 'micro' avg (equivalent of 'binary' in sklearn)")
 
