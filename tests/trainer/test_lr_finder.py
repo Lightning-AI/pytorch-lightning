@@ -265,15 +265,11 @@ def test_suggestion_with_non_finite_values(tmpdir):
         'Learning rate was altered because of non-finite loss values'
 
 
-@pytest.mark.parametrize('use_hparams', [False, True])
-def test_lr_finder_fails_fast_on_bad_config(tmpdir, use_hparams):
+def test_lr_finder_fails_fast_on_bad_config(tmpdir):
     """ Test that setting trainer arg to bool works """
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
     before_lr = hparams.get('learning_rate')
-    if use_hparams:
-        del model.learning_rate
-        # model.configure_optimizers = model.configure_optimizers__lr_from_hparams
 
     # logger file to get meta
     trainer = Trainer(
@@ -282,11 +278,21 @@ def test_lr_finder_fails_fast_on_bad_config(tmpdir, use_hparams):
         auto_lr_find=True,
     )
 
+    deleted_lr_existance = False
+    try:
+        del model.lr
+        deleted_lr_existance = True
+    except AttributeError:
+        pass
+
+    try:
+        del model.learning_rate
+        deleted_lr_existance = True
+    except AttributeError:
+        pass
+
     trainer.tune(model)
-    if use_hparams:
-        after_lr = model.hparams.learning_rate
-    else:
-        after_lr = model.learning_rate
+    after_lr = model.learning_rate
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
