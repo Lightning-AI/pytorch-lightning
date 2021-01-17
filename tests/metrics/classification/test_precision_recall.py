@@ -1,11 +1,12 @@
 from functools import partial
+from typing import Callable, Optional
 
 import numpy as np
 import pytest
 import torch
 from sklearn.metrics import precision_score, recall_score
 
-from pytorch_lightning.metrics import Precision, Recall
+from pytorch_lightning.metrics import Metric, Precision, Recall
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics.functional import precision, precision_recall, recall
 from tests.metrics.classification.inputs import _binary_inputs, _binary_prob_inputs, _multiclass_inputs
@@ -172,19 +173,19 @@ class TestPrecisionRecall(MetricTester):
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_precision_recall_class(
         self,
-        ddp,
-        dist_sync_on_step,
-        preds,
-        target,
-        sk_wrapper,
-        metric_class,
-        metric_fn,
-        sk_fn,
-        is_multiclass,
-        num_classes,
-        average,
-        mdmc_average,
-        ignore_index,
+        ddp: bool,
+        dist_sync_on_step: bool,
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        sk_wrapper: Callable,
+        metric_class: Metric,
+        metric_fn: Callable,
+        sk_fn: Callable,
+        is_multiclass: Optional[bool],
+        num_classes: Optional[int],
+        average: str,
+        mdmc_average: Optional[str],
+        ignore_index: Optional[int],
     ):
         if num_classes == 1 and average != "micro":
             pytest.skip("Only test binary data for 'micro' avg (equivalent of 'binary' in sklearn)")
@@ -224,18 +225,18 @@ class TestPrecisionRecall(MetricTester):
 
     def test_precision_recall_fn(
         self,
-        preds,
-        target,
-        sk_wrapper,
-        metric_class,
-        metric_fn,
-        sk_fn,
-        is_multiclass,
-        num_classes,
-        average,
-        mdmc_average,
-        ignore_index,
-    ):
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        sk_wrapper: Callable,
+        metric_class: Metric,
+        metric_fn: Callable,
+        sk_fn: Callable,
+        is_multiclass: Optional[bool],
+        num_classes: Optional[int],
+        average: str,
+        mdmc_average: Optional[str],
+        ignore_index: Optional[int],
+    ):bool
         if num_classes == 1 and average != "micro":
             pytest.skip("Only test binary data for 'micro' avg (equivalent of 'binary' in sklearn)")
 
