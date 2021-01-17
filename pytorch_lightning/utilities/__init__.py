@@ -22,30 +22,24 @@ from pytorch_lightning.utilities.distributed import (  # noqa: F401
     rank_zero_only,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.enums import (  # noqa: F401
-    LightningEnum,
-    AMPType,
-    DistributedType,
-    DeviceType,
-)
+from pytorch_lightning.utilities.enums import AMPType, DeviceType, DistributedType, LightningEnum  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
-    _NATIVE_AMP_AVAILABLE,
-    _XLA_AVAILABLE,
-    _OMEGACONF_AVAILABLE,
-    _HYDRA_AVAILABLE,
-    _HOROVOD_AVAILABLE,
-    _TORCHTEXT_AVAILABLE,
-    _FAIRSCALE_AVAILABLE,
-    _RPC_AVAILABLE,
-    _GROUP_AVAILABLE,
-    _FAIRSCALE_PIPE_AVAILABLE,
     _BOLTS_AVAILABLE,
+    _FAIRSCALE_AVAILABLE,
+    _FAIRSCALE_PIPE_AVAILABLE,
+    _GROUP_AVAILABLE,
+    _HOROVOD_AVAILABLE,
+    _HYDRA_AVAILABLE,
     _module_available,
+    _NATIVE_AMP_AVAILABLE,
+    _OMEGACONF_AVAILABLE,
+    _RPC_AVAILABLE,
+    _TORCHTEXT_AVAILABLE,
+    _XLA_AVAILABLE,
 )
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: F401
-
 
 _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
