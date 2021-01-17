@@ -616,7 +616,7 @@ class TrainLoop:
 
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         if should_check_val:
-            self.trainer.run_evaluation(test_mode=False, on_epoch=True)
+            self.trainer.run_evaluation(on_epoch=True)
             # reset stage to train
             self.trainer.logger_connector.set_stage("train")
 
