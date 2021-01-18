@@ -114,7 +114,8 @@ jobs:
     - name: Create Gpu Node Pool
       run: |
         aws eks --region $REGION update-kubeconfig --name $AWS_CLUSTER
-        eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER --managed --spot --node-type=$NODE_TYPE  --nodes=$NODES
+        eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER --node-type=$NODE_TYPE  --nodes=$NODES
+        # eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER --managed --spot --node-type=$NODE_TYPE  --nodes=$NODES
       shell: bash
 
     - name: Check Current Node Pool | Current Elatic Pods
