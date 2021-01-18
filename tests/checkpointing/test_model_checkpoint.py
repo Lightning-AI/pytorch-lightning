@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 import pickle
 import platform
@@ -570,7 +571,8 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
                                    save_top_k=0, save_last=save_last)],
         max_epochs=max_epochs,
     )
-    trainer.fit(model)
+    with caplog.at_level(logging.INFO):
+        trainer.fit(model)
     assert caplog.messages.count('Saving latest checkpoint...') == save_last
 
 
