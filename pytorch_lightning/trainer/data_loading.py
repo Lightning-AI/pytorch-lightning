@@ -117,7 +117,7 @@ class TrainerDataLoadingMixin(ABC):
         valid_kwargs = set(inspect.signature(dataloader.__init__).parameters)
         contains_dataset = True
 
-        if type(dataloader) is not DataLoader:
+        if not isinstance(dataloader, DataLoader):
             contains_dataset = "dataset" in valid_kwargs
             valid_kwargs.update(inspect.signature(DataLoader.__init__).parameters)
 

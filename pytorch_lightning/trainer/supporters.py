@@ -128,6 +128,9 @@ class LightningBatchSamplerWrapper:
     the batch_indices for tracking each sample.
     """
 
+    SKIP_KEYS = ['sampler', 'batch_sampler', 'dataset_kind']
+    SKIP_VALID_KEYS = ['args', 'kwargs', 'self']
+
     def __init__(self, batch_sampler):
         self.batch_sampler = batch_sampler
         self.batch_indices = None
@@ -138,58 +141,58 @@ class LightningBatchSamplerWrapper:
             yield batch_indices
 
     @staticmethod
-    def to_new_dataloader(dataloader: DataLoader) -> DataLoader:
+    def recreate_dataloader(dataloader: DataLoader) -> DataLoader:
         """
         This function will wrap the user batch_sampler to track the returned batch indices
         """
         if not isinstance(dataloader, DataLoader):
             raise MisconfigurationException('Autoid only works with torch dataloaders or derived classes!')
 
-        if isinstance(dataloader.dataset, IterableDataset):
+        elif isinstance(dataloader.dataset, IterableDataset):
             return dataloader
 
-        skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
-        skip_valid_keys = ['args', 'kwargs', 'self']
-
-        params = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
+        params = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
 
         valid_kwargs = set(inspect.signature(dataloader.__init__).parameters)
         contains_dataset = True
 
-        if type(dataloader) is not DataLoader:
+        if not isinstance(dataloader, DataLoader):
             contains_dataset = "dataset" in valid_kwargs
             valid_kwargs.update(inspect.signature(DataLoader.__init__).parameters)
 
         dl_args = {
             name: params[name] for name in valid_kwargs
-            if name in params and name not in skip_keys
+            if name in params and name not in LightningBatchSamplerWrapper.SKIP_KEYS
         }
 
         multiprocessing_context = dataloader.multiprocessing_context
 
         # override parameters to enable batch_sampler injection
-        dl_args["batch_size"] = 1
-        dl_args["sampler"] = None
-        dl_args["shuffle"] = None
-        dl_args["batch_sampler"] = LightningBatchSamplerWrapper(dataloader.batch_sampler)
-        dl_args["drop_last"] = False
-        dl_args['multiprocessing_context'] = multiprocessing_context
+        dl_args.update({
+            "batch_size": 1,
+            "sampler": None,
+            "shuffle": None,
+            "batch_sampler": LightningBatchSamplerWrapper(dataloader.batch_sampler),
+            "drop_last": False,
+            "multiprocessing_context": multiprocessing_context,
+        })
 
-        missing_kwargs = valid_kwargs.difference(skip_valid_keys).difference(set(dl_args))
-        if len(missing_kwargs) != 0:
+        missing_kwargs = valid_kwargs.difference(LightningBatchSamplerWrapper.SKIP_VALID_KEYS).difference(dl_args)
+        if missing_kwargs:
             dataloader_cls_name = dataloader.__class__.__name__
             rank_zero_warn(
                 f"Trying to replace to wrap your BatchSampler in your {dataloader_cls_name} dataloader."
                 "This would fail as your DataLoader doesn't expose as attributes all its __init__ parameters. "
-                f"Missing attributes are {missing_kwargs}"
-                "HINT: use Trainer(enable_predict_auto_id=False) and provide your own id. "
-                "Check out the doc for Testing. ", UserWarning
+                f" Missing attributes are {missing_kwargs} \n"
+                " HINT: use Trainer(enable_predict_auto_id=False) and provide your own id."
+                " Check out the doc for Testing.", UserWarning
             )
             return dataloader
 
         if not contains_dataset:
-            dl_args.pop('dataset')
+            del dl_args['dataset']
 
+        # re-create object of the same class with new argumnets
         dataloader = type(dataloader)(**dl_args)
         dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
@@ -201,16 +204,30 @@ class PredictionCollection(object):
     This class is used to collect predictions.
 
     The legacy API built using the following functions:
+        - LightningModule.write_predictions: Entry point for user
+
         - add
         - _add_prediction
         - to_disk
 
+        This should be used when the test dataset predictions are too large,
+        and each rank will save the predictions
+
     The new API built using the following functions:
-        - cache: Receive a new predictions to cache. Handle validation
-        - _cache_prediction: Handle storing
-        - attach_predictions: When the epoch is finished, add predictions to results object
+        - LightningModule.add_predictions: Entry point for user
+
+        - append: Receive a new predictions to append to cache. Handle validation
+        - _append_prediction: Handle storing
+        - finalize_predictions: When the epoch is finished, add predictions to results object
         - all_gather_predictions: Gather predictions accross multiple processses.
 
+        This should be used with medium sized dataset,
+        where all predictions can be hold in memory.
+
+        On each test_step, if the user call add_predictions, append and _append_prediction
+            will be used to append predictions to internal cache.
+        On the end of `trainer.test`, predictions will be added to result object using
+            `finalize_predictions` function.
     """
 
     ID_KEY = 'id'
@@ -226,7 +243,7 @@ class PredictionCollection(object):
     def predictions(self) -> Dict:
         return self._predictions[self.current_stage]
 
-    def _cache_prediction(
+    def _append_prediction(
         self,
         predictions: List[Dict],
         dl_idx: int,
@@ -238,7 +255,7 @@ class PredictionCollection(object):
 
         cache.setdefault(dl_idx, {})
 
-        def convert(value):
+        def _convert(value):
             return value.cpu().tolist()
 
         for batch_idx, pred in enumerate(predictions):
@@ -268,9 +285,9 @@ class PredictionCollection(object):
                 cache[dl_idx][sample_id] = pred
 
             # apply convert to store memory
-            cache[dl_idx][sample_id] = apply_to_collection(cache[dl_idx][sample_id], torch.Tensor, convert)
+            cache[dl_idx][sample_id] = apply_to_collection(cache[dl_idx][sample_id], torch.Tensor, _convert)
 
-    def cache(
+    def append(
         self,
         predictions: List,
         dl_idx: int,
@@ -284,7 +301,7 @@ class PredictionCollection(object):
 
             self.add_predictions(predictions)
         """
-        if predictions is None or (isinstance(predictions, list) and not predictions):
+        if not predictions:
             return
 
         self.current_stage = current_stage
@@ -293,7 +310,13 @@ class PredictionCollection(object):
             assert isinstance(predictions, (list, torch.Tensor))
             if batch_indices is None:
                 return
-            assert len(predictions) == len(batch_indices)
+
+            if len(predictions) != len(batch_indices):
+                raise MisconfigurationException(
+                    "The predictions dimension should match the batch_size. "
+                    "HINT: If your prediction dimensions don't match the size of your batch size, "
+                    "use Trainer(enable_predict_auto_id=False) and provide your own `id`."
+                )
         else:
             if not all(isinstance(p, dict) and "id" in p for p in predictions):
                 raise MisconfigurationException(
@@ -306,10 +329,13 @@ class PredictionCollection(object):
                     "each element should contain at least an unique number `id` and a prediction tensor."
                 )
 
-        self._cache_prediction(predictions, dl_idx, batch_indices, enable_predict_auto_id)
+        self._append_prediction(predictions, dl_idx, batch_indices, enable_predict_auto_id)
 
-    def attach_predictions(self, results: List[Dict], current_stage: str) -> List[Dict]:
-        # indicates the current
+    def finalize_predictions(self, results: List[Dict], current_stage: str) -> List[Dict]:
+        """
+        This function will add the reduced predictions accross multiple processes for each dataset
+        to the results objects returned by the trainer.test function.
+        """
         self.current_stage = current_stage
         predictions = self.predictions
         for dl_idx, result in enumerate(results):

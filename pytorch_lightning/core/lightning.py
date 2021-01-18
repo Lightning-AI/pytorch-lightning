@@ -418,14 +418,15 @@ class LightningModule(
         Return:
             None
         """
-        if getattr(self, "trainer", None) is not None:
+        if getattr(self, "trainer") is not None:
             dl_idx = self._current_dataloader_idx or 0
-            self.trainer.predictions.cache(
+            self.trainer.predictions.append(
                 predictions,
                 dl_idx,
                 self.trainer.evaluation_loop.batch_indices,
                 self.trainer.logger_connector._current_stage,
-                self.trainer.evaluation_loop.enable_predict_auto_id)
+                self.trainer.evaluation_loop.enable_predict_auto_id
+            )
         else:
             rank_zero_warn(
                 "Your LightningModule isn't attached to the Lightning Trainer and can't save predictions"

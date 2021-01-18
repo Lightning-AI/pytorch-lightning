@@ -145,7 +145,7 @@ class EvaluationLoop(object):
 
         # wrap user batch samplers, so we can capture batch indices
         dataloaders = [
-            LightningBatchSamplerWrapper.to_new_dataloader(dataloader)
+            LightningBatchSamplerWrapper.recreate_dataloader(dataloader)
             if isinstance(dataloader, DataLoader) and self.testing and self.enable_predict_auto_id
             else dataloader for dataloader in dataloaders]
 
