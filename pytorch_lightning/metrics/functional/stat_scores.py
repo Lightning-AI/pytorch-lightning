@@ -102,14 +102,14 @@ def _stat_scores_update(
             target = torch.transpose(target, 1, 2).reshape(-1, target.shape[1])
 
     # Delete what is in ignore_index, if applicable (and classes don't matter):
-    if ignore_index and reduce != "macro":
+    if ignore_index is not None and reduce != "macro":
         preds = _del_column(preds, ignore_index)
         target = _del_column(target, ignore_index)
 
     tp, fp, tn, fn = _stat_scores(preds, target, reduce=reduce)
 
     # Take care of ignore_index
-    if ignore_index and reduce == "macro":
+    if ignore_index is not None and reduce == "macro":
         tp[..., ignore_index] = -1
         fp[..., ignore_index] = -1
         tn[..., ignore_index] = -1
@@ -210,7 +210,7 @@ def stat_scores(
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
-            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            :ref:`documentation section <metrics:Using the is_multiclass parameter>`
             for a more detailed explanation and examples.
 
     Return:
