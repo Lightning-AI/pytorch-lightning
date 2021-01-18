@@ -117,7 +117,7 @@ class TrainerDataLoadingMixin(ABC):
         valid_kwargs = set(inspect.signature(dataloader.__init__).parameters)
         contains_dataset = True
 
-        if not isinstance(dataloader, DataLoader):
+        if type(dataloader) is not DataLoader:
             contains_dataset = "dataset" in valid_kwargs
             valid_kwargs.update(inspect.signature(DataLoader.__init__).parameters)
 
@@ -132,7 +132,7 @@ class TrainerDataLoadingMixin(ABC):
         dl_args['multiprocessing_context'] = multiprocessing_context
 
         missing_kwargs = valid_kwargs.difference(skip_valid_keys).difference(dl_args)
-        if len(missing_kwargs) != 0:
+        if missing_kwargs:
             """
             Example:
             class CustomDataLoader(DataLoader):
