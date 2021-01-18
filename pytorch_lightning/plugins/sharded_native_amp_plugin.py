@@ -38,5 +38,3 @@ class ShardedNativeAMPPlugin(NativeAMPPlugin):
         elif gradient_clip_algorithm.startswith('norm'):
             optimizer = cast(OSS, optimizer)
             optimizer.clip_grad_norm(grad_clip_val, norm_type=norm_type)
-        else:
-            raise ValueError(f'gradient_clip_algorithm [{gradient_clip_algorithm}] is not valid.')

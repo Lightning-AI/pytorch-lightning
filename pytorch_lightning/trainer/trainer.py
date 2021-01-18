@@ -88,7 +88,7 @@ class Trainer(
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
-        gradient_clip_algorithm: str = 'norm2',
+        gradient_clip_algorithm: str = 'norm',
         process_position: int = 0,
         num_nodes: int = 1,
         num_processes: int = 1,
@@ -198,7 +198,7 @@ class Trainer(
 
             gradient_clip_val: 0 means don't clip.
 
-            gradient_clip_algorithm: 'value' means clip_by_value, regex '^norm[1-9]([0-9]{0,45}$)' means clip_by_norm.
+            gradient_clip_algorithm: 'value' means clip_by_value, 'norm' means clip_by_norm. defualt 'norm'
 
             limit_train_batches: How much of training dataset to check (floats = percent, int = num_batches)
 

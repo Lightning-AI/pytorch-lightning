@@ -115,29 +115,18 @@ class Accelerator(object):
 
         if grad_clip_val <= 0:
             return
-        self._clip_gradients(optimizer=optimizer,
-                             grad_clip_val=grad_clip_val,
-                             gradient_clip_algorithm=self.trainer.gradient_clip_algorithm,
-                             norm_type=self.trainer.gradient_clip_norm_type)
+        self._clip_gradients(optimizer, grad_clip_val)
 
-    def _clip_gradients(self,
-                        optimizer: Optimizer,
-                        grad_clip_val: Union[float, int],
-                        gradient_clip_algorithm: str,
-                        norm_type: Union[float, int]):
+    def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
+        clip_algorithm = self.trainer.gradient_clip_algorithm
         if self.trainer.amp_backend:
-            self.trainer.precision_connector.backend.clip_gradients(optimizer=optimizer,
-                                                                    grad_clip_val=grad_clip_val,
-                                                                    gradient_clip_algorithm=gradient_clip_algorithm,
-                                                                    norm_type=norm_type)
+            self.trainer.precision_connector.backend.clip_gradients(grad_clip_val, clip_algorithm, optimizer, norm_type)
         else:
             model = self.trainer.get_model()
-            if gradient_clip_algorithm == 'value':
+            if clip_algorithm == 'value':
                 torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=grad_clip_val)
-            elif gradient_clip_algorithm.startswith('norm'):
+            elif clip_algorithm == 'norm':
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
-            else:
-                raise ValueError(f'gradient_clip_algorithm [{gradient_clip_algorithm}] is not valid.')
 
     def on_train_epoch_end(self, outputs):
         pass

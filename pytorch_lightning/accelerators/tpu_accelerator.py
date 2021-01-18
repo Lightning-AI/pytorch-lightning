@@ -271,8 +271,6 @@ class TPUAccelerator(Accelerator):
             clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
             for p in parameters:
                 p.grad.data.mul_(clip_coef.to(p.grad.data.device))
-        else:
-            raise ValueError(f'gradient_clip_algorithm [{gradient_clip_algorithm}] is not valid.')
 
     def barrier(self, name: Optional[str] = None):
         torch_xla.core.xla_model.rendezvous(f"pl.Trainer.{name}")

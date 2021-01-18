@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import re
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -35,15 +34,10 @@ class TrainingTricksConnector:
         self.trainer.terminate_on_nan = terminate_on_nan
 
         # gradient clipping
-        regex = '^norm[1-9]([0-9]{0,45}$)'
-        if gradient_clip_algorithm != 'value' and re.match(regex, gradient_clip_algorithm) is None:
-            raise MisconfigurationException(f"gradient_clip_algorithm should be value or match with regex {regex}")
+        if gradient_clip_algorithm not in ['value', 'norm']:
+            raise MisconfigurationException("gradient_clip_algorithm should be 'value' or 'norm'")
         self.trainer.gradient_clip_val = gradient_clip_val
         self.trainer.gradient_clip_algorithm = gradient_clip_algorithm
-        if gradient_clip_algorithm == 'value':
-            self.trainer.gradient_clip_norm_type = None
-        else:
-            self.trainer.gradient_clip_norm_type = int(gradient_clip_algorithm[4:])
 
         # gradient norm tracking
         if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
