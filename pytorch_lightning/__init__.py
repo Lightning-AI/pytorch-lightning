@@ -39,7 +39,7 @@ Documentation
 - https://pytorch-lightning.readthedocs.io/en/stable
 """
 python_logging.basicConfig(
-    stream=sys.stdout,
+    stream=sys.stderr,
     format="%(message)s",
     level=python_logging.INFO,
 )
