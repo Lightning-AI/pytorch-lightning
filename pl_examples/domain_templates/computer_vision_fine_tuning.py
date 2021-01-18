@@ -40,8 +40,8 @@ Note:
 """
 
 import argparse
-from collections import OrderedDict
 import logging
+from collections import OrderedDict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Generator, Optional, Union

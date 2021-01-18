@@ -2,8 +2,8 @@
 
 import logging as python_logging
 import os
-import time
 import sys
+import time
 
 _this_year = time.strftime("%Y")
 __version__ = '1.1.4'
