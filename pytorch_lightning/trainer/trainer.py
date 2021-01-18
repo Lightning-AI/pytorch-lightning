@@ -219,7 +219,8 @@ class Trainer(
             process_position: orders the progress bar when running multiple models on same machine.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
-                Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: 1
+                Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
+                a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks. Passing bool
                 value is deprecated in v1.1 and will be removed in v1.3.
