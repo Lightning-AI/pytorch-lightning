@@ -13,17 +13,16 @@
 # limitations under the License.
 
 import os
-from typing import Optional
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from typing import Any, Optional, Union
 
 import torch
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from torch import Tensor
 from torch.utils.data import Dataset
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.data import get_len
-from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any, Union
 
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
