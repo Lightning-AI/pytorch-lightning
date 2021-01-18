@@ -154,11 +154,10 @@ class HookResultStore:
         opt_idx = info["opt_idx"]
 
         if self._internal_type == ResultStoreType.INSIDE_BATCH_TRAIN_LOOP:
-            # [dataloader_idx][optimizer_idx][training_step_idx] is a list
             if dataloader_idx not in self._internals:
-                self._internals[dataloader_idx] = {}
                 self._internals_reduced[dataloader_idx] = defaultdict(dict)
                 self._latest_ref[dataloader_idx] = {}
+            self._internals.setdefault(dataloader_idx, {})
 
             batch_idx = info["batch_idx"]
             self._internals[dataloader_idx].setdefault(opt_idx, {})
@@ -167,11 +166,9 @@ class HookResultStore:
         else:
             self._internals.setdefault(dataloader_idx, [])
             self._internals[dataloader_idx].append(result)
+            self._latest_ref.setdefault(dataloader_idx, {})
 
-            if dataloader_idx not in self._latest_ref:
-                self._latest_ref[dataloader_idx] = {}
-                self._latest_ref[dataloader_idx][0] = {}
-
+        self._latest_ref[dataloader_idx].setdefault(opt_idx, {})
         self._latest_ref[dataloader_idx][opt_idx] = result
 
     def auto_reduce_results_on_epoch_end(self) -> None:
