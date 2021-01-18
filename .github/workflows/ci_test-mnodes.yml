@@ -23,14 +23,14 @@ name: Multi Nodes GPU Tests
 #  20. Upload coverage to Codecov
 #  21. Delete Group Node
 
-on: push
+# on: push
 
-#on:
-#  push:
-#    branches:
-#      - master
-#      - release/*
-#    types: [closed]
+on:
+  push:
+    branches:
+      - master
+      - release/*
+    types: [closed]
 
 env:
   AWS_CLUSTER: pl-lightning-torchelastic
@@ -53,7 +53,7 @@ jobs:
     timeout-minutes: 50
 
     # runs only when merged happened.
-    #if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true
     steps:
 
     - name: Checkout Pytorch Lightning
