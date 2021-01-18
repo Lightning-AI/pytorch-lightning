@@ -3,6 +3,7 @@
 import logging as python_logging
 import os
 import time
+import sys
 
 _this_year = time.strftime("%Y")
 __version__ = '1.1.4'
@@ -37,10 +38,11 @@ Documentation
 - https://pytorch-lightning.readthedocs.io/en/latest
 - https://pytorch-lightning.readthedocs.io/en/stable
 """
-
-_logger = python_logging.getLogger(__name__)
-_logger.addHandler(python_logging.StreamHandler())
-_logger.setLevel(python_logging.INFO)
+python_logging.basicConfig(
+    stream=sys.stdout,
+    format="%(message)s",
+    level=python_logging.INFO,
+)
 
 PACKAGE_ROOT = os.path.dirname(__file__)
 PROJECT_ROOT = os.path.dirname(PACKAGE_ROOT)
