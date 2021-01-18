@@ -1,12 +1,13 @@
+import logging
 import os
 import re
 import signal
 from subprocess import call
-import logging
-log = logging.getLogger(__name__)
 from pytorch_lightning.utilities.distributed import rank_zero_info
 import torch.distributed as torch_distrib
 import torch
+
+log = logging.getLogger(__name__)
 
 
 class SLURMConnector:

@@ -13,10 +13,12 @@
 # limitations under the License.
 
 import logging
-log = logging.getLogger(__name__)
+
 from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, rank_zero_warn
+
+log = logging.getLogger(__name__)
 
 
 class PrecisionConnector:
