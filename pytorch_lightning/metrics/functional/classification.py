@@ -16,20 +16,17 @@ from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
+
 from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
 from pytorch_lightning.metrics.functional.iou import iou as __iou
-from pytorch_lightning.metrics.functional.precision_recall_curve import (
-    _binary_clf_curve,
-    precision_recall_curve as __prc
-)
+from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
+from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve as __prc
 from pytorch_lightning.metrics.functional.roc import roc as __roc
-from pytorch_lightning.metrics.utils import (
-    to_categorical as __tc,
-    to_onehot as __to,
-    get_num_classes as __gnc,
-    reduce,
-    class_reduce,
-)
+from pytorch_lightning.metrics.utils import class_reduce
+from pytorch_lightning.metrics.utils import get_num_classes as __gnc
+from pytorch_lightning.metrics.utils import reduce
+from pytorch_lightning.metrics.utils import to_categorical as __tc
+from pytorch_lightning.metrics.utils import to_onehot as __to
 from pytorch_lightning.utilities import rank_zero_warn
 
 
