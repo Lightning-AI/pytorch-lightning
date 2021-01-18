@@ -19,7 +19,7 @@ Model Checkpointing
 Automatically save model checkpoints during training.
 
 """
-
+import logging
 import numbers
 import os
 import re
@@ -31,13 +31,13 @@ import numpy as np
 import torch
 import yaml
 
-import logging
-log = logging.getLogger(__name__)
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+log = logging.getLogger(__name__)
 
 
 class ModelCheckpoint(Callback):

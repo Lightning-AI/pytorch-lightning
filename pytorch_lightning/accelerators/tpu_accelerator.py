@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
+import logging
 import os
 import re
 from typing import Any, Callable, Optional, Union
@@ -20,8 +21,6 @@ import torch
 import torch.multiprocessing as mp
 from torch.optim import Optimizer
 
-import logging
-log = logging.getLogger(__name__)
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
@@ -36,6 +35,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+log = logging.getLogger(__name__)
 if TPU_AVAILABLE:
     import torch_xla
     import torch_xla.core.xla_model as xm

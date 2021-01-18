@@ -1,3 +1,4 @@
+import logging
 import os
 from contextlib import contextmanager
 from typing import Any, Dict, List, Union
@@ -6,11 +7,11 @@ import torch
 import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
-import logging
-log = logging.getLogger(__name__)
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.plugin import LightningPlugin
+
+log = logging.getLogger(__name__)
 
 
 class DDPPlugin(LightningPlugin):

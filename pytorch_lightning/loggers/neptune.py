@@ -17,16 +17,16 @@ Neptune Logger
 --------------
 """
 from argparse import Namespace
+import logging
 from typing import Any, Dict, Iterable, Optional, Union
 
 import torch
 from torch import is_tensor
 
-import logging
-log = logging.getLogger(__name__)
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, _module_available
 
+log = logging.getLogger(__name__)
 _NEPTUNE_AVAILABLE = _module_available("neptune")
 
 if _NEPTUNE_AVAILABLE:

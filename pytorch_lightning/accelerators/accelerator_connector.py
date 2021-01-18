@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 
 import torch
 
 from pytorch_lightning.utilities import HOROVOD_AVAILABLE
-import logging
-log = logging.getLogger(__name__)
+
 from pytorch_lightning import accelerators
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
@@ -28,6 +28,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
+
+log = logging.getLogger(__name__)
 
 
 class AcceleratorConnector:

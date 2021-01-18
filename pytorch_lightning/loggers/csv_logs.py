@@ -21,17 +21,18 @@ CSV logger for basic experiment logging that does not require opening ports
 """
 import csv
 import io
+import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
 import torch
 
-import logging
-log = logging.getLogger(__name__)
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
+
+log = logging.getLogger(__name__)
 
 
 class ExperimentWriter(object):

@@ -17,6 +17,7 @@
 import collections
 import copy
 import inspect
+import logging
 import os
 import re
 import tempfile
@@ -30,8 +31,6 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-import logging
-log = logging.getLogger(__name__)
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -43,6 +42,7 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
+log = logging.getLogger(__name__)
 if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
