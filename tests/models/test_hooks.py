@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+import os
+from unittest.mock import MagicMock
 
 import pytest
 import torch
-from unittest.mock import MagicMock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
-from tests.base import EvalModelTemplate, BoringModel
+from tests.base import BoringModel, EvalModelTemplate, RandomDataset
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
@@ -122,6 +123,49 @@ def test_transfer_batch_hook():
     expected = torch.device('cuda', 0)
     assert model.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+def test_transfer_batch_hook_ddp(tmpdir):
+    """
+    Test custom data are properly moved to the right device using ddp
+    """
+
+    class CustomBatch:
+
+        def __init__(self, data):
+            self.samples = data[0]
+
+        def to(self, device, **kwargs):
+            self.samples = self.samples.to(device, **kwargs)
+            return self
+
+    def collate_fn(batch):
+        return CustomBatch(batch)
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            assert batch.samples.device == self.device
+            assert isinstance(batch_idx, int)
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDataset(32, 64), collate_fn=collate_fn)
+
+    model = TestModel()
+    model.validation_step = None
+    model.training_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        max_epochs=1,
+        weights_summary=None,
+        accelerator="ddp",
+        gpus=2,
+    )
+    trainer.fit(model)
 
 
 @pytest.mark.parametrize(
@@ -348,8 +392,6 @@ def test_trainer_model_hook_system(tmpdir):
 
     expected = [
         'on_fit_start',
-        'on_pretrain_routine_start',
-        'on_pretrain_routine_end',
         'on_test_model_eval',
         'on_test_epoch_start',
         'on_test_batch_start',

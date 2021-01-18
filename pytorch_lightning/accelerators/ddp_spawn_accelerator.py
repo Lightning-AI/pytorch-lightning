@@ -17,24 +17,25 @@ from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
-import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed import LightningDistributed
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
+    all_gather_ddp_if_available,
     find_free_network_port,
     rank_zero_only,
     rank_zero_warn,
     sync_ddp_if_available,
-    all_gather_ddp_if_available,
 )
 from pytorch_lightning.utilities.seed import seed_everything
 
@@ -45,7 +46,11 @@ if HYDRA_AVAILABLE:
 
 class DDPSpawnAccelerator(Accelerator):
 
-    def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer,
+                 nprocs: int,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         """
         Runs training using DDP using mp.spawn via manual launch (not cluster launch)
 
@@ -156,13 +161,8 @@ class DDPSpawnAccelerator(Accelerator):
 
         self.ddp_plugin.on_after_setup_optimizers(self.trainer)
 
-        # set model properties before going into wrapper
-        self.trainer.model_connector.copy_trainer_model_properties(model)
-
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
-
-        self.trainer.convert_to_lightning_optimizers()
 
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
@@ -170,8 +170,7 @@ class DDPSpawnAccelerator(Accelerator):
         # allow user to configure ddp
         model = self.configure_ddp(model, device_ids)
 
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        self.trainer.setup_trainer(model)
 
         # train or test
         results = self.train_or_test()
@@ -226,8 +225,8 @@ class DDPSpawnAccelerator(Accelerator):
 
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
-        dist.all_reduce(stop, op=dist.reduce_op.SUM)
-        dist.barrier()
+        torch_distrib.all_reduce(stop, op=torch_distrib.reduce_op.SUM)
+        torch_distrib.barrier()
         should_stop = stop == self.trainer.world_size
         return should_stop
 
@@ -268,6 +267,7 @@ class DDPSpawnAccelerator(Accelerator):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
+        self.ddp_plugin.device_ids = device_ids
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 

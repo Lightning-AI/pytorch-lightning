@@ -11,33 +11,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import glob
-import math
-import os
-import pickle
-import sys
-import types
 from argparse import Namespace
 from copy import deepcopy
+import math
+import os
 from pathlib import Path
+import pickle
+import sys
 from unittest.mock import ANY, call, patch
 
 import cloudpickle
+from omegaconf import OmegaConf
 import pytest
 import torch
-from omegaconf import OmegaConf
 
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
+import tests.base.develop_utils as tutils
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -55,12 +54,13 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     # fit model
     result = trainer.fit(model)
     # training complete
     assert result == 1, "amp + ddp model failed to complete"
+    assert trainer.state == TrainerState.FINISHED
 
     # save model
     new_weights_path = os.path.join(tmpdir, "save_test.ckpt")
@@ -101,12 +101,13 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     result = trainer.fit(model)
 
     # traning complete
     assert result == 1, "amp + ddp model failed to complete"
+    assert trainer.state == TrainerState.FINISHED
 
     # save model
     new_weights_path = os.path.join(tmpdir, "save_test.ckpt")
@@ -145,12 +146,13 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     result = trainer.fit(model)
 
     # traning complete
     assert result == 1
+    assert trainer.state == TrainerState.FINISHED
 
     # save model
     new_weights_path = os.path.join(tmpdir, "save_test.ckpt")
@@ -462,12 +464,13 @@ def test_model_checkpoint_only_weights(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_weights_only=True),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_weights_only=True)],
     )
     # fit model
     result = trainer.fit(model)
     # training complete
     assert result == 1, "training failed to complete"
+    assert trainer.state == TrainerState.FINISHED
 
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
 
@@ -493,194 +496,159 @@ def test_model_checkpoint_only_weights(tmpdir):
 
 
 def test_model_freeze_unfreeze():
-
     model = EvalModelTemplate()
-
     model.freeze()
     model.unfreeze()
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 @pytest.mark.parametrize("url_ckpt", [True, False])
-def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt, enable_pl_optimizer):
+def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs"""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
 
-    hparams = EvalModelTemplate.get_default_hparams()
+    class TestModel(BoringModel):
+        # Model that tracks epochs and batches seen
+        num_epochs_seen = 0
+        num_batches_seen = 0
+        num_on_load_checkpoint_called = 0
 
-    def _new_model():
-        # Create a model that tracks epochs and batches seen
-        model = EvalModelTemplate(**hparams)
-        model.num_epochs_seen = 0
-        model.num_batches_seen = 0
-        model.num_on_load_checkpoint_called = 0
-
-        def increment_epoch(self):
+        def on_epoch_end(self):
             self.num_epochs_seen += 1
 
-        def increment_batch(self, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, *_):
             self.num_batches_seen += 1
 
-        def increment_on_load_checkpoint(self, _):
+        def on_load_checkpoint(self, _):
             self.num_on_load_checkpoint_called += 1
 
-        # Bind methods to keep track of epoch numbers, batch numbers it has seen
-        # as well as number of times it has called on_load_checkpoint()
-        model.on_epoch_end = types.MethodType(increment_epoch, model)
-        model.on_train_batch_start = types.MethodType(increment_batch, model)
-        model.on_load_checkpoint = types.MethodType(increment_on_load_checkpoint, model)
-        return model
-
-    model = _new_model()
-
-    trainer_options = dict(
-        progress_bar_refresh_rate=0,
+    model = TestModel()
+    trainer = Trainer(
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1)],
         default_root_dir=tmpdir,
         val_check_interval=1.0,
-        enable_pl_optimizer=enable_pl_optimizer,
+        progress_bar_refresh_rate=0,
+        logger=False,
+        weights_summary=None,
     )
-
-    trainer = Trainer(**trainer_options)
-    # fit model
     trainer.fit(model)
 
-    training_batches = trainer.num_training_batches
-
     assert model.num_epochs_seen == 2
-    assert model.num_batches_seen == training_batches * 2
+    assert model.num_batches_seen == trainer.num_training_batches * 2
     assert model.num_on_load_checkpoint_called == 0
 
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
-    checkpoints = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))
+    checkpoints = Path(trainer.checkpoint_callback.dirpath).glob("*.ckpt")
     if url_ckpt:
         # transform local paths into url checkpoints
         ip, port = tmpdir_server
-        checkpoints = [f"http://{ip}:{port}/" + os.path.basename(check) for check in checkpoints]
+        checkpoints = [f"http://{ip}:{port}/" + ckpt.name for ckpt in checkpoints]
 
-    for check in checkpoints:
-        next_model = _new_model()
-        state = pl_load(check)
+    for ckpt in checkpoints:
+        next_model = TestModel()
+        state = pl_load(ckpt)
 
         # Resume training
-        trainer_options["max_epochs"] = 2
-        new_trainer = Trainer(**trainer_options, resume_from_checkpoint=check)
+        new_trainer = Trainer(resume_from_checkpoint=ckpt, max_epochs=2)
         new_trainer.fit(next_model)
-        assert state["global_step"] + next_model.num_batches_seen == training_batches * trainer_options["max_epochs"]
+        assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
         assert next_model.num_on_load_checkpoint_called == 1
-
-
-def _init_steps_model():
-    """private method for initializing a model with 5% train epochs"""
-    model = EvalModelTemplate()
-
-    # define train epoch to 5% of data
-    train_percent = 0.5
-    # get number of samples in 1 epoch
-    num_train_samples = math.floor(len(model.train_dataloader()) * train_percent)
-
-    trainer_options = dict(
-        limit_train_batches=train_percent,
-    )
-    return model, trainer_options, num_train_samples
 
 
 def test_trainer_max_steps_and_epochs(tmpdir):
     """Verify model trains according to specified max steps"""
-    model, trainer_options, num_train_samples = _init_steps_model()
+    model = BoringModel()
+    num_train_samples = math.floor(len(model.train_dataloader()) * 0.5)
 
     # define less train steps than epochs
-    trainer_options.update(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-        max_steps=num_train_samples + 10,
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
+    trainer_kwargs = {
+        'limit_train_batches': 0.5,
+        'default_root_dir': tmpdir,
+        'max_epochs': 3,
+        'max_steps': num_train_samples + 10,
+        'logger': False,
+        'weights_summary': None,
+        'progress_bar_refresh_rate': 0,
+    }
+    trainer = Trainer(**trainer_kwargs)
     result = trainer.fit(model)
-    assert result == 1, "Training did not complete"
 
-    # check training stopped at max_steps
+    assert result == 1, "Training did not complete"
+    assert trainer.state == TrainerState.FINISHED
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
     # define less train epochs than steps
-    trainer_options.update(
-        max_epochs=2,
-        max_steps=trainer_options["max_epochs"] * 2 * num_train_samples,
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
+    trainer_kwargs['max_epochs'] = 2
+    trainer_kwargs['max_steps'] = 3 * 2 * num_train_samples
+    trainer = Trainer(**trainer_kwargs)
     result = trainer.fit(model)
-    assert result == 1, "Training did not complete"
 
-    # check training stopped at max_epochs
+    assert result == 1, "Training did not complete"
+    assert trainer.state == TrainerState.FINISHED
     assert trainer.global_step == num_train_samples * trainer.max_epochs
     assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
     """Verify model trains according to specified min steps"""
-    model, trainer_options, num_train_samples = _init_steps_model()
+    model = EvalModelTemplate()
+    num_train_samples = math.floor(len(model.train_dataloader()) * 0.5)
 
-    # define callback for stopping the model and default epochs
-    trainer_options.update(
-        default_root_dir=tmpdir,
-        callbacks=[EarlyStopping(monitor="early_stop_on", min_delta=1.0)],
-        val_check_interval=2,
-        min_epochs=1,
-        max_epochs=7,
-    )
-
-    # define less min steps than 1 epoch
-    trainer_options["min_steps"] = math.floor(num_train_samples / 2)
-
-    # fit model
-    trainer = Trainer(**trainer_options)
+    trainer_kwargs = {
+        'limit_train_batches': 0.5,
+        'default_root_dir': tmpdir,
+        # define callback for stopping the model
+        'callbacks': [EarlyStopping(monitor="early_stop_on", min_delta=1.0)],
+        'val_check_interval': 2,
+        'min_epochs': 1,
+        'max_epochs': 7,
+        # define less min steps than 1 epoch
+        'min_steps': num_train_samples // 2,
+        'logger': False,
+        'weights_summary': None,
+        'progress_bar_refresh_rate': 0,
+    }
+    trainer = Trainer(**trainer_kwargs)
     result = trainer.fit(model)
-    assert result == 1, "Training did not complete"
 
-    # check model ran for at least min_epochs
-    assert (
-        trainer.global_step >= num_train_samples and trainer.current_epoch > 0
-    ), "Model did not train for at least min_epochs"
+    assert result == 1, "Training did not complete"
+    assert trainer.state == TrainerState.FINISHED
+    assert trainer.current_epoch > 0
+    assert trainer.global_step >= num_train_samples, "Model did not train for at least min_epochs"
 
     # define less epochs than min_steps
-    trainer_options["min_steps"] = math.floor(num_train_samples * 1.5)
-
-    # fit model
-    trainer = Trainer(**trainer_options)
+    trainer_kwargs["min_steps"] = math.floor(num_train_samples * 1.5)
+    trainer = Trainer(**trainer_kwargs)
     result = trainer.fit(model)
-    assert result == 1, "Training did not complete"
 
-    # check model ran for at least num_train_samples*1.5
-    assert (
-        trainer.global_step >= math.floor(num_train_samples * 1.5) and trainer.current_epoch > 0
-    ), "Model did not train for at least min_steps"
+    assert result == 1, "Training did not complete"
+    assert trainer.state == TrainerState.FINISHED
+    assert trainer.current_epoch > 0
+    assert trainer.global_step >= math.floor(num_train_samples * 1.5), "Model did not train for at least min_steps"
 
 
 def test_trainer_max_steps_accumulate_batches(tmpdir):
     """Verify model trains according to specified max steps with grad accumulated batches"""
-    model, trainer_options, num_train_samples = _init_steps_model()
+    model = BoringModel()
+    num_train_samples = math.floor(len(model.train_dataloader()) * 0.5)
 
     # define less train steps than epochs
-    trainer_options.update(
+    trainer = Trainer(
+        limit_train_batches=0.5,
         default_root_dir=tmpdir,
-        max_steps=(num_train_samples + 10),
+        max_steps=num_train_samples + 10,
         accumulate_grad_batches=10,
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-    assert result == 1, "Training did not complete"
 
-    # check training stopped at max_steps
+    assert result == 1, "Training did not complete"
+    assert trainer.state == TrainerState.FINISHED
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
 
@@ -703,6 +671,7 @@ def test_benchmark_option(tmpdir):
 
     # verify training completed
     assert result == 1
+    assert trainer.state == TrainerState.FINISHED
 
     # verify torch.backends.cudnn.benchmark is not turned off
     assert torch.backends.cudnn.benchmark
@@ -718,7 +687,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         max_epochs=2,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(monitor="early_stop_on", save_top_k=save_top_k),
+        callbacks=[ModelCheckpoint(monitor="early_stop_on", save_top_k=save_top_k)],
     )
     trainer.fit(model)
     if ckpt_path == "best":
@@ -788,6 +757,7 @@ def test_disabled_training(tmpdir):
 
     # check that limit_train_batches=0 turns off training
     assert result == 1, "training failed to complete"
+    assert trainer.state == TrainerState.FINISHED
     assert trainer.current_epoch == 0
     assert not model.training_step_invoked, "`training_step` should not run when `limit_train_batches=0`"
     assert not model.training_epoch_end_invoked, "`training_epoch_end` should not run when `limit_train_batches=0`"
@@ -806,6 +776,7 @@ def test_disabled_training(tmpdir):
         assert not torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
     assert result == 1, "training failed to complete"
+    assert trainer.state == TrainerState.FINISHED
     assert trainer.current_epoch == 0
     assert model.training_step_invoked, "did not run `training_step` with `fast_dev_run=True`"
     assert model.training_epoch_end_invoked, "did not run `training_epoch_end` with `fast_dev_run=True`"
@@ -844,6 +815,7 @@ def test_disabled_validation(tmpdir):
 
     # check that limit_val_batches=0 turns off validation
     assert result == 1, "training failed to complete"
+    assert trainer.state == TrainerState.FINISHED
     assert trainer.current_epoch == 1
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
     assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
@@ -855,6 +827,7 @@ def test_disabled_validation(tmpdir):
     result = trainer.fit(model)
 
     assert result == 1, "training failed to complete"
+    assert trainer.state == TrainerState.FINISHED
     assert trainer.current_epoch == 0
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
@@ -958,6 +931,7 @@ def test_gradient_clipping(tmpdir):
     """
     Test gradient clipping
     """
+    tutils.reset_seed()
 
     model = EvalModelTemplate()
 
@@ -995,6 +969,7 @@ def test_gradient_clipping_fp16(tmpdir):
     """
     Test gradient clipping with fp16
     """
+    tutils.reset_seed()
 
     model = EvalModelTemplate()
 
@@ -1117,7 +1092,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
 @pytest.mark.parametrize(
     "trainer_kwargs,expected",
     [
-        pytest.param(
+        (
             dict(accelerator=None, gpus=None),
             dict(
                 use_dp=False,
@@ -1129,7 +1104,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 num_processes=1,
             ),
         ),
-        pytest.param(
+        (
             dict(accelerator="dp", gpus=None),
             dict(
                 use_dp=False,
@@ -1141,7 +1116,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 num_processes=1,
             ),
         ),
-        pytest.param(
+        (
             dict(accelerator="dp", gpus=None),
             dict(
                 use_dp=False,
@@ -1153,7 +1128,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 num_processes=1,
             ),
         ),
-        pytest.param(
+        (
             dict(accelerator="ddp", gpus=None),
             dict(
                 use_dp=False,
@@ -1165,7 +1140,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 num_processes=1,
             ),
         ),
-        pytest.param(
+        (
             dict(accelerator="ddp", num_processes=2, gpus=None),
             dict(
                 use_dp=False,
@@ -1177,7 +1152,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 num_processes=2,
             ),
         ),
-        pytest.param(
+        (
             dict(accelerator="ddp", num_nodes=2, gpus=None),
             dict(
                 use_dp=False,
@@ -1189,7 +1164,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 num_processes=1,
             ),
         ),
-        pytest.param(
+        (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
             dict(
                 use_dp=False,
@@ -1201,7 +1176,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 num_processes=2,
             ),
         ),
-        pytest.param(
+        (
             dict(accelerator="ddp2", gpus=None),
             dict(
                 use_dp=False,
@@ -1213,7 +1188,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 num_processes=1,
             ),
         ),
-        pytest.param(
+        (
             dict(accelerator=None, gpus=1),
             dict(
                 use_dp=False,
@@ -1224,9 +1199,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 use_single_gpu=True,
                 num_processes=1,
             ),
-            marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
-        pytest.param(
+        (
             dict(accelerator="dp", gpus=1),
             dict(
                 use_dp=True,
@@ -1237,9 +1211,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 use_single_gpu=True,
                 num_processes=1,
             ),
-            marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
-        pytest.param(
+        (
             dict(accelerator="ddp", gpus=1),
             dict(
                 use_dp=False,
@@ -1250,9 +1223,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 use_single_gpu=True,
                 num_processes=1,
             ),
-            marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
-        pytest.param(
+        (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
             dict(
                 use_dp=False,
@@ -1263,9 +1235,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 use_single_gpu=False,
                 num_processes=2,
             ),
-            marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
-        pytest.param(
+        (
             dict(accelerator="ddp2", gpus=1),
             dict(
                 use_dp=False,
@@ -1276,9 +1247,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 use_single_gpu=False,
                 num_processes=1,
             ),
-            marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
-        pytest.param(
+        (
             dict(accelerator=None, gpus=2),
             dict(
                 use_dp=False,
@@ -1289,9 +1259,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 use_single_gpu=False,
                 num_processes=2,
             ),
-            marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")],
         ),
-        pytest.param(
+        (
             dict(accelerator="dp", gpus=2),
             dict(
                 use_dp=True,
@@ -1302,9 +1271,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 use_single_gpu=False,
                 num_processes=1,
             ),
-            marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")],
         ),
-        pytest.param(
+        (
             dict(accelerator="ddp", gpus=2),
             dict(
                 use_dp=False,
@@ -1315,9 +1283,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 use_single_gpu=False,
                 num_processes=2,
             ),
-            marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")],
         ),
-        pytest.param(
+        (
             dict(accelerator="ddp2", gpus=2),
             dict(
                 use_dp=False,
@@ -1328,19 +1295,17 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
                 use_single_gpu=False,
                 num_processes=1,
             ),
-            marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")],
         ),
     ],
 )
-def test_trainer_config(trainer_kwargs, expected):
+def test_trainer_config(trainer_kwargs, expected, monkeypatch):
+    if trainer_kwargs["gpus"] is not None:
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
     trainer = Trainer(**trainer_kwargs)
-    assert trainer.use_dp is expected["use_dp"]
-    assert trainer.use_ddp is expected["use_ddp"]
-    assert trainer.use_ddp2 is expected["use_ddp2"]
-    assert trainer.num_gpus == expected["num_gpus"]
-    assert trainer.on_gpu is expected["on_gpu"]
-    assert trainer.use_single_gpu is expected["use_single_gpu"]
-    assert trainer.num_processes == expected["num_processes"]
+    assert len(expected) == 7
+    for k, v in expected.items():
+        assert getattr(trainer, k) == v, f"Failed {k}: {v}"
 
 
 def test_trainer_subclassing():
@@ -1356,6 +1321,7 @@ def test_trainer_subclassing():
     trainer = TrainerSubclass(123, custom_kwarg="custom", fast_dev_run=True)
     result = trainer.fit(model)
     assert result == 1
+    assert trainer.state == TrainerState.FINISHED
     assert trainer.custom_arg == 123
     assert trainer.custom_kwarg == "custom"
     assert trainer.fast_dev_run
@@ -1371,6 +1337,7 @@ def test_trainer_subclassing():
     trainer = TrainerSubclass(custom_kwarg="custom", fast_dev_run=True)
     result = trainer.fit(model)
     assert result == 1
+    assert trainer.state == TrainerState.FINISHED
     assert trainer.custom_kwarg == "custom"
     assert trainer.fast_dev_run
 
@@ -1474,6 +1441,6 @@ def test_trainer_profiler_incorrect_str_arg():
 ))
 def test_trainer_profiler_incorrect_arg_type(profiler):
     with pytest.raises(MisconfigurationException,
-                       match=r"Only None, bool, str and subclasses of `BaseProfiler` "
-                       r"are valid values for `Trainer`'s `profiler` parameter. *"):
+                       match=r"Only None, bool, str and subclasses of `BaseProfiler`"
+                             r" are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)
