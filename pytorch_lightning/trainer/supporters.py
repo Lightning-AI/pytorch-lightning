@@ -183,8 +183,8 @@ class LightningBatchSamplerWrapper:
             rank_zero_warn(
                 f"Trying to replace to wrap your BatchSampler in your {dataloader_cls_name} dataloader."
                 "This would fail as your DataLoader doesn't expose as attributes all its __init__ parameters. "
-                f" Missing attributes are {missing_kwargs} \n"
-                " HINT: use Trainer(enable_predict_auto_id=False) and provide your own id."
+                f"Missing attributes are {missing_kwargs} \n"
+                "HINT: use Trainer(enable_predict_auto_id=False) and provide your own id."
                 " Check out the doc for Testing.", UserWarning
             )
             return dataloader
