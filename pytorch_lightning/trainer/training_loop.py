@@ -24,7 +24,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, parsing, DeviceType
+from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -339,7 +339,8 @@ class TrainLoop:
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
-            training_step_output = self.trainer.accelerator_backend.training_step(args)
+            with self.trainer.profiler.profile("training_step"):
+                training_step_output = self.trainer.accelerator_backend.training_step(args)
             self.trainer.logger_connector.cache_logged_metrics()
 
             self._check_training_step_output(training_step_output)

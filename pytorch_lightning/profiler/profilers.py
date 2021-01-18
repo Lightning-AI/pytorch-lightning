@@ -25,9 +25,11 @@ from contextlib import contextmanager
 from typing import Optional, Union
 
 import numpy as np
+import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class BaseProfiler(ABC):
@@ -282,3 +284,105 @@ class AdvancedProfiler(BaseProfiler):
         """Close profiler's stream."""
         if self.output_file:
             self.output_file.close()
+
+
+class PytorchProfiler(BaseProfiler):
+    """
+    This profiler uses PyTorch's Autograd Profiler and let's you inspect the cost of
+    different operators inside your model - both on the CPU and GPU
+    """
+
+    PROFILED_FUNCTIONS = ["training_step", "validation_step", "test_step"]
+
+    def __init__(self, output_filename: Optional[str] = None,
+                 enabled=True,
+                 use_cuda=False,
+                 record_shapes=True,
+                 profile_memory=True,
+                 with_stack=True,
+                 sort_by_key: str = "self_cuda_memory_usage"):
+        """
+        Args:
+            output_filename: optionally save profile results to file instead of printing
+                to std out when training is finished.
+            line_count_restriction: this can be used to limit the number of functions
+                reported for each action. either an integer (to select a count of lines),
+                or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
+        """
+        self.profiled_actions = {}
+        self.enabled = enabled
+        self.use_cuda = use_cuda
+        self.record_shapes = record_shapes
+        self.profile_memory = profile_memory
+        self.with_stack = with_stack
+        self.sort_by_key = sort_by_key
+        if self.sort_by_key not in self.available_sort_by_keys:
+            raise MisconfigurationException(
+                f"Found sort_by_key: {sort_by_key}. Should be within {self.available_sort_by_keys}. ")
+
+        self.output_fname = output_filename
+        self.output_file = None
+        if self.output_fname:
+            fs = get_filesystem(self.output_fname)
+            self.output_file = fs.open(self.output_fname, "w")
+
+        streaming_out = [self.output_file.write] if self.output_file else [log.info]
+        super().__init__(output_streams=streaming_out)
+
+    def start(self, action_name: str) -> None:
+        if action_name not in self.profiled_actions and action_name in self.PROFILED_FUNCTIONS:
+            self.profiled_actions[action_name] = torch.autograd.profiler.profile(
+                enabled=self.enabled,
+                use_cuda=self.use_cuda,
+                record_shapes=self.record_shapes,
+                profile_memory=self.profile_memory).__enter__()
+
+    def stop(self, action_name: str) -> None:
+        if action_name in self.PROFILED_FUNCTIONS:
+            pr = self.profiled_actions.get(action_name)
+            if pr is None:
+                raise ValueError(  # pragma: no-cover
+                    f"Attempting to stop recording an action ({action_name}) which was never started."
+                )
+            # todo: Find a better solution
+            try:
+                _ = pr.__exit__(None, None, None)
+            except RuntimeError as e:
+                if "Expected debug info of type 2" in str(e):
+                    pass
+                else:
+                    raise RuntimeError(str(e))
+
+    def summary(self) -> str:
+        recorded_stats = {}
+        for action_name, pr in self.profiled_actions.items():
+            table = self.profiled_actions[action_name].key_averages().table(sort_by=self.sort_by_key)
+            recorded_stats[action_name] = table
+
+        # log to standard out
+        output_string = f"{os.linesep}Profiler Report{os.linesep}"
+        for action, stats in recorded_stats.items():
+            output_string += (
+                f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
+            )
+
+        return output_string
+
+    def describe(self):
+        """Logs a profile report after the conclusion of the training run."""
+        super().describe()
+        if self.output_file:
+            self.output_file.flush()
+
+    def __del__(self):
+        """Close profiler's stream."""
+        if self.output_file:
+            self.output_file.close()
+
+    @property
+    def available_sort_by_keys(self):
+        return [
+            "cpu_time", "cuda_time", "cpu_time_total",
+            "cuda_time_total", "cpu_memory_usage", "cuda_memory_usage",
+            "self_cpu_memory_usage", "self_cuda_memory_usage", "count"
+        ]

@@ -171,10 +171,12 @@ class EvaluationLoop(object):
         # run actual test step
         if self.testing:
             model_ref._current_fx_name = "test_step"
-            output = self.trainer.accelerator_backend.test_step(args)
+            with self.trainer.profiler.profile("test_step"):
+                output = self.trainer.accelerator_backend.test_step(args)
         else:
             model_ref._current_fx_name = "validation_step"
-            output = self.trainer.accelerator_backend.validation_step(args)
+            with self.trainer.profiler.profile("validation_step"):
+                output = self.trainer.accelerator_backend.validation_step(args)
 
         # capture any logged information
         self.trainer.logger_connector.cache_logged_metrics()

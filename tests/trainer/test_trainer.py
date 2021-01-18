@@ -33,7 +33,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, _PYTORCH_GREATER_EQUAL_1_7_0
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
@@ -1421,6 +1421,7 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     ('simple', SimpleProfiler),
     ('Simple', SimpleProfiler),
     ('advanced', AdvancedProfiler),
+    ('pytorch', AdvancedProfiler),
 ])
 def test_trainer_profiler_correct_args(profiler, expected):
     kwargs = {'profiler': profiler} if profiler is not None else {}
@@ -1441,3 +1442,25 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
                        match=r"Only None, bool, str and subclasses of `BaseProfiler`"
                              r" are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)
+
+
+# @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_7_0, reason='test needs PyTorch 1.7+')
+def test_pytorch_profiler(tmpdir):
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
+    model = TestModel()
+
+    limit_train_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        profiler='pytorch'
+    )
+
+    trainer.fit(model)

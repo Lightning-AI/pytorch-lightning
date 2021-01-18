@@ -14,13 +14,20 @@
 
 from typing import Union
 
-from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler, AdvancedProfiler
+from pytorch_lightning.profiler import (
+    AdvancedProfiler,
+    BaseProfiler,
+    PassThroughProfiler,
+    PytorchProfiler,
+    SimpleProfiler,
+)
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 PROFILERS = {
     "simple": SimpleProfiler,
     "advanced": AdvancedProfiler,
+    "pytorch": PytorchProfiler,
 }
 
 
