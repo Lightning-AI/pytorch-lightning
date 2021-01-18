@@ -32,7 +32,7 @@ on:
 
 env:
   AWS_CLUSTER: pl-lightning-torchelastic
-  NODE_TYPE: p3.2xlarge
+  NODE_TYPE: g4dn.xlarge
   NODES: 2
   NUM_GPUS: 1
   REGION: us-east-2
@@ -112,7 +112,7 @@ jobs:
     - name: Create Gpu Node Pool
       run: |
         aws eks --region $REGION update-kubeconfig --name $AWS_CLUSTER
-        eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER --node-type=$NODE_TYPE  --nodes=$NODES
+        eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER --managed --spot --node-type=$NODE_TYPE  --nodes=$NODES
       shell: bash
 
     - name: Check Current Node Pool | Current Elatic Pods
