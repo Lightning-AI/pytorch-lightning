@@ -14,8 +14,9 @@
 from typing import Any, Callable, Optional
 
 import torch
+
+from pytorch_lightning.metrics.functional.hamming_distance import _hamming_distance_compute, _hamming_distance_update
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.hamming_distance import _hamming_distance_update, _hamming_distance_compute
 
 
 class HammingDistance(Metric):
