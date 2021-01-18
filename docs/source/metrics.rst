@@ -278,7 +278,7 @@ This pattern is implemented for the following operators (with ``a`` being metric
 * Equality (``a == b``)
 * Floordivision (``a // b``)
 * Greater Equal (``a >= b``)
-* Greater (``a >b ``)
+* Greater (``a > b``)
 * Less Equal (``a <= b``)
 * Less (``a < b``)
 * Matrix Multiplication (``a @b ``)
