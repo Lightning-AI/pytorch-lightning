@@ -30,6 +30,7 @@ else:
     from tqdm import tqdm
 
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.utilities import DeviceType
 
 
 class ProgressBarBase(Callback):
@@ -253,6 +254,17 @@ class ProgressBar(ProgressBarBase):
     def enable(self) -> None:
         self._enabled = True
 
+    def get_progress_bar_dict(self, trainer):
+        metrics_holder = trainer.logger_connector._progress_bar_metrics
+        metrics_holder._to_float = True
+        model_ref = trainer.get_model()
+        metrics_holder.convert(
+            self.trainer._device_type == DeviceType.TPU,
+            model_ref.device if model_ref is not None else model_ref
+        )
+        metrics_holder._to_float = False
+        return metrics_holder.metrics
+
     def init_sanity_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for the validation sanity run. """
         bar = tqdm(
@@ -335,7 +347,7 @@ class ProgressBar(ProgressBarBase):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
             self._update_bar(self.main_progress_bar)
-            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+            self.main_progress_bar.set_postfix(self.get_progress_bar_dict(trainer))
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
@@ -352,7 +364,7 @@ class ProgressBar(ProgressBarBase):
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
-        self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+        self.main_progress_bar.set_postfix(self.get_progress_bar_dict(trainer))
         self.val_progress_bar.close()
 
     def on_train_end(self, trainer, pl_module):
