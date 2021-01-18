@@ -1,5 +1,5 @@
-import torch
 import pytest
+import torch
 
 from pytorch_lightning.metrics.functional.image_gradients import image_gradients
 

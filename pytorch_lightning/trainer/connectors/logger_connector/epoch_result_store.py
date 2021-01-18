@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import defaultdict
-from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
 import torch
 
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities import DistributedType, LightningEnum
 
 
-class LoggerStages(str, Enum):
+class LoggerStages(LightningEnum):
     """ Train/validation/test phase in each training step.
 
     >>> # you can math the type with string
@@ -41,7 +41,7 @@ class LoggerStages(str, Enum):
         raise RuntimeError(f"Invalid stage {stage_or_testing} of type {type(stage_or_testing)} given")
 
 
-class ResultStoreType(str, Enum):
+class ResultStoreType(LightningEnum):
     INSIDE_BATCH_TRAIN_LOOP = "inside_batch_train_loop"
     OUTSIDE_BATCH_TRAIN_LOOP = "outside_batch_train_loop"
 
@@ -343,7 +343,7 @@ class EpochResultStore:
             hook_result.detach()
             if self.trainer.move_metrics_to_cpu:
                 hook_result.cpu()
-            elif self.trainer.use_dp:
+            elif self.trainer._distrib_type == DistributedType.DP:
                 hook_result.to(torch.device("cuda", self.trainer.root_gpu))
 
             self._internals[fx_name].append(hook_result, dataloader_idx=dataloader_idx, extra_info=extra_info)

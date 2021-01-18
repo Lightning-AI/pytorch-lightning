@@ -27,7 +27,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType
 from pytorch_lightning.utilities.argparse import (
     from_argparse_args, parse_argparser, parse_env_variables, add_argparse_args
 )
@@ -48,9 +48,8 @@ class TrainerProperties(ABC):
     _state: TrainerState
     global_rank: int
     fast_dev_run: Union[int, bool]
-    use_dp: bool
-    use_ddp: bool
-    use_ddp2: bool
+    _device_type: DeviceType
+    _distrib_type: DistributedType
     model: LightningModule
     data_parallel_device_ids: Optional[List[int]]
     _progress_bar_callback: ProgressBarBase
@@ -62,6 +61,8 @@ class TrainerProperties(ABC):
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
     callbacks: List[Callback]
+    num_nodes: int
+    num_processes: int
 
     @property
     def log_dir(self):
@@ -176,7 +177,9 @@ class TrainerProperties(ABC):
 
     @property
     def data_parallel(self) -> bool:
-        return self.use_dp or self.use_ddp or self.use_ddp2
+        return self._distrib_type in (
+            DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2
+        )
 
     @property
     def progress_bar_callback(self):
@@ -185,7 +188,7 @@ class TrainerProperties(ABC):
     @property
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
-        ref_model = self.model if not self.data_parallel else self.model.module
+        ref_model = self.get_model()
         ref_model = cast(LightningModule, ref_model)
         return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
 
@@ -275,17 +278,19 @@ class TrainerProperties(ABC):
     def require_distributed_sampler(self):
         if self.accelerator_backend is not None:
             return self.accelerator_backend.require_distributed_sampler
-        return self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
+        return self._distrib_type in (
+            DistributedType.HOROVOD, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2
+        ) or self._device_type == DeviceType.TPU
 
     @property
     def distributed_sampler_kwargs(self):
         if self.accelerator_backend is not None:
             return self.accelerator_backend.distributed_sampler_kwargs
 
-        if self.use_tpu:
+        if self._device_type == DeviceType.TPU:
             kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
-        elif self.use_horovod:
+        elif self._distrib_type == DistributedType.HOROVOD:
             kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
 
         else:

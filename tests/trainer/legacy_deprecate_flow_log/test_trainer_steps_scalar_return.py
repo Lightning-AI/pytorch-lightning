@@ -17,12 +17,12 @@ Tests to ensure that the training loop works with a scalar
 import os
 from unittest import mock
 
-import torch
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
-from tests.base.deterministic_model import DeterministicModel
 from tests.base import BoringModel
+from tests.base.deterministic_model import DeterministicModel
 
 
 def test_training_step_scalar(tmpdir):

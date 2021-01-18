@@ -22,12 +22,12 @@ import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.develop_utils import pl_multi_process_test
-
 
 if _TPU_AVAILABLE:
     import torch_xla
@@ -209,8 +209,8 @@ def test_dataloaders_passed_to_fit(tmpdir):
         max_epochs=1,
         tpu_cores=8
     )
-    result = trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
-    assert result, "TPU doesn't work with dataloaders passed to fit()."
+    trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize(

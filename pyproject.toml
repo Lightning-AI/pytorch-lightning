@@ -23,31 +23,24 @@ known_first_party = [
     "tests",
 ]
 skip_glob = [
-    "pytorch_lightning/accelerators/*",
-    "pytorch_lightning/callbacks/*",
-    "pytorch_lightning/cluster_environments/*",
+    # todo
     "pytorch_lightning/core/*",
+
+
+    # todo
     "pytorch_lightning/distributed/*",
-    "pytorch_lightning/loggers/*",
+
+
+    # todo
     "pytorch_lightning/metrics/*",
-    "pytorch_lightning/overrides/*",
+
+
+    # todo
     "pytorch_lightning/plugins/*",
-    "pytorch_lightning/profiler/*",
+
+
+    # todo
     "pytorch_lightning/trainer/*",
-    "pytorch_lightning/tuner/*",
-    "pytorch_lightning/utilities/*",
-    "tests/backends/*",
-    "tests/base/*",
-    "tests/callbacks/*",
-    "tests/checkpointing/*",
-    "tests/core/*",
-    "tests/loggers/*",
-    "tests/metrics/*",
-    "tests/models/*",
-    "tests/plugins/*",
-    "tests/trainer/*",
-    "tests/tuner/*",
-    "tests/utilities/*",
 ]
 profile = "black"
 line_length = 120
