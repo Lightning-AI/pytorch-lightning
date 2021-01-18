@@ -21,14 +21,16 @@ from pytorch_lightning.profiler import (
     PytorchProfiler,
     SimpleProfiler,
 )
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, _PYTORCH_GREATER_EQUAL_1_6_0
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 PROFILERS = {
     "simple": SimpleProfiler,
     "advanced": AdvancedProfiler,
-    "pytorch": PytorchProfiler,
 }
+
+if _PYTORCH_GREATER_EQUAL_1_6_0:
+    PROFILERS["pytorch"] = PytorchProfiler
 
 
 class ProfilerConnector:

@@ -33,7 +33,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, _PYTORCH_GREATER_EQUAL_1_7_0
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, _PYTORCH_GREATER_EQUAL_1_6_0
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
@@ -1444,7 +1444,7 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
         Trainer(profiler=profiler)
 
 
-# @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_7_0, reason='test needs PyTorch 1.7+')
+# @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason='test needs PyTorch 1.7+')
 def test_pytorch_profiler(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):

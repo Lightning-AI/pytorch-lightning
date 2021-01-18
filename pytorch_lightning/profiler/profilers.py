@@ -30,6 +30,7 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class BaseProfiler(ABC):
@@ -294,28 +295,31 @@ class PytorchProfiler(BaseProfiler):
 
     PROFILED_FUNCTIONS = ["training_step", "validation_step", "test_step"]
 
-    def __init__(self, output_filename: Optional[str] = None,
+    def __init__(self, 
+                 output_filename: Optional[str] = None,
                  enabled=True,
-                 use_cuda=False,
+                 use_cuda=True,
                  record_shapes=True,
                  profile_memory=True,
-                 with_stack=True,
+                 group_by_input_shape=True,
                  sort_by_key: str = "self_cuda_memory_usage"):
         """
         Args:
             output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished.
-            line_count_restriction: this can be used to limit the number of functions
-                reported for each action. either an integer (to select a count of lines),
-                or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
+            enabled: Setting this to False makes this context manager a no-op. Default: True
+            use_cuda: Enables timing of CUDA events as well using the cudaEvent API. 
+                Adds approximately 4us of overhead to each tensor operation. Default: True
+            record_shapes:  If shapes recording is set, information about input dimensions will be collected.
+            profile_memory: Whether to report memory usage, default: True
         """
         self.profiled_actions = {}
         self.enabled = enabled
         self.use_cuda = use_cuda
         self.record_shapes = record_shapes
         self.profile_memory = profile_memory
-        self.with_stack = with_stack
         self.sort_by_key = sort_by_key
+        self.group_by_input_shape = group_by_input_shape and record_shapes
         if self.sort_by_key not in self.available_sort_by_keys:
             raise MisconfigurationException(
                 f"Found sort_by_key: {sort_by_key}. Should be within {self.available_sort_by_keys}. ")
@@ -330,6 +334,8 @@ class PytorchProfiler(BaseProfiler):
         super().__init__(output_streams=streaming_out)
 
     def start(self, action_name: str) -> None:
+        # PyTorch profiler doesn't seem to work with multiple processes
+        self.enabled = os.getenv("LOCAL_RANK", None) is None
         if action_name not in self.profiled_actions and action_name in self.PROFILED_FUNCTIONS:
             self.profiled_actions[action_name] = torch.autograd.profiler.profile(
                 enabled=self.enabled,
@@ -338,13 +344,14 @@ class PytorchProfiler(BaseProfiler):
                 profile_memory=self.profile_memory).__enter__()
 
     def stop(self, action_name: str) -> None:
-        if action_name in self.PROFILED_FUNCTIONS:
+        if action_name in self.PROFILED_FUNCTIONS and self.enabled:
             pr = self.profiled_actions.get(action_name)
             if pr is None:
                 raise ValueError(  # pragma: no-cover
                     f"Attempting to stop recording an action ({action_name}) which was never started."
                 )
-            # todo: Find a better solution
+            
+            # todo: Find a better solution to exit context manager
             try:
                 _ = pr.__exit__(None, None, None)
             except RuntimeError as e:
@@ -355,18 +362,21 @@ class PytorchProfiler(BaseProfiler):
 
     def summary(self) -> str:
         recorded_stats = {}
-        for action_name, pr in self.profiled_actions.items():
-            table = self.profiled_actions[action_name].key_averages().table(sort_by=self.sort_by_key)
-            recorded_stats[action_name] = table
+        if self.enabled:
+            for action_name, pr in self.profiled_actions.items():
+                table = self.profiled_actions[action_name].key_averages(
+                    group_by_input_shape=self.group_by_input_shape).table(sort_by=self.sort_by_key)
+                recorded_stats[action_name] = table
 
-        # log to standard out
-        output_string = f"{os.linesep}Profiler Report{os.linesep}"
-        for action, stats in recorded_stats.items():
-            output_string += (
-                f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
-            )
+            # log to standard out
+            output_string = f"{os.linesep}Profiler Report{os.linesep}"
+            for action, stats in recorded_stats.items():
+                output_string += (
+                    f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
+                )
 
-        return output_string
+            return output_string
+        return ''
 
     def describe(self):
         """Logs a profile report after the conclusion of the training run."""
