@@ -301,7 +301,7 @@ class PredictionCollection(object):
 
             self.add_predictions(predictions)
         """
-        if not predictions:
+        if predictions is None or (isinstance(predictions, list) and not predictions):
             return
 
         self.current_stage = current_stage
