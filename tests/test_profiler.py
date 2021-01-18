@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import logging
 import os
 import time
 from pathlib import Path
@@ -99,7 +99,8 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
 
 def test_simple_profiler_describe(caplog, simple_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
-    simple_profiler.describe()
+    with caplog.at_level(logging.INFO):
+        simple_profiler.describe()
 
     assert "Profiler Report" in caplog.text
 
