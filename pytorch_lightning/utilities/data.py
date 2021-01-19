@@ -13,11 +13,12 @@
 # limitations under the License.
 
 from distutils.version import LooseVersion
+from typing import Union
+
 import torch
 from torch.utils.data import DataLoader, IterableDataset
 
 from pytorch_lightning.utilities import rank_zero_warn
-from typing import Union
 
 
 def has_iterable_dataset(dataloader: DataLoader):

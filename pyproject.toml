@@ -24,18 +24,6 @@ known_first_party = [
 ]
 skip_glob = [
     # todo
-    "pytorch_lightning/accelerators/*",
-
-
-    # todo
-    "pytorch_lightning/callbacks/*",
-
-
-    # todo
-    "pytorch_lightning/cluster_environments/*",
-
-
-    # todo
     "pytorch_lightning/core/*",
 
 
@@ -44,31 +32,7 @@ skip_glob = [
 
 
     # todo
-    "pytorch_lightning/metrics/*",
-
-
-    # todo
-    "pytorch_lightning/overrides/*",
-
-
-    # todo
     "pytorch_lightning/plugins/*",
-
-
-    # todo
-    "pytorch_lightning/profiler/*",
-
-
-    # todo
-    "pytorch_lightning/trainer/*",
-
-
-    # todo
-    "pytorch_lightning/tuner/*",
-
-
-    # todo
-    "pytorch_lightning/utilities/*",
 ]
 profile = "black"
 line_length = 120
