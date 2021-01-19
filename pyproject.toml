@@ -32,15 +32,7 @@ skip_glob = [
 
 
     # todo
-    "pytorch_lightning/metrics/*",
-
-
-    # todo
     "pytorch_lightning/plugins/*",
-
-
-    # todo
-    "pytorch_lightning/trainer/*",
 ]
 profile = "black"
 line_length = 120
