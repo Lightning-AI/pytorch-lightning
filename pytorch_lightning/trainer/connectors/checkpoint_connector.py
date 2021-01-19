@@ -114,15 +114,14 @@ class CheckpointConnector:
             self,
             model: LightningModule,
             checkpoint_path: str,
-            with_gpu: Optional[Union[int, bool]],
+            on_gpu: bool,
     ) -> Dict[str, Any]:
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
         All restored states are listed in return value description of `dump_checkpoint`.
-        `with_gpu=trainer.on_gpu` works as normal restore, `with_gpu=trainer.root_gpu` works as hpc restore.
 
         Args:
-            with_gpu: bool for `on_gpu`, Optional[int] for `trainer.root_gpu`.
+            on_gpu: Whether trainer is on GPU or not.
         """
         # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
         checkpoint: Dict[str, Any] = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
@@ -130,7 +129,7 @@ class CheckpointConnector:
         # restore states
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_load_checkpoint(checkpoint)
-        self.restore_model_state(checkpoint, model, with_gpu)
+        self.restore_model_state(checkpoint, model, on_gpu)
         self.restore_training_state(checkpoint)
 
         return checkpoint
@@ -139,7 +138,7 @@ class CheckpointConnector:
         self,
         checkpoint: Dict[str, Any],
         model: LightningModule,
-        with_gpu: Union[bool, Optional[int]]
+        on_gpu: bool,
     ) -> None:
         """
         Restore model state.
@@ -151,7 +150,7 @@ class CheckpointConnector:
         model.load_state_dict(checkpoint['state_dict'])
 
         # moves the model to the GPU
-        if (with_gpu is True) or ((not isinstance(with_gpu, bool)) and (with_gpu is not None)):
+        if (on_gpu is True) or ((not isinstance(on_gpu, bool)) and (on_gpu is not None)):
             model.cuda(self.trainer.root_gpu)
 
     def restore_training_state(self, checkpoint: Dict[str, Any]) -> None:
