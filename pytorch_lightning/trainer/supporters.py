@@ -15,7 +15,7 @@
 import inspect
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -240,12 +240,12 @@ class PredictionCollection(object):
         self._predictions = {stage: {} for stage in LoggerStages}
 
     @property
-    def predictions(self) -> Dict:
+    def predictions(self):
         return self._predictions[self.current_stage]
 
     def _append_prediction(
         self,
-        predictions: List[Dict],
+        predictions: Union[List, Tuple, torch.Tensor],
         dl_idx: int,
         batch_indices: List[int],
         enable_predict_auto_id: bool
@@ -289,7 +289,7 @@ class PredictionCollection(object):
 
     def append(
         self,
-        predictions: List,
+        predictions: Union[List, Tuple, torch.Tensor],
         dl_idx: int,
         batch_indices: List[int],
         current_stage: str,
@@ -307,7 +307,7 @@ class PredictionCollection(object):
         self.current_stage = current_stage
 
         if enable_predict_auto_id:
-            assert isinstance(predictions, (list, torch.Tensor))
+            assert isinstance(predictions, (list, tuple, torch.Tensor))
             if batch_indices is None:
                 return
 
@@ -330,6 +330,10 @@ class PredictionCollection(object):
                 )
 
         self._append_prediction(predictions, dl_idx, batch_indices, enable_predict_auto_id)
+
+    @property
+    def should_finalize_predictions(self):
+        return len(self.predictions) > 0
 
     def finalize_predictions(self, results: List[Dict], current_stage: str) -> List[Dict]:
         """
