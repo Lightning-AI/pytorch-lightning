@@ -150,7 +150,7 @@ class CheckpointConnector:
         model.load_state_dict(checkpoint['state_dict'])
 
         # moves the model to the GPU
-        if (on_gpu is True) or ((not isinstance(on_gpu, bool)) and (on_gpu is not None)):
+        if on_gpu:
             model.cuda(self.trainer.root_gpu)
 
     def restore_training_state(self, checkpoint: Dict[str, Any]) -> None:
