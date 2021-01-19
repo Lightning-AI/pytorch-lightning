@@ -382,8 +382,8 @@ the possible class labels are 0, 1, 2, 3, etc. Below are some examples of differ
     ml_target = torch.tensor([[0, 1, 1], [1, 0, 0], [0, 0, 0]])
 
 
-Using the ``is_multiclass`` parameter
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using the is_multiclass parameter
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In some cases, you might have inputs which appear to be (multi-dimensional) multi-class
 but are actually binary/multi-label - for example, if both predictions and targets are
@@ -602,14 +602,14 @@ roc [func]
 precision [func]
 ~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision
+.. autofunction:: pytorch_lightning.metrics.functional.precision
     :noindex:
 
 
 precision_recall [func]
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall
+.. autofunction:: pytorch_lightning.metrics.functional.precision_recall
     :noindex:
 
 
@@ -623,7 +623,7 @@ precision_recall_curve [func]
 recall [func]
 ~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.recall
+.. autofunction:: pytorch_lightning.metrics.functional.recall
     :noindex:
 
 select_topk [func]

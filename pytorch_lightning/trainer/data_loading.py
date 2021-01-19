@@ -23,14 +23,13 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.trainer.supporters import CombinedLoader
 
 
 class TrainerDataLoadingMixin(ABC):
