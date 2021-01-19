@@ -301,10 +301,10 @@ class PytorchProfiler(BaseProfiler):
                  use_cuda=False,
                  record_shapes=False,
                  profile_memory=False,
-                 group_by_input_shape=True,
-                 with_stack=True,
+                 group_by_input_shape=False,
+                 with_stack=False,
                  use_kineto=False,
-                 use_cpu=True,
+                 use_cpu=False,
                  emit_nvtx=False,
                  export_to_chrome=False,
                  path_to_export_trace=None,
@@ -369,15 +369,15 @@ class PytorchProfiler(BaseProfiler):
             else:
                 self._create_profiler(action_name, torch.autograd.profiler.profile)
 
-    def _create_profiler(self, action_name, profiler, enter=False):
+    def _create_profiler(self, action_name, profiler, enter=True):
         init_args = inspect.signature(profiler.__init__).parameters
         profiler_args = {
             k: v for k, v in vars(self).items() if k in init_args
         }
-        profiler = profiler(**profiler_args)
+        pr = profiler(**profiler_args)
         if enter:
-            profiler = profiler.__enter__()
-        self.profiled_actions[action_name].append(profiler)
+            pr = pr.__enter__()
+        self.profiled_actions[action_name].append(pr)
 
     def stop(self, action_name: str) -> None:
         if action_name in self.PROFILED_FUNCTIONS and self.enabled:
