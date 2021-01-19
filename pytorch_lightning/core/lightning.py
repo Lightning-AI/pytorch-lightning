@@ -1166,7 +1166,7 @@ class LightningModule(
 
         Override for your own behavior
 
-        It works with `untoggle_optimizer` to make sure param_requires_grad_state is properly reset.
+        It works with ``untoggle_optimizer`` to make sure param_requires_grad_state is properly reset.
 
         Args:
             optimizer:
