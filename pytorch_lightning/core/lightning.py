@@ -1180,6 +1180,11 @@ class LightningModule(
                         param_requires_grad_state[param] = param.requires_grad
                         param.requires_grad = False
 
+        for group in optimizer.param_groups:
+            for param in group['params']:
+                if param in param_requires_grad_state:
+                    param.requires_grad = param_requires_grad_state[param]
+
         self._param_requires_grad_state = param_requires_grad_state
 
     def untoggle_optimizer(self, optimizer_idx: int):
@@ -1195,7 +1200,8 @@ class LightningModule(
             if optimizer_idx != opt_idx:
                 for group in opt.param_groups:
                     for param in group['params']:
-                        param.requires_grad = self._param_requires_grad_state[param]
+                        if param in self._param_requires_grad_state:
+                            param.requires_grad = self._param_requires_grad_state[param]
         # save memory
         del self._param_requires_grad_state
 
