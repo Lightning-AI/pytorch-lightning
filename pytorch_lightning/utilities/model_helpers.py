@@ -14,8 +14,8 @@
 
 from typing import Union
 
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.core.lightning import LightningModule
 
 
 def is_overridden(method_name: str, model: Union[LightningModule, LightningDataModule]) -> bool:

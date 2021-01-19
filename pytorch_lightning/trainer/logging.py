@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC
 import inspect
-from typing import Union, Mapping
+from abc import ABC
+from typing import Mapping, Union
 
 import torch
 
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import DeviceType, DistributedType
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities.memory import recursive_detach
 
 
 class TrainerLoggingMixin(ABC):
