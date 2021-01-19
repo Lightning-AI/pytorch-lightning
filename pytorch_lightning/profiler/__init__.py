@@ -188,14 +188,7 @@ To visualize the profiled operation, you can either:
 
 * Use: nvvp trace_name.prof
 
-* Use: torch.autograd.profiler.load_nvprof(path)
-
-.. code-block:: python
-
-    >>> import torch
-    >>> torch.autograd.profiler.load_nvprof(".../trace_name.prof")
-    [<FunctionEvent id=2 node_id=0 cpu_time=2050.393s ... is_remote=True seq_nr=-1>]
-
+* Use: python -c 'import torch; print(torch.autograd.profiler.load_nvprof("trace_name.prof"))'
 
 """
 
