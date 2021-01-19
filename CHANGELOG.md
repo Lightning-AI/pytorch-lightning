@@ -57,6 +57,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `Recall` and `Precision` metrics (and their functional counterparts `recall` and `precision`) can now be generalized to Recall@K and Precision@K with the use of `top_k` parameter ([#4842](https://github.com/PyTorchLightning/pytorch-lightning/pull/4842))
 
 
+- Added `PytorchProfiler` ([#5560](https://github.com/PyTorchLightning/pytorch-lightning/pull/5560))
+
 
 ### Changed
 
