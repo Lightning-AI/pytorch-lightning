@@ -116,7 +116,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Forced `ModelCheckpoint` callbacks to run after all others to guarantee all states are saved to the checkpoint ([#5731](https://github.com/PyTorchLightning/pytorch-lightning/pull/5731))
 
 
-- Refactored Accelerators and Plugins 
+- Refactored Accelerators and Plugins
     * Added base classes for plugins ([#5715](https://github.com/PyTorchLightning/pytorch-lightning/pull/5715))
     * Added parallel plugins for DP, DDP, DDPSpawn, DDP2 and Horovod ([#5714](https://github.com/PyTorchLightning/pytorch-lightning/pull/5714))
     * Added new Accelerators for CPU, GPU and TPU ([#5719](https://github.com/PyTorchLightning/pytorch-lightning/pull/5719))
@@ -153,6 +153,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed `LoggerStages` ([#5673](https://github.com/PyTorchLightning/pytorch-lightning/pull/5673))
+
+## [unreleased.Bugfixes] - YYYY-MM-DD
+
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+
+### Removed
 
 
 ### Fixed
