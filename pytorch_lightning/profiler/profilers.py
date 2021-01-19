@@ -16,6 +16,7 @@
 
 import cProfile
 import io
+import inspect
 import os
 import pstats
 import time
@@ -299,10 +300,16 @@ class PytorchProfiler(BaseProfiler):
                  output_filename: Optional[str] = None,
                  enabled=True,
                  use_cuda=True,
-                 record_shapes=True,
-                 profile_memory=True,
+                 record_shapes=False,
+                 profile_memory=False,
                  group_by_input_shape=True,
-                 sort_by_key: str = "self_cuda_memory_usage"):
+                 with_stack=True,
+                 use_kineto=False,
+                 use_cpu = True,
+                 emit_nvtx=False,
+                 export_to_chrome=False,
+                 path_to_export_trace=None,
+                 sort_by_key: str = "cpu_time_total"):
         """
         Args:
             output_filename: optionally save profile results to file instead of printing
@@ -311,15 +318,32 @@ class PytorchProfiler(BaseProfiler):
             use_cuda: Enables timing of CUDA events as well using the cudaEvent API. 
                 Adds approximately 4us of overhead to each tensor operation. Default: True
             record_shapes:  If shapes recording is set, information about input dimensions will be collected.
-            profile_memory: Whether to report memory usage, default: True
-        """
+            profile_memory: Whether to report memory usage, default: True (1.6.0)
+            with_stack: record source information (file and line number) for the ops (1.7.0)
+            use_kineto: experimental support for Kineto profiler (1.8.0)
+            use_cpu: use_kineto=True and can be used to lower the overhead for GPU-only profiling (1.8.0)
+            emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
+                * Run: nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
+                To visualize, you can either use:
+                    * nvvp trace_name.prof
+                    * torch.autograd.profiler.load_nvprof(path)
+            export_to_chrome: Wether to export the sequence of profiled operators for Chrome.
+            sort_by_key: Keys to sort out profiled table
+            path_to_export_trace: Path to exported traces. By default, it will be save where the file being is being run.
+        """ 
         self.profiled_actions = {}
         self.enabled = enabled
         self.use_cuda = use_cuda
         self.record_shapes = record_shapes
         self.profile_memory = profile_memory
         self.sort_by_key = sort_by_key
+        self.with_stack = with_stack
         self.group_by_input_shape = group_by_input_shape and record_shapes
+        self.use_kineto = use_kineto
+        self.use_cpu = use_cpu
+        self.emit_nvtx = emit_nvtx
+        self.export_to_chrome = export_to_chrome
+        self.path_to_export_trace = path_to_export_trace
         if self.sort_by_key not in self.available_sort_by_keys:
             raise MisconfigurationException(
                 f"Found sort_by_key: {sort_by_key}. Should be within {self.available_sort_by_keys}. ")
@@ -334,39 +358,73 @@ class PytorchProfiler(BaseProfiler):
         super().__init__(output_streams=streaming_out)
 
     def start(self, action_name: str) -> None:
-        # PyTorch profiler doesn't seem to work with multiple processes
+        # PyTorch Profiler doesn't seem to work with multiple processes
+        # Disable Profiler.
         self.enabled = os.getenv("LOCAL_RANK", None) is None
         if action_name not in self.profiled_actions and action_name in self.PROFILED_FUNCTIONS:
-            self.profiled_actions[action_name] = torch.autograd.profiler.profile(
-                enabled=self.enabled,
-                use_cuda=self.use_cuda,
-                record_shapes=self.record_shapes,
-                profile_memory=self.profile_memory).__enter__()
+            self.profiled_actions[action_name] = []
+            if self.emit_nvtx:
+                self._create_profiler(action_name, torch.cuda.profiler.profile, enter=False)
+                # warmup
+                x = torch.rand(100, 100, device='cuda')
+                temp = x * x
+                self._create_profiler(action_name, torch.autograd.profiler.emit_nvtx)
+            else:
+                self._create_profiler(action_name, torch.autograd.profiler.profile)
+
+    def _create_profiler(self, action_name, profiler, enter=False):
+        init_args = inspect.signature(profiler.__init__).parameters
+        profiler_args = {
+            k: v for k, v in vars(self).items() if k in init_args
+        }
+        profiler = profiler(**profiler_args)
+        if enter:
+            profiler = profiler.__enter__()
+        self.profiled_actions[action_name].append(profiler)
 
     def stop(self, action_name: str) -> None:
         if action_name in self.PROFILED_FUNCTIONS and self.enabled:
-            pr = self.profiled_actions.get(action_name)
-            if pr is None:
+            profilers = self.profiled_actions.get(action_name)
+            if not profilers:
                 raise ValueError(  # pragma: no-cover
                     f"Attempting to stop recording an action ({action_name}) which was never started."
                 )
-            
-            # todo: Find a better solution to exit context manager
-            try:
-                _ = pr.__exit__(None, None, None)
-            except RuntimeError as e:
-                if "Expected debug info of type 2" in str(e):
-                    pass
-                else:
-                    raise RuntimeError(str(e))
+            else:
+                for pr in profilers[::-1]:
+                    self._handle_exit(pr)
+
+    def _handle_exit(self, pr):
+        # todo: Find a better solution to exit context manager
+        if pr is None:
+            return
+        try:
+            _ = pr.__exit__(None, None, None)
+        except RuntimeError as e:
+            if "Expected debug info of type 2" in str(e):
+                pass
+            elif "can't disable profiler when it's not running" in str(e):
+                pass
+            elif "generator didn't stop" in str(e):
+                pass
+            else:
+                raise RuntimeError(str(e))        
 
     def summary(self) -> str:
         recorded_stats = {}
         if self.enabled:
             for action_name, pr in self.profiled_actions.items():
-                table = self.profiled_actions[action_name].key_averages(
-                    group_by_input_shape=self.group_by_input_shape).table(sort_by=self.sort_by_key)
-                recorded_stats[action_name] = table
+                pr = pr[-1]
+                if self.export_to_chrome:
+                    filename = f"{action_name}_trace.json"
+                    path_to_trace = filename if self.path_to_export_trace is None \
+                        else os.path.join(self.path_to_export_trace, filename)
+                    pr.export_chrome_trace(path_to_trace)
+                if self.emit_nvtx:
+                    return ""
+                else:
+                    table = pr.key_averages(
+                        group_by_input_shape=self.group_by_input_shape).table(sort_by=self.sort_by_key)
+                    recorded_stats[action_name] = table
 
             # log to standard out
             output_string = f"{os.linesep}Profiler Report{os.linesep}"
