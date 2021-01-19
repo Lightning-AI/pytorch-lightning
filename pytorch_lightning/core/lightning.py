@@ -1166,6 +1166,8 @@ class LightningModule(
 
         Override for your own behavior
 
+        It works with `untoggle_optimizer` to make sure param_requires_grad_state is properly reset.
+
         Args:
             optimizer:
             optimizer_idx:
@@ -1182,9 +1184,6 @@ class LightningModule(
 
     def untoggle_optimizer(self, optimizer_idx: int):
         """
-        Makes sure only the gradients of the current optimizer's parameters are calculated
-        in the training step to prevent dangling gradients in multiple-optimizer setup.
-
         .. note:: Only called when using multiple optimizers
 
         Override for your own behavior
