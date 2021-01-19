@@ -1449,8 +1449,7 @@ class PredictModel(BoringModel):
         return self.layer(batch)
 
 
-def test_trainer_predict(tmpdir):
-
+def predict(accelerator, gpus):
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 64)),
                    torch.utils.data.DataLoader(RandomDataset(32, 64))]
 
@@ -1464,8 +1463,8 @@ def test_trainer_predict(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
-        gpus=2,
-        accelerator="ddp_spawn"
+        gpus=gpus,
+        accelerator=accelerator
     )
     results = trainer.predict(model, dataloaders)
     print(results)

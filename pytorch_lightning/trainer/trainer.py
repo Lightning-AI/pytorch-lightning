@@ -482,7 +482,7 @@ class Trainer(
         # TRAIN
         # ----------------------------
         # hook
-        self.running_stage = RunningStage.TRAINING
+        self._set_running_stage(RunningStage.TRAINING)
         self.call_hook('on_fit_start')
         results = self.accelerator_backend.train()
         self.running_stage = RunningStage.UNDEFINED
@@ -795,8 +795,7 @@ class Trainer(
     def predict(
         self,
         model: Optional[LightningModule] = None,
-        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        ckpt_path: Optional[str] = 'best',
+        dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         verbose: bool = True,
     ):
         r"""
@@ -809,7 +808,7 @@ class Trainer(
 
             model: The model to test.
 
-            test_dataloaders: Either a single
+            dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying inference samples.
 
             verbose: If True, prints the test results
@@ -823,9 +822,9 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
-        if not test_dataloaders:
+        if not dataloaders:
             raise MisconfigurationException(
-                'You need to pass test_dataloaders to trainer.predict. '
+                'You need to pass dataloaders to trainer.predict. '
             )
 
         if model is None:
@@ -834,8 +833,8 @@ class Trainer(
             )
 
         # attach data
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+        if dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
 
         self.running_stage = RunningStage.PREDICTING
         self.testing = True

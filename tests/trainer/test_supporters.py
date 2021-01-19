@@ -250,6 +250,21 @@ class TestModel(BoringModel):
 
         return {"y": loss}
 
+    def predict(self, batch, batch_idx, dataloader_idx=None):
+        x = batch["batch"]
+        output = self.layer(x)
+        loss = self.loss(batch, output)
+
+        if self.enable_predict_auto_id:
+            if dataloader_idx == 1:
+                return [{"a": o, "b": o} for _, o in enumerate(output)]
+            else:
+                return output
+        else:
+            return [
+                {"id": idx.item(), "predictions": o}
+                for idx, o in zip(batch["index"], output)]      
+
     def create_dataset(self):
         if self._failure == 3:
             return CustomDataLoader2(IndexedRandomDataset(32, 64), batch_size=2)
@@ -279,39 +294,37 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
         size = gpus
 
     model = TestModel(num_dl_idx, save_preds_on_dl_idx, failure, enable_predict_auto_id)
-    model.test_epoch_end = None
+
+    dataloaders = model.test_dataloader()
 
     trainer = Trainer(**trainer_args)
     if failure == 1:
         try:
-            results: List = trainer.test(model)
+            results: List = trainer.predict(model, dataloaders)
         except MisconfigurationException as e:
             assert "Missing attributes are {'num_features'}." in str(e)
             return
 
     elif failure == 2:
         with pytest.warns(UserWarning, match='wrap your BatchSampler in your'):
-            results: List = trainer.test(model)
+            results: List = trainer.predict(model, dataloaders)
         assert 'y' in results[0]
         return
     else:
-        results: List = trainer.test(model)
+        results: List = trainer.predict(model, dataloaders)
 
     assert len(results) == num_dl_idx
     for dl_idx in range(num_dl_idx):
         result = results[dl_idx]
-        if not save_preds_on_dl_idx and num_dl_idx == 2 and dl_idx == 1:
-            assert "predictions" not in result
-        else:
-            assert "predictions" in result
-            predictions = result["predictions"]
-            assert len(predictions) == limit_test_batches * 2 * size
-            for idx, pred in enumerate(predictions):
-                assert pred["id"] == idx
-                if dl_idx == 1 and enable_predict_auto_id:
-                    assert 'a' in pred["predictions"] and 'b' in pred["predictions"]
-                else:
-                    assert isinstance(pred["predictions"], list) and len(pred["predictions"]) == 2
+        assert "predictions" in result
+        predictions = result["predictions"]
+        assert len(predictions) == limit_test_batches * 2 * size
+        for idx, pred in enumerate(predictions):
+            assert pred["id"] == idx
+            if dl_idx == 1 and enable_predict_auto_id:
+                assert 'a' in pred["predictions"] and 'b' in pred["predictions"]
+            else:
+                assert isinstance(pred["predictions"], list) and len(pred["predictions"]) == 2
 
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
@@ -338,16 +351,14 @@ def test_misconfiguration_on_dataloader(tmpdir, failure):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
-@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
-@pytest.mark.parametrize('num_dl_idx', [1, 2])
 @pytest.mark.parametrize('enable_predict_auto_id', [False, True])
-def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, num_dl_idx, enable_predict_auto_id):
+def test_prediction_collection_1_gpu(tmpdir, enable_predict_auto_id):
     """
     Test `PredictionCollection` reduce properly in 1 gpu mode
     """
     check_prediction_collection(
-        tmpdir, save_preds_on_dl_idx, None,
-        1, num_dl_idx, enable_predict_auto_id=enable_predict_auto_id)
+        tmpdir, True, None,
+        1, 1, enable_predict_auto_id=enable_predict_auto_id)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")

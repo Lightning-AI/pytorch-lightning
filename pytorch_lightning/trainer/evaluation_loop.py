@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List
+from typing import List, Union
 
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -195,7 +195,8 @@ class EvaluationLoop(object):
         if self.trainer.running_stage == RunningStage.PREDICTING:
             model_ref._current_fx_name = "predict"
             output = self.trainer.accelerator_backend.predict(args)
-            return output
+            self.add_predictions(output)
+            return
         
         elif self.testing:
             model_ref._current_fx_name = "test_step"
@@ -325,8 +326,33 @@ class EvaluationLoop(object):
 
         return eval_results
 
+    def add_predictions(self, predictions: Union[torch.Tensor, List]) -> None:
+        """
+        Args:
+            predictions: Predictions to be saved by the user. Should either be a ``torch.Tensor``
+                or a list of dictionaries containing tensors.
+
+        Return:
+            None
+        """
+        model_ref = self.trainer.get_model()
+        dl_idx = model_ref._current_dataloader_idx or 0
+        self.trainer.predictions.append(
+            predictions,
+            dl_idx,
+            self.trainer.evaluation_loop.batch_indices,
+            self.trainer.running_stage,
+            self.trainer.evaluation_loop.enable_predict_auto_id
+        )
+
     def prediction_epoch_end(self):
-        return [dl_idx for dl_idx in range(self.num_dataloaders)], []
+        results = [{} for _ in range(self.num_dataloaders)]
+
+        # add predictions to results object if add_predictions was used in test_step.
+        if self.trainer.predictions.should_finalize_predictions:
+            results = self.trainer.predictions.finalize_predictions(results, self.trainer.running_stage)
+
+        return results, None
 
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # save batch indices
