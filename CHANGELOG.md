@@ -51,6 +51,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `IoU` class interface ([#4704](https://github.com/PyTorchLightning/pytorch-lightning/pull/4704))
 
 
+- Added mechanism to return `predictions` in `results` object from `trainer.test(...)` using `self.add_predictions` in `LightningModule` ([#5468](https://github.com/PyTorchLightning/pytorch-lightning/pull/5468))
+
+
 - Added missing val/test hooks in `LightningModule` ([#5467](https://github.com/PyTorchLightning/pytorch-lightning/pull/5467))
 
 

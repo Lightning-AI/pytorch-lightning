@@ -136,6 +136,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         enable_pl_optimizer: bool = False,
         multiple_trainloader_mode: str = 'max_size_cycle',
+        enable_predict_auto_id: bool = True
     ):
         r"""
         Customize every aspect of training via flags
@@ -290,6 +291,12 @@ class Trainer(
                 In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
+
+            enable_predict_auto_id: Explicitly enables or disables sampler replacement.
+                This would be used in `LightningModule.add_predictions` function to automatically
+                associate each sample to its prediction.
+                When set to False, one can still use `LightningModule.add_predictions` by providing a key `id`.
+                The user can get this `id` by returning the index given to their datasets __getittem__ function.
         """
         super().__init__()
         self._device_type = DeviceType.CPU
@@ -383,7 +390,7 @@ class Trainer(
             automatic_optimization,
             weights_summary,
         )
-        self.evaluation_loop.on_trainer_init()
+        self.evaluation_loop.on_trainer_init(enable_predict_auto_id)
 
         # configure tuner
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
@@ -600,7 +607,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_start()
 
         # set up the eval loop
-        self.evaluation_loop.setup(model, max_batches, dataloaders)
+        dataloaders = self.evaluation_loop.setup(model, max_batches, dataloaders)
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_start()
@@ -646,7 +653,7 @@ class Trainer(
             return self.evaluation_loop.prediction_epoch_end()
 
         # lightning module method
-        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
+        eval_results = self.evaluation_loop.evaluation_epoch_end()
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
@@ -664,7 +671,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_model_train()
         torch.set_grad_enabled(True)
 
-        return eval_loop_results, deprecated_eval_results
+        return eval_loop_results, eval_results
 
     def track_output_for_epoch_end(self, outputs, output):
         if output is not None:
@@ -757,7 +764,7 @@ class Trainer(
             verbose: If True, prints the test results
 
         Returns:
-            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
+            Returns a list of dictionaries for each test dataloder
         """
         # --------------------
         # SETUP HOOK

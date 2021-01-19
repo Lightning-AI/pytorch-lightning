@@ -27,6 +27,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -307,6 +308,10 @@ class TrainerProperties(ABC):
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
 
         return kwargs
+
+    @property
+    def predictions(self) -> PredictionCollection:
+        return self.evaluation_loop.predictions
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
