@@ -50,8 +50,7 @@ class CheckpointConnector:
         self.has_trained = False
 
     def attempt_to_restore(self) -> None:
-        """
-        Attempt to restore model/training states.
+        """Attempt to restore model/training states.
         """
         # clear cache before restore
         if self.trainer._device_type == DeviceType.GPU:
@@ -69,11 +68,12 @@ class CheckpointConnector:
             torch.cuda.empty_cache()
 
     def attempt_to_apply_checkpoint(self, model: LightningModule) -> bool:
-        """
-        Attempt to apply checkpoint states to model/training in this priority:
-        1. from HPC weights
-        2. from `resume_from_checkpoint` file
-        3. don't apply
+        """Attempt to apply checkpoint states to model/training with priority.
+        
+        Priority:
+            1. from HPC weights
+            2. from `resume_from_checkpoint` file
+            3. don't apply
 
         Returns:
             True if applied else False
@@ -116,7 +116,8 @@ class CheckpointConnector:
             checkpoint_path: str,
             on_gpu: bool,
     ) -> Dict[str, Any]:
-        """
+        """Restore all states from checkpoint in the specified path.
+        
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
         All restored states are listed in return value description of `dump_checkpoint`.
 
@@ -140,8 +141,7 @@ class CheckpointConnector:
         model: LightningModule,
         on_gpu: bool,
     ) -> None:
-        """
-        Restore model state.
+        """Restore model state.
         """
         # hook: give user access to checkpoint if needed.
         model.on_load_checkpoint(checkpoint)
@@ -154,8 +154,8 @@ class CheckpointConnector:
             model.cuda(self.trainer.root_gpu)
 
     def restore_training_state(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Restore trainer state.
+        """Restore trainer state.
+        
         Model will get its change to update
         :param checkpoint:
         :return:
