@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, Optional, Union, Callable
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
