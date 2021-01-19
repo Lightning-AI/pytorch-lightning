@@ -168,6 +168,12 @@ class ProgressBarBase(Callback):
         """
         raise NotImplementedError
 
+    def print(self, *args):
+        """
+        You should provide a way to print without breaking the progress bar.
+        """
+        raise NotImplementedError
+
     def on_init_end(self, trainer):
         self._trainer = trainer
 
