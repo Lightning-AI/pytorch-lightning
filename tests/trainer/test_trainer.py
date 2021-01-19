@@ -14,6 +14,7 @@
 import math
 import os
 import pickle
+from pytorch_lightning.accelerators import accelerator
 import sys
 from argparse import Namespace
 from copy import deepcopy
@@ -1442,17 +1443,13 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
                              r" are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)
 
+class PredictModel(BoringModel):
+
+    def predict(self, batch, batch_idx, dataloader_idx):
+        return self.layer(batch)
+
 
 def test_trainer_predict(tmpdir):
-
-    class PredictModel(BoringModel):
-
-        def predict(self, batch, batch_idx, dataloader_idx):
-            return self.layer(batch)
-
-        def test_dataloader(self):
-            return [torch.utils.data.DataLoader(RandomDataset(32, 64)),
-                    torch.utils.data.DataLoader(RandomDataset(32, 64))]
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 64)),
                    torch.utils.data.DataLoader(RandomDataset(32, 64))]
@@ -1467,6 +1464,8 @@ def test_trainer_predict(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
+        gpus=2,
+        accelerator="ddp_spawn"
     )
     results = trainer.predict(model, dataloaders)
     print(results)

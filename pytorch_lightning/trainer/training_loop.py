@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.trainer.states import RunningStage
 
 
 class TrainLoop:
@@ -598,8 +599,9 @@ class TrainLoop:
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.run_evaluation(test_mode=False)
+                
                 # reset stage to train
-                self.trainer.logger_connector.set_stage("train")
+                self.trainer._set_running_stage(RunningStage.TRAINING)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)

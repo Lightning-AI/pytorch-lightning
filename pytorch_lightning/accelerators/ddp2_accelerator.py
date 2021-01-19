@@ -66,6 +66,9 @@ class DDP2Accelerator(Accelerator):
     def test_step(self, args):
         return self._step(args)
 
+    def predict(self, args):
+        return self._step(args)    
+
     def _step(self, args):
         args = self.ddp_plugin.on_before_forward(self.trainer.get_model(), *args)
         if self.trainer.amp_backend == AMPType.NATIVE:

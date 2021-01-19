@@ -497,11 +497,18 @@ class Trainer(
             self._state = TrainerState.FINISHED
         return results or 1
 
+    def _set_running_stage(self, stage):
+        # predicting is special and should override the others
+        if self.running_stage == RunningStage.PREDICTING:
+            stage = RunningStage.PREDICTING
+        self.get_model().running_stage = stage
+        self.running_stage = stage
+
     def train(self):
         self.run_sanity_check(self.get_model())
 
         # set stage for logging
-        self.logger_connector.set_stage("train")
+        self._set_running_stage(RunningStage.TRAINING)
 
         self.checkpoint_connector.has_trained = False
 
@@ -563,7 +570,8 @@ class Trainer(
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
 
         # used to know if we are logging for val, test + reset cached results
-        self.logger_connector.set_stage(test_mode, reset=True)
+        self._set_running_stage(RunningStage.TESTING if test_mode else RunningStage.EVALUATING)
+        self.logger_connector.reset()
 
         # bookkeeping
         self.evaluation_loop.testing = test_mode
@@ -750,8 +758,8 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         self.verbose_test = verbose
-
-        self.logger_connector.set_stage("test")
+        self.running_stage = RunningStage.TESTING
+        self._set_running_stage(RunningStage.TESTING)
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -768,6 +776,7 @@ class Trainer(
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
         self.teardown('test')
+        self.running_stage = RunningStage.UNDEFINED
 
         return results
 
