@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.core.lightning import LightningModule
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType
 from tests.base import BoringModel

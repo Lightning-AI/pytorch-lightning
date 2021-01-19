@@ -14,9 +14,9 @@
 import glob
 import logging as log
 import os
-from pathlib import Path
 import pickle
 from copy import deepcopy
+from pathlib import Path
 from typing import Optional
 
 import cloudpickle
