@@ -26,7 +26,6 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, parsing, TPU_AVAILABLE
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -945,13 +944,6 @@ class TrainLoop:
 
         # use to track metrics internally
         self.trainer.logger_connector.on_train_split_start(split_idx, opt_idx, split_batch)
-
-        # set requieres_grad to True for all tensors
-        def _convert(value):
-            value.requieres_grad = True
-            return value
-
-        split_batch = apply_to_collection(split_batch, torch.Tensor, _convert)
 
     def update_running_loss(self):
         accumulated_loss = self.accumulated_loss.mean()
