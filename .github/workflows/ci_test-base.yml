@@ -1,9 +1,9 @@
-name: CI base testing
+name: CI basic testing
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
 

@@ -362,7 +362,7 @@ project module) you can use the following method:
 .. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
-    trainer = Trainer(gpus=8, accelerator='ddp')
+    trainer = Trainer(gpus=8, accelerator='ddp_spawn')
 
 We STRONGLY discourage this use because it has limitations (due to Python and PyTorch):
 
@@ -654,7 +654,7 @@ To use Sharded Training, you need to first install FairScale using the command b
 
 .. code-block:: bash
 
-    pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.1.0.zip
+    pip install fairscale
 
 
 .. code-block:: python
@@ -681,7 +681,7 @@ Reference: https://arxiv.org/abs/1811.06965
 
 .. note:: DDPSequentialPlugin is currently supported only for Pytorch 1.6.
 
-To get started, install FairScale using the command below.
+To get started, install FairScale using the command below. We install a specific branch which contains PyTorch related fixes for Sequential Parallelism.
 
 .. code-block:: bash
 

@@ -54,7 +54,7 @@ class NativeAMPPlugin(PrecisionPlugin):
         # unscale gradient to allow analyze within `on_after_backward`
         if not self.trainer.train_loop.should_accumulate() and automatic_optimization:
             if isinstance(optimizer, LightningOptimizer):
-                self.trainer.scaler.unscale_(optimizer._optimizer)
+                self.trainer.scaler.unscale_(optimizer.optimizer)
             else:
                 self.trainer.scaler.unscale_(optimizer)
 

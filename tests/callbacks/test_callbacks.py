@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import ANY, MagicMock, call
+from unittest.mock import ANY, call, MagicMock
 
 from pytorch_lightning import Trainer
 from tests.base import BoringModel
@@ -33,8 +33,6 @@ def test_trainer_callback_system(torch_save):
         limit_train_batches=3,
         limit_test_batches=2,
         progress_bar_refresh_rate=0,
-        # todo: enabled since internally we wrap the model for optimizer step, this should be fixed
-        enable_pl_optimizer=True
     )
 
     # no call yet
@@ -111,8 +109,6 @@ def test_trainer_callback_system(torch_save):
         call.on_init_end(trainer),
         call.setup(trainer, model, 'test'),
         call.on_fit_start(trainer, model),
-        call.on_pretrain_routine_start(trainer, model),
-        call.on_pretrain_routine_end(trainer, model),
         call.on_test_start(trainer, model),
         call.on_test_epoch_start(trainer, model),
         call.on_test_batch_start(trainer, model, ANY, 0, 0),
