@@ -475,8 +475,10 @@ class Trainer(
         # TRAIN
         # ----------------------------
         # hook
+        self.running_stage = RunningStage.TRAINING
         self.call_hook('on_fit_start')
         results = self.accelerator_backend.train()
+        self.running_stage = RunningStage.UNDEFINED
         self.accelerator_backend.teardown()
 
         # ----------------------------
@@ -498,10 +500,13 @@ class Trainer(
         return results or 1
 
     def _set_running_stage(self, stage):
+        model_ref = self.get_model()
         # predicting is special and should override the others
         if self.running_stage == RunningStage.PREDICTING:
             stage = RunningStage.PREDICTING
-        self.get_model().running_stage = stage
+        
+        if model_ref is not None:
+            model_ref.running_stage = stage
         self.running_stage = stage
 
     def train(self):
