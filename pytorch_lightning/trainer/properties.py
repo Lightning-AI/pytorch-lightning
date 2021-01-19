@@ -27,6 +27,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -36,7 +37,6 @@ from pytorch_lightning.utilities.argparse import (
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.trainer.supporters import PredictionCollection
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
