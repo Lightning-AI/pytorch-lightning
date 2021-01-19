@@ -53,7 +53,7 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
@@ -476,7 +476,6 @@ class Trainer(
         # ----------------------------
         # hook
         self.call_hook('on_fit_start')
-
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
 
@@ -614,6 +613,8 @@ class Trainer(
                 # lightning module methods
                 with self.profiler.profile("evaluation_step_and_end"):
                     output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                    if self.running_stage == RunningStage.PREDICTING:
+                        continue
                     output = self.evaluation_loop.evaluation_step_end(output)
 
                 # hook + store predictions
@@ -627,6 +628,9 @@ class Trainer(
 
             # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
+
+        if self.running_stage == RunningStage.PREDICTING:
+            return self.evaluation_loop.prediction_epoch_end()
 
         # lightning module method
         deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
@@ -763,6 +767,61 @@ class Trainer(
         else:
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
+        self.teardown('test')
+
+        return results
+
+    def predict(
+        self,
+        model: Optional[LightningModule] = None,
+        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        ckpt_path: Optional[str] = 'best',
+        verbose: bool = True,
+    ):
+        r"""
+
+        Separates from fit to make sure you never run on your test set until you want to.
+
+        Args:
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
+                If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
+            model: The model to test.
+
+            test_dataloaders: Either a single
+                Pytorch Dataloader or a list of them, specifying inference samples.
+
+            verbose: If True, prints the test results
+
+        Returns:
+            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
+        """
+
+        # --------------------
+        # SETUP HOOK
+        # --------------------
+        self.verbose_test = verbose
+
+        if not test_dataloaders:
+            raise MisconfigurationException(
+                'You need to pass test_dataloaders to trainer.predict. '
+            )
+
+        if model is None:
+            raise MisconfigurationException(
+                'You need to pass a model to trainer.predict .'
+            )
+
+        # attach data
+        if test_dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+
+        self.running_stage = RunningStage.PREDICTING
+        self.testing = True
+        self.model = model
+        results = self.fit(model)
+        self.running_stage = RunningStage.UNDEFINED
+        self.testing = False
         self.teardown('test')
 
         return results

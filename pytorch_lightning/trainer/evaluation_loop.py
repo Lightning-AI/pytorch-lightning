@@ -14,6 +14,7 @@
 import torch
 
 from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -169,7 +170,11 @@ class EvaluationLoop(object):
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
         # run actual test step
-        if self.testing:
+        if self.trainer.running_stage == RunningStage.PREDICTING:
+            model_ref._current_fx_name = "predict"
+            output = self.trainer.accelerator_backend.predict(args)
+            self.outputs.append(output)
+        elif self.testing:
             model_ref._current_fx_name = "test_step"
             output = self.trainer.accelerator_backend.test_step(args)
         else:
@@ -295,6 +300,9 @@ class EvaluationLoop(object):
             eval_results.append(result)
 
         return eval_results
+
+    def prediction_epoch_end(self):
+        return [dl_idx for dl_idx in range(self.num_dataloaders)], []
 
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # set dataloader_idx to model and track batch_size

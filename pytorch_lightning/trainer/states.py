@@ -43,9 +43,11 @@ class RunningStage(LightningEnum):
     >>> RunningStage.TRAINING == 'train'
     True
     """
+    UNDEFINED = None
     TRAINING = 'train'
     EVALUATING = 'eval'
     TESTING = 'test'
+    PREDICTING = 'predict'
     TUNING = 'tune'
 
 

@@ -14,16 +14,16 @@
 
 """nn.Module with additional great features."""
 
-from abc import ABC
-from argparse import Namespace
 import collections
 import copy
-from functools import partial
 import inspect
 import os
-from pathlib import Path
 import re
 import tempfile
+from abc import ABC
+from argparse import Namespace
+from functools import partial
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -978,6 +978,11 @@ class LightningModule(
                             final_value += test_step_out
 
                     self.log('final_metric', final_value)
+        """
+
+    def predict(self, *args, **kwargs):
+        """
+        TODO:
         """
 
     def configure_optimizers(

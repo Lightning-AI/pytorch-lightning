@@ -36,7 +36,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel, EvalModelTemplate
+from tests.base import BoringModel, EvalModelTemplate, RandomDataset
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1441,3 +1441,32 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
                        match=r"Only None, bool, str and subclasses of `BaseProfiler`"
                              r" are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)
+
+
+def test_trainer_predict(tmpdir):
+
+    class PredictModel(BoringModel):
+
+        def predict(self, batch, batch_idx, dataloader_idx):
+            return self.layer(batch)
+
+        def test_dataloader(self):
+            return [torch.utils.data.DataLoader(RandomDataset(32, 64)),
+                    torch.utils.data.DataLoader(RandomDataset(32, 64))]
+
+    dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 64)),
+                   torch.utils.data.DataLoader(RandomDataset(32, 64))]
+
+    model = PredictModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0,
+        limit_val_batches=0,
+        limit_test_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    results = trainer.predict(model, dataloaders)
+    print(results)

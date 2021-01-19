@@ -28,6 +28,8 @@ from torch.nn.parallel._functions import Gather
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -187,15 +189,26 @@ class LightningDistributedModule(torch.nn.Module):
         self.module = pl_module
 
     def forward(self, *inputs, **kwargs):
-        if self.module.training:
+
+        if self.module.running_state == RunningStage.TRAINING:
             output = self.module.training_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "training_step")
-        elif self.module.testing:
+
+        elif self.module.running_state == RunningStage.TESTING:
             output = self.module.test_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "test_step")
-        else:
+
+        elif self.module.running_state == RunningStage.EVALUATING:
             output = self.module.validation_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "validation_step")
+
+        elif self.module.running_state == RunningStage.PREDICTING:
+            output = self.module.predict(*inputs, **kwargs)
+            warn_if_output_is_none(output, "predict")
+
+        else:
+            raise MisconfigurationException("running_stage shoud be define")
+
         return output
 
 
