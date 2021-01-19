@@ -30,6 +30,7 @@ PROFILERS = {
     "pytorch": PytorchProfiler
 }
 
+
 class ProfilerConnector:
 
     def __init__(self, trainer):

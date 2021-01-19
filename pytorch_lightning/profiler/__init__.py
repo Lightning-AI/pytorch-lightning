@@ -118,17 +118,16 @@ to track and the profiler will record performance for code executed within this 
 PyTorch Profiling
 --------------------
 
-Autograd includes a profiler that lets you inspect the cost of different operators inside your model - both on the CPU and GPU. 
-
-.. _cProfiler: https://docs.python.org/3/library/profile.html#module-cProfile
+Autograd includes a profiler that lets you inspect the cost of different operators
+inside your model - both on the CPU and GPU.
 
 .. code-block:: python
 
-    trainer = Trainer(..., profiler="advanced")
+    trainer = Trainer(..., profiler="pytorch")
 
     or
 
-    profiler = AdvancedProfiler()
+    profiler = PytorchProfiler()
     trainer = Trainer(..., profiler=profiler)
 
 The profiler's results will be printed at the completion of a training `fit()`. This profiler

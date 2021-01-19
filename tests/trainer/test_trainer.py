@@ -1463,13 +1463,3 @@ def test_pytorch_profiler(tmpdir):
     )
 
     trainer.fit(model)
-
-
-def test_pytorch_profiler_2(tmpdir):
-    print(f'Version = {torch.__version__}')
-
-    x = torch.rand(100, 100, device='cuda')
-
-    with torch.cuda.profiler.profile():
-        with torch.autograd.profiler.emit_nvtx():
-            temp = x * x
