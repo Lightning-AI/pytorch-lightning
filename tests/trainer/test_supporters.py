@@ -18,12 +18,12 @@ import torch
 from torch.utils.data import TensorDataset
 
 from pytorch_lightning.trainer.supporters import (
-    CycleIterator,
-    CombinedLoader,
-    CombinedDataset,
-    CombinedLoaderIterator,
-    TensorRunningAccum,
     _nested_calc_num_data,
+    CombinedDataset,
+    CombinedLoader,
+    CombinedLoaderIterator,
+    CycleIterator,
+    TensorRunningAccum,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
