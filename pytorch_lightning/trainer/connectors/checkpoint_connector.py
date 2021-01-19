@@ -69,7 +69,7 @@ class CheckpointConnector:
 
     def attempt_to_apply_checkpoint(self, model: LightningModule) -> bool:
         """Attempt to apply checkpoint states to model/training with priority.
-        
+
         Priority:
             1. from HPC weights
             2. from `resume_from_checkpoint` file
@@ -117,7 +117,7 @@ class CheckpointConnector:
             on_gpu: bool,
     ) -> Dict[str, Any]:
         """Restore all states from checkpoint in the specified path.
-        
+
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
         All restored states are listed in return value description of `dump_checkpoint`.
 
@@ -155,7 +155,7 @@ class CheckpointConnector:
 
     def restore_training_state(self, checkpoint: Dict[str, Any]) -> None:
         """Restore trainer state.
-        
+
         Model will get its change to update
         :param checkpoint:
         :return:
