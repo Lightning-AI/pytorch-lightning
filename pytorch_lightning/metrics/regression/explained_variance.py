@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 from typing import Any, Callable, Optional
 
+import torch
+
+from pytorch_lightning.metrics.functional.explained_variance import (
+    _explained_variance_compute,
+    _explained_variance_update,
+)
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.metrics.functional.explained_variance import (
-    _explained_variance_update,
-    _explained_variance_compute,
-)
 
 
 class ExplainedVariance(Metric):

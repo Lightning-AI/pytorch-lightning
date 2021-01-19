@@ -21,7 +21,14 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, _OMEGACONF_AVAILABLE, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import (
+    _APEX_AVAILABLE,
+    _OMEGACONF_AVAILABLE,
+    AMPType,
+    DeviceType,
+    rank_zero_info,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -47,7 +54,7 @@ class CheckpointConnector:
         Attempt to restore model/training states.
         """
         # clear cache before restore
-        if self.trainer.on_gpu:
+        if self.trainer._device_type == DeviceType.GPU:
             torch.cuda.empty_cache()
 
         # attempt to restore states
@@ -58,7 +65,7 @@ class CheckpointConnector:
         self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')
 
         # clear cache after restore
-        if self.trainer.on_gpu:
+        if self.trainer._device_type == DeviceType.GPU:
             torch.cuda.empty_cache()
 
     def attempt_to_apply_checkpoint(self, model: LightningModule) -> bool:
@@ -82,7 +89,7 @@ class CheckpointConnector:
         max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_suffix is not None:
             checkpoint_path = f'{dir_path_hpc}/hpc_ckpt_{max_suffix}.ckpt'
-            checkpoint = self.restore_states(model, checkpoint_path, self.trainer.root_gpu)
+            checkpoint = self.restore_states(model, checkpoint_path, self.trainer._device_type == DeviceType.GPU)
             model.on_hpc_load(checkpoint)
             restored = True
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
@@ -91,7 +98,7 @@ class CheckpointConnector:
         elif self.trainer.resume_from_checkpoint is not None and not self.trainer.testing:
             adress_checkpoint: str = self.trainer.resume_from_checkpoint
             if get_filesystem(adress_checkpoint).exists(adress_checkpoint):
-                self.restore_states(model, adress_checkpoint, self.trainer.on_gpu)
+                self.restore_states(model, adress_checkpoint, self.trainer._device_type == DeviceType.GPU)
                 restored = True
                 rank_zero_info(f"States restored from the checkpoint file at {adress_checkpoint}")
             else:
@@ -322,7 +329,7 @@ class CheckpointConnector:
 
             # dump amp scaling
             if (self.trainer.amp_backend == AMPType.NATIVE
-                    and not self.trainer.use_tpu
+                    and self.trainer._device_type != DeviceType.TPU
                     and self.trainer.scaler is not None):
                 checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
             elif self.trainer.amp_backend == AMPType.APEX:

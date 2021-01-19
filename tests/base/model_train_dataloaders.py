@@ -13,8 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 
-from tests.base.dataloaders import CustomInfDataloader
-from tests.base.dataloaders import CustomNotImplementedErrorDataloader
+from tests.base.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 
 
 class TrainDataloaderVariations(ABC):

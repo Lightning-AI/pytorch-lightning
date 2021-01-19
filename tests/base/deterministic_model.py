@@ -13,9 +13,10 @@
 # limitations under the License.
 import torch
 from torch import nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import DistributedType
 
 
 class DeterministicModel(LightningModule):
@@ -99,7 +100,7 @@ class DeterministicModel(LightningModule):
         """
         self.training_epoch_end_called = True
 
-        if self.use_dp or self.use_ddp2:
+        if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
             pass
         else:
             # only saw 4 batches
@@ -160,7 +161,7 @@ class DeterministicModel(LightningModule):
     def training_epoch_end_dict(self, outputs):
         self.training_epoch_end_called = True
 
-        if self.use_dp or self.use_ddp2:
+        if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
             pass
         else:
             # only saw 4 batches

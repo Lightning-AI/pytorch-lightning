@@ -2,12 +2,7 @@ from collections import namedtuple
 
 import torch
 
-from tests.metrics.utils import (
-    NUM_BATCHES,
-    BATCH_SIZE,
-    NUM_CLASSES,
-    EXTRA_DIM
-)
+from tests.metrics.utils import BATCH_SIZE, EXTRA_DIM, NUM_BATCHES, NUM_CLASSES
 
 Input = namedtuple('Input', ["preds", "target"])
 
