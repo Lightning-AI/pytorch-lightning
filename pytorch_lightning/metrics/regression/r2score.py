@@ -15,11 +15,8 @@ from typing import Any, Callable, Optional
 
 import torch
 
+from pytorch_lightning.metrics.functional.r2score import _r2score_compute, _r2score_update
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.r2score import (
-    _r2score_update,
-    _r2score_compute
-)
 
 
 class R2Score(Metric):
