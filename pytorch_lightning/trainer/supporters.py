@@ -331,16 +331,15 @@ class PredictionCollection(object):
 
         self._append_prediction(predictions, dl_idx, batch_indices, enable_predict_auto_id)
 
-    @property
-    def should_finalize_predictions(self):
+    def should_finalize_predictions(self, current_stage):
+        self.current_stage = current_stage
         return len(self.predictions) > 0
 
-    def finalize_predictions(self, results: List[Dict], current_stage: str) -> List[Dict]:
+    def finalize_predictions(self, results: List[Dict]) -> List[Dict]:
         """
         This function will add the reduced predictions accross multiple processes for each dataset
         to the results objects returned by the trainer.test function.
         """
-        self.current_stage = current_stage
         predictions = self.predictions
         for dl_idx, result in enumerate(results):
             if dl_idx in predictions:
