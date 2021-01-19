@@ -514,6 +514,7 @@ class Trainer(
 
         if model_ref is not None:
             model_ref.running_stage = stage
+
         self.running_stage = stage
 
     def train(self):
