@@ -212,7 +212,7 @@ throws a warning message.
 
 Example:
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.core.lightning import LightningModule
     from torch import nn
