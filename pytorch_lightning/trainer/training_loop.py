@@ -798,6 +798,10 @@ class TrainLoop:
                 if self.trainer.terminate_on_nan:
                     self.trainer.detect_nan_tensors(result.loss)
 
+                if len(self.trainer.optimizers) > 1:
+                    # revert back to previous state
+                    self.trainer.get_model().untoggle_optimizer(opt_idx)
+
         return result
 
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):

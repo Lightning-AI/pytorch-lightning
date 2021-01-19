@@ -1170,12 +1170,35 @@ class LightningModule(
             optimizer:
             optimizer_idx:
         """
-        for param in self.parameters():
-            param.requires_grad = False
+        param_requires_grad_state = {}
+        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
+            if optimizer_idx != opt_idx:
+                for group in opt.param_groups:
+                    for param in group['params']:
+                        param_requires_grad_state[param] = param.requires_grad
+                        param.requires_grad = False
 
-        for group in optimizer.param_groups:
-            for param in group['params']:
-                param.requires_grad = True
+        self._param_requires_grad_state = param_requires_grad_state
+
+    def untoggle_optimizer(self, optimizer_idx: int):
+        """
+        Makes sure only the gradients of the current optimizer's parameters are calculated
+        in the training step to prevent dangling gradients in multiple-optimizer setup.
+
+        .. note:: Only called when using multiple optimizers
+
+        Override for your own behavior
+
+        Args:
+            optimizer_idx:
+        """
+        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
+            if optimizer_idx != opt_idx:
+                for group in opt.param_groups:
+                    for param in group['params']:
+                        param.requires_grad = self._param_requires_grad_state[param]
+        # save memory
+        del self._param_requires_grad_state
 
     def optimizer_step(
         self,
