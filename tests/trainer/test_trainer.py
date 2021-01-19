@@ -14,7 +14,6 @@
 import math
 import os
 import pickle
-from pytorch_lightning.accelerators import accelerator
 import sys
 from argparse import Namespace
 from copy import deepcopy
@@ -37,7 +36,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel, EvalModelTemplate, RandomDataset
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1442,29 +1441,3 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
                        match=r"Only None, bool, str and subclasses of `BaseProfiler`"
                              r" are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)
-
-class PredictModel(BoringModel):
-
-    def predict(self, batch, batch_idx, dataloader_idx):
-        return self.layer(batch)
-
-
-def predict(accelerator, gpus):
-    dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 64)),
-                   torch.utils.data.DataLoader(RandomDataset(32, 64))]
-
-    model = PredictModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=0,
-        limit_val_batches=0,
-        limit_test_batches=2,
-        max_epochs=1,
-        log_every_n_steps=1,
-        weights_summary=None,
-        gpus=gpus,
-        accelerator=accelerator
-    )
-    results = trainer.predict(model, dataloaders)
-    print(results)

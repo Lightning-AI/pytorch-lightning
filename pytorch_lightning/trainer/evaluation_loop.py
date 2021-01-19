@@ -190,18 +190,17 @@ class EvaluationLoop(object):
 
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
-        # run actual test step
-        
+
         if self.trainer.running_stage == RunningStage.PREDICTING:
             model_ref._current_fx_name = "predict"
             output = self.trainer.accelerator_backend.predict(args)
             self.add_predictions(output)
             return
-        
+
         elif self.testing:
             model_ref._current_fx_name = "test_step"
             output = self.trainer.accelerator_backend.test_step(args)
-        
+
         else:
             model_ref._current_fx_name = "validation_step"
             output = self.trainer.accelerator_backend.validation_step(args)

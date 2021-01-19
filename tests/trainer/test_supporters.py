@@ -230,30 +230,10 @@ class TestModel(BoringModel):
         self._failure = failure
         self.enable_predict_auto_id = enable_predict_auto_id
 
-    def test_step(self, batch, batch_idx, dataloader_idx=None):
-        x = batch["batch"]
-        output = self.layer(x)
-        loss = self.loss(batch, output)
-
-        if dataloader_idx == 1 and not self._save_preds_on_dl_idx:
-            return {"y": loss}
-
-        if self.enable_predict_auto_id:
-            if dataloader_idx == 1:
-                self.add_predictions([{"a": o, "b": o} for idx, o in enumerate(output)])
-            else:
-                self.add_predictions(output)
-        else:
-            self.add_predictions([
-                {"id": idx.item(), "predictions": o}
-                for idx, o in zip(batch["index"], output)])
-
-        return {"y": loss}
-
     def predict(self, batch, batch_idx, dataloader_idx=None):
         x = batch["batch"]
         output = self.layer(x)
-        loss = self.loss(batch, output)
+        _ = self.loss(batch, output)
 
         if self.enable_predict_auto_id:
             if dataloader_idx == 1:
@@ -263,7 +243,7 @@ class TestModel(BoringModel):
         else:
             return [
                 {"id": idx.item(), "predictions": o}
-                for idx, o in zip(batch["index"], output)]      
+                for idx, o in zip(batch["index"], output)]
 
     def create_dataset(self):
         if self._failure == 3:

@@ -511,7 +511,7 @@ class Trainer(
         # predicting is special and should override the others
         if self.running_stage == RunningStage.PREDICTING:
             stage = RunningStage.PREDICTING
-        
+
         if model_ref is not None:
             model_ref.running_stage = stage
         self.running_stage = stage
