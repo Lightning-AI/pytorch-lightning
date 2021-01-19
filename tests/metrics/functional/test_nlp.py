@@ -1,6 +1,6 @@
 import pytest
 import torch
-from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu, sentence_bleu
+from nltk.translate.bleu_score import corpus_bleu, sentence_bleu, SmoothingFunction
 
 from pytorch_lightning.metrics.functional.nlp import bleu_score
 

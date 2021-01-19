@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import platform
+from unittest import mock
+
 import pytest
 import torch
-from tests.base import BoringModel
-import platform
+
 from pytorch_lightning import Trainer
-from unittest import mock
+from tests.base import BoringModel
 
 
 class TestModel(BoringModel):
