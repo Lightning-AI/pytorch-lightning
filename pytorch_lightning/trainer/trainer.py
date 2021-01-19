@@ -508,7 +508,7 @@ class Trainer(
 
     def _set_running_stage(self, stage):
         model_ref = self.get_model()
-        # predicting is special and should override the others
+        # predicting is special and shouldn't be overriden
         if self.running_stage == RunningStage.PREDICTING:
             stage = RunningStage.PREDICTING
 
