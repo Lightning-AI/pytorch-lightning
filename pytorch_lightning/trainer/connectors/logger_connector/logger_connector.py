@@ -319,7 +319,8 @@ class LoggerConnector:
         self.eval_loop_results = []
 
         # add predictions to results object if add_predictions was used in test_step.
-        results = self.trainer.predictions.finalize_predictions(results, self._current_stage)
+        if self.trainer.predictions.should_finalize_predictions:
+            results = self.trainer.predictions.finalize_predictions(results, self._current_stage)
 
         return results
 
