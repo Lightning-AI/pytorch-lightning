@@ -1474,7 +1474,7 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None):
     )
     results = trainer.predict(model, dataloaders)
     # todo: address this in another PR
-    num_samples = 1 if accelerator in ["ddp", "ddp_cpu", "ddp_spawn"] else 2
+    num_samples = 2
     assert len(results) == 2
     predictions = results[0]["predictions"]
     assert len(predictions) == num_samples

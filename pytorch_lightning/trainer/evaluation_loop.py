@@ -143,7 +143,6 @@ class EvaluationLoop(object):
 
         self.max_batches = max_batches
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
-        self._predictions = [[] for _ in range(self.num_dataloaders)]
 
         # wrap user batch samplers, so we can capture batch indices
         dataloaders = [

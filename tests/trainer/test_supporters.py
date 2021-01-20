@@ -196,7 +196,7 @@ def test_combined_loader_sequence_max_size_cycle():
 class IndexedRandomDataset(RandomDataset):
 
     def __getitem__(self, index):
-        return {"index": index, "batch": self.data[index]}
+        return self.data[index]
 
 
 class CustomDataLoader(DataLoader):
@@ -212,13 +212,6 @@ class FailureCustomDataLoader(DataLoader):
         super().__init__(dataset, *args, **kwargs)
 
 
-class CustomDataLoader2(DataLoader):
-
-    def __init__(self, num_features, *args, **kwargs):
-        self.num_features = num_features
-        super().__init__(num_features, *args, **kwargs)
-
-
 class TestModel(BoringModel):
 
     def __init__(self, numbers_test_dataloaders,
@@ -229,29 +222,7 @@ class TestModel(BoringModel):
         self._failure = failure
         self.enable_predict_auto_id = enable_predict_auto_id
 
-    def test_step(self, batch, batch_idx, dataloader_idx=None):
-        x = batch["batch"]
-        output = self.layer(x)
-        loss = self.loss(batch, output)
-
-        if dataloader_idx == 1 and not self._save_preds_on_dl_idx:
-            return {"y": loss}
-
-        if self.enable_predict_auto_id:
-            if dataloader_idx == 1:
-                self.add_predictions([{"a": o, "b": o} for idx, o in enumerate(output)])
-            else:
-                self.add_predictions(output)
-        else:
-            self.add_predictions([
-                {"id": idx.item(), "predictions": o}
-                for idx, o in zip(batch["index"], output)])
-
-        return {"y": loss}
-
     def create_dataset(self):
-        if self._failure == 3:
-            return CustomDataLoader2(IndexedRandomDataset(32, 64), batch_size=2)
         dataloader_cls = FailureCustomDataLoader if self._failure > 0 else CustomDataLoader
         return dataloader_cls(32, IndexedRandomDataset(32, 64), batch_size=2)
 
@@ -283,45 +254,26 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
     trainer = Trainer(**trainer_args)
     if failure == 1:
         try:
-            results: List = trainer.test(model)
+            _ = trainer.test(model)
         except MisconfigurationException as e:
             assert "Missing attributes are {'num_features'}." in str(e)
             return
 
-    elif failure == 2:
-        with pytest.warns(UserWarning, match='wrap your BatchSampler in your'):
-            results: List = trainer.test(model)
-        assert 'y' in results[0]
-        return
     else:
-        results: List = trainer.test(model)
-
-    assert len(results) == num_dl_idx
-    for dl_idx in range(num_dl_idx):
-        result = results[dl_idx]
-        if not save_preds_on_dl_idx and num_dl_idx == 2 and dl_idx == 1:
-            assert "predictions" not in result
-        else:
-            assert "predictions" in result
-            predictions = result["predictions"]
-            assert len(predictions) == limit_test_batches * 2 * size
-            for idx, pred in enumerate(predictions):
-                assert pred["id"] == idx
-                if dl_idx == 1 and enable_predict_auto_id:
-                    assert 'a' in pred["predictions"] and 'b' in pred["predictions"]
-                else:
-                    assert isinstance(pred["predictions"], list) and len(pred["predictions"]) == 2
+        try:
+            _ = trainer.test(model)
+        except MisconfigurationException as e:
+            assert "inject DistributedSampler within FailureCustomDataLoader" in str(e)
 
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
-@pytest.mark.parametrize("failure", [1, 3])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_misconfiguration_on_dataloader(tmpdir, failure):
+def test_misconfiguration_on_dataloader(tmpdir):
     """
     Test Lightning raise a MisConfiguration error as we can't re-instantiate user Dataloader
     """
-    check_prediction_collection(tmpdir, True, "ddp", 2, 2, failure=failure)
+    check_prediction_collection(tmpdir, True, "ddp", 2, 2, failure=1)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
