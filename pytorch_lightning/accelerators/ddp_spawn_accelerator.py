@@ -244,7 +244,7 @@ class DDPSpawnAccelerator(Accelerator):
         # todo, pass also best score
 
         # load last weights
-        if last_path is not None and not self.trainer.testing:
+        if last_path is not None and not self.trainer.is_testing:
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
@@ -263,7 +263,7 @@ class DDPSpawnAccelerator(Accelerator):
 
             # save the last weights
             last_path = None
-            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+            if not self.trainer.is_testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 atomic_save(model.state_dict(), last_path)
             mp_queue.put(last_path)

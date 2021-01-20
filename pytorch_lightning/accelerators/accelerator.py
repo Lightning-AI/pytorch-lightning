@@ -62,7 +62,7 @@ class Accelerator(object):
         return obj
 
     def train_or_test(self):
-        if self.trainer.testing:
+        if self.trainer.is_testing:
             results = self.trainer.run_test()
         else:
             results = self.trainer.train()
@@ -134,7 +134,7 @@ class Accelerator(object):
         return self.trainer.should_stop
 
     def setup_optimizers(self, model):
-        if self.trainer.testing:
+        if self.trainer.is_testing:
             return
 
         optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)

@@ -950,3 +950,6 @@ class Trainer(
 
     def set_evaluating(self) -> None:
         self._running_stage = RunningStage.EVALUATING
+
+    def reset_running_stage(self):
+        self._running_stage = None
