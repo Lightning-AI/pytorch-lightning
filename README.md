@@ -307,7 +307,7 @@ Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/
 If you have any questions please:
 1. [Read the docs](https://pytorch-lightning.rtfd.io/en/latest/).
 2. [Look it up in our forum (or add a new question)](https://forums.pytorchlightning.ai/)
-3. [Search through the issues](https://github.com/PytorchLightning/pytorch-lightning/issues?q=my+question).
+3. [Search through the Discussions](https://github.com/PyTorchLightning/pytorch-lightning/discussions?discussions_q=my+question).
 4. [Join our slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A).
 
 ### Funding
