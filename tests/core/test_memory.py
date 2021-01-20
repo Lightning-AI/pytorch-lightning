@@ -272,7 +272,7 @@ def test_model_size(mode):
     model = PreCalculatedModel()
     summary = model.summarize(mode=mode)
     pre_calculated_model_size = torch.tensor(model.pre_calculated_model_size)
-    model_size = torch.tensor(summary.model_size())
+    model_size = torch.tensor(summary.model_size)
     assert torch.isclose(model_size, pre_calculated_model_size, atol=1e-4)
 
 @pytest.mark.parametrize(['mode'], [
@@ -283,4 +283,4 @@ def test_empty_model_size(mode):
     """ Test that empty model size is zero. """
     model = EmptyModule()
     summary = model.summarize(mode=mode)
-    assert 0.0 == summary.model_size()
+    assert 0.0 == summary.model_size

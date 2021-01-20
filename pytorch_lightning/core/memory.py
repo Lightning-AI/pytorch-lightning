@@ -223,17 +223,15 @@ class ModelSummary(object):
     def trainable_parameters(self) -> int:
         return sum(p.numel() for p in self._model.parameters() if p.requires_grad)
 
+    @property
     def model_size(self) -> float:
+        return self._model_size()
+    def _model_size(self) -> float:
         """
         Estimates total model size i.e total params size in MBs
         total params size gives model size in accounting total model params.
 
         NOTE: Currently only Supported total params size.
-
-        Example::
-            >> model = LitModel()
-            >> summary = ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
-            >> summary.model_size()
 
         Returns:
             Total estimated model size(MB).
@@ -288,7 +286,7 @@ class ModelSummary(object):
             arrays.append(["Out sizes", self.out_sizes])
         total_parameters = self.total_parameters
         trainable_parameters = self.trainable_parameters
-        model_size = self.model_size()
+        model_size = self.model_size
 
         return _format_summary_table(total_parameters, trainable_parameters, model_size, *arrays)
 
