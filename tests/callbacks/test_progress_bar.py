@@ -14,7 +14,7 @@
 import os
 import sys
 from unittest import mock
-from unittest.mock import call, Mock, ANY
+from unittest.mock import ANY, call, Mock
 
 import pytest
 import torch
