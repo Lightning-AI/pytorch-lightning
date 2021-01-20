@@ -990,7 +990,7 @@ def test_gradient_clipping_by_value(tmpdir):
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
-        assert grad_max.item() <= grad_clip_val
+        assert grad_max.item() <= grad_clip_val, f"Gradient max value {grad_max} > grad_clip_val {grad_clip_val} ."
 
         return ret_val
 
@@ -1070,7 +1070,7 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
         ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         parameters = model.parameters()
         grad_max = torch.max(torch.stack([p.grad.detach() for p in parameters]))
-        assert grad_max.item() <= grad_clip_val
+        assert grad_max.item() <= grad_clip_val, f"Gradient max value {grad_max} > grad_clip_val {grad_clip_val} ."
 
         return ret_val
 
