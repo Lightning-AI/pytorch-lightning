@@ -155,7 +155,7 @@ jobs:
         assert os.path.isfile('./tests/mnode_tests.txt')
 
         prepare_multi_nodes_gpu_config(
-            './.github/template/multi-nodes-gpu.yaml',
+            './.github/multi-nodes-gpu.yaml',
             './tests/mnode_tests.txt',
             sha="${{ steps.vars.outputs.SHA }}",
             tcp_address="${{ steps.tcp.outputs.TCP_ADDRESS }}",
@@ -167,13 +167,13 @@ jobs:
 
     #- name: Show Multi Node Testing
     #  run: |
-    #    cat ./.github/template/multi-nodes-gpu-.yaml
+    #    cat ./.github/multi-nodes-gpu-.yaml
 
     #- name: Update Test Configuration File
     #  run: |
     #    import os
     #
-    #    _PATH_CONFIG = './.github/template/multi-nodes-gpu.yaml'
+    #    _PATH_CONFIG = './.github/multi-nodes-gpu.yaml'
     #    _PATH_TESTS = './tests/mnode_tests.txt'
     #    _RUN_FIRST = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_FIRST} "
     #    _RUN_NEXT = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_AFTER} "
@@ -211,8 +211,8 @@ jobs:
 
     - name: Apply Multi Node Testing
       run: |
-        cat ./.github/template/multi-nodes-gpu.yaml
-        kubectl apply -f ./.github/template/multi-nodes-gpu.yaml
+        cat ./.github/multi-nodes-gpu.yaml
+        kubectl apply -f ./.github/multi-nodes-gpu.yaml
       shell: bash
 
     - name: Wait
