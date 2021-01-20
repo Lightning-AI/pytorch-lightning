@@ -172,11 +172,6 @@ def test_toggle_untoggle(tmpdir):
             self.layer_2[1].weight.requires_grad = False
             self.layer_2[3].weight.requires_grad = False
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"loss": loss}
-
         def configure_optimizers(self):
             optimizer = SGD(self.layer_1.parameters(), lr=0.1)
             optimizer_2 = Adam(self.layer_2.parameters(), lr=0.1)
@@ -191,7 +186,6 @@ def test_toggle_untoggle(tmpdir):
                 assert self.layer_2[1].weight.requires_grad is False
                 assert self.layer_2[3].weight.requires_grad is False
                 assert self.layer_2[5].weight.requires_grad is False
-                optimizer.step(closure=closure)
 
             if optimizer_idx == 1:
                 assert self.layer_1[0].weight.requires_grad is False
@@ -201,7 +195,7 @@ def test_toggle_untoggle(tmpdir):
                 assert self.layer_2[1].weight.requires_grad is False
                 assert self.layer_2[3].weight.requires_grad is False
                 assert self.layer_2[5].weight.requires_grad is True
-                optimizer.step(closure=closure)
+            optimizer.step(closure=closure)
 
     model = TestModel()
     model.training_epoch_end = None

@@ -1180,7 +1180,7 @@ class LightningModule(
             for group in opt.param_groups:
                 for param in group['params']:
                     if num_optimizers == opt_idx:
-                        # If a param appears in 2 optimizer, revert `requires_grad_state` to before toggle
+                        # If a param appears in 2 optimizers, revert `requires_grad` to before toggle.
                         if param in param_requires_grad_state:
                             param.requires_grad = param_requires_grad_state[param]
                     else:
