@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 import torch
 
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import PredictionCollection
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
