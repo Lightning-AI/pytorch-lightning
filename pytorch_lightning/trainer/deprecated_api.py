@@ -152,8 +152,6 @@ class DeprecatedDistDeviceAttributes:
     def testing(self, val: bool) -> None:
         if val:
             self._running_stage = RunningStage.TESTING
-        else:
-            if self._running_stage == RunningStage.TRAINING:
-                pass
-            else:
-                self._running_stage = None
+
+        elif self._running_stage != RunningStage.TRAINING:
+            self._running_stage = None
