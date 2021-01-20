@@ -505,12 +505,15 @@ class Trainer(
 
     def _set_running_stage(self, stage):
         model_ref = self.get_model()
-        # predicting is special and shouldn't be overriden
-        if self._running_stage == RunningStage.PREDICTING:
-            stage = RunningStage.PREDICTING
-
+        
+        # WARNING: With predicting,
+        # trainer _running_state should be RunningStage.TESTING
+        # however, the model running_stage should be RunningStage.PREDICTING or None
         if model_ref is not None:
-            model_ref.running_stage = stage
+            if self.is_predicting:
+                model_ref.running_stage = RunningStage.PREDICTING
+            else:
+                model_ref.running_stage = stage
 
         self._running_stage = stage
 
