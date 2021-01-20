@@ -11,10 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
+from typing import List
 
+import torch
+from torch.utils.data.dataloader import DataLoader
+
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import EvalResult, Result
-from pytorch_lightning.trainer.supporters import PredictionCollection
+from pytorch_lightning.trainer.supporters import LightningBatchSamplerWrapper, PredictionCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -31,8 +35,10 @@ class EvaluationLoop(object):
         self.max_batches = None
         self.warning_cache = WarningCache()
         self.num_dataloaders = None
+        self.batch_indices = None
+        self.batch_samplers = None
 
-    def on_trainer_init(self):
+    def on_trainer_init(self, enable_predict_auto_id: bool):
         self.trainer.num_val_batches = []
         self.trainer.num_sanity_val_batches = []
         self.trainer.num_test_batches = []
@@ -40,6 +46,7 @@ class EvaluationLoop(object):
         self.trainer.val_dataloaders = None
         self.trainer.running_sanity_check = False
         self.trainer.testing = False
+        self.enable_predict_auto_id = enable_predict_auto_id
 
         # when .test() is called, it sets this
         self.trainer.tested_ckpt_path = None
@@ -122,13 +129,13 @@ class EvaluationLoop(object):
         using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
         return using_eval_result
 
-    def setup(self, model, max_batches, dataloaders):
+    def setup(self, model: LightningModule, max_batches: int, dataloaders: List):
         # copy properties for forward overrides
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # bookkeeping
         self.outputs = []
-        self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
+        self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size, model.all_gather)
 
         # convert max_batches to list
         if isinstance(max_batches, int):
@@ -137,6 +144,20 @@ class EvaluationLoop(object):
         self.max_batches = max_batches
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
         self._predictions = [[] for _ in range(self.num_dataloaders)]
+
+        # wrap user batch samplers, so we can capture batch indices
+        dataloaders = [
+            LightningBatchSamplerWrapper.recreate_dataloader(dataloader)
+            if isinstance(dataloader, DataLoader) and self.testing and self.enable_predict_auto_id
+            else dataloader for dataloader in dataloaders]
+
+        # extract batch samplers
+        self.batch_samplers = self._get_batch_samplers(dataloaders)
+
+        # reset batch_indices
+        self.batch_indices = None
+
+        return dataloaders
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
         if self.testing:
@@ -218,10 +239,10 @@ class EvaluationLoop(object):
         # call the model epoch end
         deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders, using_eval_result)
 
-        # enable returning anything
-        for i, r in enumerate(deprecated_results):
-            if not isinstance(r, (dict, Result, torch.Tensor)):
-                deprecated_results[i] = []
+        if self.trainer.running_sanity_check:
+            for i, r in enumerate(deprecated_results):
+                if not isinstance(r, (dict, Result, torch.Tensor)):
+                    deprecated_results[i] = []
 
         return deprecated_results
 
@@ -319,6 +340,9 @@ class EvaluationLoop(object):
         return results, None
 
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
+        # save batch indices
+        self._set_batch_indices(dataloader_idx)
+
         # set dataloader_idx to model and track batch_size
         self.trainer.logger_connector.on_evaluation_batch_start(
             self.testing, batch, dataloader_idx, self.num_dataloaders)
@@ -383,3 +407,13 @@ class EvaluationLoop(object):
 
         if len(step_pbar_metrics) > 0:
             self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)
+
+    def _set_batch_indices(self, dataloader_idx: int):
+        batch_sampler = self.batch_samplers[dataloader_idx]
+        batch_indices = None
+        if isinstance(batch_sampler, LightningBatchSamplerWrapper):
+            batch_indices = batch_sampler.batch_indices
+        self.batch_indices = batch_indices
+
+    def _get_batch_samplers(self, dataloaders):
+        return [getattr(dataloader, "batch_sampler", None) for dataloader in dataloaders]

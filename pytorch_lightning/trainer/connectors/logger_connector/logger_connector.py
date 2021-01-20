@@ -289,6 +289,11 @@ class LoggerConnector:
             self.add_to_eval_loop_results(dl_idx, has_been_initialized)
 
     def get_evaluate_epoch_results(self, test_mode):
+        """
+        This function is used to return results
+        at the end of evaluation / test epoch
+        """
+
         if not self.trainer.running_sanity_check:
             # log all the metrics as a single dict
             metrics_to_log = self.cached_results.get_epoch_log_metrics()
@@ -309,6 +314,11 @@ class LoggerConnector:
 
         # clear mem
         self.eval_loop_results = []
+
+        # add predictions to results object if add_predictions was used in test_step.
+        if self.trainer.predictions.should_finalize_predictions(self._current_stage):
+            results = self.trainer.predictions.finalize_predictions(results)
+
         return results
 
     def _track_callback_metrics(self, eval_results, using_eval_result):

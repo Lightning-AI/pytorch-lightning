@@ -327,6 +327,112 @@ class LightningModule(
                 tbptt_reduce_fx=tbptt_reduce_fx,
             )
 
+    def add_predictions(self, predictions: Union[torch.Tensor, List]) -> None:
+        """
+        This function enables adding predictions into a result object.
+        To make this possible, Lightning will re-instantiate your DataLoader.
+        When using custom DataLoader, there might be some issues.
+        Thankfully, an opt-out Trainer argument is provided!
+
+        .. code-block:: python
+
+            import pandas as pd
+
+            class MyModel(LightningModule):
+
+                def test_step(self, batch, batch_idx, dataloader_idx=None):
+                    x, y = batch
+                    output = self.layer(x)
+                    loss = self.loss(y, output)
+
+                    # Add directly a tensor
+                    self.add_predictions(output)
+
+                    return {"y": loss}
+
+            results = trainer.test(test_dataloaders=test_dataloaders)
+            print(pd.DataFrame(results[0]["predictions"]))
+
+            Out:
+                    id                                predictions
+                0   48  [0.5610447525978088, 0.43895524740219116]
+                1   49   [0.3609832227230072, 0.6390167474746704]
+                2   50   [0.4805487394332886, 0.5194512009620667]
+                3   51   [0.5796026587486267, 0.4203973412513733]
+                4   52   [0.5847667455673218, 0.4152332842350006]
+
+        .. code-block:: python
+
+            import pandas as pd
+
+            class MyModel(LightningModule):
+
+                def test_step(self, batch, batch_idx, dataloader_idx=None):
+                    x, y = batch
+                    output = self.layer(x)
+                    loss = self.loss(y, output)
+
+                    # Support list of dictionaries.
+                    self.add_predictions([{"pred": o, "target": t} for o, t in zip(output, y)])
+
+                    return {"y": loss}
+
+            results = trainer.test(test_dataloaders=test_dataloaders)
+            print(pd.json_normalize(results[0]["predictions"], sep='_')
+
+            Out:
+                    id  predictions_target                           predictions_pred
+                0   48                   0    [0.535681426525116, 0.4643186330795288]
+                1   49                   0   [0.5358794331550598, 0.4641205668449402]
+                2   50                   0   [0.41347551345825195, 0.586524486541748]
+                3   51                   0  [0.6546469926834106, 0.34535300731658936]
+                4   52                   0   [0.6412515044212341, 0.3587484657764435]
+
+
+        .. note:: Opt-out solution.
+
+        .. code-block:: python
+
+            class MyDataset(RandomDataset):
+
+                def __getitem__(self, index):
+                    return {"index": index, "batch": self.data[index]}
+
+            class MyModel(LightningModule):
+
+                def test_step(self, batch, batch_idx, dataloader_idx=None):
+                    x = batch["batch"]
+                    output = self.layer(x)
+                    loss = self.loss(batch, output)
+
+                    self.add_predictions([
+                        {"id": idx.item(), "predictions": o}
+                        for idx, o in zip(batch["index"], output)])
+
+            trainer = Trainer(enable_predict_auto_id=False)
+
+        Args:
+            predictions: Predictions to be saved by the user. Should either be a ``torch.Tensor``
+                or a list of dictionaries containing tensors.
+
+        Return:
+            None
+        """
+        if getattr(self, "trainer") is not None:
+            dl_idx = self._current_dataloader_idx or 0
+            self.trainer.predictions.append(
+                predictions,
+                dl_idx,
+                self.trainer.evaluation_loop.batch_indices,
+                self.trainer.logger_connector._current_stage,
+                self.trainer.evaluation_loop.enable_predict_auto_id
+            )
+        else:
+            rank_zero_warn(
+                "Your LightningModule isn't attached to the Lightning Trainer and can't save predictions"
+                "HINT: This function works only within `results=trainer.test(model, data)`"
+            )
+
     def write_prediction(self, name, value, filename='predictions.pt'):
         self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
 

@@ -25,3 +25,5 @@ python ${DEFAULTS} tests/utilities/test_all_gather_grad.py::test_all_gather_coll
 python ${DEFAULTS} tests/trainer/logging_process/test_train_loop_logging_1_0.py::test_logging_sync_dist_true_ddp
 python ${DEFAULTS} pytest tests/trainer/test_trainer.py::test_trainer_predict_ddp
 python ${DEFAULTS} pytest tests/trainer/test_trainer.py::test_trainer_predict_dp
+python ${DEFAULTS} tests/trainer/test_supporters.py::test_prediction_collection_ddp
+python ${DEFAULTS} tests/trainer/test_supporters.py::test_misconfiguration_on_dataloader

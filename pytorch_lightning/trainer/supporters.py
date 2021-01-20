@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, IterableDataset
+from torch.utils.data.dataloader import DataLoader
 
+from pytorch_lightning.trainer.connectors.logger_connector.logger_connector import LoggerStages
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
@@ -118,27 +122,278 @@ class Accumulator(object):
         return self.total / self.num_values
 
 
+class LightningBatchSamplerWrapper:
+    """
+    This class wraps user batch sampler, so we can extract
+    the batch_indices for tracking each sample.
+    """
+
+    SKIP_KEYS = ['sampler', 'batch_sampler', 'dataset_kind']
+    SKIP_VALID_KEYS = ['args', 'kwargs', 'self']
+
+    def __init__(self, batch_sampler):
+        self.batch_sampler = batch_sampler
+        self.batch_indices = None
+
+    def __iter__(self):
+        for batch_indices in self.batch_sampler:
+            self.batch_indices = batch_indices
+            yield batch_indices
+
+    @staticmethod
+    def recreate_dataloader(dataloader: DataLoader) -> DataLoader:
+        """
+        This function will wrap the user batch_sampler to track the returned batch indices
+        """
+        if not isinstance(dataloader, DataLoader):
+            raise MisconfigurationException('Autoid only works with torch dataloaders or derived classes!')
+
+        elif isinstance(dataloader.dataset, IterableDataset):
+            return dataloader
+
+        params = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
+
+        valid_kwargs = set(inspect.signature(dataloader.__init__).parameters)
+        contains_dataset = True
+
+        if type(dataloader) is not DataLoader:
+            contains_dataset = "dataset" in valid_kwargs
+            valid_kwargs.update(inspect.signature(DataLoader.__init__).parameters)
+
+        dl_args = {
+            name: params[name] for name in valid_kwargs
+            if name in params and name not in LightningBatchSamplerWrapper.SKIP_KEYS
+        }
+
+        multiprocessing_context = dataloader.multiprocessing_context
+
+        # override parameters to enable batch_sampler injection
+        dl_args.update({
+            "batch_size": 1,
+            "sampler": None,
+            "shuffle": None,
+            "batch_sampler": LightningBatchSamplerWrapper(dataloader.batch_sampler),
+            "drop_last": False,
+            "multiprocessing_context": multiprocessing_context,
+        })
+
+        missing_kwargs = valid_kwargs.difference(LightningBatchSamplerWrapper.SKIP_VALID_KEYS).difference(dl_args)
+        if missing_kwargs:
+            dataloader_cls_name = dataloader.__class__.__name__
+            rank_zero_warn(
+                f"Trying to replace to wrap your BatchSampler in your {dataloader_cls_name} dataloader."
+                "This would fail as your DataLoader doesn't expose as attributes all its __init__ parameters. "
+                f"Missing attributes are {missing_kwargs} \n"
+                "HINT: use Trainer(enable_predict_auto_id=False) and provide your own id."
+                " Check out the doc for Testing.", UserWarning
+            )
+            return dataloader
+
+        if not contains_dataset:
+            del dl_args['dataset']
+
+        # re-create object of the same class with new argumnets
+        dataloader = type(dataloader)(**dl_args)
+        dataloader.multiprocessing_context = multiprocessing_context
+        return dataloader
+
+
 class PredictionCollection(object):
-    def __init__(self, global_rank: int, world_size: int):
+
+    """
+    This class is used to collect predictions.
+
+    The legacy API built using the following functions:
+        - LightningModule.write_predictions: Entry point for user
+
+        - add
+        - _add_prediction
+        - to_disk
+
+        This should be used when the test dataset predictions are too large,
+        and each rank will save the predictions
+
+    The new API built using the following functions:
+        - LightningModule.add_predictions: Entry point for user
+
+        - append: Receive a new predictions to append to cache. Handle validation
+        - _append_prediction: Handle storing
+        - finalize_predictions: When the epoch is finished, add predictions to results object
+        - all_gather_predictions: Gather predictions accross multiple processses.
+
+        This should be used with medium sized dataset,
+        where all predictions can be hold in memory.
+
+        On each test_step, if the user call add_predictions, append and _append_prediction
+            will be used to append predictions to internal cache.
+        On the end of `trainer.test`, predictions will be added to result object using
+            `finalize_predictions` function.
+    """
+
+    ID_KEY = 'id'
+
+    def __init__(self, global_rank: int, world_size: int, all_gather_fn: Callable):
         self.global_rank = global_rank
         self.world_size = world_size
-        self.predictions = {}
-        self.num_predictions = 0
+        self.all_gather_fn = all_gather_fn
+        self._legacy_predictions = {}
+        self._predictions = {stage: {} for stage in LoggerStages}
+
+    @property
+    def predictions(self):
+        return self._predictions[self.current_stage]
+
+    def _append_prediction(
+        self,
+        predictions: Union[List, Tuple, torch.Tensor],
+        dl_idx: int,
+        batch_indices: List[int],
+        enable_predict_auto_id: bool
+    ) -> None:
+
+        cache = self.predictions
+
+        cache.setdefault(dl_idx, {})
+
+        def _convert(value):
+            return value.cpu().tolist()
+
+        for batch_idx, pred in enumerate(predictions):
+            if enable_predict_auto_id:
+                sample_id = batch_indices[batch_idx]
+
+            else:
+                if self.ID_KEY in pred:
+                    sample_id = pred[self.ID_KEY]
+                    if not isinstance(sample_id, (int, float)):
+                        raise MisconfigurationException(
+                            f"`id` key should be either a int or float. Found {type(sample_id)}."
+                        )
+                else:
+                    raise MisconfigurationException(
+                        f"The predictions dict requires an `{self.ID_KEY}` key."
+                    )
+
+            if sample_id in cache[dl_idx]:
+                raise MisconfigurationException(
+                    "Prediction Collection doesn't support multiple predictions for one sample yet.")
+
+            if enable_predict_auto_id:
+                cache[dl_idx][sample_id] = {
+                    self.ID_KEY: sample_id, "predictions": pred}
+            else:
+                cache[dl_idx][sample_id] = pred
+
+            # apply convert to store memory
+            cache[dl_idx][sample_id] = apply_to_collection(cache[dl_idx][sample_id], torch.Tensor, _convert)
+
+    def append(
+        self,
+        predictions: Union[List, Tuple, torch.Tensor],
+        dl_idx: int,
+        batch_indices: List[int],
+        current_stage: str,
+        enable_predict_auto_id: bool
+    ) -> None:
+        """
+        This function expects predictions to be a list of tensors or dictionary of tensors.
+        Example::
+
+            self.add_predictions(predictions)
+        """
+        if predictions is None or (isinstance(predictions, list) and not predictions):
+            return
+
+        self.current_stage = current_stage
+
+        if enable_predict_auto_id:
+            assert isinstance(predictions, (list, tuple, torch.Tensor))
+            if batch_indices is None:
+                return
+
+            if len(predictions) != len(batch_indices):
+                raise MisconfigurationException(
+                    "The predictions dimension should match the batch_size. "
+                    "HINT: If your prediction dimensions don't match the size of your batch size, "
+                    "use Trainer(enable_predict_auto_id=False) and provide your own `id`."
+                )
+        else:
+            if not all(isinstance(p, dict) and "id" in p for p in predictions):
+                raise MisconfigurationException(
+                    "predictions objects should be a list where each element is a dict. "
+                    "each dict should contain an unique number `id` to identify each sample."
+                )
+
+            if not all(len(p) > 1 for p in predictions):
+                raise MisconfigurationException(
+                    "each element should contain at least an unique number `id` and a prediction tensor."
+                )
+
+        self._append_prediction(predictions, dl_idx, batch_indices, enable_predict_auto_id)
+
+    def should_finalize_predictions(self, current_stage):
+        self.current_stage = current_stage
+        return len(self.predictions) > 0
+
+    def finalize_predictions(self, results: List[Dict]) -> List[Dict]:
+        """
+        This function will add the reduced predictions accross multiple processes for each dataset
+        to the results objects returned by the trainer.test function.
+        """
+        predictions = self.predictions
+        for dl_idx, result in enumerate(results):
+            if dl_idx in predictions:
+                dl_predictions = predictions[dl_idx]
+                dl_predictions = self.all_gather_predictions(dl_predictions)
+                result["predictions"] = list(dl_predictions.values())
+        return results
+
+    def all_gather_predictions(self, predictions: Dict) -> Dict:
+        """
+        This function all_gather predictions accross multiple processes
+        # todo: see https://github.com/PyTorchLightning/pytorch-lightning/issues/5493 for better details.
+        """
+        if not (self.world_size >= 2 and torch.distributed.is_available() and torch.distributed.is_initialized()):
+            return predictions
+
+        predictions = self.all_gather_fn(predictions)
+
+        def gather(pred: Union[List[Tensor], Tensor], idx: int) -> Union[List[Tensor], Tensor]:
+            # all_gather: tensor [(N, C), ..., (N, C)] -> [(WORLD_SIZE, N, C), ..., (WORLD_SIZE, N, C)]
+            # `convert` function is used to get the right tensor
+            # depending the data id.
+            def convert(p):
+                return p[idx % self.world_size].tolist()
+            return (
+                [convert(p) for p in pred]
+                if isinstance(pred, (list)) else
+                convert(pred)
+            )
+
+        out = {}
+        for pred in predictions.values():
+            keys = [k for k in pred if k != self.ID_KEY]
+            ids = pred[self.ID_KEY].int().tolist()
+            for id_ in ids:
+                if id_ not in out:
+                    res = {k: apply_to_collection(pred[k], (torch.Tensor, list), gather, id_) for k in keys}
+                    res[self.ID_KEY] = id_
+                    out[id_] = res
+        return out
 
     def _add_prediction(self, name, values, filename):
-        if filename not in self.predictions:
-            self.predictions[filename] = {name: values}
-        elif name not in self.predictions[filename]:
-            self.predictions[filename][name] = values
+        if filename not in self._legacy_predictions:
+            self._legacy_predictions[filename] = {name: values}
+        elif name not in self._legacy_predictions[filename]:
+            self._legacy_predictions[filename][name] = values
         elif isinstance(values, Tensor):
-            self.predictions[filename][name] = torch.cat(
-                (self.predictions[filename][name], values)
+            self._legacy_predictions[filename][name] = torch.cat(
+                (self._legacy_predictions[filename][name], values)
             )
         elif isinstance(values, list):
-            self.predictions[filename][name].extend(values)
+            self._legacy_predictions[filename][name].extend(values)
 
     def add(self, predictions):
-
         if predictions is None:
             return
 
@@ -149,7 +404,7 @@ class PredictionCollection(object):
     def to_disk(self) -> None:
         """Write predictions to file(s).
         """
-        for filepath, predictions in self.predictions.items():
+        for filepath, predictions in self._legacy_predictions.items():
             fs = get_filesystem(filepath)
             # normalize local filepaths only
             if fs.protocol == "file":
