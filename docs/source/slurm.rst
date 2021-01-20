@@ -28,7 +28,7 @@ To train a model using multiple nodes, do the following:
 
 3.  It's a good idea to structure your training script like this:
 
-    .. testcode:: python
+    .. testcode::
 
         # train.py
         def main(hparams):
@@ -106,7 +106,7 @@ Lightning automates this for you. But if you still need to set a sampler set the
 
 Here's an example of how to add your own sampler (again, not needed with Lightning).
 
-.. testcode:: python
+.. testcode::
 
     # in your LightningModule
     def train_dataloader(self):

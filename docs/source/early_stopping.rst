@@ -63,7 +63,7 @@ To enable it:
 In case you need early stopping in a different part of training, subclass :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
 and change where it is called:
 
-.. testcode:: python
+.. testcode::
 
     class MyEarlyStopping(EarlyStopping):
 

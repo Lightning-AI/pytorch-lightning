@@ -139,7 +139,7 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     shown in the examples above. For easy initializing the same metric multiple
     times, the ``.clone()`` method can be used:
 
-    .. testcode:: python
+    .. testcode::
 
         def __init__(self):
             ...
@@ -184,7 +184,7 @@ in native python ``list`` and ``dict``, as they will not be correctly identified
 as child modules. Instead of ``list`` use :class:`~torch.nn.ModuleList` and instead of
 ``dict`` use :class:`~torch.nn.ModuleDict`.
 
-.. testcode:: python
+.. testcode::
 
     class MyModule(LightningModule):
         def __init__(self):
@@ -266,7 +266,7 @@ interface as any other metric.
 
 Example:
 
-.. testcode:: python
+.. testcode::
 
     from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
     target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
@@ -281,8 +281,8 @@ Example:
 .. testoutput::
     :options: +NORMALIZE_WHITESPACE
 
-    {'Accuracy': tensor(0.1250), 
-     'Precision': tensor(0.0667), 
+    {'Accuracy': tensor(0.1250),
+     'Precision': tensor(0.0667),
      'Recall': tensor(0.1111)}
 
 Similarly it can also reduce the amount of code required to log multiple metrics
@@ -363,7 +363,7 @@ into these categories (``N`` stands for the batch size and ``C`` for number of c
 When predictions or targets are integers, it is assumed that class labels start at 0, i.e.
 the possible class labels are 0, 1, 2, 3, etc. Below are some examples of different input types
 
-.. testcode:: python
+.. testcode::
 
     # Binary inputs
     binary_preds  = torch.tensor([0.6, 0.1, 0.9])

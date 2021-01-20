@@ -67,7 +67,7 @@ The :ref:`lightning_module` holds all the core research ingredients:
 
 Let's first start with the model. In this case, we'll design a 3-layer neural network.
 
-.. testcode:: python
+.. testcode::
 
     import torch
     from torch.nn import functional as F
@@ -101,7 +101,7 @@ Let's first start with the model. In this case, we'll design a 3-layer neural ne
 Notice this is a :ref:`lightning_module` instead of a ``torch.nn.Module``. A LightningModule is
 equivalent to a pure PyTorch Module except it has added functionality. However, you can use it **EXACTLY** the same as you would a PyTorch Module.
 
-.. testcode:: python
+.. testcode::
 
     net = LitMNIST()
     x = torch.randn(1, 1, 28, 28)
@@ -118,7 +118,7 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
 
 Now we add the training_step which has all our training loop logic
 
-.. testcode:: python
+.. testcode::
 
     class LitMNIST(LightningModule):
 
@@ -134,7 +134,7 @@ Data
 
 Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIST.
 
-.. testcode:: python
+.. testcode::
     :skipif: not _TORCHVISION_AVAILABLE
 
     from torch.utils.data import DataLoader, random_split
@@ -225,7 +225,7 @@ In this case, it's better to group the full definition of a dataset into a `Data
 - Val dataloader(s)
 - Test dataloader(s)
 
-.. testcode:: python
+.. testcode::
 
     class MyDataModule(LightningDataModule):
 
@@ -299,7 +299,7 @@ When your models need to know about the data, it's best to process the data befo
 
 An alternative to using a DataModule is to defer initialization of the models modules to the ``setup`` method of your LightningModule as follows:
 
-.. testcode:: python
+.. testcode::
 
     class LitMNIST(LightningModule):
 
@@ -330,7 +330,7 @@ In PyTorch we do it as follows:
 
 In Lightning we do the same but organize it under the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` method.
 
-.. testcode:: python
+.. testcode::
 
     class LitMNIST(LightningModule):
 
@@ -341,7 +341,7 @@ In Lightning we do the same but organize it under the :func:`~pytorch_lightning.
 
 However, if you have multiple optimizers use the matching parameters
 
-.. testcode:: python
+.. testcode::
 
     class LitMNIST(LightningModule):
 
@@ -384,7 +384,7 @@ In the case of MNIST, we do the following
 In Lightning, everything that is in the training step gets organized under the
 :func:`~pytorch_lightning.core.LightningModule.training_step` function in the LightningModule.
 
-.. testcode:: python
+.. testcode::
 
     class LitMNIST(LightningModule):
 
@@ -800,7 +800,7 @@ On the surface, it looks like ``forward`` and ``training_step`` are similar. Gen
 what we want the model to do is what happens in the ``forward``. whereas the ``training_step`` likely calls forward from
 within it.
 
-.. testcode:: python
+.. testcode::
 
     class MNISTClassifier(LightningModule):
 
@@ -829,7 +829,7 @@ within it.
 
 In this case, we've set this LightningModel to predict logits. But we could also have it predict feature maps:
 
-.. testcode:: python
+.. testcode::
 
     class MNISTRepresentator(LightningModule):
 
@@ -859,7 +859,7 @@ In this case, we've set this LightningModel to predict logits. But we could also
 
 Or maybe we have a model that we use to do generation
 
-.. testcode:: python
+.. testcode::
 
     class LitMNISTDreamer(LightningModule):
 
@@ -901,14 +901,14 @@ Any part of the training, validation, and testing loop can be modified.
 For instance, if you wanted to do your own backward pass, you would override the
 default implementation
 
-.. testcode:: python
+.. testcode::
 
     def backward(self, use_amp, loss, optimizer):
         loss.backward()
 
 With your own
 
-.. testcode:: python
+.. testcode::
 
     class LitMNIST(LightningModule):
 

@@ -27,7 +27,7 @@ The point is to detect any bugs in the training/validation loop without having t
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.fast_dev_run`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
-.. testcode:: python
+.. testcode::
 
     # runs 1 train, val, test batch and program ends
     trainer = Trainer(fast_dev_run=True)
@@ -49,7 +49,7 @@ Logs (to a logger), the norm of each weight matrix.
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.track_grad_norm`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
-.. testcode:: python
+.. testcode::
 
     # the 2-norm
     trainer = Trainer(track_grad_norm=2)
@@ -63,7 +63,7 @@ Logs (to a logger) the GPU usage for each GPU on the master machine.
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.log_gpu_memory`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
-.. testcode:: python
+.. testcode::
 
     trainer = Trainer(log_gpu_memory=True)
 
@@ -78,7 +78,7 @@ and try to get your model to overfit. If it can't, it's a sign it won't work wit
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.overfit_batches`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
-.. testcode:: python
+.. testcode::
 
     # use only 1% of training data (and use the same training dataloader (with shuffle off) in val and test)
     trainer = Trainer(overfit_batches=0.01)
@@ -97,7 +97,7 @@ Whenever the ``.fit()`` function gets called, the Trainer will print the weights
 By default it only prints the top-level modules. If you want to show all submodules in your network, use the
 `'full'` option:
 
-.. testcode:: python
+.. testcode::
 
     trainer = Trainer(weights_summary='full')
 
@@ -127,7 +127,7 @@ For example, you can use 20% of the training set and 1% of the validation set.
 
 On larger datasets like Imagenet, this can help you debug or test a few things faster than waiting for a full epoch.
 
-.. testcode:: python
+.. testcode::
 
     # use only 10% of training data and 1% of val data
     trainer = Trainer(limit_train_batches=0.1, limit_val_batches=0.01)
@@ -145,7 +145,7 @@ This avoids crashing in the validation loop sometime deep into a lengthy trainin
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.num_sanity_val_steps`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
-.. testcode:: python
+.. testcode::
 
     # DEFAULT
     trainer = Trainer(num_sanity_val_steps=2)

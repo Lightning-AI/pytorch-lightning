@@ -18,7 +18,7 @@ When using PackedSequence, do 2 things:
 1. Return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn (example shows the list implementation).
 2. Pack the sequence in forward or training and validation steps depending on use case.
 
-.. testcode:: python
+.. testcode::
 
     # For use in dataloader
     def collate_fn(batch):
@@ -40,7 +40,7 @@ For example, it may save memory to use Truncated Backpropagation Through Time wh
 
 Lightning can handle TBTT automatically via this flag.
 
-.. testcode:: python
+.. testcode::
 
     # DEFAULT (single backwards pass per batch)
     trainer = Trainer(truncated_bptt_steps=None)
@@ -69,7 +69,7 @@ option when using sequential data.
     to ``limit_{mode}_batches``, if it is set to 1.0 it will run for the whole dataset, otherwise it will throw an exception.
     Here mode can be train/val/test.
 
-.. testcode:: python
+.. testcode::
 
     # IterableDataset
     class CustomDataset(IterableDataset):
@@ -88,7 +88,7 @@ option when using sequential data.
         dataloader = DataLoader(dataset=iterable_dataset, batch_size=5)
         return dataloader
 
-.. testcode:: python
+.. testcode::
 
     # Set val_check_interval
     trainer = Trainer(val_check_interval=100)

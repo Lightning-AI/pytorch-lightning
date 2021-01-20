@@ -30,7 +30,7 @@ Native torch
 ^^^^^^^^^^^^
 When using PyTorch 1.6+ Lightning uses the native amp implementation to support 16-bit.
 
-.. testcode:: python
+.. testcode::
     :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE
 
     # turn on 16-bit
@@ -72,7 +72,7 @@ To use 16-bit precision, do two things:
 Enable 16-bit
 ^^^^^^^^^^^^^
 
-.. testcode:: python
+.. testcode::
     :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE
 
     # turn on 16-bit
@@ -87,7 +87,7 @@ TPU 16-bit
 ----------
 16-bit on TPUs is much simpler. To use 16-bit with TPUs set precision to 16 when using the TPU flag
 
-.. testcode:: python
+.. testcode::
     :skipif: not _TPU_AVAILABLE
 
     # DEFAULT

@@ -16,7 +16,7 @@ a LightningModule is just a `torch.nn.Module`!
 Let's use the `AutoEncoder` as a feature extractor in a separate model.
 
 
-.. testcode:: python
+.. testcode::
 
     class Encoder(torch.nn.Module):
         ...
@@ -45,7 +45,7 @@ We used our pretrained Autoencoder (a LightningModule) for transfer learning!
 Example: Imagenet (computer Vision)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. testcode:: python
+.. testcode::
     :skipif: not _TORCHVISION_AVAILABLE
 
     import torchvision.models as models
@@ -99,7 +99,7 @@ as it is a `torch.nn.Module` subclass.
 
 Here's a model that uses `Huggingface transformers <https://github.com/huggingface/transformers>`_.
 
-.. testcode:: python
+.. testcode::
 
     class BertMNLIFinetuner(LightningModule):
 
