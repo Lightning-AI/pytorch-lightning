@@ -91,7 +91,7 @@ def test_weight_tying_warning(tmpdir, capsys=None):
     model = WeightSharingModule()
     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
 
-    with pytest.warns(UserWarning, match=r'The model parameters do not match after moving to the target device.'):
+    with pytest.warns(UserWarning, match=r'The model layers do not match after moving to the target device.'):
         result = trainer.fit(model)
         assert result
 
@@ -115,4 +115,4 @@ def test_if_weights_tied(tmpdir, capsys=None):
         result = trainer.fit(model)
         assert result
 
-    assert not list(filter(lambda x: 'The model parameters do not match' in str(x), warnings.list))
+    assert not list(filter(lambda x: 'The model layers do not match' in str(x), warnings.list))

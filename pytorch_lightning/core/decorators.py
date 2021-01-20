@@ -87,16 +87,16 @@ def parameter_validation(fn: Callable) -> Callable:
     """
     @wraps(fn)
     def inner_fn(self, *args, **kwargs):
-        pre_param_count = len(list(self.parameters()))
+        pre_layer_count = len(list(self.parameters()))
         module = fn(self, *args, **kwargs)
         self.on_post_move_to_device()
-        post_param_count = len(list(self.parameters()))
+        post_layer_count = len(list(self.parameters()))
 
-        if not pre_param_count == post_param_count:
-            rank_zero_warn(f'The model parameters do not match after moving to the target device.'
+        if not pre_layer_count == post_layer_count:
+            rank_zero_warn(f'The model layers do not match after moving to the target device.'
                            ' If your model employs weight sharing on TPU,'
                            ' please tie your weights using the `on_post_move_to_device` model hook.'
-                           f'Parameter count: [Before: {pre_param_count} After: {post_param_count}]')
+                           f'Layer count: [Before: {pre_layer_count} After: {post_layer_count}]')
 
         return module
 
