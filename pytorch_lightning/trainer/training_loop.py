@@ -22,7 +22,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult, Result
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
@@ -599,7 +599,7 @@ class TrainLoop:
             if should_check_val:
                 self.trainer.run_evaluation(test_mode=False)
                 # reset stage to train
-                self.trainer.logger_connector.set_stage("train")
+                self.trainer._set_running_stage(RunningStage.TRAINING)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)

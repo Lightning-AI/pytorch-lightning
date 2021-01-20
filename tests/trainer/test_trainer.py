@@ -1450,6 +1450,10 @@ def test_trainer_predict(tmpdir):
         def predict(self, batch, batch_idx, dataloader_idx):
             return self.layer(batch)
 
+        def predict_epoch_end(self, predictions):
+            assert len(predictions) == 2
+            return predictions
+
         def test_dataloader(self):
             return [torch.utils.data.DataLoader(RandomDataset(32, 64)),
                     torch.utils.data.DataLoader(RandomDataset(32, 64))]

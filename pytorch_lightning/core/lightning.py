@@ -981,8 +981,86 @@ class LightningModule(
         """
 
     def predict(self, *args, **kwargs):
+        r"""
+        Operates on a single batch of data from the prediction set.
+        In this step you'd normally perform a forward and return the associated output.
+
+        .. code-block:: python
+
+            # the pseudocode for these calls
+            predictions = []
+            for batch_idx, batch in enumerate(data):
+                out = predict(batch)
+                predictions.append(out)
+            predict_epoch_end(predictions)
+
+        Args:
+            batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+            batch_idx (int): The index of this batch.
+            dataloader_idx (int): The index of the dataloader that produced this batch
+                (only if multiple test datasets used).
+
+        Return:
+
+            - A tensor or a list, tuple of dictionary containing tensors.
+
+        .. code-block:: python
+
+            # if you have one test dataloader:
+            def predict(self, batch, batch_idx)
+
+            # if you have multiple test dataloaders:
+            def predict(self, batch, batch_idx, dataloader_idx)
+
+        Examples:
+            .. code-block:: python
+
+                def predict(self, batch, batch_idx):
+                    x = batch
+
+                    # implement your own
+                    out = self(x)
+                    return out
+
+        Note:
+            When the :meth:`predict` is called, the model has been put in eval mode and
+            PyTorch gradients have been disabled.
         """
-        TODO:
+
+    def predict_epoch_end(
+        self, outputs: List[Any]
+    ) -> None:
+        """
+        Called at the end of a predict epoch with the output of all predict steps.
+
+        .. code-block:: python
+
+            # the pseudocode for these calls
+            predictions = []
+            for batch_idx, batch in enumerate(data):
+                out = predict(batch)
+                predictions.append(out)
+            predict_epoch_end(predictions)
+
+        Args:
+            outputs: List of outputs you defined in :meth:`predict`, or if there
+                are multiple dataloaders, a list containing a list of outputs for each dataloader
+
+        Return:
+            Any
+
+        Note:
+            If you didn't define a :meth:`predict`, this won't be called.
+
+        Examples:
+            With a single dataloader:
+
+            .. code-block:: python
+
+                def predict_epoch_end(self, outputs):
+                    assert len(outputs) == 1
+                    return outputs
         """
 
     def configure_optimizers(

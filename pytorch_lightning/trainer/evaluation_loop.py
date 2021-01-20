@@ -136,6 +136,7 @@ class EvaluationLoop(object):
 
         self.max_batches = max_batches
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
+        self._predictions = [[] for _ in range(self.num_dataloaders)]
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
         if self.testing:
@@ -173,10 +174,13 @@ class EvaluationLoop(object):
         if self.trainer.running_stage == RunningStage.PREDICTING:
             model_ref._current_fx_name = "predict"
             output = self.trainer.accelerator_backend.predict(args)
-            self.outputs.append(output)
+            self._predictions[dataloader_idx].append(output)
+            return
+
         elif self.testing:
             model_ref._current_fx_name = "test_step"
             output = self.trainer.accelerator_backend.test_step(args)
+
         else:
             model_ref._current_fx_name = "validation_step"
             output = self.trainer.accelerator_backend.validation_step(args)
@@ -301,8 +305,14 @@ class EvaluationLoop(object):
 
         return eval_results
 
-    def prediction_epoch_end(self):
-        return [dl_idx for dl_idx in range(self.num_dataloaders)], []
+    def on_predict_epoch_end(self):
+        model_ref = self.trainer.get_model()
+
+        results = self._predictions
+        if is_overridden('predict_epoch_end', model=model_ref):
+            results = model_ref.predict_epoch_end(results)
+
+        return results, None
 
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # set dataloader_idx to model and track batch_size

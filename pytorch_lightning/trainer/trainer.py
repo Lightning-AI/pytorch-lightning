@@ -415,6 +415,8 @@ class Trainer(
         # last thing are the plugins which override whatever the trainer used by default
         self.plugin_connector.on_trainer_init(plugins)
 
+        self.running_stage = RunningStage.UNDEFINED
+
         # Callback system
         self.on_init_end()
 
@@ -442,6 +444,7 @@ class Trainer(
         """
         # bookkeeping
         self._state = TrainerState.RUNNING
+        self._set_running_stage(RunningStage.TRAINING)
 
         # ----------------------------
         # LINK DATA
@@ -495,13 +498,27 @@ class Trainer(
 
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
+
+        self._set_running_stage(RunningStage.UNDEFINED)
+
         return results or 1
+
+    def _set_running_stage(self, stage):
+        model_ref = self.get_model()
+        # predicting is special and shouldn't be overriden
+        if self.running_stage == RunningStage.PREDICTING:
+            stage = RunningStage.PREDICTING
+
+        if model_ref is not None:
+            model_ref.running_stage = stage
+
+        self.running_stage = stage
 
     def train(self):
         self.run_sanity_check(self.get_model())
 
         # set stage for logging
-        self.logger_connector.set_stage("train")
+        self._set_running_stage(RunningStage.TRAINING)
 
         self.checkpoint_connector.has_trained = False
 
@@ -563,7 +580,8 @@ class Trainer(
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
 
         # used to know if we are logging for val, test + reset cached results
-        self.logger_connector.set_stage(test_mode, reset=True)
+        self._set_running_stage(RunningStage.TESTING if test_mode else RunningStage.EVALUATING)
+        self.logger_connector.reset()
 
         # bookkeeping
         self.evaluation_loop.testing = test_mode
@@ -630,7 +648,7 @@ class Trainer(
             self.evaluation_loop.outputs.append(dl_outputs)
 
         if self.running_stage == RunningStage.PREDICTING:
-            return self.evaluation_loop.prediction_epoch_end()
+            return self.evaluation_loop.on_predict_epoch_end()
 
         # lightning module method
         deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
@@ -749,9 +767,8 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        self.running_stage = RunningStage.TESTING
         self.verbose_test = verbose
-
-        self.logger_connector.set_stage("test")
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -768,13 +785,14 @@ class Trainer(
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
         self.teardown('test')
+        self.running_stage = RunningStage.UNDEFINED
 
         return results
 
     def predict(
         self,
         model: Optional[LightningModule] = None,
-        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
     ):
@@ -788,7 +806,7 @@ class Trainer(
 
             model: The model to test.
 
-            test_dataloaders: Either a single
+            dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying inference samples.
 
             verbose: If True, prints the test results
@@ -800,30 +818,30 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        self.running_stage = RunningStage.PREDICTING
         self.verbose_test = verbose
 
-        if not test_dataloaders:
+        if not dataloaders:
             raise MisconfigurationException(
-                'You need to pass test_dataloaders to trainer.predict. '
+                'You need to pass dataloaders to trainer.predict. '
             )
 
         if model is None:
             raise MisconfigurationException(
-                'You need to pass a model to trainer.predict .'
+                'You need to pass a model to trainer.predict. '
             )
 
         # attach data
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+        if dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
 
-        self.running_stage = RunningStage.PREDICTING
         self.testing = True
         self.model = model
         results = self.fit(model)
-        self.running_stage = RunningStage.UNDEFINED
         self.testing = False
         self.teardown('test')
 
+        self.running_stage = RunningStage.UNDEFINED
         return results
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
