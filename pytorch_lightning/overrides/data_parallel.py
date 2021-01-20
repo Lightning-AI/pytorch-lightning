@@ -82,7 +82,7 @@ class LightningDataParallel(DataParallel):
 
         if len(self.device_ids) == 1:
 
-            running_stage = getattr(self.module, "running_stage")
+            running_stage = self.module.running_stage
 
             if running_stage == RunningStage.TRAINING:
                 return self.module.training_step(*inputs[0], **kwargs[0])
@@ -197,7 +197,7 @@ class LightningDistributedModule(torch.nn.Module):
 
     def forward(self, *inputs, **kwargs):
 
-        running_stage = getattr(self.module, "running_stage")
+        running_stage = self.module.running_stage
 
         if running_stage == RunningStage.TRAINING:
             output = self.module.training_step(*inputs, **kwargs)

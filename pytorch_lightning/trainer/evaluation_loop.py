@@ -170,7 +170,6 @@ class EvaluationLoop(object):
 
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
-        # run actual test step
 
         if self.trainer.is_predicting:
             model_ref._current_fx_name = "predict"

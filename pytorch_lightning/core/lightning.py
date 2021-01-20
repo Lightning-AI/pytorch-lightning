@@ -66,6 +66,7 @@ class LightningModule(
         "on_gpu",
         "current_epoch",
         "global_step",
+        "running_stage",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
@@ -102,6 +103,7 @@ class LightningModule(
         self._running_manual_backward = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
+        self.running_stage = None
 
     def optimizers(self):
         opts = self.trainer.optimizers

@@ -295,7 +295,7 @@ class Trainer(
         super().__init__()
         self._device_type = DeviceType.CPU
         self._distrib_type = None
-        self._running_stage = RunningStage.UNDEFINED
+        self._running_stage = None
         self.is_predicting = False
 
         # init connectors
@@ -499,15 +499,20 @@ class Trainer(
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
 
-        self._set_running_stage(RunningStage.UNDEFINED)
+        self._set_running_stage(None)
 
         return results or 1
 
     def _set_running_stage(self, stage):
         model_ref = self.get_model()
 
+        if stage is None:
+            self._running_stage = stage
+            model_ref.running_stage = stage
+            return
+
         # todo: clean up this routing mess.
-        if self._running_stage == RunningStage.TESTING and stage != RunningStage.TESTING:
+        if self._running_stage == RunningStage.TESTING:
             stage = RunningStage.TESTING
 
         # WARNING: With predicting,
@@ -761,6 +766,7 @@ class Trainer(
             test_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
             verbose: If True, prints the test results
+
         Returns:
             The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
         """
@@ -787,7 +793,7 @@ class Trainer(
 
         self.teardown('test')
 
-        self._set_running_stage(RunningStage.UNDEFINED)
+        self._set_running_stage(None)
 
         return results
 
@@ -881,15 +887,18 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        if (not isinstance(dataloaders, DataLoader) and not isinstance(dataloaders, (list, tuple))) \
-           or (isinstance(dataloaders, (list, tuple)) and not all(isinstance(d, DataLoader) for d in dataloaders)):
+        if not (
+            isinstance(dataloaders, DataLoader)
+            or isinstance(dataloaders, (list, tuple))
+            and all(isinstance(d, DataLoader) for d in dataloaders)
+        ):
             raise MisconfigurationException(
-                'You need to pass a dataloader or a list of dataloaders to trainer.predict. '
+                'You need to pass a dataloader or a list of dataloaders to `trainer.predict`. '
             )
 
         if model is None:
             raise MisconfigurationException(
-                'You need to pass a model to trainer.predict. '
+                'You need to pass a model to `trainer.predict`. '
             )
 
         # attach data
@@ -907,7 +916,7 @@ class Trainer(
         self.teardown('test')
         del os.environ['PL_TESTING_MODE']
         self.is_predicting = False
-        self._set_running_stage(RunningStage.UNDEFINED)
+        self._set_running_stage(None)
 
         return results
 

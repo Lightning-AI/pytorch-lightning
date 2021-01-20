@@ -24,7 +24,7 @@ if _FAIRSCALE_AVAILABLE:
             if self.enable_broadcast_buffers:
                 self.sync_buffers()
 
-            running_stage = getattr(self.module, "running_stage")
+            running_stage = self.module.running_stage
 
             if running_stage == RunningStage.TRAINING:
                 outputs = self.module.training_step(*inputs, **kwargs)
