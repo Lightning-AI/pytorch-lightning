@@ -292,16 +292,19 @@ def parallel_apply(
                 if module.running_stage == RunningStage.TRAINING:
                     output = module.training_step(*input, **kwargs)
                     fx_called = 'training_step'
+
                 elif module.running_stage == RunningStage.TESTING:
                     output = module.test_step(*input, **kwargs)
                     fx_called = 'test_step'
+
                 elif module.running_stage == RunningStage.EVALUATING:
                     output = module.validation_step(*input, **kwargs)
                     fx_called = 'validation_step'
+
                 elif module.running_stage == RunningStage.PREDICTING:
                     output = module.predict_step(*input, **kwargs)
                     fx_called = 'predict_step'
-                
+
                 if output is None:
                     warn_missing_output(fx_called)
 
