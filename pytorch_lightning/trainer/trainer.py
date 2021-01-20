@@ -505,7 +505,7 @@ class Trainer(
 
     def _set_running_stage(self, stage):
         model_ref = self.get_model()
-        
+
         # WARNING: With predicting,
         # trainer _running_state should be RunningStage.TESTING
         # however, the model running_stage should be RunningStage.PREDICTING or None
@@ -798,19 +798,18 @@ class Trainer(
         self,
         model: Optional[LightningModule] = None,
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        verbose: bool = True,
     ):
         r"""
 
         Separates from fit to make sure you never run on your predictions set until you want to.
 
+        This will call the model forward function to compute predictions.
+
         Args:
-            model: The model to test.
+            model: The model to predict on.
 
             dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying inference samples.
-
-            verbose: If True, prints the test results
 
         Returns:
             The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
@@ -819,11 +818,10 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        self.verbose_test = verbose
-
-        if not dataloaders:
+        if (not isinstance(dataloaders, DataLoader) and not isinstance(dataloaders, (list, tuple))) \
+           or (isinstance(dataloaders, (list, tuple)) and not all(isinstance(d, DataLoader) for d in dataloaders)):
             raise MisconfigurationException(
-                'You need to pass dataloaders to trainer.predict. '
+                'You need to pass a dataloader or a list of dataloaders to trainer.predict. '
             )
 
         if model is None:
