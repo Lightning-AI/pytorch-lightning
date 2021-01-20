@@ -1169,21 +1169,24 @@ class LightningModule(
         It works with ``untoggle_optimizer`` to make sure param_requires_grad_state is properly reset.
 
         Args:
-            optimizer:
-            optimizer_idx:
+            optimizer: Current optimizer used in training_loop
+            optimizer_idx: Current optimizer idx in training_loop
         """
         param_requires_grad_state = {}
-        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
-            if optimizer_idx != opt_idx:
-                for group in opt.param_groups:
-                    for param in group['params']:
+        # make sure current optimizer is latest to be iterated over.
+        optimizers = [opt for opt in self.optimizers(use_pl_optimizer=False) if opt != optimizer] + [optimizer]
+        num_optimizers = len(optimizers) - 1
+        for opt_idx, opt in enumerate(optimizers):
+            for group in opt.param_groups:
+                for param in group['params']:
+                    if num_optimizers == opt_idx:
+                        # If a param appears in 2 optimizer, revert `requires_grad_state` to before toggle
+                        if param in param_requires_grad_state:
+                            param.requires_grad = param_requires_grad_state[param]
+                    else:
+                        # save requires_grad for later restoration
                         param_requires_grad_state[param] = param.requires_grad
                         param.requires_grad = False
-
-        for group in optimizer.param_groups:
-            for param in group['params']:
-                if param in param_requires_grad_state:
-                    param.requires_grad = param_requires_grad_state[param]
 
         self._param_requires_grad_state = param_requires_grad_state
 
@@ -1194,7 +1197,7 @@ class LightningModule(
         Override for your own behavior
 
         Args:
-            optimizer_idx:
+            optimizer_idx: Current optimizer idx in training_loop
         """
         for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
             if optimizer_idx != opt_idx:
