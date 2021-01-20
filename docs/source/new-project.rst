@@ -65,7 +65,7 @@ You could also use conda environments
 
 Import the following:
 
-.. code-block:: python
+.. testcode::
 
     import os
     import torch
@@ -80,7 +80,7 @@ Import the following:
 Step 1: Define LightningModule
 ******************************
 
-.. code-block::
+.. testcode::
 
     class LitAutoEncoder(pl.LightningModule):
 
@@ -147,7 +147,7 @@ Under the hood a LightningModule is still just a :class:`torch.nn.Module` that g
 You can customize any part of training (such as the backward pass) by overriding any
 of the 20+ hooks found in :ref:`hooks`
 
-.. code-block:: python
+.. testcode::
 
     class LitAutoEncoder(pl.LightningModule):
 
@@ -259,7 +259,7 @@ or an inner loop, you can turn off automatic optimization and fully control the 
 
 First, turn off automatic optimization:
 
-.. code-block:: python
+.. testcode::
 
     trainer = Trainer(automatic_optimization=False)
 
@@ -310,7 +310,7 @@ Option 2: Forward
 -----------------
 You can also add a forward method to do predictions however you want.
 
-.. code-block:: python
+.. testcode::
 
     # ----------------------------------
     # using the AE to extract embeddings
@@ -324,7 +324,7 @@ You can also add a forward method to do predictions however you want.
     autoencoder = autoencoder(torch.rand(1, 28 * 28))
 
 
-.. code-block:: python
+.. testcode::
 
     # ----------------------------------
     # or using the AE to generate images
@@ -370,12 +370,12 @@ Using CPUs/GPUs/TPUs
 ====================
 It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
 
-.. code-block:: python
+.. testcode::
 
     # train on CPU
     trainer = pl.Trainer()
 
-.. code-block:: python
+.. testcode::
 
     # train on 8 CPUs
     trainer = pl.Trainer(num_processes=8)
@@ -605,10 +605,7 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                     param_group['lr'] = new_lr
                 self.old_lrs[opt_idx] = new_lr_group
 
-And pass the callback to the Trainer
-
-.. code-block:: python
-
+    # And pass the callback to the Trainer
     decay_callback = DecayLearningRate()
     trainer = Trainer(callbacks=[decay_callback])
 
@@ -629,7 +626,7 @@ LightningDataModules
 DataLoaders and data processing code tends to end up scattered around.
 Make your data code reusable by organizing it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
-.. code-block:: python
+.. testcode::
 
   class MNISTDataModule(pl.LightningDataModule):
 
@@ -679,7 +676,7 @@ tokenizing, processing etc.
 Now you can simply pass your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` to
 the :class:`~pytorch_lightning.trainer.Trainer`:
 
-.. code-block::
+.. code-block:: python
 
     # init model
     model = LitModel()
@@ -702,33 +699,33 @@ Debugging
 =========
 Lightning has many tools for debugging. Here is an example of just a few of them:
 
-.. code-block:: python
+.. testcode::
 
     # use only 10 train batches and 3 val batches
     trainer = pl.Trainer(limit_train_batches=10, limit_val_batches=3)
 
-.. code-block:: python
+.. testcode::
 
     # Automatically overfit the sane batch of your model for a sanity test 
     trainer = pl.Trainer(overfit_batches=1)
 
-.. code-block:: python
+.. testcode::
 
     # unit test all the code- hits every line of your code once to see if you have bugs,
     # instead of waiting hours to crash on validation
     trainer = pl.Trainer(fast_dev_run=True)
 
-.. code-block:: python
+.. testcode::
    
    # train only 20% of an epoch
    trainer = pl.Trainer(limit_train_batches=0.2)
 
-.. code-block:: python
+.. testcode::
 
     # run validation every 25% of a training epoch
     trainer = pl.Trainer(val_check_interval=0.25)
 
-.. code-block:: python
+.. testcode::
     
     # Profile your code to find speed/memory bottlenecks
     Trainer(profiler=True)

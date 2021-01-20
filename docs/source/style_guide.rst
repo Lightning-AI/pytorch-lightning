@@ -46,7 +46,7 @@ Here's a LightningModule that defines a model:
 
 Here's a lightningModule that defines a system:
 
-.. code-block:: python
+.. testcode::
 
     class LitModel(pl.LightningModule):
         def __init__(self, encoder: nn.Module = None, decoder: nn.Module = None)
@@ -74,7 +74,7 @@ sensible defaults in the init so that the user doesn't have to guess.
 
 Here's an example where a user will have to go hunt through files to figure out how to init this LightningModule.
 
-.. code-block:: python
+.. testcode::
 
     class LitModel(pl.LightningModule):
         def __init__(self, params):
@@ -85,7 +85,7 @@ Models defined as such leave you with many questions; what is coef_x? is it a st
 
 Instead, be explicit in your init
 
-.. code-block:: python
+.. testcode::
 
     class LitModel(pl.LightningModule):
         def __init__(self, encoder: nn.Module, coeff_x: float = 0.2, lr: float = 1e-3)

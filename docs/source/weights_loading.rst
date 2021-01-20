@@ -48,7 +48,7 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
 3. Initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback, and set `monitor` to be the key of your quantity.
 4. Pass the callback to the `callbacks` :class:`~pytorch_lightning.trainer.Trainer` flag.
 
-.. code-block:: python
+.. testcode::
 
     from pytorch_lightning.callbacks import ModelCheckpoint
 
@@ -71,7 +71,7 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
 
 You can also control more advanced options, like `save_top_k`, to save the best k models and the `mode` of the monitored quantity (min/max), `save_weights_only` or `period` to set the interval of epochs between checkpoints, to avoid slowdowns.
 
-.. code-block:: python
+.. testcode::
 
     from pytorch_lightning.callbacks import ModelCheckpoint
 

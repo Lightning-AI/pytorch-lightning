@@ -164,7 +164,6 @@ be moved to the same device as the input of the metric:
 
 .. code-block:: python
 
-    import torch
     from pytorch_lightning.metrics import Accuracy
 
     target = torch.tensor([1, 1, 0, 0], device=torch.device("cuda", 0))
@@ -222,7 +221,7 @@ from the base ``Metric`` class.
 
 Example implementation:
 
-.. code-block:: python
+.. testcode::
 
     from pytorch_lightning.metrics import Metric
 
