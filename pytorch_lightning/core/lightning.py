@@ -932,38 +932,51 @@ class LightningModule(
     ) -> None:
         """
         Called at the end of a test epoch with the output of all test steps.
+
         .. code-block:: python
+
             # the pseudocode for these calls
             test_outs = []
             for test_batch in test_data:
                 out = test_step(test_batch)
                 test_outs.append(out)
             test_epoch_end(test_outs)
+
         Args:
             outputs: List of outputs you defined in :meth:`test_step_end`, or if there
                 are multiple dataloaders, a list containing a list of outputs for each dataloader
+
         Return:
             None
+
         Note:
             If you didn't define a :meth:`test_step`, this won't be called.
+
         Examples:
             With a single dataloader:
+
             .. code-block:: python
+
                 def test_epoch_end(self, outputs):
                     # do something with the outputs of all test batches
                     all_test_preds = test_step_outputs.predictions
+
                     some_result = calc_all_results(all_test_preds)
                     self.log(some_result)
+
             With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
             one entry per dataloader, while the inner list contains the individual outputs of
             each test step for that dataloader.
+
             .. code-block:: python
+
                 def test_epoch_end(self, outputs):
                     final_value = 0
                     for dataloader_outputs in outputs:
                         for test_step_out in dataloader_outputs:
                             # do something
                             final_value += test_step_out
+
                     self.log('final_metric', final_value)
         """
 
