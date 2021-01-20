@@ -38,10 +38,10 @@ class PreCalculatedModel(LightningModule):
 
     def __init__(self):
         super().__init__()
-        self.layer1 = nn.Linear(10, 100)
-        self.layer2 = nn.Linear(100, 2)
-        # pre calculated model size i.e (1302 params * 32 bit) -> megabytes.
-        self.pre_calculated_model_size = 0.005
+        self.layer1 = nn.Linear(150, 1000, bias=False)
+        self.layer2 = nn.Linear(1000, 100, bias=False)
+        # pre calculated model size i.e (250 K params * 32 bit) -> megabytes.
+        self.pre_calculated_model_size = 1.0
 
     def forward(self, x):
         x = self.layer1(x)
@@ -272,9 +272,7 @@ def test_model_size(mode):
     """ Test model size is calculated correctly. """
     model = PreCalculatedModel()
     summary = model.summarize(mode=mode)
-    pre_calculated_model_size = torch.tensor(model.pre_calculated_model_size)
-    model_size = torch.tensor(summary.model_size)
-    assert torch.isclose(model_size, pre_calculated_model_size, atol=1e-4)
+    assert model.pre_calculated_model_size == summary.model_size
 
 @pytest.mark.parametrize(['mode'], [
     pytest.param(ModelSummary.MODE_FULL),

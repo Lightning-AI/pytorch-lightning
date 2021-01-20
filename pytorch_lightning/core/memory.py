@@ -159,7 +159,7 @@ class ModelSummary(object):
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
-        0.506     Total estimated model params size (MB)
+        0.530     Total estimated model params size (MB)
         >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
@@ -170,7 +170,7 @@ class ModelSummary(object):
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
-        0.506     Total estimated model params size (MB)
+        0.530     Total estimated model params size (MB)
     """
 
     MODE_TOP = "top"
@@ -182,7 +182,7 @@ class ModelSummary(object):
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
-        self._precision_megabytes = (self._model.precision / 8.0) / (1024 ** 2.0) # 1 byte -> 8 bits)
+        self._precision_megabytes = (self._model.precision / 8.0) * 1e-6 # 1 byte -> 8 bits)
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
