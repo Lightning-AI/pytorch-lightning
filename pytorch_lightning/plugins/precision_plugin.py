@@ -37,7 +37,7 @@ class PrecisionPlugin(LightningPlugin):
 
     def clip_gradients(self,
                        optimizer: Optimizer,
-                       grad_clip_val: Union[int, float],
+                       grad_clip_val: float,
                        gradient_clip_algorithm: str,
-                       norm_type: Union[float, int]):
+                       norm_type: float):
         raise NotImplementedError

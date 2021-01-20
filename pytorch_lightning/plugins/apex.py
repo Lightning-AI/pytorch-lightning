@@ -18,9 +18,8 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, GradClipAlgorithmType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
-from pytorch_lightning.utilities.enums import GradClipAlgorithmType
 
 if _APEX_AVAILABLE:
     from apex import amp
@@ -102,9 +101,9 @@ class ApexPlugin(PrecisionPlugin):
 
     def clip_gradients(self,
                        optimizer: Optimizer,
-                       grad_clip_val: Union[int, float],
+                       grad_clip_val: float,
                        gradient_clip_algorithm: str,
-                       norm_type: Union[float, int]):
+                       norm_type: float):
         """
         This code contains a modification of :meth:`torch.nn.utils.clip_grad_norm_` using a higher epsilon
         for fp16 weights. This is important when setting amp_level to O2, and the master weights are in fp16.

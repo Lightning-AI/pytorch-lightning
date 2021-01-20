@@ -118,7 +118,7 @@ class Accelerator(object):
             return
         self._clip_gradients(optimizer, grad_clip_val)
 
-    def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
+    def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: float, norm_type: float = 2.0):
         clip_algorithm = self.trainer.gradient_clip_algorithm
         if self.trainer.amp_backend:
             self.trainer.precision_connector.backend.clip_gradients(grad_clip_val, clip_algorithm, optimizer, norm_type)

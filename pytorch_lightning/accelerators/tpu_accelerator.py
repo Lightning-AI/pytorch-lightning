@@ -26,11 +26,11 @@ from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import (
     _TPU_AVAILABLE,
+    GradClipAlgorithmType,
     move_data_to_device,
     rank_zero_info,
     rank_zero_only,
     rank_zero_warn,
-    GradClipAlgorithmType,
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -247,9 +247,9 @@ class TPUAccelerator(Accelerator):
 
     def _clip_gradients(self,
                         optimizer: Optimizer,
-                        grad_clip_val: Union[float, int],
+                        grad_clip_val: float,
                         gradient_clip_algorithm: str,
-                        norm_type: Union[float, int]):
+                        norm_type: float):
         # this code contains a modification of torch.nn.utils.clip_grad_norm_
         # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
         model = self.trainer.get_model()

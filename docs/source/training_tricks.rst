@@ -42,7 +42,7 @@ If gradient_clip_algorithm option is set to 'value', which is 'norm' by default,
     trainer = Trainer(gradient_clip_val=0.5)
 
     # clip gradients with value above 0.5
-    trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm='value' )
+    trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm='value')
 
 ----------
 

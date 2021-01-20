@@ -59,9 +59,9 @@ class NativeAMPPlugin(PrecisionPlugin):
 
     def clip_gradients(self,
                        optimizer: Optimizer,
-                       grad_clip_val: Union[int, float],
+                       grad_clip_val: float,
                        gradient_clip_algorithm: str,
-                       norm_type: Union[float, int]):
+                       norm_type: float):
         model = self.trainer.get_model()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
         if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
