@@ -28,7 +28,7 @@ For example, imagine we now want to train an Autoencoder to use as a feature ext
 We are extending our Autoencoder from the `LitMNIST`-module which already defines all the dataloading.
 The only things that change in the `Autoencoder` model are the init, forward, training, validation and test step.
 
-.. testcode::
+.. testcode:: python
 
     class Encoder(torch.nn.Module):
         pass

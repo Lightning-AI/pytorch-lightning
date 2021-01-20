@@ -15,7 +15,7 @@ Check validation every n epochs
 -------------------------------
 If you have a small dataset you might want to check validation every n epochs
 
-.. testcode::
+.. testcode:: python
 
     # DEFAULT
     trainer = Trainer(check_val_every_n_epoch=1)
@@ -29,7 +29,7 @@ It can be useful to force training for a minimum number of epochs or limit to a 
 .. seealso::
     :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
-.. testcode::
+.. testcode:: python
 
     # DEFAULT
     trainer = Trainer(min_epochs=1, max_epochs=1000)
@@ -42,7 +42,7 @@ For large datasets it's often desirable to check validation multiple times withi
 Pass in a float to check that often within 1 training epoch. Pass in an int `k` to check every `k` training batches.
 Must use an `int` if using an `IterableDataset`.
 
-.. testcode::
+.. testcode:: python
 
     # DEFAULT
     trainer = Trainer(val_check_interval=0.95)
@@ -59,7 +59,7 @@ Use data subset for training, validation, and test
 --------------------------------------------------
 If you don't want to check 100% of the training/validation/test set (for debugging or if it's huge), set these flags.
 
-.. testcode::
+.. testcode:: python
 
     # DEFAULT
     trainer = Trainer(

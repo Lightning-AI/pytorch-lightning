@@ -24,7 +24,7 @@ dataloaders).
 
 (`reference <https://discuss.pytorch.org/t/train-simultaneously-on-two-datasets/649/2>`_)
 
-.. testcode::
+.. testcode:: python
 
     class ConcatDataset(torch.utils.data.Dataset):
         def __init__(self, *datasets):
@@ -65,7 +65,7 @@ However, with lightning you can also return multiple loaders and lightning will 
 
 For more details please have a look at :attr:`~pytorch_lightning.trainer.trainer.Trainer.multiple_trainloader_mode`
 
-.. testcode::
+.. testcode:: python
 
     class LitModel(LightningModule):
 
@@ -98,7 +98,7 @@ See the following for more details:
 - :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.val_dataloader`
 - :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.test_dataloader`
 
-.. testcode::
+.. testcode:: python
 
     def val_dataloader(self):
         loader_1 = Dataloader()

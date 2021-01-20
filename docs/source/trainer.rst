@@ -229,7 +229,7 @@ The accelerator backend to use (previously known as distributed_backend).
 - (``'ddp2'``) dp on node, ddp across nodes. Useful for things like increasing
     the number of negative samples
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer
     trainer = Trainer(accelerator=None)
@@ -272,7 +272,7 @@ accumulate_grad_batches
 Accumulates grads every k batches or as set up in the dict.
 Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer (no accumulation)
     trainer = Trainer(accumulate_grad_batches=1)
@@ -298,7 +298,7 @@ amp_backend
 
 Use PyTorch AMP ('native') (available PyTorch 1.6+), or NVIDIA apex ('apex').
 
-.. testcode::
+.. testcode:: python
 
     # using PyTorch built-in AMP, default used by the Trainer
     trainer = Trainer(amp_backend='native')
@@ -580,7 +580,7 @@ You can override the default behavior by initializing the :class:`~pytorch_light
 callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
 See :ref:`Saving and Loading Weights <weights_loading>` for how to customize checkpointing.
 
-.. testcode::
+.. testcode:: python
 
     from pytorch_lightning.callbacks import ModelCheckpoint
     # Init ModelCheckpoint callback, monitoring 'val_loss'
@@ -612,7 +612,7 @@ stored. If you don't then use this argument for convenience. Paths can be local
 paths or remote paths such as `s3://bucket/path` or 'hdfs://path/'. Credentials
 will need to be set up to use remote filepaths.
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer
     trainer = Trainer(default_root_dir=os.getcwd())
@@ -652,7 +652,7 @@ Under the hood the pseudocode looks like this when running *fast_dev_run* with a
     out = validation_step(val_batch)
     validation_epoch_end([out])
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer
     trainer = Trainer(fast_dev_run=False)
@@ -683,7 +683,7 @@ flush_logs_every_n_steps
 
 Writes logs to disk this often.
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer
     trainer = Trainer(flush_logs_every_n_steps=100)
@@ -706,7 +706,7 @@ gpus
 - or which GPUs to train on (list)
 - can handle strings
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer (ie: train on CPU)
     trainer = Trainer(gpus=None)
@@ -752,7 +752,7 @@ Gradient clipping value
 
 - 0 means don't clip.
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer
     trainer = Trainer(gradient_clip_val=0.0)
@@ -771,7 +771,7 @@ limit_train_batches
 How much of training dataset to check.
 Useful when debugging or testing something that happens at the end of an epoch.
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer
     trainer = Trainer(limit_train_batches=1.0)
@@ -800,7 +800,7 @@ limit_test_batches
 
 How much of test dataset to check.
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer
     trainer = Trainer(limit_test_batches=1.0)
@@ -827,7 +827,7 @@ limit_val_batches
 How much of validation dataset to check.
 Useful when debugging or testing something that happens at the end of an epoch.
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer
     trainer = Trainer(limit_val_batches=1.0)
@@ -854,7 +854,7 @@ log_every_n_steps
 
 How often to add logging rows (does not write to disk)
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer
     trainer = Trainer(log_every_n_steps=50)
@@ -879,7 +879,7 @@ Options:
 - 'min_max'
 - 'all'
 
-.. testcode::
+.. testcode:: python
 
     # default used by the Trainer
     trainer = Trainer(log_gpu_memory=None)
@@ -1501,10 +1501,10 @@ override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
 
 .. testcode::
 
-        class LitMNIST(LightningModule):
-            def tbptt_split_batch(self, batch, split_size):
-                # do your own splitting on the batch
-                return splits
+    class LitMNIST(LightningModule):
+        def tbptt_split_batch(self, batch, split_size):
+            # do your own splitting on the batch
+            return splits
 
 val_check_interval
 ^^^^^^^^^^^^^^^^^^

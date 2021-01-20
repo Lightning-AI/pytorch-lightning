@@ -95,7 +95,7 @@ Learning rate scheduling
 ------------------------
 Every optimizer you use can be paired with any `LearningRateScheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
 
-.. testcode::
+.. testcode:: python
 
    # no LR scheduler
    def configure_optimizers(self):
@@ -155,7 +155,7 @@ Use multiple optimizers (like GANs)
 -----------------------------------
 To use multiple optimizers return > 1 optimizers from :meth:`pytorch_lightning.core.LightningModule.configure_optimizers`
 
-.. testcode::
+.. testcode:: python
 
    # one optimizer
    def configure_optimizers(self):
@@ -193,7 +193,7 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
 
 .. note:: When using Trainer(enable_pl_optimizer=True), there is no need to call `.zero_grad()`.
 
-.. testcode::
+.. testcode:: python
 
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
       optimizer.zero_grad()
@@ -212,7 +212,7 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
 
 .. note:: When using ``Trainer(enable_pl_optimizer=True)``, ``.step`` accepts a boolean ``make_optimizer_step`` which can be used as follow.
 
-.. testcode::
+.. testcode:: python
 
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
       optimizer.zero_grad()
@@ -229,7 +229,7 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
 
 Here we add a learning-rate warm up
 
-.. testcode::
+.. testcode:: python
 
     # learning rate warm-up
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
@@ -244,7 +244,7 @@ Here we add a learning-rate warm up
 
 The default ``optimizer_step`` is relying on the internal ``LightningOptimizer`` to properly perform a step.
 
-.. testcode::
+.. testcode:: python
 
     from pytorch_lightning.core.optimizer import LightningOptimizer
    
@@ -262,7 +262,7 @@ Using the closure functions for optimization
 
 When using optimization schemes such as LBFGS, the `second_order_closure` needs to be enabled. By default, this function is defined by wrapping the `training_step` and the backward steps as follows
 
-.. testcode::
+.. testcode:: python
 
     def second_order_closure(pl_module, split_batch, batch_idx, opt_idx, optimizer, hidden):
         # Model training step on a given batch

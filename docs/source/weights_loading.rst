@@ -107,7 +107,7 @@ Disabling checkpoints
 
 You can disable checkpointing by passing
 
-.. testcode::
+.. testcode:: python
 
    trainer = Trainer(checkpoint_callback=False)
 
@@ -174,7 +174,7 @@ To load a model along with its weights, biases and hyperparameters use the follo
 
 But if you don't want to use the values saved in the checkpoint, pass in your own here
 
-.. testcode::
+.. testcode:: python
 
     class LitModel(LightningModule):
 

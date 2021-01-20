@@ -29,7 +29,7 @@ Delete .cuda() or .to() calls
 
 Delete any calls to .cuda() or .to(device).
 
-.. testcode::
+.. testcode:: python
 
     # before lightning
     def forward(self, x):
@@ -46,7 +46,7 @@ Init tensors using type_as and register_buffer
 When you need to create a new tensor, use `type_as`.
 This will make your code scale to any arbitrary number of GPUs or TPUs with Lightning.
 
-.. testcode::
+.. testcode:: python
 
     # before lightning
     def forward(self, x):
@@ -63,7 +63,7 @@ Sometimes it is necessary to store tensors as module attributes. However, if the
 remain on the CPU even if the module gets moved to a new device. To prevent that and remain device agnostic,
 register the tensor as a buffer in your modules's ``__init__`` method with :meth:`~torch.nn.Module.register_buffer`.
 
-.. testcode::
+.. testcode:: python
 
     class LitModel(LightningModule):
 
@@ -78,7 +78,7 @@ Remove samplers
 In PyTorch, you must use :class:`~torch.utils.data.distributed.DistributedSampler`
 for multi-node or TPU training. The sampler makes sure each GPU sees the appropriate part of your data.
 
-.. testcode::
+.. testcode:: python
 
     # without lightning
     def train_dataloader(self):
@@ -92,7 +92,7 @@ for multi-node or TPU training. The sampler makes sure each GPU sees the appropr
 
 Lightning adds the correct samplers when needed, so no need to explicitly add samplers.
 
-.. testcode::
+.. testcode:: python
 
     # with lightning
     def train_dataloader(self):
@@ -117,7 +117,7 @@ This ensures that each GPU worker has the same behaviour when tracking model che
 
 Note if you use any built in metrics or custom metrics that use the :ref:`Metrics API <metrics>`, these do not need to be updated and are automatically handled for you.
 
-.. testcode::
+.. testcode:: python
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
@@ -185,7 +185,7 @@ a comma separated list of GPU ids:
 
     k = 1
 
-.. testcode::
+.. testcode:: python
     :skipif: torch.cuda.device_count() < 2
 
     # DEFAULT (int) specifies how many GPUs to use per node
@@ -268,7 +268,7 @@ after which the root node will aggregate the results.
 
 .. warning:: DP use is discouraged by PyTorch and Lightning. Use DDP which is more stable and at least 3x faster
 
-.. testcode::
+.. testcode:: python
     :skipif: torch.cuda.device_count() < 2
 
     # train on 2 GPUs (using DP mode)
@@ -459,7 +459,7 @@ DP/DDP2 caveats
 In DP and DDP2 each GPU within a machine sees a portion of a batch.
 DP and ddp2 roughly do the following:
 
-.. testcode::
+.. testcode:: python
 
     def distributed_forward(batch, model):
         batch = torch.Tensor(32, 8)
@@ -478,7 +478,7 @@ DP and ddp2 roughly do the following:
 So, when Lightning calls any of the `training_step`, `validation_step`, `test_step`
 you will only be operating on one of those pieces.
 
-.. testcode::
+.. testcode:: python
 
     # the batch here is a portion of the FULL batch
     def training_step(self, batch, batch_idx):
@@ -488,7 +488,7 @@ For most metrics, this doesn't really matter. However, if you want
 to add something to your computational graph (like softmax)
 using all batch parts you can use the `training_step_end` step.
 
-.. testcode::
+.. testcode:: python
 
     def training_step_end(self, outputs):
         # only use when  on dp
@@ -521,7 +521,7 @@ In pseudocode, the full sequence is:
 
 To illustrate why this is needed, let's look at DataParallel
 
-.. testcode::
+.. testcode:: python
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -546,7 +546,7 @@ it will behave the same regardless of the backend.
 
 Validation and test step have the same option when using DP.
 
-.. testcode::
+.. testcode:: python
 
     def validation_step_end(self, batch_parts_outputs):
         ...

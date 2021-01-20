@@ -18,7 +18,7 @@ ArgumentParser
 ^^^^^^^^^^^^^^
 Lightning is designed to augment a lot of the functionality of the built-in Python ArgumentParser
 
-.. testcode::
+.. testcode:: python
 
     from argparse import ArgumentParser
     parser = ArgumentParser()
@@ -47,7 +47,7 @@ We can do this as follows. First, in your ``LightningModule``, define the argume
 specific to that module. Remember that data splits or data paths may also be specific to
 a module (i.e.: if your project has a model that trains on Imagenet and another on CIFAR-10).
 
-.. testcode::
+.. testcode:: python
 
     class LitModel(LightningModule):
 
@@ -60,7 +60,7 @@ a module (i.e.: if your project has a model that trains on Imagenet and another 
 
 Now in your main trainer file, add the ``Trainer`` args, the program args, and add the model args
 
-.. testcode::
+.. testcode:: python
 
     # ----------------
     # trainer_main.py
@@ -219,7 +219,7 @@ Multiple Lightning Modules
 We often have multiple Lightning Modules where each one has different arguments. Instead of
 polluting the ``main.py`` file, the ``LightningModule`` lets you define arguments for each one.
 
-.. testcode::
+.. testcode:: python
 
     class LitMNIST(LightningModule):
 

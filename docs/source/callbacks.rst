@@ -40,7 +40,7 @@ An overall Lightning system should have:
 
 Example:
 
-.. testcode::
+.. testcode:: python
 
     from pytorch_lightning.callbacks import Callback
 

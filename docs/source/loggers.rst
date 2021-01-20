@@ -41,7 +41,7 @@ First, install the package:
 
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. testcode::
+.. testcode:: python
 
     import os
     from pytorch_lightning.loggers import CometLogger
@@ -58,7 +58,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 The :class:`~pytorch_lightning.loggers.CometLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. testcode:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
@@ -110,7 +110,7 @@ First, install the package:
 
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. testcode::
+.. testcode:: python
 
     from pytorch_lightning.loggers import NeptuneLogger
 
@@ -126,7 +126,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. testcode:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
@@ -143,7 +143,7 @@ Tensorboard
 
 To use `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your logger do the following.
 
-.. testcode::
+.. testcode:: python
 
     from pytorch_lightning.loggers import TensorBoardLogger
     logger = TensorBoardLogger('tb_logs', name='my_model')
@@ -152,7 +152,7 @@ To use `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your
 The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. testcode:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
@@ -187,7 +187,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 The :class:`~pytorch_lightning.loggers.TestTubeLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. testcode:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
@@ -221,7 +221,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. testcode:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
@@ -251,7 +251,7 @@ Lightning supports the use of multiple loggers, just pass a list to the
 The loggers are available as a list anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. testcode:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):

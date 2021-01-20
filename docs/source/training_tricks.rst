@@ -17,7 +17,7 @@ The effect is a large effective batch size of size KxN.
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
-.. testcode::
+.. testcode:: python
 
     # DEFAULT (ie: no accumulated grads)
     trainer = Trainer(accumulate_grad_batches=1)
@@ -31,7 +31,7 @@ norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ 
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
-.. testcode::
+.. testcode:: python
 
     # DEFAULT (ie: don't clip)
     trainer = Trainer(gradient_clip_val=0)
