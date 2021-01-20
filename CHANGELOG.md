@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+Ignored `step` param in Neptune logger's log_metric method ([#5510](https://github.com/PyTorchLightning/pytorch-lightning/pull/5510))
 
 ### Deprecated
 
