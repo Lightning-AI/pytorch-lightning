@@ -757,14 +757,20 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
     ):
         r"""
+
         Separates from fit to make sure you never run on your test set until you want to.
+
         Args:
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
             datamodule: A instance of :class:`LightningDataModule`.
+
             model: The model to test.
+
             test_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
+
             verbose: If True, prints the test results
 
         Returns:
