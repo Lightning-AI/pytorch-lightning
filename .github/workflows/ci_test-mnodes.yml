@@ -152,7 +152,6 @@ jobs:
         from dtrun.configs import prepare_multi_nodes_gpu_config
 
         import os
-        assert os.path.isfile('./.github/template/multi-nodes-gpu-.yaml')
         assert os.path.isfile('./tests/mnode_tests.txt')
 
         prepare_multi_nodes_gpu_config(
@@ -164,6 +163,8 @@ jobs:
             torch_version="${{ matrix.pytorch-version }}",
             num_gpus=1,
         )
+
+        print(os.path.isfile('./.github/template/multi-nodes-gpu-.yaml'))
       shell: python
 
     - name: Show Multi Node Testing
