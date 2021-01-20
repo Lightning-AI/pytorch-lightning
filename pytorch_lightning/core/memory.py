@@ -441,6 +441,3 @@ def get_human_readable_count(number: int) -> str:
         return f"{int(number):,d} {labels[index]}"
     else:
         return f"{number:,.1f} {labels[index]}"
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()

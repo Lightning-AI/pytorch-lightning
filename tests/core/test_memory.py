@@ -40,6 +40,7 @@ class PreCalculatedModel(LightningModule):
         super().__init__()
         self.layer1 = nn.Linear(10, 100)
         self.layer2 = nn.Linear(100, 2)
+        # pre calculated model size i.e (1302 params * 32 bit) -> megabytes.
         self.pre_calculated_model_size = 0.005
 
     def forward(self, x):
@@ -268,7 +269,7 @@ def test_example_input_array_types(example_input, expected_size, mode):
     pytest.param(ModelSummary.MODE_TOP),
 ])
 def test_model_size(mode):
-    """ Test that model size is calculated correctly. """
+    """ Test model size is calculated correctly. """
     model = PreCalculatedModel()
     summary = model.summarize(mode=mode)
     pre_calculated_model_size = torch.tensor(model.pre_calculated_model_size)
@@ -280,7 +281,7 @@ def test_model_size(mode):
     pytest.param(ModelSummary.MODE_TOP),
 ])
 def test_empty_model_size(mode):
-    """ Test that empty model size is zero. """
+    """ Test empty model size is zero. """
     model = EmptyModule()
     summary = model.summarize(mode=mode)
     assert 0.0 == summary.model_size
