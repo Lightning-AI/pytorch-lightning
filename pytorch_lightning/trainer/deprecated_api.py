@@ -153,4 +153,7 @@ class DeprecatedDistDeviceAttributes:
         if val:
             self._running_stage = RunningStage.TESTING
         else:
-            self._running_stage = None
+            if self._running_stage == RunningStage.TRAINING:
+                pass
+            else:
+                self._running_stage = None

@@ -779,13 +779,15 @@ class Trainer(
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
+        os.environ['PL_TESTING_MODE'] = '1'
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
         else:
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
+        del os.environ['PL_TESTING_MODE']
 
         self.teardown('test')
-        self._running_stage = RunningStage.UNDEFINED
+        self._set_running_stage(RunningStage.UNDEFINED)
 
         return results
 
@@ -814,7 +816,6 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        self.is_predicting = True
         self.verbose_test = verbose
 
         if not dataloaders:
@@ -831,14 +832,19 @@ class Trainer(
         if dataloaders is not None:
             self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
 
+        # set path variable
+        self.is_predicting = True
         os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
-        results = self.fit(model)
-        self.teardown('test')
-        self.testing = False
-        del os.environ['PL_TESTING_MODE']
 
+        results = self.fit(model)
+
+        # unset path variable
+        self.teardown('test')
+        del os.environ['PL_TESTING_MODE']
         self.is_predicting = False
+        self._set_running_stage(RunningStage.UNDEFINED)
+
         return results
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
@@ -875,11 +881,9 @@ class Trainer(
         # run tests
         self.tested_ckpt_path = ckpt_path
         self.testing = True
-        os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
         results = self.fit(model)
         self.testing = False
-        del os.environ['PL_TESTING_MODE']
 
         # teardown
         if self.is_function_implemented('teardown'):
@@ -896,10 +900,8 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        self.testing = True
         self.model = model
         results = self.fit(model)
-        self.testing = False
 
         # teardown
         if self.is_function_implemented('teardown'):
