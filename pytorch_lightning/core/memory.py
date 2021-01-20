@@ -33,12 +33,15 @@ class LayerSummary(object):
     """
     Summary class for a single layer in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
     It collects the following information:
+
     - Type of the layer (e.g. Linear, BatchNorm1d, ...)
     - Input shape
     - Output shape
     - Number of parameters
+
     The input and output shapes are only known after the example input array was
     passed through the model.
+
     Example::
         >>> model = torch.nn.Conv2d(3, 8, 3)
         >>> summary = LayerSummary(model)
@@ -51,8 +54,10 @@ class LayerSummary(object):
         [1, 3, 5, 5]
         >>> summary.out_size
         [1, 8, 3, 3]
+
     Args:
         module: A module to summarize
+
     """
 
     def __init__(self, module: nn.Module):
@@ -70,6 +75,7 @@ class LayerSummary(object):
         Registers a hook on the module that computes the input- and output size(s) on the first forward pass.
         If the hook is called, it will remove itself from the from the module, meaning that
         recursive models will only record their input- and output shapes once.
+
         Return:
             A handle for the installed hook.
         """
@@ -113,13 +119,17 @@ class LayerSummary(object):
 class ModelSummary(object):
     """
     Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
+
     Args:
         model: The model to summarize (also referred to as the root module)
         mode: Can be one of
+
              - `top` (default): only the top-level modules will be recorded (the children of the root module)
              - `full`: summarizes all layers and their submodules in the root module
+
     The string representation of this summary prints a table with columns containing
-    the name type and number of parameters for each layer.
+    the name, type and number of parameters for each layer.
+
     The root module may also have an attribute ``example_input_array`` as shown in the example below.
     If present, the root module will be called with it as input to determine the
     intermediate input- and output shapes of all layers. Supported are tensors and
@@ -261,6 +271,7 @@ class ModelSummary(object):
     def __str__(self):
         """
         Makes a summary listing with:
+
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes
         """
         arrays = [
@@ -337,11 +348,14 @@ def _format_summary_table(total_parameters: int, trainable_parameters: int, mode
 
 def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
     """ Get a profile of the current memory usage.
+
     Args:
         mode: There are two modes:
+
             - 'all' means return memory for all gpus
             - 'min_max' means return memory for max and min
     Return:
+
         A dictionary in which the keys are device ids as integers and
         values are memory usage as integers in MB.
         If mode is 'min_max', the dictionary will also contain two additional keys:
@@ -362,6 +376,7 @@ def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
 def get_gpu_memory_map() -> Dict[str, int]:
     """
     Get the current gpu usage.
+
     Return:
         A dictionary in which the keys are device ids as integers and
         values are memory usage as integers in MB.
@@ -389,6 +404,7 @@ def get_human_readable_count(number: int) -> str:
     """
     Abbreviates an integer number with K, M, B, T for thousands, millions,
     billions and trillions, respectively.
+
     Examples:
         >>> get_human_readable_count(123)
         '123  '
@@ -402,10 +418,13 @@ def get_human_readable_count(number: int) -> str:
         '400 T'
         >>> get_human_readable_count(5e15)  # (more than trillion)
         '5,000 T'
+
     Args:
         number: a positive integer number
+
     Return:
         A string formatted according to the pattern described above.
+
     """
     assert number >= 0
     labels = PARAMETER_NUM_UNITS
