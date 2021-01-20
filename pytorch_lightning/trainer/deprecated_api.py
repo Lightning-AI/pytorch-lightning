@@ -132,25 +132,41 @@ class DeprecatedDistDeviceAttributes:
             self._device_type = DeviceType.GPU
 
     @property
-    def training(self) -> bool:
-        # todo: consider rename as `is_training`
+    def is_training(self) -> bool:
         return self._running_stage == RunningStage.TRAINING
+
+    @property
+    def training(self) -> bool:
+        rank_zero_warn('Property `training` was deprecated in v1.2, use `is_training` instead.'
+                       ' It will be removed in v1.4. ', DeprecationWarning)
+        return self.is_training
 
     @training.setter
     def training(self, val: bool) -> None:
+        rank_zero_warn('Setter `training` was deprecated in v1.2, use `set_training()` instead.'
+                       ' It will be removed in v1.4. ', DeprecationWarning)
         if val:
-            self._running_stage = RunningStage.TRAINING
-        else:
-            self._running_stage = None
+            self.set_training()
+
+    def set_training(self) -> None:
+        self._running_stage = RunningStage.TRAINING
+
+    @property
+    def is_testing(self) -> bool:
+        return self._running_stage == RunningStage.TESTING
 
     @property
     def testing(self) -> bool:
-        # todo: consider rename as `is_testing`
-        return self._running_stage == RunningStage.TESTING
+        rank_zero_warn('Property `testing` was deprecated in v1.2, use `is_testing` instead.'
+                       ' It will be removed in v1.4. ', DeprecationWarning)
+        return self.is_testing
 
     @testing.setter
     def testing(self, val: bool) -> None:
+        rank_zero_warn('Setter `testing` was deprecated in v1.2, use `set_testing()` instead.'
+                       ' It will be removed in v1.4. ', DeprecationWarning)
         if val:
-            self._running_stage = RunningStage.TESTING
-        else:
-            self._running_stage = None
+            self.set_testing()
+
+    def set_testing(self) -> None:
+        self._running_stage = RunningStage.TESTING
