@@ -146,6 +146,9 @@ class DeprecatedRunningStageAttributes:
                        ' It will be removed in v1.4. ', DeprecationWarning)
         if val:
             self.set_training()
+        else:
+            # todo: this is still used somewhere internally
+            self.reset_running_stage()
 
     @property
     def testing(self) -> bool:
@@ -159,3 +162,6 @@ class DeprecatedRunningStageAttributes:
                        ' It will be removed in v1.4. ', DeprecationWarning)
         if val:
             self.set_testing()
+        else:
+            # todo: this is still used somewhere internally
+            self.reset_running_stage()
