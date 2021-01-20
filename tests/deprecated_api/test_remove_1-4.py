@@ -93,16 +93,22 @@ def test_v1_4_0_deprecated_trainer_phase():
     """Test that Trainer attributes works fine."""
     trainer = Trainer()
 
-    assert not trainer.training
-    assert not trainer.testing
+    with pytest.deprecated_call(match='It will be removed in v1.4'):
+        assert not trainer.training
+    with pytest.deprecated_call(match='It will be removed in v1.4'):
+        assert not trainer.testing
 
     trainer.training = True
-    assert trainer.training
-    assert not trainer.testing
+    with pytest.deprecated_call(match='It will be removed in v1.4'):
+        assert trainer.training
+    with pytest.deprecated_call(match='It will be removed in v1.4'):
+        assert not trainer.testing
 
     trainer.testing = True
-    assert not trainer.training
-    assert trainer.testing
+    with pytest.deprecated_call(match='It will be removed in v1.4'):
+        assert not trainer.training
+    with pytest.deprecated_call(match='It will be removed in v1.4'):
+        assert trainer.testing
 
 
 def test_v1_4_0_deprecated_metrics():
