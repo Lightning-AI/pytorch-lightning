@@ -98,13 +98,15 @@ def test_v1_4_0_deprecated_trainer_phase():
     with pytest.deprecated_call(match='It will be removed in v1.4'):
         assert not trainer.testing
 
-    trainer.training = True
+    with pytest.deprecated_call(match='It will be removed in v1.4'):
+        trainer.training = True
     with pytest.deprecated_call(match='It will be removed in v1.4'):
         assert trainer.training
     with pytest.deprecated_call(match='It will be removed in v1.4'):
         assert not trainer.testing
 
-    trainer.testing = True
+    with pytest.deprecated_call(match='It will be removed in v1.4'):
+        trainer.testing = True
     with pytest.deprecated_call(match='It will be removed in v1.4'):
         assert not trainer.training
     with pytest.deprecated_call(match='It will be removed in v1.4'):
