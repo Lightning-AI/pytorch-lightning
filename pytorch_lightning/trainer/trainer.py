@@ -506,6 +506,10 @@ class Trainer(
     def _set_running_stage(self, stage):
         model_ref = self.get_model()
 
+        # todo: clean up this routing mess.
+        if self._running_stage == RunningStage.TESTING and stage != RunningStage.TESTING:
+            stage = RunningStage.TESTING
+
         # WARNING: With predicting,
         # trainer _running_state should be RunningStage.TESTING
         # however, the model running_stage should be RunningStage.PREDICTING or None
@@ -748,30 +752,24 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
     ):
         r"""
-
         Separates from fit to make sure you never run on your test set until you want to.
-
         Args:
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None``, use the weights from the last epoch to test. Default to ``best``.
-
             datamodule: A instance of :class:`LightningDataModule`.
-
             model: The model to test.
-
             test_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
-
             verbose: If True, prints the test results
-
         Returns:
             The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
         """
         # --------------------
         # SETUP HOOK
         # --------------------
-        self._set_running_stage(RunningStage.TESTING)
         self.verbose_test = verbose
+
+        self._set_running_stage(RunningStage.TESTING)
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -782,15 +780,80 @@ class Trainer(
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
-        os.environ['PL_TESTING_MODE'] = '1'
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
         else:
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
-        del os.environ['PL_TESTING_MODE']
 
         self.teardown('test')
+
         self._set_running_stage(RunningStage.UNDEFINED)
+
+        return results
+
+    def __test_using_best_weights(self, ckpt_path, test_dataloaders):
+        model = self.get_model()
+
+        # if user requests the best checkpoint but we don't have it, error
+        if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
+            raise MisconfigurationException(
+                'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
+            )
+
+        # load best weights
+        if ckpt_path is not None:
+            # ckpt_path is 'best' so load the best model
+            if ckpt_path == 'best':
+                ckpt_path = self.checkpoint_callback.best_model_path
+
+            if len(ckpt_path) == 0:
+                rank_zero_warn(
+                    f'.test() found no path for the best weights, {ckpt_path}. Please '
+                    f'specify a path for a checkpoint .test(ckpt_path=PATH)'
+                )
+                return {}
+            if self.accelerator_backend is not None and not self._device_type == DeviceType.TPU:
+                self.accelerator_backend.barrier()
+
+            ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
+            model.load_state_dict(ckpt['state_dict'])
+
+        # attach dataloaders
+        if test_dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+
+        # run tests
+        self.tested_ckpt_path = ckpt_path
+        self.testing = True
+        os.environ['PL_TESTING_MODE'] = '1'
+        self.model = model
+        results = self.fit(model)
+        self.testing = False
+        del os.environ['PL_TESTING_MODE']
+
+        # teardown
+        if self.is_function_implemented('teardown'):
+            model_ref = self.get_model()
+            model_ref.teardown('test')
+
+        return results
+
+    def __test_given_model(self, model, test_dataloaders):
+
+        # attach data
+        if test_dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+
+        # run test
+        # sets up testing so we short circuit to eval
+        self.testing = True
+        self.model = model
+        results = self.fit(model)
+        self.testing = False
+
+        # teardown
+        if self.is_function_implemented('teardown'):
+            model.teardown('test')
 
         return results
 
@@ -845,68 +908,6 @@ class Trainer(
         del os.environ['PL_TESTING_MODE']
         self.is_predicting = False
         self._set_running_stage(RunningStage.UNDEFINED)
-
-        return results
-
-    def __test_using_best_weights(self, ckpt_path, test_dataloaders):
-        model = self.get_model()
-
-        # if user requests the best checkpoint but we don't have it, error
-        if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
-            raise MisconfigurationException(
-                'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
-            )
-
-        # load best weights
-        if ckpt_path is not None:
-            # ckpt_path is 'best' so load the best model
-            if ckpt_path == 'best':
-                ckpt_path = self.checkpoint_callback.best_model_path
-
-            if len(ckpt_path) == 0:
-                rank_zero_warn(
-                    f'.test() found no path for the best weights, {ckpt_path}. Please '
-                    f'specify a path for a checkpoint .test(ckpt_path=PATH)'
-                )
-                return {}
-            if self.accelerator_backend is not None and not self._device_type == DeviceType.TPU:
-                self.accelerator_backend.barrier()
-
-            ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt['state_dict'])
-
-        # attach dataloaders
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
-
-        # run tests
-        self.tested_ckpt_path = ckpt_path
-        self.testing = True
-        self.model = model
-        results = self.fit(model)
-        self.testing = False
-
-        # teardown
-        if self.is_function_implemented('teardown'):
-            model_ref = self.get_model()
-            model_ref.teardown('test')
-
-        return results
-
-    def __test_given_model(self, model, test_dataloaders):
-
-        # attach data
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
-
-        # run test
-        # sets up testing so we short circuit to eval
-        self.model = model
-        results = self.fit(model)
-
-        # teardown
-        if self.is_function_implemented('teardown'):
-            model.teardown('test')
 
         return results
 
