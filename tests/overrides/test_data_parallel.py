@@ -4,6 +4,7 @@ import pytest
 import torch
 
 from pytorch_lightning.overrides.data_parallel import LightningDistributedModule
+from pytorch_lightning.trainer.states import RunningStage
 
 
 def test_lightning_distributed_module_methods():
@@ -14,18 +15,15 @@ def test_lightning_distributed_module_methods():
     batch = torch.rand(5)
     batch_idx = 3
 
-    pl_module.training = True
-    pl_module.testing = False
+    pl_module.running_stage = RunningStage.TRAINING
     dist_module(batch, batch_idx)
     pl_module.training_step.assert_called_with(batch, batch_idx)
 
-    pl_module.training = False
-    pl_module.testing = True
+    pl_module.running_stage = RunningStage.TESTING
     dist_module(batch, batch_idx)
     pl_module.test_step.assert_called_with(batch, batch_idx)
 
-    pl_module.training = False
-    pl_module.testing = False
+    pl_module.running_stage = RunningStage.EVALUATING
     dist_module(batch, batch_idx)
     pl_module.validation_step.assert_called_with(batch, batch_idx)
 

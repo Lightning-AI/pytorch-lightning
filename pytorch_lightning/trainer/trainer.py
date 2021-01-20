@@ -295,7 +295,8 @@ class Trainer(
         super().__init__()
         self._device_type = DeviceType.CPU
         self._distrib_type = None
-        self._running_stage = None
+        self._running_stage = RunningStage.UNDEFINED
+        self.is_predicting = False
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -416,8 +417,6 @@ class Trainer(
         # last thing are the plugins which override whatever the trainer used by default
         self.plugin_connector.on_trainer_init(plugins)
 
-        self.running_stage = RunningStage.UNDEFINED
-
         # Callback system
         self.on_init_end()
 
@@ -500,20 +499,20 @@ class Trainer(
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
 
-        self.running_stage = RunningStage.UNDEFINED
+        self._set_running_stage(RunningStage.UNDEFINED)
 
         return results or 1
 
     def _set_running_stage(self, stage):
         model_ref = self.get_model()
         # predicting is special and shouldn't be overriden
-        if self.running_stage == RunningStage.PREDICTING:
+        if self._running_stage == RunningStage.PREDICTING:
             stage = RunningStage.PREDICTING
 
         if model_ref is not None:
             model_ref.running_stage = stage
 
-        self.running_stage = stage
+        self._running_stage = stage
 
     def train(self):
         self.run_sanity_check(self.get_model())
@@ -632,7 +631,7 @@ class Trainer(
                 # lightning module methods
                 with self.profiler.profile("evaluation_step_and_end"):
                     output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
-                    if self.running_stage == RunningStage.PREDICTING:
+                    if self.is_predicting:
                         continue
                     output = self.evaluation_loop.evaluation_step_end(output)
 
@@ -648,7 +647,7 @@ class Trainer(
             # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
 
-        if self.running_stage == RunningStage.PREDICTING:
+        if self.is_predicting:
             return self.evaluation_loop.on_predict_epoch_end()
 
         # lightning module method
@@ -786,7 +785,7 @@ class Trainer(
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
         self.teardown('test')
-        self.running_stage = RunningStage.UNDEFINED
+        self._running_stage = RunningStage.UNDEFINED
 
         return results
 
@@ -815,7 +814,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        self.running_stage = RunningStage.PREDICTING
+        self.is_predicting = True
         self.verbose_test = verbose
 
         if not dataloaders:
@@ -832,13 +831,14 @@ class Trainer(
         if dataloaders is not None:
             self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
 
-        self.testing = True
+        os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
         results = self.fit(model)
-        self.testing = False
         self.teardown('test')
+        self.testing = False
+        del os.environ['PL_TESTING_MODE']
 
-        self.running_stage = RunningStage.UNDEFINED
+        self.is_predicting = False
         return results
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):

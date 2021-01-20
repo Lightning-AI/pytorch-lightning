@@ -29,7 +29,6 @@ from torch.nn.parallel._functions import Gather
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -83,21 +82,19 @@ class LightningDataParallel(DataParallel):
 
         if len(self.device_ids) == 1:
 
-            if self.module.running_stage == RunningStage.TRAINING:
+            running_stage = getattr(self.module, "running_stage")
+
+            if running_stage == RunningStage.TRAINING:
                 return self.module.training_step(*inputs[0], **kwargs[0])
 
-            elif self.module.running_stage == RunningStage.TESTING:
+            elif running_stage == RunningStage.TESTING:
                 return self.module.test_step(*inputs[0], **kwargs[0])
 
-            elif self.module.running_stage == RunningStage.EVALUATING:
+            elif running_stage == RunningStage.EVALUATING:
                 return self.module.validation_step(*inputs[0], **kwargs[0])
 
-            elif self.module.running_stage == RunningStage.PREDICTING:
-                return self.module(*inputs[0], **kwargs[0])
-
             else:
-                raise MisconfigurationException(
-                    "running_stage should either be [TRAINING, TESTING, EVALUATING, PREDICTING]")
+                return self.module(*inputs[0], **kwargs[0])
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
@@ -200,24 +197,22 @@ class LightningDistributedModule(torch.nn.Module):
 
     def forward(self, *inputs, **kwargs):
 
-        if self.module.running_stage == RunningStage.TRAINING:
+        running_stage = getattr(self.module, "running_stage")
+
+        if running_stage == RunningStage.TRAINING:
             output = self.module.training_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "training_step")
 
-        elif self.module.running_stage == RunningStage.TESTING:
+        elif running_stage == RunningStage.TESTING:
             output = self.module.test_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "test_step")
 
-        elif self.module.running_stage == RunningStage.EVALUATING:
+        elif running_stage == RunningStage.EVALUATING:
             output = self.module.validation_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "validation_step")
 
-        elif self.module.running_stage == RunningStage.PREDICTING:
-            output = self.module(*inputs, **kwargs)
-
         else:
-            raise MisconfigurationException(
-                "running_stage should either be [TRAINING, TESTING, EVALUATING, PREDICTING]")
+            output = self.module(*inputs, **kwargs)
 
         return output
 
@@ -311,13 +306,9 @@ def parallel_apply(
                     output = module.validation_step(*input, **kwargs)
                     fx_called = 'validation_step'
 
-                elif module.running_stage == RunningStage.PREDICTING:
+                else:
                     output = module(*input, **kwargs)
                     fx_called = 'forward'
-
-                else:
-                    raise MisconfigurationException(
-                        "running_stage should either be [TRAINING, TESTING, EVALUATING, PREDICTING]")
 
                 if output is None:
                     warn_missing_output(fx_called)

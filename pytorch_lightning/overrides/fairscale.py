@@ -13,7 +13,6 @@
 # limitations under the License.
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 LightningShardedDataParallel = None
 if _FAIRSCALE_AVAILABLE:
@@ -25,20 +24,18 @@ if _FAIRSCALE_AVAILABLE:
             if self.enable_broadcast_buffers:
                 self.sync_buffers()
 
-            if self.module.running_stage == RunningStage.TRAINING:
+            running_stage = getattr(self.module, "running_stage")
+
+            if running_stage == RunningStage.TRAINING:
                 outputs = self.module.training_step(*inputs, **kwargs)
 
-            elif self.module.running_stage == RunningStage.TESTING:
+            elif running_stage == RunningStage.TESTING:
                 outputs = self.module.test_step(*inputs, **kwargs)
 
-            elif self.module.running_stage == RunningStage.EVALUATING:
+            elif running_stage == RunningStage.EVALUATING:
                 outputs = self.module.validation_step(*inputs, **kwargs)
 
-            elif self.module.running_stage == RunningStage.PREDICTING:
-                outputs = self.module(*inputs, **kwargs)
-
             else:
-                raise MisconfigurationException(
-                    "running_stage should either be [TRAINING, TESTING, EVALUATING, PREDICTING]")
+                outputs = self.module(*inputs, **kwargs)
 
             return outputs

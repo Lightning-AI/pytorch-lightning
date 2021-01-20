@@ -14,7 +14,6 @@
 import torch
 
 from pytorch_lightning.core.step_result import EvalResult, Result
-from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -173,7 +172,7 @@ class EvaluationLoop(object):
         model_ref._results = Result()
         # run actual test step
 
-        if self.trainer.running_stage == RunningStage.PREDICTING:
+        if self.trainer.is_predicting:
             model_ref._current_fx_name = "predict"
             forward_output = self.trainer.accelerator_backend.forward([args[0]])
             self._predictions[dataloader_idx].append(forward_output)
@@ -310,11 +309,7 @@ class EvaluationLoop(object):
         return eval_results
 
     def on_predict_epoch_end(self):
-        model_ref = self.trainer.get_model()
-
         results = self._predictions
-        if is_overridden('predict_epoch_end', model=model_ref):
-            results = model_ref.predict_epoch_end(results)
 
         def _convert_to_numpy(v):
             return v.cpu().numpy()

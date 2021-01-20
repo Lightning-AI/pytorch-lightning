@@ -294,7 +294,7 @@ class ProgressBar(ProgressBarBase):
     def init_test_tqdm(self, trainer=None) -> tqdm:
         """ Override this to customize the tqdm bar for testing. """
         bar = tqdm(
-            desc="TESTING" if trainer is None else trainer.running_stage.name,
+            desc="Predicting" if trainer.is_predicting else "Testing",
             position=(2 * self.process_position),
             disable=self.is_disabled,
             leave=True,

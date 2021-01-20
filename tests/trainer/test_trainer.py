@@ -1469,7 +1469,8 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None):
         accelerator=accelerator,
         gpus=gpus,
         num_processes=num_processes,
-        plugins=plugins
+        plugins=plugins,
+        num_sanity_val_steps=0
     )
     results = trainer.predict(model, dataloaders)
     # todo: address this in another PR
@@ -1480,7 +1481,7 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None):
 
 
 def test_trainer_predict_cpu(tmpdir):
-    predict(tmpdir, None, None, None)
+    predict(tmpdir, None, None, 1)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
