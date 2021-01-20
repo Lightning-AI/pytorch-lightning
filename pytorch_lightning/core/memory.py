@@ -43,6 +43,7 @@ class LayerSummary(object):
     passed through the model.
 
     Example::
+
         >>> model = torch.nn.Conv2d(3, 8, 3)
         >>> summary = LayerSummary(model)
         >>> summary.num_parameters
@@ -135,7 +136,9 @@ class ModelSummary(object):
     intermediate input- and output shapes of all layers. Supported are tensors and
     nested lists and tuples of tensors. All other types of inputs will be skipped and show as `?`
     in the summary table. The summary will also display `?` for layers not used in the forward pass.
+
     Example::
+
         >>> import pytorch_lightning as pl
         >>> class LitModel(pl.LightningModule):
         ...
@@ -354,11 +357,12 @@ def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
 
             - 'all' means return memory for all gpus
             - 'min_max' means return memory for max and min
-    Return:
 
+    Return:
         A dictionary in which the keys are device ids as integers and
         values are memory usage as integers in MB.
         If mode is 'min_max', the dictionary will also contain two additional keys:
+
         - 'min_gpu_mem': the minimum memory usage in MB
         - 'max_gpu_mem': the maximum memory usage in MB
     """
