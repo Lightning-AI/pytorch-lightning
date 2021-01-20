@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 import torch
 
 from pytorch_lightning.core.step_result import EvalResult, Result
@@ -174,11 +175,10 @@ class EvaluationLoop(object):
 
         if self.trainer.running_stage == RunningStage.PREDICTING:
             model_ref._current_fx_name = "predict"
-            predict_step_output = self.trainer.accelerator_backend.predict_step(args)
-            predict_step_end_output = self.trainer.call_hook("predict_step_end", predict_step_output)
-            self._predictions[dataloader_idx].append(predict_step_end_output)
+            forward_output = self.trainer.accelerator_backend.forward([args[0]])
+            self._predictions[dataloader_idx].append(forward_output)
             self.trainer._progress_bar_callback.on_test_batch_end(
-                self.trainer, model_ref, predict_step_end_output, batch, batch_idx, dataloader_idx)
+                self.trainer, model_ref, forward_output, batch, batch_idx, dataloader_idx)
             return
 
         elif self.testing:
@@ -315,6 +315,11 @@ class EvaluationLoop(object):
         results = self._predictions
         if is_overridden('predict_epoch_end', model=model_ref):
             results = model_ref.predict_epoch_end(results)
+
+        def _convert_to_numpy(v):
+            return v.cpu().numpy()
+
+        results = apply_to_collection(results, torch.Tensor, _convert_to_numpy)
 
         return results, None
 

@@ -83,7 +83,7 @@ class DDPHPCAccelerator(Accelerator):
     def test_step(self, args):
         return self._step(args)
 
-    def predict_step(self, args):
+    def forward(self, args):
         return self._step(args)
 
     def _step(self, args):

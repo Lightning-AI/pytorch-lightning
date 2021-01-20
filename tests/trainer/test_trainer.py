@@ -1455,6 +1455,7 @@ class PredictModel(BoringModel):
 
 
 def predict(tmpdir, accelerator, gpus, num_processes):
+
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)),
                    torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
@@ -1504,3 +1505,8 @@ def test_trainer_predict_ddp_spawn(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
 def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, None, 1, None)
+
+
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+def test_trainer_predict_ddp_cpu(tmpdir):
+    predict(tmpdir, "ddp_cpu", 0, 2)

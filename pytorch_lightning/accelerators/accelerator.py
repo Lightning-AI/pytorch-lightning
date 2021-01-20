@@ -83,9 +83,6 @@ class Accelerator(object):
     def validation_step_end(self, output):
         return output
 
-    def predict_step_end(self, output):
-        return output
-
     def process_dataloader(self, dataloader):
         return dataloader
 

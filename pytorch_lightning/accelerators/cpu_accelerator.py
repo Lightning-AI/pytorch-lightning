@@ -79,8 +79,8 @@ class CPUAccelerator(Accelerator):
     def test_step(self, args):
         return self._step(self.trainer.model.test_step, args)
 
-    def predict_step(self, args):
-        return self._step(self.trainer.model.predict_step, args)
+    def forward(self, args):
+        return self._step(self.trainer.model.forward, args)
 
     def sync_tensor(self,
                     tensor: Union[torch.Tensor],

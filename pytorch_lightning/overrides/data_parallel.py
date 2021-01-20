@@ -203,8 +203,7 @@ class LightningDistributedModule(torch.nn.Module):
             warn_if_output_is_none(output, "validation_step")
 
         elif self.module.running_stage == RunningStage.PREDICTING:
-            output = self.module.predict_step(*inputs, **kwargs)
-            warn_if_output_is_none(output, "predict")
+            output = self.module(*inputs, **kwargs)
 
         else:
             raise MisconfigurationException("running_stage shoud be define")
@@ -302,8 +301,8 @@ def parallel_apply(
                     fx_called = 'validation_step'
 
                 elif module.running_stage == RunningStage.PREDICTING:
-                    output = module.predict_step(*input, **kwargs)
-                    fx_called = 'predict_step'
+                    output = module(*input, **kwargs)
+                    fx_called = 'forward'
 
                 if output is None:
                     warn_missing_output(fx_called)
