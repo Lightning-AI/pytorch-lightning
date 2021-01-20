@@ -227,15 +227,15 @@ class ModelSummary(object):
     @property
     def model_size(self) -> float:
         return self._model_size()
+
     def _model_size(self) -> float:
         """
-        Estimates total model size, i.e., total params size in MBs.
-        total params size gives model size in accounting total model params.
+        Calculates the total model params size in MBs.
 
-        NOTE: Currently only Supported total params size.
+        NOTE: Currently only model params size is supported.
 
         Returns:
-            Total estimated model size(MB).
+            Total params size (MB).
         """
         return self.total_parameters * self._precision_megabytes
 
