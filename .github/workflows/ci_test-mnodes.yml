@@ -155,7 +155,7 @@ jobs:
         assert os.path.isfile('./tests/mnode_tests.txt')
 
         prepare_multi_nodes_gpu_config(
-            './.github/template/multi-nodes-gpu-.yaml',
+            './.github/template/multi-nodes-gpu.yaml',
             './tests/mnode_tests.txt',
             sha="${{ steps.vars.outputs.SHA }}",
             tcp_address="${{ steps.tcp.outputs.TCP_ADDRESS }}",
@@ -163,53 +163,51 @@ jobs:
             torch_version="${{ matrix.pytorch-version }}",
             num_gpus=1,
         )
-
-        print(os.path.isfile('./.github/template/multi-nodes-gpu-.yaml'))
       shell: python
 
     - name: Show Multi Node Testing
       run: |
         cat ./.github/template/multi-nodes-gpu-.yaml
 
-    - name: Update Test Configuration File
-      run: |
-        import os
-
-        _PATH_CONFIG = './.github/template/multi-nodes-gpu.yaml'
-        _PATH_TESTS = './tests/mnode_tests.txt'
-        _RUN_FIRST = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_FIRST} "
-        _RUN_NEXT = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_AFTER} "
-
-        with open(_PATH_CONFIG, 'r') as fp:
-            template = fp.read()
-
-        with open(_PATH_TESTS, 'r') as fp:
-            list_tests = [ln.strip() for ln in fp.readlines()]
-
-        list_tests = [(_RUN_FIRST if i == 0 else _RUN_NEXT) + ln for i, ln in enumerate(list_tests)]
-
-        # get the spacing to be aligned with other lines
-        tmp_lines = template.split(os.linesep)
-        tln = [ln for ln in tmp_lines if "LIST_TESTS" in ln][0]
-        space = tln[:tln.index("%(LIST_TESTS)s")]
-        testing = (os.linesep + space).join(list_tests)
-
-        filling = dict(
-            SHA="${{ steps.vars.outputs.SHA }}",
-            TCP_ADDRESS="${{ steps.tcp.outputs.TCP_ADDRESS }}",
-            PYTHON_VERSION="${{ matrix.python-version }}",
-            PYTHON_VERSION_DASH="${{ matrix.python-version }}".replace('.', '-'),
-            TORCH_VERSION="${{ matrix.pytorch-version }}",
-            TORCH_VERSION_DASH="${{ matrix.pytorch-version }}".replace('.', '-'),
-            NUM_GPUS=1,
-            LIST_TESTS=testing,
-        )
-        config = template % filling
-
-        assert os.path.splitext(_PATH_CONFIG)[-1] in ('.yaml', '.yml')
-        with open(_PATH_CONFIG, 'w') as fp:
-            fp.write(config)
-      shell: python
+    #- name: Update Test Configuration File
+    #  run: |
+    #    import os
+    #
+    #    _PATH_CONFIG = './.github/template/multi-nodes-gpu.yaml'
+    #    _PATH_TESTS = './tests/mnode_tests.txt'
+    #    _RUN_FIRST = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_FIRST} "
+    #    _RUN_NEXT = "python ${DEFAULTS_ELASTIC} ${DEFAULTS_AFTER} "
+    #
+    #    with open(_PATH_CONFIG, 'r') as fp:
+    #        template = fp.read()
+    #
+    #    with open(_PATH_TESTS, 'r') as fp:
+    #        list_tests = [ln.strip() for ln in fp.readlines()]
+    #
+    #    list_tests = [(_RUN_FIRST if i == 0 else _RUN_NEXT) + ln for i, ln in enumerate(list_tests)]
+    #
+    #    # get the spacing to be aligned with other lines
+    #    tmp_lines = template.split(os.linesep)
+    #    tln = [ln for ln in tmp_lines if "LIST_TESTS" in ln][0]
+    #    space = tln[:tln.index("%(LIST_TESTS)s")]
+    #    testing = (os.linesep + space).join(list_tests)
+    #
+    #    filling = dict(
+    #        SHA="${{ steps.vars.outputs.SHA }}",
+    #        TCP_ADDRESS="${{ steps.tcp.outputs.TCP_ADDRESS }}",
+    #        PYTHON_VERSION="${{ matrix.python-version }}",
+    #        PYTHON_VERSION_DASH="${{ matrix.python-version }}".replace('.', '-'),
+    #        TORCH_VERSION="${{ matrix.pytorch-version }}",
+    #        TORCH_VERSION_DASH="${{ matrix.pytorch-version }}".replace('.', '-'),
+    #        NUM_GPUS=1,
+    #        LIST_TESTS=testing,
+    #    )
+    #    config = template % filling
+    #
+    #    assert os.path.splitext(_PATH_CONFIG)[-1] in ('.yaml', '.yml')
+    #    with open(_PATH_CONFIG, 'w') as fp:
+    #        fp.write(config)
+    #  shell: python
 
     - name: Apply Multi Node Testing
       run: |
