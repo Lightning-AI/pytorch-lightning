@@ -98,11 +98,6 @@ class DDP2Accelerator(Accelerator):
             output.dp_reduce()
         return output
 
-    def predict_step_end(self, output):
-        def _reduce(o):
-            return o.mean(-1)
-        return apply_to_collection(output, torch.Tensor, _reduce)
-
     def set_world_ranks(self, process_idx):
         # Todo: required argument `process_idx` is not used
         self.trainer.local_rank = self.trainer.node_rank

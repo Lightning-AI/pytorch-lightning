@@ -14,6 +14,7 @@
 import math
 import os
 import pickle
+from pytorch_lightning.accelerators.accelerator import Accelerator
 import sys
 from argparse import Namespace
 from copy import deepcopy
@@ -1442,17 +1443,16 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
                              r" are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)
 
+class PredictModel(BoringModel):
 
-def test_trainer_predict(tmpdir):
-    class PredictModel(BoringModel):
+    def predict_step(self, batch, batch_idx, dataloader_idx):
+        return self.layer(batch)
 
-        def predict_step(self, batch, batch_idx, dataloader_idx):
-            return self.layer(batch)
+    def predict_epoch_end(self, predictions):
+        assert len(predictions) == 2
+        return predictions
 
-        def predict_epoch_end(self, predictions):
-            assert len(predictions) == 2
-            return predictions
-
+def predict(tmpdir, accelerator, gpus, num_processes):
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)),
                    torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
@@ -1463,8 +1463,37 @@ def test_trainer_predict(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
+        accelerator=accelerator,
+        gpus=gpus,
+        num_processes=num_processes
     )
     results = trainer.predict(model, dataloaders)
+    # todo: address this in another PR
+    num_samples = 1 if accelerator in ["ddp", "ddp_cpu", "ddp_spawn"] else 2
     assert len(results) == 2
-    assert len(results[0]) == 2
+    assert len(results[0]) == num_samples
     assert results[0][0].shape == torch.Size([1, 2])
+
+
+def test_trainer_predict_cpu(tmpdir):
+    predict(tmpdir, None, None, None)
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+def test_trainer_predict_dp(tmpdir):
+    predict(tmpdir, "dp", 2, None)
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+def test_trainer_predict_ddp(tmpdir):
+    predict(tmpdir, "ddp", 2, None)
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_trainer_predict_ddp_spawn(tmpdir):
+    predict(tmpdir, "ddp_spawn", 2, None)
+
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
+def test_trainer_predict_1_gpu(tmpdir):
+    predict(tmpdir, None, 1, None)

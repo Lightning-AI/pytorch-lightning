@@ -159,11 +159,6 @@ class DataParallelAccelerator(Accelerator):
             output = output.mean()
         return output
 
-    def predict_step_end(self, output):
-        def _reduce(o):
-            return o.mean(-1)
-        return apply_to_collection(output, torch.Tensor, _reduce)
-
     def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
         """
         Reinitialize optimizer.step properties added by schedulers
