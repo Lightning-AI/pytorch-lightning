@@ -82,8 +82,8 @@ jobs:
       run: |
         pip install awscli coverage
         # todo
-        #pip install git+https://${{ secrets.PL_GHOST_TOKEN }}@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.3 -q --no-cache-dir
-        pip install git+https://${{ secrets.PL_GHOST_TOKEN }}@github.com/PyTorchLightning/lightning-dtrun.git@mnodes -q --no-cache-dir
+        pip install git+https://${{ secrets.PL_GHOST_TOKEN }}@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.3 -q --no-cache-dir
+        #pip install git+https://${{ secrets.PL_GHOST_TOKEN }}@github.com/PyTorchLightning/lightning-dtrun.git@mnodes -q --no-cache-dir
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
