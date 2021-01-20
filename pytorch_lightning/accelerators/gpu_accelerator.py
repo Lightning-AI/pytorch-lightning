@@ -87,6 +87,9 @@ class GPUAccelerator(Accelerator):
     def test_step(self, args):
         return self._step(self.trainer.model.test_step, args)
 
+    def predict_step(self, args):
+        return self._step(self.trainer.model.predict_step, args)
+
     def to_device(self, batch):
         gpu_id = 0
         if isinstance(self.trainer.data_parallel_device_ids, list):

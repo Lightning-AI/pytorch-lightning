@@ -159,6 +159,9 @@ class TPUAccelerator(Accelerator):
     def test_step(self, args):
         return self._step(self.trainer.model.test_step, args)
 
+    def predict_step(self, args):
+        return self._step(self.trainer.model.predict_step, args)
+
     def process_dataloader(self, dataloader):
         device = xm.xla_device(self.trainer.tpu_id)
         dataloader = xla_pl.ParallelLoader(dataloader, [device])

@@ -117,8 +117,7 @@ class LoggerConnector:
         self.cached_results._batch_size = None
 
     def cache_logged_metrics(self):
-        if self.trainer.running_stage:
-            self._cached_results[self.trainer.running_stage].cache_result()
+        self._cached_results[self.trainer.running_stage].cache_result()
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging

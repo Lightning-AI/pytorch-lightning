@@ -499,7 +499,7 @@ class Trainer(
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
 
-        self._set_running_stage(RunningStage.UNDEFINED)
+        self.running_stage = RunningStage.UNDEFINED
 
         return results or 1
 
@@ -767,7 +767,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        self.running_stage = RunningStage.TESTING
+        self._set_running_stage(RunningStage.TESTING)
         self.verbose_test = verbose
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders

@@ -980,7 +980,7 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
-    def predict(self, *args, **kwargs):
+    def predict_step(self, *args, **kwargs):
         r"""
         Operates on a single batch of data from the prediction set.
         In this step you'd normally perform a forward and return the associated output.
@@ -990,7 +990,7 @@ class LightningModule(
             # the pseudocode for these calls
             predictions = []
             for batch_idx, batch in enumerate(data):
-                out = predict(batch)
+                out = predict_step(batch)
                 predictions.append(out)
             predict_epoch_end(predictions)
 
@@ -1008,15 +1008,15 @@ class LightningModule(
         .. code-block:: python
 
             # if you have one test dataloader:
-            def predict(self, batch, batch_idx)
+            def predict_step(self, batch, batch_idx)
 
             # if you have multiple test dataloaders:
-            def predict(self, batch, batch_idx, dataloader_idx)
+            def predict_step(self, batch, batch_idx, dataloader_idx)
 
         Examples:
             .. code-block:: python
 
-                def predict(self, batch, batch_idx):
+                def predict_step(self, batch, batch_idx):
                     x = batch
 
                     # implement your own
@@ -1039,7 +1039,7 @@ class LightningModule(
             # the pseudocode for these calls
             predictions = []
             for batch_idx, batch in enumerate(data):
-                out = predict(batch)
+                out = predict_step(batch)
                 predictions.append(out)
             predict_epoch_end(predictions)
 

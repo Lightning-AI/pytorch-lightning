@@ -26,6 +26,7 @@ from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, rank_zero_only, sync_ddp_if_available
 
 
@@ -66,6 +67,9 @@ class DDP2Accelerator(Accelerator):
     def test_step(self, args):
         return self._step(args)
 
+    def predict_step(self, args):
+        return self._step(args)
+
     def _step(self, args):
         args = self.ddp_plugin.on_before_forward(self.trainer.get_model(), *args)
         if self.trainer.amp_backend == AMPType.NATIVE:
@@ -93,6 +97,11 @@ class DDP2Accelerator(Accelerator):
         if isinstance(output, Result):
             output.dp_reduce()
         return output
+
+    def predict_step_end(self, output):
+        def _reduce(o):
+            return o.mean(-1)
+        return apply_to_collection(output, torch.Tensor, _reduce)
 
     def set_world_ranks(self, process_idx):
         # Todo: required argument `process_idx` is not used

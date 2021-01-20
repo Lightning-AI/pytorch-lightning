@@ -1444,19 +1444,14 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
 
 
 def test_trainer_predict(tmpdir):
-
     class PredictModel(BoringModel):
 
-        def predict(self, batch, batch_idx, dataloader_idx):
+        def predict_step(self, batch, batch_idx, dataloader_idx):
             return self.layer(batch)
 
         def predict_epoch_end(self, predictions):
             assert len(predictions) == 2
             return predictions
-
-        def test_dataloader(self):
-            return [torch.utils.data.DataLoader(RandomDataset(32, 64)),
-                    torch.utils.data.DataLoader(RandomDataset(32, 64))]
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 64)),
                    torch.utils.data.DataLoader(RandomDataset(32, 64))]
@@ -1473,4 +1468,6 @@ def test_trainer_predict(tmpdir):
         weights_summary=None,
     )
     results = trainer.predict(model, dataloaders)
-    print(results)
+    assert len(results) == 2
+    assert len(results[0]) == 2
+    assert results[0][0].shape == torch.Size([1, 2])

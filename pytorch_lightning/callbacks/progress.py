@@ -291,10 +291,10 @@ class ProgressBar(ProgressBarBase):
         )
         return bar
 
-    def init_test_tqdm(self) -> tqdm:
+    def init_test_tqdm(self, trainer=None) -> tqdm:
         """ Override this to customize the tqdm bar for testing. """
         bar = tqdm(
-            desc='Testing',
+            desc=trainer.running_stage.name,
             position=(2 * self.process_position),
             disable=self.is_disabled,
             leave=True,
@@ -361,7 +361,7 @@ class ProgressBar(ProgressBarBase):
 
     def on_test_start(self, trainer, pl_module):
         super().on_test_start(trainer, pl_module)
-        self.test_progress_bar = self.init_test_tqdm()
+        self.test_progress_bar = self.init_test_tqdm(trainer=trainer)
         self.test_progress_bar.total = convert_inf(self.total_test_batches)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):

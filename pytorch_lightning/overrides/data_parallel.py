@@ -190,20 +190,20 @@ class LightningDistributedModule(torch.nn.Module):
 
     def forward(self, *inputs, **kwargs):
 
-        if self.module.running_state == RunningStage.TRAINING:
+        if self.module.running_stage == RunningStage.TRAINING:
             output = self.module.training_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "training_step")
 
-        elif self.module.running_state == RunningStage.TESTING:
+        elif self.module.running_stage == RunningStage.TESTING:
             output = self.module.test_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "test_step")
 
-        elif self.module.running_state == RunningStage.EVALUATING:
+        elif self.module.running_stage == RunningStage.EVALUATING:
             output = self.module.validation_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "validation_step")
 
-        elif self.module.running_state == RunningStage.PREDICTING:
-            output = self.module.predict(*inputs, **kwargs)
+        elif self.module.running_stage == RunningStage.PREDICTING:
+            output = self.module.predict_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "predict")
 
         else:

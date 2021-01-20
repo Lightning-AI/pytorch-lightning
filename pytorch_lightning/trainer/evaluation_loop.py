@@ -171,10 +171,14 @@ class EvaluationLoop(object):
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
         # run actual test step
+
         if self.trainer.running_stage == RunningStage.PREDICTING:
             model_ref._current_fx_name = "predict"
-            output = self.trainer.accelerator_backend.predict(args)
-            self._predictions[dataloader_idx].append(output)
+            predict_step_output = self.trainer.accelerator_backend.predict_step(args)
+            predict_step_end_output = self.trainer.call_hook("predict_step_end", predict_step_output)
+            self._predictions[dataloader_idx].append(predict_step_end_output)
+            self.trainer._progress_bar_callback.on_test_batch_end(
+                self.trainer, model_ref, predict_step_end_output, batch, batch_idx, dataloader_idx)
             return
 
         elif self.testing:
