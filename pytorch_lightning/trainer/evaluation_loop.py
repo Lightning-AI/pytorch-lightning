@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List
+from typing import List, Union
 
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -196,7 +196,7 @@ class EvaluationLoop(object):
         if self.trainer.is_predicting:
             model_ref._current_fx_name = "predict"
             forward_output = self.trainer.accelerator_backend.forward([args[0]])
-            self._predictions[dataloader_idx].append(forward_output)
+            self._add_predictions(forward_output)
             self.trainer._progress_bar_callback.on_test_batch_end(
                 self.trainer, model_ref, forward_output, batch, batch_idx, dataloader_idx)
             return
@@ -222,6 +222,23 @@ class EvaluationLoop(object):
             raise MisconfigurationException(m)
 
         return output
+
+    def _add_predictions(self, predictions: Union[torch.Tensor, List]) -> None:
+        """
+        This function enables adding predictions into a result object.
+        To make this possible, Lightning will re-instantiate your DataLoader.
+        When using custom DataLoader, there might be some issues.
+        Thankfully, an opt-out Trainer argument is provided!
+        """
+        model_ref = self.trainer.get_model()
+        dl_idx = model_ref._current_dataloader_idx or 0
+        self.trainer.predictions.append(
+            predictions,
+            dl_idx,
+            self.batch_indices,
+            self.trainer._running_stage,
+            self.enable_predict_auto_id
+        )
 
     def evaluation_step_end(self, *args, **kwargs):
         if self.testing:
@@ -330,10 +347,13 @@ class EvaluationLoop(object):
         return eval_results
 
     def on_predict_epoch_end(self):
-        results = self._predictions
+        results = [{} for _ in range(self.num_dataloaders)]
 
         def _convert_to_numpy(v):
             return v.cpu().numpy()
+
+        if self.predictions.should_finalize_predictions(self.trainer._running_stage):
+            results = self.predictions.finalize_predictions(results)
 
         results = apply_to_collection(results, torch.Tensor, _convert_to_numpy)
 

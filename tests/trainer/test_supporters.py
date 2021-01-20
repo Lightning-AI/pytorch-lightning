@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import platform
 from collections import Sequence
 from typing import List
 
@@ -316,18 +315,6 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
-@pytest.mark.parametrize('num_dl_idx', [1, 2])
-def test_prediction_collection_ddp(tmpdir, save_preds_on_dl_idx, num_dl_idx):
-    """
-    Test `PredictionCollection` reduce properly in "ddp" mode
-    """
-    check_prediction_collection(tmpdir, save_preds_on_dl_idx, "ddp", 2, num_dl_idx)
-
-
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
 @pytest.mark.parametrize("failure", [1, 3])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_misconfiguration_on_dataloader(tmpdir, failure):
@@ -338,37 +325,8 @@ def test_misconfiguration_on_dataloader(tmpdir, failure):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
-@pytest.mark.parametrize('save_preds_on_dl_idx', [False, True])
-@pytest.mark.parametrize('num_dl_idx', [1, 2])
-@pytest.mark.parametrize('enable_predict_auto_id', [False, True])
-def test_prediction_collection_1_gpu(tmpdir, save_preds_on_dl_idx, num_dl_idx, enable_predict_auto_id):
-    """
-    Test `PredictionCollection` reduce properly in 1 gpu mode
-    """
-    check_prediction_collection(
-        tmpdir, save_preds_on_dl_idx, None,
-        1, num_dl_idx, enable_predict_auto_id=enable_predict_auto_id)
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
 def test_prediction_collection_1_gpu_failure(tmpdir):
     """
     Test `PredictionCollection` will raise warning as we are using an invalid custom Dataloader
     """
     check_prediction_collection(tmpdir, True, None, 1, 1, failure=2)
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_prediction_collection_ddp_spawn(tmpdir):
-    """
-    Test `PredictionCollection` reduce properly in "ddp_spawn"
-    """
-    check_prediction_collection(tmpdir, True, "ddp_spawn", 2, 2)
-
-
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-def test_prediction_collection_ddp_cpu(tmpdir):
-    """
-    Test `PredictionCollection` reduce properly in "ddp_cpu"
-    """
-    check_prediction_collection(tmpdir, False, "ddp_cpu", None, 2)

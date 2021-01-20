@@ -1476,8 +1476,9 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None):
     # todo: address this in another PR
     num_samples = 1 if accelerator in ["ddp", "ddp_cpu", "ddp_spawn"] else 2
     assert len(results) == 2
-    assert len(results[0]) == num_samples
-    assert results[0][0].shape == torch.Size([1, 2])
+    predictions = results[0]["predictions"]
+    assert len(predictions) == num_samples
+    assert torch.tensor(predictions[0]["predictions"]).shape == torch.Size([2])
 
 
 def test_trainer_predict_cpu(tmpdir):

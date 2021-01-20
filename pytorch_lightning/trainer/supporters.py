@@ -22,7 +22,7 @@ from torch import Tensor
 from torch.utils.data import Dataset, IterableDataset
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning.trainer.connectors.logger_connector.logger_connector import LoggerStages
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -237,7 +237,7 @@ class PredictionCollection(object):
         self.world_size = world_size
         self.all_gather_fn = all_gather_fn
         self._legacy_predictions = {}
-        self._predictions = {stage: {} for stage in LoggerStages}
+        self._predictions = {stage: {} for stage in RunningStage}
 
     @property
     def predictions(self):
