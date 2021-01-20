@@ -389,7 +389,7 @@ def test_dp_resume(tmpdir):
 
     # add these to the trainer options
     trainer_options['logger'] = logger
-    trainer_options['checkpoint_callback'] = checkpoint
+    trainer_options['callbacks'] = [checkpoint]
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -411,31 +411,37 @@ def test_dp_resume(tmpdir):
     # init new trainer
     new_logger = tutils.get_default_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
-    trainer_options['checkpoint_callback'] = ModelCheckpoint(dirpath=tmpdir)
+    trainer_options['callbacks'] = [ModelCheckpoint(dirpath=tmpdir)]
     trainer_options['limit_train_batches'] = 0.5
     trainer_options['limit_val_batches'] = 0.2
     trainer_options['max_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
 
+    # if model and state loaded correctly, predictions will be good even though we
+    # haven't trained with the new loaded model
+    dp_model = new_trainer.model
+    dp_model.eval()
+    dp_model.module.module.running_stage = RunningStage.EVALUATING
+
     # set the epoch start hook so we can predict before the model does the full training
-    def assert_good_acc():
-        assert new_trainer.current_epoch == real_global_epoch and new_trainer.current_epoch > 0
+    class CustomModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.on_train_start_called = False
 
-        # if model and state loaded correctly, predictions will be good even though we
-        # haven't trained with the new loaded model
-        dp_model = new_trainer.model
-        dp_model.eval()
-        dp_model.module.module.running_stage = RunningStage.EVALUATING
+        def on_train_start(self):
+            assert self.trainer.current_epoch == real_global_epoch and self.trainer.current_epoch > 0
 
-        dataloader = trainer.train_dataloader
-        tpipes.run_prediction(dp_model, dataloader, dp=True)
+            dataloader = self.train_dataloader()
+            tpipes.run_prediction(self, dataloader, dp=True)
+            self.on_train_start_called = True
 
     # new model
-    model = BoringModel()
-    model.on_train_start = assert_good_acc
+    model = CustomModel()
 
     # fit new model which should load hpc weights
     new_trainer.fit(model)
+    assert model.on_train_start_called
 
     # test freeze on gpu
     model.freeze()

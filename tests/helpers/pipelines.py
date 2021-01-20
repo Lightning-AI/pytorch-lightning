@@ -101,16 +101,18 @@ def run_model_test(
 
 
 def run_prediction(trained_model, dataloader, dp=False, min_acc=0.25):
-    ref_model = trained_model
-    if dp:
-        ref_model = trained_model.module
+    mode = trained_model.training
+    ref_model = trained_model.module if dp else trained_model
 
     if isinstance(ref_model, BoringModel):
-        return _boring_model_run_prediction(trained_model, dataloader, dp, min_acc)
+        _boring_model_run_prediction(trained_model, dataloader, dp, min_acc)
     else:
-        return _eval_model_template_run_prediction(trained_model, dataloader, dp, min_acc)
+        _eval_model_template_run_prediction(trained_model, dataloader, dp, min_acc)
+
+    trained_model.train(mode)
 
 
+@torch.no_grad()
 def _eval_model_template_run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
     # run prediction on 1 batch
     batch = next(iter(dataloader))
@@ -118,15 +120,12 @@ def _eval_model_template_run_prediction(trained_model, dataloader, dp=False, min
     x = x.view(x.size(0), -1)
 
     if dp:
-        with torch.no_grad():
-            output = trained_model(batch, 0)
-            acc = output['val_acc']
+        output = trained_model(batch, 0)
+        acc = output['val_acc']
         acc = torch.mean(acc).item()
 
     else:
-        with torch.no_grad():
-            y_hat = trained_model(x)
-        y_hat = y_hat.cpu()
+        y_hat = trained_model(x).cpu()
 
         # acc
         labels_hat = torch.argmax(y_hat, dim=1)
@@ -139,11 +138,16 @@ def _eval_model_template_run_prediction(trained_model, dataloader, dp=False, min
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
 
 
+@torch.no_grad()
 def _boring_model_run_prediction(trained_model, dataloader, dp=False, min_acc=0.25):
     # run prediction on 1 batch
     batch = next(iter(dataloader))
-    with torch.no_grad():
+
+    if dp:
+        output = trained_model(batch, 0)
+    else:
         output = trained_model(batch)
+
     acc = trained_model.loss(batch, output)
 
     assert acc >= min_acc, f"This model is expected to get, {min_acc} in test set but got {acc}"
