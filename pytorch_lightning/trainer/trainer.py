@@ -794,17 +794,13 @@ class Trainer(
         self,
         model: Optional[LightningModule] = None,
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
     ):
         r"""
 
-        Separates from fit to make sure you never run on your test set until you want to.
+        Separates from fit to make sure you never run on your predictions set until you want to.
 
         Args:
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
-                If ``None``, use the weights from the last epoch to test. Default to ``best``.
-
             model: The model to test.
 
             dataloaders: Either a single

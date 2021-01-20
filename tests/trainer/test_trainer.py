@@ -1444,22 +1444,12 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
         Trainer(profiler=profiler)
 
 
-class PredictModel(BoringModel):
-
-    def predict_step(self, batch, batch_idx, dataloader_idx):
-        return self.layer(batch)
-
-    def predict_epoch_end(self, predictions):
-        assert len(predictions) == 2
-        return predictions
-
-
 def predict(tmpdir, accelerator, gpus, num_processes, plugins=None):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)),
                    torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
-    model = PredictModel()
+    model = BoringModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
