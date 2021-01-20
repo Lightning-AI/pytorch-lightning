@@ -21,43 +21,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.models import ParityModuleRNN
 
 
-def almost_equals(a, b, rel_tol=0.0, abs_tol=0.0):
-    _almost_close = lambda a, b: abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
-    return _almost_close(a, b)
-
-
-class LitModel(LightningModule):
-    def __init__(self):
-        super().__init__()
-        self.net = nn.Sequential(nn.Linear(256, 512), nn.BatchNorm1d(512))
-
-    def forward(self, x):
-        return self.net(x)
-
-
-class KnownNet(LightningModule):
-    """ Pre calculated known model """
-
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv3 = nn.Conv2d(20, 30, kernel_size=3)
-        self.conv4 = nn.Conv2d(30, 30, kernel_size=3)
-        self.fc1 = nn.Linear(10, 50)
-        self.fc2 = nn.Linear(50, 10)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.conv4(x)
-        x = x.view(-1, 10)
-        x = self.fc1(x)
-        x = self.fc2(x)
-        return x
-
-
 class EmptyModule(LightningModule):
     """ A module that has no layers """
 
@@ -68,6 +31,22 @@ class EmptyModule(LightningModule):
 
     def forward(self, *args, **kwargs):
         return {'loss': self.parameter.sum()}
+
+
+class PreCalculatedModel(LightningModule):
+    """ A module with precalculated total params size in MB. """
+
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.Linear(10, 100)
+        self.layer2 = nn.Linear(100, 2)
+        self.pre_calculated_model_size = 0.005
+
+    def forward(self, x):
+        x = self.layer1(x)
+        x = self.layer2(x)
+        return x
+
 
 
 class UnorderedModel(LightningModule):
@@ -250,7 +229,6 @@ def test_summary_layer_types(mode):
     ]
 
 
-<<<<<<< HEAD
 @pytest.mark.parametrize(['mode'], [
     pytest.param(ModelSummary.MODE_FULL),
     pytest.param(ModelSummary.MODE_TOP),
@@ -264,74 +242,6 @@ def test_summary_layer_types(mode):
     pytest.param([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
     pytest.param((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
 ])
-=======
-@pytest.mark.parametrize(
-    ["mode"],
-    [
-        pytest.param(ModelSummary.MODE_FULL),
-        pytest.param(ModelSummary.MODE_TOP),
-    ],
-)
-@pytest.mark.parametrize(
-    ["example_input", "expected_model_size"],
-    [
-        pytest.param(torch.zeros(1, 1, 28, 28), 0.318),
-        pytest.param(torch.zeros(1, 1, 224, 224), 31.84),
-        pytest.param(torch.zeros(10, 1, 512, 512), 183.425),
-        pytest.param(None, 0.075),
-    ],
-)
-def test_known_model_sizes(example_input, expected_model_size, mode):
-    """ Test the knownet model on example input arrays and corresponding known model size """
-
-    model = KnownNet()
-    model.example_input_array = example_input
-    summary = model.summarize(mode=mode)
-    assert almost_equals(summary.model_size(), expected_model_size, rel_tol=1e-3, abs_tol=1e-3)
-
-
-@pytest.mark.parametrize(
-    ["mode"],
-    [
-        pytest.param(ModelSummary.MODE_FULL),
-    ],
-)
-@pytest.mark.parametrize(
-    ["example_input", "expected_model_size"],
-    [
-        pytest.param(torch.zeros(10, 256), 0.527),
-        pytest.param(None, 0.505),
-    ],
-)
-def test_nested_seq_model_sizes(example_input, expected_model_size, mode):
-    """ Test the knownet model on example input arrays and corresponding known model size """
-
-    model = LitModel()
-    model.example_input_array = example_input
-    summary = model.summarize(mode=mode)
-    assert almost_equals(summary.model_size(), expected_model_size, rel_tol=1e-3, abs_tol=1e-3)
-
-
-@pytest.mark.parametrize(
-    ["mode"],
-    [
-        pytest.param(ModelSummary.MODE_FULL),
-        pytest.param(ModelSummary.MODE_TOP),
-    ],
-)
-@pytest.mark.parametrize(
-    ["example_input", "expected_size"],
-    [
-        pytest.param([], UNKNOWN_SIZE),
-        pytest.param((1, 2, 3), [UNKNOWN_SIZE] * 3),
-        pytest.param(torch.tensor(0), UNKNOWN_SIZE),
-        pytest.param(dict(tensor=torch.zeros(1, 2, 3)), UNKNOWN_SIZE),
-        pytest.param(torch.zeros(2, 3, 4), [2, 3, 4]),
-        pytest.param([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
-        pytest.param((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
-    ],
-)
->>>>>>> :hammer: Simplified tests
 def test_example_input_array_types(example_input, expected_size, mode):
     """ Test the types of example inputs supported for display in the summary. """
 
@@ -353,3 +263,25 @@ def test_example_input_array_types(example_input, expected_size, mode):
     model.example_input_array = example_input
     summary = model.summarize(mode=mode)
     assert summary.in_sizes == [expected_size]
+
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
+def test_model_size(mode):
+    """ Test that model size is calculated correctly. """
+    model = PreCalculatedModel()
+    summary = model.summarize(mode=mode)
+    pre_calculated_model_size = torch.tensor(model.pre_calculated_model_size)
+    model_size = torch.tensor(summary.model_size())
+    assert torch.isclose(model_size, pre_calculated_model_size, atol=1e-4)
+
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
+def test_empty_model_size(mode):
+    """ Test that empty model size is zero. """
+    model = EmptyModule()
+    summary = model.summarize(mode=mode)
+    assert 0.0 == summary.model_size()
