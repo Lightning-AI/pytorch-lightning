@@ -48,7 +48,6 @@ class PreCalculatedModel(LightningModule):
         return x
 
 
-
 class UnorderedModel(LightningModule):
     """ A model in which the layers not defined in order of execution """
 
