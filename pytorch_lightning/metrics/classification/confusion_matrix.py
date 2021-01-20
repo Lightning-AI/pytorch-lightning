@@ -15,10 +15,7 @@ from typing import Any, Optional
 
 import torch
 
-from pytorch_lightning.metrics.functional.confusion_matrix import (
-    _confusion_matrix_update,
-    _confusion_matrix_compute
-)
+from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_compute, _confusion_matrix_update
 from pytorch_lightning.metrics.metric import Metric
 
 

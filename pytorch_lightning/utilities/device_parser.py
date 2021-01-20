@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, List, MutableSequence, Optional, Union
+
 import torch
-from typing import Union, Any, List, Optional, MutableSequence
 
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -29,7 +30,9 @@ def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
     if gpus is None:
         return None
 
-    assert isinstance(gpus, list), "gpus should be a list"
+    if not isinstance(gpus, list):
+        raise TypeError("gpus should be a list")
+
     assert len(gpus) > 0, "gpus should be a non empty list"
 
     # set root gpu
