@@ -132,10 +132,6 @@ class DeprecatedDistDeviceAttributes:
             self._device_type = DeviceType.GPU
 
     @property
-    def is_training(self) -> bool:
-        return self._running_stage == RunningStage.TRAINING
-
-    @property
     def training(self) -> bool:
         rank_zero_warn('Property `training` was deprecated in v1.2, use `is_training` instead.'
                        ' It will be removed in v1.4. ', DeprecationWarning)
@@ -147,13 +143,6 @@ class DeprecatedDistDeviceAttributes:
                        ' It will be removed in v1.4. ', DeprecationWarning)
         if val:
             self.set_training()
-
-    def set_training(self) -> None:
-        self._running_stage = RunningStage.TRAINING
-
-    @property
-    def is_testing(self) -> bool:
-        return self._running_stage == RunningStage.TESTING
 
     @property
     def testing(self) -> bool:
@@ -167,6 +156,3 @@ class DeprecatedDistDeviceAttributes:
                        ' It will be removed in v1.4. ', DeprecationWarning)
         if val:
             self.set_testing()
-
-    def set_testing(self) -> None:
-        self._running_stage = RunningStage.TESTING
