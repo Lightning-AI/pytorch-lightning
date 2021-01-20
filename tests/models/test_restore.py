@@ -25,7 +25,7 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from tests.base import BoringModel, EvalModelTemplate, GenericEvalModelTemplate
 
 
@@ -398,6 +398,7 @@ def test_dp_resume(tmpdir):
         # haven't trained with the new loaded model
         dp_model = new_trainer.model
         dp_model.eval()
+        dp_model.module.running_stage = RunningStage.EVALUATING
 
         dataloader = trainer.train_dataloader
         tpipes.run_prediction(dp_model, dataloader, dp=True)
