@@ -1454,7 +1454,7 @@ class PredictModel(BoringModel):
         return predictions
 
 
-def predict(tmpdir, accelerator, gpus, num_processes):
+def predict(tmpdir, accelerator, gpus, num_processes, plugins=None):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)),
                    torch.utils.data.DataLoader(RandomDataset(32, 2))]
@@ -1468,7 +1468,8 @@ def predict(tmpdir, accelerator, gpus, num_processes):
         weights_summary=None,
         accelerator=accelerator,
         gpus=gpus,
-        num_processes=num_processes
+        num_processes=num_processes,
+        plugins=plugins
     )
     results = trainer.predict(model, dataloaders)
     # todo: address this in another PR
@@ -1492,8 +1493,9 @@ def test_trainer_predict_dp(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
-def test_trainer_predict_ddp(tmpdir):
-    predict(tmpdir, "ddp", 2, None)
+@pytest.mark.parametrize('plugins', [None, "ddp_sharded"])
+def test_trainer_predict_ddp(tmpdir, plugins):
+    predict(tmpdir, "ddp", 2, None, plugins=plugins)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
