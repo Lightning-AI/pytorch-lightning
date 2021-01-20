@@ -40,7 +40,7 @@ class PreCalculatedModel(LightningModule):
         super().__init__()
         self.layer1 = nn.Linear(150, 1000, bias=False)
         self.layer2 = nn.Linear(1000, 100, bias=False)
-        # pre calculated model size i.e (250 K params * 32 bit) -> megabytes.
+        # pre calculated model size i.e (250 K params * 32 bits) -> 1.0 megabyte.
         self.pre_calculated_model_size = 1.0
 
     def forward(self, x):
