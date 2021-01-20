@@ -33,17 +33,13 @@ class LayerSummary(object):
     """
     Summary class for a single layer in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
     It collects the following information:
-
     - Type of the layer (e.g. Linear, BatchNorm1d, ...)
     - Input shape
     - Output shape
     - Number of parameters
-
     The input and output shapes are only known after the example input array was
     passed through the model.
-
     Example::
-
         >>> model = torch.nn.Conv2d(3, 8, 3)
         >>> summary = LayerSummary(model)
         >>> summary.num_parameters
@@ -55,10 +51,8 @@ class LayerSummary(object):
         [1, 3, 5, 5]
         >>> summary.out_size
         [1, 8, 3, 3]
-
     Args:
         module: A module to summarize
-
     """
 
     def __init__(self, module: nn.Module):
@@ -76,7 +70,6 @@ class LayerSummary(object):
         Registers a hook on the module that computes the input- and output size(s) on the first forward pass.
         If the hook is called, it will remove itself from the from the module, meaning that
         recursive models will only record their input- and output shapes once.
-
         Return:
             A handle for the installed hook.
         """
@@ -120,25 +113,19 @@ class LayerSummary(object):
 class ModelSummary(object):
     """
     Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
-
     Args:
         model: The model to summarize (also referred to as the root module)
         mode: Can be one of
-
              - `top` (default): only the top-level modules will be recorded (the children of the root module)
              - `full`: summarizes all layers and their submodules in the root module
-
     The string representation of this summary prints a table with columns containing
-    the name, type and number of parameters for each layer.
-
+    the name type and number of parameters for each layer.
     The root module may also have an attribute ``example_input_array`` as shown in the example below.
     If present, the root module will be called with it as input to determine the
     intermediate input- and output shapes of all layers. Supported are tensors and
     nested lists and tuples of tensors. All other types of inputs will be skipped and show as `?`
     in the summary table. The summary will also display `?` for layers not used in the forward pass.
-
     Example::
-
         >>> import pytorch_lightning as pl
         >>> class LitModel(pl.LightningModule):
         ...
@@ -169,6 +156,7 @@ class ModelSummary(object):
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
+        0.506     Total estimated model params size (MB)
     """
 
     MODE_TOP = "top"
@@ -180,6 +168,7 @@ class ModelSummary(object):
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
+        self._precision_megabytes = (self._model.precision / 8.0) / (1024 ** 2.0) # 1 byte -> 8 bits)
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
@@ -212,6 +201,31 @@ class ModelSummary(object):
     @property
     def param_nums(self) -> List[int]:
         return [layer.num_parameters for layer in self._layer_summary.values()]
+
+    @property
+    def total_parameters(self) -> int:
+        return sum(p.numel() for p in self._model.parameters())
+
+    @property
+    def trainable_parameters(self) -> int:
+        return sum(p.numel() for p in self._model.parameters() if p.requires_grad)
+
+    def model_size(self) -> float:
+        """
+        Estimates total model size i.e total params size in MBs
+        total params size gives model size in accounting total model params.
+
+        NOTE: Currently only Supported total params size.
+
+        Example::
+            >> model = LitModel()
+            >> summary = ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
+            >> summary.model_size()
+
+        Returns:
+            Total estimated model size(MB).
+        """
+        return self.total_parameters * self._precision_megabytes
 
     def summarize(self) -> Dict[str, LayerSummary]:
         summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
@@ -247,7 +261,6 @@ class ModelSummary(object):
     def __str__(self):
         """
         Makes a summary listing with:
-
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes
         """
         arrays = [
@@ -259,11 +272,11 @@ class ModelSummary(object):
         if self._model.example_input_array is not None:
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
+        total_parameters = self.total_parameters
+        trainable_parameters = self.trainable_parameters
+        model_size = self.model_size()
 
-        trainable_parameters = sum(p.numel() for p in self._model.parameters() if p.requires_grad)
-        total_parameters = sum(p.numel() for p in self._model.parameters())
-
-        return _format_summary_table(total_parameters, trainable_parameters, *arrays)
+        return _format_summary_table(total_parameters, trainable_parameters, model_size, *arrays)
 
     def __repr__(self):
         return str(self)
@@ -280,7 +293,7 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
     return UNKNOWN_SIZE
 
 
-def _format_summary_table(total_parameters: int, trainable_parameters: int, *cols) -> str:
+def _format_summary_table(total_parameters: int, trainable_parameters: int, model_size: float, *cols) -> str:
     """
     Takes in a number of arrays, each specifying a column in
     the summary table, and combines them all into one big
@@ -316,24 +329,22 @@ def _format_summary_table(total_parameters: int, trainable_parameters: int, *col
     summary += "Non-trainable params"
     summary += "\n" + s.format(get_human_readable_count(total_parameters), 10)
     summary += "Total params"
+    summary += "\n" + s.format(get_formatted_model_size(model_size), 10)
+    summary += "Total estimated model params size (MB)"
 
     return summary
 
 
 def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
     """ Get a profile of the current memory usage.
-
     Args:
         mode: There are two modes:
-
             - 'all' means return memory for all gpus
             - 'min_max' means return memory for max and min
-
     Return:
         A dictionary in which the keys are device ids as integers and
         values are memory usage as integers in MB.
         If mode is 'min_max', the dictionary will also contain two additional keys:
-
         - 'min_gpu_mem': the minimum memory usage in MB
         - 'max_gpu_mem': the maximum memory usage in MB
     """
@@ -351,7 +362,6 @@ def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
 def get_gpu_memory_map() -> Dict[str, int]:
     """
     Get the current gpu usage.
-
     Return:
         A dictionary in which the keys are device ids as integers and
         values are memory usage as integers in MB.
@@ -372,12 +382,13 @@ def get_gpu_memory_map() -> Dict[str, int]:
     }
     return gpu_memory_map
 
+def get_formatted_model_size(total_model_size: float) -> float:
+    return f"{total_model_size:.3f}"
 
 def get_human_readable_count(number: int) -> str:
     """
     Abbreviates an integer number with K, M, B, T for thousands, millions,
     billions and trillions, respectively.
-
     Examples:
         >>> get_human_readable_count(123)
         '123  '
@@ -391,13 +402,10 @@ def get_human_readable_count(number: int) -> str:
         '400 T'
         >>> get_human_readable_count(5e15)  # (more than trillion)
         '5,000 T'
-
     Args:
         number: a positive integer number
-
     Return:
         A string formatted according to the pattern described above.
-
     """
     assert number >= 0
     labels = PARAMETER_NUM_UNITS

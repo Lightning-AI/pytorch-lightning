@@ -33,6 +33,22 @@ class EmptyModule(LightningModule):
         return {'loss': self.parameter.sum()}
 
 
+class PreCalculatedModel(LightningModule):
+    """ A module with precalculated total params size in MB. """
+
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.Linear(10, 100)
+        self.layer2 = nn.Linear(100, 2)
+        self.pre_calculated_model_size = 0.005
+
+    def forward(self, x):
+        x = self.layer1(x)
+        x = self.layer2(x)
+        return x
+
+
+
 class UnorderedModel(LightningModule):
     """ A model in which the layers not defined in order of execution """
 
@@ -247,3 +263,25 @@ def test_example_input_array_types(example_input, expected_size, mode):
     model.example_input_array = example_input
     summary = model.summarize(mode=mode)
     assert summary.in_sizes == [expected_size]
+
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
+def test_model_size(mode):
+    """ Test that model size is calculated correctly. """
+    model = PreCalculatedModel()
+    summary = model.summarize(mode=mode)
+    pre_calculated_model_size = torch.tensor(model.pre_calculated_model_size)
+    model_size = torch.tensor(summary.model_size())
+    assert torch.isclose(model_size, pre_calculated_model_size, atol=1e-4)
+
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
+def test_empty_model_size(mode):
+    """ Test that empty model size is zero. """
+    model = EmptyModule()
+    summary = model.summarize(mode=mode)
+    assert 0.0 == summary.model_size()
