@@ -80,14 +80,24 @@ class LightningDataParallel(DataParallel):
                                    "them on device: {}".format(self.src_device_obj, t.device))
 
         inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
+
         if len(self.device_ids) == 1:
-            # lightning
-            if self.module.training:
+
+            if self.module.running_stage == RunningStage.TRAINING:
                 return self.module.training_step(*inputs[0], **kwargs[0])
-            if self.module.testing:
+
+            elif self.module.running_stage == RunningStage.TESTING:
                 return self.module.test_step(*inputs[0], **kwargs[0])
 
-            return self.module.validation_step(*inputs[0], **kwargs[0])
+            elif self.module.running_stage == RunningStage.EVALUATING:
+                return self.module.validation_step(*inputs[0], **kwargs[0])
+
+            elif self.module.running_stage == RunningStage.PREDICTING:
+                return self.module(*inputs[0], **kwargs[0])
+
+            else:
+                raise MisconfigurationException(
+                    "running_stage should either be [TRAINING, TESTING, EVALUATING, PREDICTING]")
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
@@ -206,7 +216,8 @@ class LightningDistributedModule(torch.nn.Module):
             output = self.module(*inputs, **kwargs)
 
         else:
-            raise MisconfigurationException("running_stage shoud be define")
+            raise MisconfigurationException(
+                "running_stage should either be [TRAINING, TESTING, EVALUATING, PREDICTING]")
 
         return output
 
@@ -303,6 +314,10 @@ def parallel_apply(
                 elif module.running_stage == RunningStage.PREDICTING:
                     output = module(*input, **kwargs)
                     fx_called = 'forward'
+
+                else:
+                    raise MisconfigurationException(
+                        "running_stage should either be [TRAINING, TESTING, EVALUATING, PREDICTING]")
 
                 if output is None:
                     warn_missing_output(fx_called)
