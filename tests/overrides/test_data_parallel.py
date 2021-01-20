@@ -38,16 +38,13 @@ def test_lightning_distributed_module_warn_none_output():
     pl_module.test_step.return_value = None
 
     with pytest.warns(UserWarning, match="Your training_step returned None"):
-        pl_module.training = True
-        pl_module.testing = False
+        pl_module.running_stage = RunningStage.TRAINING
         dist_module()
 
     with pytest.warns(UserWarning, match="Your test_step returned None"):
-        pl_module.training = False
-        pl_module.testing = True
+        pl_module.running_stage = RunningStage.TESTING
         dist_module()
 
     with pytest.warns(UserWarning, match="Your validation_step returned None"):
-        pl_module.training = False
-        pl_module.testing = False
+        pl_module.running_stage = RunningStage.EVALUATING
         dist_module()
