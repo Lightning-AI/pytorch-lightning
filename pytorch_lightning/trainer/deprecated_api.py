@@ -131,6 +131,9 @@ class DeprecatedDistDeviceAttributes:
         if val:
             self._device_type = DeviceType.GPU
 
+
+class DeprecatedRunningStageAttributes:
+
     @property
     def training(self) -> bool:
         rank_zero_warn('Property `training` was deprecated in v1.2, use `is_training` instead.'
