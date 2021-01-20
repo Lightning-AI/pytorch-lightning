@@ -49,6 +49,10 @@ class GPUStatsMonitor(Callback):
         temperature: Set to ``True`` to monitor the memory and gpu temperature in degree Celsius.
             Default: ``False``.
 
+    Raises:
+        MisconfigurationException:
+            If NVIDIA driver is not installed, not running on GPUs, or ``Trainer`` has no logger.
+
     Example::
 
         >>> from pytorch_lightning import Trainer

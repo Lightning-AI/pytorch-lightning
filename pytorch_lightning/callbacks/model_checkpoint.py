@@ -105,6 +105,14 @@ class ModelCheckpoint(Callback):
             .. warning::
                This argument has been deprecated in v1.1 and will be removed in v1.3
 
+    Raises:
+        MisconfigurationException:
+            If ``save_top_k`` is neither ``None`` nor more than or equal to ``-1``,
+            if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``, or
+            if ``mode`` is none of ``"min"``, ``"max"``, and ``"auto"``.
+        ValueError:
+            If ``trainer.save_checkpoint`` is ``None``.
+
     Example::
 
         >>> from pytorch_lightning import Trainer

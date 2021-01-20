@@ -55,6 +55,12 @@ class EarlyStopping(Callback):
         strict: whether to crash the training if `monitor` is
             not found in the validation metrics. Default: ``True``.
 
+    Raises:
+        MisconfigurationException:
+            If ``mode`` is none of ``"min"``, ``"max"``, and ``"auto"``.
+        RuntimeError:
+            If the metric ``monitor`` is not available.
+
     Example::
 
         >>> from pytorch_lightning import Trainer

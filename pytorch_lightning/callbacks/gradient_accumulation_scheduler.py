@@ -33,6 +33,13 @@ class GradientAccumulationScheduler(Callback):
     Args:
         scheduling: scheduling in format {epoch: accumulation_factor}
 
+    Raises:
+        TypeError:
+            If ``scheduling`` is an empty ``dict``,
+            or not all keys and values of ``scheduling`` are integers.
+        IndexError:
+            If ``minimal_epoch`` is less than 0.
+
     Example::
 
         >>> from pytorch_lightning import Trainer
