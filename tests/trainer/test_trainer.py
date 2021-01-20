@@ -1444,12 +1444,22 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
         Trainer(profiler=profiler)
 
 
+class PredictModel(BoringModel):
+
+    def predict_step(self, batch, batch_idx, dataloader_idx):
+        return self.layer(batch)
+
+    def predict_epoch_end(self, predictions):
+        assert len(predictions) == 2
+        return predictions
+
+
 def predict(tmpdir, accelerator, gpus, num_processes, plugins=None):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)),
                    torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
-    model = BoringModel()
+    model = PredictModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1476,8 +1486,9 @@ def test_trainer_predict_cpu(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
-def test_trainer_predict_dp(tmpdir):
-    predict(tmpdir, "dp", 2, None)
+@pytest.mark.parametrize('num_gpus', [1, 2])
+def test_trainer_predict_dp(tmpdir, num_gpus):
+    predict(tmpdir, "dp", num_gpus, None)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
