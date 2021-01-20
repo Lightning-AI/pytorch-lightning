@@ -82,6 +82,7 @@ class DebuggingConnector:
             self.trainer.limit_val_batches = overfit_batches
             self.trainer.limit_test_batches = overfit_batches
 
+
 def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
     if 0 <= batches <= 1:
         return batches
