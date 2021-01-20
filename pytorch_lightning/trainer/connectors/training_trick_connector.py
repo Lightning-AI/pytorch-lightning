@@ -14,6 +14,7 @@
 
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -35,8 +36,9 @@ class TrainingTricksConnector:
         self.trainer.terminate_on_nan = terminate_on_nan
 
         # gradient clipping
-        if gradient_clip_algorithm not in ['value', 'norm']:
-            raise MisconfigurationException("gradient_clip_algorithm should be 'value' or 'norm'")
+        if gradient_clip_algorithm not in [GradClipAlgorithmType.VALUE, GradClipAlgorithmType.NORM]:
+            raise MisconfigurationException(f"gradient_clip_algorithm should be "
+                                            f"'{GradClipAlgorithmType.VALUE}' or '{GradClipAlgorithmType.NORM}'")
         self.trainer.gradient_clip_val = gradient_clip_val
         self.trainer.gradient_clip_algorithm = gradient_clip_algorithm
 

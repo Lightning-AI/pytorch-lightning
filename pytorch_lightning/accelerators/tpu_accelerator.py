@@ -25,6 +25,7 @@ from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import (
+    GradClipAlgorithmType,
     _TPU_AVAILABLE,
     move_data_to_device,
     rank_zero_info,
@@ -253,9 +254,9 @@ class TPUAccelerator(Accelerator):
         # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
         model = self.trainer.get_model()
         parameters = model.parameters()
-        if gradient_clip_algorithm == 'value':
+        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             torch.nn.utils.clip_grad_value_(parameters, clip_value=grad_clip_val)
-        elif gradient_clip_algorithm.startswith('norm'):
+        elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
             max_norm = grad_clip_val
             if isinstance(parameters, torch.Tensor):
                 parameters = [parameters]

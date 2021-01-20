@@ -16,7 +16,11 @@ from typing import Union, cast
 from torch.optim import Optimizer
 
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import (
+    _FAIRSCALE_AVAILABLE,
+    _NATIVE_AMP_AVAILABLE,
+    GradClipAlgorithmType,
+)
 
 if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -33,8 +37,8 @@ class ShardedNativeAMPPlugin(NativeAMPPlugin):
                        grad_clip_val: Union[int, float],
                        gradient_clip_algorithm: str,
                        norm_type: Union[float, int]):
-        if gradient_clip_algorithm == 'value':
+        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise NotImplementedError("Value grad clipping with sharded ddp is not implemented yet")
-        elif gradient_clip_algorithm.startswith('norm'):
+        elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
             optimizer = cast(OSS, optimizer)
             optimizer.clip_grad_norm(grad_clip_val, norm_type=norm_type)

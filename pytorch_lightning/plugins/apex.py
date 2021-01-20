@@ -20,6 +20,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities.enums import GradClipAlgorithmType
 
 if _APEX_AVAILABLE:
     from apex import amp
@@ -116,9 +117,9 @@ class ApexPlugin(PrecisionPlugin):
         model = self.trainer.get_model()
         parameters = model.parameters()
 
-        if gradient_clip_algorithm == 'value':
+        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             torch.nn.utils.clip_grad_value_(parameters, clip_value=grad_clip_val)
-        elif gradient_clip_algorithm.startswith('norm'):
+        if gradient_clip_algorithm == GradClipAlgorithmType.NORM:
             max_norm = float(grad_clip_val)
 
             if isinstance(parameters, torch.Tensor):

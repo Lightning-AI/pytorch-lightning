@@ -80,3 +80,13 @@ class DeviceType(LightningEnum):
     CPU = 'CPU'
     GPU = 'GPU'
     TPU = 'TPU'
+
+
+class GradClipAlgorithmType(LightningEnum):
+    """ Define gradient_clip_algorithm types - training-tricks.
+
+    >>> GradClipAlgorithmType.VALUE in  ('value', 'norm')
+    True
+    """
+    VALUE = 'value'
+    NORM = 'norm'

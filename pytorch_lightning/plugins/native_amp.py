@@ -17,6 +17,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities import GradClipAlgorithmType
 
 
 class NativeAMPPlugin(PrecisionPlugin):
@@ -63,9 +64,9 @@ class NativeAMPPlugin(PrecisionPlugin):
                        norm_type: Union[float, int]):
         model = self.trainer.get_model()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
-        if gradient_clip_algorithm == 'value':
+        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=grad_clip_val)
-        elif gradient_clip_algorithm.startswith('norm'):
+        elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
 
     @property

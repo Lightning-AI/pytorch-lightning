@@ -21,6 +21,7 @@ from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.parsing import AttributeDict
 
@@ -123,9 +124,9 @@ class Accelerator(object):
             self.trainer.precision_connector.backend.clip_gradients(grad_clip_val, clip_algorithm, optimizer, norm_type)
         else:
             model = self.trainer.get_model()
-            if clip_algorithm == 'value':
+            if clip_algorithm == GradClipAlgorithmType.VALUE:
                 torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=grad_clip_val)
-            elif clip_algorithm == 'norm':
+            elif clip_algorithm == GradClipAlgorithmType.NORM:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
 
     def on_train_epoch_end(self, outputs):
