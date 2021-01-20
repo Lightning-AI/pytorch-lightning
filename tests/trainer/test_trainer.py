@@ -988,7 +988,8 @@ def test_gradient_clipping_by_value(tmpdir):
         # test that gradient is clipped correctly
         ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         parameters = model.parameters()
-        grad_max = torch.max(torch.stack([p.grad.detach() for p in parameters]).abs())
+        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+        grad_max = torch.max(torch.stack(grad_max_list))
         assert grad_max.item() <= grad_clip_val
 
         return ret_val

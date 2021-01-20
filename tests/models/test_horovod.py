@@ -86,9 +86,11 @@ def test_horovod_cpu(enable_pl_optimizer, tmpdir):
         enable_pl_optimizer=enable_pl_optimizer,
     )
     _run_horovod(trainer_options)
+
+    # clip_grad_by_value test
     trainer_options_clip_grad_val = deepcopy(trainer_options)
     trainer_options_clip_grad_val.update({'gradient_clip_algorithm': 'value'})
-    _run_horovod(trainer_options_clip_grad_val, on_gpu=True)
+    _run_horovod(trainer_options_clip_grad_val)
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
@@ -107,9 +109,11 @@ def test_horovod_cpu_implicit(enable_pl_optimizer, tmpdir):
         enable_pl_optimizer=enable_pl_optimizer,
     )
     _run_horovod(trainer_options)
+
+    # clip_grad_by_value test
     trainer_options_clip_grad_val = deepcopy(trainer_options)
     trainer_options_clip_grad_val.update({'gradient_clip_algorithm': 'value'})
-    _run_horovod(trainer_options_clip_grad_val, on_gpu=True)
+    _run_horovod(trainer_options_clip_grad_val)
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
@@ -130,6 +134,8 @@ def test_horovod_multi_gpu(tmpdir):
         accelerator='horovod',
     )
     _run_horovod(trainer_options, on_gpu=True)
+
+    # clip_grad_by_value test
     trainer_options_clip_grad_val = deepcopy(trainer_options)
     trainer_options_clip_grad_val.update({'gradient_clip_algorithm': 'value'})
     _run_horovod(trainer_options_clip_grad_val, on_gpu=True)
@@ -156,6 +162,8 @@ def test_horovod_apex(tmpdir):
         precision=16,
     )
     _run_horovod(trainer_options, on_gpu=True)
+
+    # clip_grad_by_value test
     trainer_options_clip_grad_val = deepcopy(trainer_options)
     trainer_options_clip_grad_val.update({'gradient_clip_algorithm': 'value'})
     _run_horovod(trainer_options_clip_grad_val, on_gpu=True)
@@ -183,6 +191,8 @@ def test_horovod_amp(tmpdir):
         precision=16,
     )
     _run_horovod(trainer_options, on_gpu=True)
+
+    # clip_grad_by_value test
     trainer_options_clip_grad_val = deepcopy(trainer_options)
     trainer_options_clip_grad_val.update({'gradient_clip_algorithm': 'value'})
     _run_horovod(trainer_options_clip_grad_val, on_gpu=True)
