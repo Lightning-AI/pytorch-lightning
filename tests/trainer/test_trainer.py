@@ -1453,16 +1453,13 @@ def test_trainer_predict(tmpdir):
             assert len(predictions) == 2
             return predictions
 
-    dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 64)),
-                   torch.utils.data.DataLoader(RandomDataset(32, 64))]
+    dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)),
+                   torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
     model = PredictModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=0,
-        limit_val_batches=0,
-        limit_test_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
