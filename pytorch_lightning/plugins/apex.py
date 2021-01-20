@@ -85,16 +85,15 @@ class ApexPlugin(PrecisionPlugin):
         Return:
             Apex wrapped model and optimizers
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # Default implementation used by Trainer.
-                def configure_apex(self, amp, model, optimizers, amp_level):
-                    model, optimizers = amp.initialize(
-                        model, optimizers, opt_level=amp_level,
-                    )
+            # Default implementation used by Trainer.
+            def configure_apex(self, amp, model, optimizers, amp_level):
+                model, optimizers = amp.initialize(
+                    model, optimizers, opt_level=amp_level,
+                )
 
-                    return model, optimizers
+                return model, optimizers
         """
         model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
         return model, optimizers
