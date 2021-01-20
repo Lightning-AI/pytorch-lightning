@@ -165,9 +165,9 @@ jobs:
         )
       shell: python
 
-    - name: Show Multi Node Testing
-      run: |
-        cat ./.github/template/multi-nodes-gpu-.yaml
+    #- name: Show Multi Node Testing
+    #  run: |
+    #    cat ./.github/template/multi-nodes-gpu-.yaml
 
     #- name: Update Test Configuration File
     #  run: |
