@@ -15,8 +15,8 @@ from typing import Any, Callable, Optional
 
 import torch
 
+from pytorch_lightning.metrics.functional.auc import _auc_compute, _auc_update
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.auc import _auc_update, _auc_compute
 from pytorch_lightning.utilities import rank_zero_warn
 
 

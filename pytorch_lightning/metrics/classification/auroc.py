@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from distutils.version import LooseVersion
 from typing import Any, Callable, Optional
 
 import torch
-from distutils.version import LooseVersion
 
-from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.functional.auroc import _auroc_compute, _auroc_update
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
 
