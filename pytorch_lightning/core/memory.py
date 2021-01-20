@@ -159,6 +159,7 @@ class ModelSummary(object):
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
+        0.506     Total estimated model params size (MB)
         >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
@@ -440,3 +441,6 @@ def get_human_readable_count(number: int) -> str:
         return f"{int(number):,d} {labels[index]}"
     else:
         return f"{number:,.1f} {labels[index]}"
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
