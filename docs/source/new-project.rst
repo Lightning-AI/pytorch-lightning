@@ -321,7 +321,7 @@ You can also add a forward method to do predictions however you want.
             embedding = self.encoder(x)
             return embedding
 
-    autoencoder = LitAutoencoder()
+    autoencoder = LitAutoEncoder()
     autoencoder = autoencoder(torch.rand(1, 28 * 28))
 
 
@@ -337,7 +337,7 @@ You can also add a forward method to do predictions however you want.
             image = image.view(1, 1, 28, 28)
             return image
 
-    autoencoder = LitAutoencoder()
+    autoencoder = LitAutoEncoder()
     image_sample = autoencoder()
 
 Option 3: Production
