@@ -13,13 +13,13 @@
 # limitations under the License.
 import os
 import pickle
-from unittest import mock
-from argparse import ArgumentParser
 import types
+from argparse import ArgumentParser
+from unittest import mock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 def get_warnings(recwarn):
@@ -146,12 +146,19 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert not os.listdir(tmpdir)
 
     version = logger.version
-    model = EvalModelTemplate()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3)
+    model = BoringModel()
+    limit_batches = 5
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=limit_batches,
+        limit_val_batches=limit_batches,
+    )
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
+    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f'epoch=0-step={limit_batches - 1}.ckpt']
 
 
 def test_wandb_sanitize_callable_params(tmpdir):

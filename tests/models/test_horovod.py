@@ -28,7 +28,8 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE, _HOROVOD_AVAILABLE
+from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel
 from tests.base.models import BasicGAN
@@ -220,8 +221,8 @@ def test_horovod_multi_optimizer(enable_pl_optimizer, tmpdir):
         accelerator='horovod',
         enable_pl_optimizer=enable_pl_optimizer,
     )
-    result = trainer.fit(model)
-    assert result == 1, 'model failed to complete'
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert len(trainer.optimizers) == 2
     for i, optimizer in enumerate(trainer.optimizers):

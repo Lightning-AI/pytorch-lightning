@@ -14,7 +14,7 @@
 
 from typing import Union
 
-from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler, AdvancedProfiler
+from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
