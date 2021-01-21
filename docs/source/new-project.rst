@@ -317,6 +317,10 @@ You can also add a forward method to do predictions however you want.
     # using the AE to extract embeddings
     # ----------------------------------
     class LitAutoEncoder(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.encoder = torch.nn.Sequential(...)
+
         def forward(self, x):
             embedding = self.encoder(x)
             return embedding
