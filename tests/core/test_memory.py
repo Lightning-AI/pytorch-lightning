@@ -264,6 +264,7 @@ def test_example_input_array_types(example_input, expected_size, mode):
     summary = model.summarize(mode=mode)
     assert summary.in_sizes == [expected_size]
 
+
 @pytest.mark.parametrize(['mode'], [
     pytest.param(ModelSummary.MODE_FULL),
     pytest.param(ModelSummary.MODE_TOP),
