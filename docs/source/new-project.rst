@@ -319,7 +319,7 @@ You can also add a forward method to do predictions however you want.
     class LitAutoEncoder(LightningModule):
         def __init__(self):
             super().__init__()
-            self.encoder = torch.nn.Sequential(...)
+            self.encoder = torch.nn.Sequential()
 
         def forward(self, x):
             embedding = self.encoder(x)
