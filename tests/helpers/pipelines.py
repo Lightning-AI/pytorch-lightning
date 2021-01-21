@@ -144,8 +144,7 @@ def _boring_model_run_prediction(trained_model, dataloader, dp=False, min_acc=0.
     batch = next(iter(dataloader))
 
     if dp:
-        output = trained_model(batch, 0)
-        acc = trained_model.module.loss(batch, output)
+        acc = trained_model(batch, 0)['loss']
     else:
         output = trained_model(batch)
         acc = trained_model.loss(batch, output)
