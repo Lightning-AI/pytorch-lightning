@@ -329,7 +329,7 @@ You can also add a forward method to do predictions however you want.
     autoencoder = autoencoder(torch.rand(1, 28 * 28))
 
 
-.. testcode::
+.. code-block:: python
 
     # ----------------------------------
     # or using the AE to generate images
@@ -342,7 +342,7 @@ You can also add a forward method to do predictions however you want.
         def forward(self):
             z = torch.rand(1, 3)
             image = self.decoder(z)
-            image = image.view(1, 28, 28)
+            image = image.view(1, 1, 28, 28)
             return image
 
     autoencoder = LitAutoEncoder()
