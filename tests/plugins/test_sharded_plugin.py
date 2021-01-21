@@ -5,8 +5,11 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin, \
-    ShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.accelerators.plugins import (
+    DDPShardedPlugin,
+    DDPSpawnShardedPlugin,
+    ShardedNativeMixedPrecisionPlugin,
+)
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -74,7 +77,7 @@ def test_ddp_choice_sharded_amp(tmpdir, accelerator):
 
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.precision_connector.backend, ShardedNativeMixedPrecisionPlugin)
+            assert isinstance(trainer.accelerator_backend.precision_plugin, ShardedNativeMixedPrecisionPlugin)
             raise SystemExit()
 
     model = BoringModel()
