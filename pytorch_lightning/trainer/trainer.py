@@ -15,7 +15,6 @@
 """Trainer to automate the training."""
 
 import os
-from pytorch_lightning.core.memory import ModelSummary
 import warnings
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
@@ -24,15 +23,15 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.plugins.old.plugin_connector import PluginConnector
-from pytorch_lightning.trainer.deprecated_api import DeprecatedDistDeviceAttributes
-from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.plugins.old.plugin_connector import PluginConnector
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -55,33 +54,16 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.trainer.states import TrainerState, trainer_state
-from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
-from pytorch_lightning.utilities.debugging import InternalDebugger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
+from pytorch_lightning.trainer.states import trainer_state, TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
-from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
-from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
-from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
-from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
-from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
-from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
-from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities import AMPType, DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.accelerators.accelerator import Accelerator
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -495,6 +477,9 @@ class Trainer(
 
         self.call_setup_hook(self.lightning_module)
 
+        # restore possible previous state
+        self.checkpoint_connector.restore_weights(self.get_model())
+
         # double dispatch: let the plugin initiate the training/test loop.
         if self.testing:
             self.training_type_plugin.start_testing(self)
@@ -547,7 +532,7 @@ class Trainer(
                 raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
 
         # restore training and model before hpc is called
-        self.checkpoint_connector.restore_weights(ref_model)
+        # self.checkpoint_connector.restore_weights(ref_model)
 
         # on pretrain routine end
         self.on_pretrain_routine_end(ref_model)
