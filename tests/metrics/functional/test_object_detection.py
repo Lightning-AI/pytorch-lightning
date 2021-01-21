@@ -63,7 +63,17 @@ def test_mean_average_precision_0(
     ap_calculation,
     expected_map
 ):
-    mAP = mean_average_precision(pred_image_indices, pred_probs, pred_labels, pred_bboxes, target_image_indices, target_labels, target_bboxes, iou_threshold, ap_calculation)
+    mAP = mean_average_precision(
+        pred_image_indices,
+        pred_probs,
+        pred_labels,
+        pred_bboxes,
+        target_image_indices,
+        target_labels,
+        target_bboxes,
+        iou_threshold,
+        ap_calculation
+    )
     assert torch.allclose(mAP, expected_map)
 
 
@@ -122,7 +132,17 @@ def test_mean_average_precision_1(
     ap_calculation,
     expected_map
 ):
-    mAP = mean_average_precision(pred_image_indices, pred_probs, pred_labels, pred_bboxes, target_image_indices, target_labels, target_bboxes, iou_threshold, ap_calculation)
+    mAP = mean_average_precision(
+        pred_image_indices,
+        pred_probs,
+        pred_labels,
+        pred_bboxes,
+        target_image_indices,
+        target_labels,
+        target_bboxes,
+        iou_threshold,
+        ap_calculation
+    )
     assert torch.allclose(mAP, expected_map)
 
 
@@ -176,5 +196,15 @@ def test_mean_average_precision_no_target(
     ap_calculation,
     expected_map
 ):
-    mAP = mean_average_precision(pred_image_indices, pred_probs, pred_labels, pred_bboxes, target_image_indices, target_labels, target_bboxes, iou_threshold, ap_calculation)
+    mAP = mean_average_precision(
+        pred_image_indices,
+        pred_probs,
+        pred_labels,
+        pred_bboxes,
+        target_image_indices,
+        target_labels,
+        target_bboxes,
+        iou_threshold,
+        ap_calculation
+    )
     assert torch.allclose(mAP, expected_map)
