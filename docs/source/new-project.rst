@@ -87,15 +87,15 @@ Step 1: Define LightningModule
 
         def __init__(self):
             super().__init__()
-            self.encoder = nn.Sequential(
-                nn.Linear(28*28, 64),
-                nn.ReLU(),
-                nn.Linear(64, 3)
+            self.encoder = torch.nn.Sequential(
+                torch.nn.Linear(28*28, 64),
+                torch.nn.ReLU(),
+                torch.nn.Linear(64, 3)
             )
-            self.decoder = nn.Sequential(
-                nn.Linear(3, 64),
-                nn.ReLU(),
-                nn.Linear(64, 28*28)
+            self.decoder = torch.nn.Sequential(
+                torch.nn.Linear(3, 64),
+                torch.nn.ReLU(),
+                torch.nn.Linear(64, 28*28)
             )
 
         def forward(self, x):

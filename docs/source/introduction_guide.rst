@@ -314,7 +314,7 @@ An alternative to using a DataModule is to defer initialization of the models mo
             # step is either 'fit' or 'test' 90% of the time not relevant
             data = load_data()
             num_classes = data.classes
-            self.l1 = nn.Linear(..., num_classes)
+            self.l1 = torch.nn.Linear(..., num_classes)
 
 Optimizer
 ---------
@@ -1042,8 +1042,8 @@ would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
 
 .. code-block:: python
 
-    l1 = nn.Linear(...)
-    l2 = nn.Linear(...)
+    l1 = torch.nn.Linear(...)
+    l2 = torch.nn.Linear(...)
     decoder = Decoder()
 
     x1 = l1(x)
