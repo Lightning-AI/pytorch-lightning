@@ -170,17 +170,6 @@ The output below shows the profiling for the action `training_step_and_backward`
     ---------------------  ---------------  ---------------  ---------------  ---------------  ---------------
     Self CPU time total: 1.681ms
 
-If you need to profile more functions, do as follow:
-
-.. code-block:: python
-
-    profiler = Profiler(profiled_functions=["my_own_profiled_function"])
-
-    with profiler.profile("my_own_profiled_function"):
-
-        pass
-
-
 When running with `PyTorchProfiler(emit_nvtx=True)`. You should run as following:
 
 nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
