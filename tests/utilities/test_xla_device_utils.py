@@ -40,9 +40,12 @@ def test_tpu_device_presence():
 def test_result_returns_within_100_seconds():
     """Check that pl_multi_process returns within 10 seconds"""
 
+    # change timeout value during test
+    xla_utils.TPU_TIMEOUT_CONSTANT = 10
+
     start = time.time()
     result = xla_utils.pl_multi_process(time.sleep)(xla_utils.TPU_TIMEOUT_CONSTANT * 1.25)
     end = time.time()
     elapsed_time = int(end - start)
-    assert elapsed_time <= 100
+    assert elapsed_time <= xla_utils.TPU_TIMEOUT_CONSTANT
     assert result is False
