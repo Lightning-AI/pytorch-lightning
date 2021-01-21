@@ -15,16 +15,20 @@
 import os
 import warnings
 from functools import wraps
+from typing import Any, Optional, Union
 
 import torch
+
 from pytorch_lightning import _logger as log
-from typing import Union, Optional, Any
 
 if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
+    from torch.distributed import ReduceOp, group
 else:
     class ReduceOp:
         SUM = None
+
+    class group:
+        WORLD = None
 
 
 def rank_zero_only(fn):
@@ -73,7 +77,7 @@ def find_free_network_port() -> int:
     return port
 
 
-def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional[Any] = None):
+def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):
     """
     Function to gather all tensors from several ddp processes onto a list that
     is broadcasted to all processes
@@ -85,25 +89,43 @@ def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional
     Return:
         gathered_result: list with size equal to the process group where
             gathered_result[i] corresponds to result tensor from process i
-
     """
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        if group is None:
-            group = torch.distributed.group.WORLD
+    if group is None:
+        group = torch.distributed.group.WORLD
 
-        world_size = torch.distributed.get_world_size(group)
+    # convert tensors to contiguous format
+    result = result.contiguous()
 
-        gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
+    world_size = torch.distributed.get_world_size(group)
 
-        # sync and broadcast all
-        torch.distributed.barrier(group=group)
-        torch.distributed.all_gather(gathered_result, result, group)
+    gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
 
-        result = gathered_result
-    return result
+    # sync and broadcast all
+    torch.distributed.barrier(group=group)
+    torch.distributed.all_gather(gathered_result, result, group)
+
+    return gathered_result
 
 
 def sync_ddp_if_available(
+    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+) -> torch.Tensor:
+    """
+    Function to reduce a tensor across worker processes during distributed training
+    Args:
+        result: the value to sync and reduce (typically tensor or number)
+        group: the process group to gather results from. Defaults to all processes (world)
+        reduce_op: the reduction operation. Defaults to sum.
+            Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+    Return:
+        reduced value
+    """
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        return sync_ddp(result, group=group, reduce_op=reduce_op)
+    return result
+
+
+def sync_ddp(
     result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
@@ -118,24 +140,73 @@ def sync_ddp_if_available(
     Return:
         reduced value
     """
+    divide_by_world_size = False
 
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        divide_by_world_size = False
+    if group is None:
+        group = torch.distributed.group.WORLD
 
-        if group is None:
-            group = torch.distributed.group.WORLD
+    op = reduce_op if isinstance(reduce_op, ReduceOp) else ReduceOp.SUM
 
-        if reduce_op is None:
-            reduce_op = torch.distributed.ReduceOp.SUM
-        elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
-            reduce_op = torch.distributed.ReduceOp.SUM
-            divide_by_world_size = True
+    if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
+        divide_by_world_size = True
 
-        # sync all processes before reduction
-        torch.distributed.barrier(group=group)
-        torch.distributed.all_reduce(result, op=reduce_op, group=group, async_op=False)
+    # sync all processes before reduction
+    torch.distributed.barrier(group=group)
+    torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
 
-        if divide_by_world_size:
-            result = result / torch.distributed.get_world_size(group)
+    if divide_by_world_size:
+        result = result / torch.distributed.get_world_size(group)
 
     return result
+
+
+class AllGatherGrad(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, tensor, group=group.WORLD):
+        ctx.group = group
+
+        gathered_tensor = [
+            torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())
+        ]
+
+        torch.distributed.all_gather(gathered_tensor, tensor, group=group)
+        gathered_tensor = torch.stack(gathered_tensor, dim=0)
+
+        return gathered_tensor
+
+    @staticmethod
+    def backward(ctx, *grad_output):
+        grad_output = torch.cat(grad_output)
+
+        torch.distributed.all_reduce(
+            grad_output,
+            op=torch.distributed.ReduceOp.SUM,
+            async_op=False,
+            group=ctx.group
+        )
+
+        return grad_output[torch.distributed.get_rank()]
+
+
+def all_gather_ddp_if_available(
+    tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False
+) -> torch.Tensor:
+    """
+    Function to gather a tensor from several distributed processes
+
+    Args:
+        tensor: tensor of shape (batch, ...)
+        group: the process group to gather results from. Defaults to all processes (world)
+        sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+    Return:
+        A tensor of shape (world_size, batch, ...)
+    """
+    group = group if group is not None else torch.distributed.group.WORLD
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if sync_grads:
+            return AllGatherGrad.apply(tensor, group)
+        else:
+            with torch.no_grad():
+                return AllGatherGrad.apply(tensor, group)
+    return tensor

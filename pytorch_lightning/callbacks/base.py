@@ -13,7 +13,7 @@
 # limitations under the License.
 
 r"""
-Subclass this class and override any of the relevant hooks
+Abstract base class used to build new callbacks.
 
 """
 
@@ -63,7 +63,7 @@ class Callback(abc.ABC):
         """Called when the train batch begins."""
         pass
 
-    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """Called when the train batch ends."""
         pass
 
@@ -71,7 +71,7 @@ class Callback(abc.ABC):
         """Called when the train epoch begins."""
         pass
 
-    def on_train_epoch_end(self, trainer, pl_module):
+    def on_train_epoch_end(self, trainer, pl_module, outputs):
         """Called when the train epoch ends."""
         pass
 
@@ -107,7 +107,7 @@ class Callback(abc.ABC):
         """Called when the validation batch begins."""
         pass
 
-    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """Called when the validation batch ends."""
         pass
 
@@ -115,7 +115,7 @@ class Callback(abc.ABC):
         """Called when the test batch begins."""
         pass
 
-    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """Called when the test batch ends."""
         pass
 
@@ -165,4 +165,16 @@ class Callback(abc.ABC):
 
     def on_load_checkpoint(self, checkpointed_state):
         """Called when loading a model checkpoint, use to reload state."""
+        pass
+
+    def on_after_backward(self, trainer, pl_module):
+        """
+        Called after loss.backward() and before optimizers do anything.
+        """
+        pass
+
+    def on_before_zero_grad(self, trainer, pl_module, optimizer):
+        """
+        Called after optimizer.step() and before optimizer.zero_grad().
+        """
         pass

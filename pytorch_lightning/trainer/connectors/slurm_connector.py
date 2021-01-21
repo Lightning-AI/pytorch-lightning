@@ -22,7 +22,7 @@ class SLURMConnector:
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
-        if self.trainer.use_ddp:
+        if self.trainer.use_ddp or self.trainer.use_ddp2:
             self.trainer.num_requested_gpus = self.trainer.num_gpus * num_gpu_nodes
             self.trainer.num_slurm_tasks = 0
             try:
@@ -54,6 +54,7 @@ class SLURMConnector:
         if self.trainer.is_slurm_managing_tasks:
             rank_zero_info('Multi-processing is handled by Slurm.')
 
+    # todo: the same function as slurm_environment.py `_resolve_root_node_address`
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
             name, numbers = root_node.split('[', maxsplit=1)
@@ -85,7 +86,7 @@ class SLURMConnector:
         if self.trainer.is_global_zero:
             # save weights
             log.info('handling SIGUSR1')
-            self.trainer.hpc_save(self.trainer.weights_save_path, self.trainer.logger)
+            self.trainer.checkpoint_connector.hpc_save(self.trainer.weights_save_path, self.trainer.logger)
 
             # find job id
             job_id = os.environ['SLURM_JOB_ID']
@@ -108,8 +109,8 @@ class SLURMConnector:
         # save
         log.info("bypassing sigterm")
 
+    # todo: this is the same func as slurm_environment.py `master_port`
     def connect_ddp(self, global_rank: int, world_size: int) -> None:
-        """"""
         """
         Sets up environment variables necessary for pytorch distributed communications
         based on slurm environment.
@@ -136,7 +137,7 @@ class SLURMConnector:
 
         # figure out the root node addr
         try:
-            root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
+            root_node = os.environ["SLURM_NODELIST"].split(" ")[0].split(",")[0]
         except Exception:
             root_node = "127.0.0.1"
 

@@ -1,8 +1,11 @@
 .. _performance:
 
-Fast Performance
-================
-Here are some best practices to increase your performance.
+Fast performance tips
+=====================
+Lightning builds in all the micro-optimizations we can find to increase your performance.
+But we can only automate so much.
+
+Here are some additional things you can do to increase your performance.
 
 ----------
 
@@ -30,9 +33,9 @@ The best thing to do is to increase the ``num_workers`` slowly and stop once you
 
 Spawn
 ^^^^^
-When using ``distributed_backend=ddp_spawn`` (the ddp default) or TPU training, the way multiple GPUs/TPU cores are used is by calling ``.spawn()`` under the hood.
+When using ``accelerator=ddp_spawn`` (the ddp default) or TPU training, the way multiple GPUs/TPU cores are used is by calling ``.spawn()`` under the hood.
 The problem is that PyTorch has issues with ``num_workers > 0`` when using ``.spawn()``. For this reason we recommend you
-use ``distributed_backend=ddp`` so you can increase the ``num_workers``, however your script has to be callable like so:
+use ``accelerator=ddp`` so you can increase the ``num_workers``, however your script has to be callable like so:
 
 .. code-block:: bash
 
@@ -111,3 +114,29 @@ However, know that 16-bit and multi-processing (any DDP) can have issues. Here a
     CUDA_LAUNCH_BLOCKING=1 python main.py
 
 .. tip:: We also recommend using 16-bit native found in PyTorch 1.6. Just install this version and Lightning will automatically use it.
+
+----------
+
+Use Sharded DDP for GPU memory and scaling optimization
+-------------------------------------------------------
+
+Sharded DDP is a lightning integration of `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
+`ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_
+provided by `Fairscale <https://github.com/facebookresearch/fairscale>`_.
+
+When training on multiple GPUs sharded DDP can assist to increase memory efficiency substantially, and in some cases performance on multi-node is better than traditional DDP.
+This is due to efficient communication and parallelization under the hood.
+
+To use Optimizer Sharded Training, refer to :ref:`model-parallelism`.
+
+Sharded DDP can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
+
+Refer to the :ref:`distributed computing guide for more details <multi_gpu>`.
+
+
+Sequential Model Parallelism with Checkpointing
+---------------------------------------------------------------------
+PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
+Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
+
+For more information, refer to :ref:`sequential-parallelism`.

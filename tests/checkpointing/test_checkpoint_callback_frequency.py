@@ -1,53 +1,34 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
-from pytorch_lightning import Trainer, seed_everything, callbacks
-from tests.base import EvalModelTemplate, BoringModel
 from unittest import mock
+
 import pytest
 import torch
 
-
-def test_mc_called_on_fastdevrun(tmpdir):
-    seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
-
-    train_val_step_model = EvalModelTemplate()
-
-    # fast dev run = called once
-    # train loop only, dict, eval result
-    trainer = Trainer(fast_dev_run=True)
-    trainer.fit(train_val_step_model)
-
-    # checkpoint should have been called once with fast dev run
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
-
-    # -----------------------
-    # also called once with no val step
-    # -----------------------
-    train_step_only_model = EvalModelTemplate()
-    train_step_only_model.validation_step = None
-
-    # fast dev run = called once
-    # train loop only, dict, eval result
-    trainer = Trainer(fast_dev_run=True)
-    trainer.fit(train_step_only_model)
-
-    # make sure only training step was called
-    assert train_step_only_model.training_step_called
-    assert not train_step_only_model.validation_step_called
-    assert not train_step_only_model.test_step_called
-
-    # checkpoint should have been called once with fast dev run
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
+from pytorch_lightning import callbacks, seed_everything, Trainer
+from tests.base import BoringModel
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_mc_called(tmpdir):
     seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     # -----------------
     # TRAIN LOOP ONLY
     # -----------------
-    train_step_only_model = EvalModelTemplate()
+    train_step_only_model = BoringModel()
     train_step_only_model.validation_step = None
 
     # no callback
@@ -58,7 +39,7 @@ def test_mc_called(tmpdir):
     # -----------------
     # TRAIN + VAL LOOP ONLY
     # -----------------
-    val_train_model = EvalModelTemplate()
+    val_train_model = BoringModel()
     # no callback
     trainer = Trainer(max_epochs=3, checkpoint_callback=False)
     trainer.fit(val_train_model)
@@ -103,7 +84,7 @@ def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     model = TestModel()
     trainer = Trainer(
-        checkpoint_callback=callbacks.ModelCheckpoint(monitor='my_loss', save_top_k=k),
+        callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor='my_loss', save_top_k=k)],
         default_root_dir=tmpdir,
         max_epochs=epochs,
         weights_summary=None,

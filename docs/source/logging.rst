@@ -6,7 +6,7 @@
 
 .. role:: hidden
     :class: hidden-section
-    
+
 .. _logging:
 
 
@@ -57,16 +57,18 @@ Logging from a LightningModule
 
 Lightning offers automatic log functionalities for logging scalars, or manual logging for anything else.
 
-Automatic logging
+Automatic Logging
 =================
-Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method to log from anywhere in a :class:`~pytorch_lightning.core.LightningModule`.
+Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log`
+method to log from anywhere in a :ref:`lightning_module` and :ref:`callbacks`
+except functions with `batch_start` in their names.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
         self.log('my_metric', x)
 
-Depending on where log is called from, Lightning auto-determines the correct logging mode for you.\
+Depending on where log is called from, Lightning auto-determines the correct logging mode for you. \
 But of course you can override the default behavior by manually setting the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` parameters.
 
 .. code-block:: python
@@ -76,16 +78,26 @@ But of course you can override the default behavior by manually setting the :fun
 
 The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
 
-* on_step: Logs the metric at the current step. Defaults to True in :func:`~~pytorch_lightning.core.lightning.LightningModule.training_step`, and :func:`~pytorch_lightning.core.lightning.LightningModule.training_step_end`.
+* `on_step`: Logs the metric at the current step. Defaults to `True` in :func:`~~pytorch_lightning.core.lightning.LightningModule.training_step`, and :func:`~pytorch_lightning.core.lightning.LightningModule.training_step_end`.
 
-* on_epoch: Automatically accumulates and logs at the end of the epoch. Defaults to True anywhere in validation or test loops, and in :func:`~~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`.
+* `on_epoch`: Automatically accumulates and logs at the end of the epoch. Defaults to True anywhere in validation or test loops, and in :func:`~~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`.
 
-* prog_bar: Logs to the progress bar.
+* `prog_bar`: Logs to the progress bar.
 
-* logger: Logs to the logger like Tensorboard, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
+* `logger`: Logs to the logger like Tensorboard, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 
 
-.. note:: Setting on_epoch=True will accumulate your logged values over the full training epoch.
+.. note::
+
+    -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
+        reduction `on_epoch_end`. We recommend using the :ref:`metrics` API when working with custom reduction.
+
+    -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
+        suffix ``_step`` and ``_epoch``, respectively. You can refer to these keys e.g. in the `monitor`
+        argument of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` or in the graphs plotted to the logger of your choice.
+
+
+If your work requires to log in an unsupported function, please open an issue with a clear description of why it is blocking you.
 
 
 Manual logging
@@ -113,54 +125,32 @@ Once your training starts, you can view the logs by using your favorite logger o
 
 ----------
 
-***********************
-Logging from a Callback
-***********************
-To log from a callback, use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log`
-method of the :class:`~pytorch_lightning.core.LightningModule`.
-
-.. code-block:: python
-
-    class MyCallback(Callback):
-
-        def on_train_epoch_end(self, trainer, pl_module):
-            pl_module.log('something', x)
-
-or access the logger object directly for manual logging
-
-.. code-block:: python
-
-    class MyCallback(Callback):
-
-        def on_train_epoch_end(self, trainer, pl_module):
-            tensorboard = pl_module.logger.experiment
-            tensorboard.add_histogram(...)
-            tensorboard.add_figure(...)
-
-----------
-
 ********************
 Make a custom logger
 ********************
 
-You can implement your own logger by writing a class that inherits from
-:class:`LightningLoggerBase`. Use the :func:`~pytorch_lightning.loggers.base.rank_zero_only`
-decorator to make sure that only the first process in DDP training logs data.
+You can implement your own logger by writing a class that inherits from :class:`~pytorch_lightning.loggers.base.LightningLoggerBase`.
+Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`~pytorch_lightning.utilities.distributed.rank_zero_only` decorators to make sure that only the first process in DDP training creates the experiment and logs the data respectively.
 
 .. testcode::
 
     from pytorch_lightning.utilities import rank_zero_only
     from pytorch_lightning.loggers import LightningLoggerBase
+    from pytorch_lightning.loggers.base import rank_zero_experiment
 
     class MyLogger(LightningLoggerBase):
 
+        @property
         def name(self):
             return 'MyLogger'
 
+        @property
+        @rank_zero_experiment
         def experiment(self):
             # Return the experiment object associated with this logger.
             pass
-          
+
+        @property
         def version(self):
             # Return the experiment version, int or str.
             return '0.1'
@@ -177,6 +167,7 @@ decorator to make sure that only the first process in DDP training logs data.
             # your code to record metrics goes here
             pass
 
+        @rank_zero_only
         def save(self):
             # Optional. Any code necessary to save logger data goes here
             # If you implement this, remember to call `super().save()`
@@ -252,7 +243,7 @@ if you are using a logger. These defaults can be customized by overriding the
 :func:`~pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict` hook in your module.
 
 .. code-block:: python
-    
+
     def get_progress_bar_dict(self):
         # don't show the version number
         items = super().get_progress_bar_dict()
@@ -286,12 +277,12 @@ Logging hyperparameters
 ***********************
 
 When training a model, it's useful to know what hyperparams went into that model.
-When Lightning creates a checkpoint, it stores a key "hparams" with the hyperparams.
+When Lightning creates a checkpoint, it stores a key "hyper_parameters" with the hyperparams.
 
 .. code-block:: python
 
     lightning_checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
-    hyperparams = lightning_checkpoint['hparams']
+    hyperparams = lightning_checkpoint['hyper_parameters']
 
 Some loggers also allow logging the hyperparams used in the experiment. For instance,
 when using the TestTubeLogger or the TensorBoardLogger, all hyperparams will show
@@ -319,44 +310,27 @@ Supported Loggers
 
 The following are loggers we support
 
-Comet
-=====
+.. note::
+    The following loggers will normally plot an additional chart (**global_step VS epoch**).
 
-.. autoclass:: pytorch_lightning.loggers.comet.CometLogger
-    :noindex:
+.. note::
+    postfix ``_step`` and ``_epoch`` will be appended to the name you logged
+    if ``on_step`` and ``on_epoch`` are set to ``True`` in ``self.log()``.
 
-CSVLogger
-=========
+.. note::
+    Depending on the loggers you use, there might be some additional charts.
 
-.. autoclass:: pytorch_lightning.loggers.csv_logs.CSVLogger
-    :noindex:
+.. currentmodule:: pytorch_lightning.loggers
 
-MLFlow
-======
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: classtemplate.rst
 
-.. autoclass:: pytorch_lightning.loggers.mlflow.MLFlowLogger
-    :noindex:
-
-Neptune
-=======
-
-.. autoclass:: pytorch_lightning.loggers.neptune.NeptuneLogger
-    :noindex:
-
-Tensorboard
-============
-
-.. autoclass:: pytorch_lightning.loggers.tensorboard.TensorBoardLogger
-    :noindex:
-
-Test-tube
-=========
-
-.. autoclass:: pytorch_lightning.loggers.test_tube.TestTubeLogger
-    :noindex:
-
-Weights and Biases
-==================
-
-.. autoclass:: pytorch_lightning.loggers.wandb.WandbLogger
-    :noindex:
+    CometLogger
+    CSVLogger
+    MLFlowLogger
+    NeptuneLogger
+    TensorBoardLogger
+    TestTubeLogger
+    WandbLogger

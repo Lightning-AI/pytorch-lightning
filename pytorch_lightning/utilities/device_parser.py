@@ -13,6 +13,8 @@
 # limitations under the License.
 import torch
 from typing import Union, Any, List, Optional, MutableSequence
+
+from pytorch_lightning.utilities import TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -104,6 +106,9 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
     if not _tpu_cores_valid(tpu_cores):
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
+    if tpu_cores is not None and not TPU_AVAILABLE:
+        raise MisconfigurationException('No TPU devices were found.')
+
     return tpu_cores
 
 
@@ -129,18 +134,8 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
         unmodified gpus variable
     """
     all_available_gpus = _get_all_available_gpus()
-    misconfig = False
     for gpu in gpus:
         if gpu not in all_available_gpus:
-            misconfig = True
-
-    if misconfig:
-        # sometimes auto ddp might have different flags
-        # but this is not what the user intended
-        # correct for the user
-        if len(gpus) == len(all_available_gpus):
-            gpus = all_available_gpus
-        else:
             raise MisconfigurationException(f"""
                 You requested GPUs: {gpus}
                 But your machine only has: {all_available_gpus}

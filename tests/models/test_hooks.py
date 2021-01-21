@@ -1,11 +1,26 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import inspect
+import os
 from unittest.mock import MagicMock
 
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.gpu_backend import GPUBackend
-from tests.base import EvalModelTemplate
+from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
+from tests.base import BoringModel, EvalModelTemplate, RandomDataset
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
@@ -101,13 +116,56 @@ def test_transfer_batch_hook():
     batch = CustomBatch((torch.zeros(5, 28), torch.ones(5, 1, dtype=torch.long)))
 
     trainer = Trainer(gpus=1)
-    trainer.accelerator_backend = GPUBackend(trainer)
+    trainer.accelerator_backend = GPUAccelerator(trainer)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     trainer.get_model = MagicMock(return_value=model)
     batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
     assert model.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+def test_transfer_batch_hook_ddp(tmpdir):
+    """
+    Test custom data are properly moved to the right device using ddp
+    """
+
+    class CustomBatch:
+
+        def __init__(self, data):
+            self.samples = data[0]
+
+        def to(self, device, **kwargs):
+            self.samples = self.samples.to(device, **kwargs)
+            return self
+
+    def collate_fn(batch):
+        return CustomBatch(batch)
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            assert batch.samples.device == self.device
+            assert isinstance(batch_idx, int)
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDataset(32, 64), collate_fn=collate_fn)
+
+    model = TestModel()
+    model.validation_step = None
+    model.training_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        max_epochs=1,
+        weights_summary=None,
+        accelerator="ddp",
+        gpus=2,
+    )
+    trainer.fit(model)
 
 
 @pytest.mark.parametrize(
@@ -129,3 +187,218 @@ def test_on_train_batch_start_hook(max_epochs, batch_idx_):
     else:
         assert trainer.batch_idx == batch_idx_
         assert trainer.global_step == (batch_idx_ + 1) * max_epochs
+
+
+def test_trainer_model_hook_system(tmpdir):
+    """Test the hooks system."""
+
+    class HookedModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.called = []
+
+        def on_after_backward(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_after_backward()
+
+        def on_before_zero_grad(self, optimizer):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_before_zero_grad(optimizer)
+
+        def on_epoch_start(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_epoch_start()
+
+        def on_epoch_end(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_epoch_end()
+
+        def on_fit_start(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_fit_start()
+
+        def on_fit_end(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_fit_end()
+
+        def on_hpc_load(self, checkpoint):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_hpc_load(checkpoint)
+
+        def on_hpc_save(self, checkpoint):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_hpc_save(checkpoint)
+
+        def on_load_checkpoint(self, checkpoint):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_load_checkpoint(checkpoint)
+
+        def on_save_checkpoint(self, checkpoint):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_save_checkpoint(checkpoint)
+
+        def on_pretrain_routine_start(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_pretrain_routine_start()
+
+        def on_pretrain_routine_end(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_pretrain_routine_end()
+
+        def on_train_start(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_train_start()
+
+        def on_train_end(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_train_end()
+
+        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_train_batch_start(batch, batch_idx, dataloader_idx)
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_train_batch_end(outputs, batch, batch_idx, dataloader_idx)
+
+        def on_train_epoch_start(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_train_epoch_start()
+
+        def on_train_epoch_end(self, outputs):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_train_epoch_end(outputs)
+
+        def on_validation_start(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_validation_start()
+
+        def on_validation_end(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_validation_end()
+
+        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_validation_batch_start(batch, batch_idx, dataloader_idx)
+
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_validation_batch_end(outputs, batch, batch_idx, dataloader_idx)
+
+        def on_validation_epoch_start(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_validation_epoch_start()
+
+        def on_validation_epoch_end(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_validation_epoch_end()
+
+        def on_test_start(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_test_start()
+
+        def on_test_end(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_test_end()
+
+        def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_test_batch_start(batch, batch_idx, dataloader_idx)
+
+        def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_test_batch_end(outputs, batch, batch_idx, dataloader_idx)
+
+        def on_test_epoch_start(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_test_epoch_start()
+
+        def on_test_epoch_end(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_test_epoch_end()
+
+        def on_validation_model_eval(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_validation_model_eval()
+
+        def on_validation_model_train(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_validation_model_train()
+
+        def on_test_model_eval(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_test_model_eval()
+
+        def on_test_model_train(self):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            super().on_test_model_train()
+
+    model = HookedModel()
+
+    assert model.called == []
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=1,
+        limit_train_batches=2,
+        limit_test_batches=1,
+        progress_bar_refresh_rate=0,
+    )
+
+    assert model.called == []
+
+    trainer.fit(model)
+
+    expected = [
+        'on_fit_start',
+        'on_pretrain_routine_start',
+        'on_pretrain_routine_end',
+        'on_validation_model_eval',
+        'on_validation_epoch_start',
+        'on_validation_batch_start',
+        'on_validation_batch_end',
+        'on_validation_epoch_end',
+        'on_validation_model_train',
+        'on_train_start',
+        'on_epoch_start',
+        'on_train_epoch_start',
+        'on_train_batch_start',
+        'on_after_backward',
+        'on_before_zero_grad',
+        'on_train_batch_end',
+        'on_train_batch_start',
+        'on_after_backward',
+        'on_before_zero_grad',
+        'on_train_batch_end',
+        'on_validation_model_eval',
+        'on_validation_epoch_start',
+        'on_validation_batch_start',
+        'on_validation_batch_end',
+        'on_validation_epoch_end',
+        'on_save_checkpoint',
+        'on_validation_model_train',
+        'on_epoch_end',
+        'on_train_epoch_end',
+        'on_train_end',
+        'on_fit_end',
+    ]
+
+    assert model.called == expected
+
+    model2 = HookedModel()
+    trainer.test(model2)
+
+    expected = [
+        'on_fit_start',
+        'on_test_model_eval',
+        'on_test_epoch_start',
+        'on_test_batch_start',
+        'on_test_batch_end',
+        'on_test_epoch_end',
+        'on_test_model_train',
+        'on_fit_end',
+    ]
+
+    assert model2.called == expected

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Profiler to check if there are any bottlenecks in your code."""
+
 import cProfile
 import io
 import os
@@ -20,10 +22,13 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
+from typing import Optional, Union
 
+import fsspec
 import numpy as np
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 class BaseProfiler(ABC):
@@ -31,10 +36,10 @@ class BaseProfiler(ABC):
     If you wish to write a custom profiler, you should inhereit from this class.
     """
 
-    def __init__(self, output_streams: list = None):
+    def __init__(self, output_streams: Optional[Union[list, tuple]] = None):
         """
-        Params:
-            stream_out: callable
+        Args:
+            output_streams: callable
         """
         if output_streams:
             if not isinstance(output_streams, (list, tuple)):
@@ -117,19 +122,24 @@ class SimpleProfiler(BaseProfiler):
     the mean duration of each action and the total time spent over the entire training run.
     """
 
-    def __init__(self, output_filename: str = None):
+    def __init__(self, output_filename: Optional[str] = None, extended=True):
         """
-        Params:
-            output_filename (str): optionally save profile results to file instead of printing
+        Args:
+            output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished.
         """
         self.current_actions = {}
         self.recorded_durations = defaultdict(list)
+        self.extended = extended
 
         self.output_fname = output_filename
-        self.output_file = open(self.output_fname, 'w') if self.output_fname else None
+        self.output_file = None
+        if self.output_fname:
+            fs = get_filesystem(self.output_fname)
+            self.output_file = fs.open(self.output_fname, "w")
 
         streaming_out = [self.output_file.write] if self.output_file else [log.info]
+        self.start_time = time.monotonic()
         super().__init__(output_streams=streaming_out)
 
     def start(self, action_name: str) -> None:
@@ -149,18 +159,47 @@ class SimpleProfiler(BaseProfiler):
         duration = end_time - start_time
         self.recorded_durations[action_name].append(duration)
 
+    def make_report(self):
+        total_duration = time.monotonic() - self.start_time
+        report = [[a, d, 100. * np.sum(d) / total_duration] for a, d in self.recorded_durations.items()]
+        report.sort(key=lambda x: x[2], reverse=True)
+        return report, total_duration
+
     def summary(self) -> str:
         output_string = "\n\nProfiler Report\n"
 
-        def log_row(action, mean, total):
-            return f"{os.linesep}{action:<20s}\t|  {mean:<15}\t|  {total:<15}"
+        if self.extended:
 
-        output_string += log_row("Action", "Mean duration (s)", "Total time (s)")
-        output_string += f"{os.linesep}{'-' * 65}"
-        for action, durations in self.recorded_durations.items():
-            output_string += log_row(
-                action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}",
-            )
+            if len(self.recorded_durations) > 0:
+                max_key = np.max([len(k) for k in self.recorded_durations.keys()])
+
+                def log_row(action, mean, num_calls, total, per):
+                    row = f"{os.linesep}{action:<{max_key}s}\t|  {mean:<15}\t|"
+                    row += f"{num_calls:<15}\t|  {total:<15}\t|  {per:<15}\t|"
+                    return row
+
+                output_string += log_row("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
+                output_string_len = len(output_string)
+                output_string += f"{os.linesep}{'-' * output_string_len}"
+                report, total_duration = self.make_report()
+                output_string += log_row("Total", "-", "_", f"{total_duration:.5}", "100 %")
+                output_string += f"{os.linesep}{'-' * output_string_len}"
+                for action, durations, duration_per in report:
+                    output_string += log_row(
+                        action, f"{np.mean(durations):.5}", f"{len(durations):}",
+                        f"{np.sum(durations):.5}", f"{duration_per:.5}"
+                    )
+        else:
+            def log_row(action, mean, total):
+                return f"{os.linesep}{action:<20s}\t|  {mean:<15}\t|  {total:<15}"
+
+            output_string += log_row("Action", "Mean duration (s)", "Total time (s)")
+            output_string += f"{os.linesep}{'-' * 65}"
+
+            for action, durations in self.recorded_durations.items():
+                output_string += log_row(
+                    action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}"
+                )
         output_string += os.linesep
         return output_string
 
@@ -183,7 +222,7 @@ class AdvancedProfiler(BaseProfiler):
     verbose and you should only use this if you want very detailed reports.
     """
 
-    def __init__(self, output_filename: str = None, line_count_restriction: float = 1.0):
+    def __init__(self, output_filename: Optional[str] = None, line_count_restriction: float = 1.0):
         """
         Args:
             output_filename: optionally save profile results to file instead of printing
@@ -196,7 +235,10 @@ class AdvancedProfiler(BaseProfiler):
         self.line_count_restriction = line_count_restriction
 
         self.output_fname = output_filename
-        self.output_file = open(self.output_fname, 'w') if self.output_fname else None
+        self.output_file = None
+        if self.output_fname:
+            fs = get_filesystem(self.output_fname)
+            self.output_file = fs.open(self.output_fname, "w")
 
         streaming_out = [self.output_file.write] if self.output_file else [log.info]
         super().__init__(output_streams=streaming_out)
@@ -225,7 +267,9 @@ class AdvancedProfiler(BaseProfiler):
         # log to standard out
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
         for action, stats in recorded_stats.items():
-            output_string += f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
+            output_string += (
+                f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
+            )
 
         return output_string
 

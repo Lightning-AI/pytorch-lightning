@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import logging
 import os
 import random
@@ -9,10 +22,10 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from tests import PACKAGE_ROOT
+from tests import PROJECT_ROOT
 
 #: local path to test datasets
-PATH_DATASETS = os.path.join(PACKAGE_ROOT, 'Datasets')
+PATH_DATASETS = os.path.join(PROJECT_ROOT, 'Datasets')
 
 
 class MNIST(Dataset):
@@ -50,8 +63,13 @@ class MNIST(Dataset):
     TEST_FILE_NAME = 'test.pt'
     cache_folder_name = 'complete'
 
-    def __init__(self, root: str = PATH_DATASETS, train: bool = True,
-                 normalize: tuple = (0.5, 1.0), download: bool = True):
+    def __init__(
+            self,
+            root: str = PATH_DATASETS,
+            train: bool = True,
+            normalize: tuple = (0.5, 1.0),
+            download: bool = True,
+    ):
         super().__init__()
         self.root = root
         self.train = train  # training set or test set

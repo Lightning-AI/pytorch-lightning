@@ -12,14 +12,14 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import os
-import sys
-import glob
-import shutil
-import inspect
-
 # import m2r
 import builtins
+import glob
+import inspect
+import os
+import shutil
+import sys
+
 import pt_lightning_sphinx_theme
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
@@ -50,12 +50,26 @@ import pytorch_lightning  # noqa: E402
 # with open('readme.md', 'w') as fp:
 #     fp.write(readme)
 
+# copy all documents from GH templates like contribution guide
 for md in glob.glob(os.path.join(PATH_ROOT, '.github', '*.md')):
     shutil.copy(md, os.path.join(PATH_HERE, os.path.basename(md)))
+# copy also the changelog
+with open(os.path.join(PATH_ROOT, 'CHANGELOG.md'), 'r') as fp:
+    chlog_lines = fp.readlines()
+# enrich short subsub-titles to be unique
+chlog_ver = ''
+for i, ln in enumerate(chlog_lines):
+    if ln.startswith('## '):
+        chlog_ver = ln[2:].split('-')[0].strip()
+    elif ln.startswith('### '):
+        ln = ln.replace('###', f'### {chlog_ver} -')
+        chlog_lines[i] = ln
+with open(os.path.join(PATH_HERE, 'CHANGELOG.md'), 'w') as fp:
+    fp.writelines(chlog_lines)
 
 # -- Project information -----------------------------------------------------
 
-project = 'PyTorch-Lightning'
+project = 'PyTorch Lightning'
 copyright = pytorch_lightning.__copyright__
 author = pytorch_lightning.__author__
 
@@ -64,10 +78,6 @@ version = pytorch_lightning.__version__
 # The full version, including alpha/beta/rc tags
 release = pytorch_lightning.__version__
 
-# Options for the linkcode extension
-# ----------------------------------
-github_user = 'PyTorchLightning'
-github_repo = project
 
 # -- General configuration ---------------------------------------------------
 
@@ -86,7 +96,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
-    'sphinx.ext.linkcode',
+    'sphinx.ext.viewcode',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.imgmath',
@@ -166,6 +176,8 @@ html_theme_options = {
 }
 
 html_logo = '_images/logos/lightning_logo-name.svg'
+
+html_favicon = '_images/logos/lightning_icon.svg'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -253,7 +265,7 @@ epub_exclude_files = ['search.html']
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'torch': ('https://pytorch.org/docs/stable/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
     'PIL': ('https://pillow.readthedocs.io/en/stable/', None),
 }
 
@@ -282,78 +294,45 @@ def setup(app):
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
 def package_list_from_file(file):
+    """List up package name (not containing version and extras) from a package list file
+    """
     mocked_packages = []
     with open(file, 'r') as fp:
         for ln in fp.readlines():
-            found = [ln.index(ch) for ch in list(',=<>#') if ch in ln]
+            # Example: `tqdm>=4.41.0` => `tqdm`
+            # `[` is for package with extras
+            found = [ln.index(ch) for ch in list(',=<>#[') if ch in ln]
             pkg = ln[:min(found)] if found else ln
             if pkg.rstrip():
                 mocked_packages.append(pkg.rstrip())
     return mocked_packages
 
 
+# define mapping from PyPI names to python imports
+PACKAGE_MAPPING = {
+    'Pillow': 'PIL',
+    'opencv-python': 'cv2',
+    'PyYAML': 'yaml',
+    'comet-ml': 'comet_ml',
+    'neptune-client': 'neptune',
+    'hydra-core': 'hydra',
+}
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/base.txt'))
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/extra.txt'))
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/loggers.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements', 'extra.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements', 'loggers.txt'))
+MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
-MOCK_MANUAL_PACKAGES = [
-    'torchvision',
-    'PIL',
-    # packages with different package name compare to import name
-    'yaml',
-    'comet_ml',
-    'neptune',
-]
-autodoc_mock_imports = MOCK_PACKAGES + MOCK_MANUAL_PACKAGES
-
-
-# Resolve function
-# This function is used to populate the (source) links in the API
-def linkcode_resolve(domain, info):
-    def find_source():
-        # try to find the file and line number, based on code from numpy:
-        # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
-        obj = sys.modules[info['module']]
-        for part in info['fullname'].split('.'):
-            obj = getattr(obj, part)
-        fname = inspect.getsourcefile(obj)
-        # https://github.com/rtfd/readthedocs.org/issues/5735
-        if any([s in fname for s in ('readthedocs', 'rtfd', 'checkouts')]):
-            # /home/docs/checkouts/readthedocs.org/user_builds/pytorch_lightning/checkouts/
-            #  devel/pytorch_lightning/utilities/cls_experiment.py#L26-L176
-            path_top = os.path.abspath(os.path.join('..', '..', '..'))
-            fname = os.path.relpath(fname, start=path_top)
-        else:
-            # Local build, imitate master
-            fname = 'master/' + os.path.relpath(fname, start=os.path.abspath('..'))
-        source, lineno = inspect.getsourcelines(obj)
-        return fname, lineno, lineno + len(source) - 1
-
-    if domain != 'py' or not info['module']:
-        return None
-    try:
-        filename = '%s#L%d-L%d' % find_source()
-    except Exception:
-        filename = info['module'].replace('.', '/') + '.py'
-    # import subprocess
-    # tag = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE,
-    #                        universal_newlines=True).communicate()[0][:-1]
-    branch = filename.split('/')[0]
-    # do mapping from latest tags to master
-    branch = {'latest': 'master', 'stable': 'master'}.get(branch, branch)
-    filename = '/'.join([branch] + filename.split('/')[1:])
-    return "https://github.com/%s/%s/blob/%s" \
-           % (github_user, github_repo, filename)
-
+autodoc_mock_imports = MOCK_PACKAGES
 
 autosummary_generate = True
+
 autodoc_member_order = 'groupwise'
+
 autoclass_content = 'both'
-# the options are fixed and will be soon in release,
-#  see https://github.com/sphinx-doc/sphinx/issues/5459
+
 autodoc_default_options = {
     'members': True,
     'methods': True,
@@ -383,9 +362,12 @@ import importlib
 import os
 import torch
 
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-APEX_AVAILABLE = importlib.util.find_spec("apex") is not None
-XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
+from pytorch_lightning.utilities import (
+    NATIVE_AMP_AVAILABLE,
+    APEX_AVAILABLE,
+    XLA_AVAILABLE,
+    TPU_AVAILABLE,
+)
 TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
 
 

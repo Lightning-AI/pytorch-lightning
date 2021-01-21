@@ -6,6 +6,7 @@
 PyTorch Lightning Documentation
 ===============================
 
+
 .. toctree::
    :maxdepth: 1
    :name: start
@@ -13,14 +14,18 @@ PyTorch Lightning Documentation
 
    new-project
    converting
+   rapid_prototyping_templates
 
 .. toctree::
    :maxdepth: 1
-   :name: advanced
-   :caption: Advanced use
+   :name: guides
+   :caption: Best practices
 
-   introduction_guide
+   style_guide
    performance
+   Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
+   benchmarking
+
 
 .. toctree::
    :maxdepth: 2
@@ -35,10 +40,30 @@ PyTorch Lightning Documentation
    :name: docs
    :caption: Optional extensions
 
+   accelerators
    callbacks
    datamodules
    logging
    metrics
+   plugins
+
+
+.. toctree::
+   :maxdepth: 1
+   :name: Tutorials
+   :caption: Tutorials
+
+   introduction_guide
+   PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
+   From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
+   From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
+
+.. toctree::
+   :maxdepth: 2
+   :name: api
+   :caption: API References
+
+   api_references
 
 .. toctree::
    :maxdepth: 1
@@ -52,6 +77,7 @@ PyTorch Lightning Documentation
    :name: Examples
    :caption: Examples
 
+   pytorch_ecoystem
    community_examples
    Autoencoder <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#autoencoders>
    BYOL <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol>
@@ -64,25 +90,10 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: Tutorials
-   :caption: Tutorials
-
-   PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
-   From PyTorch to PyTorch Lightning <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
-   Video on how to refactor PyTorch into PyTorch Lightning <https://www.youtube.com/watch?v=QHww1JH7IDU>
-
-.. toctree::
-   :maxdepth: 1
-   :name: project structure
-   :caption: Recommended Lightning Project Layout
-
-   Lightning project seed <https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
-
-.. toctree::
-   :maxdepth: 1
    :name: Common Use Cases
    :caption: Common Use Cases
 
+   cloud_training
    amp
    slurm
    child_modules
@@ -90,7 +101,6 @@ PyTorch Lightning Documentation
    loggers
    early_stopping
    fast_training
-   hooks
    hyperparameters
    lr_finder
    multi_gpu
@@ -108,6 +118,13 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
+   :name: Partner Domain Frameworks
+   :caption: Partner Domain Frameworks
+
+   asr_nlp_tts
+
+.. toctree::
+   :maxdepth: 1
    :name: community
    :caption: Community
 
@@ -116,10 +133,10 @@ PyTorch Lightning Documentation
    CONTRIBUTING.md
    BECOMING_A_CORE_CONTRIBUTOR.md
    governance.md
+   CHANGELOG.md
 
 Indices and tables
 ------------------
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`

@@ -1,7 +1,7 @@
 .. testsetup:: *
 
     from pytorch_lightning.trainer.trainer import Trainer
-    
+
 .. _slurm:
 
 Computing cluster (SLURM)
@@ -17,14 +17,14 @@ Multi-node training
 -------------------
 To train a model using multiple nodes, do the following:
 
-1.  Design your :class:`~pytorch_lightning.core.LightningModule`.
+1.  Design your :ref:`lightning_module`.
 
-2.  Enable ddp in the trainer
+2.  Enable DDP in the trainer
 
     .. code-block:: python
 
        # train on 32 GPUs across 4 nodes
-       trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
+       trainer = Trainer(gpus=8, num_nodes=4, accelerator='ddp')
 
 3.  It's a good idea to structure your training script like this:
 
@@ -37,7 +37,7 @@ To train a model using multiple nodes, do the following:
             trainer = pl.Trainer(
                 gpus=8,
                 num_nodes=4,
-                distributed_backend='ddp'
+                accelerator='ddp'
             )
 
             trainer.fit(model)
@@ -76,7 +76,7 @@ To train a model using multiple nodes, do the following:
         # set the network interface
         # export NCCL_SOCKET_IFNAME=^docker0,lo
 
-        # might need the latest cuda
+        # might need the latest CUDA
         # module load NCCL/2.4.7-1-cuda.10.0
 
         # run script from above
@@ -172,7 +172,7 @@ See also the multi-node examples
     # which interface your nodes use for communication
     cluster.add_command('export NCCL_SOCKET_IFNAME=^docker0,lo')
 
-    # see output of the NCCL connection process
+    # see the output of the NCCL connection process
     # NCCL is how the nodes talk to each other
     cluster.add_command('export NCCL_DEBUG=INFO')
 

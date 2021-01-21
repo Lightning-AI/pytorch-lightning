@@ -1,4 +1,18 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
+from unittest import mock
 from unittest.mock import patch
 
 import numpy as np
@@ -36,18 +50,17 @@ class ModelWithManualGradTracker(EvalModelTemplate):
             norm = np.linalg.norm(flat, self.norm_type)
             norms.append(norm)
 
-            out[prefix + name] = round(norm, 3)
+            out[prefix + name] = round(norm, 4)
 
         # handle total norm
         norm = np.linalg.norm(norms, self.norm_type)
-        out[prefix + 'total'] = round(norm, 3)
+        out[prefix + 'total'] = round(norm, 4)
         self.stored_grad_norms.append(out)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize("norm_type", [1., 1.25, 2, 3, 5, 10, 'inf'])
 def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     # rtol=5e-3 respects the 3 decimals rounding in `.grad_norms` and above
 
     reset_seed()

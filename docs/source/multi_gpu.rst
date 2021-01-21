@@ -10,6 +10,14 @@ Multi-GPU training
 ==================
 Lightning supports multiple ways of doing distributed training.
 
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_multi_gpus.png"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+4-+multi+node+training_3.mp4"></video>
+
+|
+
 ----------
 
 Preparing your code
@@ -50,10 +58,10 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
         z = torch.Tensor(2, 3)
         z = z.type_as(x)
 
-The :class:`~pytorch_lightning.core.lightning.LightningModule` knows what device it is on. You can access the reference via `self.device`.
+The :class:`~pytorch_lightning.core.lightning.LightningModule` knows what device it is on. You can access the reference via ``self.device``.
 Sometimes it is necessary to store tensors as module attributes. However, if they are not parameters they will
 remain on the CPU even if the module gets moved to a new device. To prevent that and remain device agnostic,
-register the tensor as a buffer in your modules's `__init__` method with :meth:`~torch.nn.Module.register_buffer`.
+register the tensor as a buffer in your modules's ``__init__`` method with :meth:`~torch.nn.Module.register_buffer`.
 
 .. testcode::
 
@@ -67,8 +75,8 @@ register the tensor as a buffer in your modules's `__init__` method with :meth:`
 
 Remove samplers
 ^^^^^^^^^^^^^^^
-In PyTorch, you must use `torch.nn.DistributedSampler` for multi-node or TPU training. The
-sampler makes sure each GPU sees the appropriate part of your data.
+In PyTorch, you must use :class:`~torch.utils.data.distributed.DistributedSampler`
+for multi-node or TPU training. The sampler makes sure each GPU sees the appropriate part of your data.
 
 .. testcode::
 
@@ -91,9 +99,40 @@ Lightning adds the correct samplers when needed, so no need to explicitly add sa
         dataset = MNIST(...)
         return DataLoader(dataset)
 
-.. note:: You can disable this behavior with `Trainer(replace_sampler_ddp=False)`
+.. note::
+    By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
+    ``drop_last`` in :class:`~torch.utils.data.distributed.DistributedSampler` will be set to its default value in PyTorch.
+
+.. note:: You can disable this behavior with ``Trainer(replace_sampler_ddp=False)``
 
 .. note:: For iterable datasets, we don't do this automatically.
+
+
+Synchronize validation and test logging
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When running in distributed mode, we have to ensure that the validation and test step logging calls are synchronized across processes.
+This is done by adding ``sync_dist=True`` to all ``self.log`` calls in the validation and test step.
+This ensures that each GPU worker has the same behaviour when tracking model checkpoints, which is important for later downstream tasks such as testing the best checkpoint across all workers.
+
+Note if you use any built in metrics or custom metrics that use the :ref:`Metrics API <metrics>`, these do not need to be updated and are automatically handled for you.
+
+.. testcode::
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        loss = self.loss(logits, y)
+        # Add sync_dist=True to sync logging across all GPU workers
+        self.log('validation_loss', loss, on_step=True, on_epoch=True, sync_dist=True)
+
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        loss = self.loss(logits, y)
+        # Add sync_dist=True to sync logging across all GPU workers
+        self.log('test_loss', loss, on_step=True, on_epoch=True, sync_dist=True)
+
 
 Make models pickleable
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -162,7 +201,7 @@ a comma separated list of GPU ids:
     Trainer(gpus='0, 1')
 
     # To use all available GPUs put -1 or '-1'
-    # equivalent to list(range(torch.cuda.available_devices()))
+    # equivalent to list(range(torch.cuda.device_count()))
     Trainer(gpus=-1)
 
 The table below lists examples of possible input formats and how they are interpreted by Lightning.
@@ -194,26 +233,11 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 
 .. note::
 
-    When specifying number of gpus as an integer `gpus=k`, setting the trainer flag
-    `auto_select_gpus=True` will automatically help you find `k` gpus that are not
+    When specifying number of gpus as an integer ``gpus=k``, setting the trainer flag
+    ``auto_select_gpus=True`` will automatically help you find ``k`` gpus that are not
     occupied by other processes. This is especially useful when GPUs are configured
     to be in "exclusive mode", such that only one process at a time can access them.
-
-Remove CUDA flags
-^^^^^^^^^^^^^^^^^
-
-CUDA flags make certain GPUs visible to your script.
-Lightning sets these for you automatically, there's NO NEED to do this yourself.
-
-.. testcode::
-
-    # lightning will set according to what you give the trainer
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-However, when using a cluster, Lightning will NOT set these flags (and you should not either).
-SLURM will set these for you.
-For more details see the :ref:`SLURM cluster guide <slurm>`.
+    For more details see the :ref:`Trainer guide <trainer>`.
 
 ----------
 
@@ -221,12 +245,12 @@ Distributed modes
 -----------------
 Lightning allows multiple ways of training
 
-- Data Parallel (`distributed_backend='dp'`) (multiple-gpus, 1 machine)
-- DistributedDataParallel (`distributed_backend='ddp'`) (multiple-gpus across many machines (python script based)).
-- DistributedDataParallel (`distributed_backend='ddp_spawn'`) (multiple-gpus across many machines (spawn based)).
-- DistributedDataParallel 2 (`distributed_backend='ddp2'`) (DP in a machine, DDP across machines).
-- Horovod (`distributed_backend='horovod'`) (multi-machine, multi-gpu, configured at runtime)
-- TPUs (`tpu_cores=8|x`) (tpu or TPU pod)
+- Data Parallel (``accelerator='dp'``) (multiple-gpus, 1 machine)
+- DistributedDataParallel (``accelerator='ddp'``) (multiple-gpus across many machines (python script based)).
+- DistributedDataParallel (``accelerator='ddp_spawn'``) (multiple-gpus across many machines (spawn based)).
+- DistributedDataParallel 2 (``accelerator='ddp2'``) (DP in a machine, DDP across machines).
+- Horovod (``accelerator='horovod'``) (multi-machine, multi-gpu, configured at runtime)
+- TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
 
 .. note::
     If you request multiple GPUs or nodes without setting a mode, DDP will be automatically used.
@@ -238,7 +262,7 @@ For a deeper understanding of what Lightning is doing, feel free to read this
 
 Data Parallel
 ^^^^^^^^^^^^^
-`DataParallel <https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel>`_ (DP) splits a batch across k GPUs.
+:class:`~torch.nn.DataParallel` (DP) splits a batch across k GPUs.
 That is, if you have a batch of 32 and use DP with 2 gpus, each GPU will process 16 samples,
 after which the root node will aggregate the results.
 
@@ -248,11 +272,11 @@ after which the root node will aggregate the results.
     :skipif: torch.cuda.device_count() < 2
 
     # train on 2 GPUs (using DP mode)
-    trainer = Trainer(gpus=2, distributed_backend='dp')
+    trainer = Trainer(gpus=2, accelerator='dp')
 
 Distributed Data Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-`DistributedDataParallel <https://pytorch.org/docs/stable/nn.html#distributeddataparallel>`_ (DDP) works as follows:
+:class:`~torch.nn.parallel.DistributedDataParallel` (DDP) works as follows:
 
 1. Each GPU across each node gets its own process.
 
@@ -271,10 +295,10 @@ Distributed Data Parallel
 .. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
-    trainer = Trainer(gpus=8, distributed_backend='ddp')
+    trainer = Trainer(gpus=8, accelerator='ddp')
 
     # train on 32 GPUs (4 nodes)
-    trainer = Trainer(gpus=8, distributed_backend='ddp', num_nodes=4)
+    trainer = Trainer(gpus=8, accelerator='ddp', num_nodes=4)
 
 This Lightning implementation of DDP calls your script under the hood multiple times with the correct environment
 variables:
@@ -320,7 +344,7 @@ In  this case, we can use DDP2 which behaves like DP in a machine and DDP across
 .. code-block:: python
 
     # train on 32 GPUs (4 nodes)
-    trainer = Trainer(gpus=8, distributed_backend='ddp2', num_nodes=4)
+    trainer = Trainer(gpus=8, accelerator='ddp2', num_nodes=4)
 
 Distributed Data Parallel Spawn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -338,7 +362,7 @@ project module) you can use the following method:
 .. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
-    trainer = Trainer(gpus=8, distributed_backend='ddp')
+    trainer = Trainer(gpus=8, accelerator='ddp_spawn')
 
 We STRONGLY discourage this use because it has limitations (due to Python and PyTorch):
 
@@ -390,7 +414,7 @@ You can then call your scripts anywhere
 .. code-block:: bash
 
     cd /project/src
-    python some_file.py --distributed_backend 'ddp' --gpus 8
+    python some_file.py --accelerator 'ddp' --gpus 8
 
 
 Horovod
@@ -411,10 +435,10 @@ Horovod can be configured in the training script to run with any number of GPUs 
 .. code-block:: python
 
     # train Horovod on GPU (number of GPUs / machines provided on command-line)
-    trainer = Trainer(distributed_backend='horovod', gpus=1)
+    trainer = Trainer(accelerator='horovod', gpus=1)
 
     # train Horovod on CPU (number of processes / machines provided on command-line)
-    trainer = Trainer(distributed_backend='horovod')
+    trainer = Trainer(accelerator='horovod')
 
 When starting the training job, the driver application will then be used to specify the total
 number of worker processes:
@@ -539,26 +563,180 @@ not allow 16-bit and DP training. We tried to get this to work, but it's an issu
 
 Below are the possible configurations we support.
 
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-| 1 GPU | 1+ GPUs | DP | DDP | 16-bit  | command                                                    |
-+=======+=========+====+=====+=========+============================================================+
-| Y     |         |    |     |         | `Trainer(gpus=1)`                                          |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-| Y     |         |    |     | Y       | `Trainer(gpus=1, use_amp=True)`                            |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       | Y  |     |         | `Trainer(gpus=k, distributed_backend='dp')`                |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       |    | Y   |         | `Trainer(gpus=k, distributed_backend='ddp')`               |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       |    | Y   | Y       | `Trainer(gpus=k, distributed_backend='ddp', use_amp=True)` |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
++-------+---------+----+-----+--------+------------------------------------------------------------+
+| 1 GPU | 1+ GPUs | DP | DDP | 16-bit | command                                                    |
++=======+=========+====+=====+========+============================================================+
+| Y     |         |    |     |        | `Trainer(gpus=1)`                                          |
++-------+---------+----+-----+--------+------------------------------------------------------------+
+| Y     |         |    |     | Y      | `Trainer(gpus=1, precision=16)`                            |
++-------+---------+----+-----+--------+------------------------------------------------------------+
+|       | Y       | Y  |     |        | `Trainer(gpus=k, accelerator='dp')`                        |
++-------+---------+----+-----+--------+------------------------------------------------------------+
+|       | Y       |    | Y   |        | `Trainer(gpus=k, accelerator='ddp')`                       |
++-------+---------+----+-----+--------+------------------------------------------------------------+
+|       | Y       |    | Y   | Y      | `Trainer(gpus=k, accelerator='ddp', precision=16)`         |
++-------+---------+----+-----+--------+------------------------------------------------------------+
 
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.core.LightningModule.`.
+If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.init_ddp_connection`.
 
-If you also need to use your own DDP implementation, override:  :meth:`pytorch_lightning.core.LightningModule.configure_ddp`.
+If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.configure_ddp`.
+
+
+----------
+
+.. _model-parallelism:
+
+Model Parallelism [BETA]
+------------------------
+
+Model Parallelism tackles training large models on distributed systems, by modifying distributed communications and memory management of the model.
+Unlike data parallelism, the model is partitioned in various ways across the GPUs, in most cases to reduce the memory overhead when training large models.
+This is useful when dealing with large Transformer based models, or in environments where GPU memory is limited.
+
+Lightning currently offers the following methods to leverage model parallelism:
+
+- Sharded Training (partitioning your gradients and optimizer state across multiple GPUs, for reduced memory overhead with **no performance loss**)
+- Sequential Model Parallelism with Checkpointing (partition your :class:`nn.Sequential <torch.nn.Sequential>` module across multiple GPUs, leverage checkpointing and microbatching for further memory improvements and device utilization)
+
+Sharded Training
+^^^^^^^^^^^^^^^^
+Lightning integration of optimizer sharded training provided by `FairScale <https://github.com/facebookresearch/fairscale>`_.
+The technique can be found within `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
+`ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_,
+however the implementation is built from the ground up to be pytorch compatible and standalone.
+Sharded Training allows you to maintain GPU scaling efficiency, whilst reducing memory overhead drastically. In short, expect normal linear scaling, and significantly reduced memory usage when training large models.
+
+Sharded Training still utilizes Data Parallel Training under the hood, except optimizer states and gradients are sharded across GPUs.
+This means the memory overhead per GPU is lower, as each GPU only has to maintain a partition of your optimizer state and gradients.
+
+The benefits vary by model and parameter sizes, but we've recorded up to a 63% memory reduction per GPU allowing us to double our model sizes. Because of extremely efficient communication,
+these benefits in multi-GPU setups are almost free and throughput scales well with multi-node setups.
+
+Below we use the `NeMo Transformer Lightning Language Modeling example <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/language_modeling>`_ to benchmark the maximum batch size and model size that can be fit on 8 A100 GPUs for DDP vs Sharded Training.
+Note that the benefits can still be obtained using 2 or more GPUs, and for even larger batch sizes you can scale to multiple nodes.
+
+**Increase Your Batch Size**
+
+Use Sharded Training to scale your batch size further using the same compute. This will reduce your overall epoch time.
+
++----------------------+-----------------------+----------------+---------------------+
+| Distributed Training | Model Size (Millions) | Max Batch Size | Percentage Gain (%) |
++======================+=======================+================+=====================+
+| Native DDP           | 930                   | 32             | -                   |
++----------------------+-----------------------+----------------+---------------------+
+| Sharded DDP          | 930                   | **52**         | **48%**             |
++----------------------+-----------------------+----------------+---------------------+
+
+**Increase Your Model Size**
+
+Use Sharded Training to scale your model size further using the same compute.
+
++----------------------+------------+---------------------------+---------------------+
+| Distributed Training | Batch Size | Max Model Size (Millions) | Percentage Gain (%) |
++======================+============+===========================+=====================+
+| Native DDP           | 32         | 930                       | -                   |
++----------------------+------------+---------------------------+---------------------+
+| Sharded DDP          | 32         | **1404**                  | **41%**             |
++----------------------+------------+---------------------------+---------------------+
+| Native DDP           | 8          | 1572                      | -                   |
++----------------------+------------+---------------------------+---------------------+
+| Sharded DDP          | 8          | **2872**                  | **59%**             |
++----------------------+------------+---------------------------+---------------------+
+
+It is highly recommended to use Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (500M+ parameter models).
+A technical note: as batch size scales, storing activations for the backwards pass becomes the bottleneck in training. As a result, sharding optimizer state and gradients becomes less impactful.
+Work within the future will bring optional sharding to activations and model parameters to reduce memory further, but come with a speed cost.
+
+To use Sharded Training, you need to first install FairScale using the command below.
+
+.. code-block:: bash
+
+    pip install fairscale
+
+
+.. code-block:: python
+
+    # train using Sharded DDP
+    trainer = Trainer(accelerator='ddp', plugins='ddp_sharded')
+
+Sharded Training can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
+
+Internally we re-initialize your optimizers and shard them across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
+
+----------
+
+.. _sequential-parallelism:
+
+Sequential Model Parallelism with Checkpointing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
+Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
+We also provide auto-balancing techniques through FairScale, to find optimal balances for the model across GPUs.
+In addition, we use Gradient Checkpointing to reduce GPU memory requirements further, and micro-batches to minimizing device under-utilization automatically.
+
+Reference: https://arxiv.org/abs/1811.06965
+
+.. note:: DDPSequentialPlugin is currently supported only for Pytorch 1.6.
+
+To get started, install FairScale using the command below. We install a specific branch which contains PyTorch related fixes for Sequential Parallelism.
+
+.. code-block:: bash
+
+     pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.1.0.zip
+
+To use Sequential Model Parallelism, you must define a  :class:`nn.Sequential <torch.nn.Sequential>` module that defines the layers you wish to parallelize across GPUs.
+This should be kept within the ``sequential_module`` variable within your ``LightningModule`` like below.
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
+    from pytorch_lightning import LightningModule
+
+    class MyModel(LightningModule):
+        def __init__(self):
+            ...
+            self.sequential_module = torch.nn.Sequential(my_layers)
+
+    # Split my module across 4 gpus, one layer each
+    model = MyModel()
+    plugin = DDPSequentialPlugin(balance=[1, 1, 1, 1])
+    trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
+    trainer.fit(model)
+
+
+We provide a minimal example of Sequential Model Parallelism using a convolutional model training on cifar10, split onto GPUs `here <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/basic_examples/conv_sequential_example.py>`_.
+To run the example, you need to install `Bolts <https://github.com/PyTorchLightning/pytorch-lightning-bolts>`_. Install with ``pip install pytorch-lightning-bolts``.
+
+When running the Sequential Model Parallelism example on 2 GPUS we achieve these memory savings.
+
+.. list-table:: GPU Memory Utilization
+   :widths: 25 25 50
+   :header-rows: 1
+
+   * - GPUS
+     - Without Balancing
+     - With Balancing
+   * - Gpu 0
+     - 4436 MB
+     - 1554 MB
+   * - Gpu 1
+     - ~0
+     - 994 MB
+
+To run the example with Sequential Model Parallelism:
+
+.. code-block:: bash
+
+    python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 2 --accelerator ddp --use_ddp_sequential
+
+To run the same example without Sequential Model Parallelism:
+
+.. code-block:: bash
+
+    python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 1
 
 
 Batch size
@@ -580,10 +758,10 @@ In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
 .. code-block:: python
 
     # effective batch size = 7 * 8
-    Trainer(gpus=8, distributed_backend='ddp|horovod')
+    Trainer(gpus=8, accelerator='ddp|horovod')
 
     # effective batch size = 7 * 8 * 10
-    Trainer(gpus=8, num_nodes=10, distributed_backend='ddp|horovod')
+    Trainer(gpus=8, num_nodes=10, accelerator='ddp|horovod')
 
 
 In DDP2, your effective batch size will be 7 * num_nodes.
@@ -592,10 +770,10 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 .. code-block:: python
 
     # effective batch size = 7
-    Trainer(gpus=8, distributed_backend='ddp2')
+    Trainer(gpus=8, accelerator='ddp2')
 
     # effective batch size = 7 * 10
-    Trainer(gpus=8, num_nodes=10, distributed_backend='ddp2')
+    Trainer(gpus=8, num_nodes=10, accelerator='ddp2')
 
 
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:
@@ -603,24 +781,24 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 
 ----------
 
-PytorchElastic
+TorchElastic
 --------------
-Lightning supports the use of PytorchElastic to enable fault-tolerent and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
+Lightning supports the use of TorchElastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
 
 .. code-block:: python
 
-    Trainer(gpus=8, distributed_backend='ddp')
-    
-    
-Following the `PytorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
+    Trainer(gpus=8, accelerator='ddp')
+
+
+Following the `TorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
 
 .. code-block:: bash
 
     etcd --enable-v2
          --listen-client-urls http://0.0.0.0:2379,http://127.0.0.1:4001
          --advertise-client-urls PUBLIC_HOSTNAME:2379
-         
-     
+
+
 And then launch the elastic job with:
 
 .. code-block:: bash
@@ -632,9 +810,9 @@ And then launch the elastic job with:
             --rdzv_backend=etcd
             --rdzv_endpoint=ETCD_HOST:ETCD_PORT
             YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
-            
 
-See the official `PytorchElastic documentation <https://pytorch.org/elastic>`_ for details
+
+See the official `TorchElastic documentation <https://pytorch.org/elastic>`_ for details
 on installation and more use cases.
 
 ----------

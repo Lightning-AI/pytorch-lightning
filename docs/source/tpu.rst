@@ -3,15 +3,17 @@
 TPU support
 ===========
 
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls autoplay
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_tpus.png"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4"></video>
+
+|
+
 Lightning supports running on TPUs. At this moment, TPUs are available
 on Google Cloud (GCP), Google Colab and Kaggle Environments. For more information on TPUs
 `watch this video <https://www.youtube.com/watch?v=kPMpmcl_Pyw>`_.
-
-----------------
-
-Live demo
-----------
-Check out this `Google Colab <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3>`_ to see how to train MNIST on TPUs.
 
 ----------------
 
@@ -126,19 +128,33 @@ That's it! Your model will train on all 8 TPU cores.
 
 ----------------
 
-Single TPU core training
+TPU core training
+
 ------------------------
-Lightning supports training on a single TPU core. Just pass the TPU core ID [1-8] in a list.
+
+Lightning supports training on a single TPU core or 8 TPU cores.
+
+The Trainer parameters ``tpu_cores`` defines how many TPU cores to train on (1 or 8) / Single TPU to train on [1].
+
+For Single TPU training, Just pass the TPU core ID [1-8] in a list.
+
+Single TPU core training. Model will train on TPU core ID 5.
 
 .. code-block:: python
 
-    trainer = pl.Trainer(tpu_cores=[1])
+    trainer = pl.Trainer(tpu_cores=[5])
+
+8 TPU cores training. Model will train on 8 TPU cores.
+
+.. code-block:: python
+
+    trainer = pl.Trainer(tpu_cores=8)
 
 ----------------
 
 Distributed Backend with TPU
 ----------------------------
-The ```distributed_backend``` option used for GPUs does not apply to TPUs.
+The ``accelerator`` option used for GPUs does not apply to TPUs.
 TPUs work in DDP mode by default (distributing over each core)
 
 ----------------
@@ -163,7 +179,7 @@ on how to set up the instance groups and VMs needed to run TPU Pods.
 16 bit precision
 -----------------
 Lightning also supports training in 16-bit precision with TPUs.
-By default, TPU training will use 32-bit precision. To enable 16-bit, also
+By default, TPU training will use 32-bit precision. To enable 16-bit,
 set the 16-bit flag.
 
 .. code-block:: python

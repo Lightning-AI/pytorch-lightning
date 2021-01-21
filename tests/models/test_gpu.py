@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from collections import namedtuple
 from unittest.mock import patch
 
@@ -13,29 +26,10 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from pytorch_lightning.accelerators.gpu_backend import GPUBackend
+from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 
 
 PRETEND_N_OF_GPUS = 16
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_early_stop_dp(tmpdir):
-    """Make sure DDP works. with early stopping"""
-    tutils.set_random_master_port()
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        callbacks=[EarlyStopping()],
-        max_epochs=50,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gpus=[0, 1],
-        distributed_backend='dp',
-    )
-
-    model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -44,12 +38,11 @@ def test_multi_gpu_none_backend(tmpdir):
     tutils.set_random_master_port()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        distributed_backend=None,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.2,
         limit_val_batches=0.2,
-        gpus=2
+        gpus=2,
     )
 
     model = EvalModelTemplate()
@@ -57,28 +50,6 @@ def test_multi_gpu_none_backend(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model_dp(tmpdir):
-    tutils.set_random_master_port()
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gpus=[0, 1],
-        distributed_backend='dp',
-        progress_bar_refresh_rate=0
-    )
-
-    model = EvalModelTemplate()
-
-    tpipes.run_model_test(trainer_options, model)
-
-    # test memory helper functions
-    memory.get_memory_profile('min_max')
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.parametrize('gpus', [1, [0], [1]])
 def test_single_gpu_model(tmpdir, gpus):
     """Make sure single GPU works (DP mode)."""
@@ -121,7 +92,7 @@ def mocked_device_count_0(monkeypatch):
     pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)")
 ])
 def test_trainer_gpu_parse(mocked_device_count, gpus, expected_num_gpus, distributed_backend):
-    assert Trainer(gpus=gpus, distributed_backend=distributed_backend).num_gpus == expected_num_gpus
+    assert Trainer(gpus=gpus, accelerator=distributed_backend).num_gpus == expected_num_gpus
 
 
 @pytest.mark.gpus_param_tests
@@ -130,7 +101,7 @@ def test_trainer_gpu_parse(mocked_device_count, gpus, expected_num_gpus, distrib
     pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
 ])
 def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, distributed_backend):
-    assert Trainer(gpus=gpus, distributed_backend=distributed_backend).num_gpus == expected_num_gpus
+    assert Trainer(gpus=gpus, accelerator=distributed_backend).num_gpus == expected_num_gpus
 
 
 @pytest.mark.gpus_param_tests
@@ -143,7 +114,7 @@ def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, distr
     pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)")
 ])
 def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, distributed_backend):
-    assert Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu == expected_root_gpu
+    assert Trainer(gpus=gpus, accelerator=distributed_backend).root_gpu == expected_root_gpu
 
 
 @pytest.mark.gpus_param_tests
@@ -153,7 +124,7 @@ def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, distrib
     pytest.param(0, None, "ddp", id="None is None"),
 ])
 def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
-    assert Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu == expected_root_gpu
+    assert Trainer(gpus=gpus, accelerator=distributed_backend).root_gpu == expected_root_gpu
 
 
 # Asking for a gpu when non are available will result in a MisconfigurationException
@@ -169,7 +140,7 @@ def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_
 ])
 def test_root_gpu_property_0_raising(mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
     with pytest.raises(MisconfigurationException):
-        Trainer(gpus=gpus, distributed_backend=distributed_backend)
+        Trainer(gpus=gpus, accelerator=distributed_backend)
 
 
 @pytest.mark.gpus_param_tests
@@ -242,7 +213,7 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_batch_parse():
     trainer = Trainer(gpus=1)
-    trainer.accelerator_backend = GPUBackend(trainer)
+    trainer.accelerator_backend = GPUAccelerator(trainer)
 
     # non-transferrable types
     primitive_objects = [None, {}, [], 1.0, "x", [None, 2], {"x": (1, 2), "y": None}]
@@ -338,7 +309,7 @@ def test_single_gpu_batch_parse():
 def test_non_blocking():
     """ Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects. """
     trainer = Trainer()
-    trainer.accelerator_backend = GPUBackend(trainer)
+    trainer.accelerator_backend = GPUAccelerator(trainer)
 
     batch = torch.zeros(2, 3)
     with patch.object(batch, 'to', wraps=batch.to) as mocked:

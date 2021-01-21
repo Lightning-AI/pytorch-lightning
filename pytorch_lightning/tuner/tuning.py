@@ -11,13 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from typing import Optional, List, Union
+
+from torch.utils.data import DataLoader
+
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
-from typing import Optional, List, Union
-from torch.utils.data import DataLoader
 
 
 class Tuner:
@@ -29,14 +32,41 @@ class Tuner:
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
 
-    def scale_batch_size(self,
-                         model,
-                         mode: str = 'power',
-                         steps_per_trial: int = 3,
-                         init_val: int = 2,
-                         max_trials: int = 25,
-                         batch_arg_name: str = 'batch_size',
-                         **fit_kwargs):
+    def tune(self, model, train_dataloader, val_dataloaders, datamodule):
+        # setup data, etc...
+        self.trainer.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
+
+        # hook
+        self.trainer.data_connector.prepare_data(model)
+
+        # Run auto batch size scaling
+        if self.trainer.auto_scale_batch_size:
+            if isinstance(self.trainer.auto_scale_batch_size, bool):
+                self.trainer.auto_scale_batch_size = 'power'
+            self.scale_batch_size(
+                model,
+                mode=self.trainer.auto_scale_batch_size,
+                train_dataloader=train_dataloader,
+                val_dataloaders=val_dataloaders,
+                datamodule=datamodule,
+            )
+            model.logger = self.trainer.logger  # reset logger binding
+
+        # Run learning rate finder:
+        if self.trainer.auto_lr_find:
+            self.internal_find_lr(model)
+            model.logger = self.trainer.logger  # reset logger binding
+
+    def scale_batch_size(
+            self,
+            model,
+            mode: str = 'power',
+            steps_per_trial: int = 3,
+            init_val: int = 2,
+            max_trials: int = 25,
+            batch_arg_name: str = 'batch_size',
+            **fit_kwargs
+    ):
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -74,7 +104,14 @@ class Tuner:
 
         """
         return scale_batch_size(
-            self.trainer, model, mode, steps_per_trial, init_val, max_trials, batch_arg_name, **fit_kwargs
+            self.trainer,
+            model,
+            mode,
+            steps_per_trial,
+            init_val,
+            max_trials,
+            batch_arg_name,
+            **fit_kwargs,
         )
 
     def lr_find(
@@ -102,8 +139,8 @@ class Tuner:
             datamodule,
         )
 
-    def internal_find_lr(self, trainer, model: LightningModule):
-        return _run_lr_finder_internally(trainer, model)
+    def internal_find_lr(self, model: LightningModule):
+        return _run_lr_finder_internally(self.trainer, model)
 
     def pick_multiple_gpus(self, num_gpus: int):
         return pick_multiple_gpus(num_gpus)

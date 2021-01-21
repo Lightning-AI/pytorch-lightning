@@ -11,21 +11,21 @@ In bolts we have:
 
 - A collection of pretrained state-of-the-art models.
 - A collection of models designed to bootstrap your research.
-- A collection of Callbacks, transforms, full datasets.
+- A collection of callbacks, transforms, full datasets.
 - All models work on CPUs, TPUs, GPUs and 16-bit precision.
 
 -----------------
 
 Quality control
 ---------------
-Bolts are built-by the Lightning community and contributed to bolts.
+The Lightning community builds bolts and contributes them to Bolts.
 The lightning team guarantees that contributions are:
 
-- Rigorously Tested (CPUs, GPUs, TPUs)
-- Rigorously Documented
-- Standardized via PyTorch Lightning
-- Optimized for speed
-- Checked for correctness
+- Rigorously Tested (CPUs, GPUs, TPUs).
+- Rigorously Documented.
+- Standardized via PyTorch Lightning.
+- Optimized for speed.
+- Checked for correctness.
 
 ---------
 
@@ -46,7 +46,7 @@ Example 1: Pretrained, prebuilt models
 Example 2: Extend for faster research
 -------------------------------------
 Bolts are contributed with benchmarks and continuous-integration tests. This means
-you can trust the implementations and use them to bootstrap your resarch much faster.
+you can trust the implementations and use them to bootstrap your research much faster.
 
 .. code-block:: python
 

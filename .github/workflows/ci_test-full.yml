@@ -3,9 +3,9 @@ name: CI complete testing
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master]
+    branches: [master, "release/*"]
   pull_request:
-    branches: [master]
+    branches: [master, "release/*"]
 
 jobs:
   pytest:
@@ -18,12 +18,9 @@ jobs:
         python-version: [3.6, 3.7, 3.8]
         requires: ['minimal', 'latest']
         exclude:
-          # excludes PT 1.3 as it is missing on pypi
+          # # todo: segmentation fault for minimal and hanging for latest
           - python-version: 3.8
-            requires: 'minimal'
-          # TODO: temporary fix till hanging jobs on macOS for py38 is resolved
-          - python-version: 3.8
-            os: macOS-10.15
+            os: ubuntu-18.04
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 35  # TODO: the macOS is taking too long, probably caching did not work...
@@ -36,7 +33,8 @@ jobs:
 
     - name: Update Pip
       run: |
-        pip install --quiet "pip>=20.1" --upgrade --user  # needed for get pip cacher folder
+        # todo: unfreeze PIP after resolving minimal dependencies
+        pip install --quiet "pip==20.1" --upgrade --user  # needed for get pip cacher folder
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
@@ -49,21 +47,47 @@ jobs:
       if: runner.os == 'windows'
       run: |
         # remove Horovod from requirements
-        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
+        fname = 'requirements/extra.txt'
+        lines = [line for line in open(fname).readlines() if not line.startswith('horovod')]
+        open(fname, 'w').writelines(lines)
+      shell: python
 
     # versions <= 1.3 may have issues on mac with some BLAS ops due to missing mkl (https://github.com/pytorch/pytorch/issues/18996)
-    - name: Setup MacOS Minimal
-      if: runner.os == 'macOS' && matrix.requires == 'minimal'
+    - name: Adjust minimal for Python 3.8 and MacOS
+      if: matrix.requires == 'minimal' && (runner.os == 'macOS' || matrix.python-version == 3.8)
       run : |
-        python -c "fname = 'requirements/base.txt' ; req = open(fname).read().replace('torch>=1.3', 'torch>=1.4') ; open(fname, 'w').write(req)"
+        fname = 'requirements.txt'
+        req = open(fname).read().replace('torch>=1.3', 'torch>=1.4')
+        open(fname, 'w').write(req)
+
+        fname = 'requirements/examples.txt'
+        req = open(fname).read().replace('torchvision>=0.4.1', 'torchvision>=0.5.0')
+        open(fname, 'w').write(req)
+
+        fname = 'requirements/extra.txt'
+        req = open(fname).read().replace('torchtext>=0.3.1', 'torchtext>=0.5.0')
+        open(fname, 'w').write(req)
+      shell: python
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
       run: |
-        python -c "fname = 'requirements/base.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
-        python -c "fname = 'requirements/extra.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
-        python -c "fname = 'requirements/test.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
-        python -c "fname = 'requirements/examples.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        files = (
+            'requirements.txt',
+            'requirements/extra.txt',
+            'requirements/loggers.txt',
+            'requirements/test.txt',
+            'requirements/examples.txt',
+        )
+        for fname in files:
+            req = open(fname).read().replace('>=', '==')
+            open(fname, 'w').write(req)
+
+        # remove Fairscale from requirements
+        fname = 'requirements/extra.txt'
+        lines = [line for line in open(fname).readlines() if 'fairscale' not in line]
+        open(fname, 'w').writelines(lines)
+      shell: python
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -76,9 +100,19 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements/base.txt') }}-${{ hashFiles('requirements/extra.txt') }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
+
+    - name: Pull checkpoints from S3
+      # todo: consider adding some caching, but ATM all models have less then 100KB
+      run: |
+        cd legacy
+        # wget is simpler but does not work on Windows
+        python -c "from urllib.request import urlretrieve ; urlretrieve('https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip', 'checkpoints.zip')"
+        ls -l .
+        unzip -o checkpoints.zip
+        ls -l checkpoints/
 
     - name: Install dependencies
       env:
@@ -88,8 +122,8 @@ jobs:
         HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         # python -m pip install --upgrade --user pip
-        pip install --requirement requirements/base.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
-        pip install --requirement ./requirements/devel.txt --quiet --upgrade
+        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
+        pip install --requirement ./requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
         python --version
         pip --version
         pip list
@@ -112,22 +146,20 @@ jobs:
     - name: Cache datasets
       uses: actions/cache@v2
       with:
-        path: Datasets # This path is specific to Ubuntu
-        # Look to see if there is a cache hit for the corresponding requirements file
+        path: Datasets
         key: pl-dataset
 
     - name: Tests
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v --durations=0 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Upload pytest test results
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
         path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
-      # Use always() to always run this step to publish test results when there are test failures
-      if: always()
+      if: failure()
 
     - name: Statistics
       if: success()
@@ -138,6 +170,8 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       if: always()
+      # see: https://github.com/actions/toolkit/issues/399
+      continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage.xml

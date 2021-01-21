@@ -2,7 +2,7 @@
 
     from torch.utils.data import IterableDataset
     from pytorch_lightning.trainer.trainer import Trainer
-    
+
 .. _sequences:
 
 Sequential Data
@@ -15,7 +15,7 @@ Packed sequences as inputs
 --------------------------
 When using PackedSequence, do 2 things:
 
-1. return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn (example above shows the list implementation).
+1. Return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn (example shows the list implementation).
 2. Pack the sequence in forward or training and validation steps depending on use case.
 
 .. testcode::

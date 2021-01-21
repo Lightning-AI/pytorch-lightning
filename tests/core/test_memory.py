@@ -1,9 +1,23 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import pytest
 import torch
 import torch.nn as nn
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.memory import UNKNOWN_SIZE, ModelSummary
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.models import ParityModuleRNN
 
 
@@ -53,6 +67,15 @@ class MixedDtypeModel(LightningModule):
 
     def forward(self, x):
         return self.reduce(self.embed(x))
+
+
+def test_invalid_weights_summmary():
+    """ Test that invalid value for weights_summary raises an error. """
+    with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
+        UnorderedModel().summarize(mode='temp')
+
+    with pytest.raises(MisconfigurationException, match='`weights_summary` can be None, .* got temp'):
+        Trainer(weights_summary='temp')
 
 
 @pytest.mark.parametrize(['mode'], [

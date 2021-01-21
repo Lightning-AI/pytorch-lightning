@@ -1,9 +1,24 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pytorch_lightning import Trainer, seed_everything, LightningModule, TrainResult
+from pytorch_lightning import LightningModule, seed_everything, Trainer
+from pytorch_lightning.core.step_result import TrainResult
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.base.datamodules import MNISTDataModule
 from tests.base.develop_utils import set_random_master_port
@@ -88,12 +103,13 @@ def test_sync_batchnorm_ddp(tmpdir):
     trainer = Trainer(
         gpus=2,
         num_nodes=1,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         max_epochs=1,
         max_steps=3,
         sync_batchnorm=True,
         num_sanity_val_steps=0,
         replace_sampler_ddp=False,
+        plugins=[DDPPlugin(find_unused_parameters=True)]
     )
 
     result = trainer.fit(model, dm)

@@ -1,6 +1,20 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 import platform
 from distutils.version import LooseVersion
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -8,12 +22,14 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import SequentialSampler
 
 import tests.base.develop_pipelines as tpipes
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.boring_model import BoringModel, RandomDataset
 
 
 def test_fit_train_loader_only(tmpdir):
@@ -362,9 +378,9 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
         pytest.param(1, 2, 1e50),
     ]
 )
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify num_batches for train, val & test dataloaders passed with batch limit as number"""
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple_mixed_length
@@ -419,10 +435,12 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
                 assert num_batches == limit_test_batches
 
 
-def test_dataloaders_with_fast_dev_run(tmpdir):
-    """Verify num_batches for train, val & test dataloaders passed with fast_dev_run = True"""
-    os.environ['PL_DEV_DEBUG'] = '1'
-
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+@pytest.mark.parametrize('fast_dev_run', [True, 1, 3, -1, 'temp'])
+def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
+    """
+    Verify num_batches for train, val & test dataloaders passed with fast_dev_run
+    """
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple_mixed_length
     model.test_dataloader = model.test_dataloader__multiple_mixed_length
@@ -431,26 +449,47 @@ def test_dataloaders_with_fast_dev_run(tmpdir):
     model.test_step = model.test_step__multiple_dataloaders
     model.test_epoch_end = model.test_epoch_end__multiple_dataloaders
 
-    # train, multiple val and multiple test dataloaders passed with fast_dev_run = True
-    trainer = Trainer(
+    trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=2,
-        fast_dev_run=True,
+        fast_dev_run=fast_dev_run,
     )
-    assert trainer.max_epochs == 1
-    assert trainer.num_sanity_val_steps == 0
 
-    trainer.fit(model)
-    assert not trainer.disable_validation
-    assert trainer.num_training_batches == 1
-    assert trainer.num_val_batches == [1] * len(trainer.val_dataloaders)
+    if fast_dev_run == 'temp':
+        with pytest.raises(MisconfigurationException, match='either a bool or an int'):
+            trainer = Trainer(**trainer_options)
+    elif fast_dev_run == -1:
+        with pytest.raises(MisconfigurationException, match='should be >= 0'):
+            trainer = Trainer(**trainer_options)
+    else:
+        trainer = Trainer(**trainer_options)
 
-    trainer.test(ckpt_path=None)
-    assert trainer.num_test_batches == [1] * len(trainer.test_dataloaders)
+        # fast_dev_run is set to True when it is 1
+        if fast_dev_run == 1:
+            fast_dev_run = True
 
-    # verify sanity check batches match as expected
-    num_val_dataloaders = len(model.val_dataloader())
-    assert trainer.dev_debugger.num_seen_sanity_check_batches == trainer.num_sanity_val_steps * num_val_dataloaders
+        assert trainer.fast_dev_run is fast_dev_run
+
+        if fast_dev_run is True:
+            fast_dev_run = 1
+
+        assert trainer.limit_train_batches == fast_dev_run
+        assert trainer.limit_val_batches == fast_dev_run
+        assert trainer.limit_test_batches == fast_dev_run
+        assert trainer.num_sanity_val_steps == 0
+        assert trainer.max_epochs == 1
+
+        trainer.fit(model)
+        assert not trainer.disable_validation
+        assert trainer.num_training_batches == fast_dev_run
+        assert trainer.num_val_batches == [fast_dev_run] * len(trainer.val_dataloaders)
+
+        trainer.test(ckpt_path=None)
+        assert trainer.num_test_batches == [fast_dev_run] * len(trainer.test_dataloaders)
+
+        # verify sanity check batches match as expected
+        num_val_dataloaders = len(model.val_dataloader())
+        assert trainer.dev_debugger.num_seen_sanity_check_batches == trainer.num_sanity_val_steps * num_val_dataloaders
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
@@ -666,24 +705,24 @@ def test_dataloader_reinit_for_subclass(tmpdir):
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         default_root_dir=tmpdir,
     )
 
     class CustomDummyObj:
         sampler = None
 
-    result = trainer.auto_add_sampler(CustomDummyObj(), train=True)
+    result = trainer.auto_add_sampler(CustomDummyObj(), shuffle=True)
     assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
 
     dataset = list(range(1000))
-    result = trainer.auto_add_sampler(CustomDataLoader(dataset), train=True)
+    result = trainer.auto_add_sampler(CustomDataLoader(dataset), shuffle=True)
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert hasattr(result, 'dummy_kwarg')
 
     # Shuffled DataLoader should also work
-    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), train=True)
+    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), shuffle=True)
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert hasattr(result, 'dummy_kwarg')
@@ -694,7 +733,7 @@ def test_dataloader_reinit_for_subclass(tmpdir):
     # Should raise an error if existing sampler is being replaced
     with pytest.raises(MisconfigurationException, match='DistributedSampler'):
         trainer.auto_add_sampler(
-            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), train=True)
+            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), shuffle=True)
 
 
 class DistribSamplerCallback(Callback):
@@ -724,13 +763,46 @@ def test_dataloader_distributed_sampler(tmpdir):
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         default_root_dir=tmpdir,
         max_steps=1,
-        callbacks=[DistribSamplerCallback()]
+        callbacks=[DistribSamplerCallback()],
     )
     trainer.fit(model)
     trainer.test(ckpt_path=None)
+
+
+class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
+
+    def train_dataloader(self):
+        dataloader = super().train_dataloader()
+        dist_sampler = DistributedSampler(dataloader.dataset, shuffle=True)
+        return DataLoader(
+            dataloader.dataset,
+            batch_size=self.batch_size,
+            drop_last=False,
+            sampler=dist_sampler,
+            shuffle=False
+        )
+
+
+@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+def test_dataloader_distributed_sampler_already_attached(tmpdir):
+    """ Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader """
+
+    model = ModelWithDataLoaderDistributedSampler()
+    trainer = Trainer(
+        gpus=[0, 1],
+        num_nodes=1,
+        accelerator='ddp_spawn',
+        default_root_dir=tmpdir,
+        max_steps=100,
+        callbacks=[DistribSamplerCallback()],
+        replace_sampler_ddp=True,
+    )
+    result = trainer.fit(model)
+    assert result == 1, "DDP Training failed"
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
@@ -856,8 +928,8 @@ def test_test_dataloader_not_implemented_error_failed(tmpdir):
         trainer.test(model)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 
@@ -884,8 +956,8 @@ def test_dataloaders_load_only_once(tmpdir):
         assert call['name'] == expected
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_val_interval(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 
@@ -928,8 +1000,8 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         assert call['name'] == expected
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 
@@ -957,8 +1029,8 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
         assert call['name'] == expected
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_every_epoch(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 
@@ -994,8 +1066,8 @@ def test_dataloaders_load_every_epoch(tmpdir):
         assert call['name'] == expected
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 
@@ -1031,8 +1103,8 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         assert call['name'] == expected
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_passed_loaders(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
     train_loader = model.train_dataloader()
@@ -1065,3 +1137,26 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
     ]
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected
+
+
+def test_replace_sampler_with_multiprocessing_context(tmpdir):
+    """
+    This test verifies that replace_sampler conserves multiprocessing context
+    """
+    train = RandomDataset(32, 64)
+    context = 'spawn'
+    train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
+
+    class ExtendedBoringModel(BoringModel):
+
+        def train_dataloader(self):
+            return train
+
+    trainer = Trainer(
+        max_epochs=1,
+        progress_bar_refresh_rate=20,
+        overfit_batches=5,
+    )
+
+    new_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
+    assert (new_data_loader.multiprocessing_context == train.multiprocessing_context)

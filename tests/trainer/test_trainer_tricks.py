@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import os
 from copy import deepcopy
 import pytest
 import torch
@@ -5,7 +19,7 @@ from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import MNISTDataModule
@@ -181,7 +195,6 @@ def test_trainer_reset_correctly(tmpdir):
                           'logger',
                           'callbacks',
                           'checkpoint_callback',
-                          'early_stop_callback',
                           'limit_train_batches',
                           'current_epoch']
 
@@ -216,6 +229,8 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
+
+    assert not os.path.exists(tmpdir / 'scale_batch_size_temp_model.ckpt')
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -313,7 +328,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires native AMP.")
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
 def test_auto_scale_batch_size_with_amp(tmpdir):
     model = EvalModelTemplate()
     batch_size_before = model.batch_size
