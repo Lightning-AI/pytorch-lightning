@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import importlib
-from typing import Type, Dict, Any, Union
-from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.callbacks import Callback
+import os
 
+from typing import Any, Dict, Type, Union
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.trainer import Trainer
 
 if importlib.util.find_spec("jsonargparse") is not None:
-    from jsonargparse import ArgumentParser, ActionConfigFile
+    from jsonargparse import ActionConfigFile, ArgumentParser
 else:
     ArgumentParser = object
 
