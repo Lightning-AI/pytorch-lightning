@@ -361,6 +361,7 @@ import importlib
 import os
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import (
     _NATIVE_AMP_AVAILABLE,
     _APEX_AVAILABLE,
@@ -368,7 +369,6 @@ from pytorch_lightning.utilities import (
     _TPU_AVAILABLE,
 )
 _TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
-
 
 """
 coverage_skip_undoc_in_source = True
