@@ -38,7 +38,7 @@ pull_request_rules:
 
   - name: update PR
     conditions:
-      - conflict
+      - -conflict
       - -draft # filter-out GH draft PRs
       - label="0:] Ready-To-Go"
     actions:
@@ -53,4 +53,4 @@ pull_request_rules:
     actions:
       request_reviews:
         teams:
-          - core-contributors
+          - "@PyTorchLightning/core-contributors"
