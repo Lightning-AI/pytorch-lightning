@@ -80,9 +80,9 @@ Let's first start with the model. In this case, we'll design a 3-layer neural ne
         super().__init__()
 
         # mnist images are (1, 28, 28) (channels, width, height)
-        self.layer_1 = torch.nn.Linear(28 * 28, 128)
-        self.layer_2 = torch.nn.Linear(128, 256)
-        self.layer_3 = torch.nn.Linear(256, 10)
+        self.layer_1 = nn.Linear(28 * 28, 128)
+        self.layer_2 = nn.Linear(128, 256)
+        self.layer_3 = nn.Linear(256, 10)
 
       def forward(self, x):
         batch_size, channels, width, height = x.size()
@@ -314,7 +314,7 @@ An alternative to using a DataModule is to defer initialization of the models mo
             # step is either 'fit' or 'test' 90% of the time not relevant
             data = load_data()
             num_classes = data.classes
-            self.l1 = torch.nn.Linear(..., num_classes)
+            self.l1 = nn.Linear(..., num_classes)
 
 Optimizer
 ---------
@@ -420,9 +420,9 @@ For clarity, we'll recall that the full LightningModule now looks like this.
     class LitMNIST(LightningModule):
         def __init__(self):
             super().__init__()
-            self.layer_1 = torch.nn.Linear(28 * 28, 128)
-            self.layer_2 = torch.nn.Linear(128, 256)
-            self.layer_3 = torch.nn.Linear(256, 10)
+            self.layer_1 = nn.Linear(28 * 28, 128)
+            self.layer_2 = nn.Linear(128, 256)
+            self.layer_3 = nn.Linear(256, 10)
 
         def forward(self, x):
             batch_size, channels, width, height = x.size()
@@ -1042,8 +1042,8 @@ would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
 
 .. code-block:: python
 
-    l1 = torch.nn.Linear(...)
-    l2 = torch.nn.Linear(...)
+    l1 = nn.Linear(...)
+    l2 = nn.Linear(...)
     decoder = Decoder()
 
     x1 = l1(x)

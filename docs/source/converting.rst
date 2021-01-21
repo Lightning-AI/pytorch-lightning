@@ -24,8 +24,8 @@ Move the model architecture and forward pass to your :ref:`lightning_module`.
 
         def __init__(self):
             super().__init__()
-            self.layer_1 = torch.nn.Linear(28 * 28, 128)
-            self.layer_2 = torch.nn.Linear(128, 10)
+            self.layer_1 = nn.Linear(28 * 28, 128)
+            self.layer_2 = nn.Linear(128, 10)
 
         def forward(self, x):
             x = x.view(x.size(0), -1)

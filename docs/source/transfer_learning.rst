@@ -33,7 +33,7 @@ Let's use the `AutoEncoder` as a feature extractor in a separate model.
             self.feature_extractor.freeze()
 
             # the autoencoder outputs a 100-dim representation and CIFAR-10 has 10 classes
-            self.classifier = torch.nn.Linear(100, 10)
+            self.classifier = nn.Linear(100, 10)
 
         def forward(self, x):
             representations = self.feature_extractor(x)
@@ -58,11 +58,11 @@ Example: Imagenet (computer Vision)
             backbone = models.resnet50(pretrained=True)
             num_filters = backbone.fc.in_features
             layers = list(backbone.children())[:-1]
-            self.feature_extractor = torch.nn.Sequential(*layers)
+            self.feature_extractor = nn.Sequential(*layers)
 
             # use the pretrained model to classify cifar-10 (10 image classes)
             num_target_classes = 10
-            self.classifier = torch.nn.Linear(num_filters, num_target_classes)
+            self.classifier = nn.Linear(num_filters, num_target_classes)
 
         def forward(self, x):
             self.feature_extractor.eval()
@@ -107,7 +107,7 @@ Here's a model that uses `Huggingface transformers <https://github.com/huggingfa
             super().__init__()
 
             self.bert = BertModel.from_pretrained('bert-base-cased', output_attentions=True)
-            self.W = torch.nn.Linear(bert.config.hidden_size, 3)
+            self.W = nn.Linear(bert.config.hidden_size, 3)
             self.num_classes = 3
 
 

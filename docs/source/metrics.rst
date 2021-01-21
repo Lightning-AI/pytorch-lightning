@@ -194,8 +194,8 @@ as child modules. Instead of ``list`` use :class:`~torch.nn.ModuleList` and inst
             ...
             # valid ways metrics will be identified as child modules
             self.metric1 = Accuracy()
-            self.metric2 = torch.nn.ModuleList(Accuracy())
-            self.metric3 = torch.nn.ModuleDict({'accuracy': Accuracy()})
+            self.metric2 = nn.ModuleList(Accuracy())
+            self.metric3 = nn.ModuleDict({'accuracy': Accuracy()})
 
         def training_step(self, batch, batch_idx):
             # all metrics will be on the same device as the input batch

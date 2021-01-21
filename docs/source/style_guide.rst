@@ -49,7 +49,7 @@ Here's a lightningModule that defines a system:
 .. testcode::
 
     class LitModel(LightningModule):
-        def __init__(self, encoder: torch.nn.Module = None, decoder: torch.nn.Module = None):
+        def __init__(self, encoder: nn.Module = None, decoder: nn.Module = None):
             super().__init__()
             self.encoder = encoder
             self.decoder = decoder
@@ -88,7 +88,7 @@ Instead, be explicit in your init
 .. testcode::
 
     class LitModel(LightningModule):
-        def __init__(self, encoder: torch.nn.Module, coeff_x: float = 0.2, lr: float = 1e-3):
+        def __init__(self, encoder: nn.Module, coeff_x: float = 0.2, lr: float = 1e-3):
             ...
 
 Now the user doesn't have to guess. Instead they know the value type and the model has a sensible default where the

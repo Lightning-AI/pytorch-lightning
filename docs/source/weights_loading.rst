@@ -181,7 +181,7 @@ But if you don't want to use the values saved in the checkpoint, pass in your ow
         def __init__(self, in_dim, out_dim):
             super().__init__()
             self.save_hyperparameters()
-            self.l1 = torch.nn.Linear(self.hparams.in_dim, self.hparams.out_dim)
+            self.l1 = nn.Linear(self.hparams.in_dim, self.hparams.out_dim)
 
 you can restore the model like this
 

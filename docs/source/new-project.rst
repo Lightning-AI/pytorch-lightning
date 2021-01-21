@@ -87,15 +87,15 @@ Step 1: Define LightningModule
 
         def __init__(self):
             super().__init__()
-            self.encoder = torch.nn.Sequential(
-                torch.nn.Linear(28*28, 64),
-                torch.nn.ReLU(),
-                torch.nn.Linear(64, 3)
+            self.encoder = nn.Sequential(
+                nn.Linear(28*28, 64),
+                nn.ReLU(),
+                nn.Linear(64, 3)
             )
-            self.decoder = torch.nn.Sequential(
-                torch.nn.Linear(3, 64),
-                torch.nn.ReLU(),
-                torch.nn.Linear(64, 28*28)
+            self.decoder = nn.Sequential(
+                nn.Linear(3, 64),
+                nn.ReLU(),
+                nn.Linear(64, 28*28)
             )
 
         def forward(self, x):
@@ -319,7 +319,7 @@ You can also add a forward method to do predictions however you want.
     class LitAutoEncoder(LightningModule):
         def __init__(self):
             super().__init__()
-            self.encoder = torch.nn.Sequential()
+            self.encoder = nn.Sequential()
 
         def forward(self, x):
             embedding = self.encoder(x)
@@ -337,7 +337,7 @@ You can also add a forward method to do predictions however you want.
     class LitAutoEncoder(LightningModule):
         def __init__(self):
             super().__init__()
-            self.decoder = torch.nn.Sequential()
+            self.decoder = nn.Sequential()
 
         def forward(self):
             z = torch.rand(1, 3)
