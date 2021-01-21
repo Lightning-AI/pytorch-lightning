@@ -22,9 +22,9 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from pytorch_lightning.utilities import APEX_AVAILABLE
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
@@ -37,7 +37,7 @@ def test_amp_single_gpu_dp(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
-        distributed_backend='dp',
+        accelerator='dp',
         precision=16,
     )
 
@@ -56,7 +56,7 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
     )
 
@@ -77,7 +77,7 @@ def test_amp_multi_gpu_dp(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=2,
-        distributed_backend='dp',
+        accelerator='dp',
         precision=16,
     )
 
@@ -96,7 +96,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=2,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
     )
 
@@ -127,9 +127,9 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=[0],
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
     )
     trainer.is_slurm_managing_tasks = True
@@ -145,7 +145,8 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.slurm_connector.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
 
-def test_cpu_model_with_amp(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_cpu_model_with_amp(enable_pl_optimizer, tmpdir):
     """Make sure model trains on CPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -153,7 +154,8 @@ def test_cpu_model_with_amp(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
-        precision=16
+        precision=16,
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     model = EvalModelTemplate()

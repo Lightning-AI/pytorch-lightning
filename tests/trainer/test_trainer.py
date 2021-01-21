@@ -20,7 +20,7 @@ import types
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch, call, ANY
+from unittest.mock import ANY, call, patch
 
 import cloudpickle
 import pytest
@@ -34,10 +34,10 @@ from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hpara
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
-from tests.base import EvalModelTemplate, BoringModel
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -55,7 +55,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     # fit model
     result = trainer.fit(model)
@@ -101,7 +101,7 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     result = trainer.fit(model)
 
@@ -145,7 +145,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     result = trainer.fit(model)
 
@@ -462,7 +462,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_weights_only=True),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_weights_only=True)],
     )
     # fit model
     result = trainer.fit(model)
@@ -500,8 +500,9 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 @pytest.mark.parametrize("url_ckpt", [True, False])
-def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt, enable_pl_optimizer):
     """Verify resuming from checkpoint runs the right number of epochs"""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
@@ -538,9 +539,10 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1)],
         default_root_dir=tmpdir,
         val_check_interval=1.0,
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     trainer = Trainer(**trainer_options)
@@ -716,7 +718,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         max_epochs=2,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(monitor="early_stop_on", save_top_k=save_top_k),
+        callbacks=[ModelCheckpoint(monitor="early_stop_on", save_top_k=save_top_k)],
     )
     trainer.fit(model)
     if ckpt_path == "best":
@@ -1041,31 +1043,6 @@ def test_gpu_choice(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["tpu_cores", "expected_tpu_id", "error_expected"],
-    [
-        pytest.param(1, None, False),
-        pytest.param(8, None, False),
-        pytest.param([1], 1, False),
-        pytest.param([8], 8, False),
-        pytest.param("1,", 1, False),
-        pytest.param("1", None, False),
-        pytest.param("9, ", 9, True),
-        pytest.param([9], 9, True),
-        pytest.param([0], 0, True),
-        pytest.param(2, None, True),
-        pytest.param(10, None, True),
-    ],
-)
-def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
-    if error_expected:
-        with pytest.raises(MisconfigurationException, match=r".*tpu_cores` can only be 1, 8 or [<1-8>]*"):
-            Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
-    else:
-        trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
-        assert trainer.tpu_id == expected_tpu_id
-
-
-@pytest.mark.parametrize(
     ["limit_val_batches"],
     [
         pytest.param(0.0),  # this should run no sanity checks
@@ -1141,7 +1118,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     "trainer_kwargs,expected",
     [
         pytest.param(
-            dict(distributed_backend=None, gpus=None),
+            dict(accelerator=None, gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1153,7 +1130,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="dp", gpus=None),
+            dict(accelerator="dp", gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1165,7 +1142,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="dp", gpus=None),
+            dict(accelerator="dp", gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1177,7 +1154,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="ddp", gpus=None),
+            dict(accelerator="ddp", gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1189,7 +1166,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="ddp", num_processes=2, gpus=None),
+            dict(accelerator="ddp", num_processes=2, gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1201,7 +1178,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="ddp", num_nodes=2, gpus=None),
+            dict(accelerator="ddp", num_nodes=2, gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1213,7 +1190,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="ddp_cpu", num_processes=2, gpus=None),
+            dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1225,7 +1202,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="ddp2", gpus=None),
+            dict(accelerator="ddp2", gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1237,7 +1214,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend=None, gpus=1),
+            dict(accelerator=None, gpus=1),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1250,7 +1227,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
         pytest.param(
-            dict(distributed_backend="dp", gpus=1),
+            dict(accelerator="dp", gpus=1),
             dict(
                 use_dp=True,
                 use_ddp=False,
@@ -1263,7 +1240,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
         pytest.param(
-            dict(distributed_backend="ddp", gpus=1),
+            dict(accelerator="ddp", gpus=1),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1276,7 +1253,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
         pytest.param(
-            dict(distributed_backend="ddp_cpu", num_processes=2, gpus=1),
+            dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1289,7 +1266,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
         pytest.param(
-            dict(distributed_backend="ddp2", gpus=1),
+            dict(accelerator="ddp2", gpus=1),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1302,7 +1279,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
         pytest.param(
-            dict(distributed_backend=None, gpus=2),
+            dict(accelerator=None, gpus=2),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1315,7 +1292,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")],
         ),
         pytest.param(
-            dict(distributed_backend="dp", gpus=2),
+            dict(accelerator="dp", gpus=2),
             dict(
                 use_dp=True,
                 use_ddp=False,
@@ -1328,7 +1305,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")],
         ),
         pytest.param(
-            dict(distributed_backend="ddp", gpus=2),
+            dict(accelerator="ddp", gpus=2),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1341,7 +1318,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")],
         ),
         pytest.param(
-            dict(distributed_backend="ddp2", gpus=2),
+            dict(accelerator="ddp2", gpus=2),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1355,15 +1332,17 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         ),
     ],
 )
+# Todo: mock nb Gpus so all these tests can run on any device
+# todo: think about simplification, that the the expected will be just a list use_xxx which shall be true...
 def test_trainer_config(trainer_kwargs, expected):
     trainer = Trainer(**trainer_kwargs)
-    assert trainer.use_dp is expected["use_dp"]
-    assert trainer.use_ddp is expected["use_ddp"]
-    assert trainer.use_ddp2 is expected["use_ddp2"]
-    assert trainer.num_gpus == expected["num_gpus"]
-    assert trainer.on_gpu is expected["on_gpu"]
-    assert trainer.use_single_gpu is expected["use_single_gpu"]
-    assert trainer.num_processes == expected["num_processes"]
+    assert trainer.use_dp is expected["use_dp"], 'for input: %s' % trainer_kwargs
+    assert trainer.use_ddp is expected["use_ddp"], 'for input: %s' % trainer_kwargs
+    assert trainer.use_ddp2 is expected["use_ddp2"], 'for input: %s' % trainer_kwargs
+    assert trainer.num_gpus == expected["num_gpus"], 'for input: %s' % trainer_kwargs
+    assert trainer.on_gpu is expected["on_gpu"], 'for input: %s' % trainer_kwargs
+    assert trainer.use_single_gpu is expected["use_single_gpu"], 'for input: %s' % trainer_kwargs
+    assert trainer.num_processes == expected["num_processes"], 'for input: %s' % trainer_kwargs
 
 
 def test_trainer_subclassing():
@@ -1497,6 +1476,6 @@ def test_trainer_profiler_incorrect_str_arg():
 ))
 def test_trainer_profiler_incorrect_arg_type(profiler):
     with pytest.raises(MisconfigurationException,
-                       match=r"Only None, bool, str and subclasses of `BaseProfiler` "
-                       r"are valid values for `Trainer`'s `profiler` parameter. *"):
+                       match=r"Only None, bool, str and subclasses of `BaseProfiler`"
+                             r" are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)

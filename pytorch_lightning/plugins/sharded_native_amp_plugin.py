@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import cast
+from typing import Union, cast
 
-from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE, FAIRSCALE_AVAILABLE
+from torch.optim import Optimizer
+
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, NATIVE_AMP_AVAILABLE
 
 if NATIVE_AMP_AVAILABLE and FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -26,7 +28,7 @@ class ShardedNativeAMPPlugin(NativeAMPPlugin):
     def scaler(self):
         return ShardedGradScaler()
 
-    def clip_gradients(self, grad_clip_val, model, optimizer):
+    def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
         max_norm = grad_clip_val
         norm_type = float(2.0)
         optimizer = cast(OSS, optimizer)

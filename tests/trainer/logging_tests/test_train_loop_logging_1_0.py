@@ -27,6 +27,7 @@ from torch.utils.data import Dataset
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer, callbacks
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
@@ -88,7 +89,7 @@ def test__training_step__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         weights_summary=None,
-        checkpoint_callback=callbacks.ModelCheckpoint(monitor='l_se')
+        callbacks=[ModelCheckpoint(monitor='l_se')],
     )
     trainer.fit(model)
 
@@ -558,7 +559,7 @@ def test_log_works_in_train_callback(tmpdir):
                         "prog_bar": prog_bar,
                         "forked": False,
                         "func_name": func_name}
-        """
+
         def on_train_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_train_start', 1, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -570,15 +571,6 @@ def test_log_works_in_train_callback(tmpdir):
         def on_train_epoch_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_train_epoch_start', 3, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
-
-        def on_batch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_batch_start', 4, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
-
-        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_train_batch_start', 5, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
-
 
         def on_batch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_batch_end', 6, on_steps=self.choices,
@@ -592,7 +584,6 @@ def test_log_works_in_train_callback(tmpdir):
             # with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
-        """
         def on_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -629,17 +620,12 @@ def test_log_works_in_train_callback(tmpdir):
     )
     trainer.fit(model)
 
-    """
     assert test_callback.funcs_called_count["on_train_start"] == 1
     assert test_callback.funcs_called_count["on_epoch_start"] == 2
     assert test_callback.funcs_called_count["on_train_epoch_start"] == 2
-    assert test_callback.funcs_called_count["on_batch_start"] == 4
-    assert test_callback.funcs_called_count["on_train_batch_start"] == 4
     assert test_callback.funcs_called_count["on_batch_end"] == 4
     assert test_callback.funcs_called_count["on_epoch_end"] == 2
     assert test_callback.funcs_called_count["on_train_batch_end"] == 4
-
-    """
     assert test_callback.funcs_called_count["on_epoch_end"] == 2
     assert test_callback.funcs_called_count["on_train_epoch_end"] == 2
 
@@ -753,3 +739,35 @@ def test_logging_sync_dist_true_gpu(tmpdir):
 
     assert trainer.logged_metrics['foo'] == fake_result
     assert trainer.logged_metrics['bar'] == fake_result
+
+
+def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
+    class TestModel(BoringModel):
+        def training_step(self, *args):
+            self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
+            return super().training_step(*args)
+
+        def on_epoch_end(self):
+            self.epoch_end_called = True
+            self.log('foo_2', torch.tensor(self.current_epoch), prog_bar=True,
+                     on_epoch=True, sync_dist=True, sync_dist_op='sum')
+
+        def on_train_epoch_end(self, *_):
+            self.on_train_epoch_end_called = True
+            assert self.trainer.progress_bar_dict["foo"] == self.current_epoch
+            assert self.trainer.progress_bar_dict["foo_2"] == self.current_epoch
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        checkpoint_callback=False,
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    model = TestModel()
+    trainer.fit(model)
+    assert model.epoch_end_called
+    assert model.on_train_epoch_end_called
