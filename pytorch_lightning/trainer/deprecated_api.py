@@ -130,38 +130,3 @@ class DeprecatedDistDeviceAttributes:
         )
         if val:
             self._device_type = DeviceType.GPU
-
-
-class DeprecatedRunningStageAttributes:
-
-    @property
-    def training(self) -> bool:
-        rank_zero_warn('Property `training` was deprecated in v1.2, use `is_training` instead.'
-                       ' It will be removed in v1.4. ', DeprecationWarning)
-        return self.is_training
-
-    @training.setter
-    def training(self, val: bool) -> None:
-        rank_zero_warn('Setter `training` was deprecated in v1.2, use `set_training()` instead.'
-                       ' It will be removed in v1.4. ', DeprecationWarning)
-        if val:
-            self.set_training()
-        else:
-            # todo: this is still used somewhere internally
-            self.reset_running_stage()
-
-    @property
-    def testing(self) -> bool:
-        rank_zero_warn('Property `testing` was deprecated in v1.2, use `is_testing` instead.'
-                       ' It will be removed in v1.4. ', DeprecationWarning)
-        return self.is_testing
-
-    @testing.setter
-    def testing(self, val: bool) -> None:
-        rank_zero_warn('Setter `testing` was deprecated in v1.2, use `set_testing()` instead.'
-                       ' It will be removed in v1.4. ', DeprecationWarning)
-        if val:
-            self.set_testing()
-        else:
-            # todo: this is still used somewhere internally
-            self.reset_running_stage()

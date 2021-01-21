@@ -47,7 +47,7 @@ from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConn
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import DeprecatedDistDeviceAttributes, DeprecatedRunningStageAttributes
+from pytorch_lightning.trainer.deprecated_api import DeprecatedDistDeviceAttributes
 from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -79,7 +79,6 @@ class Trainer(
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     DeprecatedDistDeviceAttributes,
-    DeprecatedRunningStageAttributes,
 ):
     @overwrite_by_env_vars
     def __init__(
@@ -924,32 +923,45 @@ class Trainer(
         return PluginConnector.available_plugins()
 
     @property
-    def is_training(self) -> bool:
+    def training(self) -> bool:
         return self._running_stage == RunningStage.TRAINING
 
-    def set_training(self) -> None:
-        self._running_stage = RunningStage.TRAINING
+    @training.setter
+    def training(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TRAINING
+        elif self.training:
+            self._running_stage = None
 
     @property
-    def is_testing(self) -> bool:
+    def testing(self) -> bool:
         return self._running_stage == RunningStage.TESTING
 
-    def set_testing(self) -> None:
-        self._running_stage = RunningStage.TESTING
+    @testing.setter
+    def testing(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TESTING
+        elif self.testing:
+            self._running_stage = None
 
     @property
-    def is_tuning(self) -> bool:
+    def tuning(self) -> bool:
         return self._running_stage == RunningStage.TUNING
 
-    def set_tuning(self) -> None:
-        self._running_stage = RunningStage.TUNING
+    @tuning.setter
+    def tuning(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TUNING
+        elif self.tuning:
+            self._running_stage = None
 
     @property
-    def is_evaluating(self) -> bool:
+    def evaluating(self) -> bool:
         return self._running_stage == RunningStage.EVALUATING
 
-    def set_evaluating(self) -> None:
-        self._running_stage = RunningStage.EVALUATING
-
-    def reset_running_stage(self) -> None:
-        self._running_stage = None
+    @evaluating.setter
+    def evaluating(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.EVALUATING
+        elif self.evaluating:
+            self._running_stage = None

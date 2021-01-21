@@ -30,7 +30,7 @@ class ConfigValidator(object):
             model: The model to check the configuration.
 
         """
-        if not self.trainer.is_testing:
+        if not self.trainer.testing:
             self.__verify_train_loop_configuration(model)
             self.__verify_eval_loop_configuration(model, 'validation')
         else:

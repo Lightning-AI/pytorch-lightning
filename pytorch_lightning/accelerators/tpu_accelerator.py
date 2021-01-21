@@ -88,7 +88,7 @@ class TPUAccelerator(Accelerator):
         # todo, pass also bets score
 
         # load last weights
-        if last_path and not self.trainer.is_testing:
+        if last_path and not self.trainer.testing:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
@@ -116,7 +116,7 @@ class TPUAccelerator(Accelerator):
         model = self.trainer.model
 
         # load weights if not interrupted
-        if self.trainer.on_colab_kaggle and not self.trainer.is_testing:
+        if self.trainer.on_colab_kaggle and not self.trainer.testing:
             self.load_spawn_weights(model)
 
         self.trainer.model = model
@@ -324,7 +324,7 @@ class TPUAccelerator(Accelerator):
 
             # save the last weights
             last_path = None
-            if not self.trainer.is_testing and best_model_path is not None and len(best_model_path) > 0:
+            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 state_dict = move_data_to_device(model.state_dict(), torch.device("cpu"))
                 atomic_save(state_dict, last_path)

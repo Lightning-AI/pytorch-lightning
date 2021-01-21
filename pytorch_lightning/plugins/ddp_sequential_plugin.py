@@ -208,7 +208,7 @@ class DDPSequentialPlugin(RPCPlugin):
         Returns: Whether to skip initialization
 
         """
-        return torch_distrib.is_initialized() and trainer.is_testing
+        return torch_distrib.is_initialized() and trainer.testing
 
     def init_model_parallel_groups(self, trainer):
         num_model_parallel = 1  # TODO currently no support for vertical model parallel
@@ -237,7 +237,7 @@ class DDPSequentialPlugin(RPCPlugin):
         return trainer.world_size
 
     def on_accelerator_exit_rpc_process(self, trainer) -> None:
-        if not trainer.is_testing:
+        if not trainer.testing:
             torch_distrib.barrier()  # Ensure we await main process initialization
 
             # Add trainer/configure_optimizers to the pipe model for access in all worker processes
@@ -254,7 +254,7 @@ class DDPSequentialPlugin(RPCPlugin):
         # Create pipe_module
         model = trainer.get_model()
         self._find_and_init_pipe_module(model)
-        if not trainer.is_testing:
+        if not trainer.testing:
             torch_distrib.barrier()  # Ensure we join main process initialization
             model.sequential_module.foreach_worker(register_optimizers, include_self=True)
 

@@ -177,7 +177,7 @@ class TrainLoop:
             ref_model.on_pretrain_routine_start()
 
         # print model summary
-        if self.trainer.is_global_zero and not self.trainer.is_testing:
+        if self.trainer.is_global_zero and not self.trainer.testing:
             ref_model.summarize(mode=self.trainer.weights_summary)
 
         # track model now.

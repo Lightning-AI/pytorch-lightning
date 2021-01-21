@@ -89,30 +89,6 @@ def test_v1_4_0_deprecated_trainer_device_distrib():
         assert trainer.use_horovod
 
 
-def test_v1_4_0_deprecated_trainer_phase():
-    """Test that Trainer attributes works fine."""
-    trainer = Trainer()
-
-    with pytest.deprecated_call(match='It will be removed in v1.4'):
-        assert not trainer.training
-    with pytest.deprecated_call(match='It will be removed in v1.4'):
-        assert not trainer.testing
-
-    with pytest.deprecated_call(match='It will be removed in v1.4'):
-        trainer.training = True
-    with pytest.deprecated_call(match='It will be removed in v1.4'):
-        assert trainer.training
-    with pytest.deprecated_call(match='It will be removed in v1.4'):
-        assert not trainer.testing
-
-    with pytest.deprecated_call(match='It will be removed in v1.4'):
-        trainer.testing = True
-    with pytest.deprecated_call(match='It will be removed in v1.4'):
-        assert not trainer.training
-    with pytest.deprecated_call(match='It will be removed in v1.4'):
-        assert trainer.testing
-
-
 def test_v1_4_0_deprecated_metrics():
     from pytorch_lightning.metrics.functional.classification import stat_scores_multiple_classes
     with pytest.deprecated_call(match='will be removed in v1.4'):
