@@ -29,9 +29,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed a visual bug in the progress bar display initialization ([#4579](https://github.com/PyTorchLightning/pytorch-lightning/pull/4579))
+
+
 - Fixed logging `on_train_batch_end` in a callback with multiple optimizers ([#5521](https://github.com/PyTorchLightning/pytorch-lightning/pull/5521))
+
+
 - Fixed `reinit_scheduler_properties` with correct optimizer ([#5519](https://github.com/PyTorchLightning/pytorch-lightning/pull/5519))
+
+
 - Fixed `val_check_interval` with `fast_dev_run` ([#5540](https://github.com/PyTorchLightning/pytorch-lightning/pull/5540))
+
+
+- Fixed `toggle_optimizer` to reset `requieres_grad` state  ([#5574](https://github.com/PyTorchLightning/pytorch-lightning/pull/5574))
 
 
 ## [1.1.4] - 2021-01-12
@@ -59,10 +68,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed signature mismatch in `model_to_device` of `DDPCPUHPCAccelerator` ([#5505](https://github.com/PyTorchLightning/pytorch-lightning/pull/5505))
-
-
-- Fixed `toggle_optimizer` to reset `requieres_grad` state  ([#5574](https://github.com/PyTorchLightning/pytorch-lightning/pull/5574))
-
 
 ## [1.1.3] - 2021-01-05
 
