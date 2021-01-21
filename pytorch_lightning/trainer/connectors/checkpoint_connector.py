@@ -21,14 +21,7 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
-    _OMEGACONF_AVAILABLE,
-    AMPType,
-    DeviceType,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _OMEGACONF_AVAILABLE, AMPType, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -180,6 +173,7 @@ class CheckpointConnector:
         # restore the optimizers
         optimizer_states = checkpoint['optimizer_states']
         for optimizer, opt_state in zip(self.trainer.optimizers, optimizer_states):
+
             optimizer.load_state_dict(opt_state)
 
             # move optimizer to GPU 1 weight at a time

@@ -35,6 +35,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         trainer = self.lightning_module.trainer
         trainer.optimizers = trainer.convert_to_lightning_optimizers(optimizers)
 
+
     def _wrap_optimizers(self):
         trainer = self.model.trainer
         if trainer.testing is True:
@@ -44,7 +45,9 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def optimizer_state(self, optimizer: 'OSS') -> Optional[dict]:
         if is_lightning_optimizer(optimizer):
             optimizer = optimizer._optimizer
-        optimizer.consolidate_state_dict()
+
+        if isinstance(optimizer, OSS):
+            optimizer.consolidate_state_dict()
         return self._optim_state_dict(optimizer)
 
     @rank_zero_only
