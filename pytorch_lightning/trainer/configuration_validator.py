@@ -52,7 +52,7 @@ class ConfigValidator(object):
         # verify model has a train dataloader
         # -----------------------------------
         has_train_dataloader = is_overridden('train_dataloader', model)
-        if not has_train_dataloader:
+        if not has_train_dataloader and not self.trainer.is_predicting:
             raise MisconfigurationException(
                 'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
                 ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
@@ -62,7 +62,7 @@ class ConfigValidator(object):
         # verify model has optimizer
         # -----------------------------------
         has_optimizers = is_overridden('configure_optimizers', model)
-        if not has_optimizers:
+        if not has_optimizers and not self.trainer.is_predicting:
             raise MisconfigurationException(
                 'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
                 ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'

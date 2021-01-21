@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 from collections import Sequence
-from typing import List
 
 import pytest
 import torch
@@ -243,10 +242,8 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
 
     if accelerator == "ddp_cpu":
         trainer_args["num_processes"] = num_processes
-        size = num_processes
     else:
         trainer_args["gpus"] = gpus
-        size = gpus
 
     model = TestModel(num_dl_idx, save_preds_on_dl_idx, failure, enable_predict_auto_id)
     model.test_epoch_end = None

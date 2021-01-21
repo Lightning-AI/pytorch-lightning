@@ -302,7 +302,7 @@ class Trainer(
         super().__init__()
         self._device_type = DeviceType.CPU
         self._distrib_type = None
-        self._running_stage = RunningStage.UNDEFINED
+        self._running_stage = None
         self.is_predicting = False
 
         # init connectors
@@ -506,7 +506,7 @@ class Trainer(
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
 
-        self._set_running_stage(RunningStage.UNDEFINED)
+        self._set_running_stage(None)
 
         return results or 1
 
@@ -794,7 +794,7 @@ class Trainer(
 
         self.teardown('test')
 
-        self._set_running_stage(RunningStage.UNDEFINED)
+        self._set_running_stage(None)
 
         return results
 
@@ -914,7 +914,7 @@ class Trainer(
         self.teardown('test')
         del os.environ['PL_TESTING_MODE']
         self.is_predicting = False
-        self._set_running_stage(RunningStage.UNDEFINED)
+        self._set_running_stage(None)
 
         return results
 

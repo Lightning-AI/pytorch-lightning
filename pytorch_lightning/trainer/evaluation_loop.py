@@ -346,6 +346,8 @@ class EvaluationLoop(object):
         return eval_results
 
     def on_predict_epoch_end(self):
+        self.trainer._progress_bar_callback.on_test_end(
+            self.trainer, self.trainer.get_model())
         results = [{} for _ in range(self.num_dataloaders)]
 
         def _convert_to_numpy(v):
