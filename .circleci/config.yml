@@ -18,7 +18,9 @@ references:
         pyenv global 3.7.3
         python --version
         pip install -r requirements/docs.txt
-        cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
+        pip list
+        cd docs
+        make html --debug --jobs 2 SPHINXOPTS="-W"
 
   checkout_ml_testing: &checkout_ml_testing
    run:
