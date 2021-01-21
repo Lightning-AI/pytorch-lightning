@@ -14,8 +14,8 @@
 
 import importlib
 import os
-
 from typing import Any, Dict, Type, Union
+
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
