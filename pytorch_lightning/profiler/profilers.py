@@ -293,7 +293,7 @@ class PyTorchProfiler(BaseProfiler):
     different operators inside your model - both on the CPU and GPU
     """
 
-    PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
+    PROFILER_OVERHEAD_MAX_TOLERANCE = 7.5e-4
 
     def __init__(self,
                  output_filename: Optional[str] = None,
@@ -417,11 +417,13 @@ class PyTorchProfiler(BaseProfiler):
     def _stop(self, action_name: str) -> None:
         if self.profiler is None:
             return
+
         self.profiler.__exit__(
             exc_type=None,
             exc_val=None,
             exc_tb=None
         )
+
         events = self.profiler.function_events
         self.profiler = None
         for name in self.running_stack:
