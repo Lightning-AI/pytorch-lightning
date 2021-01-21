@@ -274,6 +274,7 @@ def test_model_size(mode):
     summary = model.summarize(mode=mode)
     assert model.pre_calculated_model_size == summary.model_size
 
+
 @pytest.mark.parametrize(['mode'], [
     pytest.param(ModelSummary.MODE_FULL),
     pytest.param(ModelSummary.MODE_TOP),
