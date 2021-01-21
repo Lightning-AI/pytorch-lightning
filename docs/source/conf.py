@@ -277,7 +277,7 @@ todo_include_todos = True
 def setup(app):
     # this is for hiding doctest decoration,
     # see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
-    app.add_javascript('copybutton.js')
+    app.add_js_file('copybutton.js')
     app.add_css_file('main.css')
 
 
