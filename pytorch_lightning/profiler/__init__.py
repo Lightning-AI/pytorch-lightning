@@ -178,7 +178,7 @@ If you need to profile more functions, do as follow:
 
     with profiler.profile("my_own_profiled_function"):
 
-        ...
+        pass
 
 
 When running with `PyTorchProfiler(emit_nvtx=True)`. You should run as following:
