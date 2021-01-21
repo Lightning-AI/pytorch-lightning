@@ -226,17 +226,6 @@ class ModelSummary(object):
 
     @property
     def model_size(self) -> float:
-        return self._model_size()
-
-    def _model_size(self) -> float:
-        """
-        Calculates the total model params size in MBs.
-
-        NOTE: Currently only model params size is supported.
-
-        Returns:
-            Total params size (MB).
-        """
         return self.total_parameters * self._precision_megabytes
 
     def summarize(self) -> Dict[str, LayerSummary]:
@@ -274,7 +263,7 @@ class ModelSummary(object):
         """
         Makes a summary listing with:
 
-        Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes
+        Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
         """
         arrays = [
             [" ", list(map(str, range(len(self._layer_summary))))],
