@@ -335,6 +335,10 @@ You can also add a forward method to do predictions however you want.
     # or using the AE to generate images
     # ----------------------------------
     class LitAutoEncoder(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.decoder = torch.nn.Sequential()
+
         def forward(self):
             z = torch.rand(1, 3)
             image = self.decoder(z)
