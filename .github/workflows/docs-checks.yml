@@ -65,8 +65,6 @@ jobs:
           make doctest
           make coverage
 
-      - run: pip uninstall -y pytorch-lightning-nightly
-
   make-docs:
     runs-on: ubuntu-20.04
 
