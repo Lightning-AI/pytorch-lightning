@@ -359,6 +359,10 @@ class TrainLoop:
         # -----------------------------------------
         # no need for these checks in 1.0.0
         # TODO: remove checks in 1.0.0
+        from syft.core.pointer.pointer import Pointer
+        if isinstance(training_step_output_for_epoch_end, Pointer):
+            training_step_output_for_epoch_end = training_step_output_for_epoch_end.get()
+
         is_tensor = isinstance(training_step_output_for_epoch_end, torch.Tensor)
         is_1_0_output = is_tensor or ("log" not in training_step_output and "progress_bar" not in training_step_output)
         if is_1_0_output:
@@ -385,10 +389,14 @@ class TrainLoop:
         return training_step_output_for_epoch_end, training_step_output
 
     def _process_training_step_output_1_0(self, training_step_output, split_batch):
+        from syft.core.pointer.pointer import Pointer
         result = self.trainer.get_model()._results
 
         loss = None
         hiddens = None
+
+        if isinstance(training_step_output, Pointer):
+            training_step_output = training_step_output.get()
 
         # handle dict return
         if isinstance(training_step_output, dict):
