@@ -41,7 +41,7 @@ def test_result_returns_within_100_seconds():
     """Check that pl_multi_process returns within 10 seconds"""
 
     start = time.time()
-    result = xla_utils.pl_multi_process(time.sleep)(125)
+    result = xla_utils.pl_multi_process(time.sleep)(xla_utils.TPU_TIMEOUT_CONSTANT * 1.25)
     end = time.time()
     elapsed_time = int(end - start)
     assert elapsed_time <= 100

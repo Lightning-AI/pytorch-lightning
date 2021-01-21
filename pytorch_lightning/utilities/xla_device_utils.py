@@ -20,6 +20,7 @@ from multiprocessing import Process, Queue
 import torch
 
 XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
+TPU_TIMEOUT_CONSTANT = 100
 
 if XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -39,7 +40,7 @@ def pl_multi_process(func):
         queue = Queue()
         proc = Process(target=inner_f, args=(queue, func, *args), kwargs=kwargs)
         proc.start()
-        proc.join(100)
+        proc.join(TPU_TIMEOUT_CONSTANT)
         try:
             return queue.get_nowait()
         except q.Empty:
