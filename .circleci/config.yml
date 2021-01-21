@@ -20,7 +20,8 @@ references:
         pip install -r requirements/docs.txt
         pip list
         cd docs
-        make html --debug --jobs 2 SPHINXOPTS="-W"
+        make clean
+        make html --jobs 2 SPHINXOPTS="-W"
 
   checkout_ml_testing: &checkout_ml_testing
    run:
