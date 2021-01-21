@@ -141,9 +141,11 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
 
     .. testcode::
 
+        from pytorch_lightning.metrics import Accuracy
+
         def __init__(self):
             ...
-            metric = pl.metrics.Accuracy()
+            metric = Accuracy()
             self.train_acc = metric.clone()
             self.val_acc = metric.clone()
             self.test_acc = metric.clone()
@@ -185,12 +187,14 @@ as child modules. Instead of ``list`` use :class:`~torch.nn.ModuleList` and inst
 
 .. testcode::
 
+    from pytorch_lightning.metrics import Accuracy
+
     class MyModule(LightningModule):
         def __init__(self):
             ...
             # valid ways metrics will be identified as child modules
-            self.metric1 = pl.metrics.Accuracy()
-            self.metric2 = torch.nn.ModuleList(pl.metrics.Accuracy())
+            self.metric1 = Accuracy()
+            self.metric2 = torch.nn.ModuleList(Accuracy())
             self.metric3 = torch.nn.ModuleDict({'accuracy': Accuracy()})
 
         def training_step(self, batch, batch_idx):

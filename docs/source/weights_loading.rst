@@ -52,7 +52,7 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
 
     from pytorch_lightning.callbacks import ModelCheckpoint
 
-    class LitAutoEncoder(pl.LightningModule):
+    class LitAutoEncoder(LightningModule):
         def validation_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self.backbone(x)
@@ -75,7 +75,7 @@ You can also control more advanced options, like `save_top_k`, to save the best 
 
     from pytorch_lightning.callbacks import ModelCheckpoint
 
-    class LitAutoEncoder(pl.LightningModule):
+    class LitAutoEncoder(LightningModule):
         def validation_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self.backbone(x)

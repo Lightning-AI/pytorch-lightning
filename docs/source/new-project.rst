@@ -83,7 +83,7 @@ Step 1: Define LightningModule
 
 .. testcode::
 
-    class LitAutoEncoder(pl.LightningModule):
+    class LitAutoEncoder(LightningModule):
 
         def __init__(self):
             super().__init__()
@@ -150,7 +150,7 @@ of the 20+ hooks found in :ref:`hooks`
 
 .. testcode::
 
-    class LitAutoEncoder(pl.LightningModule):
+    class LitAutoEncoder(LightningModule):
 
         def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
@@ -316,7 +316,7 @@ You can also add a forward method to do predictions however you want.
     # ----------------------------------
     # using the AE to extract embeddings
     # ----------------------------------
-    class LitAutoEncoder(pl.LightningModule):
+    class LitAutoEncoder(LightningModule):
         def forward(self, x):
             embedding = self.encoder(x)
             return embedding
@@ -330,7 +330,7 @@ You can also add a forward method to do predictions however you want.
     # ----------------------------------
     # or using the AE to generate images
     # ----------------------------------
-    class LitAutoEncoder(pl.LightningModule):
+    class LitAutoEncoder(LightningModule):
         def forward(self):
             z = torch.rand(1, 3)
             image = self.decoder(z)
@@ -374,12 +374,12 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to chan
 .. testcode::
 
     # train on CPU
-    trainer = pl.Trainer()
+    trainer = Trainer()
 
 .. testcode::
 
     # train on 8 CPUs
-    trainer = pl.Trainer(num_processes=8)
+    trainer = Trainer(num_processes=8)
 
 .. code-block:: python
 
@@ -584,7 +584,9 @@ Here's an example adding a not-so-fancy learning rate decay rule:
 
 .. testcode::
 
-    class DecayLearningRate(pl.callbacks.Callback):
+    from pytorch_lightning.callbacks import Callback
+
+    class DecayLearningRate(Callback):
 
         def __init__(self):
             self.old_lrs = []
@@ -629,7 +631,7 @@ Make your data code reusable by organizing it into a :class:`~pytorch_lightning.
 
 .. testcode::
 
-  class MNISTDataModule(pl.LightningDataModule):
+  class MNISTDataModule(LightningDataModule):
 
         def __init__(self, batch_size=32):
             super().__init__()
@@ -703,28 +705,28 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 .. testcode::
 
     # use only 10 train batches and 3 val batches
-    trainer = pl.Trainer(limit_train_batches=10, limit_val_batches=3)
+    trainer = Trainer(limit_train_batches=10, limit_val_batches=3)
 
 .. testcode::
 
     # Automatically overfit the sane batch of your model for a sanity test 
-    trainer = pl.Trainer(overfit_batches=1)
+    trainer = Trainer(overfit_batches=1)
 
 .. testcode::
 
     # unit test all the code- hits every line of your code once to see if you have bugs,
     # instead of waiting hours to crash on validation
-    trainer = pl.Trainer(fast_dev_run=True)
+    trainer = Trainer(fast_dev_run=True)
 
 .. testcode::
    
    # train only 20% of an epoch
-   trainer = pl.Trainer(limit_train_batches=0.2)
+   trainer = Trainer(limit_train_batches=0.2)
 
 .. testcode::
 
     # run validation every 25% of a training epoch
-    trainer = pl.Trainer(val_check_interval=0.25)
+    trainer = Trainer(val_check_interval=0.25)
 
 .. testcode::
     
