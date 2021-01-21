@@ -477,9 +477,6 @@ class Trainer(
 
         self.call_setup_hook(self.lightning_module)
 
-        # restore possible previous state
-        self.checkpoint_connector.restore_weights(self.get_model())
-
         # double dispatch: let the plugin initiate the training/test loop.
         if self.testing:
             self.training_type_plugin.start_testing(self)
@@ -532,7 +529,7 @@ class Trainer(
                 raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
 
         # restore training and model before hpc is called
-        # self.checkpoint_connector.restore_weights(ref_model)
+        self.checkpoint_connector.restore_weights(ref_model)
 
         # on pretrain routine end
         self.on_pretrain_routine_end(ref_model)

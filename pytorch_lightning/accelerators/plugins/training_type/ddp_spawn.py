@@ -1,21 +1,25 @@
-import re
 import os
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+import re
 from typing import Any, Dict, Optional, Union
+
 import torch
-
-import torch.multiprocessing as mp
 import torch.distributed as torch_distrib
-
-from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
-from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.utilities.distributed import find_free_network_port, rank_zero_only
-from pytorch_lightning.accelerators.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available, rank_zero_warn
-from pytorch_lightning.utilities.seed import seed_everything
+import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.distributed import (
+    find_free_network_port,
+    rank_zero_only,
+    rank_zero_warn,
+    sync_ddp_if_available,
+)
+from pytorch_lightning.utilities.seed import seed_everything
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -77,6 +81,8 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def start_training(self, trainer):
         mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer,))
+        # reset optimizers, since main process is never used for training and thus does not have a valid optim state
+        trainer.optimizers = []
 
     def start_testing(self, trainer):
         mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer,))
