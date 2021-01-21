@@ -30,13 +30,19 @@ from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, PytorchProfiler, SimpleProfiler
+from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
+
+
+@pytest.fixture
+def pytorch_profiler(tmpdir):
+    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
+    return profiler
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1421,7 +1427,7 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     ('simple', SimpleProfiler),
     ('Simple', SimpleProfiler),
     ('advanced', AdvancedProfiler),
-    ('pytorch', PytorchProfiler),
+    ('pytorch', PyTorchProfiler),
 ])
 def test_trainer_profiler_correct_args(profiler, expected):
     kwargs = {'profiler': profiler} if profiler is not None else {}
@@ -1444,22 +1450,59 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
         Trainer(profiler=profiler)
 
 
-def test_pytorch_profiler(tmpdir):
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"loss": loss}
+def _get_pytorch_profiler_total_duration(events):
+    total_time = sum([e.cpu_time + e.cuda_time for e in events])
+    return total_time / 1e6  # convert microseconds to seconds
 
-    model = TestModel()
 
-    limit_train_batches = 2
+def test_autograd_profiler_overhead(pytorch_profiler, n_iter=5):
+    """Ensure that the profiler doesn't introduce too much overhead during training."""
+    for _ in range(n_iter):
+        with pytorch_profiler.profile("test_step"):
+            a = torch.ones(42)
+            b = torch.abs(a)
+            _ = a + b
+
+    action_profile = pytorch_profiler.profiled_actions["test_step"]
+    total_duration = _get_pytorch_profiler_total_duration(action_profile)
+    average_duration = total_duration / n_iter
+    assert average_duration < pytorch_profiler.PROFILER_OVERHEAD_MAX_TOLERANCE
+    pytorch_profiler.describe()
+    data = Path(pytorch_profiler.output_fname).read_text()
+    assert len(data) > 0
+
+
+def test_autograd_profiler_describe(tmpdir, pytorch_profiler):
+    """Ensure the profiler won't fail when reporting the summary."""
+    with pytorch_profiler.profile("test_step"):
+        pass
+
+    # log to stdout and print to file
+    pytorch_profiler.describe()
+    data = Path(pytorch_profiler.output_fname).read_text()
+    assert len(data) > 0
+
+
+def test_pytorch_profiler_value_errors(pytorch_profiler):
+    """Ensure errors are raised where expected."""
+
+    action = "test_step"
+    with pytest.raises(ValueError):
+        pytorch_profiler.stop(action)
+
+    pytorch_profiler.start(action)
+    pytorch_profiler.stop(action)
+
+
+def test_pytorch_profiler_trainer(tmpdir):
+
+    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
+
+    model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        profiler='pytorch'
+        fast_dev_run=True,
+        profiler=profiler
     )
-
     trainer.fit(model)
+    assert len(profiler.summary()) > 0
+    assert set(profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}

@@ -287,62 +287,83 @@ class AdvancedProfiler(BaseProfiler):
             self.output_file.close()
 
 
-class PytorchProfiler(BaseProfiler):
+class PyTorchProfiler(BaseProfiler):
     """
-    This profiler uses PyTorch's Autograd Profiler and let's you inspect the cost of
+    This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
     different operators inside your model - both on the CPU and GPU
     """
 
-    PROFILED_FUNCTIONS = ["training_step", "validation_step", "test_step"]
+    PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
     def __init__(self,
                  output_filename: Optional[str] = None,
-                 enabled=True,
-                 use_cuda=False,
-                 record_shapes=False,
-                 profile_memory=False,
-                 group_by_input_shape=False,
-                 with_stack=False,
-                 use_kineto=False,
-                 use_cpu=False,
-                 emit_nvtx=False,
-                 export_to_chrome=False,
-                 path_to_export_trace=None,
-                 sort_by_key: str = "cpu_time_total"):
+                 enabled: bool = True,
+                 use_cuda: bool = False,
+                 record_shapes: bool = False,
+                 profile_memory: bool = False,
+                 group_by_input_shapes: bool = False,
+                 with_stack: bool = False,
+                 use_kineto: bool = False,
+                 use_cpu: bool = False,
+                 emit_nvtx: bool = False,
+                 export_to_chrome: bool = False,
+                 path_to_export_trace: bool = None,
+                 row_limit: int = 20,
+                 sort_by_key: Optional[str] = None,
+                 profiled_functions=["training_step_and_backward", "validation_step", "test_step"]):
         """
         Args:
+
             output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished.
+
             enabled: Setting this to False makes this context manager a no-op. Default: True
+
             use_cuda: Enables timing of CUDA events as well using the cudaEvent API.
                 Adds approximately 4us of overhead to each tensor operation. Default: True
+
             record_shapes:  If shapes recording is set, information about input dimensions will be collected.
+
             profile_memory: Whether to report memory usage, default: True (1.6.0)
+
             with_stack: record source information (file and line number) for the ops (1.7.0)
+
             use_kineto: experimental support for Kineto profiler (1.8.0)
+
             use_cpu: use_kineto=True and can be used to lower the overhead for GPU-only profiling (1.8.0)
+
             emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
                 * Run: nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
                 To visualize, you can either use:
                     * nvvp trace_name.prof
                     * torch.autograd.profiler.load_nvprof(path)
+
             export_to_chrome: Wether to export the sequence of profiled operators for Chrome.
-            sort_by_key: Keys to sort out profiled table
+
             path_to_export_trace: Path to exported traces. By default, it will be save
                 where the file being is being run.
+
+            row_limit: Limit the number of rows in a table, `0` is a special value that
+                 removes the limit completely.
+
+            sort_by_key: Keys to sort out profiled table
+
+            profiled_functions: list of profiled functions which will create a context manager on.
+                Any other will be pass through.
         """
         self.profiled_actions = {}
         # PyTorch Profiler doesn't seem to work with multiple processes
-        enabled = enabled and os.getenv("LOCAL_RANK", None) is None
-        self.profiled_actions_enabled = {n: enabled for n in self.PROFILED_FUNCTIONS}
+        self.enabled = enabled and os.getenv("LOCAL_RANK", None) is None
+        self.profiled_functions = profiled_functions
         self.use_cuda = use_cuda
         self.record_shapes = record_shapes
         self.profile_memory = profile_memory
-        self.sort_by_key = sort_by_key
+        self.sort_by_key = sort_by_key or ("cuda_time_total" if self.use_cuda else "cpu_time_total")
         self.with_stack = with_stack
-        self.group_by_input_shape = group_by_input_shape and record_shapes
+        self.group_by_input_shapes = group_by_input_shapes and record_shapes
         self.use_kineto = use_kineto
         self.use_cpu = use_cpu
+        self.row_limit = row_limit
         self.emit_nvtx = emit_nvtx
         self.export_to_chrome = export_to_chrome
         self.path_to_export_trace = path_to_export_trace
@@ -350,8 +371,14 @@ class PytorchProfiler(BaseProfiler):
             raise MisconfigurationException(
                 f"Found sort_by_key: {sort_by_key}. Should be within {self.available_sort_by_keys}. ")
 
+        self.profiled_actions = {}
+        self.context_names = {}
+        self.running_stack = []
+        self.profiler = None
+
         self.output_fname = output_filename
         self.output_file = None
+
         if self.output_fname:
             fs = get_filesystem(self.output_fname)
             self.output_file = fs.open(self.output_fname, "w")
@@ -360,14 +387,22 @@ class PytorchProfiler(BaseProfiler):
         super().__init__(output_streams=streaming_out)
 
     def start(self, action_name: str) -> None:
-        if action_name not in self.profiled_actions and action_name in self.PROFILED_FUNCTIONS:
-            self.enabled = self.profiled_actions_enabled[action_name]
-            self.profiled_actions[action_name] = []
-            if self.emit_nvtx:
-                self._create_profiler(action_name, torch.cuda.profiler.profile, enter=False)
-                self._create_profiler(action_name, torch.autograd.profiler.emit_nvtx)
-            else:
-                self._create_profiler(action_name, torch.autograd.profiler.profile)
+        # stop the running profiler if any
+        if action_name in self.profiled_functions:
+            if len(self.running_stack) > 0:
+                self._stop(self.running_stack[-1])
+            self.running_stack.append(action_name)
+
+            self.context_names[action_name] = "/".join(self.running_stack)
+
+            self._start(action_name)
+
+    def _start(self, action_name: str) -> None:
+        if self.emit_nvtx:
+            self._create_profiler(action_name, torch.cuda.profiler.profile, enter=False)
+            self._create_profiler(action_name, torch.autograd.profiler.emit_nvtx)
+        else:
+            self._create_profiler(action_name, torch.autograd.profiler.profile)
 
     def _create_profiler(self, action_name, profiler, enter=True):
         init_args = inspect.signature(profiler.__init__).parameters
@@ -377,49 +412,62 @@ class PytorchProfiler(BaseProfiler):
         pr = profiler(**profiler_args)
         if enter:
             pr = pr.__enter__()
-        self.profiled_actions[action_name].append(pr)
+        self.profiler = pr
+
+    def _stop(self, action_name: str) -> None:
+        if self.profiler is None:
+            return
+        self.profiler.__exit__(
+            exc_type=None,
+            exc_val=None,
+            exc_tb=None
+        )
+        events = self.profiler.function_events
+        self.profiler = None
+        for name in self.running_stack:
+            if name not in self.profiled_actions:
+                self.profiled_actions[name] = events
+            else:
+                self.profiled_actions[name] += events
 
     def stop(self, action_name: str) -> None:
-        if action_name in self.PROFILED_FUNCTIONS and self.enabled:
-            profilers = self.profiled_actions.get(action_name)
-            if not profilers:
+        if action_name in self.profiled_functions:
+            if len(self.running_stack) == 0 or self.running_stack[-1] != action_name:
                 raise ValueError(  # pragma: no-cover
                     f"Attempting to stop recording an action ({action_name}) which was never started."
                 )
-            else:
-                for pr in profilers[::-1]:
-                    self._handle_exit(pr)
-        self.profiled_actions_enabled[action_name] = True
-
-    def _handle_exit(self, pr):
-        # todo: Find a better solution to exit context manager
-        try:
-            _ = pr.__exit__(None, None, None)
-        except RuntimeError as e:
-            if "Expected debug info of type 2" in str(e):
-                pass
-            elif "can't disable profiler when it's not running" in str(e):
-                pass
-            elif "generator didn't stop" in str(e):
-                pass
-            else:
-                raise RuntimeError(str(e))
+            self._stop(action_name)
+            self.running_stack.pop()
+            # restore running profiler
+            if len(self.running_stack) > 0:
+                self._start(self.running_stack[-1])
 
     def summary(self) -> str:
         recorded_stats = {}
+        output_string = ''
+
         if self.enabled:
-            for action_name, pr in self.profiled_actions.items():
-                pr = pr[-1]
+            for action_name, events in self.profiled_actions.items():
+
+                # next line is a workaround for a pytorch issue (fixed on master, still present
+                # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
+                # parent event for detach`
+                events.populate_cpu_children = lambda: None
+
                 if self.export_to_chrome:
                     filename = f"{action_name}_trace.json"
                     path_to_trace = filename if self.path_to_export_trace is None \
                         else os.path.join(self.path_to_export_trace, filename)
-                    pr.export_chrome_trace(path_to_trace)
+                    events.export_chrome_trace(path_to_trace)
+
                 if self.emit_nvtx:
-                    return ""
+                    return output_string
+
                 else:
-                    table = pr.key_averages(
-                        group_by_input_shape=self.group_by_input_shape).table(sort_by=self.sort_by_key)
+                    table = events.key_averages(
+                        group_by_input_shapes=self.group_by_input_shapes).table(
+                            sort_by=self.sort_by_key,
+                            row_limit=self.row_limit)
                     recorded_stats[action_name] = table
 
             # log to standard out
@@ -429,8 +477,7 @@ class PytorchProfiler(BaseProfiler):
                     f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
                 )
 
-            return output_string
-        return ''
+        return output_string
 
     def describe(self):
         """Logs a profile report after the conclusion of the training run."""

@@ -18,7 +18,7 @@ from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
     PassThroughProfiler,
-    PytorchProfiler,
+    PyTorchProfiler,
     SimpleProfiler,
 )
 from pytorch_lightning.utilities import rank_zero_warn
@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 PROFILERS = {
     "simple": SimpleProfiler,
     "advanced": AdvancedProfiler,
-    "pytorch": PytorchProfiler
+    "pytorch": PyTorchProfiler
 }
 
 

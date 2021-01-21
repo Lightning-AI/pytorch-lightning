@@ -121,29 +121,18 @@ PyTorch Profiling
 Autograd includes a profiler that lets you inspect the cost of different operators
 inside your model - both on the CPU and GPU.
 
+Find the Pytorch Profiler doc at [PyTorch Profiler](https://pytorch-lightning.readthedocs.io/en/stable/profiler.html)
+
 .. code-block:: python
 
     trainer = Trainer(..., profiler="pytorch")
 
     or
 
-    profiler = PytorchProfiler(
-            output_filename = ...
-            enabled = ...
-            use_cuda = ...
-            record_shapes = ...
-            profile_memory = ...
-            with_stack = ...
-            use_kineto = ...
-            use_cpu = ...
-            emit_nvtx = ...
-            export_to_chrome = ...
-            sort_by_key = ...
-            path_to_export_trace = ...
-    )
+    profiler = PyTorchProfiler(...)
     trainer = Trainer(..., profiler=profiler)
 
-The profiler's results will be printed at the completion of a training `fit()`. This profiler
+The profiler's results will be printed on the completion of a training `fit()`. This profiler
 report can be quite long, so you can also specify an `output_filename` to save the report instead
 of logging it to the output in your terminal. The output below shows the profiling for the action
 `get_train_batch`.
@@ -180,7 +169,7 @@ This profiler will record only for `training_step`, `evaluation_step` and `test_
     ---------------------  ---------------  ---------------  ---------------  ---------------  ---------------
     Self CPU time total: 1.681ms
 
-When running with `PytorchProfiler(emit_nvtx=True)`. You should run as following:
+When running with `PyTorchProfiler(emit_nvtx=True)`. You should run as following:
 
 nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
 
@@ -196,7 +185,7 @@ from pytorch_lightning.profiler.profilers import (
     AdvancedProfiler,
     BaseProfiler,
     PassThroughProfiler,
-    PytorchProfiler,
+    PyTorchProfiler,
     SimpleProfiler,
 )
 
@@ -205,5 +194,5 @@ __all__ = [
     'SimpleProfiler',
     'AdvancedProfiler',
     'PassThroughProfiler',
-    "PytorchProfiler",
+    "PyTorchProfiler",
 ]
