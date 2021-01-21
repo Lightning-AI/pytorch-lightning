@@ -37,12 +37,12 @@ def test_tpu_device_presence():
     assert xla_utils.XLADeviceUtils.tpu_device_exists() is True
 
 
-def test_result_returns_within_20_seconds():
+def test_result_returns_within_100_seconds():
     """Check that pl_multi_process returns within 10 seconds"""
 
     start = time.time()
-    result = xla_utils.pl_multi_process(time.sleep)(25)
+    result = xla_utils.pl_multi_process(time.sleep)(125)
     end = time.time()
     elapsed_time = int(end - start)
-    assert elapsed_time <= 20
+    assert elapsed_time <= 100
     assert result is False
