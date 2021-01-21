@@ -134,15 +134,16 @@ Find the Pytorch Profiler doc at [PyTorch Profiler](https://pytorch-lightning.re
 
 The profiler's results will be printed on the completion of a training `fit()`. This profiler
 report can be quite long, so you can also specify an `output_filename` to save the report instead
-of logging it to the output in your terminal. The output below shows the profiling for the action
-`get_train_batch`.
-This profiler will record only for `training_step`, `evaluation_step` and `test_step` functions.
+of logging it to the output in your terminal.
+
+This profiler will record only for `training_step_and_backward`, `evaluation_step` and `test_step` functions by default.
+The output below shows the profiling for the action `training_step_and_backward`.
 
 .. code-block:: python
 
     Profiler Report
 
-    Profile stats for: training_step
+    Profile stats for: training_step_and_backward
     ---------------------  ---------------  ---------------  ---------------  ---------------  ---------------
     Name                   Self CPU total %  Self CPU total   CPU total %      CPU total        CPU time avg
     ---------------------  ---------------  ---------------  ---------------  ---------------  ---------------
@@ -168,6 +169,17 @@ This profiler will record only for `training_step`, `evaluation_step` and `test_
     stride                 0.03%            0.517us          0.03%            0.517us          0.517us
     ---------------------  ---------------  ---------------  ---------------  ---------------  ---------------
     Self CPU time total: 1.681ms
+
+If you need to profile more functions, do as follow:
+
+.. code-block:: python
+
+    profiler = Profiler(profiled_functions=["my_own_profiled_function"])
+
+    with profiler.profile("my_own_profiled_function"):
+
+        ...
+
 
 When running with `PyTorchProfiler(emit_nvtx=True)`. You should run as following:
 
