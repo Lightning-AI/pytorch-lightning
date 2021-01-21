@@ -131,6 +131,7 @@ class DeviceDtypeModuleMixin(Module):
 
     def cpu(self) -> Module:
         """Moves all model parameters and buffers to the CPU.
+
         Returns:
             Module: self
         """

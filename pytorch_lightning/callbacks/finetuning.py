@@ -78,9 +78,11 @@ class BaseFinetuningCallback(Callback):
     def filter_params(module: Module,
                       train_bn: bool = True) -> Generator:
         """Yields the trainable parameters of a given module.
+
         Args:
             module: A given module
             train_bn: If True, leave the BatchNorm layers in training mode
+
         Returns:
             Generator
         """

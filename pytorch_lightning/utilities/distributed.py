@@ -117,6 +117,7 @@ def sync_ddp_if_available(
         group: the process group to gather results from. Defaults to all processes (world)
         reduce_op: the reduction operation. Defaults to sum.
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+
     Return:
         reduced value
     """

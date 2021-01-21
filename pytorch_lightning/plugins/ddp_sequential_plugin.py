@@ -154,6 +154,7 @@ class DDPSequentialPlugin(RPCPlugin):
     def _sync_balance_to_all_parallel_groups(self, main_rank=0):
         """
         Ensures that we sync the balance to all main processes, so that the balance is the same per replica.
+
         Args:
             main_rank: The rank with the balance we'd like to replicate.
         """
@@ -205,7 +206,9 @@ class DDPSequentialPlugin(RPCPlugin):
     def _skip_init_connections(self, trainer):
         """
         Skip initialization if torch is already initialized and we're in testing.
-        Returns: Whether to skip initialization
+
+        Returns:
+            Whether to skip initialization
 
         """
         return torch_distrib.is_initialized() and trainer.testing
@@ -224,7 +227,8 @@ class DDPSequentialPlugin(RPCPlugin):
         Args:
             trainer: The trainer object.
 
-        Returns: The appropriate balance for the model
+        Returns:
+            The appropriate balance for the model
         """
         if isinstance(self.balance, list):
             if len(self.balance) != (trainer.world_size / trainer.num_nodes):

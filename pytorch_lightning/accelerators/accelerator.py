@@ -189,6 +189,7 @@ class Accelerator(object):
         """
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
         plugins.
+
         Return:
             Optimizer state dict
         """
@@ -208,7 +209,8 @@ class Accelerator(object):
         Args:
             model: Accelerator model.
 
-        Returns: Reference :class:`LightningModule`.
+        Returns:
+            Reference :class:`LightningModule`.
 
         """
         return model
@@ -249,7 +251,9 @@ class Accelerator(object):
         """
         Blocks ddp sync gradients behaviour on backwards pass.
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
+
+        Returns:
+            context manager with sync behaviour off
         """
         cm = self.ddp_plugin.block_backward_sync(self.trainer.model) if self.ddp_plugin else None
         yield cm

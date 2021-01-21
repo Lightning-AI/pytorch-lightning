@@ -8,12 +8,14 @@ class LightningPlugin:
 
     def required_plugins(self, amp_backend: AMPType, trainer) -> list:
         """
-            Override to define additional required plugins. This is useful for when custom plugins
-            need to enforce override of other plugins.
+        Override to define additional required plugins. This is useful for when custom plugins
+        need to enforce override of other plugins.
 
-        Returns: Optional list of plugins containing additional plugins.
+        Returns:
+            Optional list of plugins containing additional plugins.
 
         Example::
+
             class MyPlugin(DDPPlugin):
                 def required_plugins(self):
                     return [MyCustomAMPPlugin()]

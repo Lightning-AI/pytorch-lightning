@@ -771,7 +771,8 @@ class TrainLoop:
         do not block ddp gradient sync when using manual optimization
         as gradients are needed within the training step
 
-        Returns: context manager with sync behaviour off
+        Returns:
+            context manager with sync behaviour off
 
         """
         if self.trainer.accelerator_backend is not None and self.automatic_optimization:

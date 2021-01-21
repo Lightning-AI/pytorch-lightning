@@ -102,10 +102,12 @@ class PluginConnector:
     def _convert_str_custom_plugins(self, plugins: Union[str, list]):
         """
         Converts string inputs to corresponding supported lightning plugins.
+
         Args:
             plugins: List of plugins or string to choose lightning plugin.
 
-        Returns: List of plugins where strings are now plugins.
+        Returns:
+            List of plugins where strings are now plugins.
         """
         if isinstance(plugins, str):
             return [self._convert_str_to_plugin(plugins)]
@@ -132,9 +134,11 @@ class PluginConnector:
         Args:
             plugins: List of plugins
 
-        Returns: List of plugins containing additional plugins if needed.
+        Returns:
+            List of plugins containing additional plugins if needed.
 
         Example::
+
             class MyPlugin(DDPPlugin):
                 def required_plugins(self):
                     return [MyCustomAMPPlugin()]
@@ -162,7 +166,9 @@ class PluginConnector:
     def available_plugins(cls):
         """
         List of all available plugins that can be string arguments to the trainer.
-        Returns: List of all available plugins that are supported as string arguments.
+
+        Returns:
+            List of all available plugins that are supported as string arguments.
         """
         return [e.name for e in LightningCustomPlugins]
 

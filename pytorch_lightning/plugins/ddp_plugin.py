@@ -124,7 +124,9 @@ class DDPPlugin(LightningPlugin):
         Args:
             args: Inputs to the model.
             model: Model to train.
-        Returns: args moved to correct device if needed.
+
+        Returns:
+            args moved to correct device if needed.
         """
         return args
 
@@ -152,7 +154,8 @@ class DDPPlugin(LightningPlugin):
         Args:
             model: Model with parallel wrapper.
 
-        Returns: Reference :class:`LightningModule` within parallel wrapper.
+        Returns:
+            Reference :class:`LightningModule` within parallel wrapper.
 
         """
         if isinstance(model, DistributedDataParallel):
@@ -166,7 +169,9 @@ class DDPPlugin(LightningPlugin):
         """
         Blocks ddp sync gradients behaviour on backwards pass.
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
+
+        Returns:
+            context manager with sync behaviour off
         """
         yield model.no_sync()
 
@@ -181,6 +186,8 @@ class DDPPlugin(LightningPlugin):
         """
         Return the group that this process exists in. By default, this is the world size.
         Useful for when additional parallel groups have been created, to select certain processes.
-        Returns: The ProcessGroup this process exists in.
+
+        Returns:
+            The ProcessGroup this process exists in.
         """
         return torch_distrib.group.WORLD
