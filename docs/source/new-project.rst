@@ -66,6 +66,7 @@ You could also use conda environments
 Import the following:
 
 .. testcode::
+    :skipif: not _TORCHVISION_AVAILABLE
 
     import os
     import torch
