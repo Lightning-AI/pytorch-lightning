@@ -774,7 +774,7 @@ class Trainer(
             verbose: If True, prints the test results
 
         Returns:
-            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
+            Returns a list of dictionaries, one for each test dataloader containing their respective metrics.
         """
         # --------------------
         # SETUP HOOK
