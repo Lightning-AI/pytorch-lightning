@@ -38,11 +38,10 @@ Documentation
 - https://pytorch-lightning.readthedocs.io/en/latest
 - https://pytorch-lightning.readthedocs.io/en/stable
 """
-python_logging.basicConfig(
-    stream=sys.stderr,
-    format="%(message)s",
-    level=python_logging.INFO,
-)
+_logger = python_logging.getLogger("pytorch_lightning")
+_logger.addHandler(python_logging.StreamHandler())
+_logger.setLevel(python_logging.INFO)
+_logger.propagate = False
 
 PACKAGE_ROOT = os.path.dirname(__file__)
 PROJECT_ROOT = os.path.dirname(PACKAGE_ROOT)
