@@ -21,11 +21,9 @@ from argparse import Namespace
 from time import time
 from typing import Any, Dict, Optional, Union
 
-
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, _module_available
-
+from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
 
 LOCAL_FILE_URI_PREFIX = "file:"
 

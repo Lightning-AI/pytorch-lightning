@@ -31,6 +31,7 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
@@ -190,8 +191,8 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
         callbacks=[model_checkpoint],
         max_epochs=num_epochs,
     )
-    result = trainer.fit(model)
-    assert 1 == result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_model_checkpoint_format_checkpoint_name(tmpdir):
@@ -946,3 +947,8 @@ def test_model_checkpoint_file_already_exists(tmpdir, max_epochs, save_top_k, ex
 
     epochs_in_ckpt_files = [pl_load(os.path.join(tmpdir, f))['epoch'] - 1 for f in ckpt_files]
     assert sorted(epochs_in_ckpt_files) == list(range(max_epochs - save_top_k, max_epochs))
+
+
+def test_model_checkpoint_mode_options():
+    with pytest.raises(MisconfigurationException, match="`mode` can be auto, .* got unknown_option"):
+        ModelCheckpoint(mode="unknown_option")

@@ -13,10 +13,11 @@
 # limitations under the License.
 from typing import Any, Dict, Optional
 
-from pytorch_lightning.core.datamodule import LightningDataModule
-from tests.base.datasets import MNIST, TrialMNIST
 from torch.utils.data import DataLoader, random_split
 from torch.utils.data.distributed import DistributedSampler
+
+from pytorch_lightning.core.datamodule import LightningDataModule
+from tests.base.datasets import MNIST, TrialMNIST
 
 
 class TrialMNISTDataModule(LightningDataModule):

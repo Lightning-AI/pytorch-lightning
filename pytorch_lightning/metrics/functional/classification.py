@@ -11,25 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from distutils.version import LooseVersion
 from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
-from distutils.version import LooseVersion
 
 from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
-from pytorch_lightning.metrics.functional.precision_recall_curve import (
-    _binary_clf_curve,
-    precision_recall_curve as __prc
-)
+from pytorch_lightning.metrics.functional.iou import iou as __iou
+from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
+from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve as __prc
 from pytorch_lightning.metrics.functional.roc import roc as __roc
-from pytorch_lightning.metrics.utils import (
-    to_categorical as __tc,
-    to_onehot as __to,
-    get_num_classes as __gnc,
-    reduce,
-    class_reduce,
-)
+from pytorch_lightning.metrics.utils import class_reduce
+from pytorch_lightning.metrics.utils import get_num_classes as __gnc
+from pytorch_lightning.metrics.utils import reduce
+from pytorch_lightning.metrics.utils import to_categorical as __tc
+from pytorch_lightning.metrics.utils import to_onehot as __to
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -84,7 +81,7 @@ def get_num_classes(
         " `from pytorch_lightning.metrics.utils import get_num_classes`."
         " It will be removed in v1.3.0", DeprecationWarning
     )
-    return __gnc(pred,target, num_classes)
+    return __gnc(pred, target, num_classes)
 
 
 def stat_scores(
@@ -162,8 +159,8 @@ def stat_scores_multiple_classes(
         raise ValueError("reduction type %s not supported" % reduction)
 
     if reduction == 'none':
-        pred = pred.view((-1, )).long()
-        target = target.view((-1, )).long()
+        pred = pred.view((-1,)).long()
+        target = target.view((-1,)).long()
 
         tps = torch.zeros((num_classes + 1,), device=pred.device)
         fps = torch.zeros((num_classes + 1,), device=pred.device)
@@ -226,6 +223,10 @@ def precision_recall(
     """
     Computes precision and recall for different thresholds
 
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.precision_recall`.
+     Will be removed in v1.4.0.
+
     Args:
         pred: estimated probabilities
         target: ground-truth labels
@@ -252,6 +253,12 @@ def precision_recall(
         (tensor(0.5000), tensor(0.3333))
 
     """
+    rank_zero_warn(
+        "This `precision_recall` was deprecated in v1.2.0 in favor of"
+        " `from pytorch_lightning.metrcs.functional import precision_recall`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred, target=target, num_classes=num_classes)
 
     precision = class_reduce(tps, tps + fps, sups, class_reduction=class_reduction)
@@ -271,6 +278,9 @@ def precision(
 ) -> torch.Tensor:
     """
     Computes precision score.
+
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.recall`. Will be removed in v1.4.0.
 
     Args:
         pred: estimated probabilities
@@ -294,6 +304,12 @@ def precision(
         tensor(0.7500)
 
     """
+    rank_zero_warn(
+        "This `precision` was deprecated in v1.2.0 in favor of"
+        " `from pytorch_lightning.metrics.functional import precision`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, class_reduction=class_reduction)[0]
 
@@ -306,6 +322,9 @@ def recall(
 ) -> torch.Tensor:
     """
     Computes recall score.
+
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.recall`. Will be removed in v1.4.0.
 
     Args:
         pred: estimated probabilities
@@ -328,6 +347,12 @@ def recall(
         >>> recall(x, y)
         tensor(0.7500)
     """
+    rank_zero_warn(
+        "This `recall` was deprecated in v1.2.0 in favor of"
+        " `from pytorch_lightning.metrics.functional import recall`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, class_reduction=class_reduction)[1]
 
@@ -687,6 +712,7 @@ def dice_score(
     return reduce(scores, reduction=reduction)
 
 
+# todo: remove in 1.4
 def iou(
         pred: torch.Tensor,
         target: torch.Tensor,
@@ -697,6 +723,10 @@ def iou(
 ) -> torch.Tensor:
     """
     Intersection over union, or Jaccard index calculation.
+
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.iou.iou`. Will be removed in
+     v1.4.0.
 
     Args:
         pred: Tensor containing integer predictions, with shape [N, d1, d2, ...]
@@ -729,48 +759,20 @@ def iou(
         tensor(0.9660)
 
     """
-    if pred.size() != target.size():
-        raise ValueError(f"'pred' shape ({pred.size()}) must equal 'target' shape ({target.size()})")
-
-    if not torch.allclose(pred.float(), pred.int().float()):
-        raise ValueError("'pred' must contain integer targets.")
-
-    num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
-
-    tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, target, num_classes)
-
-    scores = torch.zeros(num_classes, device=pred.device, dtype=torch.float32)
-
-    for class_idx in range(num_classes):
-        if class_idx == ignore_index:
-            continue
-
-        tp = tps[class_idx]
-        fp = fps[class_idx]
-        fn = fns[class_idx]
-        sup = sups[class_idx]
-
-        # If this class is absent in the target (no support) AND absent in the pred (no true or false
-        # positives), then use the absent_score for this class.
-        if sup + tp + fp == 0:
-            scores[class_idx] = absent_score
-            continue
-
-        denom = tp + fp + fn
-        # Note that we do not need to worry about division-by-zero here since we know (sup + tp + fp != 0) from above,
-        # which means ((tp+fn) + tp + fp != 0), which means (2tp + fp + fn != 0). Since all vars are non-negative, we
-        # can conclude (tp + fp + fn > 0), meaning the denominator is non-zero for each class.
-        score = tp.to(torch.float) / denom
-        scores[class_idx] = score
-
-    # Remove the ignored class index from the scores.
-    if ignore_index is not None and ignore_index >= 0 and ignore_index < num_classes:
-        scores = torch.cat([
-            scores[:ignore_index],
-            scores[ignore_index + 1:],
-        ])
-
-    return reduce(scores, reduction=reduction)
+    rank_zero_warn(
+        "This `iou` was deprecated in v1.2.0 in favor of"
+        " `from pytorch_lightning.metrics.functional.iou import iou`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+    return __iou(
+        pred=pred,
+        target=target,
+        ignore_index=ignore_index,
+        absent_score=absent_score,
+        threshold=0.5,
+        num_classes=num_classes,
+        reduction=reduction
+    )
 
 
 # todo: remove in 1.3

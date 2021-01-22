@@ -104,10 +104,6 @@ class Accelerator(object):
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
-
-        if not automatic_optimization and self.ddp_plugin is not None:
-            # Manually prepare for reduce as user calling backwards manually
-            self.ddp_plugin.on_after_manual_backward(self.trainer.model)
         return closure_loss
 
     def clip_gradients(self, optimizer, clip_val=None):

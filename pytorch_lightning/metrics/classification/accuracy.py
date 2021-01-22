@@ -15,8 +15,8 @@ from typing import Any, Callable, Optional
 
 import torch
 
+from pytorch_lightning.metrics.functional.accuracy import _accuracy_compute, _accuracy_update
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.accuracy import _accuracy_update, _accuracy_compute
 
 
 class Accuracy(Metric):

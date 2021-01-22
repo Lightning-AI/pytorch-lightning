@@ -24,7 +24,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, parsing
+from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -102,7 +102,7 @@ class TrainLoop:
 
     def on_train_start(self):
         # clear cache before training
-        if self.trainer.on_gpu and self.trainer.root_gpu is not None:
+        if self.trainer._device_type == DeviceType.GPU and self.trainer.root_gpu is not None:
             # use context because of:
             # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f"cuda:{self.trainer.root_gpu}"):
@@ -137,9 +137,7 @@ class TrainLoop:
         # --------------------------
         # Setup??
         # --------------------------
-        ref_model = model
-        if self.trainer.data_parallel:
-            ref_model = model.module
+        ref_model = self.trainer.get_model()
 
         # set the ranks and devices
         self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
@@ -152,7 +150,9 @@ class TrainLoop:
         self.trainer.model_connector.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
+        if (self.trainer.amp_backend == AMPType.NATIVE
+                and self.trainer.precision == 16
+                and self.trainer._device_type != DeviceType.TPU):
             self.trainer.scaler = self.trainer.precision_connector.backend.scaler
 
         # log hyper-parameters
@@ -219,7 +219,7 @@ class TrainLoop:
         self.trainer.accelerator_backend.on_train_end()
 
         # clear mem
-        if self.trainer.on_gpu:
+        if self.trainer._device_type == DeviceType.GPU:
             model = self.trainer.get_model()
             model.cpu()
             torch.cuda.empty_cache()
@@ -508,7 +508,7 @@ class TrainLoop:
             optimizer,
             opt_idx,
             train_step_and_backward_closure,
-            on_tpu=self.trainer.use_tpu and _TPU_AVAILABLE,
+            on_tpu=self.trainer._device_type == DeviceType.TPU and _TPU_AVAILABLE,
             using_native_amp=using_native_amp,
             using_lbfgs=is_lbfgs,
         )
