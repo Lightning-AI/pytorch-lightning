@@ -317,7 +317,6 @@ class PyTorchProfiler(BaseProfiler):
         profiled_functions: Optional[List] = None,
     ):
         """
-
         This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
         different operators inside your model - both on the CPU and GPU
 
@@ -326,12 +325,12 @@ class PyTorchProfiler(BaseProfiler):
             output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished.
 
-            enabled: Setting this to False makes this context manager a no-op. Default: True
+            enabled: Setting this to False makes this context manager a no-op.
 
             use_cuda: Enables timing of CUDA events as well using the cudaEvent API.
-                Adds approximately 4us of overhead to each tensor operation. Default: True
+                Adds approximately 4us of overhead to each tensor operation.
 
-            record_shapes:  If shapes recording is set, information about input dimensions will be collected.
+            record_shapes: If shapes recording is set, information about input dimensions will be collected.
 
             profile_memory: Whether to report memory usage, default: True (1.6.0)
 
@@ -344,8 +343,12 @@ class PyTorchProfiler(BaseProfiler):
             use_cpu: use_kineto=True and can be used to lower the overhead for GPU-only profiling (1.8.0)
 
             emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
-                Run: nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
-                To visualize, you can either use:
+                Run::
+
+                    nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
+
+                To visualize, you can either use::
+
                     nvvp trace_name.prof
                     torch.autograd.profiler.load_nvprof(path)
 
