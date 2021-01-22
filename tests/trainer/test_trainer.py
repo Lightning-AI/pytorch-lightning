@@ -1455,7 +1455,7 @@ def _get_pytorch_profiler_total_duration(events):
     return total_time / 1e6  # convert microseconds to seconds
 
 
-def test_autograd_profiler_overhead(pytorch_profiler, n_iter=5):
+def test_pytorch_profiler_overhead(pytorch_profiler, n_iter=5):
     """Ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
         with pytorch_profiler.profile("test_step"):
@@ -1472,7 +1472,7 @@ def test_autograd_profiler_overhead(pytorch_profiler, n_iter=5):
     assert len(data) > 0
 
 
-def test_autograd_profiler_describe(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_describe(tmpdir, pytorch_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
     with pytorch_profiler.profile("test_step"):
         pass
@@ -1495,6 +1495,7 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
 
 
 def test_pytorch_profiler_trainer(tmpdir):
+    """Ensure that the profiler can be given to the training and default step are properly recorded. """
 
     profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
 
@@ -1506,3 +1507,30 @@ def test_pytorch_profiler_trainer(tmpdir):
     trainer.fit(model)
     assert len(profiler.summary()) > 0
     assert set(profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
+
+
+def test_pytorch_profiler_nested(tmpdir):
+    """Ensure that the profiler handles nested context"""
+
+    pytorch_profiler = PyTorchProfiler(
+        profiled_functions=["a", "b", "c"],
+        use_cuda=False,
+        output_filename=os.path.join(tmpdir, "profiler.txt"))
+
+    with pytorch_profiler.profile("a"):
+        a = torch.ones(42)
+        with pytorch_profiler.profile("b"):
+            b = torch.zeros(42)
+        with pytorch_profiler.profile("c"):
+            _ = a + b
+
+    pa = pytorch_profiler.profiled_actions
+
+    expected_a = ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty']
+    assert [e.name for e in pa['a']] == expected_a
+
+    expected_b = ['zeros', 'empty', 'zero_', 'fill_']
+    assert [e.name for e in pa['b']] == expected_b
+
+    expected_c = ['add', 'empty']
+    assert [e.name for e in pa['c']] == expected_c

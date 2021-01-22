@@ -23,13 +23,14 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import numpy as np
 import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -294,23 +295,31 @@ class PyTorchProfiler(BaseProfiler):
     """
 
     PROFILER_OVERHEAD_MAX_TOLERANCE = 7.5e-4
+    PROFILED_FUNCTIONS = ["training_step_and_backward", "validation_step", "test_step"]
+    AVAILABLE_SORT_KEYS = [
+        "cpu_time", "cuda_time", "cpu_time_total",
+        "cuda_time_total", "cpu_memory_usage", "cuda_memory_usage",
+        "self_cpu_memory_usage", "self_cuda_memory_usage", "count"
+    ]
 
-    def __init__(self,
-                 output_filename: Optional[str] = None,
-                 enabled: bool = True,
-                 use_cuda: bool = False,
-                 record_shapes: bool = False,
-                 profile_memory: bool = False,
-                 group_by_input_shapes: bool = False,
-                 with_stack: bool = False,
-                 use_kineto: bool = False,
-                 use_cpu: bool = False,
-                 emit_nvtx: bool = False,
-                 export_to_chrome: bool = False,
-                 path_to_export_trace: bool = None,
-                 row_limit: int = 20,
-                 sort_by_key: Optional[str] = None,
-                 profiled_functions=["training_step_and_backward", "validation_step", "test_step"]):
+    def __init__(
+        self,
+        output_filename: Optional[str] = None,
+        enabled: bool = True,
+        use_cuda: bool = False,
+        record_shapes: bool = False,
+        profile_memory: bool = False,
+        group_by_input_shapes: bool = False,
+        with_stack: bool = False,
+        use_kineto: bool = False,
+        use_cpu: bool = False,
+        emit_nvtx: bool = False,
+        export_to_chrome: bool = False,
+        path_to_export_trace: str = None,
+        row_limit: int = 20,
+        sort_by_key: Optional[str] = None,
+        profiled_functions: Optional[List] = None,
+    ):
         """
         Args:
 
@@ -326,6 +335,8 @@ class PyTorchProfiler(BaseProfiler):
 
             profile_memory: Whether to report memory usage, default: True (1.6.0)
 
+            group_by_input_shapes: Include operator input shapes and group calls by shape.
+
             with_stack: record source information (file and line number) for the ops (1.7.0)
 
             use_kineto: experimental support for Kineto profiler (1.8.0)
@@ -340,7 +351,7 @@ class PyTorchProfiler(BaseProfiler):
 
             export_to_chrome: Wether to export the sequence of profiled operators for Chrome.
 
-            path_to_export_trace: Path to exported traces. By default, it will be save
+            path_to_export_trace: Directory path to export traces. By default, it will be save
                 where the file being is being run.
 
             row_limit: Limit the number of rows in a table, `0` is a special value that
@@ -351,10 +362,12 @@ class PyTorchProfiler(BaseProfiler):
             profiled_functions: list of profiled functions which will create a context manager on.
                 Any other will be pass through.
         """
+
         self.profiled_actions = {}
         # PyTorch Profiler doesn't seem to work with multiple processes
+        # todo: Try to find a solution
         self.enabled = enabled and os.getenv("LOCAL_RANK", None) is None
-        self.profiled_functions = profiled_functions
+        self.profiled_functions = profiled_functions or self.PROFILED_FUNCTIONS
         self.use_cuda = use_cuda
         self.record_shapes = record_shapes
         self.profile_memory = profile_memory
@@ -367,9 +380,15 @@ class PyTorchProfiler(BaseProfiler):
         self.emit_nvtx = emit_nvtx
         self.export_to_chrome = export_to_chrome
         self.path_to_export_trace = path_to_export_trace
-        if self.sort_by_key not in self.available_sort_by_keys:
+
+        if export_to_chrome and path_to_export_trace is None:
+            rank_zero_warn(
+                "The exported trace would be save locally as `path_to_export_trace` is empty"
+                "Note: Each functions will generate its own traced file. ")
+
+        if self.sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
-                f"Found sort_by_key: {sort_by_key}. Should be within {self.available_sort_by_keys}. ")
+                f"Found sort_by_key: {sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. ")
 
         self.profiled_actions = {}
         self.context_names = {}
@@ -424,13 +443,13 @@ class PyTorchProfiler(BaseProfiler):
             exc_tb=None
         )
 
-        events = self.profiler.function_events
+        function_events = self.profiler.function_events
         self.profiler = None
         for name in self.running_stack:
             if name not in self.profiled_actions:
-                self.profiled_actions[name] = events
+                self.profiled_actions[name] = function_events
             else:
-                self.profiled_actions[name] += events
+                self.profiled_actions[name] += function_events
 
     def stop(self, action_name: str) -> None:
         if action_name in self.profiled_functions:
@@ -449,24 +468,24 @@ class PyTorchProfiler(BaseProfiler):
         output_string = ''
 
         if self.enabled:
-            for action_name, events in self.profiled_actions.items():
+            for action_name, function_events in self.profiled_actions.items():
 
                 # next line is a workaround for a pytorch issue (fixed on master, still present
                 # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
                 # parent event for detach`
-                events.populate_cpu_children = lambda: None
+                function_events.populate_cpu_children = lambda: None
 
                 if self.export_to_chrome:
                     filename = f"{action_name}_trace.json"
                     path_to_trace = filename if self.path_to_export_trace is None \
                         else os.path.join(self.path_to_export_trace, filename)
-                    events.export_chrome_trace(path_to_trace)
+                    function_events.export_chrome_trace(path_to_trace)
 
                 if self.emit_nvtx:
                     return output_string
 
                 else:
-                    table = events.key_averages(
+                    table = function_events.key_averages(
                         group_by_input_shapes=self.group_by_input_shapes).table(
                             sort_by=self.sort_by_key,
                             row_limit=self.row_limit)
@@ -491,11 +510,3 @@ class PyTorchProfiler(BaseProfiler):
         """Close profiler's stream."""
         if self.output_file:
             self.output_file.close()
-
-    @property
-    def available_sort_by_keys(self):
-        return [
-            "cpu_time", "cuda_time", "cpu_time_total",
-            "cuda_time_total", "cpu_memory_usage", "cuda_memory_usage",
-            "self_cpu_memory_usage", "self_cuda_memory_usage", "count"
-        ]
