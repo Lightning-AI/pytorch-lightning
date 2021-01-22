@@ -372,7 +372,9 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
                     OmegaConf.save(OmegaConf.create(hparams), fp, resolve=True)
                 return
 
-    assert isinstance(hparams, dict)
+    if not isinstance(hparams, dict):
+        raise TypeError("hparams must be dictionary")
+
     hparams_allowed = {}
     # drop paramaters which contain some strange datatypes as fsspec
     for k, v in hparams.items():

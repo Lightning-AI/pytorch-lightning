@@ -24,7 +24,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, parsing, DeviceType
+from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -137,9 +137,7 @@ class TrainLoop:
         # --------------------------
         # Setup??
         # --------------------------
-        ref_model = model
-        if self.trainer.data_parallel:
-            ref_model = model.module
+        ref_model = self.trainer.get_model()
 
         # set the ranks and devices
         self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank

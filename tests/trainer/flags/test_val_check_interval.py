@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-from tests.base import SimpleModule
+
 from pytorch_lightning.trainer import Trainer
+from tests.base import SimpleModule
 
 
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])

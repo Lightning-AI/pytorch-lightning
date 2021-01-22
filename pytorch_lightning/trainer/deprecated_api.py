@@ -11,14 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from pytorch_lightning.utilities import DistributedType, DeviceType, rank_zero_warn
+from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 
 
 class DeprecatedDistDeviceAttributes:
 
     _distrib_type: DistributedType
     _device_type: DeviceType
+    _running_stage: RunningStage
     num_gpus: int
 
     @property
@@ -129,3 +130,27 @@ class DeprecatedDistDeviceAttributes:
         )
         if val:
             self._device_type = DeviceType.GPU
+
+    @property
+    def training(self) -> bool:
+        # todo: consider rename as `is_training`
+        return self._running_stage == RunningStage.TRAINING
+
+    @training.setter
+    def training(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TRAINING
+        else:
+            self._running_stage = None
+
+    @property
+    def testing(self) -> bool:
+        # todo: consider rename as `is_testing`
+        return self._running_stage == RunningStage.TESTING
+
+    @testing.setter
+    def testing(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TESTING
+        else:
+            self._running_stage = None

@@ -20,6 +20,11 @@ The metrics API provides ``update()``, ``compute()``, ``reset()`` functions to t
 serves the dual purpose of calling ``update()`` on its input and simultaneously returning the value of the metric over the
 provided input.
 
+.. warning::
+    From v1.2 onward ``compute()`` will no longer automatically call ``reset()``,
+    and it is up to the user to reset metrics between epochs, except in the case where the
+    metric is directly passed to ``LightningModule``s ``self.log``.
+
 These metrics work with DDP in PyTorch and PyTorch Lightning by default. When ``.compute()`` is called in
 distributed mode, the internal state of each metric is synced and reduced across each process, so that the
 logic present in ``.compute()`` is applied to state information from all processes.
@@ -377,8 +382,8 @@ the possible class labels are 0, 1, 2, 3, etc. Below are some examples of differ
     ml_target = torch.tensor([[0, 1, 1], [1, 0, 0], [0, 0, 0]])
 
 
-Using the ``is_multiclass`` parameter
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using the is_multiclass parameter
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In some cases, you might have inputs which appear to be (multi-dimensional) multi-class
 but are actually binary/multi-label - for example, if both predictions and targets are
@@ -597,14 +602,14 @@ roc [func]
 precision [func]
 ~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision
+.. autofunction:: pytorch_lightning.metrics.functional.precision
     :noindex:
 
 
 precision_recall [func]
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall
+.. autofunction:: pytorch_lightning.metrics.functional.precision_recall
     :noindex:
 
 
@@ -618,7 +623,7 @@ precision_recall_curve [func]
 recall [func]
 ~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.recall
+.. autofunction:: pytorch_lightning.metrics.functional.recall
     :noindex:
 
 select_topk [func]
