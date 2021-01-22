@@ -221,13 +221,9 @@ class LoggerConnector:
                 and global_step for the rest.
         """
         # add gpu memory
-<<<<<<< HEAD
         if self.trainer._device_type == DeviceType.GPU and self.trainer.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.trainer.log_gpu_memory)
-=======
-        if self.trainer.on_gpu and self.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.log_gpu_memory)
->>>>>>> move "log_gpu_memory" to logger connector
+
             metrics.update(mem_map)
 
         # add norms

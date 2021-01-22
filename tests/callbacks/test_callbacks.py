@@ -109,11 +109,6 @@ def test_trainer_callback_system(torch_save):
     assert callback_mock.method_calls == [
         call.on_init_start(trainer),
         call.on_init_end(trainer),
-<<<<<<< HEAD
-        call.on_before_accelerator_backend_setup(trainer, model),
-        call.setup(trainer, model, 'test'),
-=======
->>>>>>> fix tests: callbacks, conversion to lightning optimizer
         call.on_fit_start(trainer, model),
         call.setup(trainer, model, 'test'),
         # call.on_pretrain_routine_start(trainer, model),
