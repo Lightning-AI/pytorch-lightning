@@ -289,10 +289,6 @@ class AdvancedProfiler(BaseProfiler):
 
 
 class PyTorchProfiler(BaseProfiler):
-    """
-    This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
-    different operators inside your model - both on the CPU and GPU
-    """
 
     PROFILER_OVERHEAD_MAX_TOLERANCE = 7.5e-4
     PROFILED_FUNCTIONS = ["training_step_and_backward", "validation_step", "test_step"]
@@ -321,6 +317,10 @@ class PyTorchProfiler(BaseProfiler):
         profiled_functions: Optional[List] = None,
     ):
         """
+
+        This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
+        different operators inside your model - both on the CPU and GPU
+
         Args:
 
             output_filename: optionally save profile results to file instead of printing
