@@ -77,6 +77,8 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def start_training(self, trainer):
         mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer,))
+        # reset optimizers, since main process is never used for training and thus does not have a valid optim state
+        trainer.optimizers = []
 
     def start_testing(self, trainer):
         mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer,))
