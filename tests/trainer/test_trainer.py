@@ -1451,12 +1451,7 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
         Trainer(profiler=profiler)
 
 
-def _get_pytorch_profiler_total_duration(events):
-    total_time = sum([evt.cpu_time + evt.cuda_time for evt in events])
-    return total_time / 1e6  # convert microseconds to seconds
-
-
-def test_pytorch_profiler_describe(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_describe(pytorch_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
     with pytorch_profiler.profile("test_step"):
         pass
