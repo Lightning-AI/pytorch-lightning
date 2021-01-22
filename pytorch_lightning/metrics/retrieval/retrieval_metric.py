@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
+from typing import Any, Callable, Optional
+
 import torch
-from typing import Optional, Callable, Any
 
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning.metrics.utils import get_group_indexes
+
 #: get_group_indexes is used to group predictions belonging to the same query
 
 IGNORE_IDX = -100

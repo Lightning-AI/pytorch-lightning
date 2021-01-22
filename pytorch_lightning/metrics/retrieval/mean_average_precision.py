@@ -1,7 +1,7 @@
 import torch
 
-from pytorch_lightning.metrics.retrieval.retrieval_metric import RetrievalMetric
 from pytorch_lightning.metrics.functional.ir_average_precision import retrieval_average_precision
+from pytorch_lightning.metrics.retrieval.retrieval_metric import RetrievalMetric
 
 
 class RetrievalMAP(RetrievalMetric):
