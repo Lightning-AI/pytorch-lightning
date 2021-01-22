@@ -1,15 +1,14 @@
 .. testsetup:: *
 
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.core.datamodule import LightningDataModule
-    from pytorch_lightning.trainer.trainer import Trainer
     import os
     import torch
     from torch.nn import functional as F
     from torch.utils.data import DataLoader
-    from torch.utils.data import DataLoader
-    import pytorch_lightning as pl
     from torch.utils.data import random_split
+    import pytorch_lightning as pl
+    from pytorch_lightning.core.datamodule import LightningDataModule
+    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.trainer.trainer import Trainer
 
 .. _new_project:
 
@@ -24,7 +23,7 @@ Organizing your code with PyTorch Lightning makes your code:
 * Keep all the flexibility (this is all pure PyTorch), but removes a ton of boilerplate
 * More readable by decoupling the research code from the engineering
 * Easier to reproduce
-* Less error prone by automating most of the training loop and tricky engineering
+* Less error-prone by automating most of the training loop and tricky engineering
 * Scalable to any hardware without changing your model
 
 ----------
@@ -72,11 +71,10 @@ Import the following:
     import torch
     from torch import nn
     import torch.nn.functional as F
-    from torchvision.datasets import MNIST
     from torchvision import transforms
-    from torch.utils.data import DataLoader
+    from torchvision.datasets import MNIST
+    from torch.utils.data import DataLoader, random_split
     import pytorch_lightning as pl
-    from torch.utils.data import random_split
 
 ******************************
 Step 1: Define LightningModule
@@ -134,7 +132,7 @@ Examples of systems are:
 - `DQN <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=IAlT0-75T_Kv>`_
 - `GAN <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/gans/basic/basic_gan_module.py>`_
 - `Image classifier <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL>`_
-- Seq2seq 
+- Seq2seq
 - `SimCLR <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
 - `VAE <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
 
@@ -170,7 +168,7 @@ For example, in this case we could define the autoencoder to act as an embedding
         embeddings = self.encoder(x)
         return embeddings
 
-Of course, nothing is stopping you from using forward from within the training_step
+Of course, nothing is stopping you from using forward from within the training_step.
 
 .. code-block:: python
 
@@ -178,7 +176,7 @@ Of course, nothing is stopping you from using forward from within the training_s
         ...
         z = self(x)
 
-It really comes down to your application. We do however, recommend that you keep both intents separate.
+It really comes down to your application. We do, however, recommend that you keep both intents separate.
 
 * Use forward for inference (predicting).
 * Use training_step for training.
@@ -197,7 +195,7 @@ First, define the data however you want. Lightning just needs a :class:`~torch.u
 
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
     train_loader = DataLoader(dataset)
-    
+
 Next, init the :ref:`lightning_module` and the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`,
 then call fit with both the data and model.
 
@@ -243,7 +241,7 @@ Manual vs automatic optimization
 
 Automatic optimization
 ----------------------
-With Lightning you don't need to worry about when to enable/disable grads, do a backward pass, or update optimizers
+With Lightning, you don't need to worry about when to enable/disable grads, do a backward pass, or update optimizers
 as long as you return a loss with an attached graph from the `training_step`, Lightning will automate the optimization.
 
 .. code-block:: python
@@ -256,7 +254,7 @@ as long as you return a loss with an attached graph from the `training_step`, Li
 
 Manual optimization
 -------------------
-However, for certain research like GANs, reinforcement learning or something with multiple optimizers
+However, for certain research like GANs, reinforcement learning, or something with multiple optimizers
 or an inner loop, you can turn off automatic optimization and fully control the training loop yourself.
 
 First, turn off automatic optimization:
@@ -270,7 +268,8 @@ Now you own the train loop!
 .. code-block:: python
 
     def training_step(self, batch, batch_idx, opt_idx):
-        (opt_a, opt_b, opt_c) = self.optimizers()
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        (opt_a, opt_b, opt_c) = self.optimizers(use_pl_optimizer=True)
 
         loss_a = self.generator(batch[0])
 
@@ -324,8 +323,8 @@ You can also add a forward method to do predictions however you want.
 
     autoencoder = LitAutoencoder()
     autoencoder = autoencoder(torch.rand(1, 28 * 28))
-    
-    
+
+
 .. code-block:: python
 
     # ----------------------------------
@@ -339,11 +338,11 @@ You can also add a forward method to do predictions however you want.
             return image
 
     autoencoder = LitAutoencoder()
-    image_sample = autoencoder(()
+    image_sample = autoencoder()
 
 Option 3: Production
 --------------------
-For production systems onnx or torchscript are much faster. Make sure you have added
+For production systems, onnx or torchscript are much faster. Make sure you have added
 a forward method or trace only the sub-models you need.
 
 .. code-block:: python
@@ -394,7 +393,7 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to chan
 
     # train on 1 GPU
     trainer = pl.Trainer(gpus=1)
-    
+
 .. code-block:: python
 
     # train on multiple GPUs across nodes (32 gpus here)
@@ -402,7 +401,7 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to chan
         gpus=4,
         num_nodes=8
     )
-    
+
 .. code-block:: python
 
     # train on gpu 1, 3, 5 (3 gpus total)
@@ -430,7 +429,7 @@ Without changing a SINGLE line of your code, you can now do the following with t
         limit_train_batches=0.5,
         val_check_interval=0.25
     )
-    
+
 -----------
 
 Checkpoints
@@ -538,7 +537,7 @@ The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a 
 - prog_bar (logs to the progress bar)
 - logger (logs to the logger like Tensorboard)
 
-Depending on where log is called from, Lightning auto-determines the correct mode for you. But of course
+Depending on where the log is called from, Lightning auto-determines the correct mode for you. But of course
 you can override the default behavior by manually setting the flags
 
 .. note:: Setting on_epoch=True will accumulate your logged values over the full training epoch.
@@ -550,7 +549,7 @@ you can override the default behavior by manually setting the flags
 
 .. note::
     The loss value shown in the progress bar is smoothed (averaged) over the last values,
-    so it differs from the actual loss returned in train/validation step.
+    so it differs from the actual loss returned in the train/validation step.
 
 You can also use any method of your logger directly:
 
@@ -583,23 +582,21 @@ A callback is an arbitrary self-contained program that can be executed at arbitr
 
 Here's an example adding a not-so-fancy learning rate decay rule:
 
-.. code-block:: python
+.. testcode::
 
-    class DecayLearningRate(pl.Callback)
+    class DecayLearningRate(pl.callbacks.Callback):
 
         def __init__(self):
             self.old_lrs = []
 
         def on_train_start(self, trainer, pl_module):
             # track the initial learning rates
-            for opt_idx in optimizer in enumerate(trainer.optimizers):
-                group = []
-                for param_group in optimizer.param_groups:
-                    group.append(param_group['lr'])
+            for opt_idx, optimizer in enumerate(trainer.optimizers):
+                group = [param_group['lr'] for param_group in optimizer.param_groups]
                 self.old_lrs.append(group)
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
-            for opt_idx in optimizer in enumerate(trainer.optimizers):
+            for opt_idx, optimizer in enumerate(trainer.optimizers):
                 old_lr_group = self.old_lrs[opt_idx]
                 new_lr_group = []
                 for p_idx, param_group in enumerate(optimizer.param_groups):
@@ -607,7 +604,7 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                     new_lr = old_lr * 0.98
                     new_lr_group.append(new_lr)
                     param_group['lr'] = new_lr
-                 self.old_lrs[opt_idx] = new_lr_group
+                self.old_lrs[opt_idx] = new_lr_group
 
 And pass the callback to the Trainer
 
@@ -713,7 +710,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 
 .. code-block:: python
 
-    # Automatically overfit the sane batch of your model for a sanity test 
+    # Automatically overfit the sane batch of your model for a sanity test
     trainer = pl.Trainer(overfit_batches=1)
 
 .. code-block:: python
@@ -723,7 +720,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
     trainer = pl.Trainer(fast_dev_run=True)
 
 .. code-block:: python
-   
+
    # train only 20% of an epoch
    trainer = pl.Trainer(limit_train_batches=0.2)
 
@@ -733,10 +730,10 @@ Lightning has many tools for debugging. Here is an example of just a few of them
     trainer = pl.Trainer(val_check_interval=0.25)
 
 .. code-block:: python
-    
+
     # Profile your code to find speed/memory bottlenecks
     Trainer(profiler=True)
- 
+
 ---------------
 
 ********************

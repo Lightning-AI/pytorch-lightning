@@ -11,24 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
-import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import List, Optional, Union, Type, TypeVar, cast
+import inspect
+import os
+from typing import cast, List, Optional, Type, TypeVar, Union
 
-from pytorch_lightning.callbacks import Callback, ProgressBarBase, ModelCheckpoint
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.optimizer import is_lightning_optimizer
+from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import argparse_utils
+from pytorch_lightning.utilities import argparse_utils, HOROVOD_AVAILABLE, rank_zero_warn, TPU_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.loggers.base import LightningLoggerBase
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+
+if TPU_AVAILABLE:
+    import torch_xla.core.xla_model as xm
+
+if HOROVOD_AVAILABLE:
+    import horovod.torch as hvd
 
 
 class TrainerProperties(ABC):
@@ -37,7 +44,7 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     _state: TrainerState
     global_rank: int
-    fast_dev_run: bool
+    fast_dev_run: Union[int, bool]
     use_dp: bool
     use_ddp: bool
     use_ddp2: bool
@@ -47,29 +54,29 @@ class TrainerProperties(ABC):
     limit_val_batches: int
     _default_root_dir: str
     _weights_save_path: str
-    default_root_path: str
     accelerator_backend: Accelerator
     logger: LightningLoggerBase
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
     callbacks: List[Callback]
+    _lightning_optimizers = None
 
     @property
     def log_dir(self):
         if self.checkpoint_callback is not None:
-            dir = self.checkpoint_callback.dirpath
-            dir = os.path.split(dir)[0]
+            dirpath = self.checkpoint_callback.dirpath
+            dirpath = os.path.split(dirpath)[0]
         elif self.logger is not None:
             if isinstance(self.logger, TensorBoardLogger):
-                dir = self.logger.log_dir
+                dirpath = self.logger.log_dir
             else:
-                dir = self.logger.save_dir
+                dirpath = self.logger.save_dir
         else:
-            dir = self._default_root_dir
+            dirpath = self._default_root_dir
 
         if self.accelerator_backend is not None:
-            dir = self.accelerator_backend.broadcast(dir)
-        return dir
+            dirpath = self.accelerator_backend.broadcast(dirpath)
+        return dirpath
 
     @property
     def use_amp(self) -> bool:
@@ -190,7 +197,7 @@ class TrainerProperties(ABC):
         """ Check if we should run validation during training. """
         model_ref = self.model_connector.get_model()
         val_loop_enabled = is_overridden('validation_step', model_ref) and self.limit_val_batches > 0
-        return val_loop_enabled or self.fast_dev_run
+        return val_loop_enabled
 
     @property
     def default_root_dir(self) -> str:
@@ -213,17 +220,37 @@ class TrainerProperties(ABC):
         return self._weights_save_path
 
     @property
+    def early_stopping_callback(self) -> Optional[EarlyStopping]:
+        """
+        The first :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+        callback in the Trainer.callbacks list, or ``None`` if it doesn't exist.
+        """
+        callbacks = self.early_stopping_callbacks
+        return callbacks[0] if len(callbacks) > 0 else None
+
+    @property
+    def early_stopping_callbacks(self) -> List[EarlyStopping]:
+        """
+        A list of all instances of :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+        found in the Trainer.callbacks list.
+        """
+        return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
+
+    @property
     def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
         """
-        The first checkpoint callback in the Trainer.callbacks list, or ``None`` if
-        no checkpoint callbacks exist.
+        The first :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        callback in the Trainer.callbacks list, or ``None`` if it doesn't exist.
         """
         callbacks = self.checkpoint_callbacks
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
     def checkpoint_callbacks(self) -> List[ModelCheckpoint]:
-        """ A list of all instances of ModelCheckpoint found in the Trainer.callbacks list. """
+        """
+        A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        found in the Trainer.callbacks list.
+        """
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
@@ -231,6 +258,46 @@ class TrainerProperties(ABC):
 
     def get_model(self):
         return self.model_connector.get_model()
+
+    @property
+    def lightning_optimizers(self):
+        if self._lightning_optimizers is None:
+            self.convert_to_lightning_optimizers()
+        return self._lightning_optimizers
+
+    def __getstate__(self):
+        # remove lightning_optimizers
+        self._lightning_optimizers = None
+        return self.__dict__
+
+    @property
+    def require_distributed_sampler(self):
+        if self.accelerator_backend is not None:
+            return self.accelerator_backend.require_distributed_sampler
+        return self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
+
+    @property
+    def distributed_sampler_kwargs(self):
+        if self.accelerator_backend is not None:
+            return self.accelerator_backend.distributed_sampler_kwargs
+
+        if self.use_tpu:
+            kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+
+        elif self.use_horovod:
+            kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
+
+        else:
+            world_size = {
+                "ddp": self.num_nodes * self.num_processes,
+                "ddp_spawn": self.num_nodes * self.num_processes,
+                "ddp2": self.num_nodes,
+                "ddp_cpu": self.num_processes * self.num_nodes
+            }
+            assert self.distributed_backend is not None
+            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
+
+        return kwargs
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

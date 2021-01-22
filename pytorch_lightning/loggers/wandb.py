@@ -22,15 +22,18 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch.nn as nn
 
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.utilities import rank_zero_only, _module_available
+from pytorch_lightning.utilities.warning_utils import WarningCache
+
+_WANDB_AVAILABLE = _module_available("wandb")
+
 try:
     import wandb
     from wandb.wandb_run import Run
-except ImportError:  # pragma: no-cover
-    wandb = None
-    Run = None
-
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
+except ImportError:
+    # needed for test mocks, these tests shall be updated
+    wandb, Run = None, None
 
 
 class WandbLogger(LightningLoggerBase):
@@ -53,15 +56,21 @@ class WandbLogger(LightningLoggerBase):
         project: The name of the project to which this run will belong.
         log_model: Save checkpoints in wandb dir to upload on W&B servers.
         experiment: WandB experiment object.
+        prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `entity`, `group`, `tags`, etc. used by
             :func:`wandb.init` can be passed as keyword arguments in this logger.
 
     Example::
 
+    .. code-block:: python
+
         from pytorch_lightning.loggers import WandbLogger
         from pytorch_lightning import Trainer
         wandb_logger = WandbLogger()
         trainer = Trainer(logger=wandb_logger)
+
+    Note: When logging manually through `wandb.log` or `trainer.logger.experiment.log`,
+    make sure to use `commit=False` so the logging step does not increase.
 
     See Also:
         - `Tutorial <https://app.wandb.ai/cayush/pytorchlightning/reports/
@@ -69,6 +78,8 @@ class WandbLogger(LightningLoggerBase):
           on how to use W&B with Pytorch Lightning.
 
     """
+
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
@@ -81,6 +92,7 @@ class WandbLogger(LightningLoggerBase):
         project: Optional[str] = None,
         log_model: bool = False,
         experiment=None,
+        prefix: str = '',
         **kwargs
     ):
         if wandb is None:
@@ -95,9 +107,11 @@ class WandbLogger(LightningLoggerBase):
         self._experiment = experiment
         self._offline = offline
         self._log_model = log_model
+        self._prefix = prefix
         self._kwargs = kwargs
-        # logging multiple Trainer on a single W&B run (k-fold, etc)
+        # logging multiple Trainer on a single W&B run (k-fold, resuming, etc)
         self._step_offset = 0
+        self.warning_cache = WarningCache()
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -126,7 +140,9 @@ class WandbLogger(LightningLoggerBase):
                 os.environ['WANDB_MODE'] = 'dryrun'
             self._experiment = wandb.init(
                 name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
-                reinit=True, id=self._id, resume='allow', **self._kwargs)
+                id=self._id, resume='allow', **self._kwargs) if wandb.run is None else wandb.run
+            # offset logging step when resuming a run
+            self._step_offset = self._experiment.step
             # save checkpoints in wandb dir to upload on W&B servers
             if self._log_model:
                 self._save_dir = self._experiment.dir
@@ -145,6 +161,10 @@ class WandbLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
+        metrics = self._add_prefix(metrics)
+        if step is not None and step + self._step_offset < self.experiment.step:
+            self.warning_cache.warn('Trying to log at a previous step. Use `commit=False` when logging metrics manually.')
         self.experiment.log(metrics, step=(step + self._step_offset) if step is not None else None)
 
     @property
@@ -161,6 +181,7 @@ class WandbLogger(LightningLoggerBase):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
+    @rank_zero_only
     def finalize(self, status: str) -> None:
         # offset future training logged on same W&B run
         if self._experiment is not None:

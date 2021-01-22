@@ -15,15 +15,15 @@
 """[Train, Eval]Result for easier logging, checkpointing, early stopping, epoch-wise reduction."""
 
 import numbers
+import os
 from copy import copy
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple, Iterable
+from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
-import os
 
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.metrics import Metric
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 
 
 class Result(Dict):
@@ -128,6 +128,7 @@ class Result(Dict):
         sync_dist_group: Optional[Any] = None,
         sync_fn: Callable = None,
         dataloader_idx: Optional[int] = None,
+        device: torch.device = None,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
@@ -138,7 +139,10 @@ class Result(Dict):
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
             is_dist_initialized = torch.distributed.is_available() and torch.distributed.is_initialized()
             # TODO: Find a way to make the reduction only once, so we don't need to clone.
-            value = value.clone() if is_dist_initialized else value
+            if is_dist_initialized and isinstance(value, torch.Tensor):
+                value = value.clone()
+            else:
+                value = torch.tensor(value, device=device, dtype=torch.float)
             value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
@@ -367,7 +371,10 @@ class Result(Dict):
             dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
 
             if options['forked']:
-                result[dl_key] = self[k]
+                if isinstance(self[k], Metric):
+                    result[dl_key] = self[k].compute().detach()
+                else:
+                    result[dl_key] = self[k]
 
         return result
 
@@ -400,11 +407,15 @@ class Result(Dict):
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.detach())
 
-    def cpu(self):
-        """Move all self attributes to CPU."""
+    def to(self, *args, **kwargs):
+        """Move all self attributes to the given device."""
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
-                self.__setitem__(k, v.cpu())
+                self.__setitem__(k, v.to(*args, **kwargs))
+
+    def cpu(self):
+        """Move all self attributes to CPU."""
+        self.to(torch.device("cpu"))
 
     def __repr__(self):
         self_copy = self.copy()

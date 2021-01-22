@@ -294,10 +294,14 @@ def setup(app):
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
 def package_list_from_file(file):
+    """List up package name (not containing version and extras) from a package list file
+    """
     mocked_packages = []
     with open(file, 'r') as fp:
         for ln in fp.readlines():
-            found = [ln.index(ch) for ch in list(',=<>#') if ch in ln]
+            # Example: `tqdm>=4.41.0` => `tqdm`
+            # `[` is for package with extras
+            found = [ln.index(ch) for ch in list(',=<>#[') if ch in ln]
             pkg = ln[:min(found)] if found else ln
             if pkg.rstrip():
                 mocked_packages.append(pkg.rstrip())
@@ -311,6 +315,7 @@ PACKAGE_MAPPING = {
     'PyYAML': 'yaml',
     'comet-ml': 'comet_ml',
     'neptune-client': 'neptune',
+    'hydra-core': 'hydra',
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
@@ -357,9 +362,12 @@ import importlib
 import os
 import torch
 
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-APEX_AVAILABLE = importlib.util.find_spec("apex") is not None
-XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
+from pytorch_lightning.utilities import (
+    NATIVE_AMP_AVAILABLE,
+    APEX_AVAILABLE,
+    XLA_AVAILABLE,
+    TPU_AVAILABLE,
+)
 TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
 
 

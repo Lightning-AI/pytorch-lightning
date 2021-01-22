@@ -16,6 +16,7 @@ from typing import Union
 import torch
 from torch.optim import Optimizer
 
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
 
 
@@ -29,6 +30,11 @@ class NativeAMPPlugin(PrecisionPlugin):
 
     def connect(self, model, optimizers):
         return model, optimizers
+
+    def training_step(self, fx, args):
+        with torch.cuda.amp.autocast():
+            output = fx(*args)
+        return output
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = self.trainer.scaler.scale(closure_loss)
@@ -47,14 +53,12 @@ class NativeAMPPlugin(PrecisionPlugin):
 
         # unscale gradient to allow analyze within `on_after_backward`
         if not self.trainer.train_loop.should_accumulate() and automatic_optimization:
-            self.trainer.scaler.unscale_(optimizer)
+            if isinstance(optimizer, LightningOptimizer):
+                self.trainer.scaler.unscale_(optimizer.optimizer)
+            else:
+                self.trainer.scaler.unscale_(optimizer)
 
         return closure_loss
-
-    def training_step(self, fx, args):
-        with torch.cuda.amp.autocast():
-            output = fx(*args)
-        return output
 
     def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
         model = self.trainer.get_model()
@@ -63,3 +67,17 @@ class NativeAMPPlugin(PrecisionPlugin):
     @property
     def scaler(self):
         return torch.cuda.amp.GradScaler()
+
+    def optimizer_step(self, trainer, optimizer, closure):
+        # native amp does not yet support closures.
+        # TODO: pass the closure to the step ASAP
+        with trainer.profiler.profile("closure"):
+            closure()
+
+        if not self.trainer.train_loop.automatic_optimization:
+            trainer.scaler.unscale_(optimizer)
+            trainer.call_hook("on_after_backward")
+
+        with trainer.profiler.profile("optimizer_step"):
+            trainer.scaler.step(optimizer)
+            trainer.scaler.update()
