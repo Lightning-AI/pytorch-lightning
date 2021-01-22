@@ -72,8 +72,8 @@ def mean_average_precision(
         }
         if len(desc_indices) == 0:
             continue
-        tps = torch.zeros(len(desc_indices), dtype=torch.int)
-        fps = torch.zeros(len(desc_indices), dtype=torch.int)
+        tps = torch.zeros(len(desc_indices))
+        fps = torch.zeros(len(desc_indices))
         for i, pred_idx in enumerate(desc_indices):
             image_idx = pred_image_indices[pred_idx].item()
             gt_bboxes = target_bboxes[(target_image_indices == image_idx) & (target_labels == c)]
