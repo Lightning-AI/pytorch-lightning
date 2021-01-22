@@ -290,13 +290,12 @@ class AdvancedProfiler(BaseProfiler):
 
 class PyTorchProfiler(BaseProfiler):
 
-    PROFILER_OVERHEAD_MAX_TOLERANCE = 7.5e-4
-    PROFILED_FUNCTIONS = ["training_step_and_backward", "validation_step", "test_step"]
-    AVAILABLE_SORT_KEYS = [
+    PROFILED_FUNCTIONS = ("training_step_and_backward", "validation_step", "test_step")
+    AVAILABLE_SORT_KEYS = (
         "cpu_time", "cuda_time", "cpu_time_total",
         "cuda_time_total", "cpu_memory_usage", "cuda_memory_usage",
         "self_cpu_memory_usage", "self_cuda_memory_usage", "count"
-    ]
+    )
 
     def __init__(
         self,
@@ -332,15 +331,16 @@ class PyTorchProfiler(BaseProfiler):
 
             record_shapes: If shapes recording is set, information about input dimensions will be collected.
 
-            profile_memory: Whether to report memory usage, default: True (1.6.0)
+            profile_memory: Whether to report memory usage, default: True (Introduced in PyTorch 1.6.0)
 
             group_by_input_shapes: Include operator input shapes and group calls by shape.
 
-            with_stack: record source information (file and line number) for the ops (1.7.0)
+            with_stack: record source information (file and line number) for the ops (Introduced in PyTorch 1.7.0)
 
-            use_kineto: experimental support for Kineto profiler (1.8.0)
+            use_kineto: experimental support for Kineto profiler (Introduced in PyTorch 1.8.0)
 
-            use_cpu: use_kineto=True and can be used to lower the overhead for GPU-only profiling (1.8.0)
+            use_cpu: use_kineto=True and can be used to lower the overhead
+                for GPU-only profiling (Introduced in PyTorch 1.8.0)
 
             emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
                 Run::
@@ -353,9 +353,10 @@ class PyTorchProfiler(BaseProfiler):
                     torch.autograd.profiler.load_nvprof(path)
 
             export_to_chrome: Wether to export the sequence of profiled operators for Chrome.
+                It will generate a ``.json`` file which can be read by Chrome.
 
-            path_to_export_trace: Directory path to export traces. By default, it will be save
-                where the file being is being run.
+            path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
+                By default, it will be save where the file being is being run.
 
             row_limit: Limit the number of rows in a table, `0` is a special value that
                 removes the limit completely.
@@ -386,8 +387,8 @@ class PyTorchProfiler(BaseProfiler):
 
         if export_to_chrome and path_to_export_trace is None:
             rank_zero_warn(
-                "The exported trace would be save locally as `path_to_export_trace` is empty"
-                "Note: Each functions will generate its own traced file. ")
+                "The exported trace would be save locally as `path_to_export_trace` is empty."
+                " Note: Each functions will generate its own traced file.")
 
         if self.sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
@@ -409,15 +410,16 @@ class PyTorchProfiler(BaseProfiler):
         super().__init__(output_streams=streaming_out)
 
     def start(self, action_name: str) -> None:
-        # stop the running profiler if any
-        if action_name in self.profiled_functions:
-            if len(self.running_stack) > 0:
-                self._stop(self.running_stack[-1])
-            self.running_stack.append(action_name)
+        if action_name not in self.profiled_functions:
+            return
 
-            self.context_names[action_name] = "/".join(self.running_stack)
+        if len(self.running_stack) > 0:
+            self._stop(self.running_stack[-1])
+        self.running_stack.append(action_name)
 
-            self._start(action_name)
+        self.context_names[action_name] = "/".join(self.running_stack)
+
+        self._start(action_name)
 
     def _start(self, action_name: str) -> None:
         if self.emit_nvtx:
@@ -455,51 +457,55 @@ class PyTorchProfiler(BaseProfiler):
                 self.profiled_actions[name] += function_events
 
     def stop(self, action_name: str) -> None:
-        if action_name in self.profiled_functions:
-            if len(self.running_stack) == 0 or self.running_stack[-1] != action_name:
-                raise ValueError(  # pragma: no-cover
-                    f"Attempting to stop recording an action ({action_name}) which was never started."
-                )
-            self._stop(action_name)
-            self.running_stack.pop()
-            # restore running profiler
-            if len(self.running_stack) > 0:
-                self._start(self.running_stack[-1])
+        if action_name not in self.profiled_functions:
+            return
+
+        if len(self.running_stack) == 0 or self.running_stack[-1] != action_name:
+            raise ValueError(  # pragma: no-cover
+                f"Attempting to stop recording an action ({action_name}) which was never started."
+            )
+        self._stop(action_name)
+        self.running_stack.pop()
+        # restore running profiler
+        if len(self.running_stack) > 0:
+            self._start(self.running_stack[-1])
 
     def summary(self) -> str:
         recorded_stats = {}
         output_string = ''
 
-        if self.enabled:
-            for action_name, function_events in self.profiled_actions.items():
+        if not self.enabled:
+            return output_string
 
-                # next line is a workaround for a pytorch issue (fixed on master, still present
-                # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
-                # parent event for detach`
-                function_events.populate_cpu_children = lambda: None
+        for action_name, function_events in self.profiled_actions.items():
 
-                if self.export_to_chrome:
-                    filename = f"{action_name}_trace.json"
-                    path_to_trace = filename if self.path_to_export_trace is None \
-                        else os.path.join(self.path_to_export_trace, filename)
-                    function_events.export_chrome_trace(path_to_trace)
+            # next line is a workaround for a pytorch issue (fixed on master, still present
+            # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
+            # parent event for detach`
+            function_events.populate_cpu_children = lambda: None
 
-                if self.emit_nvtx:
-                    return output_string
+            if self.export_to_chrome:
+                filename = f"{action_name}_trace.json"
+                path_to_trace = filename if self.path_to_export_trace is None \
+                    else os.path.join(self.path_to_export_trace, filename)
+                function_events.export_chrome_trace(path_to_trace)
 
-                else:
-                    table = function_events.key_averages(
-                        group_by_input_shapes=self.group_by_input_shapes).table(
-                            sort_by=self.sort_by_key,
-                            row_limit=self.row_limit)
-                    recorded_stats[action_name] = table
+            if self.emit_nvtx:
+                return output_string
 
-            # log to standard out
-            output_string = f"{os.linesep}Profiler Report{os.linesep}"
-            for action, stats in recorded_stats.items():
-                output_string += (
-                    f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
-                )
+            else:
+                table = function_events.key_averages(
+                    group_by_input_shapes=self.group_by_input_shapes).table(
+                        sort_by=self.sort_by_key,
+                        row_limit=self.row_limit)
+                recorded_stats[action_name] = table
+
+        # log to standard out
+        output_string = f"{os.linesep}Profiler Report{os.linesep}"
+        for action, stats in recorded_stats.items():
+            output_string += (
+                f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
+            )
 
         return output_string
 

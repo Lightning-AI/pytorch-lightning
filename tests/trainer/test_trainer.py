@@ -1452,25 +1452,8 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
 
 
 def _get_pytorch_profiler_total_duration(events):
-    total_time = sum([e.cpu_time + e.cuda_time for e in events])
+    total_time = sum([evt.cpu_time + evt.cuda_time for evt in events])
     return total_time / 1e6  # convert microseconds to seconds
-
-
-def test_pytorch_profiler_overhead(pytorch_profiler, n_iter=5):
-    """Ensure that the profiler doesn't introduce too much overhead during training."""
-    for _ in range(n_iter):
-        with pytorch_profiler.profile("test_step"):
-            a = torch.ones(42)
-            b = torch.abs(a)
-            _ = a + b
-
-    action_profile = pytorch_profiler.profiled_actions["test_step"]
-    total_duration = _get_pytorch_profiler_total_duration(action_profile)
-    average_duration = total_duration / n_iter
-    assert average_duration < pytorch_profiler.PROFILER_OVERHEAD_MAX_TOLERANCE
-    pytorch_profiler.describe()
-    data = Path(pytorch_profiler.output_fname).read_text()
-    assert len(data) > 0
 
 
 def test_pytorch_profiler_describe(tmpdir, pytorch_profiler):
@@ -1529,14 +1512,16 @@ def test_pytorch_profiler_nested(tmpdir):
 
     # From PyTorch 1.6.0, more operation are being traced.
     if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        prefix_to_remove = "aten::" if LooseVersion(torch.__version__) >= LooseVersion("1.7.1") else ''
+
         expected_a = ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty']
-        assert [e.name for e in pa['a']] == expected_a
+        assert [e.name.replace(prefix_to_remove, '') for e in pa['a']] == expected_a
 
         expected_b = ['zeros', 'empty', 'zero_', 'fill_']
-        assert [e.name for e in pa['b']] == expected_b
+        assert [e.name.replace(prefix_to_remove, '') for e in pa['b']] == expected_b
 
         expected_c = ['add', 'empty']
-        assert [e.name for e in pa['c']] == expected_c
+        assert [e.name.replace(prefix_to_remove, '') for e in pa['c']] == expected_c
 
     else:
         expected_a = ['add']
