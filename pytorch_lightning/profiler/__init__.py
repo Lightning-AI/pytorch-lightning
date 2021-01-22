@@ -171,15 +171,19 @@ The user can provide ``PyTorchProfiler(profiled_functions=[...])`` to extend the
     ---------------------  ---------------  ---------------  ---------------  ---------------  ---------------
     Self CPU time total: 1.681ms
 
-When running with `PyTorchProfiler(emit_nvtx=True)`. You should run as following:
+When running with `PyTorchProfiler(emit_nvtx=True)`. You should run as following::
 
-nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
+    nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
 
 To visualize the profiled operation, you can either:
 
-* Use: nvvp trace_name.prof
+* Use::
 
-* Use: python -c 'import torch; print(torch.autograd.profiler.load_nvprof("trace_name.prof"))'
+    nvvp trace_name.prof
+
+* Use::
+
+     python -c 'import torch; print(torch.autograd.profiler.load_nvprof("trace_name.prof"))'
 
 """
 
