@@ -109,7 +109,8 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
         def on_train_epoch_start(self):
             self.num_train_batches = 0
 
-        def training_epoch_end(self, outputs):  #Overridden
+        def training_epoch_end(self, outputs):  # Overridden
+            pass
             return
 
         def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
