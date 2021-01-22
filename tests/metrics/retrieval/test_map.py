@@ -1,18 +1,21 @@
 import math
+import random
+from typing import Callable, List
+
 import numpy as np
 import pytest
 import torch
-import random
 from sklearn.metrics import average_precision_score as sk_average_precision
 
 from pytorch_lightning import seed_everything
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.retrieval.mean_average_precision import RetrievalMAP
 
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_class_metric'], [
     [sk_average_precision, RetrievalMAP],
 ])
-def test_against_sklearn(sklearn_metric, torch_class_metric):
+def test_against_sklearn(sklearn_metric: Callable, torch_class_metric: Metric) -> None:
     """Compare PL metrics to sklearn version. """
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     seed_everything(0)
@@ -22,7 +25,7 @@ def test_against_sklearn(sklearn_metric, torch_class_metric):
     batch_sizes = [1, 4, 10]
     query_without_relevant_docs_options = ['skip', 'pos', 'neg']
 
-    def compute_sklearn_metric(target, preds, behaviour):
+    def compute_sklearn_metric(target: List, preds: List, behaviour: str) -> None:
         """ Compute sk metric with multiple iterations using the base `sklearn_metric`. """
         sk_results = []
         kwargs = {'device': device, 'dtype': torch.float32}
@@ -52,7 +55,7 @@ def test_against_sklearn(sklearn_metric, torch_class_metric):
 
         return sk_results
 
-    def do_test(batch_size, size):
+    def do_test(batch_size: int, size: int) -> None:
         """ For each possible behaviour of the metric, check results are correct. """
         for behaviour in query_without_relevant_docs_options:
             metric = torch_class_metric(query_without_relevant_docs=behaviour)
@@ -99,7 +102,7 @@ def test_against_sklearn(sklearn_metric, torch_class_metric):
 @pytest.mark.parametrize(['torch_class_metric'], [
     [RetrievalMAP],
 ])
-def test_input_data(torch_class_metric):
+def test_input_data(torch_class_metric: Metric) -> None:
     """Check PL metrics inputs are controlled correctly. """
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
