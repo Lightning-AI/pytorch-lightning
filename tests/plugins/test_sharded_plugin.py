@@ -74,7 +74,7 @@ def test_ddp_choice_sharded_amp(tmpdir, accelerator):
 
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.precision_connector.backend, ShardedNativeMixedPrecisionPlugin)
+            assert isinstance(trainer.accelerator_backend.precision_plugin, ShardedNativeMixedPrecisionPlugin))
             raise SystemExit()
 
     model = BoringModel()
