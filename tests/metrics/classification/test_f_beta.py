@@ -6,7 +6,7 @@ import torch
 from sklearn.metrics import fbeta_score
 
 from pytorch_lightning.metrics import FBeta
-from pytorch_lightning.metrics.functional import fbeta, f1
+from pytorch_lightning.metrics.functional import f1, fbeta
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
@@ -18,7 +18,7 @@ from tests.metrics.classification.inputs import (
     _multilabel_inputs_no_match,
     _multilabel_prob_inputs,
 )
-from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
+from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 torch.manual_seed(42)
 

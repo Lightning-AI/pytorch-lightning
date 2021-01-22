@@ -20,6 +20,11 @@ The metrics API provides ``update()``, ``compute()``, ``reset()`` functions to t
 serves the dual purpose of calling ``update()`` on its input and simultaneously returning the value of the metric over the
 provided input.
 
+.. warning::
+    From v1.2 onward ``compute()`` will no longer automatically call ``reset()``,
+    and it is up to the user to reset metrics between epochs, except in the case where the
+    metric is directly passed to ``LightningModule``s ``self.log``.
+
 These metrics work with DDP in PyTorch and PyTorch Lightning by default. When ``.compute()`` is called in
 distributed mode, the internal state of each metric is synced and reduced across each process, so that the
 logic present in ``.compute()`` is applied to state information from all processes.
@@ -81,6 +86,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.log('valid_acc', self.valid_acc, on_step=True, on_epoch=True)
 
 .. note::
+
     If using metrics in data parallel mode (dp), the metric update/logging should be done
     in the ``<mode>_step_end`` method (where ``<mode>`` is either ``training``, ``validation``
     or ``test``). This is due to metric states else being destroyed after each forward pass,
@@ -98,7 +104,6 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
             #update and log
             self.metric(outputs['preds'], outputs['target'])
             self.log('metric', self.metric)
-
 
 This metrics API is independent of PyTorch Lightning. Metrics can directly be used in PyTorch as shown in the example:
 
@@ -131,7 +136,17 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     Metrics contain internal states that keep track of the data seen so far.
     Do not mix metric states across training, validation and testing.
     It is highly recommended to re-initialize the metric per mode as
-    shown in the examples above.
+    shown in the examples above. For easy initializing the same metric multiple
+    times, the ``.clone()`` method can be used:
+
+    .. testcode::
+
+        def __init__(self):
+            ...
+            metric = pl.metrics.Accuracy()
+            self.train_acc = metric.clone()
+            self.val_acc = metric.clone()
+            self.test_acc = metric.clone()
 
 .. note::
 
@@ -240,6 +255,69 @@ In practise this means that:
     val = metric(pred, target) # this value can be backpropagated
     val = metric.compute() # this value cannot be backpropagated
 
+****************
+MetricCollection
+****************
+
+In many cases it is beneficial to evaluate the model output by multiple metrics.
+In this case the `MetricCollection` class may come in handy. It accepts a sequence
+of metrics and wraps theses into a single callable metric class, with the same
+interface as any other metric.
+
+Example:
+
+.. testcode::
+
+    from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
+    target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
+    preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
+    metric_collection = MetricCollection([
+        Accuracy(),
+        Precision(num_classes=3, average='macro'),
+        Recall(num_classes=3, average='macro')
+    ])
+    print(metric_collection(preds, target))
+
+.. testoutput::
+    :options: +NORMALIZE_WHITESPACE
+
+    {'Accuracy': tensor(0.1250), 
+     'Precision': tensor(0.0667), 
+     'Recall': tensor(0.1111)}
+
+Similarly it can also reduce the amount of code required to log multiple metrics
+inside your LightningModule
+
+.. code-block:: python
+
+    def __init__(self):
+        ...
+        metrics = pl.metrics.MetricCollection(...)
+        self.train_metrics = metrics.clone()
+        self.valid_metrics = metrics.clone()
+
+    def training_step(self, batch, batch_idx):
+        logits = self(x)
+        ...
+        self.train_metrics(logits, y)
+        # use log_dict instead of log
+        self.log_dict(self.train_metrics, on_step=True, on_epoch=False, prefix='train')
+
+    def validation_step(self, batch, batch_idx):
+        logits = self(x)
+        ...
+        self.valid_metrics(logits, y)
+        # use log_dict instead of log
+        self.log_dict(self.valid_metrics, on_step=True, on_epoch=True, prefix='val')
+
+.. note::
+
+    `MetricCollection` as default assumes that all the metrics in the collection
+    have the same call signature. If this is not the case, input that should be
+    given to different metrics can given as keyword arguments to the collection.
+
+.. autoclass:: pytorch_lightning.metrics.MetricCollection
+    :noindex:
 
 **********
 Metric API
@@ -304,8 +382,8 @@ the possible class labels are 0, 1, 2, 3, etc. Below are some examples of differ
     ml_target = torch.tensor([[0, 1, 1], [1, 0, 0], [0, 0, 0]])
 
 
-Using the ``is_multiclass`` parameter
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using the is_multiclass parameter
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In some cases, you might have inputs which appear to be (multi-dimensional) multi-class
 but are actually binary/multi-label - for example, if both predictions and targets are
@@ -391,6 +469,12 @@ FBeta
 ~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.classification.FBeta
+    :noindex:
+    
+IoU
+~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.IoU
     :noindex:
 
 Hamming Distance
@@ -504,7 +588,7 @@ hamming_distance [func]
 iou [func]
 ~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.iou
+.. autofunction:: pytorch_lightning.metrics.functional.iou
     :noindex:
 
 
@@ -518,14 +602,14 @@ roc [func]
 precision [func]
 ~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision
+.. autofunction:: pytorch_lightning.metrics.functional.precision
     :noindex:
 
 
 precision_recall [func]
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall
+.. autofunction:: pytorch_lightning.metrics.functional.precision_recall
     :noindex:
 
 
@@ -539,7 +623,7 @@ precision_recall_curve [func]
 recall [func]
 ~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.recall
+.. autofunction:: pytorch_lightning.metrics.functional.recall
     :noindex:
 
 select_topk [func]

@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest.mock import Mock, call
+from unittest import mock
+from unittest.mock import call, Mock
 
 import pytest
-from unittest import mock
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ProgressBarBase, ProgressBar, ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate, BoringModel
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @pytest.mark.parametrize('callbacks,refresh_rate', [
+    ([], None),
     ([], 1),
     ([], 2),
     ([ProgressBar(refresh_rate=1)], 0),
@@ -245,14 +246,25 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
     assert trainer.progress_bar_callback.val_progress_bar_total == expected
 
 
-@mock.patch.dict(os.environ, {'COLAB_GPU': '1'})
-def test_progress_bar_warning_on_colab(tmpdir):
-    with pytest.warns(UserWarning, match='on Google Colab. This may crash.'):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            progress_bar_refresh_rate=19,
-        )
+def test_progress_bar_default_value(tmpdir):
+    """ Test that a value of None defaults to refresh rate 1. """
+    trainer = Trainer(default_root_dir=tmpdir)
+    assert trainer.progress_bar_callback.refresh_rate == 1
 
+    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=None)
+    assert trainer.progress_bar_callback.refresh_rate == 1
+
+
+@mock.patch.dict(os.environ, {'COLAB_GPU': '1'})
+def test_progress_bar_value_on_colab(tmpdir):
+    """ Test that Trainer will override the default in Google COLAB. """
+    trainer = Trainer(default_root_dir=tmpdir)
+    assert trainer.progress_bar_callback.refresh_rate == 20
+
+    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=None)
+    assert trainer.progress_bar_callback.refresh_rate == 20
+
+    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=19)
     assert trainer.progress_bar_callback.refresh_rate == 19
 
 

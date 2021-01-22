@@ -12,7 +12,7 @@ from tests.metrics.classification.inputs import (
     _multiclass_prob_inputs,
     _multidim_multiclass_prob_inputs,
 )
-from tests.metrics.utils import NUM_CLASSES, MetricTester
+from tests.metrics.utils import MetricTester, NUM_CLASSES
 
 torch.manual_seed(42)
 

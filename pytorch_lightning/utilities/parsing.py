@@ -15,7 +15,7 @@
 import inspect
 import pickle
 from argparse import Namespace
-from typing import Dict, Union, Tuple
+from typing import Dict, Tuple, Union
 
 from pytorch_lightning.utilities import rank_zero_warn
 
