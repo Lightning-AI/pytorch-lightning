@@ -15,7 +15,7 @@ from typing import Union
 
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins.old.plugin import LightningPlugin
+from pytorch_lightning.plugins.legacy.plugin import LightningPlugin
 
 
 class PrecisionPlugin(LightningPlugin):

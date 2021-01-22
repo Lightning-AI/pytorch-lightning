@@ -24,7 +24,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.plugins.old.plugin_connector import PluginConnector
+from pytorch_lightning.plugins.legacy.plugin_connector import PluginConnector
 from pytorch_lightning.trainer.deprecated_api import DeprecatedDistDeviceAttributes
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector

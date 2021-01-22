@@ -15,11 +15,11 @@ from enum import Enum
 from typing import List, Optional, Union
 
 from pytorch_lightning.cluster_environments import ClusterEnvironment
-from pytorch_lightning.plugins.old.apex import ApexPlugin
-from pytorch_lightning.plugins.old.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.old.native_amp import NativeAMPPlugin
-from pytorch_lightning.plugins.old.plugin import LightningPlugin
-from pytorch_lightning.plugins.old.sharded_plugin import DDPShardedPlugin
+from pytorch_lightning.plugins.legacy.apex import ApexPlugin
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.native_amp import NativeAMPPlugin
+from pytorch_lightning.plugins.legacy.plugin import LightningPlugin
+from pytorch_lightning.plugins.legacy.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
