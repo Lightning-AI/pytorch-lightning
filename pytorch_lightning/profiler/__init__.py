@@ -177,9 +177,13 @@ When running with `PyTorchProfiler(emit_nvtx=True)`. You should run as following
 
 To visualize the profiled operation, you can either:
 
-* Use: nvvp trace_name.prof
+* Use::
 
-* Use: python -c 'import torch; print(torch.autograd.profiler.load_nvprof("trace_name.prof"))'
+    nvvp trace_name.prof
+
+* Use::
+
+     python -c 'import torch; print(torch.autograd.profiler.load_nvprof("trace_name.prof"))'
 
 """
 
