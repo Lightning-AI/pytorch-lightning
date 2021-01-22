@@ -25,7 +25,7 @@ def test_against_sklearn(sklearn_metric: Callable, torch_class_metric: Metric) -
     batch_sizes = [1, 4, 10]
     query_without_relevant_docs_options = ['skip', 'pos', 'neg']
 
-    def compute_sklearn_metric(target: List, preds: List, behaviour: str) -> None:
+    def compute_sklearn_metric(target: List[np.ndarray], preds: List[np.ndarray], behaviour: str) -> torch.Tensor:
         """ Compute sk metric with multiple iterations using the base `sklearn_metric`. """
         sk_results = []
         kwargs = {'device': device, 'dtype': torch.float32}
@@ -78,18 +78,18 @@ def test_against_sklearn(sklearn_metric: Callable, torch_class_metric: Metric) -
 
             sk_results = compute_sklearn_metric(target, preds, behaviour)
 
-            indexes = torch.cat([torch.tensor(i) for i in indexes])
-            preds = torch.cat([torch.tensor(p) for p in preds])
-            target = torch.cat([torch.tensor(t) for t in target])
+            indexes_tensor = torch.cat([torch.tensor(i) for i in indexes])
+            preds_tensor = torch.cat([torch.tensor(p) for p in preds])
+            target_tensor = torch.cat([torch.tensor(t) for t in target])
 
             # lets assume data are not ordered
-            perm = torch.randperm(indexes.nelement())
-            indexes = indexes.view(-1)[perm].view(indexes.size())
-            preds = preds.view(-1)[perm].view(preds.size())
-            target = target.view(-1)[perm].view(target.size())
+            perm = torch.randperm(indexes_tensor.nelement())
+            indexes_tensor = indexes_tensor.view(-1)[perm].view(indexes_tensor.size())
+            preds_tensor = preds_tensor.view(-1)[perm].view(preds_tensor.size())
+            target_tensor = target_tensor.view(-1)[perm].view(target_tensor.size())
 
             # shuffle ids to require also sorting of documents ability from the lightning metric
-            pl_result = metric(indexes, preds, target)
+            pl_result = metric(indexes_tensor, preds_tensor, target_tensor)
 
             assert torch.allclose(sk_results.float(), pl_result.float(), equal_nan=True)
 
