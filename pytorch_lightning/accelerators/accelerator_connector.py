@@ -13,23 +13,24 @@
 # limitations under the License.
 
 import os
+
 import torch
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.accelerators.plugins import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
-    DataParallelPlugin, DDP2Plugin, HorovodPlugin, DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.accelerators.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, \
     PrecisionPlugin, ShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.accelerators.plugins import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
+    DataParallelPlugin, DDP2Plugin, HorovodPlugin, DDPShardedPlugin, DDPSpawnShardedPlugin
+from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
+from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import AMPType, _NATIVE_AMP_AVAILABLE, _APEX_AVAILABLE, device_parser
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning import _logger as log
-from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
-from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
 
 try:
     import torch_xla

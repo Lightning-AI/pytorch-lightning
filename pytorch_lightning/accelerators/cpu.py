@@ -1,5 +1,5 @@
-from pytorch_lightning.accelerators.plugins import MixedPrecisionPlugin
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.plugins import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

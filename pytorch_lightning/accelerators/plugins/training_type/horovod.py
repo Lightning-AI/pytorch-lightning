@@ -1,12 +1,13 @@
 from contextlib import ExitStack
-from pytorch_lightning.utilities.distributed import rank_zero_only
 from typing import Any, List, Optional, Union
 
 import torch
-from pytorch_lightning.accelerators.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from torch.optim.lr_scheduler import _LRScheduler
+
+from pytorch_lightning.accelerators.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd

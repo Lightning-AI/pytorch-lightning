@@ -1,12 +1,12 @@
 import os
-
 from abc import ABC, abstractmethod
 from typing import Optional
+
 import torch
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.plugins.base_plugin import Plugin
 
-from pytorch_lightning import _logger as log
 
 class TrainingTypePlugin(Plugin, ABC):
     def __init__(self):

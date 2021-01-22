@@ -21,6 +21,8 @@ from typing import Any, List, Optional, Union
 import numpy as np
 import torch
 import torch.distributed as torch_distrib
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
@@ -28,8 +30,6 @@ from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import (
     all_gather_ddp_if_available,

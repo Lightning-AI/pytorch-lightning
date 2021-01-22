@@ -1,19 +1,19 @@
 import os
-import sys
 import subprocess
+import sys
 from time import sleep
-import numpy as np
 from typing import Any, Dict, Optional, Union
 
+import numpy as np
 import torch
 import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.distributed import LightningDistributed
-from pytorch_lightning.utilities import _HYDRA_AVAILABLE
-from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.accelerators.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.utilities import _HYDRA_AVAILABLE
 from pytorch_lightning.utilities.distributed import find_free_network_port, rank_zero_only, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything

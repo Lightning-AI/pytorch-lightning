@@ -1,6 +1,7 @@
 import torch
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class GPUAccelerator(Accelerator):

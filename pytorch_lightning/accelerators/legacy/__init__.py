@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.accelerators.accelerator import Accelerator  # noqa: F401
 from pytorch_lightning.accelerators.cpu_accelerator import CPUAccelerator  # noqa: F401
 from pytorch_lightning.accelerators.ddp2_accelerator import DDP2Accelerator  # noqa: F401
 from pytorch_lightning.accelerators.ddp_accelerator import DDPAccelerator  # noqa: F401
@@ -23,3 +22,5 @@ from pytorch_lightning.accelerators.dp_accelerator import DataParallelAccelerato
 from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator  # noqa: F401
 from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator  # noqa: F401
 from pytorch_lightning.accelerators.tpu_accelerator import TPUAccelerator  # noqa: F401
+
+from pytorch_lightning.accelerators.accelerator import Accelerator  # noqa: F401

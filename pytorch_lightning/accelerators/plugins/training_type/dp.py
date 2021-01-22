@@ -1,9 +1,11 @@
 from typing import List
 
 import torch
+
 from pytorch_lightning.accelerators.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
+
 
 class DataParallelPlugin(ParallelPlugin):
 
