@@ -50,7 +50,7 @@ The profiler's results will be printed at the completion of a training `fit()`.
 
 
 Advanced Profiling
---------------------
+------------------
 
 If you want more information on the functions called during each event, you can use the `AdvancedProfiler`.
 This option uses Python's cProfiler_ to provide a report of time spent on *each* function called within your code.
@@ -116,7 +116,7 @@ to track and the profiler will record performance for code executed within this 
 
 
 PyTorch Profiling
---------------------
+-----------------
 
 Autograd includes a profiler that lets you inspect the cost of different operators
 inside your model - both on the CPU and GPU.
@@ -138,6 +138,7 @@ of logging it to the output in your terminal.
 
 This profiler will record only for `training_step_and_backward`, `evaluation_step` and `test_step` functions by default.
 The output below shows the profiling for the action `training_step_and_backward`.
+The user can provide ``PyTorchProfiler(profiled_functions=[...])`` to extend the scope of profiled functions.
 
 .. code-block:: python
 

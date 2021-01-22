@@ -344,10 +344,10 @@ class PyTorchProfiler(BaseProfiler):
             use_cpu: use_kineto=True and can be used to lower the overhead for GPU-only profiling (1.8.0)
 
             emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
-                * Run: nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
+                Run: nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
                 To visualize, you can either use:
-                    * nvvp trace_name.prof
-                    * torch.autograd.profiler.load_nvprof(path)
+                    nvvp trace_name.prof
+                    torch.autograd.profiler.load_nvprof(path)
 
             export_to_chrome: Wether to export the sequence of profiled operators for Chrome.
 
@@ -355,7 +355,7 @@ class PyTorchProfiler(BaseProfiler):
                 where the file being is being run.
 
             row_limit: Limit the number of rows in a table, `0` is a special value that
-                 removes the limit completely.
+                removes the limit completely.
 
             sort_by_key: Keys to sort out profiled table
 
