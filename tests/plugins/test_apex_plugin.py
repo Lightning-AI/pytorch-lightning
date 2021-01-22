@@ -4,8 +4,8 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.plugins.precision import ApexMixedPrecisionPlugin
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from tests.base.boring_model import BoringModel
 
@@ -28,7 +28,7 @@ def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
 
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.precision_connector.backend, ApexPlugin)
+            assert isinstance(trainer.precision_connector.backend, ApexMixedPrecisionPlugin)
             raise SystemExit()
 
     model = BoringModel()
@@ -61,7 +61,7 @@ def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     [('ddp_cpu', None, 2), ('ddp', 2, 0), ('ddp2', 2, 0), ('ddp_spawn', 2, 0)],
 )
 def test_amp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
-    class MyApexPlugin(ApexPlugin):
+    class MyApexPlugin(ApexMixedPrecisionPlugin):
         pass
 
     class CB(Callback):

@@ -17,8 +17,8 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+from pytorch_lightning.accelerators.plugins.precision import NativeMixedPrecisionPlugin
+from pytorch_lightning.accelerators.plugins.training_type import DDPPlugin
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
@@ -45,7 +45,7 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
     Test to ensure that if a plugin requires certain plugin to be added, these are added automatically
     """
 
-    class RequiredPlugin(NativeAMPPlugin):
+    class RequiredPlugin(NativeMixedPrecisionPlugin):
         """
         My custom amp plugin that's required with my DDP plugin as default.
         This allows us to ensure this plugin is added when using CustomPlugin rather than ensuring

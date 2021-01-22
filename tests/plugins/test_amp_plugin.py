@@ -5,8 +5,8 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.plugins.precision import NativeMixedPrecisionPlugin
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from tests.base.boring_model import BoringModel
 
@@ -29,7 +29,7 @@ def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
 
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.precision_connector.backend, NativeAMPPlugin)
+            assert isinstance(trainer.accelerator_backend.precision_plugin, NativeMixedPrecisionPlugin)
             raise SystemExit()
 
     model = BoringModel()
@@ -62,7 +62,7 @@ def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     [('ddp_cpu', None, 2), ('ddp', 2, 0), ('ddp2', 2, 0), ('ddp_spawn', 2, 0)],
 )
 def test_amp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
-    class MyNativeAMP(NativeAMPPlugin):
+    class MyNativeAMP(NativeMixedPrecisionPlugin):
         pass
 
     class CB(Callback):
