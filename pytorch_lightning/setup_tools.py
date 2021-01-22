@@ -55,107 +55,10 @@ def _load_requirements(path_dir: str , file_name: str = 'requirements.txt', comm
     return reqs
 
 
-def _parse_for_badge(
-        text: str,
-        release_url: str = None,
-        path_badges: str = _PATH_BADGES,
-        badge_names: Iterable = _DEFAULT_BADGES,
-) -> str:
-    """ Returns the new parsed text with url change with local downloaded files
-
-    >>> _parse_for_badge('Some text here... '  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    ...     '[![Conda](https://img.shields.io/conda/v/conda-forge/pytorch-lightning?label=conda)]'
-    ...     '(https://anaconda.org/conda-forge/pytorch-lightning) and another text later')
-    'Some text here...
-     [![Conda](...docs...source..._images...badges...Conda_badge.svg)](https://anaconda.org/conda-forge/pytorch-lightning)
-     and another text later'
-    >>> import shutil
-    >>> shutil.rmtree(_PATH_BADGES)
-    """
-    for line in text.split(os.linesep):
-        search_string = r'\[\!\[(.*)]\((.*)\)]'
-        match = re.search(search_string, line)
-        if match is None:
-            continue
-
-        badge_name, badge_url = match.groups()
-        # check if valid name
-        if badge_name not in badge_names:
-            continue
-
-        # download badge
-        badge_path = _download_badge(badge_url, badge_name, path_badges)
-        if release_url:
-            # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
-            badge_fname = os.path.basename(badge_path)
-            badge_path = os.path.join(release_url, badge_fname)
-
-        # replace url with local file path
-        text = text.replace(f'[![{badge_name}]({badge_url})]', f'[![{badge_name}]({badge_path})]')
-
-    return text
-
-
-def _save_file(url_badge: str, save_path: str, extension: str, headers: dict) -> None:
-    """function for saving the badge either in `.png` or `.svg`"""
-
-    # because there are two badge with name `PyPI Status` the second one is download
-    if 'https://pepy.tech/badge/pytorch-lightning' in url_badge:
-        save_path += '_downloads'
-
-    try:
-        req = Request(url=url_badge, headers=headers)
-        resp = urlopen(req)
-    except URLError:
-        warnings.warn("Error while downloading the badge", UserWarning)
-    else:
-        save_path += extension
-        with open(save_path, 'wb') as download_file:
-            download_file.write(resp.read())
-
-
-def _download_badge(url_badge: str, badge_name: str, target_dir: str) -> str:
-    """Download badge from url
-
-    >>> path_img = _download_badge('https://img.shields.io/pypi/pyversions/pytorch-lightning',
-    ...                            'PyPI - Python Version', '.')
-    >>> os.path.isfile(path_img)
-    True
-    >>> path_img  # doctest: +ELLIPSIS
-    '...PyPI_Python_Version_badge.png'
-    >>> os.remove(path_img)
-    """
-    os.makedirs(target_dir, exist_ok=True)
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/svg,*/*;q=0.8',
-    }
-
-    save_path = badge_name.replace(' - ', ' ')
-    save_path = os.path.join(target_dir, f"{save_path.replace(' ', '_')}_badge")
-
-    if "?" in url_badge and ".png" not in url_badge:
-        _save_file(url_badge, save_path, extension='.svg', headers=headers)
-        return save_path + '.svg'
-    else:
-        try:
-            # always try to download the png versions (some url have an already png version available)
-            _save_file(url_badge, save_path, extension='.png', headers=headers)
-            return save_path + '.png'
-        except HTTPError as err:
-            if err.code == 404:
-                # save the `.svg`
-                url_badge = url_badge.replace('.png', '.svg')
-                _save_file(url_badge, save_path, extension='.svg', headers=headers)
-                return save_path + '.svg'
-            return ''
-
-
-def _load_long_description(path_dir: str, homepage: str = __homepage__, ver: str = __version__) -> str:
+def _load_readme_description(path_dir: str, homepage: str = __homepage__, ver: str = __version__) -> str:
     """Load readme as decribtion
 
-    >>> _load_long_description(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> _load_readme_description(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     '<div align="center">...'
     """
     path_readme = os.path.join(path_dir, "README.md")

@@ -29,7 +29,7 @@ PATH_ROOT = os.path.dirname(__file__)
 builtins.__LIGHTNING_SETUP__ = True
 
 import pytorch_lightning  # noqa: E402
-from pytorch_lightning.setup_tools import _load_long_description, _load_requirements  # noqa: E402
+from pytorch_lightning.setup_tools import _load_readme_description, _load_requirements  # noqa: E402
 
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
@@ -71,7 +71,7 @@ setup(
     license=pytorch_lightning.__license__,
     packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks']),
 
-    long_description=_load_long_description(PATH_ROOT),
+    long_description=_load_readme_description(PATH_ROOT),
     long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,
