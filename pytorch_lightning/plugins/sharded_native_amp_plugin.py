@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import cast
 
+import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
@@ -38,9 +39,9 @@ class ShardedNativeAMPPlugin(NativeAMPPlugin):
                        gradient_clip_algorithm: str,
                        norm_type: float):
 
-        optimizer = cast(OSS, optimizer)
         if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
-            raise NotImplementedError("Value grad clipping with sharded ddp is not implemented yet")
-            # optimizer.clip_grad_value(grad_clip_val)
+            model = self.trainer.get_model()
+            torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=grad_clip_val)
         elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
+            optimizer = cast(OSS, optimizer)
             optimizer.clip_grad_norm(grad_clip_val, norm_type=norm_type)

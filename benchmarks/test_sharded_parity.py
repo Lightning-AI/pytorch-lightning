@@ -162,6 +162,31 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim_manual(tmpdir):
     )
 
 
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+@DDPLauncher.run("--accelerator ddp --gpus 2  --precision 16")
+def test_ddp_sharded_plugin_clip_gradients(tmpdir, args=None):
+    plugin_parity_test(
+        gpus=args.gpus,
+        precision=args.precision,
+        accelerator=args.accelerator,
+        plugin=DDPShardedPlugin(),
+        model_cls=SeedTrainLoaderModel,
+        gradient_clip_val=0.001,
+    )
+    plugin_parity_test(
+        gpus=args.gpus,
+        precision=args.precision,
+        accelerator=args.accelerator,
+        plugin=DDPShardedPlugin(),
+        model_cls=SeedTrainLoaderModel,
+        gradient_clip_val=0.001,
+        gradient_clip_algorithm='value',
+    )
+
+
 class SeedTrainLoaderModel(BoringModel):
     """
         Overrides training loader to ensure we enforce the same seed for all DDP processes.
@@ -261,6 +286,8 @@ def plugin_parity_test(
         gpus: int = 0,
         precision: int = 32,
         max_percent_speed_diff: float = 0.1,
+        gradient_clip_val: Union[int, float] = 0,
+        gradient_clip_algorithm: str = 'norm',
 ):
     """
     Ensures that the trained model is identical to the standard DDP implementation.
@@ -274,6 +301,8 @@ def plugin_parity_test(
         gpus: Number of GPUS to enable.
         precision: Whether to use AMP or normal FP32 training.
         max_percent_speed_diff: The maximum speed difference compared to normal DDP training.
+        gradient_clip_val: 0 means don't clip.
+        gradient_clip_algorithm: 'value' means clip_by_value, 'norm' means clip_by_norm. defualt 'norm'
         This is more a safety net for variability in CI which can vary in speed, not for benchmarking.
 
     """
@@ -308,6 +337,8 @@ def plugin_parity_test(
         precision=precision,
         accelerator=accelerator,
         plugins=[plugin],
+        gradient_clip_val=gradient_clip_val,
+        gradient_clip_algorithm=gradient_clip_algorithm,
     )
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(
