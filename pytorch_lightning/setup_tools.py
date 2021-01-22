@@ -14,10 +14,7 @@
 # limitations under the License.
 import os
 import re
-import warnings
-from typing import Iterable, List
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from typing import List
 
 from pytorch_lightning import __homepage__, __version__, _PROJECT_ROOT
 
