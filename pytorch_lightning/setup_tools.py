@@ -152,7 +152,7 @@ def _download_badge(url_badge: str, badge_name: str, target_dir: str) -> str:
             return ''
 
 
-def _load_long_description(path_dir: str) -> str:
+def _load_long_description(path_dir: str, homepage: str = __homepage__, ver: str = __version__) -> str:
     """Load readme as decribtion
 
     >>> _load_long_description(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
@@ -165,19 +165,19 @@ def _load_long_description(path_dir: str) -> str:
     text = text.replace('![PT to PL](docs/source/_images/general/pl_quick_start_full_compressed.gif)', '')
 
     # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
-    github_source_url = os.path.join(__homepage__, "raw", __version__)
+    github_source_url = os.path.join(homepage, "raw", ver)
     # replace relative repository path to absolute link to the release
     #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
     text = text.replace("docs/source/_images/", f"{os.path.join(github_source_url, 'docs/source/_images/')}")
 
     # readthedocs badge
-    text = text.replace('badge/?version=stable', f'badge/?version={__version__}')
+    text = text.replace('badge/?version=stable', f'badge/?version={ver}')
     text = text.replace('pytorch-lightning.readthedocs.io/en/stable/',
-                        f'pytorch-lightning.readthedocs.io/en/{__version__}')
+                        f'pytorch-lightning.readthedocs.io/en/{ver}')
     # codecov badge
-    text = text.replace('/branch/master/graph/badge.svg', f'/release/{__version__}/graph/badge.svg')
+    text = text.replace('/branch/master/graph/badge.svg', f'/release/{ver}/graph/badge.svg')
     # replace github badges for release ones
-    text = text.replace('badge.svg?branch=master&event=push', f'badge.svg?tag={__version__}')
+    text = text.replace('badge.svg?branch=master&event=push', f'badge.svg?tag={ver}')
 
     skip_begin = r'<!-- following section will be skipped from PyPI description -->'
     skip_end = r'<!-- end skipping PyPI description -->'
@@ -185,7 +185,7 @@ def _load_long_description(path_dir: str) -> str:
     text = re.sub(rf"{skip_begin}.+?{skip_end}", '<!--  -->', text, flags=re.IGNORECASE + re.DOTALL)
 
     # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
-    # github_release_url = os.path.join(__homepage__, "releases", "download", __version__)
+    # github_release_url = os.path.join(homepage, "releases", "download", ver)
     # # download badge and replace url with local file
     # text = _parse_for_badge(text, github_release_url)
     return text
