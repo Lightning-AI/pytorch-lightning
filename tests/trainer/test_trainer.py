@@ -17,6 +17,7 @@ import pickle
 import sys
 from argparse import Namespace
 from copy import deepcopy
+from distutils.version import LooseVersion
 from pathlib import Path
 from unittest.mock import ANY, call, patch
 
@@ -1526,11 +1527,23 @@ def test_pytorch_profiler_nested(tmpdir):
 
     pa = pytorch_profiler.profiled_actions
 
-    expected_a = ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty']
-    assert [e.name for e in pa['a']] == expected_a
+    # From PyTorch 1.6.0, more operation are being traced.
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        expected_a = ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty']
+        assert [e.name for e in pa['a']] == expected_a
 
-    expected_b = ['zeros', 'empty', 'zero_', 'fill_']
-    assert [e.name for e in pa['b']] == expected_b
+        expected_b = ['zeros', 'empty', 'zero_', 'fill_']
+        assert [e.name for e in pa['b']] == expected_b
 
-    expected_c = ['add', 'empty']
-    assert [e.name for e in pa['c']] == expected_c
+        expected_c = ['add', 'empty']
+        assert [e.name for e in pa['c']] == expected_c
+
+    else:
+        expected_a = ['add']
+        assert [e.name for e in pa['a']] == expected_a
+
+        expected_b = []
+        assert [e.name for e in pa['b']] == expected_b
+
+        expected_c = ['add']
+        assert [e.name for e in pa['c']] == expected_c
