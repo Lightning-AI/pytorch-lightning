@@ -31,7 +31,7 @@ class Precision(StatScores):
 
     The reduction method (how the precision scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
-    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
+    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`extensions/metrics:input types`.
 
     Args:
         num_classes:
@@ -67,10 +67,10 @@ class Precision(StatScores):
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then averaged over samples.
               The computation for each sample is done by treating the flattened extra axes ``...``
-              (see :ref:`metrics:Input types`) as the ``N`` dimension within the sample,
+              (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
               and computing the metric for the sample based on that.
 
-            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`metrics:Input types`)
+            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`extensions/metrics:input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
@@ -180,7 +180,7 @@ class Recall(StatScores):
 
     The reduction method (how the recall scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
-    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
+    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`extensions/metrics:input types`.
 
     Args:
         num_classes:
@@ -216,10 +216,10 @@ class Recall(StatScores):
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then averaged over samples.
               The computation for each sample is done by treating the flattened extra axes ``...``
-              (see :ref:`metrics:Input types`) as the ``N`` dimension within the sample,
+              (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
               and computing the metric for the sample based on that.
 
-            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`metrics:Input types`)
+            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`extensions/metrics:input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 

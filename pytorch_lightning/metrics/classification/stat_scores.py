@@ -28,7 +28,7 @@ class StatScores(Metric):
     ``reduce`` parameter, and additionally by the ``mdmc_reduce`` parameter in the
     multi-dimensional multi-class case.
 
-    Accepts all inputs listed in :ref:`metrics:Input types`.
+    Accepts all inputs listed in :ref:`extensions/metrics:input types`.
 
     Args:
         threshold:
@@ -71,7 +71,7 @@ class StatScores(Metric):
             one of the following:
 
             - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional
-              multi-class (see :ref:`metrics:Input types` for the definition of input types).
+              multi-class (see :ref:`extensions/metrics:input types` for the definition of input types).
 
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then the outputs are concatenated together. In each
@@ -175,7 +175,7 @@ class StatScores(Metric):
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets. See :ref:`metrics:Input types` for more information
+        Update state with predictions and targets. See :ref:`extensions/metrics:input types` for more information
         on input types.
 
         Args:
