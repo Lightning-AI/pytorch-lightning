@@ -454,7 +454,7 @@ Example::
     trainer.tune(model)
 
 .. note::
-    See the :ref:`learning rate finder guide <advanced/lr_finder>`.
+    See the :ref:`learning rate finder guide <../advanced/lr_finder>`.
 
 benchmark
 ^^^^^^^^^
@@ -580,7 +580,7 @@ To disable automatic checkpointing, set this to `False`.
 
 You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
 callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
-See :ref:`Saving and Loading Weights <common/weights_loading>` for how to customize checkpointing.
+See :ref:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
 
 .. testcode::
 
@@ -691,7 +691,7 @@ Writes logs to disk this often.
     trainer = Trainer(flush_logs_every_n_steps=100)
 
 See Also:
-    - :ref:`extensions/logging`
+    - :ref:`../extensions/logging`
 
 gpus
 ^^^^
@@ -737,7 +737,7 @@ Example::
     trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
-    - :ref:`Multi-GPU training guide <advanced/multi_gpu>`.
+    - :ref:`Multi-GPU training guide <../advanced/multi_gpu>`.
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -862,7 +862,7 @@ How often to add logging rows (does not write to disk)
     trainer = Trainer(log_every_n_steps=50)
 
 See Also:
-    - :ref:`extensions/logging`
+    - :ref:`../extensions/logging`
 
 log_gpu_memory
 ^^^^^^^^^^^^^^
@@ -905,7 +905,7 @@ logger
 
 |
 
-:ref:`Logger <common/loggers>` (or iterable collection of loggers) for experiment tracking.
+:ref:`Logger <../common/loggers>` (or iterable collection of loggers) for experiment tracking.
 
 .. testcode::
 
@@ -1222,7 +1222,7 @@ profiler
 
 To profile individual steps during training and assist in identifying bottlenecks.
 
-See the :ref:`profiler documentation <advanced/profiler>`. for more details.
+See the :ref:`profiler documentation <../advanced/profiler>`. for more details.
 
 .. testcode::
 

@@ -60,7 +60,7 @@ Lightning offers automatic log functionalities for logging scalars, or manual lo
 Automatic Logging
 =================
 Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log`
-method to log from anywhere in a :ref:`common/lightning_module` and :ref:`extensions/callbacks`
+method to log from anywhere in a :ref:`../common/lightning_module` and :ref:`../extensions/callbacks`
 except functions with `batch_start` in their names.
 
 .. code-block:: python
@@ -90,7 +90,7 @@ The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a 
 .. note::
 
     -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
-        reduction `on_epoch_end`. We recommend using the :ref:`extensions/metrics` API when working with custom reduction.
+        reduction `on_epoch_end`. We recommend using the :ref:`../extensions/metrics` API when working with custom reduction.
 
     -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
         suffix ``_step`` and ``_epoch``, respectively. You can refer to these keys e.g. in the `monitor`

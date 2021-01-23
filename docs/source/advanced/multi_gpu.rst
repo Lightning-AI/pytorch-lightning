@@ -115,7 +115,7 @@ When running in distributed mode, we have to ensure that the validation and test
 This is done by adding ``sync_dist=True`` to all ``self.log`` calls in the validation and test step.
 This ensures that each GPU worker has the same behaviour when tracking model checkpoints, which is important for later downstream tasks such as testing the best checkpoint across all workers.
 
-Note if you use any built in metrics or custom metrics that use the :ref:`Metrics API <extensions/metrics>`, these do not need to be updated and are automatically handled for you.
+Note if you use any built in metrics or custom metrics that use the :ref:`Metrics API <../../extensions/metrics>`, these do not need to be updated and are automatically handled for you.
 
 .. testcode::
 
@@ -237,7 +237,7 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
     ``auto_select_gpus=True`` will automatically help you find ``k`` gpus that are not
     occupied by other processes. This is especially useful when GPUs are configured
     to be in "exclusive mode", such that only one process at a time can access them.
-    For more details see the :ref:`common/trainer guide <common/trainer>`.
+    For more details see the :ref:`trainer guide <../common/trainer>`.
 
 ----------
 
