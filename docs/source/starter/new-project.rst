@@ -751,13 +751,13 @@ Other coool features
 Once you define and train your first Lightning model, you might want to try other cool features like
 
 - :doc:`Automatic early stopping <../common/early_stopping>`
-- :doc:`Automatic truncated-back-propagation-through-time <../common/trainer:truncated_bptt_steps>`
-- :doc:`Automatically scale your batch size <../advanced/training_tricks:Auto scaling of batch size>`
+- :ref:`Automatic truncated-back-propagation-through-time <common/trainer:truncated_bptt_steps>`
+- :ref:`Automatically scale your batch size <advanced/training_tricks:Auto scaling of batch size>`
 - :doc:`Automatically find a good learning rate <../advanced/lr_finder>`
-- :doc:`Load checkpoints directly from S3 <../common/weights_loading:Checkpoint Loading>`
+- :ref:`Load checkpoints directly from S3 <common/weights_loading:Checkpoint Loading>`
 - :doc:`Scale to massive compute clusters <../clouds/slurm>`
 - :doc:`Use multiple dataloaders per train/val/test loop <../advanced/multiple_loaders>`
-- :ref:`Use multiple optimizers to do reinforcement learning or even GANs <../common/optimizers:Use multiple optimizers (like GANs)>`
+- :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimizers:Use multiple optimizers (like GANs)>`
 
 Or read our :doc:`Guide <../starter/introduction_guide>` to learn more!
 

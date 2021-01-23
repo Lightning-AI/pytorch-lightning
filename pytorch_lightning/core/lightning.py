@@ -572,7 +572,7 @@ class LightningModule(
                 return loss
 
         See Also:
-            See the :ref:`advanced/multi_gpu` guide for more details.
+            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
     def training_epoch_end(self, outputs: List[Any]) -> None:
@@ -751,7 +751,7 @@ class LightningModule(
                     # do something with these
 
         See Also:
-            See the :ref:`advanced/multi_gpu` guide for more details.
+            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
     def validation_epoch_end(self, outputs: List[Any]) -> None:
@@ -926,7 +926,7 @@ class LightningModule(
                 self.log('test_loss', loss)
 
         See Also:
-            See the :ref:`advanced/multi_gpu` guide for more details.
+            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
     def test_epoch_end(
