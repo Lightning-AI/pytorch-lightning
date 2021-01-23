@@ -599,7 +599,7 @@ class Trainer(
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
 
         # check if we want to skip this evaluation
-        if sum(max_batches) == 0:
+        if self.evaluation_loop.should_skip_evaluation(max_batches):
             return [], []
 
         # ref model

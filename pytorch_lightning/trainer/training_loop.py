@@ -91,13 +91,10 @@ class TrainLoop:
         return num_optimizers
 
     def should_skip_training(self):
-        if self.trainer.current_epoch >= self.trainer.max_epochs:
-            return True
-
-        if self.trainer.limit_train_batches == 0:
-            return True
-
-        return False
+        return (
+            self.trainer.current_epoch >= self.trainer.max_epochs
+            or self.trainer.limit_train_batches == 0
+        )
 
     def on_train_start(self):
         # clear cache before training
@@ -620,15 +617,14 @@ class TrainLoop:
             # reset stage to train
             self.trainer.logger_connector.set_stage("train")
 
-        should_skip_eval = sum(self.trainer.num_val_batches) == 0
-        should_train_only_check = not self.trainer.enable_validation and should_skip_eval
+        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
+        should_train_only_check = self.trainer.disable_validation or should_skip_eval
 
-        if should_skip_eval or should_train_only_check:
+        if should_train_only_check:
             # update epoch level lr_schedulers
             self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
-
-        self.check_checkpoint_callback(should_train_only_check)
-        self.check_early_stopping_callback(should_train_only_check)
+            self.check_checkpoint_callback(True)
+            self.check_early_stopping_callback(True)
 
         # increment the global step once
         # progress global step according to grads progress
@@ -883,19 +879,17 @@ class TrainLoop:
 
         if on_epoch:
             should_check_val = (
-                can_check_val
-                and ((is_val_check_batch and epoch_end_val_check)
-                     or self.trainer.should_stop
-                     or is_last_batch_for_infinite_dataset)
+                (is_val_check_batch and epoch_end_val_check)
+                or self.trainer.should_stop
+                or is_last_batch_for_infinite_dataset
             )
         else:
             should_check_val = (
-                can_check_val
-                and is_val_check_batch
+                is_val_check_batch
                 and not epoch_end_val_check
             )
 
-        return should_check_val
+        return should_check_val and can_check_val
 
     def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step

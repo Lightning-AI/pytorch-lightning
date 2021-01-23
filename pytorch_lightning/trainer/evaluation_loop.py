@@ -71,6 +71,9 @@ class EvaluationLoop(object):
 
         return dataloaders, max_batches
 
+    def should_skip_evaluation(self, max_batches):
+        return len(max_batches) == 0
+
     def on_evaluation_start(self, *args, **kwargs):
         if self.trainer.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
