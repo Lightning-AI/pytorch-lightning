@@ -51,7 +51,7 @@ import pytorch_lightning  # noqa: E402
 
 # copy all documents from GH templates like contribution guide
 for md in glob.glob(os.path.join(PATH_ROOT, '.github', '*.md')):
-    shutil.copy(md, os.path.join(PATH_HERE, os.path.basename(md)))
+    shutil.copy(md, os.path.join(PATH_HERE, 'generated', os.path.basename(md)))
 # copy also the changelog
 with open(os.path.join(PATH_ROOT, 'CHANGELOG.md'), 'r') as fp:
     chlog_lines = fp.readlines()
@@ -63,7 +63,7 @@ for i, ln in enumerate(chlog_lines):
     elif ln.startswith('### '):
         ln = ln.replace('###', f'### {chlog_ver} -')
         chlog_lines[i] = ln
-with open(os.path.join(PATH_HERE, 'CHANGELOG.md'), 'w') as fp:
+with open(os.path.join(PATH_HERE, 'generated', 'CHANGELOG.md'), 'w') as fp:
     fp.writelines(chlog_lines)
 
 # -- Project information -----------------------------------------------------

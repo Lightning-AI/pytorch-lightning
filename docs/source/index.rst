@@ -129,11 +129,11 @@ PyTorch Lightning Documentation
    :caption: Community
 
 
-   CODE_OF_CONDUCT.md
-   CONTRIBUTING.md
-   BECOMING_A_CORE_CONTRIBUTOR.md
+   generated/CODE_OF_CONDUCT.md
+   generated/CONTRIBUTING.md
+   generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance.md
-   CHANGELOG.md
+   generated/CHANGELOG.md
 
 Indices and tables
 ------------------
