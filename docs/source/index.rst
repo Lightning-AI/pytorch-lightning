@@ -21,10 +21,10 @@ PyTorch Lightning Documentation
    :name: guides
    :caption: Best practices
 
-   style_guide
-   performance
+   starter/style_guide
+   benchmarking/performance
    Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
-   benchmarking
+   benchmarking/benchmarks
 
 
 .. toctree::
@@ -40,12 +40,12 @@ PyTorch Lightning Documentation
    :name: docs
    :caption: Optional extensions
 
-   accelerators
-   callbacks
-   datamodules
-   logging
-   metrics
-   plugins
+   extensions/accelerators
+   extensions/callbacks
+   extensions/datamodules
+   extensions/logging
+   extensions/metrics
+   extensions/plugins
 
 
 .. toctree::
@@ -53,7 +53,7 @@ PyTorch Lightning Documentation
    :name: Tutorials
    :caption: Tutorials
 
-   introduction_guide
+   starter/introduction_guide
    PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
    From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
@@ -93,28 +93,28 @@ PyTorch Lightning Documentation
    :name: Common Use Cases
    :caption: Common Use Cases
 
-   cloud_training
-   amp
-   slurm
-   child_modules
-   debugging
-   loggers
-   early_stopping
-   fast_training
-   hyperparameters
-   lr_finder
-   multi_gpu
-   multiple_loaders
-   weights_loading
-   optimizers
-   profiler
-   single_gpu
-   sequences
-   training_tricks
-   transfer_learning
-   tpu
-   test_set
-   production_inference
+   clouds/cloud_training
+   advanced/amp
+   clouds/slurm
+   common/child_modules
+   common/debugging
+   common/loggers
+   common/early_stopping
+   common/fast_training
+   common/hyperparameters
+   advanced/lr_finder
+   advanced/multi_gpu
+   advanced/multiple_loaders
+   common/weights_loading
+   common/optimizers
+   common/profiler
+   common/single_gpu
+   advanced/sequences
+   advanced/training_tricks
+   advanced/transfer_learning
+   clouds/tpu
+   common/test_set
+   common/production_inference
 
 .. toctree::
    :maxdepth: 1
