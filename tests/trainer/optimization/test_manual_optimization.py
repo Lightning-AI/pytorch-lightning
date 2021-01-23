@@ -23,7 +23,6 @@ import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities import _APEX_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
 

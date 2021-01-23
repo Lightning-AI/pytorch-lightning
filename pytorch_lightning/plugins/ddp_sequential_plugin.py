@@ -28,7 +28,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 if _FAIRSCALE_PIPE_AVAILABLE:
     import fairscale.nn.model_parallel as mpu
     from fairscale.nn import PipeRPCWrapper
-    import fairscale.nn.model_parallel as mpu
     from fairscale.nn.pipe import balance as pipe_balance
     from fairscale.nn.pipe import rpc as rpc_pipe
     from fairscale.nn.pipe.pipeline import PipelineStyle

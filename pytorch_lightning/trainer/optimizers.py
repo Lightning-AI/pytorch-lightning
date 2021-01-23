@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from abc import ABC
-from collections import OrderedDict
 from typing import List, Optional, Tuple
 
 import torch

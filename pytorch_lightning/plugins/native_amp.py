@@ -16,6 +16,7 @@ from typing import Union
 import torch
 from torch.optim import Optimizer
 
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
 
 

@@ -11,20 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from distutils.version import LooseVersion
 import os
 import platform
+from distutils.version import LooseVersion
 
 import pytest
 import torch
 
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import BoringModel
-from tests.base import EvalModelTemplate
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+from tests.base import BoringModel, EvalModelTemplate
+
 
 def test_cpu_slurm_save_load(tmpdir):
     """Verify model save/load/checkpoint on CPU."""

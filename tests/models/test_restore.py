@@ -11,22 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 import glob
 import logging as log
 import os
 import pickle
+from copy import deepcopy
 
 import cloudpickle
 import pytest
 import torch
 
-from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
+from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import BoringModel, EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
+from tests.base import BoringModel, EvalModelTemplate, GenericEvalModelTemplate
 
 
 class ModelTrainerPropertyParity(Callback):

@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
-from os.path import abspath
 import subprocess
 import sys
+from os.path import abspath
 from time import sleep
 from typing import Any, List, Optional, Union
 

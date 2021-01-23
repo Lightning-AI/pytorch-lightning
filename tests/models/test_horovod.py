@@ -20,9 +20,11 @@ import sys
 
 import numpy as np
 import pytest
-from sklearn.metrics import accuracy_score
 import torch
+from sklearn.metrics import accuracy_score
 
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
@@ -30,8 +32,6 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
 from tests.base.models import BasicGAN
 
 if _HOROVOD_AVAILABLE:
