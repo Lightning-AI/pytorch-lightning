@@ -265,34 +265,19 @@ def test_suggestion_with_non_finite_values(tmpdir):
         'Learning rate was altered because of non-finite loss values'
 
 
+@pytest.mark.timeout(1)
 def test_lr_finder_fails_fast_on_bad_config(tmpdir):
-    """ Test that setting trainer arg to bool works """
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    before_lr = hparams.get('learning_rate')
+    """ Test that misconfiguration of learning_rate or lr in model fails BEFORE lr optimization and not after it. """
+    import time
+    model = BoringModel()
+    dm = TrialMNISTDataModule(tmpdir)
 
-    # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
         auto_lr_find=True,
     )
 
-    deleted_lr_existance = False
-    try:
-        del model.lr
-        deleted_lr_existance = True
-    except AttributeError:
-        pass
-
-    try:
-        del model.learning_rate
-        deleted_lr_existance = True
-    except AttributeError:
-        pass
-
+    lr_finder = trainer.tuner.lr_find(model, datamodule=dm)
     trainer.tune(model)
-    after_lr = model.learning_rate
 
-    assert before_lr != after_lr, \
-        'Learning rate was not altered after running learning rate finder'
