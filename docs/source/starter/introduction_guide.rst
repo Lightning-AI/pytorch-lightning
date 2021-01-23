@@ -649,7 +649,7 @@ Notice the epoch is MUCH faster!
 
 ----------------
 
-.. include:: hyperparameters.rst
+.. include:: ../common/hyperparameters.rst
 
 ----------------
 
@@ -959,11 +959,11 @@ And pass the callbacks into the trainer
 
 ----------------
 
-.. include:: child_modules.rst
+.. include:: ../common/child_modules.rst
 
 ----------------
 
-.. include:: transfer_learning.rst
+.. include:: ../advanced/transfer_learning.rst
 
 ----------
 
