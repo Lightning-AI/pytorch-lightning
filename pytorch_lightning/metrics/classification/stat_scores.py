@@ -86,7 +86,7 @@ class StatScores(Metric):
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
-            :ref:`documentation section <metrics:Using the is_multiclass parameter>`
+            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
             for a more detailed explanation and examples.
 
         compute_on_step:
