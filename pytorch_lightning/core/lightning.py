@@ -980,6 +980,30 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
+    def configure_callbacks(self, callbacks):
+        """
+        Configure model-specific callbacks. The list returned here will replace the Trainer's callback list
+        when the model gets attached to the Trainer, e.g., when ``.fit()`` or ``.test()`` gets called.
+
+        Args:
+            callbacks: The list of callbacks already present in Trainer.
+
+        Return:
+            A new list of callbacks which will replace the existing one in the Trainer.
+
+        Note:
+            Certain callback methods like ``on_trainer_init()`` will never be invoked on the new callbacks
+            returned here.
+
+        Example:
+
+            def configure_callbacks(self, callbacks):
+                my_callback = MyLitCallback()
+                callbacks.append(my_callbacks)
+                return callbacks
+        """
+        return callbacks
+
     def configure_optimizers(
             self,
     ):

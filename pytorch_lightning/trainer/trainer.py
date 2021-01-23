@@ -448,6 +448,7 @@ class Trainer(
         # LINK DATA
         # ----------------------------
         # setup data, etc...
+        self.callbacks = model.configure_callbacks(self.callbacks)
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
