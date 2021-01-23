@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed filtering of pytorch warning "Was asked to gather along dimension 0, but all input tensors were scalars ..." when using DP ([#5622](https://github.com/PyTorchLightning/pytorch-lightning/pull/5622))
+
 
 
 
