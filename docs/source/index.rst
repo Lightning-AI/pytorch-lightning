@@ -32,8 +32,8 @@ PyTorch Lightning Documentation
    :name: pl_docs
    :caption: Lightning API
 
-   lightning_module
-   trainer
+   common/lightning_module
+   common/trainer
 
 .. toctree::
    :maxdepth: 2
