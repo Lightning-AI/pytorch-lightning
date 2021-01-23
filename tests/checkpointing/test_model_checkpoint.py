@@ -228,7 +228,7 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(3, 4, {})
     assert ckpt_name == str(Path('.').resolve() / 'epoch=3-step=4.ckpt')
 
-    # with ver
+    # with version
     ckpt_name = ModelCheckpoint(
         monitor='early_stop_on', dirpath=tmpdir, filename='name', prefix='test'
     ).format_checkpoint_name(3, 2, {}, ver=3)
