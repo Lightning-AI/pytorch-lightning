@@ -508,12 +508,10 @@ def test_ckpt_metric_names_results(tmpdir):
             val_acc = torch.sum(batch == labels_hat).item() / (len(batch) * 1.0)
             val_acc = torch.tensor(val_acc).type_as(batch)
 
-            result = pl.core.step_result.EvalResult(checkpoint_on=loss_val, early_stop_on=loss_val)
-            result.log_dict({
-                'val_loss': loss_val,
-                'val_acc': val_acc,
-            })
-            return result
+            self.log('val_loss', loss_val)
+            self.log('val_acc', val_acc)
+
+            return loss_val
 
     model = ResultLog()
     model.training_step_end = None
