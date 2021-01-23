@@ -12,9 +12,9 @@ PyTorch Lightning Documentation
    :name: start
    :caption: Getting started
 
-   new-project
-   converting
-   rapid_prototyping_templates
+   starter/new-project
+   starter/converting
+   starter/rapid_prototyping_templates
 
 .. toctree::
    :maxdepth: 1
@@ -70,15 +70,15 @@ PyTorch Lightning Documentation
    :name: Bolts
    :caption: Bolts
 
-   bolts
+   ecosystem/bolts
 
 .. toctree::
    :maxdepth: 1
    :name: Examples
    :caption: Examples
 
-   pytorch_ecoystem
-   community_examples
+   ecosystem/pytorch_ecoystem
+   ecosystem/community_examples
    Autoencoder <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#autoencoders>
    BYOL <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol>
    DQN <https://pytorch-lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#deep-q-network-dqn>
@@ -121,7 +121,7 @@ PyTorch Lightning Documentation
    :name: Partner Domain Frameworks
    :caption: Partner Domain Frameworks
 
-   asr_nlp_tts
+   ecosystem/asr_nlp_tts
 
 .. toctree::
    :maxdepth: 1
