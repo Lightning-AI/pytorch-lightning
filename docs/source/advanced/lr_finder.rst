@@ -37,10 +37,10 @@ initial lr.
 Using Lightning's built-in LR finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To enable the learning rate finder, your :ref:`../common/lightning_module` needs to have a ``learning_rate`` or ``lr`` property.
+To enable the learning rate finder, your :doc:`lightning module <../common/lightning_module>` needs to have a ``learning_rate`` or ``lr`` property.
 Then, set ``Trainer(auto_lr_find=True)`` during trainer construction,
 and then call ``trainer.tune(model)`` to run the LR finder. The suggested ``learning_rate``
-will be written to the console and will be automatically set to your :ref:`../common/lightning_module`,
+will be written to the console and will be automatically set to your :doc:`lightning module <../common/lightning_module>`,
 which can be accessed via ``self.learning_rate`` or ``self.lr``.
 
 .. code-block:: python

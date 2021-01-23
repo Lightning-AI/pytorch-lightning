@@ -22,7 +22,7 @@ Callback
 A callback is a self-contained program that can be reused across projects.
 
 Lightning has a callback system to execute callbacks when needed. Callbacks should capture NON-ESSENTIAL
-logic that is NOT required for your :ref:`../common/lightning_module` to run.
+logic that is NOT required for your :doc:`lightning module <../common/lightning_module>` to run.
 
 Here's the flow of how the callback hooks are executed:
 
@@ -63,7 +63,7 @@ Example:
     trainer is init now
 
 We successfully extended functionality without polluting our super clean
-:ref:`../common/lightning_module` research code.
+:doc:`lightning module <../common/lightning_module>` research code.
 
 -----------
 

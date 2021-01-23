@@ -131,7 +131,7 @@ To use Optimizer Sharded Training, refer to :ref:`model-parallelism`.
 
 Sharded DDP can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 
-Refer to the :ref:`distributed computing guide for more details <../advanced/multi_gpu>`.
+Refer to the :doc:`distributed computing guide for more details <../advanced/multi_gpu>`.
 
 
 Sequential Model Parallelism with Checkpointing

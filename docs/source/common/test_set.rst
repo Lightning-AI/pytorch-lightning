@@ -74,7 +74,7 @@ running the test set (ie: 16-bit, dp, ddp, etc...)
 Test with additional data loaders
 ---------------------------------
 You can still run inference on a test set even if the `test_dataloader` method hasn't been
-defined within your :ref:`../common/lightning_module` instance. This would be the case when your test data
+defined within your :doc:`lightning module <../common/lightning_module>` instance. This would be the case when your test data
 is not available at the time your model was declared.
 
 .. code-block:: python
@@ -87,7 +87,7 @@ is not available at the time your model was declared.
 
 You can either pass in a single dataloader or a list of them. This optional named
 parameter can be used in conjunction with any of the above use cases. Additionally,
-you can also pass in an :ref:`../extensions/datamodules` that have overridden the
+you can also pass in an :doc:`datamodules <../extensions/datamodules>` that have overridden the
 :ref:`datamodule-test-dataloader-label` method.
 
 .. code-block:: python
