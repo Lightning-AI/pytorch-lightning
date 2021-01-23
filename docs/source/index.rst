@@ -112,7 +112,7 @@ PyTorch Lightning Documentation
    advanced/sequences
    advanced/training_tricks
    advanced/transfer_learning
-   clouds/tpu
+   advanced/tpu
    common/test_set
    common/production_inference
 

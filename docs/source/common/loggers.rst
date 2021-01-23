@@ -17,7 +17,7 @@ but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any 
     All loggers log by default to `os.getcwd()`. To change the path without creating a logger set
     `Trainer(default_root_dir='/your/path/to/save/checkpoints')`
 
-Read more about :ref:`logging` options.
+Read more about :ref:`extensions/logging` options.
 
 To log arbitrary artifacts like images or audio samples use the `trainer.log_dir` property to resolve
 the path.

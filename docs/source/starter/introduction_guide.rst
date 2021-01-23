@@ -57,7 +57,7 @@ The research
 The Model
 ---------
 
-The :ref:`lightning_module` holds all the core research ingredients:
+The :ref:`common/lightning_module` holds all the core research ingredients:
 
 - The model
 
@@ -98,7 +98,7 @@ Let's first start with the model. In this case, we'll design a 3-layer neural ne
         x = F.log_softmax(x, dim=1)
         return x
 
-Notice this is a :ref:`lightning_module` instead of a ``torch.nn.Module``. A LightningModule is
+Notice this is a :ref:`common/lightning_module` instead of a ``torch.nn.Module``. A LightningModule is
 equivalent to a pure PyTorch Module except it has added functionality. However, you can use it **EXACTLY** the same as you would a PyTorch Module.
 
 .. testcode::
@@ -917,7 +917,7 @@ With your own
             loss.backward(retain_graph=True)
 
 Every single part of training is configurable this way.
-For a full list look at :ref:`LightningModule <lightning_module>`.
+For a full list look at :ref:`LightningModule <common/lightning_module>`.
 
 ----------------
 
@@ -955,7 +955,7 @@ And pass the callbacks into the trainer
     Trainer is init now
 
 .. tip::
-    See full list of 12+ hooks in the :ref:`callbacks`.
+    See full list of 12+ hooks in the :ref:`extensions/callbacks`.
 
 ----------------
 
@@ -1052,7 +1052,7 @@ would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
 
     loss = perceptual_loss(x1, x2, x) + CE(out, x)
 
-In Lightning, this code is organized into a :ref:`lightning_module`.
+In Lightning, this code is organized into a :ref:`common/lightning_module`.
 
 Engineering code
 ================
@@ -1072,7 +1072,7 @@ over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across 
 
     dist.barrier()
 
-In Lightning, this code is abstracted out by the :ref:`trainer`.
+In Lightning, this code is abstracted out by the :ref:`common/trainer`.
 
 Non-essential code
 ==================
@@ -1091,7 +1091,7 @@ This is code that helps the research but isn't relevant to the research code. So
     generated = decoder(z)
     self.experiment.log('images', generated)
 
-In Lightning this code is organized into :ref:`callbacks`.
+In Lightning this code is organized into :ref:`extensions/callbacks`.
 
 Data code
 =========

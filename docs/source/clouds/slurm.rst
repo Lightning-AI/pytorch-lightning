@@ -17,7 +17,7 @@ Multi-node training
 -------------------
 To train a model using multiple nodes, do the following:
 
-1.  Design your :ref:`lightning_module`.
+1.  Design your :ref:`common/lightning_module`.
 
 2.  Enable DDP in the trainer
 
