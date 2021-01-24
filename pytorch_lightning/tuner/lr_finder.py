@@ -47,15 +47,15 @@ def __choose_lr_assigner(trainer, model: LightningModule) -> Callable[[Any], Non
                 f'`auto_lr_find` was set to {trainer.auto_lr_find}, however'
                 ' could not find this as a field in `model` or `model.hparams`.')
         return lambda val: lightning_setattr(model, trainer.auto_lr_find, val)
-    else:
-        if lightning_hasattr(model, 'lr'):
-            return lambda val: lightning_setattr(model, 'lr', val)
-        if lightning_hasattr(model, 'learning_rate'):
-            return lambda val: lightning_setattr(model, 'learning_rate', val)
-        raise MisconfigurationException(
-            'When auto_lr_find is set to True, expects that `model` or'
-            ' `model.hparams` either has field `lr` or `learning_rate`'
-            ' that can overridden')
+
+    if lightning_hasattr(model, 'lr'):
+        return lambda val: lightning_setattr(model, 'lr', val)
+    if lightning_hasattr(model, 'learning_rate'):
+        return lambda val: lightning_setattr(model, 'learning_rate', val)
+    raise MisconfigurationException(
+        'When auto_lr_find is set to True, expects that `model` or'
+        ' `model.hparams` either has field `lr` or `learning_rate`'
+        ' that can overridden')
 
 
 def _run_lr_finder_internally(trainer, model: LightningModule):
