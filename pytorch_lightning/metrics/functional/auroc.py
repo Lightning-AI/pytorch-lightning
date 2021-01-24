@@ -85,9 +85,9 @@ def _auroc_compute(
             # calculate average
             if average is None:
                 return auc_scores
-            if average == 'macro':
+            elif average == 'macro':
                 return torch.mean(torch.stack(auc_scores))
-            if average == 'weighted':
+            elif average == 'weighted':
                 if mode == 'multi-label':
                     support = torch.sum(target, dim=0)
                 else:
