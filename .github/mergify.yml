@@ -40,7 +40,6 @@ pull_request_rules:
     conditions:
       - -conflict
       - -draft # filter-out GH draft PRs
-      - label="0:] Ready-To-Go"
       - "#approved-reviews-by>=3" # number of review approvals
     actions:
       update: {}
