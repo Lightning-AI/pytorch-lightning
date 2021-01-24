@@ -32,14 +32,14 @@ if _PYTORCH_GREATER_EQUAL_1_6_0:
     class LightningAveragedModel(AveragedModel):
 
         def __init__(self, pl_module, *args, **kwargs):
-            super().__init__(pl_module, *args, **kwargs)
-
             for k, v in vars(pl_module).items():
                 setattr(self, k, v)
 
             for fn_name in dir(pl_module):
                 if not fn_name.startswith("__"):
                     setattr(self, fn_name, getattr(pl_module, fn_name))
+
+            super().__init__(pl_module, *args, **kwargs)
 
 
 class StochasticWeightAveragingCallback(Callback):
