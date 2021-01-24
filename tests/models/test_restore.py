@@ -433,7 +433,7 @@ def test_dp_resume(tmpdir):
             assert self.trainer.current_epoch == real_global_epoch and self.trainer.current_epoch > 0
 
             dataloader = self.train_dataloader()
-            tpipes.run_prediction(self.trainer.model, dataloader, dp=True)
+            tpipes.run_prediction(self.trainer.get_model(), dataloader)
             self.on_train_start_called = True
 
     # new model

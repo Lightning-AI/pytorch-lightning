@@ -189,17 +189,20 @@ def test_amp_without_apex(tmpdir):
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
-
-    class CustomModel(EvalModelTemplate):
+    class CustomModel(BoringModel):
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            return super().training_step(batch, batch_idx)
 
         def configure_optimizers(self):
-            optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
-            optimizer2 = optim.SGD(self.parameters(), lr=self.learning_rate)
+            optimizer1 = optim.Adam(self.parameters(), lr=0.01)
+            optimizer2 = optim.SGD(self.parameters(), lr=0.01)
             lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
             lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
     model = CustomModel()
+    model.training_epoch_end = None
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,

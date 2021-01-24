@@ -100,54 +100,45 @@ def run_model_test(
         trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=on_gpu)
 
 
-def run_prediction(trained_model, dataloader, dp=False, min_acc=0.25):
-    mode = trained_model.training
-    ref_model = trained_model.module if dp else trained_model
+def run_prediction(trained_model, dataloader, min_acc=0.25):
+    return _boring_model_run_prediction(trained_model, dataloader, min_acc)
 
-    if isinstance(ref_model, BoringModel):
-        _boring_model_run_prediction(trained_model, dataloader, dp, min_acc)
-    else:
-        _eval_model_template_run_prediction(trained_model, dataloader, dp, min_acc)
+# def _eval_model_template_run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
+#     # run prediction on 1 batch
+#     batch = next(iter(dataloader))
+#     x, y = batch
+#     x = x.view(x.size(0), -1)
+#
+#     if dp:
+#         with torch.no_grad():
+#             output = trained_model(batch, 0)
+#             acc = output['val_acc']
+#         acc = torch.mean(acc).item()
+#
+#     else:
+#         with torch.no_grad():
+#             y_hat = trained_model(x)
+#         y_hat = y_hat.cpu()
+#
+#         # acc
+#         labels_hat = torch.argmax(y_hat, dim=1)
+#
+#         y = y.cpu()
+#         acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+#         acc = torch.tensor(acc)
+#         acc = acc.item()
+#
+#     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
 
-    trained_model.train(mode)
 
-
-@torch.no_grad()
-def _eval_model_template_run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
+# TODO: This test compares a loss value with a min accuracy - complete non-sense!
+#   create BoringModels that make actual predictions!
+def _boring_model_run_prediction(trained_model, dataloader, min_acc=0.25):
     # run prediction on 1 batch
+    trained_model.cpu()
     batch = next(iter(dataloader))
-    x, y = batch
-    x = x.view(x.size(0), -1)
-
-    if dp:
-        output = trained_model(batch, 0)
-        acc = output['val_acc']
-        acc = torch.mean(acc).item()
-
-    else:
-        y_hat = trained_model(x).cpu()
-
-        # acc
-        labels_hat = torch.argmax(y_hat, dim=1)
-
-        y = y.cpu()
-        acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
-        acc = torch.tensor(acc)
-        acc = acc.item()
-
-    assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
-
-
-@torch.no_grad()
-def _boring_model_run_prediction(trained_model, dataloader, dp=False, min_acc=0.25):
-    # run prediction on 1 batch
-    batch = next(iter(dataloader))
-
-    if dp:
-        acc = trained_model(batch, 0)['loss']
-    else:
+    with torch.no_grad():
         output = trained_model(batch)
-        acc = trained_model.loss(batch, output)
-
+    acc = trained_model.loss(batch, output)
 
     assert acc >= min_acc, f"This model is expected to get, {min_acc} in test set but got {acc}"
