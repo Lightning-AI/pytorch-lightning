@@ -124,6 +124,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Added RPC and Sharded plugins ([#5732](https://github.com/PyTorchLightning/pytorch-lightning/pull/5732))
     * Added missing `LightningModule`-wrapper logic to new plugins and accelerator ([#5734](https://github.com/PyTorchLightning/pytorch-lightning/pull/5734))
 
+
+- Increased TPU check timeout from 20s to 100s ([#5598](https://github.com/PyTorchLightning/pytorch-lightning/pull/5598))
+
+
 ### Deprecated
 
 - Function `stat_scores_multiple_classes` is deprecated in favor of `stat_scores` ([#4839](https://github.com/PyTorchLightning/pytorch-lightning/pull/4839))
@@ -170,12 +174,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed loading yaml ([#5619](https://github.com/PyTorchLightning/pytorch-lightning/pull/5619))
-
-
-## [1.1.5] - 2021-01-19
-
-### Fixed
-
 
 
 ## [1.1.5] - 2021-01-19
