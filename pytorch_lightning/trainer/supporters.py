@@ -14,7 +14,7 @@
 
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch import Tensor
@@ -306,12 +306,8 @@ class CombinedDataset(object):
 
         if isinstance(all_lengths, (int, float)):
             length = all_lengths
-
-        elif isinstance(all_lengths, Mapping):
-            length = compute_func(all_lengths.values())
-
-        elif isinstance(all_lengths, Sequence):
-            length = compute_func(all_lengths)
+        else:
+            length = _nested_calc_num_data(all_lengths, compute_func)
 
         return length
 
@@ -437,13 +433,8 @@ class CombinedLoader(object):
         if isinstance(all_lengths, (int, float)):
             return all_lengths
 
-        elif isinstance(all_lengths, Mapping):
-            return min(all_lengths.values())
-
-        elif isinstance(all_lengths, Sequence):
-            return min(all_lengths)
-
-        raise TypeError(f'Got Type {type(all_lengths).__name__}, but expected one of Sequence, int or Mapping')
+        else:
+            return _nested_calc_num_data(all_lengths, min)
 
     def __len__(self) -> int:
         return self._calc_num_batches(self.loaders)
@@ -516,3 +507,25 @@ class CombinedLoaderIterator(object):
         """
         # dataloaders are Iterable but not Sequences. Need this to specifically exclude sequences
         return apply_to_collection(loaders, Iterable, iter, wrong_dtype=(Sequence, Mapping))
+
+
+def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable):
+
+    if isinstance(data, int):
+        return data
+
+    if isinstance(data, Mapping):
+        data = list(data.values())
+
+    if not isinstance(data, Sequence):
+        raise TypeError(f'Expected data to be int, Sequence or Mapping, but got {type(data).__name__}')
+
+    new_data = []
+
+    for x in data:
+        if isinstance(x, (Mapping, Sequence)):
+            new_data.append(_nested_calc_num_data(x, compute_func))
+        else:
+            new_data.append(x)
+
+    return compute_func(new_data)
