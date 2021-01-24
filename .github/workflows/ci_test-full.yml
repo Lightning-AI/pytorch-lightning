@@ -30,8 +30,7 @@ jobs:
     - name: Update Pip
       run: |
         # todo: unfreeze PIP after resolving minimal dependencies
-        # pip install --quiet "pip==20.1" --upgrade --user  # needed for get pip cacher folder
-        pip install "pip==20.3" -U  # needed for later instalation onnxruntime
+        pip install --quiet "pip==20.1" --upgrade --user  # needed for get pip cacher folder
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
@@ -53,10 +52,8 @@ jobs:
     - name: Adjust minimal for Python 3.9
       if: matrix.requires == 'minimal' && matrix.python-version == 3.9
       run: |
-        import re
-        fname = 'requirements.txt'
-        req = re.sub(r'torch>=[\d\.]+', 'torch>=1.7.1', open(fname).read())
-        open(fname, 'w').write(req)
+        pip install "pip==20.3" -U  # needed for later instalation onnxruntime
+        python -c "import re ; fname='requirements.txt' ; req = re.sub(r'torch>=[\d\.]+', 'torch>=1.7.1', open(fname).read()) ; open(fname, 'w').write(req)"
       shell: python
 
     - name: Set min. dependencies
