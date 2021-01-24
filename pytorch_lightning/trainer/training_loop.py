@@ -46,7 +46,6 @@ class TrainLoop:
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
         self.do_backward = True
-        self.do_optimizer_step = True
         self._multiple_trainloader_mode = multiple_trainloader_mode
         self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
 
