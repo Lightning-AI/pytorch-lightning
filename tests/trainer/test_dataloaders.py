@@ -1157,6 +1157,5 @@ def test_replace_sampler_with_multiprocessing_context(tmpdir):
         overfit_batches=5,
     )
 
-
     new_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
     assert (new_data_loader.multiprocessing_context == train.multiprocessing_context)
