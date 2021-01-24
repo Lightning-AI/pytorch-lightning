@@ -38,7 +38,6 @@ class EvaluationLoop(object):
         self.trainer.test_dataloaders = None
         self.trainer.val_dataloaders = None
         self.trainer.running_sanity_check = False
-        self.trainer.testing = False
 
         # when .test() is called, it sets this
         self.trainer.tested_ckpt_path = None
