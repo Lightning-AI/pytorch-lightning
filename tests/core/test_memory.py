@@ -290,7 +290,7 @@ def test_empty_model_size(mode):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
-@pytest.mark.parametrize("precision", [16, 32])
+@pytest.mark.parametrize('precision', [16, 32])
 def test_model_size_half_precision(monkeypatch, tmpdir, precision):
     """ Test model size for half and full precision. """
     model = PreCalculatedModel(precision)
