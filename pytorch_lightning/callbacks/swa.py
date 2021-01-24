@@ -23,10 +23,10 @@ import torch
 from torch import nn
 
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_7_0, rank_zero_warn
+from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _PYTORCH_GREATER_EQUAL_1_7_0:
+if _PYTORCH_GREATER_EQUAL_1_6_0:
     from torch.optim.swa_utils import AveragedModel, SWALR
 
     class LightningAveragedModel(AveragedModel):

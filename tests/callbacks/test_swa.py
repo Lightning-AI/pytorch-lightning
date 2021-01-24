@@ -16,14 +16,14 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_7_0
+from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0
 from tests.base import BoringModel, RandomDataset
 
-if _PYTORCH_GREATER_EQUAL_1_7_0:
+if _PYTORCH_GREATER_EQUAL_1_6_0:
     from pytorch_lightning.callbacks import StochasticWeightAveragingCallback
 
 
-@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_7_0, reason="SWA available from in PyTorch 1.7.0")
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.7.0")
 def test_stochastic_weight_averaging_callback(tmpdir):
 
     class TestModel(BoringModel):
