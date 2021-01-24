@@ -441,5 +441,5 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
         default_root_dir=tmpdir,
         max_steps=2,
     )
-    with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the name 'loss'"):
+    with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the name(s) 'loss'"):
         trainer.fit(model)
