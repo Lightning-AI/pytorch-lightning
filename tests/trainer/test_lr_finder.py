@@ -18,9 +18,12 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning import seed_everything
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
-from tests.base import BoringModel
+from tests.base import BoringModel, RandomDataset
+from torch.utils.data.sampler import SequentialSampler
+from torch.utils.data.dataloader import DataLoader
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -269,15 +272,26 @@ def test_suggestion_with_non_finite_values(tmpdir):
 def test_lr_finder_fails_fast_on_bad_config(tmpdir):
     """ Test that misconfiguration of learning_rate or lr in model fails BEFORE lr optimization and not after it. """
     import time
-    model = BoringModel()
-    dm = TrialMNISTDataModule(tmpdir)
+    train = RandomDataset(32, 64)
+    context = 'spawn'
+    train = DataLoader(train, batch_size=32, num_workers=1, multiprocessing_context=context, shuffle=True)
+
+    class ExtendedBoringModel(BoringModel):
+        def train_dataloader(self):
+            return train
+    model = ExtendedBoringModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
         auto_lr_find=True,
+        deterministic=True,
+        overfit_batches=1,
     )
+    train_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
 
-    lr_finder = trainer.tuner.lr_find(model, datamodule=dm)
-    trainer.tune(model)
+    try:
+        trainer.tune(model, train_dataloader=train_data_loader)
+    except MisconfigurationException as ex:
+        print('fine')
 
