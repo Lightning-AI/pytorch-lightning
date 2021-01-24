@@ -59,5 +59,4 @@ class ModelConnector:
         if self.trainer.accelerator_backend:
             with suppress(NotImplementedError):
                 self.trainer.accelerator_backend.set_reference_model(model, pl_module)
-
         self.trainer.model = pl_module

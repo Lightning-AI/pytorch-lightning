@@ -36,6 +36,11 @@ def test_stochastic_weight_averaging_callback(tmpdir):
                 nn.Linear(32, 2),
             )
 
+        def training_step(self, batch, batch_idx):
+            output = self.forward(batch)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 

@@ -32,11 +32,12 @@ if _PYTORCH_GREATER_EQUAL_1_6_0:
     class LightningAveragedModel(AveragedModel):
 
         def __init__(self, pl_module, *args, **kwargs):
+
             for k, v in vars(pl_module).items():
                 setattr(self, k, v)
 
             for fn_name in dir(pl_module):
-                if not fn_name.startswith("__"):
+                if not fn_name.startswith("__") and fn_name != "update_parameters":
                     setattr(self, fn_name, getattr(pl_module, fn_name))
 
             super().__init__(pl_module, *args, **kwargs)
@@ -182,19 +183,23 @@ class StochasticWeightAveragingCallback(Callback):
             device = pl_module.device
             self._pl_module = pl_module.to("cpu")
 
-            self._average_model = self._average_model.to(device)
+            self._average_model.module = self._average_model.module.to(device)
             self._average_model._results = self._pl_module._results
             self.reset_batch_norm_and_save_state(self._average_model, device)
             trainer.model_connector.set_model(self._average_model)
-
             # perform accumulation
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
             trainer.accumulate_grad_batches = len(trainer.train_dataloader)
             trainer.train_loop.do_backward = False
 
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        if self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
+            assert isinstance(pl_module, LightningAveragedModel)
+
     def on_train_epoch_end(self, trainer, pl_module, *_):
         if self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
             trainer.model_connector.set_model(self._pl_module)
+            assert not isinstance(trainer.get_model(), LightningAveragedModel)
 
     def on_train_end(self, trainer, pl_module):
         trainer.accumulate_grad_batches = self._accumulate_grad_batches
