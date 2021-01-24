@@ -18,7 +18,9 @@ import torch.nn as nn
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from tests.base.models import ParityModuleRNN
+from tests.base import BoringModel
 
 
 class EmptyModule(LightningModule):
@@ -33,21 +35,20 @@ class EmptyModule(LightningModule):
         return {'loss': self.parameter.sum()}
 
 
-class PreCalculatedModel(LightningModule):
-    """ A module with precalculated total params size in MB. """
+class PreCalculatedModel(BoringModel):
+    """ A model with precalculated total params size in MB for FP16 and FP32. """
 
-    def __init__(self):
+    def __init__(self, precision: int = 32):
         super().__init__()
-        self.layer1 = nn.Linear(150, 1000, bias=False)
-        self.layer2 = nn.Linear(1000, 100, bias=False)
-        # pre calculated model size i.e (250 K params * 32 bits) -> 1.0 megabyte.
-        self.pre_calculated_model_size = 1.0
+        self.layer = nn.Linear(32, 1000, bias=False) # 32K params
+        self.layer1 = nn.Linear(1000, 218, bias=False) # 218K params 
+
+        # calculate model size based on precision.
+        self.pre_calculated_model_size = 1.0 / (32 / precision)
 
     def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-        return x
-
+        x = self.layer(x)
+        return self.layer1(x)
 
 class UnorderedModel(LightningModule):
     """ A model in which the layers not defined in order of execution """
@@ -285,3 +286,24 @@ def test_empty_model_size(mode):
     model = EmptyModule()
     summary = model.summarize(mode=mode)
     assert 0.0 == summary.model_size
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
+@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@pytest.mark.parametrize("precision", [16, 32])
+def test_model_size_half_precision(monkeypatch, tmpdir, precision):
+    """ Test model size for half and full precision. """
+    model = PreCalculatedModel(precision)
+    monkeypatch.setenv("TORCH_HOME", tmpdir)
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        max_steps=1,
+        max_epochs=1,
+        precision=precision,
+    )
+    trainer.fit(model)
+    summary = model.summarize()
+    assert model.pre_calculated_model_size == summary.model_size
