@@ -1,6 +1,6 @@
 """Root package info."""
 
-import logging as python_logging
+import logging
 import os
 import sys
 import time
@@ -38,13 +38,13 @@ Documentation
 - https://pytorch-lightning.readthedocs.io/en/latest
 - https://pytorch-lightning.readthedocs.io/en/stable
 """
-_root_logger = python_logging.getLogger()
-_logger = python_logging.getLogger(__name__)
-_logger.setLevel(python_logging.INFO)
+_root_logger = logging.getLogger()
+_logger = logging.getLogger(__name__)
+_logger.setLevel(logging.INFO)
 
 # if root logger has handlers, propagate messages up and let root logger process them
 if not _root_logger.hasHandlers():
-    _logger.addHandler(python_logging.StreamHandler())
+    _logger.addHandler(logging.StreamHandler())
     _logger.propagate = False
 
 
