@@ -68,11 +68,12 @@ class LightningDataParallel(DataParallel):
         super().__init__(*args, **kwargs)
         warnings.filterwarnings(
             "ignore",
+            module="torch.nn.parallel*",
             message=(
                 "Was asked to gather along dimension 0, but all"
                 " input tensors were scalars; will instead unsqueeze"
                 " and return a vector."
-            )
+            ),
         )
 
     def forward(self, *inputs, **kwargs):
