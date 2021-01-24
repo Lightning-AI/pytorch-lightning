@@ -191,7 +191,7 @@ class TrainerProperties(ABC):
         duplicates = list(standard_metrics.keys() & logged_metrics.keys())
         if duplicates:
             rank_zero_warn(
-                f"The progress bar already tracks a metric with the name '{duplicates[0]}' and"
+                f"The progress bar already tracks a metric with the name '{', '.join(duplicates)}' and"
                 f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
                 f" If this is undesired, change the name or override `get_progress_bar_dict()`"
                 f" in `LightingModule`.",
