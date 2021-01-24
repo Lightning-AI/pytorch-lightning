@@ -38,10 +38,15 @@ Documentation
 - https://pytorch-lightning.readthedocs.io/en/latest
 - https://pytorch-lightning.readthedocs.io/en/stable
 """
+_root_logger = python_logging.getLogger()
 _logger = python_logging.getLogger(__name__)
-_logger.addHandler(python_logging.StreamHandler())
 _logger.setLevel(python_logging.INFO)
-_logger.propagate = False
+
+# if root logger has handlers, propagate messages up and let root logger process them
+if not _root_logger.hasHandlers():
+    _logger.addHandler(python_logging.StreamHandler())
+    _logger.propagate = False
+
 
 PACKAGE_ROOT = os.path.dirname(__file__)
 PROJECT_ROOT = os.path.dirname(PACKAGE_ROOT)
