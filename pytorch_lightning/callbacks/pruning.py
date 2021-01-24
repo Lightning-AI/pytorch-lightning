@@ -233,7 +233,7 @@ class PruningCallback(Callback):
             amount = self.amount
         return amount
 
-    def _apply_lottery_ticket_hypothesis(self, module: nn.Module, orig_module: nn.Module, tensor_name:str):
+    def _apply_lottery_ticket_hypothesis(self, module: nn.Module, orig_module: nn.Module, tensor_name: str):
         trained = getattr(module, tensor_name)
         orig = getattr(orig_module, tensor_name)
         trained.data = orig.data.to(trained.device)
@@ -264,12 +264,13 @@ class PruningCallback(Callback):
         if self.use_lottery_ticket_hypothesis:
             self.apply_lottery_ticket_hypothesis()
 
-    def on_train_start(self, trainer, pl_module):
+    def on_before_accelerator_backend_setup(self, trainer, pl_module):
         self.parameters_to_prune = check_parameters_to_prune(
             pl_module, self.parameters_to_prune, parameters=self.parameter_names)
 
-        # make a deepcopy.
-        self._parameters_to_prune = [(deepcopy(m).cpu(), n) for m, n in self.parameters_to_prune]
+        if self.use_lottery_ticket_hypothesis:
+            # make a copy of copy of orginal weights.
+            self._parameters_to_prune = [(deepcopy(m), n) for m, n in self.parameters_to_prune]
 
     def on_epoch_end(self, trainer, pl_module):
         self.apply_pruning(trainer, pl_module)
