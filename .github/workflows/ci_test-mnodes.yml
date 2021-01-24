@@ -1,0 +1,212 @@
+name: Multi Nodes GPU Tests
+
+# Workflow Steps:
+#  1. Checkout Pytorch Lightning
+#  2. Set up Python
+#  3. Configure AWS Credentials
+#  4. Install AWS Client
+#  5. Get Current Sha Commit
+#  6. Create Job Name
+#  7. Update Test Configuration File
+#  8. Install EKSClient
+#  9. Create Gpu Node Pool
+#  10. Check Current Node Pool | Current Elatic Pods
+#  11. Apply Elastic
+#  12. Wait 5 sec
+#  13. Find ETCD TCP Address
+#  14. Update Test Configuration File
+#  15. Apply Multi Node Testing
+#  16. Wait 120 secs
+#  17. Listen to Jobs Logging
+#  18. Statistics
+#  19. Upload coverage results
+#  20. Upload coverage to Codecov
+#  21. Delete Group Node
+
+#on: push
+
+on:
+  push:
+    branches:
+      - master
+      - release/*
+  pull_request:
+    types: [closed]
+
+env:
+  AWS_CLUSTER: pl-lightning-torchelastic
+  NODE_TYPE: g4dn.xlarge
+  NODES: 2
+  NUM_GPUS: 1
+  REGION: us-east-2
+  MAX_CHECKS: 300
+  CHECK_SPEEP: 2
+
+jobs:
+  multi-nodes-gpu-testing:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.7]
+        pytorch-version: [1.5]
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 50
+
+    # runs only when merged happened.
+    # if: github.event.pull_request.merged == true
+    steps:
+
+    - name: Checkout Pytorch Lightning
+      uses: actions/checkout@v2
+      with:
+        repository: PyTorchLightning/pytorch-lightning
+        ref: ${{ github.event.base_ref }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    # Note: This uses an internal pip API and may not always work
+    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-multi-node
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        pip install awscli coverage
+        # todo
+        pip install git+https://${{ secrets.PL_GHOST_TOKEN }}@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.3 -q --no-cache-dir
+        #pip install git+https://${{ secrets.PL_GHOST_TOKEN }}@github.com/PyTorchLightning/lightning-dtrun.git@mnodes -q --no-cache-dir
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+        aws-region: us-east-2
+
+    - name: Get Current Sha Commit
+      id: vars
+      shell: bash
+      run: |
+        echo "::set-output name=SHA::$(git rev-parse --short HEAD)"
+        echo $PWD
+
+    - name: Create Job Name
+      id: job
+      shell: bash
+      run: |
+        echo "::set-output name=ID::$(echo '${{ steps.vars.outputs.SHA }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}' | tr . - )"
+        echo "::set-output name=ID_NAME::$(echo 's-${{ steps.vars.outputs.SHA }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-e' | tr . - )"
+
+    - name: Install EKSClient
+      run: |
+        curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+        sudo mv /tmp/eksctl /usr/local/bin
+      shell: bash
+
+    - name: Create Gpu Node Pool
+      run: |
+        aws eks --region $REGION update-kubeconfig --name $AWS_CLUSTER
+        eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER --node-type=$NODE_TYPE  --nodes=$NODES
+        # eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER --managed --spot --node-type=$NODE_TYPE  --nodes=$NODES
+      shell: bash
+
+    - name: Check Current Node Pool | Current Elatic Pods
+      run: |
+        eksctl get nodegroups --cluster $AWS_CLUSTER
+        kubectl get pods -n elastic-job
+
+    - name: Apply Elastic
+      run: |
+        git clone https://github.com/pytorch/elastic.git
+        cd elastic/kubernetes
+
+        kubectl apply -k config/default
+
+        kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/master/nvidia-device-plugin.yml
+        kubectl apply -f https://raw.githubusercontent.com/pytorch/elastic/master/kubernetes/config/samples/etcd.yaml
+
+    - name: Wait
+      # todo: this shall be dynamic
+      if: always()
+      shell: bash
+      run: |
+        sleep 5
+
+    - name: Find ETCD TCP Address
+      id: tcp
+      shell: bash
+      run: |
+        echo "::set-output name=TCP_ADDRESS::$(kubectl logs etcd -n elastic-job | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,4}' | head -1)"
+
+    - name: Update Test Config. File
+      run: |
+        import os
+        from dtrun.configs import prepare_multi_nodes_gpu_config
+
+        assert os.path.isfile('./tests/mnode_tests.txt')
+        prepare_multi_nodes_gpu_config(
+            './.github/multi-nodes-gpu.yaml',
+            './tests/mnode_tests.txt',
+            sha="${{ steps.vars.outputs.SHA }}",
+            tcp_address="${{ steps.tcp.outputs.TCP_ADDRESS }}",
+            python_version="${{ matrix.python-version }}",
+            torch_version="${{ matrix.pytorch-version }}",
+            num_gpus=1,
+        )
+      shell: python
+
+    - name: Apply Multi Node Testing
+      run: |
+        # cat ./.github/multi-nodes-gpu.yaml
+        kubectl apply -f ./.github/multi-nodes-gpu.yaml
+      shell: bash
+
+    - name: Wait
+      # todo: this shall be dynamic
+      if: always()
+      shell: bash
+      run: |
+        sleep 400
+
+    - name: Listen to Jobs Logging
+      shell: bash
+      run: |
+        # todo: Enable automatic checking.
+        # while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl logs ${{ steps.job.outputs.ID_NAME }}-worker-0 -n elastic-job | grep -i "error\|failed"; then status_code=1 && break; elif kubectl logs ${{ steps.job.outputs.ID }}-worker-0 -n elastic-job | grep "TEST END"; then status_code=0 && break; else printf "." ; fi; sleep $CHECK_SPEEP; done && \
+        # echo "Done waiting. Job status code: $status_code" && \
+        kubectl logs ${{ steps.job.outputs.ID_NAME }}-worker-0 -n elastic-job > /tmp/full_output.txt
+        if grep -q 'END_TOKEN' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/END_TOKEN/'; else mv /tmp/full_output.txt xx00; fi && \
+        cat xx00
+
+    - name: Statistics
+      if: success()
+      run: |
+        cat ./xx01  | tail -n +2 | base64 --decode > /home/runner/work/pytorch-lightning/pytorch-lightning/.coverage
+        cd /home/runner/work/pytorch-lightning/pytorch-lightning && coverage report && coverage xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      if: always()
+      # see: https://github.com/actions/toolkit/issues/399
+      continue-on-error: true
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: coverage.xml
+        flags: multi-nodes,pytest
+        name: multi-nodes-coverage
+        fail_ci_if_error: false
+
+    - name: Delete Group Node
+      if: always()
+      run: |
+       kubectl delete  ElasticJob ${{ steps.job.outputs.ID_NAME }} -n elastic-job
+       eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER
