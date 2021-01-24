@@ -1,10 +1,10 @@
+from operator import neg, pos
+
 import pytest
 import torch
 
-from operator import neg, pos
-
-from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.compositional import CompositionalMetric
+from pytorch_lightning.metrics.metric import Metric
 
 
 class DummyMetric(Metric):

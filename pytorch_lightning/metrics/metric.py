@@ -311,11 +311,12 @@ class Metric(nn.Module, ABC):
 
         # filter all parameters based on update signature except those of
         # type VAR_POSITIONAL (*args) and VAR_KEYWORD (**kwargs)
+        _params = (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
         filtered_kwargs = {
             k: v
             for k, v in kwargs.items()
             if k in self._update_signature.parameters.keys()
-            and self._update_signature.parameters[k].kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+            and self._update_signature.parameters[k].kind not in _params
         }
 
         # if no kwargs filtered, return al kwargs as default
