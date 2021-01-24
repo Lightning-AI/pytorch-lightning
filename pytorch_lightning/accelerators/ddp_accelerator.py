@@ -361,6 +361,9 @@ class DDPAccelerator(Accelerator):
     def get_reference_model(self, model) -> LightningModule:
         return self.ddp_plugin.get_model_from_plugin(model)
 
+    def set_reference_model(self, model, pl_module: LightningModule):
+        return self.ddp_plugin.set_model_in_plugin(model, pl_module)
+
     @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(

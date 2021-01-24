@@ -20,6 +20,7 @@ from pytorch_lightning.callbacks.lambda_function import LambdaCallback
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.callbacks.progress import ProgressBar, ProgressBarBase
+from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_7_0
 
 __all__ = [
     'BackboneLambdaFinetuningCallback',
@@ -34,3 +35,8 @@ __all__ = [
     'ProgressBar',
     'ProgressBarBase',
 ]
+
+if _PYTORCH_GREATER_EQUAL_1_7_0:
+    from pytorch_lightning.callbacks.swa import StochasticWeightAveragingCallback
+
+    __all__ += ['StochasticWeightAveragingCallback']

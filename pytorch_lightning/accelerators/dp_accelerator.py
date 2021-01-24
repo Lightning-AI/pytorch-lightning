@@ -184,6 +184,9 @@ class DataParallelAccelerator(Accelerator):
             return model.module
         return model
 
+    def set_reference_model(self, model, pl_module: LightningModule):
+        model.module = pl_module
+
     @property
     def require_distributed_sampler(self):
         return False

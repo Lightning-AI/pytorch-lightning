@@ -161,6 +161,12 @@ class DDPPlugin(LightningPlugin):
             model = model.module
         return model
 
+    def set_reference_model(self, model, pl_module: LightningModule):
+        if isinstance(model, LightningDistributedModule):
+            if isinstance(model, LightningDistributedModule):
+                model.module.module = pl_module
+            model = model.module
+
     @contextmanager
     def block_backward_sync(self, model: DistributedDataParallel):
         """
