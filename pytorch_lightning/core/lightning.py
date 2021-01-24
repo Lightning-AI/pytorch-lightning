@@ -464,8 +464,11 @@ class LightningModule(
             Any of.
 
             - :class:`~torch.Tensor` - The loss tensor
-            - `dict` - A dictionary. Can include any keys, but must include the key 'loss'
-            - `None` - Training will skip to the next batch
+            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
+            - ``None`` - Training will skip to the next batch
+
+        Note:
+            Returning ``None`` is currently not supported for multi-GPU or TPU, or with 16-bit precision enabled.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -640,7 +643,7 @@ class LightningModule(
            Any of.
 
             - Any object or value
-            - `None` - Validation will skip to the next batch
+            - ``None`` - Validation will skip to the next batch
 
         .. code-block:: python
 
@@ -825,7 +828,7 @@ class LightningModule(
            Any of.
 
             - Any object or value
-            - `None` - Testing will skip to the next batch
+            - ``None`` - Testing will skip to the next batch
 
         .. code-block:: python
 

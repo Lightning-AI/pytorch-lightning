@@ -139,7 +139,7 @@ class SLURMConnector:
 
         # figure out the root node addr
         try:
-            root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
+            root_node = os.environ["SLURM_NODELIST"].split(" ")[0].split(",")[0]
         except Exception:
             root_node = "127.0.0.1"
 

@@ -284,7 +284,7 @@ def main(hparams: Namespace):
 
 if __name__ == '__main__':
     cli_lightning_logo()
-    parser = ArgumentParser()
+    parser = ArgumentParser(add_help=False)
     parser = SegModel.add_model_specific_args(parser)
     hparams = parser.parse_args()
 
