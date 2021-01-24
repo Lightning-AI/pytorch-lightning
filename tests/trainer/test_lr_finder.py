@@ -290,8 +290,5 @@ def test_lr_finder_fails_fast_on_bad_config(tmpdir):
     )
     train_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
 
-    try:
+    with pytest.raises(MisconfigurationException):
         trainer.tune(model, train_dataloader=train_data_loader)
-    except MisconfigurationException as ex:
-        print('fine')
-
