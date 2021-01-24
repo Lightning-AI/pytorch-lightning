@@ -157,7 +157,7 @@ class Metric(nn.Module, ABC):
             self._to_sync = self.dist_sync_on_step
 
             # save context before switch
-            self._cache = {attr: getattr(self, attr) for attr in self._defaults.keys()}
+            cache = {attr: getattr(self, attr) for attr in self._defaults.keys()}
 
             # call reset, update, compute, on single batch
             self.reset()
@@ -165,7 +165,7 @@ class Metric(nn.Module, ABC):
             self._forward_cache = self.compute()
 
             # restore context
-            for attr, val in self._cache.items():
+            for attr, val in cache.items():
                 setattr(self, attr, val)
             self._to_sync = True
             self._computed = None
@@ -212,11 +212,20 @@ class Metric(nn.Module, ABC):
                 # User provided a bool, so we assume DDP if available
                 dist_sync_fn = gather_all_tensors
 
+            synced = False
             if self._to_sync and dist_sync_fn is not None:
+                # cache prior to syncing
+                cache = {attr: getattr(self, attr) for attr in self._defaults.keys()}
+
+                # sync
                 self._sync_dist(dist_sync_fn)
+                synced = True
 
             self._computed = compute(*args, **kwargs)
-            self.reset()
+            if synced:
+                # if we synced, restore to cache so that we can continue to accumulate un-synced state
+                for attr, val in cache.items():
+                    setattr(self, attr, val)
 
             return self._computed
 
