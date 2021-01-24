@@ -46,8 +46,7 @@ def __choose_lr_assigner(trainer, model: LightningModule) -> Callable[[Any], Non
             raise MisconfigurationException(
                 f'`auto_lr_find` was set to {trainer.auto_lr_find}, however'
                 ' could not find this as a field in `model` or `model.hparams`.')
-        else:
-            return lambda val: lightning_setattr(model, trainer.auto_lr_find, val)
+        return lambda val: lightning_setattr(model, trainer.auto_lr_find, val)
     else:
         if lightning_hasattr(model, 'lr'):
             return lambda val: lightning_setattr(model, 'lr', val)
