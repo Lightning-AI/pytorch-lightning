@@ -24,7 +24,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
