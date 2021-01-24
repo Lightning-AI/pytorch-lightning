@@ -51,13 +51,12 @@ def __choose_lr_assigner(trainer, model: LightningModule) -> Callable[[Any], Non
     else:
         if lightning_hasattr(model, 'lr'):
             return lambda val: lightning_setattr(model, 'lr', val)
-        elif lightning_hasattr(model, 'learning_rate'):
+        if lightning_hasattr(model, 'learning_rate'):
             return lambda val: lightning_setattr(model, 'learning_rate', val)
-        else:
-            raise MisconfigurationException(
-                'When auto_lr_find is set to True, expects that `model` or'
-                ' `model.hparams` either has field `lr` or `learning_rate`'
-                ' that can overridden')
+        raise MisconfigurationException(
+            'When auto_lr_find is set to True, expects that `model` or'
+            ' `model.hparams` either has field `lr` or `learning_rate`'
+            ' that can overridden')
 
 
 def _run_lr_finder_internally(trainer, model: LightningModule):
