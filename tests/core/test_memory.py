@@ -294,7 +294,6 @@ def test_empty_model_size(mode):
 def test_model_size_precision(monkeypatch, tmpdir, precision):
     """ Test model size for half and full precision. """
     model = PreCalculatedModel(precision)
-    monkeypatch.setenv("TORCH_HOME", tmpdir)
 
     # fit model
     trainer = Trainer(
