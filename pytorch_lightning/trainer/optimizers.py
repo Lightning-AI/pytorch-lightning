@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
+from collections import OrderedDict
 from typing import List, Optional, Tuple
 
 import torch
@@ -88,8 +89,10 @@ class TrainerOptimizersMixin(ABC):
             optimizer._on_trainer_init(trainer)
             return optimizer
 
-        if self._enable_pl_optimizer:
-            self.optimizers = [_convert_to_lightning_optimizer(self, opt) for opt in self.optimizers]
+        self._lightning_optimizers = {
+            opt_idx: _convert_to_lightning_optimizer(self, opt)
+            for opt_idx, opt in enumerate(self.optimizers)
+        }
 
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information
@@ -142,6 +145,7 @@ class TrainerOptimizersMixin(ABC):
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
             scheduler = scheduler['scheduler']
+            state = None
 
             for optimizer in optimizers:
                 # check that we dont mix users optimizers and schedulers
@@ -149,14 +153,13 @@ class TrainerOptimizersMixin(ABC):
                     # Find the mro belonging to the base lr scheduler class
                     for i, mro in enumerate(scheduler.__class__.__mro__):
                         if mro in (optim.lr_scheduler._LRScheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                            idx = i
                             state = scheduler.state_dict()
-                        else:
-                            state = None
+                            scheduler.__class__.__mro__[i].__init__(scheduler, optimizer)
+                            scheduler.load_state_dict(state)
+                            break
 
-                scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
                 if state is not None:
-                    scheduler.load_state_dict(state)
+                    break
 
 
 class _MockOptimizer(Optimizer):

@@ -49,7 +49,8 @@ class DummyModel(pl.LightningModule):
     def _step(self, batch, batch_idx):
         output = self.layer(batch)
         loss = self._loss(batch, output)
-        return loss
+        # return {'loss': loss}  # used for PL<1.0
+        return loss  # used for PL >= 1.0
 
     def training_step(self, batch, batch_idx):
         return self._step(batch, batch_idx)

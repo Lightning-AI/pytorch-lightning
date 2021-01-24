@@ -637,8 +637,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
+def test_checkpoint_repeated_strategy(tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callbacks list
     """
@@ -658,7 +657,6 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         callbacks=[checkpoint_callback],
-        enable_pl_optimizer=enable_pl_optimizer,
         weights_summary=None,
         progress_bar_refresh_rate=0,
     )
@@ -675,7 +673,6 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
             limit_val_batches=2,
             limit_test_batches=2,
             resume_from_checkpoint=checkpoint_callback.best_model_path,
-            enable_pl_optimizer=enable_pl_optimizer,
             weights_summary=None,
             progress_bar_refresh_rate=0,
         )
@@ -686,8 +683,7 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
+def test_checkpoint_repeated_strategy_extended(tmpdir):
     """
     This test validates checkpoint can be called several times without
     increasing internally its global step if nothing run.
@@ -732,7 +728,6 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=3,
         limit_test_batches=4,
-        enable_pl_optimizer=enable_pl_optimizer,
         callbacks=[checkpoint_cb],
     )
     trainer = pl.Trainer(**trainer_config)
