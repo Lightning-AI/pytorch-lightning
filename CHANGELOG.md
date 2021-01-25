@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Increased TPU check timeout from 20s to 100s ([#5598](https://github.com/PyTorchLightning/pytorch-lightning/pull/5598))
 
 
+- Ignored `step` param in Neptune logger's log_metric method ([#5510](https://github.com/PyTorchLightning/pytorch-lightning/pull/5510))
+
+
 ### Deprecated
 
 
@@ -24,6 +27,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed `toggle_optimizer` to reset `requieres_grad` state  ([#5574](https://github.com/PyTorchLightning/pytorch-lightning/pull/5574))
+
+
+- Fixed an error when logging a progress bar metric with a reserved name ([#5620](https://github.com/PyTorchLightning/pytorch-lightning/pull/5620))
 
 
 
