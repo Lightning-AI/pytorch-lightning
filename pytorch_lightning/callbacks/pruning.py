@@ -21,6 +21,7 @@ Perform model pruning.
 """
 from copy import deepcopy
 from typing import Callable, List, Optional, Tuple, Union
+from functools import partial
 
 from torch import nn
 from torch.nn.modules.container import ModuleDict, ModuleList
@@ -267,9 +268,7 @@ class ModelPruning(Callback):
 
     @staticmethod
     def _wrap_pruning_fn(pruning_fn, *args, **kwargs):
-        return lambda module, name, amount: pruning_fn(
-            module, name, amount, *args, **kwargs
-        )
+        return partial(pruning_fn, **kwargs)
 
     def _make_pruning_permanent(self):
         for module, param_name in self.parameters_to_prune:
@@ -333,9 +332,6 @@ class ModelPruning(Callback):
             self._parameters_to_prune = [(deepcopy(m), n) for m, n in self.parameters_to_prune]
 
     def on_epoch_end(self, trainer, pl_module):
-        self.apply_pruning(trainer, pl_module)
-
-    def on_fit_end(self, trainer, pl_module):
         self.apply_pruning(trainer, pl_module)
 
         if self.make_pruning_permanent:
