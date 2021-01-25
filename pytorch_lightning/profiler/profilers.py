@@ -100,7 +100,7 @@ class BaseProfiler(ABC):
     def summary(self) -> str:
         """Create profiler summary in text format."""
 
-    def on_train_start(self, local_rank: int):
+    def on_train_start(self, local_rank: Optional[int] = None):
         self.local_rank = local_rank
 
 
@@ -409,15 +409,15 @@ class PyTorchProfiler(BaseProfiler):
 
         self.output_fname = output_filename
         self.output_file = None
-        self.local_rank = local_rank
-        if self.local_rank is not None:
-            self.on_fit_start(self.local_rank)
-            self.on_fit_start = super().on_fit_start
+        if local_rank is not None:
+            self.on_train_start(local_rank=local_rank)
+            self.on_train_start = super().on_train_start
 
     def on_train_start(self, local_rank: Optional[str] = None):
         self.local_rank = local_rank
 
-        if local_rank != 0:
+        # when logging to `log.info`, only perform profiling on rank 0
+        if local_rank != 0 and self.output_fname is None:
             self.wrap_functions_into_rank_zero_only()
 
         if self.output_fname:
@@ -504,6 +504,8 @@ class PyTorchProfiler(BaseProfiler):
         recorded_stats = {}
         output_string = ''
 
+        local_rank = '0' if self.local_rank is None else self.local_rank 
+
         if not self.enabled:
             return output_string
 
@@ -515,7 +517,7 @@ class PyTorchProfiler(BaseProfiler):
             function_events.populate_cpu_children = lambda: None
 
             if self.export_to_chrome:
-                filename = f"{action_name}_{self.local_rank}_trace.json"
+                filename = f"{action_name}_{local_rank}_trace.json"
                 path_to_trace = filename if self.path_to_export_trace is None \
                     else os.path.join(self.path_to_export_trace, filename)
                 function_events.export_chrome_trace(path_to_trace)
@@ -534,7 +536,7 @@ class PyTorchProfiler(BaseProfiler):
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
         for action, stats in recorded_stats.items():
             output_string += (
-                f"{os.linesep}Profile stats for: {action} rank: {self.local_rank} {os.linesep}{stats}"
+                f"{os.linesep}Profile stats for: {action} rank: {local_rank} {os.linesep}{stats}"
             )
 
         return output_string

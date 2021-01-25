@@ -42,7 +42,7 @@ from tests.base import BoringModel, EvalModelTemplate
 
 @pytest.fixture
 def pytorch_profiler(tmpdir):
-    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
+    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     return profiler
 
 
