@@ -65,8 +65,6 @@ class DataParallelAccelerator(Accelerator):
         if self.trainer.amp_backend:
             model = self.__init_half_precision(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         self.trainer.model = model
 
     def __init_torch_data_parallel(self, model):
@@ -102,16 +100,6 @@ class DataParallelAccelerator(Accelerator):
             model = self.trainer.precision_connector.connect(model)
 
         return model
-
-    def train(self):
-        model = self.trainer.model
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
-
-        # train or test
-        results = self.train_or_test()
-
-        return results
 
     def teardown(self):
         # replace the original fwd function
@@ -155,30 +143,6 @@ class DataParallelAccelerator(Accelerator):
         elif isinstance(output, torch.Tensor):
             output = output.mean()
         return output
-
-    def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
-        """
-        Reinitialize optimizer.step properties added by schedulers
-        """
-        for scheduler in schedulers:
-            scheduler = scheduler['scheduler']
-
-            for optimizer in optimizers:
-                # check that we dont mix users optimizers and schedulers
-                if scheduler.optimizer == optimizer:
-                    # Find the mro belonging to the base lr scheduler class
-                    for i, mro in enumerate(scheduler.__class__.__mro__):
-                        is_regular_scheduler = optim.lr_scheduler._LRScheduler
-                        is_lr_reduce_on_plateau = optim.lr_scheduler.ReduceLROnPlateau
-                        if is_regular_scheduler or is_lr_reduce_on_plateau:
-                            idx = i
-                            state = scheduler.state_dict()
-                        else:
-                            state = None
-
-                scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
-                if state is not None:
-                    scheduler.load_state_dict(state)
 
     def get_reference_model(self, model) -> LightningModule:
         if isinstance(model, LightningDataParallel):

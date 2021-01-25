@@ -17,16 +17,19 @@ import csv
 import inspect
 import os
 from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable, MutableMapping, IO
+from copy import deepcopy
+from functools import partial
+from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
 from warnings import warn
 
 import torch
 import yaml
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_warn, AttributeDict, OMEGACONF_AVAILABLE
-from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities import AttributeDict, OMEGACONF_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 PRIMITIVE_TYPES = (bool, int, float, str)
@@ -34,6 +37,9 @@ ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
 if OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
+    from omegaconf.dictconfig import DictConfig
+    from omegaconf.errors import UnsupportedValueType, ValidationError
+
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -321,8 +327,13 @@ def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> 
             writer.writerow({"key": k, "value": v})
 
 
-def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
+def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict[str, Any]:
     """Load hparams from a file.
+
+        Args:
+            config_yaml: Path to config yaml file
+            use_omegaconf: If both `OMEGACONF_AVAILABLE` and `use_omegaconf` are True,
+                the hparams will be converted to `DictConfig` if possible
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
     >>> path_yaml = './testing-hparams.yaml'
@@ -338,9 +349,15 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
         return {}
 
     with fs.open(config_yaml, "r") as fp:
-        tags = yaml.full_load(fp)
+        hparams = yaml.full_load(fp)
 
-    return tags
+    if OMEGACONF_AVAILABLE:
+        if use_omegaconf:
+            try:
+                return OmegaConf.create(hparams)
+            except (UnsupportedValueType, ValidationError):
+                pass
+    return hparams
 
 
 def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
@@ -361,15 +378,16 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
 
     # saving with OmegaConf objects
     if OMEGACONF_AVAILABLE:
-        if OmegaConf.is_config(hparams):
-            with fs.open(config_yaml, "w", encoding="utf-8") as fp:
-                OmegaConf.save(hparams, fp, resolve=True)
-            return
-        for v in hparams.values():
-            if OmegaConf.is_config(v):
-                with fs.open(config_yaml, "w", encoding="utf-8") as fp:
-                    OmegaConf.save(OmegaConf.create(hparams), fp, resolve=True)
+        # deepcopy: hparams from user shouldn't be resolved
+        hparams = deepcopy(hparams)
+        to_container = partial(OmegaConf.to_container, resolve=True)
+        hparams = apply_to_collection(hparams, DictConfig, to_container)
+        with fs.open(config_yaml, "w", encoding="utf-8") as fp:
+            try:
+                OmegaConf.save(hparams, fp)
                 return
+            except (UnsupportedValueType, ValidationError):
+                pass
 
     assert isinstance(hparams, dict)
     hparams_allowed = {}

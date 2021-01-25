@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from contextlib import contextmanager
 from copy import copy, deepcopy
 
@@ -125,64 +124,26 @@ class TrainLoop:
         # check that model is configured correctly
         self.trainer.config_validator.verify_loop_configurations(model)
 
-    def setup_training(self, model: LightningModule):
-        """Sanity check a few things before starting actual training.
-
-        Args:
-            model: The model to run sanity test on.
+    def setup_training(self):
         """
-        # --------------------------
-        # Setup??
-        # --------------------------
-        ref_model = model
-        if self.trainer.data_parallel:
-            ref_model = model.module
-
-        # set the ranks and devices
-        self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
-        self.trainer.accelerator_backend.dist.device = ref_model.device
-
-        # give model convenience properties
-        ref_model.trainer = self.trainer
-
-        # set local properties on the model
-        self.trainer.model_connector.copy_trainer_model_properties(ref_model)
-
-        # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
-            self.trainer.scaler = self.trainer.precision_connector.backend.scaler
-
-        # log hyper-parameters
-        if self.trainer.logger is not None:
-            # save exp to get started (this is where the first experiment logs are written)
-            self.trainer.logger.log_hyperparams(ref_model.hparams_initial)
-            self.trainer.logger.log_graph(ref_model)
-            self.trainer.logger.save()
-
-        # wait for all to join if on distributed
-        self.trainer.accelerator_backend.barrier("setup_training")
-
-        # register auto-resubmit when on SLURM
-        self.trainer.slurm_connector.register_slurm_signal_handlers()
-
+        Sanity check a few things before starting actual training.
+        """
         # --------------------------
         # Pre-train
         # --------------------------
+        ref_model = self.trainer.get_model()
+
         # on pretrain routine start
         self.trainer.on_pretrain_routine_start(ref_model)
         if self.trainer.is_function_implemented("on_pretrain_routine_start"):
             ref_model.on_pretrain_routine_start()
 
         # print model summary
-        if self.trainer.is_global_zero and not self.trainer.testing:
+        if self.trainer.is_global_zero:
             ref_model.summarize(mode=self.trainer.weights_summary)
 
-        # track model now.
-        # if cluster resets state, the model will update with the saved weights
-        self.trainer.model = model
-
         # restore training state and model weights before hpc is called
-        self.trainer.checkpoint_connector.restore_weights(model)
+        self.trainer.checkpoint_connector.restore_weights()
 
         # on pretrain routine end
         self.trainer.on_pretrain_routine_end(ref_model)
@@ -500,7 +461,7 @@ class TrainLoop:
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli')
 
         # wraps into LightingOptimizer only for running step
-        optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+        optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
         # model hook
         model_ref.optimizer_step(
@@ -598,7 +559,7 @@ class TrainLoop:
             # -----------------------------------------
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
-                self.trainer.run_evaluation(test_mode=False)
+                self.trainer.run_evaluation()
                 # reset stage to train
                 self.trainer.logger_connector.set_stage("train")
 

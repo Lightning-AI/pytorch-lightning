@@ -3,7 +3,7 @@ name: PyTorch & Conda
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
 
@@ -34,9 +34,20 @@ jobs:
       # todo this probably does not work with docker images, rather cache dockers
       uses: actions/cache@v2
       with:
-        path: Datasets # This path is specific to Ubuntu
-        # Look to see if there is a cache hit for the corresponding requirements file
+        path: Datasets
         key: pl-dataset
+
+    - name: Pull checkpoints from S3
+      # todo: consider adding coma caching, but ATM all models have less then 100KB
+      run: |
+        # todo: remove unzip install after new nigtly docker is created
+        apt-get update -qq
+        apt-get install -y --no-install-recommends unzip
+        # enter legacy and update checkpoints from S3
+        cd legacy
+        curl https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip --output checkpoints.zip
+        unzip -o checkpoints.zip
+        ls -l checkpoints/
 
     - name: Tests
       run: |
