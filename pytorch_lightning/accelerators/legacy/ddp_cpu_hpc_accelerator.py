@@ -15,7 +15,7 @@ from typing import Optional
 
 from pytorch_lightning.accelerators.legacy.ddp_hpc_accelerator import DDPHPCAccelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
 
 
 class DDPCPUHPCAccelerator(DDPHPCAccelerator):

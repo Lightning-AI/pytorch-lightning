@@ -24,8 +24,8 @@ from pytorch_lightning.accelerators.legacy.accelerator import Accelerator, Reduc
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import (
     all_gather_ddp_if_available,
