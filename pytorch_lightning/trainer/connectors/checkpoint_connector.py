@@ -387,10 +387,10 @@ class CheckpointConnector:
             filepath: write-target file's path
             weights_only: saving model weights only
         """
-        # dump states as a checkpoint dictionary object
-        checkpoint = self.dump_checkpoint(weights_only)
-
         if self.trainer.is_global_zero:
+            # dump states as a checkpoint dictionary object
+            checkpoint = self.dump_checkpoint(weights_only)
+
             # write the checkpoint dictionary on the file
             if self.trainer.accelerator_backend:
                 checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
