@@ -26,55 +26,11 @@ from torch import nn
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
+
 
 if _PYTORCH_GREATER_EQUAL_1_6_0:
     from torch.optim.swa_utils import SWALR
-
-    class LightningAveragedModel(nn.Module):
-
-        def __init__(self, pl_module, device: Optional[torch.device] = None, avg_fn: Optional[Callable] = None):
-            super().__init__()
-
-            device = device or pl_module.device
-
-            for k, v in vars(pl_module).items():
-                setattr(self, k, v)
-
-            for fn_name in dir(pl_module):
-                if not fn_name.startswith("__") and fn_name != "update_parameters":
-                    setattr(self, fn_name, getattr(pl_module, fn_name))
-
-            self.module = deepcopy(pl_module)
-
-            if device is not None:
-                self.module = self.module.to(device)
-
-            self.register_buffer(
-                'n_averaged', torch.tensor(0, dtype=torch.long, device=device))
-
-            if avg_fn is None:
-                def avg_fn(averaged_model_parameter, model_parameter, num_averaged):
-                    return averaged_model_parameter + \
-                        (model_parameter - averaged_model_parameter) / (num_averaged + 1)
-            self.avg_fn = avg_fn
-
-        def update_parameters(self, model):
-            for p_swa, p_model in zip(self.parameters(), model.parameters()):
-                device = p_swa.device
-                p_model_ = p_model.detach().to(device)
-
-                if self.n_averaged == 0:
-                    p_swa.detach().copy_(p_model_)
-                else:
-                    p_swa.detach().copy_(
-                        self.avg_fn(
-                            p_swa.detach(),
-                            p_model_,
-                            self.n_averaged.to(device)
-                        )
-                    )
-            self.n_averaged += 1
-
 
 class StochasticWeightAveraging(Callback):
 
@@ -142,7 +98,7 @@ class StochasticWeightAveraging(Callback):
            or isinstance(swa_lrs, list) and not all(lr > 0 for lr in swa_lrs):
             raise MisconfigurationException("swa_lrs should be a positive float or a list of positive float.")
 
-        if isinstance(avg_fn, Callable):
+        if avg_fn is not None and not isinstance(avg_fn, Callable):
             raise MisconfigurationException("avg_fn should be function.")
 
         if device is not None and not isinstance(device, torch.device):
@@ -152,7 +108,7 @@ class StochasticWeightAveraging(Callback):
         self._swa_lrs = swa_lrs
         self._annealing_epochs = annealing_epochs
         self._annealing_strategy = annealing_strategy
-        self._avg_fn = avg_fn
+        self._avg_fn = avg_fn or self.avg_fn
         self._device = device
         self._model_contains_batch_norm = None
 
@@ -184,7 +140,7 @@ class StochasticWeightAveraging(Callback):
             bn_module.momentum = self.momenta[bn_module]
 
     def on_fit_start(self, trainer, pl_module):
-        self._average_model = LightningAveragedModel(pl_module, device=self._device, avg_fn=self._avg_fn)
+        self._average_model = deepcopy(pl_module).to("cpu")
         optimizers = trainer.optimizers
         lr_schedulers = trainer.lr_schedulers
 
@@ -223,17 +179,12 @@ class StochasticWeightAveraging(Callback):
 
             trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
 
+            self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
+
         elif self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
             trainer.train_loop.do_backward = False
-
-            # save curent model
-            device = pl_module.device
-            self._pl_module = pl_module.to("cpu")
-
-            self._average_model.module = self._average_model.module.to(device)
-            self._average_model._results = self._pl_module._results
-            self.reset_batch_norm_and_save_state(self._average_model, device)
-            trainer.model_connector.set_model(self._average_model)
+            
+            self.transfer_weights(self._average_model, pl_module)
 
             # perform accumulation over the entire train_dataloader
             # By doing so, it won't call optimizer.step()
@@ -242,12 +193,33 @@ class StochasticWeightAveraging(Callback):
             trainer.train_loop.do_backward = False
 
         if trainer.current_epoch >= self._swa_epoch_start:
-            self._average_model.update_parameters(pl_module)
+            self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
 
-    def on_train_epoch_end(self, trainer, pl_module, *_):
-        if self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
-            trainer.model_connector.set_model(self._pl_module)
+    @staticmethod
+    def update_parameters(average_model, model, n_averaged, avg_fn):
+        for p_swa, p_model in zip(average_model.parameters(), model.parameters()):
+            device = p_swa.device
+            p_model_ = p_model.detach().to(device)
 
-    def on_train_end(self, trainer, pl_module):
-        trainer.accumulate_grad_batches = self._accumulate_grad_batches
-        self.apply_momemta()
+            if n_averaged == 0:
+                p_swa.detach().copy_(p_model_)
+            else:
+                p_swa.detach().copy_(
+                    avg_fn(
+                        p_swa.detach(),
+                        p_model_,
+                        n_averaged.to(device)
+                    )
+                )
+        n_averaged += 1
+
+    @staticmethod
+    def transfer_weights(average_module, pl_module):
+        for p_swa, p_model in zip(average_module.parameters(), pl_module.parameters()):
+            device = p_model.device
+            p_model.detach().copy_(p_swa.to(device))
+
+    @staticmethod
+    def avg_fn(averaged_model_parameter, model_parameter, num_averaged):
+        return averaged_model_parameter + \
+                (model_parameter - averaged_model_parameter) / (num_averaged + 1)
