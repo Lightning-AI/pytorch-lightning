@@ -19,7 +19,7 @@ from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE
 from tests.base import BoringModel
 
 if _PYTORCH_PRUNE_AVAILABLE:
-    from pytorch_lightning.callbacks import PruningCallback
+    from pytorch_lightning.callbacks import ModelPruning
 
 
 @pytest.mark.skipif(not _PYTORCH_PRUNE_AVAILABLE, reason="PyTorch prung is needed for this test. ")
@@ -71,7 +71,7 @@ def test_pruning_callback(tmpdir, use_global_unstructured, parameters_to_prune):
         limit_val_batches=2,
         max_epochs=10,
         callbacks=[
-            PruningCallback(
+            ModelPruning(
                 'l1_unstructured',
                 parameters_to_prune=parameters_to_prune,
                 amount=0.01,

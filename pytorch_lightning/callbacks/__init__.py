@@ -20,7 +20,7 @@ from pytorch_lightning.callbacks.lambda_function import LambdaCallback
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.callbacks.progress import ProgressBar, ProgressBarBase
-from pytorch_lightning.callbacks.pruning import PruningCallback
+from pytorch_lightning.callbacks.pruning import ModelPruning
 
 __all__ = [
     'BackboneLambdaFinetuningCallback',
@@ -34,5 +34,5 @@ __all__ = [
     'ModelCheckpoint',
     'ProgressBar',
     'ProgressBarBase',
-    'PruningCallback',
+    'ModelPruning',
 ]

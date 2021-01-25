@@ -66,7 +66,8 @@ def check_parameters_to_prune(
                 if param is not None:
                     parameters_to_prune.append((m, p))
 
-    if isinstance(parameters_to_prune, list) and not is_parameters_to_prune_none:
+    if isinstance(parameters_to_prune, (tuple, list)) \
+       and len(parameters_to_prune) > 0 and not is_parameters_to_prune_none:
 
         if all(isinstance(p, (list, tuple)) and len(p) == 2 for p in parameters_to_prune):
 
@@ -89,10 +90,20 @@ def check_parameters_to_prune(
                     f"Found mismatching modules: {missing_modules} and missing_parameters: {missing_parameters}"
                 )
 
+        else:
+            raise MisconfigurationException(
+                "The provided parameters_to_prune should either be list of tuple "
+                "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
+    else:
+        if not isinstance(parameters_to_prune, (list, tuple)):
+            raise MisconfigurationException(
+                "The provided parameters_to_prune should either be list of tuple "
+                "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
+
     return parameters_to_prune
 
 
-class PruningCallback(Callback):
+class ModelPruning(Callback):
 
     PARAMETER_NAMES = ["weight", "bias"]
 
@@ -196,7 +207,7 @@ class PruningCallback(Callback):
 
         if not (prune_on_epoch_end or prune_on_fit_end):
             rank_zero_warn(
-                "The PruningCallback won't be triggered as not activate either on epoch_en or fit_end.", UserWarning)
+                "The ModelPruning won't be triggered as not activate either on epoch_en or fit_end.", UserWarning)
 
         self.make_pruning_permanent = make_pruning_permanent
 
@@ -213,7 +224,7 @@ class PruningCallback(Callback):
             self._global_kwargs = kwargs
             return pruning_fn
         else:
-            return PruningCallback._wrap_pruning_fn(_PYTORCH_PRUNING_FUNCTIONS[pruning_fn], **kwargs)
+            return ModelPruning._wrap_pruning_fn(_PYTORCH_PRUNING_FUNCTIONS[pruning_fn], **kwargs)
 
     @staticmethod
     def _wrap_pruning_fn(pruning_fn, *args, **kwargs):
