@@ -82,7 +82,7 @@ release = pytorch_lightning.__version__
 
 # If your documentation needs a minimal Sphinx version, state it here.
 
-needs_sphinx = '2.0'
+needs_sphinx = '3.4'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -277,7 +277,7 @@ todo_include_todos = True
 def setup(app):
     # this is for hiding doctest decoration,
     # see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
-    app.add_javascript('copybutton.js')
+    app.add_js_file('copybutton.js')
     app.add_css_file('main.css')
 
 
