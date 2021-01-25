@@ -15,6 +15,7 @@
 import ast
 import csv
 import inspect
+import logging
 import os
 from argparse import Namespace
 from copy import deepcopy
@@ -25,13 +26,13 @@ from warnings import warn
 import torch
 import yaml
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AttributeDict, OMEGACONF_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
+log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
