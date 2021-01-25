@@ -99,6 +99,8 @@ class StochasticWeightAveraging(Callback):
         on the device :attr:`device` and allows to compute running averages of the
         parameters of the :attr:`model`.
 
+        .. note:: `StochasticWeightAveraging` is currently not supported for multiple optimizers / schedulers.
+
         Arguments:
 
             swa_epoch_start (int, float): If provided as int, the average model will start from
@@ -115,8 +117,15 @@ class StochasticWeightAveraging(Callback):
                 strategy: "cos" for cosine annealing, "linear" for linear annealing
                 (default: "cos")
 
+            avg_fn (function, optional): the averaging function used to update
+                parameters; the function must take in the current value of the
+                :class:`AveragedModel` parameter, the current value of :attr:`model`
+                parameter and the number of models already averaged; if None,
+                equally weighted average is used (default: None)
+
             device (torch.device, optional): if provided, the averaged model will be
                 stored on the `device`. Default: `cpu`
+                When None is provided, it will infer the `device` from ``pl_module``
 
         """
 
@@ -135,6 +144,9 @@ class StochasticWeightAveraging(Callback):
 
         if isinstance(avg_fn, Callable):
             raise MisconfigurationException("avg_fn should be function.")
+
+        if device is not None and not isinstance(device, torch.device):
+            raise MisconfigurationException(f"device is expected to be None or a torch.device. Found {device}")
 
         self._swa_epoch_start = swa_epoch_start
         self._swa_lrs = swa_lrs
@@ -188,18 +200,10 @@ class StochasticWeightAveraging(Callback):
         if isinstance(self._swa_epoch_start, float):
             self._swa_epoch_start = int(self._max_epochs * self._swa_epoch_start)
 
-        self._swa_scheduler = SWALR(
-            optimizers[0],
-            swa_lr=self._swa_lrs,
-            anneal_epochs=self._annealing_epochs,
-            anneal_strategy=self._annealing_strategy,
-            last_epoch=self._max_epochs if self._annealing_strategy == "cos" else -1
-        )
-
         self._model_contains_batch_norm = self.pl_module_contains_batch_norm(pl_module)
 
         if self._model_contains_batch_norm:
-            # virtually increase max_epochs to perform batch norm update
+            # virtually increase max_epochs to perform batch norm update on latest epoch.
             trainer.max_epochs += 1
 
     def on_train_epoch_start(self, trainer, pl_module):
@@ -207,7 +211,7 @@ class StochasticWeightAveraging(Callback):
             optimizers = trainer.optimizers
             lr_scheduler = trainer.lr_schedulers[0]["scheduler"]
 
-            swa_scheduler = SWALR(
+            self._swa_scheduler = SWALR(
                 optimizers[0],
                 swa_lr=self._swa_lrs,
                 anneal_epochs=self._annealing_epochs,
@@ -217,7 +221,7 @@ class StochasticWeightAveraging(Callback):
 
             rank_zero_warn(f"swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
 
-            trainer.lr_schedulers[0]["scheduler"] = swa_scheduler
+            trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
 
         elif self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
             trainer.train_loop.do_backward = False
@@ -230,7 +234,9 @@ class StochasticWeightAveraging(Callback):
             self._average_model._results = self._pl_module._results
             self.reset_batch_norm_and_save_state(self._average_model, device)
             trainer.model_connector.set_model(self._average_model)
-            # perform accumulation
+
+            # perform accumulation over the entire train_dataloader
+            # By doing so, it won't call optimizer.step()
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
             trainer.accumulate_grad_batches = len(trainer.train_dataloader)
             trainer.train_loop.do_backward = False
