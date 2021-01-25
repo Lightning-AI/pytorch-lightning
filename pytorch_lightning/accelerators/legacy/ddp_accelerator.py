@@ -26,7 +26,7 @@ from pytorch_lightning.plugins.legacy.rpc_plugin import RPCPlugin
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed

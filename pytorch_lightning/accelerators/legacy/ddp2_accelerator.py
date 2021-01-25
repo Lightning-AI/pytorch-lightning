@@ -14,42 +14,41 @@
 from typing import Any, List, Optional, Union
 
 import torch
-import torch.distributed as dist
 import torch.distributed as torch_distrib
-from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.legacy.rpc_plugin import RPCPlugin
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, rank_zero_only, sync_ddp_if_available, \
     ReduceOp
 
 
-class DDPHPCAccelerator(Accelerator):
+class DDP2Accelerator(Accelerator):
 
     def __init__(self,
                  trainer,
                  cluster_environment: Optional[ClusterEnvironment] = None,
                  ddp_plugin: Optional[DDPPlugin] = None):
         """
-        Runs training using DDP on an HPC cluster
+        Runs training using DDP2 strategy on a cluster
 
         Example::
 
             # default
-            trainer = Trainer(accelerator=DDPHPCAccelerator())
+            trainer = Trainer(accelerator=DDP2Accelerator())
 
         """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
-        self._has_spawned_children = False
         self.dist = LightningDistributed()
-        self.nickname = 'ddp'
+        self.nickname = 'ddp2'
 
     def setup(self, model):
         self.trainer.model = model
@@ -57,23 +56,7 @@ class DDPHPCAccelerator(Accelerator):
 
     def train(self):
         model = self.trainer.model
-        self.ddp_train(process_idx=self.task_idx, model=model)
-
-    def set_world_ranks(self, process_idx):
-        self.trainer.local_rank = process_idx
-        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
-
-    def init_device(self, process_idx):
-        self.trainer.root_gpu = process_idx
-        torch.cuda.set_device(self.trainer.root_gpu)
-
-    def model_to_device(self, model):
-        model.cuda(self.trainer.root_gpu)
-
-    def get_device_ids(self):
-        device_ids = [self.trainer.root_gpu]
-        return device_ids
+        return self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def training_step(self, args):
         return self._step(args)
@@ -97,38 +80,67 @@ class DDPHPCAccelerator(Accelerator):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
 
-    def early_stopping_should_stop(self, pl_module):
-        stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
-        dist.all_reduce(stop, op=dist.reduce_op.SUM)
-        dist.barrier()
-        should_stop = stop == self.trainer.world_size
-        return should_stop
+    def training_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output
+
+    def validation_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output
+
+    def test_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output
+
+    def set_world_ranks(self, process_idx):
+        # Todo: required argument `process_idx` is not used
+        self.trainer.local_rank = self.trainer.node_rank
+        self.trainer.global_rank = self.trainer.node_rank
+        self.trainer.world_size = self.trainer.num_nodes
 
     def broadcast(self, obj, src=0):
         return self.dist.broadcast(obj)
 
-    def ddp_train(self, process_idx, model):
+    def init_device(self, process_idx):
+        self.trainer.root_gpu = process_idx
+        torch.cuda.set_device(self.trainer.root_gpu)
+
+    def model_to_device(self, model):
+        model.cuda(self.trainer.root_gpu)
+
+    def get_device_ids(self):
+        device_ids = self.trainer.data_parallel_device_ids
+        return device_ids
+
+    def ddp_train(self, process_idx, mp_queue, model):
         """
         Entry point for ddp
 
         Args:
-            process_idx:
-            model:
+            process_idx: current process rank
+            mp_queue: multiprocessing queue
+            model: pointer to current :class:`LightningModule`
 
         Returns:
             Dict with evaluation results
 
         """
-        # determine which process we are and world size
-        self.set_world_ranks(process_idx)
-        self.init_device(process_idx)
-
-        # toggle prog bar
+        # Todo: required argument `mp_queue` is not used
+        # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
 
+        # determine which process we are and world size
+        self.set_world_ranks(process_idx)
+
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
+
+        # Initialize cuda device
+        self.init_device(process_idx)
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
@@ -194,7 +206,6 @@ class DDPHPCAccelerator(Accelerator):
 
         # clean up memory
         torch.cuda.empty_cache()
-
         return results
 
     def configure_ddp(
@@ -246,7 +257,7 @@ class DDPHPCAccelerator(Accelerator):
     @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(
-            num_replicas=self.trainer.num_nodes * self.trainer.num_processes,
+            num_replicas=self.trainer.num_nodes,
             rank=self.trainer.global_rank
         )
         if self.ddp_plugin is not None:
