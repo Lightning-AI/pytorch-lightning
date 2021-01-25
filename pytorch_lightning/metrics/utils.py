@@ -266,14 +266,13 @@ def class_reduce(
     )
 
 
-def _stable_1d_sort(x: torch):
+def _stable_1d_sort(x: torch, N: int = 2049):
     """
     Stable sort of 1d tensors. Pytorch defaults to a stable sorting algorithm
     if number of elements are larger than 2048. This function pads the tensors,
     makes the sort and returns the sorted array (with the padding removed)
     See this discussion: https://discuss.pytorch.org/t/is-torch-sort-stable/20714
     """
-    N = 2049
     if x.ndim > 1:
         raise ValueError('Stable sort only works on 1d tensors')
     n = x.numel()

@@ -144,6 +144,10 @@ class AUROC(Metric):
 
         self.preds.append(preds)
         self.target.append(target)
+
+        if self.mode is not None and self.mode != mode:
+            raise ValueError('The mode of data (binary, multi-label, multi-class) should be constant, but changed'
+                             f' between batches from {self.mode} to {mode}')
         self.mode = mode
 
     def compute(self) -> torch.Tensor:

@@ -144,3 +144,18 @@ class TestAUROC(MetricTester):
                          "average": average,
                          "max_fpr": max_fpr},
         )
+
+
+def test_error_on_different_mode():
+    """ test that an error is raised if the user pass in data of
+        different modes (binary, multi-label, multi-class)
+    """
+    metric = AUROC()
+    # pass in multi-class data
+    metric.update(torch.randn(10, 5).softmax(dim=-1), torch.randint(0, 5, (10,)))
+    with pytest.raises(
+            ValueError,
+            match=r"The mode of data.* should be constant.*"
+    ):
+        # pass in multi-label data
+        metric.update(torch.rand(10, 5), torch.randint(0, 2, (10,5)))
