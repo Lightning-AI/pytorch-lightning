@@ -24,6 +24,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+import timm
 
 
 class TrainerOptimizersMixin(ABC):
@@ -135,7 +136,7 @@ class TrainerOptimizersMixin(ABC):
                 lr_schedulers.append(
                     {**default_config, 'scheduler': scheduler, 'reduce_on_plateau': True, 'monitor': monitor}
                 )
-            elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
+            elif isinstance(scheduler, (optim.lr_scheduler._LRScheduler, timm.scheduler.scheduler.Scheduler)):
                 lr_schedulers.append({**default_config, 'scheduler': scheduler})
             else:
                 raise ValueError(f'The provided lr scheduler "{scheduler}" is invalid')

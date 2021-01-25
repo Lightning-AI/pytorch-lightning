@@ -13,6 +13,7 @@
 # limitations under the License.
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from timm.scheduler.scheduler import Scheduler as TimmScheduler
 
 
 class OptimizerConnector:
@@ -73,6 +74,8 @@ class OptimizerConnector:
                 old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
                 if lr_scheduler['reduce_on_plateau']:
                     lr_scheduler['scheduler'].step(monitor_val)
+                elif isinstance(lr_scheduler['scheduler'], TimmScheduler):
+                    lr_scheduler['scheduler'].step(epoch=self.trainer.current_epoch)
                 else:
                     lr_scheduler['scheduler'].step()
                 new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
