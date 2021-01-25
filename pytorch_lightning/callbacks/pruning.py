@@ -16,12 +16,10 @@ r"""
 Pruning
 ^^^^^^^
 
-Perform model pruning.
-
 """
 from copy import deepcopy
-from typing import Callable, List, Optional, Tuple, Union
 from functools import partial
+from typing import Callable, List, Optional, Tuple, Union
 
 from torch import nn
 from torch.nn.modules.container import ModuleDict, ModuleList
@@ -68,7 +66,7 @@ def _check_parameters_to_prune(p):
 
 def check_parameters_to_prune(
     pl_module: LightningModule,
-    parameters_to_prune: Optional[List],
+    parameters_to_prune: Optional[List[Tuple[nn.Module, str]]],
     parameters: List[str] = ["weight"]
 ) -> List:
 
@@ -127,7 +125,7 @@ class ModelPruning(Callback):
     def __init__(
         self,
         pruning_fn: Union[Callable, str],
-        parameters_to_prune: Optional[List[Union[str, Tuple[nn.Module, str]]]] = None,
+        parameters_to_prune: Optional[List[Tuple[nn.Module, str]]] = None,
         parameter_names: List[str] = ["weight"],
         use_global_unstructured: bool = True,
         amount: Optional[Union[int, float]] = 0.5,
