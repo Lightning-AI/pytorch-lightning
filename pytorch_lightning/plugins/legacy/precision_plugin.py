@@ -11,25 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union, cast
+from typing import Union
 
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
-
-if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
-    from fairscale.optim import OSS
-    from fairscale.optim.grad_scaler import ShardedGradScaler
+from pytorch_lightning.plugins.legacy.plugin import LightningPlugin
 
 
-class ShardedNativeAMPPlugin(NativeAMPPlugin):
-    @property
-    def scaler(self):
-        return ShardedGradScaler()
+class PrecisionPlugin(LightningPlugin):
+    """
+    Abstract class to extend for precision support (32/16 etc).
+
+    This is extended to cover any specific logic required for precision support such as AMP/APEX or sharded
+    training.
+    """
+
+    def connect(self, model, optimizers):
+        raise NotImplementedError
+
+    def training_step(self, fx, args):
+        raise NotImplementedError
+
+    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+        raise NotImplementedError
 
     def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
-        max_norm = grad_clip_val
-        norm_type = float(2.0)
-        optimizer = cast(OSS, optimizer)
-        optimizer.clip_grad_norm(max_norm, norm_type=norm_type)
+        raise NotImplementedError

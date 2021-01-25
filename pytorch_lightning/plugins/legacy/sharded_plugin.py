@@ -15,8 +15,8 @@ from typing import Any, List, Optional, Union
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.sharded_native_amp_plugin import ShardedNativeAMPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, AMPType, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 

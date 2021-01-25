@@ -18,7 +18,7 @@ from typing import Optional
 import torch
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import _RPC_AVAILABLE
 
 DEFAULT_RPC_TIMEOUT_SEC = 60.
