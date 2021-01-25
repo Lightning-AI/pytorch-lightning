@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins.plugin_connector import LightningCustomPlugins, PluginConnector
+from pytorch_lightning.plugins.legacy.plugin_connector import LightningCustomPlugins, PluginConnector
 
 
 def test_available_plugins_trainer():

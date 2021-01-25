@@ -17,8 +17,8 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.native_amp import NativeAMPPlugin
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel

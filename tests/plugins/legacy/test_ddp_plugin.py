@@ -6,8 +6,8 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
