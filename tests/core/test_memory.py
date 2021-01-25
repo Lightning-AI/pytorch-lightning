@@ -40,8 +40,8 @@ class PreCalculatedModel(BoringModel):
 
     def __init__(self, precision: int = 32):
         super().__init__()
-        self.layer = nn.Linear(32, 1000, bias=False) # 32K params
-        self.layer1 = nn.Linear(1000, 218, bias=False) # 218K params 
+        self.layer = nn.Linear(32, 1000, bias=False)  # 32K params
+        self.layer1 = nn.Linear(1000, 218, bias=False)  # 218K params
 
         # calculate model size based on precision.
         self.pre_calculated_model_size = 1.0 / (32 / precision)
@@ -49,6 +49,7 @@ class PreCalculatedModel(BoringModel):
     def forward(self, x):
         x = self.layer(x)
         return self.layer1(x)
+
 
 class UnorderedModel(LightningModule):
     """ A model in which the layers not defined in order of execution """
