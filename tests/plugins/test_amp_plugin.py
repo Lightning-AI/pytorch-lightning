@@ -6,7 +6,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+from pytorch_lightning.plugins.legacy.native_amp import NativeAMPPlugin
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from tests.base.boring_model import BoringModel
 

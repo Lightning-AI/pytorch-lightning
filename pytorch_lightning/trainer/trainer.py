@@ -23,6 +23,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule

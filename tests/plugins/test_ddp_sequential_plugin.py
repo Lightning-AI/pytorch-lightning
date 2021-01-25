@@ -20,7 +20,7 @@ import torch.distributed as torch_distrib
 from torch import nn
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
+from pytorch_lightning.plugins.legacy.ddp_sequential_plugin import DDPSequentialPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import RandomDataset

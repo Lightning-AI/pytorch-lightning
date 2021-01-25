@@ -5,7 +5,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.apex import ApexPlugin
+from pytorch_lightning.plugins.legacy.apex import ApexPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from tests.base.boring_model import BoringModel
 
