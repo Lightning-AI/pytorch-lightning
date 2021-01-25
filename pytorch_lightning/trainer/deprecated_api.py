@@ -130,27 +130,3 @@ class DeprecatedDistDeviceAttributes:
         )
         if val:
             self._device_type = DeviceType.GPU
-
-    @property
-    def training(self) -> bool:
-        # todo: consider rename as `is_training`
-        return self._running_stage == RunningStage.TRAINING
-
-    @training.setter
-    def training(self, val: bool) -> None:
-        if val:
-            self._running_stage = RunningStage.TRAINING
-        else:
-            self._running_stage = None
-
-    @property
-    def testing(self) -> bool:
-        # todo: consider rename as `is_testing`
-        return self._running_stage == RunningStage.TESTING
-
-    @testing.setter
-    def testing(self, val: bool) -> None:
-        if val:
-            self._running_stage = RunningStage.TESTING
-        else:
-            self._running_stage = None
