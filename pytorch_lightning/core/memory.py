@@ -182,7 +182,7 @@ class ModelSummary(object):
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
-        self._precision_megabytes = (self._model.precision / 8.0) * 1e-6 # 1 byte -> 8 bits
+        self._precision_megabytes = (self._model.precision / 8.0) * 1e-6  # 1 byte -> 8 bits
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
@@ -389,8 +389,10 @@ def get_gpu_memory_map() -> Dict[str, int]:
     }
     return gpu_memory_map
 
+
 def get_formatted_model_size(total_model_size: float) -> float:
     return f"{total_model_size:,.3f}"
+
 
 def get_human_readable_count(number: int) -> str:
     """
