@@ -21,7 +21,8 @@ do
   virtualenv $ENV_PATH --system-site-packages
   # activate and install PL version
   source "$ENV_PATH/bin/activate"
-  pip install "pytorch_lightning==$ver" --quiet -U --no-cache-dir
+  # there are problem to load ckpt in older versions since they are saved the newer versions
+  pip install "pytorch_lightning==$ver" "torch==1.3" --quiet --no-cache-dir
 
   python --version
   pip --version
