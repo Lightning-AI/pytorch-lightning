@@ -16,13 +16,13 @@ from unittest.mock import patch
 
 import pytest
 
-import pytorch_lightning.utilities.xla_device as xla_utils
+import pytorch_lightning.utilities.xla_device_utils as xla_utils
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 from tests.base.develop_utils import pl_multi_process_test
 
 
-@pytest.mark.skipif(XLA_AVAILABLE, reason="test requires torch_xla to be absent")
+@pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
     """Check tpu_device_exists returns None when torch_xla is not available"""
     assert xla_utils.XLADeviceUtils.tpu_device_exists() is None

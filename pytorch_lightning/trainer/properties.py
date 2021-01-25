@@ -14,11 +14,15 @@
 import inspect
 import os
 from abc import ABC
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser
+from argparse import Namespace
 from typing import cast, List, Optional, Type, TypeVar, Union
 
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
@@ -26,13 +30,15 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType
-from pytorch_lightning.utilities.argparse import (
-    add_argparse_args,
-    from_argparse_args,
-    parse_argparser,
-    parse_env_variables,
-)
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities import DistributedType
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.argparse import add_argparse_args
+from pytorch_lightning.utilities.argparse import from_argparse_args
+from pytorch_lightning.utilities.argparse import parse_argparser
+from pytorch_lightning.utilities.argparse import parse_env_variables
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
@@ -193,7 +199,20 @@ class TrainerProperties(ABC):
         """ Read-only for progress bar metrics. """
         ref_model = self.get_model()
         ref_model = cast(LightningModule, ref_model)
-        return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
+
+        standard_metrics = ref_model.get_progress_bar_dict()
+        logged_metrics = self.progress_bar_metrics
+        duplicates = list(standard_metrics.keys() & logged_metrics.keys())
+        if duplicates:
+            rank_zero_warn(
+                f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
+                f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
+                f" If this is undesired, change the name or override `get_progress_bar_dict()`"
+                f" in `LightingModule`.", UserWarning
+            )
+        all_metrics = dict(**standard_metrics)
+        all_metrics.update(**logged_metrics)
+        return all_metrics
 
     @property
     def disable_validation(self) -> bool:

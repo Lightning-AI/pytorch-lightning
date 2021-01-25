@@ -26,7 +26,9 @@ from pytorch_lightning import Trainer
 from tests.base.boring_model import BoringModel  # noqa: E402
 
 
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with CPU (should just return the original value)
@@ -62,7 +64,9 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     assert trainer.logged_metrics['bar'] == fake_result
 
 
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test__validation_step__log(tmpdir):
     """
     Tests that validation_step can log
