@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
 import os
+
+import pytest
 import torch
 from torch import nn
 
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE
 from tests.base import BoringModel
 
@@ -50,7 +51,14 @@ class PruningModel(BoringModel):
         return {"loss": loss}
 
 
-def train_with_pruning_callback(tmpdir, parameters_to_prune, use_global_unstructured, accelerator=None, gpus=None, num_processes=None):
+def train_with_pruning_callback(
+    tmpdir,
+    parameters_to_prune,
+    use_global_unstructured,
+    accelerator=None,
+    gpus=None,
+    num_processes=None
+):
     seed_everything(42)
     model = PruningModel()
     model.validation_step = None
@@ -95,7 +103,9 @@ def train_with_pruning_callback(tmpdir, parameters_to_prune, use_global_unstruct
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
 @pytest.mark.parametrize("use_global_unstructured", [False, True])
 def test_pruning_callback(tmpdir, use_global_unstructured, parameters_to_prune):
-    train_with_pruning_callback(tmpdir, parameters_to_prune, use_global_unstructured, accelerator=None, gpus=None, num_processes=1)
+    train_with_pruning_callback(
+        tmpdir, parameters_to_prune, use_global_unstructured,
+        accelerator=None, gpus=None, num_processes=1)
 
 
 @pytest.mark.skipif(not _PYTORCH_PRUNE_AVAILABLE, reason="PyTorch prung is needed for this test. ")
@@ -104,7 +114,9 @@ def test_pruning_callback(tmpdir, use_global_unstructured, parameters_to_prune):
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
 def test_pruning_callback_ddp(tmpdir, use_global_unstructured, parameters_to_prune):
-    train_with_pruning_callback(tmpdir, parameters_to_prune, use_global_unstructured, accelerator="ddp", gpus=2, num_processes=0)
+    train_with_pruning_callback(
+        tmpdir, parameters_to_prune, use_global_unstructured,
+        accelerator="ddp", gpus=2, num_processes=0)
 
 
 @pytest.mark.skipif(not _PYTORCH_PRUNE_AVAILABLE, reason="PyTorch prung is needed for this test. ")
