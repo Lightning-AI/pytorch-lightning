@@ -101,7 +101,7 @@ RUN \
     python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" && \
     # drop TorchVision as it was installed with XLA
     python -c "fname = 'requirements/examples.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torchvision')] ; open(fname, 'w').writelines(lines)" && \
-    pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed && \
+    pip install --requirement ./requirements/devel.txt --no-cache-dir && \
     cd .. && \
     rm -rf pytorch-lightning && \
     rm -rf /root/.cache
