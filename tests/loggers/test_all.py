@@ -353,7 +353,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
         logger = _instantiate_logger(NeptuneLogger, save_idr=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log_metric.assert_called_once_with("tmp-test", x=0, y=1.0)
+        logger.experiment.log_metric.assert_called_once_with("tmp-test", 1.0)
 
     # TensorBoard
     with mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter'):
