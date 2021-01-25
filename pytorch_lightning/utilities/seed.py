@@ -14,14 +14,17 @@
 
 """Helper functions to help with reproducibility of models. """
 
+import logging
 import os
 import random
 from typing import Optional
 
 import numpy as np
 import torch
-from pytorch_lightning import _logger as log
+
 from pytorch_lightning.utilities import rank_zero_warn
+
+log = logging.getLogger(__name__)
 
 
 def seed_everything(seed: Optional[int] = None) -> int:
