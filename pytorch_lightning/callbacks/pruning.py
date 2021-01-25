@@ -27,7 +27,7 @@ from torch.nn.modules.container import ModuleDict, ModuleList
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _PYTORCH_PRUNE_AVAILABLE:
@@ -58,7 +58,7 @@ def check_parameters_to_prune(
     is_parameters_to_prune_none = parameters_to_prune is None
     current_modules = [m for m in pl_module.modules() if not isinstance(m, (LightningModule, ModuleDict, ModuleList))]
 
-    if parameters_to_prune is None:
+    if is_parameters_to_prune_none:
         parameters_to_prune = []
         for p in parameters:
             for m in current_modules:
@@ -128,11 +128,32 @@ class ModelPruning(Callback):
         This callback is responsible to prune networks parameters
         during your training.
 
+        Find here the PyTorch (Pruning Tutorial)[https://pytorch.org/tutorials/intermediate/pruning_tutorial.html]
+
+        .. code-block:: python
+
+            parameters_to_prune = [
+                (model.mlp_1, "weight"),
+                (model.mlp_2, "weight")
+            ]
+
+            trainer = Trainer(
+                callbacks=[
+                    ModelPruning(
+                        'l1_unstructured',
+                        parameters_to_prune=parameters_to_prune,
+                        amount=0.01,
+                        use_global_unstructured=True,
+                    )
+                ]
+            )
+
         Args:
 
             pruning_fn: function from torch.nn.utils.prune module
-                or your based on BasePruningMethod. Can be string e.g.
-                `"l1_unstructured"`. See pytorch docs for more details.
+                or your based own subclasses from PyTorch ``BasePruningMethod``.
+                Can be string e.g. `"l1_unstructured"`.
+                See pytorch docs for more details.
 
             parameters_to_prune: list of strings or list of tuple with
                 nn.Module and its associated string name parameters.
@@ -167,6 +188,7 @@ class ModelPruning(Callback):
                 to specify dimension.
 
             pruning_norm: if you are using ln_structured you need to specify norm.
+
         """
 
         self.use_global_unstructured = use_global_unstructured
@@ -183,7 +205,8 @@ class ModelPruning(Callback):
                 )
 
         if isinstance(pruning_fn, str):
-            if pruning_fn not in _PYTORCH_PRUNING_FUNCTIONS.keys():
+            pruning_fn = pruning_fn.lower()
+            if pruning_fn not in _PYTORCH_PRUNING_FUNCTIONS:
                 raise MisconfigurationException(
                     f"The provided pruning_fn {pruning_fn} isn't available with "
                     f"PyTorch build-in {_PYTORCH_PRUNING_FUNCTIONS.keys()} "
@@ -206,8 +229,8 @@ class ModelPruning(Callback):
         self.pruning_fn = pruning_fn
 
         if not (prune_on_epoch_end or prune_on_fit_end):
-            rank_zero_warn(
-                "The ModelPruning won't be triggered as not activate either on epoch_en or fit_end.", UserWarning)
+            raise MisconfigurationException(
+                "The `ModelPruning` won't be triggered as currently not activated on either `epoch_end` or `fit_end`.")
 
         self.make_pruning_permanent = make_pruning_permanent
 
