@@ -40,18 +40,18 @@ else:
     from tqdm import tqdm
 
 
-def __choose_lr_assigner(trainer, model: LightningModule) -> Callable[[Any], None]:
+def __choose_lr_assigner(trainer, model: LightningModule) -> str:
     if isinstance(trainer.auto_lr_find, str):
         if not lightning_hasattr(model, trainer.auto_lr_find):
             raise MisconfigurationException(
                 f'`auto_lr_find` was set to {trainer.auto_lr_find}, however'
                 ' could not find this as a field in `model` or `model.hparams`.')
-        return lambda val: lightning_setattr(model, trainer.auto_lr_find, val)
+        return trainer.auto_lr_find
 
     if lightning_hasattr(model, 'lr'):
-        return lambda val: lightning_setattr(model, 'lr', val)
+        return 'lr'
     if lightning_hasattr(model, 'learning_rate'):
-        return lambda val: lightning_setattr(model, 'learning_rate', val)
+        return 'learning_rate'
     raise MisconfigurationException(
         'When auto_lr_find is set to True, expects that `model` or'
         ' `model.hparams` either has field `lr` or `learning_rate`'
@@ -60,17 +60,15 @@ def __choose_lr_assigner(trainer, model: LightningModule) -> Callable[[Any], Non
 
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
-    lr_assigner = __choose_lr_assigner(trainer, model)
-
+    lr_attr_name = __choose_lr_assigner(trainer, model)
     lr_finder = lr_find(trainer, model)
-
     if lr_finder is None:
         return
 
     lr = lr_finder.suggestion()
 
     # TODO: log lr.results to self.logger
-    lr_assigner(lr)
+    lightning_setattr(model, lr_attr_name, lr)
 
     log.info(f'Learning rate set to {lr}')
 
