@@ -26,11 +26,10 @@ from torch import nn
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
-
 
 if _PYTORCH_GREATER_EQUAL_1_6_0:
     from torch.optim.swa_utils import SWALR
+
 
 class StochasticWeightAveraging(Callback):
 
@@ -183,7 +182,6 @@ class StochasticWeightAveraging(Callback):
 
         elif self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
             trainer.train_loop.do_backward = False
-            
             self.transfer_weights(self._average_model, pl_module)
 
             # perform accumulation over the entire train_dataloader
@@ -222,4 +220,4 @@ class StochasticWeightAveraging(Callback):
     @staticmethod
     def avg_fn(averaged_model_parameter, model_parameter, num_averaged):
         return averaged_model_parameter + \
-                (model_parameter - averaged_model_parameter) / (num_averaged + 1)
+            (model_parameter - averaged_model_parameter) / (num_averaged + 1)

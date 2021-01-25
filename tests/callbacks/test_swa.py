@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from pytorch_lightning.core.lightning import LightningModule
+
 import pytest
 import torch
-
 from torch import nn
 from torch.utils.data import DataLoader
 
@@ -26,8 +25,8 @@ from tests.base import BoringModel, RandomDataset
 if _PYTORCH_GREATER_EQUAL_1_6_0:
     from pytorch_lightning.callbacks import StochasticWeightAveraging
 
-
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.layer = nn.Sequential(
@@ -52,7 +51,8 @@ if _PYTORCH_GREATER_EQUAL_1_6_0:
             if self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
                 assert self.n_averaged > 0
 
-def train_with_swa(tmpdir, accelerator = None, gpus = None, num_processes = None):
+
+def train_with_swa(tmpdir, accelerator=None, gpus=None, num_processes=None):
     model = TestModel()
     swa_callback = SwaCheck(swa_epoch_start=2, swa_lrs=0.005)
 
@@ -94,4 +94,3 @@ def test_stochastic_weight_averaging_callback_ddp_spawn(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
 def test_stochastic_weight_averaging_callback_1_gpu(tmpdir):
     train_with_swa(tmpdir, accelerator=None , gpus=1)
-
