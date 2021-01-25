@@ -503,8 +503,7 @@ class PyTorchProfiler(BaseProfiler):
     def summary(self) -> str:
         recorded_stats = {}
         output_string = ''
-
-        local_rank = '0' if self.local_rank is None else self.local_rank 
+        local_rank = '0' if self.local_rank is None else self.local_rank
 
         if not self.enabled:
             return output_string
