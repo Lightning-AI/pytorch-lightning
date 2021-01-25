@@ -37,6 +37,6 @@ __all__ = [
 ]
 
 if _PYTORCH_GREATER_EQUAL_1_6_0:
-    from pytorch_lightning.callbacks.swa import StochasticWeightAveragingCallback
+    from pytorch_lightning.callbacks.swa import StochasticWeightAveraging
 
-    __all__ += ['StochasticWeightAveragingCallback']
+    __all__ += ['StochasticWeightAveraging']

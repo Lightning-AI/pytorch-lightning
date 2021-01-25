@@ -20,7 +20,8 @@ from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0
 from tests.base import BoringModel, RandomDataset
 
 if _PYTORCH_GREATER_EQUAL_1_6_0:
-    from pytorch_lightning.callbacks import StochasticWeightAveragingCallback
+    from pytorch_lightning.callbacks import StochasticWeightAveraging
+    from pytorch_lightning.callbacks.swa import LightningAveragedModel
 
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.7.0")
@@ -44,8 +45,19 @@ def test_stochastic_weight_averaging_callback(tmpdir):
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
+    class SwaCheck(StochasticWeightAveraging):
+
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+            if self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
+                assert isinstance(pl_module, LightningAveragedModel)
+
+        def on_train_epoch_end(self, trainer, pl_module, *_):
+            super().on_train_epoch_end(trainer, pl_module, *_)
+            if self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
+                assert not isinstance(trainer.get_model(), LightningAveragedModel)
+
     model = TestModel()
-    swa_callback = StochasticWeightAveragingCallback(swa_epoch_start=2, swa_lrs=0.005)
+    swa_callback = SwaCheck(swa_epoch_start=2, swa_lrs=0.005)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -57,3 +69,4 @@ def test_stochastic_weight_averaging_callback(tmpdir):
 
     assert swa_callback.swa_model is not None
     assert trainer.model == model
+    assert swa_callback.swa_model.n_averaged > 0

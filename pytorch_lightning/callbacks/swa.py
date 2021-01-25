@@ -17,6 +17,7 @@ Stochastic Weight Averaging Callback
 ====================================
 
 """
+from copy import deepcopy
 from typing import Callable, Optional, Union
 
 import torch
@@ -27,11 +28,14 @@ from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0, rank_zero_
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _PYTORCH_GREATER_EQUAL_1_6_0:
-    from torch.optim.swa_utils import AveragedModel, SWALR
+    from torch.optim.swa_utils import SWALR
 
-    class LightningAveragedModel(AveragedModel):
+    class LightningAveragedModel(nn.Module):
 
-        def __init__(self, pl_module, *args, **kwargs):
+        def __init__(self, pl_module, device: Optional[torch.device] = None, avg_fn: Optional[Callable] = None):
+            super().__init__()
+
+            device = device or pl_module.device
 
             for k, v in vars(pl_module).items():
                 setattr(self, k, v)
@@ -40,14 +44,43 @@ if _PYTORCH_GREATER_EQUAL_1_6_0:
                 if not fn_name.startswith("__") and fn_name != "update_parameters":
                     setattr(self, fn_name, getattr(pl_module, fn_name))
 
-            super().__init__(pl_module, *args, **kwargs)
+            self.module = deepcopy(pl_module)
+
+            if device is not None:
+                self.module = self.module.to(device)
+
+            self.register_buffer(
+                'n_averaged', torch.tensor(0, dtype=torch.long, device=device))
+
+            if avg_fn is None:
+                def avg_fn(averaged_model_parameter, model_parameter, num_averaged):
+                    return averaged_model_parameter + \
+                        (model_parameter - averaged_model_parameter) / (num_averaged + 1)
+            self.avg_fn = avg_fn
+
+        def update_parameters(self, model):
+            for p_swa, p_model in zip(self.parameters(), model.parameters()):
+                device = p_swa.device
+                p_model_ = p_model.detach().to(device)
+
+                if self.n_averaged == 0:
+                    p_swa.detach().copy_(p_model_)
+                else:
+                    p_swa.detach().copy_(
+                        self.avg_fn(
+                            p_swa.detach(),
+                            p_model_,
+                            self.n_averaged.to(device)
+                        )
+                    )
+            self.n_averaged += 1
 
 
-class StochasticWeightAveragingCallback(Callback):
+class StochasticWeightAveraging(Callback):
 
     def __init__(
         self,
-        swa_epoch_start: int = 0,
+        swa_epoch_start: Union[int, float] = 0.8,
         swa_lrs: Optional[Union[float, list]] = None,
         annealing_epochs: int = 10,
         annealing_strategy: str = "cos",
@@ -68,8 +101,9 @@ class StochasticWeightAveragingCallback(Callback):
 
         Arguments:
 
-            swa_epoch_start (int): If provided, the average model will start from
-                ``swa_epoch_start`` epoch
+            swa_epoch_start (int, float): If provided as int, the average model will start from
+                ``swa_epoch_start`` epoch. If provided as float between 0 and 1,
+                the average model will start from ``int(swa_epoch_start * max_epochs)`` epoch
 
             swa_lrs (float or list): the learning rate value for all param groups
                 together or separately for each group.
@@ -86,8 +120,13 @@ class StochasticWeightAveragingCallback(Callback):
 
         """
 
-        if not isinstance(swa_epoch_start, int) or isinstance(swa_epoch_start, int) and swa_epoch_start < 0:
-            raise MisconfigurationException("swa_epoch_start should be positive integer.")
+        if not isinstance(swa_epoch_start, (float, int)) \
+           or isinstance(swa_epoch_start, (float, int)) and swa_epoch_start < 0:
+            raise MisconfigurationException("swa_epoch_start should be positive integer or a float between 0 and 1.")
+
+        if isinstance(swa_epoch_start, float):
+            if swa_epoch_start > 1:
+                raise MisconfigurationException("swa_epoch_start should be a float between 0 and 1.")
 
         if not isinstance(swa_lrs, (float, list)) \
            or isinstance(swa_lrs, float) and swa_lrs <= 0 \
@@ -97,7 +136,7 @@ class StochasticWeightAveragingCallback(Callback):
         if isinstance(avg_fn, Callable):
             raise MisconfigurationException("avg_fn should be function.")
 
-        self._swa_start = swa_epoch_start
+        self._swa_epoch_start = swa_epoch_start
         self._swa_lrs = swa_lrs
         self._annealing_epochs = annealing_epochs
         self._annealing_strategy = annealing_strategy
@@ -145,6 +184,10 @@ class StochasticWeightAveragingCallback(Callback):
 
         self._max_epochs = trainer.max_epochs
 
+        # convert float to integer.
+        if isinstance(self._swa_epoch_start, float):
+            self._swa_epoch_start = int(self._max_epochs * self._swa_epoch_start)
+
         self._swa_scheduler = SWALR(
             optimizers[0],
             swa_lr=self._swa_lrs,
@@ -160,7 +203,7 @@ class StochasticWeightAveragingCallback(Callback):
             trainer.max_epochs += 1
 
     def on_train_epoch_start(self, trainer, pl_module):
-        if trainer.current_epoch == self._swa_start:
+        if trainer.current_epoch == self._swa_epoch_start:
             optimizers = trainer.optimizers
             lr_scheduler = trainer.lr_schedulers[0]["scheduler"]
 
@@ -192,14 +235,12 @@ class StochasticWeightAveragingCallback(Callback):
             trainer.accumulate_grad_batches = len(trainer.train_dataloader)
             trainer.train_loop.do_backward = False
 
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        if self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
-            assert isinstance(pl_module, LightningAveragedModel)
+        if trainer.current_epoch >= self._swa_epoch_start:
+            self._average_model.update_parameters(pl_module)
 
     def on_train_epoch_end(self, trainer, pl_module, *_):
         if self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
             trainer.model_connector.set_model(self._pl_module)
-            assert not isinstance(trainer.get_model(), LightningAveragedModel)
 
     def on_train_end(self, trainer, pl_module):
         trainer.accumulate_grad_batches = self._accumulate_grad_batches
