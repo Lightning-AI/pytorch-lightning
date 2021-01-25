@@ -21,10 +21,10 @@ import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
-from tests.backends import DDPLauncher
+from tests.accelerators.legacy import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
