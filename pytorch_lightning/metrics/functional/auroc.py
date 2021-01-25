@@ -91,11 +91,11 @@ def _auroc_compute(
             auc_scores = [auc(x, y) for x, y in zip(fpr, tpr)]
 
             # calculate average
-            if average is None:
+            if average == AverageMethods.NONE:
                 return auc_scores
-            if average == AverageMethods.MACRO:
+            elif average == AverageMethods.MACRO:
                 return torch.mean(torch.stack(auc_scores))
-            if average == AverageMethods.WEIGHTED:
+            elif average == AverageMethods.WEIGHTED:
                 if mode == 'multi-label':
                     support = torch.sum(target, dim=0)
                 else:

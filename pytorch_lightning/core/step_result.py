@@ -100,11 +100,14 @@ class Result(Dict):
 
     def _assert_tensor_metric(self, name: str, potential_metric: Union[bool, Tensor, None, Any]):
         if potential_metric is not None and not isinstance(potential_metric, bool):
-            assert isinstance(potential_metric, Tensor), f'{name} must be a torch.Tensor'
+            if not isinstance(potential_metric, Tensor):
+                raise TypeError(f'{name} must be a torch.Tensor')
 
     def _assert_grad_tensor_metric(self, name: str, x: Union[torch.Tensor, Any], additional_err: str = ''):
         if x is not None:
-            assert isinstance(x, Tensor), f'{name} must be a torch.Tensor'
+            if not isinstance(x, Tensor):
+                raise TypeError(f'{name} must be a torch.Tensor')
+
             m = f'{name} must have a computational graph.'
 
             if additional_err:

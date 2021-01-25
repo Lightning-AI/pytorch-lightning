@@ -155,7 +155,9 @@ class HookResultStore:
         primary_dict[opt_idx][batch_idx].append(result)
 
     def append(self, result, dataloader_idx: Optional[int] = None, extra_info: Optional[dict] = None) -> None:
-        assert isinstance(result, Result)
+        if not isinstance(result, Result):
+            raise TypeError(f'{result} must be Result')
+
         if dataloader_idx is None:
             dataloader_idx = 0
 
