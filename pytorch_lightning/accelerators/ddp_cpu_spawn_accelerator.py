@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+import logging
 import os
 from typing import Any, List, Optional, Union
 
@@ -19,7 +20,6 @@ import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
@@ -35,6 +35,7 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
 )
 
+log = logging.getLogger(__name__)
 if HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
