@@ -73,7 +73,7 @@ def train_with_swa(tmpdir, accelerator=None, gpus=None, num_processes=None):
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.7.0")
 def test_stochastic_weight_averaging_callback(tmpdir):
-    train_with_swa(tmpdir)
+    train_with_swa(tmpdir, num_processes=1)
 
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.7.0")
