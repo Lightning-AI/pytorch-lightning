@@ -29,6 +29,7 @@ import numpy as np
 import torch
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -98,6 +99,10 @@ class BaseProfiler(ABC):
     @abstractmethod
     def summary(self) -> str:
         """Create profiler summary in text format."""
+
+
+    def on_train_start(self, local_rank: int):
+        self.local_rank = local_rank
 
 
 class PassThroughProfiler(BaseProfiler):
@@ -314,6 +319,7 @@ class PyTorchProfiler(BaseProfiler):
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
         profiled_functions: Optional[List] = None,
+        local_rank: Optional[int] = None,
     ):
         """
         This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
@@ -322,7 +328,9 @@ class PyTorchProfiler(BaseProfiler):
         Args:
 
             output_filename: optionally save profile results to file instead of printing
-                to std out when training is finished.
+                to std out when training is finished. When using ``ddp``, 
+                each rank will stream the profiled operation to their own file 
+                with the extension ``_{rank}.txt``
 
             enabled: Setting this to False makes this context manager a no-op.
 
@@ -365,12 +373,13 @@ class PyTorchProfiler(BaseProfiler):
 
             profiled_functions: list of profiled functions which will create a context manager on.
                 Any other will be pass through.
+
+            local_rank: When running in distributed setting, local_rank is used for each process 
+                to write to their own file if `output_fname` is provided.
         """
 
         self.profiled_actions = {}
-        # PyTorch Profiler doesn't seem to work with multiple processes
-        # todo: Try to find a solution
-        self.enabled = enabled and os.getenv("LOCAL_RANK", None) is None
+        self.enabled = enabled
         self.profiled_functions = profiled_functions or self.PROFILED_FUNCTIONS
         self.use_cuda = use_cuda
         self.record_shapes = record_shapes
@@ -401,13 +410,35 @@ class PyTorchProfiler(BaseProfiler):
 
         self.output_fname = output_filename
         self.output_file = None
+        self.local_rank = local_rank
+        if self.local_rank is not None:
+            self.on_fit_start(self.local_rank)
+            self.on_fit_start = super().on_fit_start
+
+    def on_train_start(self, local_rank: Optional[str] = None):
+        self.local_rank = local_rank
+
+        if local_rank != 0:
+            self.wrap_functions_into_rank_zero_only()
 
         if self.output_fname:
+            if local_rank is not None:
+                if '.txt' not in self.output_fname:
+                    raise MisconfigurationException("Log file should be .txt file.")
+            
+                self.output_fname = self.output_fname.replace(".txt", f"_{self.local_rank}.txt")
+
             fs = get_filesystem(self.output_fname)
             self.output_file = fs.open(self.output_fname, "w")
 
         streaming_out = [self.output_file.write] if self.output_file else [log.info]
         super().__init__(output_streams=streaming_out)
+
+    def wrap_functions_into_rank_zero_only(self):
+        self.start = rank_zero_only(self.start)
+        self.stop = rank_zero_only(self.stop)
+        self.summary = rank_zero_only(self.summary)
+        self.describe = rank_zero_only(self.describe)
 
     def start(self, action_name: str) -> None:
         if action_name not in self.profiled_functions:
@@ -485,7 +516,7 @@ class PyTorchProfiler(BaseProfiler):
             function_events.populate_cpu_children = lambda: None
 
             if self.export_to_chrome:
-                filename = f"{action_name}_trace.json"
+                filename = f"{action_name}_{self.local_rank}_trace.json"
                 path_to_trace = filename if self.path_to_export_trace is None \
                     else os.path.join(self.path_to_export_trace, filename)
                 function_events.export_chrome_trace(path_to_trace)
@@ -504,7 +535,7 @@ class PyTorchProfiler(BaseProfiler):
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
         for action, stats in recorded_stats.items():
             output_string += (
-                f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
+                f"{os.linesep}Profile stats for: {action} rank: {self.local_rank} {os.linesep}{stats}"
             )
 
         return output_string

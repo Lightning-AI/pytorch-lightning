@@ -58,3 +58,7 @@ class ProfilerConnector:
                 raise ValueError("When passing string value for the `profiler` parameter of"
                                  " `Trainer`, it can only be 'simple' or 'advanced'")
         self.trainer.profiler = profiler or PassThroughProfiler()
+
+    def on_train_start(self, trainer):
+        local_rank = trainer.local_rank if trainer.world_size > 1 else None
+        self.trainer.profiler.on_train_start(local_rank)

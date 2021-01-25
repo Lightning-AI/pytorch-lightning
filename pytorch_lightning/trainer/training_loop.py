@@ -111,6 +111,9 @@ class TrainLoop:
         # hook
         self.trainer.call_hook("on_train_start")
 
+        # provide rank to profiler
+        self.trainer.profile_connector.on_train_start(self.trainer)
+
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
         # bind logger and other properties
         self.trainer.model_connector.copy_trainer_model_properties(model)

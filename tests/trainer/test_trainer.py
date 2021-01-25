@@ -14,6 +14,7 @@
 import math
 import os
 import pickle
+from pytorch_lightning.accelerators import accelerator
 import sys
 from argparse import Namespace
 from copy import deepcopy
@@ -1473,19 +1474,43 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
     pytorch_profiler.stop(action)
 
 
-def test_pytorch_profiler_trainer(tmpdir):
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+@pytest.mark.parametrize("use_output_filename", [False, True])
+def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
 
-    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
+    if use_output_filename:
+        output_filename = os.path.join(tmpdir, "profiler.txt")
+    else:
+        output_filename = None
+
+    profiler = PyTorchProfiler(output_filename=output_filename)
 
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        profiler=profiler
+        profiler=profiler,
+        accelerator="ddp",
+        gpus=2
+
     )
     trainer.fit(model)
-    assert len(profiler.summary()) > 0
-    assert set(profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
+
+    enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
+    
+    if enabled:
+        assert len(profiler.summary()) > 0
+        assert set(profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
+    else:
+        assert profiler.summary() is None
+        assert set(profiler.profiled_actions.keys()) == set()
+    
+    if use_output_filename:
+        profiler.describe()
+        data = Path(profiler.output_fname).read_text()
+        assert len(data) > 0
 
 
 def test_pytorch_profiler_nested(tmpdir):
