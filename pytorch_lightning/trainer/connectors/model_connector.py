@@ -51,12 +51,3 @@ class ModelConnector:
         if self.trainer.accelerator_backend:
             return self.trainer.accelerator_backend.get_reference_model(model)
         return model
-
-    def set_model(self, pl_module):
-        self._set_reference_model(self.trainer.model, pl_module)
-
-    def _set_reference_model(self, model, pl_module):
-        if self.trainer.accelerator_backend:
-            with suppress(NotImplementedError):
-                self.trainer.accelerator_backend.set_reference_model(model, pl_module)
-        self.trainer.model = pl_module

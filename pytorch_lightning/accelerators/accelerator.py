@@ -213,9 +213,6 @@ class Accelerator(object):
         """
         return model
 
-    def set_reference_model(self, model, pl_module: LightningModule):
-        raise NotImplementedError
-
     def __getstate__(self):
         return {
             'trainer': self.trainer,
