@@ -40,7 +40,7 @@ else:
     from tqdm import tqdm
 
 
-def __choose_lr_assigner(trainer, model: LightningModule) -> str:
+def __determine_lr_attr_name(trainer, model: LightningModule) -> str:
     if isinstance(trainer.auto_lr_find, str):
         if not lightning_hasattr(model, trainer.auto_lr_find):
             raise MisconfigurationException(
@@ -60,7 +60,7 @@ def __choose_lr_assigner(trainer, model: LightningModule) -> str:
 
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
-    lr_attr_name = __choose_lr_assigner(trainer, model)
+    lr_attr_name = __determine_lr_attr_name(trainer, model)
     lr_finder = lr_find(trainer, model)
     if lr_finder is None:
         return
