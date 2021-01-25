@@ -3,8 +3,8 @@ from typing import Any
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.accelerators.plugins import TrainingTypePlugin, HorovodPlugin
-from pytorch_lightning.accelerators.plugins.precision import (
+from pytorch_lightning.plugins import TrainingTypePlugin, HorovodPlugin
+from pytorch_lightning.plugins .precision import (
     ApexMixedPrecisionPlugin,
     MixedPrecisionPlugin,
     NativeMixedPrecisionPlugin,

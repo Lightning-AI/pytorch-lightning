@@ -4,7 +4,7 @@ from typing import Union
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.accelerators.plugins.base_plugin import Plugin
+from pytorch_lightning.plugins .base_plugin import Plugin
 from pytorch_lightning.core import LightningModule
 
 

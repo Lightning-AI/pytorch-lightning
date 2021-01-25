@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pytorch_lightning.accelerators.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.plugins .training_type.ddp import DDPPlugin
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 

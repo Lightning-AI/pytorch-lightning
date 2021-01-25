@@ -20,9 +20,9 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.accelerators.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, \
+from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, \
     PrecisionPlugin, ShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.accelerators.plugins import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
+from pytorch_lightning.plugins import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
     DataParallelPlugin, DDP2Plugin, HorovodPlugin, DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment

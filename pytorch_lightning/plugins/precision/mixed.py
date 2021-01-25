@@ -1,4 +1,4 @@
-from pytorch_lightning.accelerators.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.plugins .precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import AMPType
 
 

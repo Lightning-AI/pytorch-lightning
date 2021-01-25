@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin, \
+from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin, \
     ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE

@@ -2,7 +2,7 @@ from contextlib import contextmanager
 
 import torch
 
-from pytorch_lightning.accelerators.plugins.precision.mixed import MixedPrecisionPlugin
+from pytorch_lightning.plugins .precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

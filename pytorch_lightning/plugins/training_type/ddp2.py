@@ -1,6 +1,6 @@
 import torch
 
-from pytorch_lightning.accelerators.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.plugins .training_type.ddp import DDPPlugin
 from pytorch_lightning.core.step_result import Result
 
 

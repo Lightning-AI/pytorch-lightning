@@ -15,7 +15,7 @@ from typing import Union, cast
 
 from torch.optim import Optimizer
 
-from pytorch_lightning.accelerators.plugins.precision.native_amp import NativeMixedPrecisionPlugin
+from pytorch_lightning.plugins .precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, _FAIRSCALE_AVAILABLE
 
 if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
