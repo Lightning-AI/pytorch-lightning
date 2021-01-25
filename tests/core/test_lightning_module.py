@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from argparse import ArgumentParser
 import pickle
+from argparse import ArgumentParser
 from typing import Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
+from torch import nn
 from torch.optim import Adam, SGD
 from torch.utils.data import DataLoader, random_split
 
@@ -139,3 +140,74 @@ def test_params_groups_and_state_are_accessible(tmpdir):
         )
 
         trainer.fit(model)
+
+
+def test_toggle_untoggle(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx, optimizer_idx=None):
+            return super().training_step(batch, batch_idx)
+
+        def __init__(self):
+            super().__init__()
+            self.layer_1 = nn.Sequential(
+                nn.Linear(32, 32),
+                nn.ReLU(),
+                nn.Linear(32, 32),
+                nn.ReLU(),
+                nn.Linear(32, 32),
+            )
+
+            self.layer_2 = nn.Sequential(
+                nn.ReLU(),
+                nn.Linear(32, 32),
+                nn.ReLU(),
+                nn.Linear(32, 32),
+                nn.ReLU(),
+                nn.Linear(32, 2)
+            )
+
+            # set some weights to False to check untoggle works as expected.
+            self.layer_1[2].weight.requires_grad = False
+            self.layer_1[4].weight.requires_grad = False
+
+            self.layer_2[1].weight.requires_grad = False
+            self.layer_2[3].weight.requires_grad = False
+
+        def configure_optimizers(self):
+            optimizer = SGD(self.layer_1.parameters(), lr=0.1)
+            optimizer_2 = Adam(self.layer_2.parameters(), lr=0.1)
+            return [optimizer, optimizer_2]
+
+        def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+            if optimizer_idx == 0:
+                assert self.layer_1[0].weight.requires_grad is True
+                assert self.layer_1[2].weight.requires_grad is False
+                assert self.layer_1[4].weight.requires_grad is False
+
+                assert self.layer_2[1].weight.requires_grad is False
+                assert self.layer_2[3].weight.requires_grad is False
+                assert self.layer_2[5].weight.requires_grad is False
+
+            if optimizer_idx == 1:
+                assert self.layer_1[0].weight.requires_grad is False
+                assert self.layer_1[2].weight.requires_grad is False
+                assert self.layer_1[4].weight.requires_grad is False
+
+                assert self.layer_2[1].weight.requires_grad is False
+                assert self.layer_2[3].weight.requires_grad is False
+                assert self.layer_2[5].weight.requires_grad is True
+            optimizer.step(closure=closure)
+
+    model = TestModel()
+    model.training_epoch_end = None
+
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=8,
+        accumulate_grad_batches=1,
+    )
+
+    trainer.fit(model)
