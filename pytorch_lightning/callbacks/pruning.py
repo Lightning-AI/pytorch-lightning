@@ -49,6 +49,22 @@ _PYTORCH_PRUNING_METHOD = {
 }
 
 
+def _check_parameters_to_prune(p):
+    """
+    Check the provide element is a pair with:
+        * nn.Module
+        * str
+
+    Example::
+
+        parameters_to_prune = [
+            (model.mlp_1, "weight"),
+            (model.mlp_2, "weight")
+        ]
+    """
+    return len(p) == 2 and isinstance(p[0], nn.Module) and isinstance(p[1], str)
+
+
 def check_parameters_to_prune(
     pl_module: LightningModule,
     parameters_to_prune: Optional[List],
@@ -69,7 +85,7 @@ def check_parameters_to_prune(
     if isinstance(parameters_to_prune, (tuple, list)) \
        and len(parameters_to_prune) > 0 and not is_parameters_to_prune_none:
 
-        if all(isinstance(p, (list, tuple)) and len(p) == 2 for p in parameters_to_prune):
+        if all(isinstance(p, (list, tuple)) and _check_parameters_to_prune(p) for p in parameters_to_prune):
 
             missing_modules = []
             missing_parameters = []
@@ -259,7 +275,7 @@ class ModelPruning(Callback):
         for module, param_name in self.parameters_to_prune:
             pytorch_prune.remove(module, param_name)
 
-    def _resolve_amout(self, current_epoch: int) -> float:
+    def _resolve_amount(self, current_epoch: int) -> float:
         if isinstance(self.amount, Callable):
             amount_fn = self.amount
             amount = amount_fn(current_epoch)
@@ -267,14 +283,24 @@ class ModelPruning(Callback):
             amount = self.amount
         return amount
 
-    def _apply_lottery_ticket_hypothesis(self, module: nn.Module, orig_module: nn.Module, tensor_name: str):
+    def _restore_original_weights(self, module: nn.Module, orig_module: nn.Module, tensor_name: str):
+        """
+        "The lottery ticket hypothesis" (https://arxiv.org/pdf/1803.03635.pdf) algorithm:
+
+            1. Randomly initialize a neural network f(x;θ0)(where θ0 ∼Dθ).
+            2. Train the network for j iterations, arriving at parameters θj .
+            3. Prune p% of the parameters in θj , creating a mask m.
+            4. Reset the remaining parameters to their values in θ0, creating the winning ticket f(x; m⊙θ0).
+
+        This function is responsible of step 4.
+        """
         trained = getattr(module, tensor_name)
         orig = getattr(orig_module, tensor_name)
         trained.data = orig.data.to(trained.device)
 
     def apply_lottery_ticket_hypothesis(self):
         for (module, tensor_name), (orig_module, _) in zip(self.parameters_to_prune, self._parameters_to_prune):
-            self._apply_lottery_ticket_hypothesis(module, orig_module, tensor_name)
+            self._restore_original_weights(module, orig_module, tensor_name)
 
     def _apply_local_pruning(self, amount: float):
         for module, param in self.parameters_to_prune:
@@ -289,7 +315,7 @@ class ModelPruning(Callback):
         )
 
     def apply_pruning(self, trainer, pl_module):
-        amount = self._resolve_amout(trainer.current_epoch)
+        amount = self._resolve_amount(trainer.current_epoch)
         if self.use_global_unstructured:
             self._apply_global_pruning(amount)
         else:
