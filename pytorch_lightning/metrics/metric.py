@@ -294,7 +294,13 @@ class Metric(nn.Module, ABC):
         for key in self._defaults.keys():
             if self._persistent[key]:
                 current_val = getattr(self, key)
-                if not keep_vars and torch.is_tensor(current_val):
-                    current_val = current_val.detach()
+                if not keep_vars:
+                    if torch.is_tensor(current_val):
+                        current_val = current_val.detach()
+                    elif isinstance(current_val, list):
+                        current_val = [
+                            cur_v.detach() if torch.is_tensor(cur_v) else cur_v
+                            for cur_v in current_val
+                        ]
                 destination[prefix + key] = current_val
         return destination
