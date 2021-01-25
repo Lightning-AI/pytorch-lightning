@@ -15,9 +15,10 @@ from typing import Any, Callable, Optional, Union
 
 import torch
 
-from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -79,10 +80,12 @@ class CPUAccelerator(Accelerator):
     def test_step(self, args):
         return self._step(self.trainer.model.test_step, args)
 
-    def sync_tensor(self,
-                    tensor: Union[torch.Tensor],
-                    group: Optional[Any] = None,
-                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+    def sync_tensor(
+            self,
+            tensor: Union[torch.Tensor],
+            group: Optional[Any] = None,
+            reduce_op: Optional[Union[ReduceOp, str]] = None,
+    ) -> torch.Tensor:
         return tensor
 
     @property
