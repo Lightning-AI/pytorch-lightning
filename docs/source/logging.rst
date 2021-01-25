@@ -259,13 +259,19 @@ Configure console logging
 *************************
 
 Lightning logs useful information about the training process and user warnings to the console.
-You can retrieve the Lightning logger and change it to your liking. For example, increase the logging level
-to see fewer messages like so:
+You can retrieve the Lightning logger and change it to your liking. For example, adjust the logging level
+or redirect output for certain modules to log files:
 
 .. code-block:: python
 
     import logging
-    logging.getLogger("lightning").setLevel(logging.ERROR)
+
+    # configure logging at the root level of lightning
+    logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
+
+    # configure logging on module level, redirect to file
+    logger = logging.getLogger("pytorch_lightning.core")
+    logger.addHandler(logging.FileHandler("core.log"))
 
 Read more about custom Python logging `here <https://docs.python.org/3/library/logging.html>`_.
 

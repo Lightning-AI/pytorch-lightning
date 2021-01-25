@@ -13,15 +13,16 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
+import logging
 
 import torch
 from torch import Tensor
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5
+log = logging.getLogger(__name__)
 
 
 class TrainerTrainingTricksMixin(ABC):
