@@ -190,7 +190,7 @@ class EvaluationLoop(object):
         self.trainer.logger_connector.evaluation_epoch_end(self.testing)
 
         # call the model epoch end
-        deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders, False)
+        deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders)
 
         # enable returning anything
         for i, r in enumerate(deprecated_results):
@@ -204,7 +204,7 @@ class EvaluationLoop(object):
         eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results(self.testing)
         return eval_loop_results
 
-    def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
+    def __run_eval_epoch_end(self, num_dataloaders):
         model = self.trainer.get_model()
 
         # with a single dataloader don't pass an array
@@ -217,16 +217,12 @@ class EvaluationLoop(object):
 
         if self.testing:
             if is_overridden('test_epoch_end', model=model):
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
                 model._current_fx_name = 'test_epoch_end'
                 eval_results = model.test_epoch_end(eval_results)
                 user_reduced = True
 
         else:
             if is_overridden('validation_epoch_end', model=model):
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
                 model._current_fx_name = 'validation_epoch_end'
                 eval_results = model.validation_epoch_end(eval_results)
                 user_reduced = True
@@ -241,14 +237,11 @@ class EvaluationLoop(object):
                 ' To log, use self.log(...) or self.write(...) directly in the LightningModule'
             )
 
-        if using_eval_result and not user_reduced:
-            eval_results = self.__auto_reduce_result_objs(outputs)
-
         if not isinstance(eval_results, list):
             eval_results = [eval_results]
 
         # track depreceated metrics
-        self.trainer.logger_connector.track_metrics_deprecated(eval_results, using_eval_result, self.testing)
+        self.trainer.logger_connector.track_metrics_deprecated(eval_results, self.testing)
 
         return eval_results
 

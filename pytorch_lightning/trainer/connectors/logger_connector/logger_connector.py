@@ -259,8 +259,8 @@ class LoggerConnector:
 
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
-    def track_metrics_deprecated(self, deprecated_eval_results, using_eval_result, test_mode):
-        self._track_callback_metrics(deprecated_eval_results, using_eval_result)
+    def track_metrics_deprecated(self, deprecated_eval_results, test_mode):
+        self._track_callback_metrics(deprecated_eval_results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
 
     def evaluation_epoch_end(self, testing):
@@ -314,53 +314,41 @@ class LoggerConnector:
         self.eval_loop_results = []
         return results
 
-    def _track_callback_metrics(self, eval_results, using_eval_result):
+    def _track_callback_metrics(self, eval_results):
         if len(eval_results) > 0 and (eval_results[0] is None or not isinstance(eval_results[0], Result)):
             return
 
-        if using_eval_result:
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    self.trainer.logger_connector.callback_metrics.update(eval_result.callback_metrics)
-                    if self.trainer.testing:
-                        self.trainer.logger_connector.evaluation_callback_metrics.update(
-                            eval_result.callback_metrics)
-            else:
-                self.trainer.logger_connector.callback_metrics.update(eval_results.callback_metrics)
-                if self.trainer.testing:
-                    self.trainer.logger_connector.evaluation_callback_metrics.update(eval_results.callback_metrics)
-        else:
-            flat = {}
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    # with a scalar return, auto set it to "val_loss" for callbacks
-                    if isinstance(eval_result, torch.Tensor):
-                        flat = {'val_loss': eval_result}
-                    elif isinstance(eval_result, dict):
-                        flat = flatten_dict(eval_result)
-
-                    # removing val_loss magic word to map to checkpoint + ES callback
-                    if 'val_loss' in flat:
-                        flat['checkpoint_on'] = flat['val_loss']
-                        flat['early_stop_on'] = flat['val_loss']
-                    self.trainer.logger_connector.callback_metrics.update(flat)
-                    if self.trainer.testing:
-                        self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
-            else:
+        flat = {}
+        if isinstance(eval_results, list):
+            for eval_result in eval_results:
                 # with a scalar return, auto set it to "val_loss" for callbacks
-                if isinstance(eval_results, torch.Tensor):
-                    flat = {'val_loss': eval_results}
-                else:
-                    flat = flatten_dict(eval_results)
+                if isinstance(eval_result, torch.Tensor):
+                    flat = {'val_loss': eval_result}
+                elif isinstance(eval_result, dict):
+                    flat = flatten_dict(eval_result)
 
                 # removing val_loss magic word to map to checkpoint + ES callback
                 if 'val_loss' in flat:
                     flat['checkpoint_on'] = flat['val_loss']
                     flat['early_stop_on'] = flat['val_loss']
-
                 self.trainer.logger_connector.callback_metrics.update(flat)
                 if self.trainer.testing:
                     self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
+        else:
+            # with a scalar return, auto set it to "val_loss" for callbacks
+            if isinstance(eval_results, torch.Tensor):
+                flat = {'val_loss': eval_results}
+            else:
+                flat = flatten_dict(eval_results)
+
+            # removing val_loss magic word to map to checkpoint + ES callback
+            if 'val_loss' in flat:
+                flat['checkpoint_on'] = flat['val_loss']
+                flat['early_stop_on'] = flat['val_loss']
+
+            self.trainer.logger_connector.callback_metrics.update(flat)
+            if self.trainer.testing:
+                self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
 
     def __process_eval_epoch_end_results_and_log_legacy_update(self, prog_bar_metrics, log_metrics, callback_metrics):
         # eval loop returns all metrics
