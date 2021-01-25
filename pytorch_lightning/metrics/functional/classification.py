@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from distutils.version import LooseVersion
 from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
 
+from pytorch_lightning.metrics.functional.auc import auc as __auc
+from pytorch_lightning.metrics.functional.auroc import auroc as __auroc
 from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
 from pytorch_lightning.metrics.functional.iou import iou as __iou
 from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
@@ -509,19 +510,15 @@ def auc(
         " `pytorch_lightning.metrics.functional.auc import auc`."
         " It will be removed in v1.4.0", DeprecationWarning
     )
-
-    dx = x[1:] - x[:-1]
-    if (dx < 0).any():
-        if (dx <= 0).all():
-            direction = -1.
-        else:
-            raise ValueError(f"The 'x' array is neither increasing or decreasing: {x}. Reorder is not supported.")
-    else:
-        direction = 1.
-    return direction * torch.trapz(y, x)
+    return __auc(x, y)
 
 
 def auc_decorator() -> Callable:
+    rank_zero_warn(
+        "This `auc_decorator` was deprecated in v1.2.0."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+
     def wrapper(func_to_decorate: Callable) -> Callable:
         @wraps(func_to_decorate)
         def new_func(*args, **kwargs) -> torch.Tensor:
@@ -535,6 +532,11 @@ def auc_decorator() -> Callable:
 
 
 def multiclass_auc_decorator() -> Callable:
+    rank_zero_warn(
+        "This `multiclass_auc_decorator` was deprecated in v1.2.0."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+
     def wrapper(func_to_decorate: Callable) -> Callable:
         @wraps(func_to_decorate)
         def new_func(*args, **kwargs) -> torch.Tensor:
@@ -587,38 +589,8 @@ def auroc(
         " `pytorch_lightning.metrics.functional.auroc import auroc`."
         " It will be removed in v1.4.0", DeprecationWarning
     )
-
-    if any(target > 1):
-        raise ValueError('AUROC metric is meant for binary classification, but'
-                         ' target tensor contains value different from 0 and 1.'
-                         ' Use `multiclass_auroc` for multi class classification.')
-
-    if max_fpr is None or max_fpr == 1:
-        fpr, tpr, _ = __roc(pred, target, sample_weight, pos_label)
-        return auc(fpr, tpr)
-    if not (isinstance(max_fpr, float) and 0 < max_fpr <= 1):
-        raise ValueError(f"`max_fpr` should be a float in range (0, 1], got: {max_fpr}")
-    if LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
-        raise RuntimeError('`max_fpr` argument requires `torch.bucketize` which'
-                           ' is not available below PyTorch version 1.6')
-
-    fpr, tpr, _ = __roc(pred, target, sample_weight, pos_label)
-    max_fpr = torch.tensor(max_fpr, device=fpr.device)
-    # Add a single point at max_fpr and interpolate its tpr value
-    stop = torch.bucketize(max_fpr, fpr, out_int32=True, right=True)
-    weight = (max_fpr - fpr[stop - 1]) / (fpr[stop] - fpr[stop - 1])
-    interp_tpr = torch.lerp(tpr[stop - 1], tpr[stop], weight)
-    tpr = torch.cat([tpr[:stop], interp_tpr.view(1)])
-    fpr = torch.cat([fpr[:stop], max_fpr.view(1)])
-
-    # Compute partial AUC
-    partial_auc = auc(fpr, tpr)
-
-    # McClish correction: standardize result to be 0.5 if non-discriminant
-    # and 1 if maximal
-    min_area = 0.5 * max_fpr ** 2
-    max_area = max_fpr
-    return 0.5 * (1 + (partial_auc - min_area) / (max_area - min_area))
+    return __auroc(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label, max_fpr=max_fpr,
+                   num_classes=1)
 
 
 def multiclass_auroc(
@@ -677,14 +649,7 @@ def multiclass_auroc(
             f"Number of classes deduced from 'pred' ({pred.size(1)}) does not equal"
             f" the number of classes passed in 'num_classes' ({num_classes}).")
 
-    @multiclass_auc_decorator()
-    def _multiclass_auroc(pred, target, sample_weight, num_classes):
-        return multiclass_roc(pred, target, sample_weight, num_classes)
-
-    class_aurocs = _multiclass_auroc(pred=pred, target=target,
-                                     sample_weight=sample_weight,
-                                     num_classes=num_classes)
-    return torch.mean(class_aurocs)
+    return __auroc(preds=pred, target=target, sample_weights=sample_weight, num_classes=num_classes)
 
 
 def dice_score(
