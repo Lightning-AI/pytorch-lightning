@@ -183,9 +183,23 @@ class TrainerProperties(ABC):
     @property
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
-        ref_model = self.model if not self.data_parallel else self.model.module
+        ref_model = self.get_model()
         ref_model = cast(LightningModule, ref_model)
-        return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
+
+        standard_metrics = ref_model.get_progress_bar_dict()
+        logged_metrics = self.progress_bar_metrics
+        duplicates = list(standard_metrics.keys() & logged_metrics.keys())
+        if duplicates:
+            rank_zero_warn(
+                f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
+                f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
+                f" If this is undesired, change the name or override `get_progress_bar_dict()`"
+                f" in `LightingModule`.",
+                UserWarning
+            )
+        all_metrics = dict(**standard_metrics)
+        all_metrics.update(**logged_metrics)
+        return all_metrics
 
     @property
     def disable_validation(self) -> bool:
