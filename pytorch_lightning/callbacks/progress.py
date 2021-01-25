@@ -137,8 +137,8 @@ class ProgressBarBase(Callback):
         """
         You should provide a way to enable the progress bar.
         The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this in e.g. pre-training
-        routines like the :ref:`learning rate finder <advanced/lr_finder:Learning Rate Finder>` to temporarily enable and
-        disable the main progress bar.
+        routines like the :ref:`learning rate finder <advanced/lr_finder:Learning Rate Finder>`
+        to temporarily enable and disable the main progress bar.
         """
         raise NotImplementedError
 

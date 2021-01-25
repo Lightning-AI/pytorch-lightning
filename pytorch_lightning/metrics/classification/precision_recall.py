@@ -70,7 +70,8 @@ class Precision(StatScores):
               (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
               and computing the metric for the sample based on that.
 
-            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`extensions/metrics:input types`)
+            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs
+              (see :ref:`extensions/metrics:input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
@@ -219,7 +220,8 @@ class Recall(StatScores):
               (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
               and computing the metric for the sample based on that.
 
-            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`extensions/metrics:input types`)
+            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs
+              (see :ref:`extensions/metrics:input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
