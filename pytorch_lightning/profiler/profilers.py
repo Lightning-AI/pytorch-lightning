@@ -100,7 +100,6 @@ class BaseProfiler(ABC):
     def summary(self) -> str:
         """Create profiler summary in text format."""
 
-
     def on_train_start(self, local_rank: int):
         self.local_rank = local_rank
 
@@ -328,8 +327,8 @@ class PyTorchProfiler(BaseProfiler):
         Args:
 
             output_filename: optionally save profile results to file instead of printing
-                to std out when training is finished. When using ``ddp``, 
-                each rank will stream the profiled operation to their own file 
+                to std out when training is finished. When using ``ddp``,
+                each rank will stream the profiled operation to their own file
                 with the extension ``_{rank}.txt``
 
             enabled: Setting this to False makes this context manager a no-op.
@@ -374,7 +373,7 @@ class PyTorchProfiler(BaseProfiler):
             profiled_functions: list of profiled functions which will create a context manager on.
                 Any other will be pass through.
 
-            local_rank: When running in distributed setting, local_rank is used for each process 
+            local_rank: When running in distributed setting, local_rank is used for each process
                 to write to their own file if `output_fname` is provided.
         """
 
@@ -425,7 +424,7 @@ class PyTorchProfiler(BaseProfiler):
             if local_rank is not None:
                 if '.txt' not in self.output_fname:
                     raise MisconfigurationException("Log file should be .txt file.")
-            
+
                 self.output_fname = self.output_fname.replace(".txt", f"_{self.local_rank}.txt")
 
             fs = get_filesystem(self.output_fname)

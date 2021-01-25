@@ -14,7 +14,6 @@
 import math
 import os
 import pickle
-from pytorch_lightning.accelerators import accelerator
 import sys
 from argparse import Namespace
 from copy import deepcopy
@@ -1499,14 +1498,14 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
     trainer.fit(model)
 
     enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
-    
+
     if enabled:
         assert len(profiler.summary()) > 0
         assert set(profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
     else:
         assert profiler.summary() is None
         assert set(profiler.profiled_actions.keys()) == set()
-    
+
     if use_output_filename:
         profiler.describe()
         data = Path(profiler.output_fname).read_text()

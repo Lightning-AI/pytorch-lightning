@@ -133,7 +133,8 @@ Find the Pytorch Profiler doc at [PyTorch Profiler](https://pytorch-lightning.re
     trainer = Trainer(..., profiler=profiler)
 
 
-.. note:: This profiler works with DistributedDataParallel. If output_filename is provided, each rank will save the profiled operation to their own file.
+This profiler works with PyTorch ``DistributedDataParallel``.
+If ``output_filename`` is provided, each rank will save their profiled operation to their own file.
 
 
 The profiler's results will be printed on the completion of a training `fit()`. This profiler
