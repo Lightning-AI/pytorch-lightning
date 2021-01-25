@@ -17,7 +17,7 @@ from typing import Any, Callable, Optional, Union
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.accelerators.legacy.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, AMPType, DeviceType
 from pytorch_lightning.utilities.distributed import rank_zero_only

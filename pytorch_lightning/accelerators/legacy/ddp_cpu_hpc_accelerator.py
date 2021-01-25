@@ -13,7 +13,7 @@
 # limitations under the License
 from typing import Optional
 
-from pytorch_lightning.accelerators.ddp_hpc_accelerator import DDPHPCAccelerator
+from pytorch_lightning.accelerators.legacy.ddp_hpc_accelerator import DDPHPCAccelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 

@@ -16,7 +16,7 @@ from typing import Optional
 import torch
 from torch import optim
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result

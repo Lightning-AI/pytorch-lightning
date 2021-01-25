@@ -17,7 +17,7 @@ import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning import accelerators
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
 from pytorch_lightning.utilities import (
