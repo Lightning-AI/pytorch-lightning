@@ -145,6 +145,8 @@ This profiler will record only for `training_step_and_backward`, `evaluation_ste
 The output below shows the profiling for the action `training_step_and_backward`.
 The user can provide ``PyTorchProfiler(profiled_functions=[...])`` to extend the scope of profiled functions.
 
+.. note:: When using the PyTorch Profiler, wall clock time will not not be representative of the true wall clock time. This is due to forcing profiled operations to be measured synchronously, when many CUDA ops happen asynchronously. It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use the `SimpleProfiler`.
+
 .. code-block:: python
 
     Profiler Report
