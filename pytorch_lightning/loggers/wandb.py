@@ -29,9 +29,8 @@ from pytorch_lightning.utilities.warning_utils import WarningCache
 _WANDB_AVAILABLE = _module_available("wandb")
 
 try:
-    from wandb.wandb_run import Run
-
     import wandb
+    from wandb.wandb_run import Run
 except ImportError:
     # needed for test mocks, these tests shall be updated
     wandb, Run = None, None
