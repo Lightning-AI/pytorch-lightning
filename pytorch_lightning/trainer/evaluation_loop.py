@@ -184,8 +184,7 @@ class EvaluationLoop(object):
 
         # allow only EvalResult when using structured results (from val_step)
         if is_result_obj and not isinstance(output, EvalResult):
-            m = 'only EvalResults or dicts are allowed from validation_step'
-            raise MisconfigurationException(m)
+            raise MisconfigurationException('only EvalResults or dicts are allowed from validation_step')
 
         return output
 
@@ -337,9 +336,6 @@ class EvaluationLoop(object):
 
         step_log_metrics = {}
         step_pbar_metrics = {}
-        if isinstance(output, EvalResult):
-            step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
-            step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
 
         self.__log_result_step_metrics(step_log_metrics, step_pbar_metrics, batch_idx)
 
