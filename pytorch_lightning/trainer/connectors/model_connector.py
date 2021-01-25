@@ -18,8 +18,6 @@ Currently supports training on CPU, GPU (dp, ddp, ddp2, horovod) and TPU.
 
 """
 
-from contextlib import suppress
-
 
 class ModelConnector:
     def __init__(self, trainer):
