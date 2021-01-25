@@ -12,7 +12,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.distributed import LightningDistributed
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, unwrap_lightning_module
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE
 from pytorch_lightning.utilities.distributed import find_free_network_port, rank_zero_only, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -60,7 +60,7 @@ class DDPPlugin(ParallelPlugin):
     @property
     def lightning_module(self):
         # the model may not be wrapped with DistributedDataParallel if calling this too early
-        return getattr(self._model, "module", self._model)
+        return unwrap_lightning_module(self._model)
 
     @property
     def distributed_sampler_kwargs(self):

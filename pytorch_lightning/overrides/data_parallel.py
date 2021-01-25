@@ -62,6 +62,15 @@ def get_a_var(obj):  # pragma: no-cover
 warning_cache = WarningCache()
 
 
+def unwrap_lightning_module(wrapped_model):
+    model = wrapped_model
+    if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
+        model = model.module
+    if isinstance(model, LightningDistributedModule):
+        model = model.module
+    return model
+
+
 class LightningDataParallel(DataParallel):
     """
     Override the forward call in lightning so it goes to training and validation step respectively
