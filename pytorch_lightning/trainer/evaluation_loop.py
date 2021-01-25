@@ -13,9 +13,8 @@
 # limitations under the License.
 import torch
 
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -115,11 +114,6 @@ class EvaluationLoop(object):
         else:
             self.trainer.reset_val_dataloader(model)
 
-    def is_using_eval_results(self):
-        outputs = self.outputs
-        using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
-        return using_eval_result
-
     def setup(self, model, max_batches, dataloaders):
         # copy properties for forward overrides
         self.trainer.model_connector.copy_trainer_model_properties(model)
@@ -182,10 +176,6 @@ class EvaluationLoop(object):
         if is_result_obj:
             output.track_batch_size(batch)
 
-        # allow only EvalResult when using structured results (from val_step)
-        if is_result_obj and not isinstance(output, EvalResult):
-            raise MisconfigurationException('only EvalResults or dicts are allowed from validation_step')
-
         return output
 
     def evaluation_step_end(self, *args, **kwargs):
@@ -199,10 +189,8 @@ class EvaluationLoop(object):
         # unset dataloder_idx in model
         self.trainer.logger_connector.evaluation_epoch_end(self.testing)
 
-        using_eval_result = self.is_using_eval_results()
-
         # call the model epoch end
-        deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders, using_eval_result)
+        deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders, False)
 
         # enable returning anything
         for i, r in enumerate(deprecated_results):
