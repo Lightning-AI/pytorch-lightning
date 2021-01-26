@@ -538,7 +538,7 @@ class DataHooks:
             any other device than the one passed in as argument (unless you know what you are doing).
 
         Note:
-            This hook only runs on single GPU training (no data-parallel) or with sharded plugin.
+            This hook only runs on single GPU training and DDP (no data-parallel).
             If you need multi-GPU support for your custom batch objects, you need to define your custom
             :class:`~torch.nn.parallel.DistributedDataParallel` or
             :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
@@ -573,6 +573,9 @@ class DataHooks:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
+        Note:
+            This hook only runs on single GPU training and DDP (no data-parallel).
+
         Args:
             batch: A batch of data that needs to be altered or augmented.
 
@@ -596,7 +599,7 @@ class DataHooks:
         Override to alter or apply batch augmentations to your batch after it is transferred to the device.
 
         Note:
-            This hook only runs on single gpu training (no data-parallel) or with sharded plugin.
+            This hook only runs on single GPU training and DDP (no data-parallel).
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
