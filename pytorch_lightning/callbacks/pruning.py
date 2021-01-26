@@ -366,8 +366,8 @@ class ModelPruning(Callback):
 
                 if len(missing_modules) > 0 or len(missing_parameters) > 0:
                     raise MisconfigurationException(
-                        "Ths provided parameters_to_tune doesn't exist in the model. "
-                        f"Found mismatching modules: {missing_modules} and missing_parameters: {missing_parameters}"
+                        "Ths provided parameters_to_tune doesn't exist in the model."
+                        f" Found mismatching modules: {missing_modules} and missing_parameters: {missing_parameters}"
                     )
 
             else:
