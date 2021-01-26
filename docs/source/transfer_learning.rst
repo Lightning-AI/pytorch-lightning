@@ -58,7 +58,7 @@ Example: Imagenet (computer Vision)
             backbone = models.resnet50(pretrained=True)
             num_filters = backbone.fc.in_features
             layers = list(backbone.children())[:-1]
-            self.feature_extractor = torch.nn.Sequential(*layers)
+            self.feature_extractor = nn.Sequential(*layers)
 
             # use the pretrained model to classify cifar-10 (10 image classes)
             num_target_classes = 10
