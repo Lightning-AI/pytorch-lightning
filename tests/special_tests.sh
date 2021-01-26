@@ -24,3 +24,4 @@ python ${DEFAULTS} tests/utilities/test_all_gather_grad.py::test_all_gather_coll
 # python ${DEFAULTS} tests/plugins/test_ddp_sequential_plugin.py::test_ddp_sequential_plugin_ddp_rpc_with_wrong_balance
 python ${DEFAULTS} tests/trainer/logging_process/test_train_loop_logging_1_0.py::test_logging_sync_dist_true_ddp
 python ${DEFAULTS} tests/callbacks/test_pruning.py::test_pruning_callback_ddp
+python ${DEFAULTS} tests/trainer/test_trainer.py::test_pytorch_profiler_trainer_ddp

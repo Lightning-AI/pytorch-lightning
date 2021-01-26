@@ -62,6 +62,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `ModelPruning` Callback ([#5618](https://github.com/PyTorchLightning/pytorch-lightning/pull/5618))
 
 
+- Added `PyTorchProfiler` ([#5560](https://github.com/PyTorchLightning/pytorch-lightning/pull/5560))
 
 
 ### Changed
