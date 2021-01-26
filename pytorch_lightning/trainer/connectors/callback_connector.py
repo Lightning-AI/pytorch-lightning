@@ -14,6 +14,7 @@
 import os
 from typing import Union
 
+from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -107,3 +108,7 @@ class CallbackConnector:
         for callback in self.trainer.callbacks:
             callback.log = model.log
             callback.log_dict = model.log_dict
+
+    def attach_model_callbacks(self, model: LightningModule):
+        # TODO: connectors refactor: move callbacks list to connector and do not write Trainer state
+        self.trainer.callbacks.append(model.configure_callbacks())

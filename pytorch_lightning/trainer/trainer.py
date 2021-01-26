@@ -448,11 +448,11 @@ class Trainer(
         # LINK DATA
         # ----------------------------
         # setup data, etc...
-        self.callbacks = model.configure_callbacks(self.callbacks)
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
         self.data_connector.prepare_data(model)
+        self.callback_connector.attach_model_callbacks(model)
 
         # bookkeeping
         # we reuse fit in .test() but change its behavior using this flag
