@@ -16,20 +16,17 @@ from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
+
 from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
 from pytorch_lightning.metrics.functional.iou import iou as __iou
-from pytorch_lightning.metrics.functional.precision_recall_curve import (
-    _binary_clf_curve,
-    precision_recall_curve as __prc
-)
+from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
+from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve as __prc
 from pytorch_lightning.metrics.functional.roc import roc as __roc
-from pytorch_lightning.metrics.utils import (
-    to_categorical as __tc,
-    to_onehot as __to,
-    get_num_classes as __gnc,
-    reduce,
-    class_reduce,
-)
+from pytorch_lightning.metrics.utils import class_reduce
+from pytorch_lightning.metrics.utils import get_num_classes as __gnc
+from pytorch_lightning.metrics.utils import reduce
+from pytorch_lightning.metrics.utils import to_categorical as __tc
+from pytorch_lightning.metrics.utils import to_onehot as __to
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -226,6 +223,10 @@ def precision_recall(
     """
     Computes precision and recall for different thresholds
 
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.precision_recall`.
+     Will be removed in v1.4.0.
+
     Args:
         pred: estimated probabilities
         target: ground-truth labels
@@ -252,6 +253,12 @@ def precision_recall(
         (tensor(0.5000), tensor(0.3333))
 
     """
+    rank_zero_warn(
+        "This `precision_recall` was deprecated in v1.2.0 in favor of"
+        " `from pytorch_lightning.metrcs.functional import precision_recall`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred, target=target, num_classes=num_classes)
 
     precision = class_reduce(tps, tps + fps, sups, class_reduction=class_reduction)
@@ -271,6 +278,9 @@ def precision(
 ) -> torch.Tensor:
     """
     Computes precision score.
+
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.recall`. Will be removed in v1.4.0.
 
     Args:
         pred: estimated probabilities
@@ -294,6 +304,12 @@ def precision(
         tensor(0.7500)
 
     """
+    rank_zero_warn(
+        "This `precision` was deprecated in v1.2.0 in favor of"
+        " `from pytorch_lightning.metrics.functional import precision`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, class_reduction=class_reduction)[0]
 
@@ -306,6 +322,9 @@ def recall(
 ) -> torch.Tensor:
     """
     Computes recall score.
+
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.recall`. Will be removed in v1.4.0.
 
     Args:
         pred: estimated probabilities
@@ -328,6 +347,12 @@ def recall(
         >>> recall(x, y)
         tensor(0.7500)
     """
+    rank_zero_warn(
+        "This `recall` was deprecated in v1.2.0 in favor of"
+        " `from pytorch_lightning.metrics.functional import recall`."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
+
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, class_reduction=class_reduction)[1]
 

@@ -24,7 +24,7 @@ from torch import is_tensor
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, _module_available
+from pytorch_lightning.utilities import _module_available, rank_zero_only
 
 _NEPTUNE_AVAILABLE = _module_available("neptune")
 
@@ -52,7 +52,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     **ONLINE MODE**
 
-    .. code-block:: python
+    .. testcode::
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import NeptuneLogger
@@ -70,7 +70,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     **OFFLINE MODE**
 
-    .. code-block:: python
+    .. testcode::
 
         from pytorch_lightning.loggers import NeptuneLogger
 

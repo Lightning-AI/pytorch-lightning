@@ -3,9 +3,10 @@ from functools import partial
 import numpy as np
 import pytest
 import torch
+from sklearn.metrics import jaccard_score as sk_jaccard_score
+
 from pytorch_lightning.metrics.classification.iou import IoU
 from pytorch_lightning.metrics.functional.iou import iou
-from sklearn.metrics import jaccard_score as sk_jaccard_score
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
@@ -14,9 +15,9 @@ from tests.metrics.classification.inputs import (
     _multidim_multiclass_inputs,
     _multidim_multiclass_prob_inputs,
     _multilabel_inputs,
-    _multilabel_prob_inputs
+    _multilabel_prob_inputs,
 )
-from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
+from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 
 def _sk_iou_binary_prob(preds, target, average=None):

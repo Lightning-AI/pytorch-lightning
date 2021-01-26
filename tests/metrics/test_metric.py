@@ -6,6 +6,7 @@ import cloudpickle
 import numpy as np
 import pytest
 import torch
+
 from pytorch_lightning.metrics.metric import Metric, MetricCollection
 
 torch.manual_seed(42)
@@ -139,8 +140,8 @@ def test_compute():
     assert a._computed == 1
     a.update(2)
     assert a._computed is None
-    assert a.compute() == 2
-    assert a._computed == 2
+    assert a.compute() == 3
+    assert a._computed == 3
 
     # called without update, should return cached value
     a._computed = 5
@@ -192,7 +193,7 @@ def test_pickle(tmpdir):
     assert metric_loaded.compute() == 1
 
     metric_loaded.update(5)
-    assert metric_loaded.compute() == 5
+    assert metric_loaded.compute() == 6
 
     metric_pickled = cloudpickle.dumps(a)
     metric_loaded = cloudpickle.loads(metric_pickled)

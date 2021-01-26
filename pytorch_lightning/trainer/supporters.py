@@ -13,17 +13,16 @@
 # limitations under the License.
 
 import os
-from typing import Optional
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from typing import Any, Callable, Optional, Union
 
 import torch
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from torch import Tensor
 from torch.utils.data import Dataset
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.data import get_len
-from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any, Union
 
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -170,9 +169,7 @@ class PredictionCollection(object):
             # Check if all features for this file add up to same length
             feature_lens = {k: len(v) for k, v in predictions.items()}
             if len(set(feature_lens.values())) != 1:
-                raise ValueError(
-                    "Mismatching feature column lengths found in stored EvalResult predictions."
-                )
+                raise ValueError("Mismatching feature column lengths found in stored EvalResult predictions.")
 
             # Switch predictions so each entry has its own dict
             outputs = []
@@ -208,7 +205,6 @@ class CycleIterator(object):
 
     def __iter__(self) -> Any:
         """
-
         Creates the internal iterator and returns self
 
         Returns:
@@ -307,12 +303,8 @@ class CombinedDataset(object):
 
         if isinstance(all_lengths, (int, float)):
             length = all_lengths
-
-        elif isinstance(all_lengths, Mapping):
-            length = compute_func(all_lengths.values())
-
-        elif isinstance(all_lengths, Sequence):
-            length = compute_func(all_lengths)
+        else:
+            length = _nested_calc_num_data(all_lengths, compute_func)
 
         return length
 
@@ -383,7 +375,7 @@ class CombinedLoader(object):
         Wraps all loaders to make sure they are cycled until the longest loader is exhausted
 
         Returns:
-            Any: the wrapped loaders
+            the wrapped loaders
 
         """
         all_lengths = apply_to_collection(self.loaders, Iterable, get_len,
@@ -438,13 +430,8 @@ class CombinedLoader(object):
         if isinstance(all_lengths, (int, float)):
             return all_lengths
 
-        elif isinstance(all_lengths, Mapping):
-            return min(all_lengths.values())
-
-        elif isinstance(all_lengths, Sequence):
-            return min(all_lengths)
-
-        raise TypeError(f'Got Type {type(all_lengths).__name__}, but expected one of Sequence, int or Mapping')
+        else:
+            return _nested_calc_num_data(all_lengths, min)
 
     def __len__(self) -> int:
         return self._calc_num_batches(self.loaders)
@@ -482,7 +469,7 @@ class CombinedLoaderIterator(object):
         Fetches the next batch from multiple data loaders
 
         Returns:
-            Any: a collections of batch data
+            a collections of batch data
 
         """
         return self.request_next_batch(self.loader_iters)
@@ -517,3 +504,25 @@ class CombinedLoaderIterator(object):
         """
         # dataloaders are Iterable but not Sequences. Need this to specifically exclude sequences
         return apply_to_collection(loaders, Iterable, iter, wrong_dtype=(Sequence, Mapping))
+
+
+def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable):
+
+    if isinstance(data, int):
+        return data
+
+    if isinstance(data, Mapping):
+        data = list(data.values())
+
+    if not isinstance(data, Sequence):
+        raise TypeError(f'Expected data to be int, Sequence or Mapping, but got {type(data).__name__}')
+
+    new_data = []
+
+    for x in data:
+        if isinstance(x, (Mapping, Sequence)):
+            new_data.append(_nested_calc_num_data(x, compute_func))
+        else:
+            new_data.append(x)
+
+    return compute_func(new_data)

@@ -32,6 +32,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
+from pytorch_lightning.trainer.states import TrainerState
 from tests.base import BoringModel
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
@@ -141,7 +142,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == TensorBoardLogger:
         expected = [
             (0, ['hp_metric']),
-            (0, ['train_some_val']),
+            (0, ['epoch', 'train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_loss']),
             (0, ['hp_metric']),
             (1, ['epoch', 'test_loss'])
@@ -149,7 +150,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         assert log_metric_names == expected
     else:
         expected = [
-            (0, ['train_some_val']),
+            (0, ['epoch', 'train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_loss']),
             (1, ['epoch', 'test_loss'])
         ]
@@ -343,8 +344,8 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         checkpoint_callback=True,
         callbacks=[RankZeroLoggerCheck()],
     )
-    result = trainer.fit(model)
-    assert result == 1
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_logger_with_prefix_all(tmpdir, monkeypatch):

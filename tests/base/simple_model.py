@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
-from pytorch_lightning import LightningModule
-from torch.utils.data import Dataset
 from typing import Optional
+
+import torch
+from torch.utils.data import Dataset
+
+from pytorch_lightning import LightningModule
 
 
 class RandomDataset(Dataset):

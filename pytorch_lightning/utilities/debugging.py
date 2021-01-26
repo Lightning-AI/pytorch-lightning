@@ -16,7 +16,7 @@ import os
 import time
 from collections import Counter
 from functools import wraps
-from typing import Callable, Any, Optional
+from typing import Any, Callable, Optional
 
 
 def enabled_only(fn: Callable):

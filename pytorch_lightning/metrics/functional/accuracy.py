@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import torch
+
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 
 
@@ -71,7 +72,7 @@ def accuracy(
     changed to subset accuracy (which requires all labels or sub-samples in the sample to
     be correctly predicted) by setting ``subset_accuracy=True``.
 
-    Accepts all input types listed in :ref:`metrics:Input types`.
+    Accepts all input types listed in :ref:`extensions/metrics:input types`.
 
     Args:
         preds: Predictions from model (probabilities, or labels)

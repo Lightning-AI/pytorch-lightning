@@ -16,7 +16,7 @@ import os
 import random
 import time
 import urllib.request
-from typing import Tuple, Optional, Sequence
+from typing import Optional, Sequence, Tuple
 
 import torch
 from torch import Tensor

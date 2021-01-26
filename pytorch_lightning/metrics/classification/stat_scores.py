@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Callable
+from typing import Any, Callable, Optional, Tuple
 
 import torch
-from pytorch_lightning.metrics import Metric
-from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_update, _stat_scores_compute
+
+from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_compute, _stat_scores_update
+from pytorch_lightning.metrics.metric import Metric
 
 
 class StatScores(Metric):
@@ -27,7 +28,7 @@ class StatScores(Metric):
     ``reduce`` parameter, and additionally by the ``mdmc_reduce`` parameter in the
     multi-dimensional multi-class case.
 
-    Accepts all inputs listed in :ref:`metrics:Input types`.
+    Accepts all inputs listed in :ref:`extensions/metrics:input types`.
 
     Args:
         threshold:
@@ -70,7 +71,7 @@ class StatScores(Metric):
             one of the following:
 
             - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional
-              multi-class (see :ref:`metrics:Input types` for the definition of input types).
+              multi-class (see :ref:`extensions/metrics:input types` for the definition of input types).
 
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then the outputs are concatenated together. In each
@@ -85,7 +86,7 @@ class StatScores(Metric):
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
-            :ref:`documentation section <metrics:Using the \\`\\`is_multiclass\\`\\` parameter>`
+            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
             for a more detailed explanation and examples.
 
         compute_on_step:
@@ -174,7 +175,7 @@ class StatScores(Metric):
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets. See :ref:`metrics:Input types` for more information
+        Update state with predictions and targets. See :ref:`extensions/metrics:input types` for more information
         on input types.
 
         Args:
@@ -205,6 +206,21 @@ class StatScores(Metric):
             self.fp.append(fp)
             self.tn.append(tn)
             self.fn.append(fn)
+
+    def _get_final_stats(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Performs concatenation on the stat scores if neccesary,
+        before passing them to a compute function.
+        """
+
+        if isinstance(self.tp, list):
+            tp = torch.cat(self.tp)
+            fp = torch.cat(self.fp)
+            tn = torch.cat(self.tn)
+            fn = torch.cat(self.fn)
+        else:
+            tp, fp, tn, fn = self.tp, self.fp, self.tn, self.fn
+
+        return tp, fp, tn, fn
 
     def compute(self) -> torch.Tensor:
         """
@@ -239,12 +255,5 @@ class StatScores(Metric):
               - If ``reduce='samples'``, the shape will be ``(N, X, 5)``
 
         """
-        if isinstance(self.tp, list):
-            tp = torch.cat(self.tp)
-            fp = torch.cat(self.fp)
-            tn = torch.cat(self.tn)
-            fn = torch.cat(self.fn)
-        else:
-            tp, fp, tn, fn = self.tp, self.fp, self.tn, self.fn
-
+        tp, fp, tn, fn = self._get_final_stats()
         return _stat_scores_compute(tp, fp, tn, fn)

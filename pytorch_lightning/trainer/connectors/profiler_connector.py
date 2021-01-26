@@ -14,13 +14,20 @@
 
 from typing import Union
 
-from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler, AdvancedProfiler
+from pytorch_lightning.profiler import (
+    AdvancedProfiler,
+    BaseProfiler,
+    PassThroughProfiler,
+    PyTorchProfiler,
+    SimpleProfiler,
+)
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 PROFILERS = {
     "simple": SimpleProfiler,
     "advanced": AdvancedProfiler,
+    "pytorch": PyTorchProfiler
 }
 
 
@@ -51,3 +58,7 @@ class ProfilerConnector:
                 raise ValueError("When passing string value for the `profiler` parameter of"
                                  " `Trainer`, it can only be 'simple' or 'advanced'")
         self.trainer.profiler = profiler or PassThroughProfiler()
+
+    def on_train_start(self, trainer):
+        local_rank = trainer.local_rank if trainer.world_size > 1 else None
+        self.trainer.profiler.on_train_start(local_rank)

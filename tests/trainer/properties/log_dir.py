@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from tests.base.boring_model import BoringModel
+
 from pytorch_lightning import Trainer
+from tests.base.boring_model import BoringModel
 
 
 def test_logdir(tmpdir):

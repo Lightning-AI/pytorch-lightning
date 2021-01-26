@@ -14,8 +14,9 @@
 from typing import Any, Callable, Optional
 
 import torch
+
+from pytorch_lightning.metrics.functional.hamming_distance import _hamming_distance_compute, _hamming_distance_update
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.hamming_distance import _hamming_distance_update, _hamming_distance_compute
 
 
 class HammingDistance(Metric):
@@ -34,7 +35,7 @@ class HammingDistance(Metric):
     treats each possible label separately - meaning that, for example, multi-class data is
     treated as if it were multi-label.
 
-    Accepts all input types listed in :ref:`metrics:Input types`.
+    Accepts all input types listed in :ref:`extensions/metrics:input types`.
 
     Args:
         threshold:
@@ -87,7 +88,7 @@ class HammingDistance(Metric):
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets. See :ref:`metrics:Input types` for more information
+        Update state with predictions and targets. See :ref:`extensions/metrics:input types` for more information
         on input types.
 
         Args:

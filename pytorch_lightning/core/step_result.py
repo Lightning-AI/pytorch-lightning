@@ -100,11 +100,14 @@ class Result(Dict):
 
     def _assert_tensor_metric(self, name: str, potential_metric: Union[bool, Tensor, None, Any]):
         if potential_metric is not None and not isinstance(potential_metric, bool):
-            assert isinstance(potential_metric, Tensor), f'{name} must be a torch.Tensor'
+            if not isinstance(potential_metric, Tensor):
+                raise TypeError(f'{name} must be a torch.Tensor')
 
     def _assert_grad_tensor_metric(self, name: str, x: Union[torch.Tensor, Any], additional_err: str = ''):
         if x is not None:
-            assert isinstance(x, Tensor), f'{name} must be a torch.Tensor'
+            if not isinstance(x, Tensor):
+                raise TypeError(f'{name} must be a torch.Tensor')
+
             m = f'{name} must have a computational graph.'
 
             if additional_err:
@@ -306,7 +309,6 @@ class Result(Dict):
         Gets the metrics to log at the end of epoch
         """
         result = {}
-
         meta = self['meta']
         for k, options in meta.items():
             if k == '_internal':
@@ -320,12 +322,16 @@ class Result(Dict):
             if options['logger'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
+                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # compute metric on epoch anyway so state does not accumulate
+                # reset metric anyway so state does not accumulate
+                # NOTE: we must compute before reseting just in case the computed value is needed
+                # later (i.e. if the step metric gets visited first, and then the epoch metric)
                 self[k].compute()
+                self[k].reset()
 
         return result
 
@@ -348,12 +354,16 @@ class Result(Dict):
             if options['prog_bar'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
+                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # compute metric on epoch anyway so state does not accumulate
+                # reset metric anyway so state does not accumulate
+                # NOTE: we must compute before reseting just in case the computed value is needed
+                # later (i.e. if the step metric gets visited first, and then the epoch metric)
                 self[k].compute()
+                self[k].reset()
 
         return result
 
@@ -373,6 +383,7 @@ class Result(Dict):
             if options['forked']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
+                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
@@ -687,232 +698,6 @@ def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
         return torch.cat(items)
 
     return items
-
-
-class EvalResult(Result):
-    def __init__(
-        self,
-        early_stop_on: Optional[Tensor] = None,
-        checkpoint_on: Optional[Tensor] = None,
-        hiddens: Optional[Tensor] = None,
-    ):
-        """
-        Used in val/train loop to auto-log to a logger or progress bar without needing to define
-        a _step_end or _epoch_end method
-
-        Example::
-
-            def validation_step(self, batch, batch_idx):
-                loss = ...
-                result = EvalResult()
-                result.log('val_loss', loss)
-                return result
-
-            def test_step(self, batch, batch_idx):
-                loss = ...
-                result = EvalResult()
-                result.log('val_loss', loss)
-                return result
-
-        Args:
-            early_stop_on: Metric to early stop on.
-                Should be a one element tensor if combined with default
-                :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`.
-                If this result is returned by
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
-                the specified value will be averaged across all steps.
-            checkpoint_on: Metric to checkpoint on.
-                Should be a one element tensor if combined with default checkpoint callback.
-                If this result is returned by
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
-                the specified value will be averaged across all steps.
-            hiddens:
-        """
-
-        super().__init__(None, early_stop_on, checkpoint_on, hiddens)
-
-    def log(
-        self,
-        name,
-        value,
-        prog_bar: bool = False,
-        logger: bool = True,
-        on_step: bool = False,
-        on_epoch: bool = True,
-        reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
-        enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-    ):
-        """
-        Log a key, value
-
-        Example::
-
-            result.log('val_loss', loss)
-
-            # defaults used
-            result.log(
-                name,
-                value,
-                on_step=False,
-                on_epoch=True,
-                logger=True,
-                prog_bar=False,
-                reduce_fx=torch.mean
-            )
-
-
-        Args:
-            name: key name
-            value: value name
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs the output of validation_step or test_step
-            on_epoch: if True, logs the output of the training loop aggregated
-            reduce_fx: Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
-            sync_dist_group: the ddp group
-        """
-        super().log(
-            name=name,
-            value=value,
-            prog_bar=prog_bar,
-            logger=logger,
-            on_step=on_step,
-            on_epoch=on_epoch,
-            reduce_fx=reduce_fx,
-            enable_graph=enable_graph,
-            sync_dist=sync_dist,
-            sync_dist_group=sync_dist_group,
-            sync_dist_op=sync_dist_op,
-            tbptt_pad_token=tbptt_pad_token,
-            tbptt_reduce_fx=tbptt_reduce_fx,
-        )
-
-    def log_dict(
-        self,
-        dictionary: dict,
-        prog_bar: bool = False,
-        logger: bool = True,
-        on_step: bool = False,
-        on_epoch: bool = True,
-        reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
-        enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-    ):
-        """
-        Log a dictonary of values at once
-
-        Example::
-
-            values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
-            result.log_dict(values)
-
-        Args:
-            dictionary: key value pairs (str, tensors)
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs the output of validation_step or test_step
-            on_epoch: if True, logs the output of the training loop aggregated
-            reduce_fx: Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
-            sync_dist_group: the ddp group
-        """
-        for k, v in dictionary.items():
-            self.log(
-                name=k,
-                value=v,
-                prog_bar=prog_bar,
-                logger=logger,
-                on_step=on_step,
-                on_epoch=on_epoch,
-                reduce_fx=reduce_fx,
-                enable_graph=enable_graph,
-                sync_dist=sync_dist,
-                sync_dist_group=sync_dist_group,
-                sync_dist_op=sync_dist_op,
-                tbptt_pad_token=tbptt_pad_token,
-                tbptt_reduce_fx=tbptt_reduce_fx,
-            )
-
-    def get_callback_metrics(self) -> dict:
-        result = {}
-        if self.early_stop_on:
-            result['early_stop_on'] = self.early_stop_on
-        if self.checkpoint_on:
-            result['checkpoint_on'] = self.checkpoint_on
-        return result
-
-    def write(self, name: str, values: Union[Tensor, list], filename: str = 'predictions.pt'):
-        """Add feature name and value pair to collection of predictions that will be written to disk on
-        `validation_end` or `test_end`. If running on multiple GPUs, you will get separate `n_gpu`
-        prediction files with the rank prepended onto filename.
-
-        Example::
-
-            result = pl.EvalResult()
-            result.write('ids', [0, 1, 2])
-            result.write('preds', ['cat', 'dog', 'dog'])
-
-        Args:
-            name: Feature name that will turn into column header of predictions file
-            values: Flat tensor or list of row values for given feature column 'name'.
-            filename: Filepath where your predictions will be saved. Defaults to 'predictions.pt'.
-        """
-        # Type check the incoming arguments
-        if not isinstance(name, str):
-            raise ValueError(f"Expected str for 'name' but got {type(name)}")
-        if not isinstance(filename, str):
-            raise ValueError(f"Expected str for 'filename' but got {type(name)}")
-
-        if isinstance(values, Tensor):
-            values = values.detach()
-
-        preds = getattr(self, 'predictions', None)
-        if preds is None:
-            self.predictions = {filename: {name: values}}
-        elif filename not in preds:
-            preds[filename] = {name: values}
-        elif name not in preds[filename]:
-            preds[filename][name] = values
-        elif isinstance(values, Tensor):
-            preds[filename][name] = torch.cat((preds[filename][name], values))
-        elif isinstance(values, list):
-            preds[filename][name].extend(values)
-
-    def write_dict(self, predictions_dict, filename='predictions.pt'):
-        """Calls EvalResult.write() for each key-value pair in predictions_dict.
-
-        It is recommended that you use this function call instead of .write if you need to
-        store more than one column of predictions in your output file.
-
-        Example::
-
-            predictions_to_write = {'preds': ['cat', 'dog'], 'ids': tensor([0, 1])}
-            result.write_dict(predictions_to_write)
-
-        Args:
-            predictions_dict ([type]): Dict of predictions to store and then write to filename at eval end.
-            filename (str, optional): File where your predictions will be stored. Defaults to './predictions.pt'.
-        """
-        for k, v in predictions_dict.items():
-            self.write(k, v, filename)
 
 
 def weighted_mean(result, weights):

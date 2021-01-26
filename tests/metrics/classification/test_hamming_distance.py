@@ -3,8 +3,8 @@ import torch
 from sklearn.metrics import hamming_loss as sk_hamming_loss
 
 from pytorch_lightning.metrics import HammingDistance
-from pytorch_lightning.metrics.functional import hamming_distance
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
+from pytorch_lightning.metrics.functional import hamming_distance
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
@@ -13,11 +13,11 @@ from tests.metrics.classification.inputs import (
     _multidim_multiclass_inputs,
     _multidim_multiclass_prob_inputs,
     _multilabel_inputs,
-    _multilabel_prob_inputs,
-    _multilabel_multidim_prob_inputs,
     _multilabel_multidim_inputs,
+    _multilabel_multidim_prob_inputs,
+    _multilabel_prob_inputs,
 )
-from tests.metrics.utils import THRESHOLD, MetricTester
+from tests.metrics.utils import MetricTester, THRESHOLD
 
 torch.manual_seed(42)
 

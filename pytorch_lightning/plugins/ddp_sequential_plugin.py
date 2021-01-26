@@ -15,13 +15,12 @@ import os
 from typing import Any, List, Optional
 
 import torch
-import torch.distributed as torch_distrib
 from torch import nn
+import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning import LightningModule
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -137,7 +136,7 @@ class DDPSequentialPlugin(RPCPlugin):
                 self._infer_model_balance(trainer)
             self._assert_valid_model_balance(trainer)
 
-    def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
+    def on_before_manual_backward(self, model: DistributedDataParallel, output: Any):
         pass
 
     def _infer_model_balance(self, trainer):
@@ -155,6 +154,7 @@ class DDPSequentialPlugin(RPCPlugin):
     def _sync_balance_to_all_parallel_groups(self, main_rank=0):
         """
         Ensures that we sync the balance to all main processes, so that the balance is the same per replica.
+
         Args:
             main_rank: The rank with the balance we'd like to replicate.
         """
@@ -206,7 +206,9 @@ class DDPSequentialPlugin(RPCPlugin):
     def _skip_init_connections(self, trainer):
         """
         Skip initialization if torch is already initialized and we're in testing.
-        Returns: Whether to skip initialization
+
+        Returns:
+            Whether to skip initialization
 
         """
         return torch_distrib.is_initialized() and trainer.testing
@@ -225,7 +227,8 @@ class DDPSequentialPlugin(RPCPlugin):
         Args:
             trainer: The trainer object.
 
-        Returns: The appropriate balance for the model
+        Returns:
+            The appropriate balance for the model
         """
         if isinstance(self.balance, list):
             if len(self.balance) != (trainer.world_size / trainer.num_nodes):
@@ -267,10 +270,10 @@ class DDPSequentialPlugin(RPCPlugin):
     def configure_ddp(
             self,
             model: LightningModule, device_ids: List[int]) -> DistributedDataParallel:
-        ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
+        model = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
         # Plugin handle backwards across processes. Currently not supported for DDP + pipe parallel
-        ddp_plugin.PREPARE_FOR_BACKWARDS = False
-        return ddp_plugin
+        model.require_backward_grad_sync = False
+        return model
 
     @rank_zero_only
     def rpc_save_model(
@@ -380,7 +383,6 @@ def register_optimizers(ctx, model):
     model.trainer.optimizers = optimizers
     model.trainer.lr_schedulers = lr_schedulers
     model.trainer.optimizer_frequencies = optimizer_frequencies
-    model.trainer.convert_to_lightning_optimizers()
 
 
 def run_optimizer(ctx, model):

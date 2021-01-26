@@ -31,6 +31,7 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
@@ -190,8 +191,8 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
         callbacks=[model_checkpoint],
         max_epochs=num_epochs,
     )
-    result = trainer.fit(model)
-    assert 1 == result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_model_checkpoint_format_checkpoint_name(tmpdir):
@@ -227,7 +228,7 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(3, 4, {})
     assert ckpt_name == str(Path('.').resolve() / 'epoch=3-step=4.ckpt')
 
-    # with ver
+    # with version
     ckpt_name = ModelCheckpoint(
         monitor='early_stop_on', dirpath=tmpdir, filename='name', prefix='test'
     ).format_checkpoint_name(3, 2, {}, ver=3)
@@ -480,67 +481,6 @@ def test_default_checkpoint_behavior(tmpdir):
     assert ckpts[0] == 'epoch=2-step=14.ckpt'
 
 
-def test_ckpt_metric_names_results(tmpdir):
-    class ResultLog(BoringModel):
-        def training_step(self, batch, batch_idx):
-            y_hat = self(batch)
-
-            # calculate loss
-            loss_val = self.loss(batch, y_hat)
-            log_val = loss_val
-
-            # alternate between tensors and scalars for "log" and "progress_bar"
-            if batch_idx % 2 == 0:
-                log_val = log_val.item()
-
-            self.log('some_val', log_val * log_val, prog_bar=True, logger=False)
-            self.log('train_some_val', log_val * log_val)
-            return loss_val
-
-        def validation_step(self, batch, batch_idx):
-            y_hat = self(batch)
-
-            loss_val = self.loss(batch, y_hat)
-
-            # acc
-            labels_hat = torch.argmax(y_hat, dim=1)
-            val_acc = torch.sum(batch == labels_hat).item() / (len(batch) * 1.0)
-            val_acc = torch.tensor(val_acc).type_as(batch)
-
-            result = pl.core.step_result.EvalResult(checkpoint_on=loss_val, early_stop_on=loss_val)
-            result.log_dict({
-                'val_loss': loss_val,
-                'val_acc': val_acc,
-            })
-            return result
-
-    model = ResultLog()
-    model.training_step_end = None
-    model.training_epoch_end = None
-    model.validation_step_end = None
-    model.validation_epoch_end = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gradient_clip_val=1.0,
-        overfit_batches=0.20,
-        progress_bar_refresh_rate=0,
-        limit_train_batches=0.01,
-        limit_val_batches=0.01,
-        callbacks=[ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, filename="{val_loss:.2f}")],
-    )
-
-    trainer.fit(model)
-
-    # make sure the checkpoint we saved has the metric in the name
-    ckpts = os.listdir(tmpdir)
-    ckpts = [x for x in ckpts if "val_loss" in x]
-    assert len(ckpts) == 1
-    val = re.sub("[^0-9.]", "", ckpts[0])
-    assert len(val) > 3
-
-
 @pytest.mark.parametrize('max_epochs', [1, 2])
 @pytest.mark.parametrize('should_validate', [True, False])
 @pytest.mark.parametrize('save_last', [True, False])
@@ -621,8 +561,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
+def test_checkpoint_repeated_strategy(tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callbacks list
     """
@@ -642,7 +581,6 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         callbacks=[checkpoint_callback],
-        enable_pl_optimizer=enable_pl_optimizer,
         weights_summary=None,
         progress_bar_refresh_rate=0,
     )
@@ -659,7 +597,6 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
             limit_val_batches=2,
             limit_test_batches=2,
             resume_from_checkpoint=checkpoint_callback.best_model_path,
-            enable_pl_optimizer=enable_pl_optimizer,
             weights_summary=None,
             progress_bar_refresh_rate=0,
         )
@@ -670,8 +607,7 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
+def test_checkpoint_repeated_strategy_extended(tmpdir):
     """
     This test validates checkpoint can be called several times without
     increasing internally its global step if nothing run.
@@ -716,7 +652,6 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=3,
         limit_test_batches=4,
-        enable_pl_optimizer=enable_pl_optimizer,
         callbacks=[checkpoint_cb],
     )
     trainer = pl.Trainer(**trainer_config)
@@ -946,3 +881,8 @@ def test_model_checkpoint_file_already_exists(tmpdir, max_epochs, save_top_k, ex
 
     epochs_in_ckpt_files = [pl_load(os.path.join(tmpdir, f))['epoch'] - 1 for f in ckpt_files]
     assert sorted(epochs_in_ckpt_files) == list(range(max_epochs - save_top_k, max_epochs))
+
+
+def test_model_checkpoint_mode_options():
+    with pytest.raises(MisconfigurationException, match="`mode` can be auto, .* got unknown_option"):
+        ModelCheckpoint(mode="unknown_option")

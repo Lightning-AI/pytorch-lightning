@@ -104,10 +104,6 @@ class Accelerator(object):
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
-
-        if not automatic_optimization and self.ddp_plugin is not None:
-            # Manually prepare for reduce as user calling backwards manually
-            self.ddp_plugin.on_after_manual_backward(self.trainer.model)
         return closure_loss
 
     def clip_gradients(self, optimizer, clip_val=None):
@@ -193,6 +189,7 @@ class Accelerator(object):
         """
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
         plugins.
+
         Return:
             Optimizer state dict
         """
@@ -212,7 +209,8 @@ class Accelerator(object):
         Args:
             model: Accelerator model.
 
-        Returns: Reference :class:`LightningModule`.
+        Returns:
+            Reference :class:`LightningModule`.
 
         """
         return model
@@ -253,7 +251,9 @@ class Accelerator(object):
         """
         Blocks ddp sync gradients behaviour on backwards pass.
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
+
+        Returns:
+            context manager with sync behaviour off
         """
         cm = self.ddp_plugin.block_backward_sync(self.trainer.model) if self.ddp_plugin else None
         yield cm
