@@ -48,8 +48,6 @@ class CPUAccelerator(Accelerator):
         # allow for lr schedulers as well
         self.setup_optimizers(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         self.trainer.model = model
 
     def train(self):
