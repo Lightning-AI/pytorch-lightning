@@ -60,7 +60,7 @@ def precision(
 
     The reduction method (how the precision scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
-    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
+    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`extensions/metrics:input types`.
 
     Args:
         preds: Predictions from model (probabilities or labels)
@@ -94,10 +94,11 @@ def precision(
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then averaged over samples.
               The computation for each sample is done by treating the flattened extra axes ``...``
-              (see :ref:`metrics:Input types`) as the ``N`` dimension within the sample,
+              (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
               and computing the metric for the sample based on that.
 
-            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`metrics:Input types`)
+            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs
+              (see :ref:`extensions/metrics:input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
@@ -122,7 +123,7 @@ def precision(
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
-            :ref:`documentation section <metrics:Using the is_multiclass parameter>`
+            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
             for a more detailed explanation and examples.
 
         class_reduction:
@@ -224,7 +225,7 @@ def recall(
 
     The reduction method (how the recall scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
-    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
+    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`extensions/metrics:input types`.
 
     Args:
         preds: Predictions from model (probabilities, or labels)
@@ -255,10 +256,11 @@ def recall(
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then averaged over samples.
               The computation for each sample is done by treating the flattened extra axes ``...``
-              (see :ref:`metrics:Input types`) as the ``N`` dimension within the sample,
+              (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
               and computing the metric for the sample based on that.
 
-            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`metrics:Input types`)
+            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs
+              (see :ref:`extensions/metrics:input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
@@ -283,7 +285,7 @@ def recall(
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
-            :ref:`documentation section <metrics:Using the is_multiclass parameter>`
+            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
             for a more detailed explanation and examples.
 
         class_reduction:
@@ -371,7 +373,7 @@ def precision_recall(
 
     The reduction method (how the recall scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
-    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
+    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`extensions/metrics:input types`.
 
     Args:
         preds: Predictions from model (probabilities, or labels)
@@ -402,10 +404,11 @@ def precision_recall(
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then averaged over samples.
               The computation for each sample is done by treating the flattened extra axes ``...``
-              (see :ref:`metrics:Input types`) as the ``N`` dimension within the sample,
+              (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
               and computing the metric for the sample based on that.
 
-            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`metrics:Input types`)
+            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs
+              (see :ref:`extensions/metrics:input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
@@ -430,7 +433,7 @@ def precision_recall(
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
             than what they appear to be. See the parameter's
-            :ref:`documentation section <metrics:Using the is_multiclass parameter>`
+            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
             for a more detailed explanation and examples.
 
         class_reduction:
