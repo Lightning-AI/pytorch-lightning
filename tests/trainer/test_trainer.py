@@ -1489,6 +1489,8 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
     assert results[0][0].shape == torch.Size([1, 2])
 
 
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
 @pytest.mark.parametrize('datamodule', [False, True])
 def test_trainer_predict_cpu(tmpdir, datamodule):
     predict(tmpdir, None, None, 1, datamodule=datamodule)
