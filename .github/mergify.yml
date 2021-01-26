@@ -38,9 +38,10 @@ pull_request_rules:
 
   - name: update PR
     conditions:
-      - conflict
+      - -conflict
       - -draft # filter-out GH draft PRs
-      - label="0:] Ready-To-Go"
+      - -title~=(?i)wip # skip all PR that title contains “WIP” (ignoring case)
+      - "#approved-reviews-by>=3" # number of review approvals
     actions:
       update: {}
 
@@ -50,7 +51,8 @@ pull_request_rules:
       - -draft # filter-out GH draft PRs
       - label="0:] Ready-To-Go"
       - "#approved-reviews-by<3" # number of review approvals
+      - "#review-requested<3" # number of requested reviews
     actions:
       request_reviews:
         teams:
-          - core-contributors
+          - "@PyTorchLightning/core-contributors"

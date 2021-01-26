@@ -59,7 +59,7 @@ class DebuggingConnector:
             self.trainer.max_steps = fast_dev_run
             self.trainer.num_sanity_val_steps = 0
             self.trainer.max_epochs = 1
-            self.trainer.val_check_interval = 1.0
+            val_check_interval = 1.0
             self.trainer.check_val_every_n_epoch = 1
             self.trainer.logger = DummyLogger()
 

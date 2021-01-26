@@ -16,7 +16,6 @@ from typing import Optional, Union
 import torch
 from torch import optim
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
@@ -143,30 +142,6 @@ class DataParallelAccelerator(Accelerator):
         elif isinstance(output, torch.Tensor):
             output = output.mean()
         return output
-
-    def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
-        """
-        Reinitialize optimizer.step properties added by schedulers
-        """
-        for scheduler in schedulers:
-            scheduler = scheduler['scheduler']
-
-            for optimizer in optimizers:
-                # check that we dont mix users optimizers and schedulers
-                if scheduler.optimizer == optimizer:
-                    # Find the mro belonging to the base lr scheduler class
-                    for i, mro in enumerate(scheduler.__class__.__mro__):
-                        is_regular_scheduler = optim.lr_scheduler._LRScheduler
-                        is_lr_reduce_on_plateau = optim.lr_scheduler.ReduceLROnPlateau
-                        if is_regular_scheduler or is_lr_reduce_on_plateau:
-                            idx = i
-                            state = scheduler.state_dict()
-                        else:
-                            state = None
-
-                scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
-                if state is not None:
-                    scheduler.load_state_dict(state)
 
     def get_reference_model(self, model) -> LightningModule:
         if isinstance(model, LightningDataParallel):

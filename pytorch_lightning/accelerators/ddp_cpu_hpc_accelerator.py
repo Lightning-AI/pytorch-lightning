@@ -13,7 +13,6 @@
 # limitations under the License
 from typing import Optional
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.ddp_hpc_accelerator import DDPHPCAccelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
@@ -42,7 +41,7 @@ class DDPCPUHPCAccelerator(DDPHPCAccelerator):
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.nickname = 'ddp_cpu'
 
-    def model_to_device(self, model, process_idx):
+    def model_to_device(self, model):
         model.cpu()
 
     def get_device_ids(self):

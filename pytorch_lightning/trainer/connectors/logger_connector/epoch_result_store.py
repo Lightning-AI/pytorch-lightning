@@ -203,13 +203,7 @@ class HookResultStore:
             epoch_metrics = self._internals[dl_idx]
 
             if self._internal_type == ResultStoreType.INSIDE_BATCH_TRAIN_LOOP:
-
-                num_opt_idx = len(self._internals[dl_idx]) - 1
-
-                # Make sure we didn't create key
-                assert num_opt_idx >= 0
-
-                for opt_idx in range(num_opt_idx + 1):
+                for opt_idx in list(epoch_metrics):
                     # TODO: Figure out to reduce memory
                     # TODO: How to start training in middle of epoch
                     opt_outputs = epoch_metrics[opt_idx]

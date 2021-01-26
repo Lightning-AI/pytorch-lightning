@@ -17,6 +17,7 @@ TensorBoard Logger
 ------------------
 """
 
+import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
@@ -25,12 +26,13 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+
+log = logging.getLogger(__name__)
 
 if OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
@@ -144,8 +146,21 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
-                        metrics: Optional[Dict[str, Any]] = None) -> None:
+    def log_hyperparams(
+        self,
+        params: Union[Dict[str, Any], Namespace],
+        metrics: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Record hyperparameters. TensorBoard logs with and without saved hyperparameters
+        are incompatible, the hyperparameters are then not displayed in the TensorBoard.
+        Please delete or move the previously saved logs to display the new ones with hyperparameters.
+
+        Args:
+            params: a dictionary-like container with the hyperparameters
+            metrics: Dictionary with metric names as keys and measured quantities as values
+        """
+
         params = self._convert_params(params)
 
         # store params to output

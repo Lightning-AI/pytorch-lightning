@@ -17,15 +17,16 @@ Neptune Logger
 --------------
 """
 from argparse import Namespace
+import logging
 from typing import Any, Dict, Iterable, Optional, Union
 
 import torch
 from torch import is_tensor
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, _module_available
 
+log = logging.getLogger(__name__)
 _NEPTUNE_AVAILABLE = _module_available("neptune")
 
 if _NEPTUNE_AVAILABLE:
@@ -199,7 +200,7 @@ class NeptuneLogger(LightningLoggerBase):
         self._prefix = prefix
         self._kwargs = kwargs
         self.experiment_id = experiment_id
-        self._experiment = self._create_or_get_experiment()
+        self._experiment = None
 
         log.info(f'NeptuneLogger will work in {"offline" if self.offline_mode else "online"} mode')
 
@@ -251,13 +252,15 @@ class NeptuneLogger(LightningLoggerBase):
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
-            step: Step number at which the metrics should be recorded, must be strictly increasing
+            step: Step number at which the metrics should be recorded, currently ignored
         """
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         metrics = self._add_prefix(metrics)
         for key, val in metrics.items():
-            self.log_metric(key, val, step=step)
+            # `step` is ignored because Neptune expects strictly increasing step values which
+            # Lighting does not always guarantee.
+            self.log_metric(key, val)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
@@ -317,7 +320,7 @@ class NeptuneLogger(LightningLoggerBase):
             text: The value of the log (data-point).
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
-        self.log_metric(log_name, text, step=step)
+        self.experiment.log_text(log_name, text, step=step)
 
     @rank_zero_only
     def log_image(self,
