@@ -136,8 +136,8 @@ class HorovodAccelerator(Accelerator):
     def test_step(self, args):
         return self._step(self.trainer.model.test_step, args)
 
-    def forward(self, args):
-        return self._step(self.trainer.model.forward, args)
+    def predict(self, args):
+        return self._step(self.trainer.model.predict, args)
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         super().backward(closure_loss, optimizer, opt_idx, *args, **kwargs)

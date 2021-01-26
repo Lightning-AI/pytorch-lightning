@@ -134,7 +134,7 @@ class DataParallelAccelerator(Accelerator):
     def test_step(self, args):
         return self._step(args)
 
-    def forward(self, args):
+    def predict(self, args):
         return self._step(args)
 
     def training_step_end(self, output):

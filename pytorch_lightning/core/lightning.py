@@ -977,6 +977,12 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
+    def predict(self, x: Any):
+        """
+        Use this function with trainer.predict(...). Override if you need to add any processing logic.
+        """
+        return self(x)
+
     def configure_optimizers(
             self,
     ):

@@ -164,7 +164,7 @@ class DDPAccelerator(Accelerator):
     def test_step(self, args):
         return self._step(args)
 
-    def forward(self, args):
+    def predict(self, args):
         return self._step(args)
 
     def _step(self, args):

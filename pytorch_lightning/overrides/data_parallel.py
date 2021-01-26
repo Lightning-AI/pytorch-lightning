@@ -212,7 +212,7 @@ class LightningDistributedModule(torch.nn.Module):
             warn_if_output_is_none(output, "validation_step")
 
         else:
-            output = self.module(*inputs, **kwargs)
+            output = self.module.predict(*inputs, **kwargs)
 
         return output
 
@@ -307,7 +307,7 @@ def parallel_apply(
                     fx_called = 'validation_step'
 
                 else:
-                    output = module(*input, **kwargs)
+                    output = module.predict(*input, **kwargs)
                     fx_called = 'forward'
 
                 if output is None:
