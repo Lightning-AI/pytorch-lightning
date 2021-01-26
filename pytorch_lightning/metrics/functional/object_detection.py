@@ -56,8 +56,12 @@ def mean_average_precision(
             - ``'COCO'``: calculate the 101-point sampling of the interpolated precision recall curve
 
     Returns:
-        mean of the average precision for each class in object detection task.
+        mean of the average precisions of all classes in object detection task.
 
+    References:
+        - host.robots.ox.ac.uk/pascal/VOC/
+        - https://ccc.inaoep.mx/~villasen/bib/AN%20OVERVIEW%20OF%20EVALUATION%20METHODS%20IN%20TREC%20AD%20HOC%20IR%20AND%20TREC%20QA.pdf#page=15
+        - https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocotools/cocoeval.py
     """
     if box_iou is None:
         raise ImportError('`mean_average_precision` metric requires `torchvision`, which is not installed. '
@@ -65,20 +69,25 @@ def mean_average_precision(
     classes = torch.cat([pred_labels, target_labels]).unique()
     average_precisions = torch.zeros(len(classes))
     for class_idx, c in enumerate(classes):
+        # Descending indices w.r.t. class probability for class c
         desc_indices = torch.argsort(pred_probs, descending=True)[pred_labels == c]
+        # No predictions for this class so average precision is 0
+        if len(desc_indices) == 0:
+            continue
         targets_per_images = Counter([idx.item() for idx in target_image_indices[target_labels == c]])
         targets_assigned = {
             image_idx: torch.zeros(count, dtype=torch.bool) for image_idx, count in targets_per_images.items()
         }
-        if len(desc_indices) == 0:
-            continue
         tps = torch.zeros(len(desc_indices))
         fps = torch.zeros(len(desc_indices))
         for i, pred_idx in enumerate(desc_indices):
             image_idx = pred_image_indices[pred_idx].item()
+            # Get the ground truth bboxes of class c and the same image index as the prediction
             gt_bboxes = target_bboxes[(target_image_indices == image_idx) & (target_labels == c)]
             ious = box_iou(torch.unsqueeze(pred_bboxes[pred_idx], dim=0), gt_bboxes)
             best_iou, best_target_idx = ious.squeeze(0).max(0) if len(gt_bboxes) > 0 else (0, -1)
+            # Prediction is a true positive is the IoU score is greater than the threshold and the
+            # corresponding ground truth has only one prediction assigned to it
             if best_iou > iou_threshold and not targets_assigned[image_idx][best_target_idx]:
                 targets_assigned[image_idx][best_target_idx] = True
                 tps[i] = 1
