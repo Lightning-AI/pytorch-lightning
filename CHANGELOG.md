@@ -26,10 +26,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `toggle_optimizer` to reset `requieres_grad` state  ([#5574](https://github.com/PyTorchLightning/pytorch-lightning/pull/5574))
+
+
 - Fixed an error when logging a progress bar metric with a reserved name ([#5620](https://github.com/PyTorchLightning/pytorch-lightning/pull/5620))
 
 
 - Fixed filtering of pytorch warning "Was asked to gather along dimension 0, but all input tensors were scalars ..." when using DP ([#5622](https://github.com/PyTorchLightning/pytorch-lightning/pull/5622))
+
+
+- Fixed `Metric`'s `state_dict` not included when child modules ([#5614](https://github.com/PyTorchLightning/pytorch-lightning/pull/5614))
 
 
 ## [1.1.5] - 2021-01-19
@@ -62,7 +68,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Resolve interpolation bug with Hydra ([#5406](https://github.com/PyTorchLightning/pytorch-lightning/pull/5406))
 - Check environ before selecting a seed to prevent warning message ([#4743](https://github.com/PyTorchLightning/pytorch-lightning/pull/4743))
 - Fixed signature mismatch in `model_to_device` of `DDPCPUHPCAccelerator` ([#5505](https://github.com/PyTorchLightning/pytorch-lightning/pull/5505))
-
 
 ## [1.1.3] - 2021-01-05
 
