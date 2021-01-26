@@ -166,10 +166,10 @@ class EvaluationLoop(object):
 
         if self.trainer.is_predicting:
             model_ref._current_fx_name = "predict"
-            forward_output = self.trainer.accelerator_backend.predict([args[0]])
-            self._predictions[dataloader_idx].append(forward_output)
+            predictions = self.trainer.accelerator_backend.predict([args[0]])
+            self._predictions[dataloader_idx].append(predictions)
             self.trainer._progress_bar_callback.on_test_batch_end(
-                self.trainer, model_ref, forward_output, batch, batch_idx, dataloader_idx)
+                self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx)
             return
 
         elif self.testing:
