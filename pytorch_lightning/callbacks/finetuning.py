@@ -82,6 +82,7 @@ class BaseFinetuningCallback(Callback):
         Args:
             module: A given module
             train_bn: If True, leave the BatchNorm layers in training mode
+
         Returns:
             Generator
         """
