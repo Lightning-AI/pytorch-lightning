@@ -10,16 +10,16 @@ These are amazing ecosystems to help with Automatic Speech Recognition (ASR), Na
 NeMo
 ****
 
-`NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is a toolkit for building new State-of-the-Art 
-Conversational AI models. NeMo has separate collections for Automatic Speech Recognition (ASR), 
-Natural Language Processing (NLP), and Text-to-Speech (TTS) models. Each collection consists of 
-prebuilt modules that include everything needed to train on your data. 
-Every module can easily be customized, extended, and composed to create new Conversational AI 
+`NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is a toolkit for building new State-of-the-Art
+Conversational AI models. NeMo has separate collections for Automatic Speech Recognition (ASR),
+Natural Language Processing (NLP), and Text-to-Speech (TTS) models. Each collection consists of
+prebuilt modules that include everything needed to train on your data.
+Every module can easily be customized, extended, and composed to create new Conversational AI
 model architectures.
 
-Conversational AI architectures are typically very large and require a lot of data  and compute 
-for training. NeMo uses PyTorch Lightning for easy and performant multi-GPU/multi-node 
-mixed-precision training. 
+Conversational AI architectures are typically very large and require a lot of data  and compute
+for training. NeMo uses PyTorch Lightning for easy and performant multi-GPU/multi-node
+mixed-precision training.
 
 .. note:: Every NeMo model is a LightningModule that comes equipped with all supporting infrastructure for training and reproducibility.
 
@@ -31,7 +31,7 @@ NeMo Models
 NeMo Models contain everything needed to train and reproduce state of the art Conversational AI
 research and applications, including:
 
-- neural network architectures 
+- neural network architectures
 - datasets/data loaders
 - data preprocessing/postprocessing
 - data augmentors
@@ -83,7 +83,7 @@ To install from a local clone of NeMo:
 
     ./reinstall.sh # from cloned NeMo's git root
 
-For Docker users, the NeMo container is available on 
+For Docker users, the NeMo container is available on
 `NGC <https://ngc.nvidia.com/catalog/containers/nvidia:nemo>`_.
 
 .. code-block:: bash
@@ -97,7 +97,7 @@ For Docker users, the NeMo container is available on
 Experiment Manager
 ------------------
 
-NeMo's Experiment Manager leverages PyTorch Lightning for model checkpointing, 
+NeMo's Experiment Manager leverages PyTorch Lightning for model checkpointing,
 TensorBoard Logging, and Weights and Biases logging. The Experiment Manager is included by default
 in all NeMo example scripts.
 
@@ -126,11 +126,11 @@ Optionally launch Tensorboard to view training results in ./nemo_experiments (by
 Automatic Speech Recognition (ASR)
 ==================================
 
-Everything needed to train Convolutional ASR models is included with NeMo. 
-NeMo supports multiple Speech Recognition architectures, including Jasper and QuartzNet. 
-`NeMo Speech Models <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_ 
-can be trained from scratch on custom datasets or 
-fine-tuned using pre-trained checkpoints trained on thousands of hours of audio 
+Everything needed to train Convolutional ASR models is included with NeMo.
+NeMo supports multiple Speech Recognition architectures, including Jasper and QuartzNet.
+`NeMo Speech Models <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_
+can be trained from scratch on custom datasets or
+fine-tuned using pre-trained checkpoints trained on thousands of hours of audio
 that can be restored for immediate use.
 
 Some typical ASR tasks are included with NeMo:
@@ -141,7 +141,7 @@ Some typical ASR tasks are included with NeMo:
 - `Voice Activity Detection <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/asr/06_Voice_Activiy_Detection.ipynb>`_
 - `Speaker Recognition <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/speaker_recognition/speaker_reco.py>`_
 
-See this `asr notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/asr/01_ASR_with_NeMo.ipynb>`_ 
+See this `asr notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/asr/01_ASR_with_NeMo.ipynb>`_
 for a full tutorial on doing ASR with NeMo, PyTorch Lightning, and Hydra.
 
 Specify ASR Model Configurations with YAML File
@@ -149,7 +149,7 @@ Specify ASR Model Configurations with YAML File
 
 NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
 
-See this `asr config <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/asr/conf/config.yaml>`_ 
+See this `asr config <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/asr/conf/config.yaml>`_
 for the entire speech to text .yaml file.
 
 .. code-block:: yaml
@@ -198,7 +198,7 @@ Developing ASR Model From Scratch
         trainer.fit(asr_model)
 
 
-Hydra makes every aspect of the NeMo model, 
+Hydra makes every aspect of the NeMo model,
 including the PyTorch Lightning Trainer, customizable from the command line.
 
 .. code-block:: bash
@@ -259,7 +259,7 @@ with PyTorch Lightning since every NeMo model is a Lightning Module.
             log_probs = self.decoder(encoder_output=encoded)
             greedy_predictions = log_probs.argmax(dim=-1, keepdim=False)
             return log_probs, encoded_len, greedy_predictions
-    
+
         # PTL-specific methods
         def training_step(self, batch, batch_nb):
             audio_signal, audio_signal_len, transcript, transcript_len = batch
@@ -281,7 +281,7 @@ Neural Types in NeMo ASR
 ------------------------
 
 NeMo Models and Neural Modules come with Neural Type checking.
-Neural type checking is extremely useful when combining many different neural 
+Neural type checking is extremely useful when combining many different neural
 network architectures for a production-grade application.
 
 .. code-block:: python
@@ -311,12 +311,12 @@ Natural Language Processing (NLP)
 =================================
 
 Everything needed to finetune BERT-like language models for NLP tasks is included with NeMo.
-`NeMo NLP Models <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`_  
-include `HuggingFace Transformers <https://github.com/huggingface/transformers>`_ 
-and `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_ BERT and Bio-Megatron models. 
+`NeMo NLP Models <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`_
+include `HuggingFace Transformers <https://github.com/huggingface/transformers>`_
+and `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_ BERT and Bio-Megatron models.
 NeMo can also be used for pretraining BERT-based language models from HuggingFace.
 
-Any of the HuggingFace encoders or Megatron-LM encoders can easily be used for the NLP tasks 
+Any of the HuggingFace encoders or Megatron-LM encoders can easily be used for the NLP tasks
 that are included with NeMo:
 
 - `Glue Benchmark (All tasks) <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/GLUE_Benchmark.ipynb>`_
@@ -339,7 +339,7 @@ for a full tutorial on doing NER with NeMo, PyTorch Lightning, and Hydra.
 Specify NER Model Configurations with YAML File
 -----------------------------------------------
 
-.. note:: NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra. 
+.. note:: NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
 
 See this `token classification config <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/nlp/token_classification/conf/token_classification_config.yaml>`_
 for the entire NER (token classification) .yaml file.
@@ -368,7 +368,7 @@ for the entire NER (token classification) .yaml file.
         pretrained_model_name: bert-base-uncased
         lm_checkpoint: null
         ...
-    # the classifier for the downstream task 
+    # the classifier for the downstream task
       head:
         num_fc_layers: 2
         fc_dropout: 0.5
@@ -435,12 +435,12 @@ Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trai
 Tokenizers
 ----------
 
-Tokenization is the process of converting natural language text into integer arrays 
+Tokenization is the process of converting natural language text into integer arrays
 which can be used for machine learning.
-For NLP tasks, tokenization is an essential part of data preprocessing. 
-NeMo supports all BERT-like model tokenizers from 
+For NLP tasks, tokenization is an essential part of data preprocessing.
+NeMo supports all BERT-like model tokenizers from
 `HuggingFace's AutoTokenizer <https://huggingface.co/transformers/model_doc/auto.html#autotokenizer>`_
-and also supports `Google's SentencePieceTokenizer <https://github.com/google/sentencepiece>`_ 
+and also supports `Google's SentencePieceTokenizer <https://github.com/google/sentencepiece>`_
 which can be trained on custom data.
 
 To see the list of supported tokenizers:
@@ -451,18 +451,18 @@ To see the list of supported tokenizers:
 
     nemo_nlp.modules.get_tokenizer_list()
 
-See this `tokenizer notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/02_NLP_Tokenizers.ipynb>`_ 
+See this `tokenizer notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/02_NLP_Tokenizers.ipynb>`_
 for a full tutorial on using tokenizers in NeMo.
 
 Language Models
 ---------------
 
-Language models are used to extract information from (tokenized) text. 
+Language models are used to extract information from (tokenized) text.
 Much of the state-of-the-art in natural language processing is achieved
-by fine-tuning pretrained language models on the downstream task. 
+by fine-tuning pretrained language models on the downstream task.
 
-With NeMo, you can either `pretrain <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/nlp/language_modeling/bert_pretraining.py>`_ 
-a BERT model on your data or use a pretrained language model from `HuggingFace Transformers <https://github.com/huggingface/transformers>`_  
+With NeMo, you can either `pretrain <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/nlp/language_modeling/bert_pretraining.py>`_
+a BERT model on your data or use a pretrained language model from `HuggingFace Transformers <https://github.com/huggingface/transformers>`_
 or `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_.
 
 To see the list of language models available in NeMo:
@@ -483,11 +483,11 @@ for a full tutorial on using pretrained language models in NeMo.
 Using a Pre-trained NER Model
 -----------------------------
 
-NeMo has pre-trained NER models that can be used 
+NeMo has pre-trained NER models that can be used
 to get started with Token Classification right away.
-Models are automatically downloaded from NGC, 
+Models are automatically downloaded from NGC,
 cached locally to disk,
-and loaded into GPU memory using the `.from_pretrained` method. 
+and loaded into GPU memory using the `.from_pretrained` method.
 
 .. code-block:: python
 
@@ -511,7 +511,7 @@ and loaded into GPU memory using the `.from_pretrained` method.
 NeMo NER Model Under the Hood
 -----------------------------
 
-Any aspect of NLP training or model architecture design can easily be customized with PyTorch Lightning 
+Any aspect of NLP training or model architecture design can easily be customized with PyTorch Lightning
 since every NeMo model is a Lightning Module.
 
 .. code-block:: python
@@ -546,8 +546,8 @@ since every NeMo model is a Lightning Module.
 Neural Types in NeMo NLP
 ------------------------
 
-NeMo Models and Neural Modules come with Neural Type checking. 
-Neural type checking is extremely useful when combining many different neural network architectures 
+NeMo Models and Neural Modules come with Neural Type checking.
+Neural type checking is extremely useful when combining many different neural network architectures
 for a production-grade application.
 
 .. code-block:: python
@@ -565,11 +565,11 @@ for a production-grade application.
 Text-To-Speech (TTS)
 ====================
 
-Everything needed to train TTS models and generate audio is included with NeMo. 
-`NeMo TTS Models <https://ngc.nvidia.com/catalog/models/nvidia:nemottsmodels>`_ 
+Everything needed to train TTS models and generate audio is included with NeMo.
+`NeMo TTS Models <https://ngc.nvidia.com/catalog/models/nvidia:nemottsmodels>`_
 can be trained from scratch on your own data or pretrained models can be downloaded
-automatically. NeMo currently supports  a two step inference procedure. 
-First, a model is used to generate a mel spectrogram from text. 
+automatically. NeMo currently supports  a two step inference procedure.
+First, a model is used to generate a mel spectrogram from text.
 Second, a model is used to generate audio from a mel spectrogram.
 
 Mel Spectrogram Generators:
@@ -647,10 +647,10 @@ Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trai
 Using State-Of-The-Art Pre-trained TTS Model
 --------------------------------------------
 
-Generate speech using models trained on `LJSpeech <https://keithito.com/LJ-Speech-Dataset/>`, 
+Generate speech using models trained on `LJSpeech <https://keithito.com/LJ-Speech-Dataset/>`,
 around 24 hours of single speaker data.
 
-See this `TTS notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/tts/1_TTS_inference.ipynb>`_ 
+See this `TTS notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/tts/1_TTS_inference.ipynb>`_
 for a full tutorial on generating speech with NeMo, PyTorch Lightning, and Hydra.
 
 .. code-block:: python
@@ -673,7 +673,7 @@ for a full tutorial on generating speech with NeMo, PyTorch Lightning, and Hydra
         if isinstance(audio, torch.Tensor):
             audio = audio.to('cpu').numpy()
         return spectrogram, audio
-        
+
     text_to_generate = input("Input what you want the model to say: ")
     spec, audio = infer(spec_gen, vocoder, text_to_generate)
 
@@ -763,8 +763,8 @@ be customized with PyTorch Lightning since every NeMo model is a LightningModule
 Neural Types in NeMo TTS
 ------------------------
 
-NeMo Models and Neural Modules come with Neural Type checking. 
-Neural type checking is extremely useful when combining many different neural network architectures 
+NeMo Models and Neural Modules come with Neural Type checking.
+Neural type checking is extremely useful when combining many different neural network architectures
 for a production-grade application.
 
 .. code-block:: python
@@ -793,7 +793,7 @@ Learn More
 - Visit the `NVIDIA NeMo Developer Website <https://developer.nvidia.com/nvidia-nemo>`_
 - Read the `NVIDIA NeMo PyTorch Blog <https://medium.com/pytorch/nvidia-nemo-neural-modules-and-models-for-conversational-ai-d660480d9696>`_
 - Download pre-trained `ASR <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_, `NLP <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`_, and `TTS <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_ models on `NVIDIA NGC <https://ngc.nvidia.com/>`_ to quickly get started with NeMo.
-- Become an expert on Building Conversational AI applications with our `tutorials <https://github.com/NVIDIA/NeMo#tutorials>`_, and `example scripts <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples>`_, 
+- Become an expert on Building Conversational AI applications with our `tutorials <https://github.com/NVIDIA/NeMo#tutorials>`_, and `example scripts <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples>`_,
 - See our `developer guide <https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/>`_ for more information on core NeMo concepts, ASR/NLP/TTS collections, and the NeMo API.
 
 .. note:: NeMo tutorial notebooks can be run on `Google Colab <https://colab.research.google.com/notebooks/intro.ipynb>`_.
