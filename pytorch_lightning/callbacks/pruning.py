@@ -86,7 +86,7 @@ class ModelPruning(Callback):
             trainer = Trainer(
                 callbacks=[
                     ModelPruning(
-                        'l1_unstructured',
+                        pruning_fn='l1_unstructured',
                         parameters_to_prune=parameters_to_prune,
                         amount=0.01,
                         use_global_unstructured=True,
