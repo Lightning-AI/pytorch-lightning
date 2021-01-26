@@ -988,16 +988,16 @@ class LightningModule(
         Return:
             A list of callbacks which will be appended to in the Trainer callbacks.
 
-        Note:
-            Certain callback methods like :meth:`~pytorch_lightning.callbacks.base.Callback.on_init_start`
-            will never be invoked on the new callbacks returned here.
-
-        Example:
+        Example::
 
             def configure_callbacks(self):
                 early_stop = EarlyStopping(monitor"val_acc", mode="max")
                 checkpoint = ModelCheckpoint(monitor="val_loss")
                 return [early_stop, checkpoint]
+
+        Note:
+            Certain callback methods like :meth:`~pytorch_lightning.callbacks.base.Callback.on_init_start`
+            will never be invoked on the new callbacks returned here.
         """
         return []
 

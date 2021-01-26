@@ -531,6 +531,12 @@ Example::
         def on_train_end(self, trainer, pl_module):
             print("Training is done.")
 
+
+Model-specific callbacks can also be added inside the LightningModule through
+:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
+Callbacks returned in this hook will be appended to the list initially given to the Trainer argument.
+
+
 check_val_every_n_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^
 
