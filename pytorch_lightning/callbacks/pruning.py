@@ -13,8 +13,8 @@
 # limitations under the License.
 
 r"""
-Pruning
-^^^^^^^
+ModelPruning
+^^^^^^^^^^^^
 
 """
 import inspect
@@ -47,76 +47,6 @@ _PYTORCH_PRUNING_METHOD = {
     "random_structured": pytorch_prune.RandomStructured,
     "random_unstructured": pytorch_prune.RandomUnstructured,
 }
-
-
-def _check_parameters_to_prune(p):
-    """
-    Check the provide element is a pair with:
-        * nn.Module
-        * str
-
-    Example::
-
-        parameters_to_prune = [
-            (model.mlp_1, "weight"),
-            (model.mlp_2, "weight")
-        ]
-    """
-    return len(p) == 2 and isinstance(p[0], nn.Module) and isinstance(p[1], str)
-
-
-def check_parameters_to_prune(
-    pl_module: LightningModule,
-    parameters_to_prune: Optional[List[Tuple[nn.Module, str]]],
-    parameters: List[str] = ["weight"]
-) -> List:
-
-    is_parameters_to_prune_none = parameters_to_prune is None
-    current_modules = [m for m in pl_module.modules() if not isinstance(m, (LightningModule, ModuleDict, ModuleList))]
-
-    if is_parameters_to_prune_none:
-        parameters_to_prune = []
-        for p in parameters:
-            for m in current_modules:
-                param = getattr(m, p, None)
-                if param is not None:
-                    parameters_to_prune.append((m, p))
-
-    if isinstance(parameters_to_prune, (tuple, list)) \
-       and len(parameters_to_prune) > 0 and not is_parameters_to_prune_none:
-
-        if all(isinstance(p, (list, tuple)) and _check_parameters_to_prune(p) for p in parameters_to_prune):
-
-            missing_modules = []
-            missing_parameters = []
-
-            for module, param_name in parameters_to_prune:
-                if module not in current_modules:
-                    missing_modules.append(module)
-                    continue
-
-                parameter = getattr(module, param_name)
-
-                if parameter is None:
-                    missing_parameters.append(parameter)
-
-            if len(missing_modules) > 0 or len(missing_parameters) > 0:
-                raise MisconfigurationException(
-                    "Ths provided parameters_to_tune doesn't exist in the model. "
-                    f"Found mismatching modules: {missing_modules} and missing_parameters: {missing_parameters}"
-                )
-
-        else:
-            raise MisconfigurationException(
-                "The provided parameters_to_prune should either be list of tuple "
-                "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
-    else:
-        if not isinstance(parameters_to_prune, (list, tuple)):
-            raise MisconfigurationException(
-                "The provided parameters_to_prune should either be list of tuple "
-                "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
-
-    return parameters_to_prune
 
 
 class ModelPruning(Callback):
@@ -163,6 +93,9 @@ class ModelPruning(Callback):
                     )
                 ]
             )
+
+        When `parameters_to_prune` is None, `parameters_to_prune` will contains all parameters from the model.
+        The user can override `filter_parameters_to_prune` to filter any nn.Module to be pruned.
 
         Args:
 
@@ -247,10 +180,10 @@ class ModelPruning(Callback):
 
         else:
             bases = getattr(pruning_fn, "__bases__", None)
-            if bases is None or bases[0] == pytorch_prune.BasePruningMethod:
+            if bases is None or bases[0] != pytorch_prune.BasePruningMethod:
                 raise MisconfigurationException(
                     f'pruning_fn is expected to be the str in {_PYTORCH_PRUNING_FUNCTIONS.keys()} '
-                    'or a `PyTorch BasePruningMethod`.')
+                    f'or a `PyTorch BasePruningMethod`. Found: {pruning_fn}')
 
             if not use_global_unstructured:
                 raise MisconfigurationException(
@@ -259,7 +192,7 @@ class ModelPruning(Callback):
         if use_global_unstructured and pruning_fn.PRUNING_TYPE != "unstructured":
             raise MisconfigurationException(
                 'Only "unstructured" PRUNING_TYPE supported for '
-                f"the `pruning_method`. Found method {pruning_fn} of type {pruning_fn.PRUNING_TYPE}")
+                f"the `pruning_method`. Found method {pruning_fn} of type {pruning_fn.PRUNING_TYPE}. ")
 
         self.pruning_fn = pruning_fn
 
@@ -275,6 +208,9 @@ class ModelPruning(Callback):
             )
 
         self.amount = amount
+
+    def filter_parameters_to_prune(self, parameters_to_prune: Optional[List[Tuple[nn.Module, str]]]):
+        return parameters_to_prune
 
     def create_pruning_fn(self, pruning_fn: str, *args, **kwargs):
         if self.use_global_unstructured:
@@ -352,8 +288,10 @@ class ModelPruning(Callback):
             self.apply_lottery_ticket_hypothesis()
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
-        self.parameters_to_prune = check_parameters_to_prune(
+        parameters_to_prune = self.sanitize_parameters_to_prune(
             pl_module, self.parameters_to_prune, parameters=self.parameter_names)
+
+        self.parameters_to_prune = self.filter_parameters_to_prune(parameters_to_prune)
 
         if self.use_lottery_ticket_hypothesis:
             # make a copy of copy of orginal weights.
@@ -364,3 +302,83 @@ class ModelPruning(Callback):
 
         if self.make_pruning_permanent:
             self._make_pruning_permanent()
+
+    @staticmethod
+    def _sanitize_parameters_to_prune(p):
+        """
+        Check the provide element is a pair with:
+            * nn.Module
+            * str
+
+        Example::
+
+            parameters_to_prune = [
+                (model.mlp_1, "weight"),
+                (model.mlp_2, "weight")
+            ]
+        """
+        return len(p) == 2 and isinstance(p[0], nn.Module) and isinstance(p[1], str)
+
+    @staticmethod
+    def sanitize_parameters_to_prune(
+        pl_module: LightningModule,
+        parameters_to_prune: Optional[List[Tuple[nn.Module, str]]],
+        parameters: List[str] = ["weight"]
+    ) -> List:
+        """
+        This function is responsible to check provided `parameters_to_prune` and `parameters`.
+        If parameters_to_prune is None, parameters_to_prune will be generated from all parameters of the model.
+        """
+
+        is_parameters_to_prune_none = parameters_to_prune is None
+        current_modules = [
+            m for m in pl_module.modules()
+            if not isinstance(m, (LightningModule, ModuleDict, ModuleList))
+        ]
+
+        if is_parameters_to_prune_none:
+            parameters_to_prune = []
+            for p in parameters:
+                for m in current_modules:
+                    param = getattr(m, p, None)
+                    if param is not None:
+                        parameters_to_prune.append((m, p))
+
+        if isinstance(parameters_to_prune, (tuple, list)) \
+           and len(parameters_to_prune) > 0 and not is_parameters_to_prune_none:
+
+            if all(
+                isinstance(p, (list, tuple)) and ModelPruning._sanitize_parameters_to_prune(p)
+                for p in parameters_to_prune
+            ):
+
+                missing_modules = []
+                missing_parameters = []
+
+                for module, param_name in parameters_to_prune:
+                    if module not in current_modules:
+                        missing_modules.append(module)
+                        continue
+
+                    parameter = getattr(module, param_name)
+
+                    if parameter is None:
+                        missing_parameters.append(parameter)
+
+                if len(missing_modules) > 0 or len(missing_parameters) > 0:
+                    raise MisconfigurationException(
+                        "Ths provided parameters_to_tune doesn't exist in the model. "
+                        f"Found mismatching modules: {missing_modules} and missing_parameters: {missing_parameters}"
+                    )
+
+            else:
+                raise MisconfigurationException(
+                    "The provided parameters_to_prune should either be list of tuple "
+                    "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
+        else:
+            if not isinstance(parameters_to_prune, (list, tuple)):
+                raise MisconfigurationException(
+                    "The provided parameters_to_prune should either be list of tuple "
+                    "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
+
+        return parameters_to_prune
