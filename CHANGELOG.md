@@ -11,11 +11,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Increased TPU check timeout from 20s to 100s ([#5598](https://github.com/PyTorchLightning/pytorch-lightning/pull/5598))
 - Ignored `step` param in Neptune logger's log_metric method ([#5510](https://github.com/PyTorchLightning/pytorch-lightning/pull/5510))
-- Pass batch outputs to on_train_batch_end instead of epoch end outputs ([#4369](https://github.com/PyTorchLightning/pytorch-lightning/pull/4369))
+- Pass batch outputs to `on_train_batch_end` instead of `epoch_end` outputs ([#4369](https://github.com/PyTorchLightning/pytorch-lightning/pull/4369))
 
 ### Fixed
 
-- Fixed `toggle_optimizer` to reset `requieres_grad` state  ([#5574](https://github.com/PyTorchLightning/pytorch-lightning/pull/5574))
+- Fixed `toggle_optimizer` to reset `requires_grad` state  ([#5574](https://github.com/PyTorchLightning/pytorch-lightning/pull/5574))
 - Fixed FileNotFoundError for best checkpoint when using DDP with Hydra ([#5629](https://github.com/PyTorchLightning/pytorch-lightning/pull/5629))
 - Fixed an error when logging a progress bar metric with a reserved name ([#5620](https://github.com/PyTorchLightning/pytorch-lightning/pull/5620))
 - Fixed `Metric`'s `state_dict` not included when child modules ([#5614](https://github.com/PyTorchLightning/pytorch-lightning/pull/5614))
