@@ -303,8 +303,10 @@ class TransferLearningModel(pl.LightningModule):
 
 def main(args: argparse.Namespace) -> None:
     """Train the model.
+
     Args:
         args: Model hyper-parameters
+
     Note:
         For the sake of the example, the images dataset will be downloaded
         to a temporary directory.

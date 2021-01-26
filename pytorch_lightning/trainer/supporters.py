@@ -207,7 +207,6 @@ class CycleIterator(object):
 
     def __iter__(self) -> Any:
         """
-
         Creates the internal iterator and returns self
 
         Returns:
@@ -378,7 +377,7 @@ class CombinedLoader(object):
         Wraps all loaders to make sure they are cycled until the longest loader is exhausted
 
         Returns:
-            Any: the wrapped loaders
+            the wrapped loaders
 
         """
         all_lengths = apply_to_collection(self.loaders, Iterable, get_len,
@@ -472,7 +471,7 @@ class CombinedLoaderIterator(object):
         Fetches the next batch from multiple data loaders
 
         Returns:
-            Any: a collections of batch data
+            a collections of batch data
 
         """
         return self.request_next_batch(self.loader_iters)
