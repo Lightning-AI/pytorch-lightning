@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+import logging
 import os
 from os.path import abspath
 import subprocess
@@ -23,7 +24,6 @@ import torch
 import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
@@ -40,6 +40,7 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
+log = logging.getLogger(__name__)
 if HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
@@ -133,11 +134,16 @@ class DDPAccelerator(Accelerator):
                 del env_copy['PL_GLOBAL_SEED']
 
             # start process
-            # if hydra is available and initialized, make sure to set the cwd correctly
+            # if hydra is available and initialized, make sure to set the original cwd correctly
+            # and pass current cwd for ddp processes (which hydra has overridden)
             cwd: Optional[str] = None
             if HYDRA_AVAILABLE:
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
+                    command += [
+                        f'hydra.run.dir={os.getcwd()}',
+                        f'hydra.job.name=train_ddp_process_{local_rank}'
+                    ]
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.interactive_ddp_procs.append(proc)
 

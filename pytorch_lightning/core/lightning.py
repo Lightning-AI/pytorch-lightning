@@ -17,6 +17,7 @@
 import collections
 import copy
 import inspect
+import logging
 import os
 import re
 import tempfile
@@ -30,7 +31,6 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -42,6 +42,7 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
+log = logging.getLogger(__name__)
 if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
@@ -1169,16 +1170,47 @@ class LightningModule(
 
         Override for your own behavior
 
-        Args:
-            optimizer:
-            optimizer_idx:
-        """
-        for param in self.parameters():
-            param.requires_grad = False
+        It works with ``untoggle_optimizer`` to make sure param_requires_grad_state is properly reset.
 
-        for group in optimizer.param_groups:
-            for param in group['params']:
-                param.requires_grad = True
+        Args:
+            optimizer: Current optimizer used in training_loop
+            optimizer_idx: Current optimizer idx in training_loop
+        """
+        param_requires_grad_state = {}
+        # make sure current optimizer is latest to be iterated over.
+        optimizers = [opt for opt in self.optimizers(use_pl_optimizer=False) if opt != optimizer] + [optimizer]
+        num_optimizers = len(optimizers) - 1
+        for opt_idx, opt in enumerate(optimizers):
+            for group in opt.param_groups:
+                for param in group['params']:
+                    if num_optimizers == opt_idx:
+                        # If a param appears in 2 optimizers, revert `requires_grad` to before toggle.
+                        if param in param_requires_grad_state:
+                            param.requires_grad = param_requires_grad_state[param]
+                    else:
+                        # save requires_grad for later restoration
+                        param_requires_grad_state[param] = param.requires_grad
+                        param.requires_grad = False
+
+        self._param_requires_grad_state = param_requires_grad_state
+
+    def untoggle_optimizer(self, optimizer_idx: int):
+        """
+        .. note:: Only called when using multiple optimizers
+
+        Override for your own behavior
+
+        Args:
+            optimizer_idx: Current optimizer idx in training_loop
+        """
+        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
+            if optimizer_idx != opt_idx:
+                for group in opt.param_groups:
+                    for param in group['params']:
+                        if param in self._param_requires_grad_state:
+                            param.requires_grad = self._param_requires_grad_state[param]
+        # save memory
+        del self._param_requires_grad_state
 
     def optimizer_step(
         self,
