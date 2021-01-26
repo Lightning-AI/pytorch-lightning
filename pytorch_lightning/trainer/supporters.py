@@ -169,9 +169,7 @@ class PredictionCollection(object):
             # Check if all features for this file add up to same length
             feature_lens = {k: len(v) for k, v in predictions.items()}
             if len(set(feature_lens.values())) != 1:
-                raise ValueError(
-                    "Mismatching feature column lengths found in stored EvalResult predictions."
-                )
+                raise ValueError("Mismatching feature column lengths found in stored EvalResult predictions.")
 
             # Switch predictions so each entry has its own dict
             outputs = []
@@ -207,7 +205,6 @@ class CycleIterator(object):
 
     def __iter__(self) -> Any:
         """
-
         Creates the internal iterator and returns self
 
         Returns:
@@ -378,7 +375,7 @@ class CombinedLoader(object):
         Wraps all loaders to make sure they are cycled until the longest loader is exhausted
 
         Returns:
-            Any: the wrapped loaders
+            the wrapped loaders
 
         """
         all_lengths = apply_to_collection(self.loaders, Iterable, get_len,
@@ -472,7 +469,7 @@ class CombinedLoaderIterator(object):
         Fetches the next batch from multiple data loaders
 
         Returns:
-            Any: a collections of batch data
+            a collections of batch data
 
         """
         return self.request_next_batch(self.loader_iters)

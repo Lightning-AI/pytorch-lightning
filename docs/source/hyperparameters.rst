@@ -161,9 +161,9 @@ improve readability and reproducibility.
             def __init__(self, hparams, *args, **kwargs):
                 super().__init__()
                 self.hparams = hparams
-                self.layer_1 = torch.nn.Linear(28 * 28, self.hparams.layer_1_dim)
-                self.layer_2 = torch.nn.Linear(self.hparams.layer_1_dim, self.hparams.layer_2_dim)
-                self.layer_3 = torch.nn.Linear(self.hparams.layer_2_dim, 10)
+                self.layer_1 = nn.Linear(28 * 28, self.hparams.layer_1_dim)
+                self.layer_2 = nn.Linear(self.hparams.layer_1_dim, self.hparams.layer_2_dim)
+                self.layer_3 = nn.Linear(self.hparams.layer_2_dim, 10)
             def train_dataloader(self):
                 return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
 
@@ -182,9 +182,9 @@ improve readability and reproducibility.
                 super().__init__()
                 self.save_hyperparameters(conf)
 
-                self.layer_1 = torch.nn.Linear(28 * 28, self.hparams.layer_1_dim)
-                self.layer_2 = torch.nn.Linear(self.hparams.layer_1_dim, self.hparams.layer_2_dim)
-                self.layer_3 = torch.nn.Linear(self.hparams.layer_2_dim, 10)
+                self.layer_1 = nn.Linear(28 * 28, self.hparams.layer_1_dim)
+                self.layer_2 = nn.Linear(self.hparams.layer_1_dim, self.hparams.layer_2_dim)
+                self.layer_3 = nn.Linear(self.hparams.layer_2_dim, 10)
 
         conf = OmegaConf.create(...)
         model = LitMNIST(conf)
@@ -225,7 +225,7 @@ polluting the ``main.py`` file, the ``LightningModule`` lets you define argument
 
         def __init__(self, layer_1_dim, **kwargs):
             super().__init__()
-            self.layer_1 = torch.nn.Linear(28 * 28, layer_1_dim)
+            self.layer_1 = nn.Linear(28 * 28, layer_1_dim)
 
         @staticmethod
         def add_model_specific_args(parent_parser):
