@@ -140,7 +140,10 @@ class DDPAccelerator(Accelerator):
             if HYDRA_AVAILABLE:
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
-                    command += [f'hydra.run.dir={os.getcwd()}']
+                    command += [
+                        f'hydra.run.dir={os.getcwd()}',
+                        f'hydra.job.name=train_ddp_process_{local_rank}'
+                    ]
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.interactive_ddp_procs.append(proc)
 
