@@ -25,6 +25,7 @@ from typing import Callable, List, Optional, Tuple, Union
 from torch import nn
 from torch.nn.modules.container import ModuleDict, ModuleList
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE
@@ -51,7 +52,7 @@ _PYTORCH_PRUNING_METHOD = {
 
 class ModelPruning(Callback):
 
-    PARAMETER_NAMES = ["weight", "bias"]
+    PARAMETER_NAMES = ("weight", "bias")
 
     def __init__(
         self,
@@ -120,8 +121,7 @@ class ModelPruning(Callback):
                 of parameters to prune.
                 If Callable, the function will be called on every epoch.
 
-            prune_on_epoch_end: bool flag determines call or not
-                to call pruning_fn on epoch end.
+            prune_on_epoch_end: bool flag determines call or not to call pruning_fn on epoch end.
 
             prune_on_fit_end: bool flag determines call or not
                 to call pruning_fn on fit end.
@@ -172,18 +172,19 @@ class ModelPruning(Callback):
                             "When requesting `ln_structured` pruning, the `pruning_norm` should be provided."
                         )
 
-                    pruning_fn = self.create_pruning_fn(pruning_fn, dim=pruning_dim, n=pruning_norm)
+                    pruning_fn = self._create_pruning_fn(pruning_fn, dim=pruning_dim, n=pruning_norm)
                 else:
-                    pruning_fn = self.create_pruning_fn(pruning_fn, dim=pruning_dim)
+                    pruning_fn = self._create_pruning_fn(pruning_fn, dim=pruning_dim)
             else:
-                pruning_fn = self.create_pruning_fn(pruning_fn)
+                pruning_fn = self._create_pruning_fn(pruning_fn)
 
         else:
             bases = getattr(pruning_fn, "__bases__", None)
             if bases is None or bases[0] != pytorch_prune.BasePruningMethod:
                 raise MisconfigurationException(
                     f'pruning_fn is expected to be the str in {_PYTORCH_PRUNING_FUNCTIONS.keys()} '
-                    f'or a `PyTorch BasePruningMethod`. Found: {pruning_fn}')
+                    f'or a `PyTorch BasePruningMethod`. Found: {pruning_fn}'
+                )
 
             if not use_global_unstructured:
                 raise MisconfigurationException(
@@ -192,13 +193,15 @@ class ModelPruning(Callback):
         if use_global_unstructured and pruning_fn.PRUNING_TYPE != "unstructured":
             raise MisconfigurationException(
                 'Only "unstructured" PRUNING_TYPE supported for '
-                f"the `pruning_method`. Found method {pruning_fn} of type {pruning_fn.PRUNING_TYPE}. ")
+                f"the `pruning_method`. Found method {pruning_fn} of type {pruning_fn.PRUNING_TYPE}. "
+            )
 
         self.pruning_fn = pruning_fn
 
         if not (prune_on_epoch_end or prune_on_fit_end):
             raise MisconfigurationException(
-                "The `ModelPruning` won't be triggered as currently not activated on either `epoch_end` or `fit_end`.")
+                "The `ModelPruning` won't be triggered as currently not activated on either `epoch_end` or `fit_end`."
+            )
 
         self.make_pruning_permanent = make_pruning_permanent
 
@@ -210,9 +213,19 @@ class ModelPruning(Callback):
         self.amount = amount
 
     def filter_parameters_to_prune(self, parameters_to_prune: Optional[List[Tuple[nn.Module, str]]]):
+        """
+        This function can be overriden to control which module to prune.
+        """
         return parameters_to_prune
 
-    def create_pruning_fn(self, pruning_fn: str, *args, **kwargs):
+    def _create_pruning_fn(self, pruning_fn: str, *args, **kwargs):
+        """
+        This function takes `pruning_fn`, a function name.
+
+        IF use_global_unstructured, pruning_fn will be resolved into its associated ``PyTorch BasePruningMethod``
+        ELSE, pruning_fn will be resolved into its function counterpart from `torch.nn.utils.prune`.
+
+        """
         if self.use_global_unstructured:
             pruning_fn = _PYTORCH_PRUNING_METHOD[pruning_fn]
             self._global_kwargs = kwargs
@@ -277,7 +290,7 @@ class ModelPruning(Callback):
             **self._resolve_global_kwargs(amount)
         )
 
-    def apply_pruning(self, trainer, pl_module):
+    def apply_pruning(self, trainer: 'pl.Trainer', pl_module: LightningModule):
         amount = self._resolve_amount(trainer.current_epoch)
         if self.use_global_unstructured:
             self._apply_global_pruning(amount)
