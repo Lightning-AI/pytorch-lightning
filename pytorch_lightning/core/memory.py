@@ -16,7 +16,7 @@ import os
 import shutil
 import subprocess
 from collections import OrderedDict
-from typing import Tuple, Dict, Union, List, Any
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -182,7 +182,8 @@ class ModelSummary(object):
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
-        self._precision_megabytes = (self._model.precision / 8.0) * 1e-6  # 1 byte -> 8 bits
+        # 1 byte -> 8 bits
+        self._precision_megabytes = (self._model.precision / 8.0) * 1e-6
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
