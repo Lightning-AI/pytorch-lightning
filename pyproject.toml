@@ -41,7 +41,6 @@ order_by_type = "False"
 
 [tool.vulture]
 make_whitelist = true
-min_confidence = 100
+min_confidence = 95
 paths = ["pytorch_lightning"]
 sort_by_size = true
-verbose = false

@@ -75,7 +75,7 @@ jobs:
         run: |
           mypy
 
-  python-vulture:
+  dead-code-vulture:
     name: Python dead code checker
     runs-on: ubuntu-20.04
 
@@ -91,6 +91,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install vulture
+          pip list
 
       - name: Run checking
         run: |
