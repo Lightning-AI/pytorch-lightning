@@ -504,16 +504,13 @@ def test_model_checkpoint_only_weights(tmpdir):
 
 
 def test_model_freeze_unfreeze():
-
     model = EvalModelTemplate()
-
     model.freeze()
     model.unfreeze()
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 @pytest.mark.parametrize("url_ckpt", [True, False])
-def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt, enable_pl_optimizer):
+def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs"""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
@@ -541,7 +538,6 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1)],
         default_root_dir=tmpdir,
         val_check_interval=1.0,
-        enable_pl_optimizer=enable_pl_optimizer,
         progress_bar_refresh_rate=0,
         logger=False,
         weights_summary=None,

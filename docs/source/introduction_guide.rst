@@ -1051,7 +1051,7 @@ would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
     out = decoder(features, x)
 
     loss = perceptual_loss(x1, x2, x) + CE(out, x)
-    
+
 In Lightning, this code is organized into a :ref:`lightning_module`.
 
 Engineering code
@@ -1071,7 +1071,7 @@ over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across 
         download_data()
 
     dist.barrier()
-    
+
 In Lightning, this code is abstracted out by the :ref:`trainer`.
 
 Non-essential code
@@ -1090,7 +1090,7 @@ This is code that helps the research but isn't relevant to the research code. So
     z = Q.rsample()
     generated = decoder(z)
     self.experiment.log('images', generated)
-    
+
 In Lightning this code is organized into :ref:`callbacks`.
 
 Data code

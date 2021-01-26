@@ -40,13 +40,12 @@ def test_lightning_optimizer(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
-        enable_pl_optimizer=True,
     )
     trainer.fit(model)
 
     groups = "{'dampening': 0, 'initial_lr': 0.1, 'lr': 0.01, 'momentum': 0, 'nesterov': False, 'weight_decay': 0}"
     expected = f"LightningSGD(groups=[{groups}])"
-    assert trainer.optimizers[0].__repr__() == expected
+    assert trainer._lightning_optimizers[0].__repr__() == expected
 
 
 def test_lightning_optimizer_from_user(tmpdir):
@@ -68,13 +67,12 @@ def test_lightning_optimizer_from_user(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
-        enable_pl_optimizer=True,
     )
     trainer.fit(model)
 
     groups = "{'amsgrad': False, 'betas': (0.9, 0.999), 'eps': 1e-08, 'initial_lr': 0.1, 'lr': 0.01, 'weight_decay': 0}"
     expected = f"LightningAdam(groups=[{groups}])"
-    assert trainer.optimizers[0].__repr__() == expected
+    assert trainer._lightning_optimizers[0].__repr__() == expected
 
 
 @patch("torch.optim.Adam.step", autospec=True)
@@ -122,7 +120,6 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
-        enable_pl_optimizer=True,
     )
     trainer.fit(model)
 
@@ -176,7 +173,6 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
         max_epochs=1,
         weights_summary=None,
         accumulate_grad_batches=2,
-        enable_pl_optimizer=True,
     )
     trainer.fit(model)
 
@@ -259,7 +255,6 @@ def test_lightning_optimizer_automatic_optimization(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
-        enable_pl_optimizer=True,
     )
     trainer.fit(model)
 
@@ -312,7 +307,6 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
             limit_val_batches=1,
             max_epochs=1,
             weights_summary=None,
-            enable_pl_optimizer=True,
         )
         trainer.fit(model)
 
@@ -372,7 +366,6 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad_make_opt
                 limit_val_batches=1,
                 max_epochs=1,
                 weights_summary=None,
-                enable_pl_optimizer=True,
             )
             trainer.fit(model)
 
@@ -425,7 +418,6 @@ def test_lightning_optimizer_automatic_optimization_make_optimizer_step_2(tmpdir
             limit_val_batches=1,
             max_epochs=1,
             weights_summary=None,
-            enable_pl_optimizer=True,
         )
         trainer.fit(model)
 
