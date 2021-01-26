@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
 import logging
+import math
 import os
 import pickle
 import platform
 import re
 from argparse import Namespace
+from distutils.version import LooseVersion
 from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
@@ -134,7 +135,8 @@ def test_model_checkpoint_correct_score_and_checkpoint(tmpdir, validation_step, 
 
         lr_scheduler_specific_data = chk['lr_schedulers'][0]
         assert lr_scheduler_specific_data['_step_count'] == epoch + 2
-        assert lr_scheduler_specific_data['_last_lr'][0], 4 == 0.2 * (0.1 ** (epoch + 1))
+        if LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
+            assert lr_scheduler_specific_data['_last_lr'][0], 4 == 0.2 * (0.1 ** (epoch + 1))
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
