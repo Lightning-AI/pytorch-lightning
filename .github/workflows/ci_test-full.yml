@@ -48,13 +48,12 @@ jobs:
         open(fname, 'w').writelines(lines)
       shell: python
 
-    # versions <= 1.3 may have issues on mac with some BLAS ops due to missing mkl (https://github.com/pytorch/pytorch/issues/18996)
     - name: Adjust minimal for Python 3.9
       if: matrix.requires == 'minimal' && matrix.python-version == 3.9
       run: |
         pip install "pip==20.3" -U  # needed for later instalation onnxruntime
         python -c "import re ; fname='requirements.txt' ; req = re.sub(r'torch>=[\d\.]+', 'torch>=1.7.1', open(fname).read()) ; open(fname, 'w').write(req)"
-      shell: python
+      shell: bash
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
@@ -100,6 +99,21 @@ jobs:
         ls -l .
         unzip -o checkpoints.zip
         ls -l checkpoints/
+
+    - name: Build from source for Python 3.9
+      if: matrix.python-version == 3.9
+      run: |
+        # https://github.com/microsoft/onnxruntime/blob/master/BUILD.md
+        git clone --recursive https://github.com/Microsoft/onnxruntime
+        cd onnxruntime
+        if [[ runner.os == 'windows' ]]; then
+            .\build.bat --config RelWithDebInfo --build_shared_lib --parallel
+        elif [[ runner.os == 'macOS' ]]; then
+            ./build.sh --config RelWithDebInfo --build_shared_lib --parallel
+        else
+            ./build.sh --config RelWithDebInfo --build_shared_lib --parallel --use_xcode
+        fi
+      shell: bash
 
     - name: Install dependencies
       env:
