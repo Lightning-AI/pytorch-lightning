@@ -228,7 +228,7 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(3, 4, {})
     assert ckpt_name == str(Path('.').resolve() / 'epoch=3-step=4.ckpt')
 
-    # with ver
+    # with version
     ckpt_name = ModelCheckpoint(
         monitor='early_stop_on', dirpath=tmpdir, filename='name', prefix='test'
     ).format_checkpoint_name(3, 2, {}, ver=3)
@@ -479,67 +479,6 @@ def test_default_checkpoint_behavior(tmpdir):
     ckpts = os.listdir(os.path.join(tmpdir, 'lightning_logs', 'version_0', 'checkpoints'))
     assert len(ckpts) == 1
     assert ckpts[0] == 'epoch=2-step=14.ckpt'
-
-
-def test_ckpt_metric_names_results(tmpdir):
-    class ResultLog(BoringModel):
-        def training_step(self, batch, batch_idx):
-            y_hat = self(batch)
-
-            # calculate loss
-            loss_val = self.loss(batch, y_hat)
-            log_val = loss_val
-
-            # alternate between tensors and scalars for "log" and "progress_bar"
-            if batch_idx % 2 == 0:
-                log_val = log_val.item()
-
-            self.log('some_val', log_val * log_val, prog_bar=True, logger=False)
-            self.log('train_some_val', log_val * log_val)
-            return loss_val
-
-        def validation_step(self, batch, batch_idx):
-            y_hat = self(batch)
-
-            loss_val = self.loss(batch, y_hat)
-
-            # acc
-            labels_hat = torch.argmax(y_hat, dim=1)
-            val_acc = torch.sum(batch == labels_hat).item() / (len(batch) * 1.0)
-            val_acc = torch.tensor(val_acc).type_as(batch)
-
-            result = pl.core.step_result.EvalResult(checkpoint_on=loss_val, early_stop_on=loss_val)
-            result.log_dict({
-                'val_loss': loss_val,
-                'val_acc': val_acc,
-            })
-            return result
-
-    model = ResultLog()
-    model.training_step_end = None
-    model.training_epoch_end = None
-    model.validation_step_end = None
-    model.validation_epoch_end = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gradient_clip_val=1.0,
-        overfit_batches=0.20,
-        progress_bar_refresh_rate=0,
-        limit_train_batches=0.01,
-        limit_val_batches=0.01,
-        callbacks=[ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, filename="{val_loss:.2f}")],
-    )
-
-    trainer.fit(model)
-
-    # make sure the checkpoint we saved has the metric in the name
-    ckpts = os.listdir(tmpdir)
-    ckpts = [x for x in ckpts if "val_loss" in x]
-    assert len(ckpts) == 1
-    val = re.sub("[^0-9.]", "", ckpts[0])
-    assert len(val) > 3
 
 
 @pytest.mark.parametrize('max_epochs', [1, 2])

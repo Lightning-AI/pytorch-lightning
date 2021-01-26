@@ -141,9 +141,11 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
 
     .. testcode::
 
+        from pytorch_lightning.metrics import Accuracy
+
         def __init__(self):
             ...
-            metric = pl.metrics.Accuracy()
+            metric = Accuracy()
             self.train_acc = metric.clone()
             self.val_acc = metric.clone()
             self.test_acc = metric.clone()
@@ -164,7 +166,6 @@ be moved to the same device as the input of the metric:
 
 .. code-block:: python
 
-    import torch
     from pytorch_lightning.metrics import Accuracy
 
     target = torch.tensor([1, 1, 0, 0], device=torch.device("cuda", 0))
@@ -186,13 +187,15 @@ as child modules. Instead of ``list`` use :class:`~torch.nn.ModuleList` and inst
 
 .. testcode::
 
+    from pytorch_lightning.metrics import Accuracy
+
     class MyModule(LightningModule):
         def __init__(self):
             ...
             # valid ways metrics will be identified as child modules
-            self.metric1 = pl.metrics.Accuracy()
-            self.metric2 = torch.nn.ModuleList(pl.metrics.Accuracy())
-            self.metric3 = torch.nn.ModuleDict({'accuracy': Accuracy()})
+            self.metric1 = Accuracy()
+            self.metric2 = nn.ModuleList(Accuracy())
+            self.metric3 = nn.ModuleDict({'accuracy': Accuracy()})
 
         def training_step(self, batch, batch_idx):
             # all metrics will be on the same device as the input batch
@@ -222,7 +225,7 @@ from the base ``Metric`` class.
 
 Example implementation:
 
-.. code-block:: python
+.. testcode::
 
     from pytorch_lightning.metrics import Metric
 
@@ -281,8 +284,8 @@ Example:
 .. testoutput::
     :options: +NORMALIZE_WHITESPACE
 
-    {'Accuracy': tensor(0.1250), 
-     'Precision': tensor(0.0667), 
+    {'Accuracy': tensor(0.1250),
+     'Precision': tensor(0.0667),
      'Recall': tensor(0.1111)}
 
 Similarly it can also reduce the amount of code required to log multiple metrics

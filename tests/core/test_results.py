@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerState
 from tests.base import BoringDataModule, BoringModel
 
@@ -47,7 +47,7 @@ def _ddp_test_fn(rank, worldsize, result_cls: Result):
     assert res["test_tensor"].item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
 
 
-@pytest.mark.parametrize("result_cls", [Result, EvalResult])
+@pytest.mark.parametrize("result_cls", [Result])
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_result_reduce_ddp(result_cls):
     """Make sure result logging works with DDP"""

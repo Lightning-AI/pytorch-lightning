@@ -1501,10 +1501,10 @@ override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
 
 .. testcode::
 
-        class LitMNIST(LightningModule):
-            def tbptt_split_batch(self, batch, split_size):
-                # do your own splitting on the batch
-                return splits
+    class LitMNIST(LightningModule):
+        def tbptt_split_batch(self, batch, split_size):
+            # do your own splitting on the batch
+            return splits
 
 val_check_interval
 ^^^^^^^^^^^^^^^^^^
