@@ -25,9 +25,9 @@ PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
-builtins.__LIGHTNING_SETUP__ = True
-
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
+if SPHINX_MOCK_REQUIREMENTS:
+    builtins.__LIGHTNING_SETUP__ = True
 
 import pytorch_lightning  # noqa: E402
 
@@ -360,7 +360,10 @@ doctest_global_setup = """
 import importlib
 import os
 import torch
+from torch import nn
 
+import pytorch_lightning as pl
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities import (
     _NATIVE_AMP_AVAILABLE,
     _APEX_AVAILABLE,
@@ -368,7 +371,6 @@ from pytorch_lightning.utilities import (
     _TPU_AVAILABLE,
 )
 _TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
-
 
 """
 coverage_skip_undoc_in_source = True
