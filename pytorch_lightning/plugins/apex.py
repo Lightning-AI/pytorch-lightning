@@ -105,8 +105,9 @@ class ApexPlugin(PrecisionPlugin):
                        gradient_clip_algorithm: str,
                        norm_type: float):
         """
-        This code contains a modification of :meth:`torch.nn.utils.clip_grad_norm_` using a higher epsilon
-        for fp16 weights. This is important when setting amp_level to O2, and the master weights are in fp16.
+        This code contains modification of :meth:`torch.nn.utils.clip_grad_norm_` using a higher epsilon for fp16 weights.
+        This is important when setting amp_level to O2, and the master weights are in fp16.
+
         Args:
             optimizer: Optimizer with gradients that will be clipped.
             grad_clip_val: Maximum norm of gradients.
