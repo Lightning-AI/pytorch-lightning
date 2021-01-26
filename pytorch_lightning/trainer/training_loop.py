@@ -111,6 +111,9 @@ class TrainLoop:
         # hook
         self.trainer.call_hook("on_train_start")
 
+        # provide rank to profiler
+        self.trainer.profile_connector.on_train_start(self.trainer)
+
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
         # bind logger and other properties
         self.trainer.model_connector.copy_trainer_model_properties(model)
@@ -339,7 +342,8 @@ class TrainLoop:
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
-            training_step_output = self.trainer.accelerator_backend.training_step(args)
+            with self.trainer.profiler.profile("training_step"):
+                training_step_output = self.trainer.accelerator_backend.training_step(args)
             self.trainer.logger_connector.cache_logged_metrics()
 
             self._check_training_step_output(training_step_output)

@@ -141,3 +141,4 @@ pytorch\ lightning
 test-reports/
 wandb
 .forked/
+*.prof
