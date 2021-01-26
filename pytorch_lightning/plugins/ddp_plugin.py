@@ -110,16 +110,15 @@ class DDPPlugin(LightningPlugin):
                 torch_backend, rank=global_rank, world_size=world_size
             )
 
+    @property
+    def is_running_single_process_per_device(self) -> bool:
+        # objects do not need to be scattered in single process per device, move objects upfront to device
+        # This property is used in ``self.on_before_forward`` function.
+        return self.device_ids is not None and len(self.device_ids) == 1
+
     def on_before_forward(self, model: LightningModule, *args):
         """
-        Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
-        within the DDP wrapper.
-
-        Example::
-
-            def on_before_forward(self, model, *args):
-                batch, batch_idx = args
-                return batch.to(model.device)
+        Override to handle custom edge case.
 
         Args:
             args: Inputs to the model.
@@ -128,6 +127,8 @@ class DDPPlugin(LightningPlugin):
         Returns:
             args moved to correct device if needed.
         """
+        if self.is_running_single_process_per_device:
+            args = model.transfer_batch_to_device(args, model.device)
         return args
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
