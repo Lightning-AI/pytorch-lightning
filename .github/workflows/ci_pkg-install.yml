@@ -27,7 +27,7 @@ jobs:
 
       - name: Prepare env
         run: |
-          pip install check-manifest "twine==1.13.0"
+          pip install check-manifest "twine>=3.2"
 
       - name: Create package
         run: |
