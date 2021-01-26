@@ -27,7 +27,7 @@ import torch
 from omegaconf import OmegaConf
 
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Callback, LightningModule, Trainer
+from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -1444,22 +1444,18 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
         Trainer(profiler=profiler)
 
 
-class PredictModel(BoringModel):
-
-    def predict_step(self, batch, batch_idx, dataloader_idx):
-        return self.layer(batch)
-
-    def predict_epoch_end(self, predictions):
-        assert len(predictions) == 2
-        return predictions
-
-
-def predict(tmpdir, accelerator, gpus, num_processes, plugins=None):
+def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=True):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)),
                    torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
-    model = PredictModel()
+    class TestLightningDataModule(LightningDataModule):
+
+        def test_dataloader(self):
+            return dataloaders
+
+    model = BoringModel()
+    datamodule = TestLightningDataModule()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1472,7 +1468,11 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None):
         plugins=plugins,
         num_sanity_val_steps=0
     )
-    results = trainer.predict(model, dataloaders)
+    if datamodule:
+        results = trainer.predict(model, datamodule=datamodule)
+    else:
+        results = trainer.predict(model, dataloaders=dataloaders)
+
     # todo: address this in another PR
     num_samples = 1 if accelerator in ["ddp", "ddp_cpu", "ddp_spawn"] else 2
     assert len(results) == 2
@@ -1480,8 +1480,9 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None):
     assert results[0][0].shape == torch.Size([1, 2])
 
 
-def test_trainer_predict_cpu(tmpdir):
-    predict(tmpdir, None, None, 1)
+@pytest.mark.parametrize('datamodule', [False, True])
+def test_trainer_predict_cpu(tmpdir, datamodule):
+    predict(tmpdir, None, None, 1, datamodule=datamodule)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")

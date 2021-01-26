@@ -39,7 +39,6 @@ class EvaluationLoop(object):
         self.trainer.test_dataloaders = None
         self.trainer.val_dataloaders = None
         self.trainer.running_sanity_check = False
-        self.trainer.testing = False
 
         # when .test() is called, it sets this
         self.trainer.tested_ckpt_path = None
@@ -172,7 +171,7 @@ class EvaluationLoop(object):
         model_ref._results = Result()
 
         if self.trainer.is_predicting:
-            model_ref._current_fx_name = "predict"
+            model_ref._current_fx_name = "forward"
             forward_output = self.trainer.accelerator_backend.forward([args[0]])
             self._predictions[dataloader_idx].append(forward_output)
             self.trainer._progress_bar_callback.on_test_batch_end(

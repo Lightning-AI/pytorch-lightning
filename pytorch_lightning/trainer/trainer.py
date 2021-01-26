@@ -873,6 +873,7 @@ class Trainer(
         self,
         model: Optional[LightningModule] = None,
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional[LightningDataModule] = None,
     ):
         r"""
 
@@ -886,26 +887,29 @@ class Trainer(
             dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying inference samples.
 
+            datamodule: A instance of :class:`LightningDataModule`.
+
         Returns:
-            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
+            Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
         """
 
         # --------------------
         # SETUP HOOK
         # --------------------
-        if not (
-            isinstance(dataloaders, DataLoader)
-            or isinstance(dataloaders, (list, tuple))
-            and all(isinstance(d, DataLoader) for d in dataloaders)
-        ):
+        # If you supply a datamodule you can't supply dataloaders
+        if dataloaders and datamodule:
             raise MisconfigurationException(
-                'You need to pass a dataloader or a list of dataloaders to `trainer.predict`. '
+                'You cannot pass dataloaders to trainer.predict if you supply a datamodule'
             )
 
         if model is None:
             raise MisconfigurationException(
                 'You need to pass a model to `trainer.predict`. '
             )
+
+        if datamodule is not None:
+            # Attach datamodule to get setup/prepare_data added to model before the call to it below
+            self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         # attach data
         if dataloaders is not None:
@@ -1013,3 +1017,47 @@ class Trainer(
             Returns: List of all available plugins that are supported as string arguments.
         """
         return PluginConnector.available_plugins()
+
+    @property
+    def training(self) -> bool:
+        return self._running_stage == RunningStage.TRAINING
+
+    @training.setter
+    def training(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TRAINING
+        elif self.training:
+            self._running_stage = None
+
+    @property
+    def testing(self) -> bool:
+        return self._running_stage == RunningStage.TESTING
+
+    @testing.setter
+    def testing(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TESTING
+        elif self.testing:
+            self._running_stage = None
+
+    @property
+    def tuning(self) -> bool:
+        return self._running_stage == RunningStage.TUNING
+
+    @tuning.setter
+    def tuning(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TUNING
+        elif self.tuning:
+            self._running_stage = None
+
+    @property
+    def evaluating(self) -> bool:
+        return self._running_stage == RunningStage.EVALUATING
+
+    @evaluating.setter
+    def evaluating(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.EVALUATING
+        elif self.evaluating:
+            self._running_stage = None
