@@ -980,29 +980,26 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
-    def configure_callbacks(self, callbacks):
+    def configure_callbacks(self):
         """
-        Configure model-specific callbacks. The list returned here will replace the Trainer's callback list
-        when the model gets attached to the Trainer, e.g., when ``.fit()`` or ``.test()`` gets called.
-
-        Args:
-            callbacks: The list of callbacks already present in Trainer.
+        Configure model-specific callbacks. The list returned here will append to the Trainer's
+        own callback list when the model gets attached, e.g., when ``.fit()`` or ``.test()`` gets called.
 
         Return:
-            A new list of callbacks which will replace the existing one in the Trainer.
+            A list of callbacks which will be appended to in the Trainer callbacks.
 
         Note:
-            Certain callback methods like ``on_trainer_init()`` will never be invoked on the new callbacks
-            returned here.
+            Certain callback methods like :meth:`~pytorch_lightning.callbacks.base.Callback.on_init_start`
+            will never be invoked on the new callbacks returned here.
 
         Example:
 
-            def configure_callbacks(self, callbacks):
-                my_callback = MyLitCallback()
-                callbacks.append(my_callbacks)
-                return callbacks
+            def configure_callbacks(self):
+                early_stop = EarlyStopping(monitor"val_acc", mode="max")
+                checkpoint = ModelCheckpoint(monitor="val_loss")
+                return [early_stop, checkpoint]
         """
-        return callbacks
+        return []
 
     def configure_optimizers(
             self,
