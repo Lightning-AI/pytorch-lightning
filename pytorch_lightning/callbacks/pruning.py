@@ -28,7 +28,7 @@ from torch.nn.modules.container import ModuleDict, ModuleList
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE
+from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _PYTORCH_PRUNE_AVAILABLE:
@@ -61,8 +61,6 @@ class ModelPruning(Callback):
         parameter_names: List[str] = ["weight"],
         use_global_unstructured: bool = True,
         amount: Optional[Union[int, float]] = 0.5,
-        prune_on_epoch_end: Optional[bool] = False,
-        prune_on_fit_end: Optional[bool] = True,
         make_pruning_permanent: Optional[bool] = True,
         use_lottery_ticket_hypothesis: Optional[bool] = True,
         pruning_dim: Optional[int] = None,
@@ -120,11 +118,6 @@ class ModelPruning(Callback):
                 - int, it represents the absolute number of parameters to prune.
                 - Callable, the function will be called on every epoch.
 
-            prune_on_epoch_end: bool flag determines call or not to call pruning_fn on epoch end.
-
-            prune_on_fit_end: bool flag determines call or not
-                to call pruning_fn on fit end.
-
             make_pruning_permanent: if True then all
                 reparametrization pre-hooks and tensors with mask
                 will be removed on fit end.
@@ -139,15 +132,14 @@ class ModelPruning(Callback):
 
         """
 
-        self.use_global_unstructured = use_global_unstructured
-        self.parameters_to_prune = parameters_to_prune
-        self.prune_on_epoch_end = prune_on_epoch_end
-        self.prune_on_fit_end = prune_on_fit_end
-        self.use_lottery_ticket_hypothesis = use_lottery_ticket_hypothesis
-        self.parameter_names = parameter_names or self.PARAMETER_NAMES
+        self._use_global_unstructured = use_global_unstructured
+        self._parameters_to_prune = parameters_to_prune
+        self._use_lottery_ticket_hypothesis = use_lottery_ticket_hypothesis
+        self._parameter_names = parameter_names or self.PARAMETER_NAMES
         self._global_kwargs = {}
+        self._initial_parameters_to_prune = None
 
-        for param_name in self.parameter_names:
+        for param_name in self._parameter_names:
             if param_name not in self.PARAMETER_NAMES:
                 raise MisconfigurationException(
                     f"The provided parameter_names {param_name} isn't in {self.PARAMETER_NAMES} "
@@ -197,11 +189,6 @@ class ModelPruning(Callback):
 
         self.pruning_fn = pruning_fn
 
-        if not (prune_on_epoch_end or prune_on_fit_end):
-            raise MisconfigurationException(
-                "The `ModelPruning` won't be triggered as currently not activated on either `epoch_end` or `fit_end`."
-            )
-
         self.make_pruning_permanent = make_pruning_permanent
 
         if not isinstance(amount, (int, float, Callable)):
@@ -225,7 +212,7 @@ class ModelPruning(Callback):
         ELSE, pruning_fn will be resolved into its function counterpart from `torch.nn.utils.prune`.
 
         """
-        if self.use_global_unstructured:
+        if self._use_global_unstructured:
             pruning_fn = _PYTORCH_PRUNING_METHOD[pruning_fn]
             self._global_kwargs = kwargs
             return pruning_fn
@@ -237,7 +224,7 @@ class ModelPruning(Callback):
         return partial(pruning_fn, **kwargs)
 
     def _make_pruning_permanent(self):
-        for module, param_name in self.parameters_to_prune:
+        for module, param_name in self._parameters_to_prune:
             pytorch_prune.remove(module, param_name)
 
     def _resolve_amount(self, current_epoch: int) -> float:
@@ -261,14 +248,16 @@ class ModelPruning(Callback):
         """
         trained = getattr(module, tensor_name)
         orig = getattr(orig_module, tensor_name)
+        if trained is None or orig is None:
+            return
         trained.data = orig.data.to(trained.device)
 
     def apply_lottery_ticket_hypothesis(self):
-        for (module, tensor_name), (orig_module, _) in zip(self.parameters_to_prune, self._parameters_to_prune):
-            self._restore_original_weights(module, orig_module, tensor_name)
+        for (mod, tensor_name), (initial_mod, _) in zip(self._parameters_to_prune, self._initial_parameters_to_prune):
+            self._restore_original_weights(mod, initial_mod, tensor_name)
 
     def _apply_local_pruning(self, amount: float):
-        for module, param in self.parameters_to_prune:
+        for module, param in self._parameters_to_prune:
             self.pruning_fn(module, name=param, amount=amount)
 
     def _resolve_global_kwargs(self, amount: float):
@@ -284,31 +273,38 @@ class ModelPruning(Callback):
 
     def _apply_global_pruning(self, amount: float):
         pytorch_prune.global_unstructured(
-            self.parameters_to_prune,
+            self._parameters_to_prune,
             pruning_method=self.pruning_fn,
             **self._resolve_global_kwargs(amount)
         )
 
     def apply_pruning(self, trainer: 'pl.Trainer', pl_module: LightningModule):
         amount = self._resolve_amount(trainer.current_epoch)
-        if self.use_global_unstructured:
+
+        # the user could control the pruning frequency with amount_fn
+        if amount == 0 or amount is None:
+            return
+
+        if self._use_global_unstructured:
             self._apply_global_pruning(amount)
         else:
             self._apply_local_pruning(amount)
 
-        if self.use_lottery_ticket_hypothesis:
+        if self._use_lottery_ticket_hypothesis:
             self.apply_lottery_ticket_hypothesis()
 
+    @rank_zero_only
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         parameters_to_prune = self.sanitize_parameters_to_prune(
-            pl_module, self.parameters_to_prune, parameters=self.parameter_names)
+            pl_module, self._parameters_to_prune, parameters=self._parameter_names)
 
-        self.parameters_to_prune = self.filter_parameters_to_prune(parameters_to_prune)
+        self._parameters_to_prune = self.filter_parameters_to_prune(parameters_to_prune)
 
-        if self.use_lottery_ticket_hypothesis:
+        if self._use_lottery_ticket_hypothesis:
             # make a copy of copy of orginal weights.
-            self._parameters_to_prune = [(deepcopy(m), n) for m, n in self.parameters_to_prune]
+            self._initial_parameters_to_prune = [(deepcopy(m), n) for m, n in self._parameters_to_prune]
 
+    @rank_zero_only
     def on_epoch_end(self, trainer, pl_module):
         self.apply_pruning(trainer, pl_module)
 

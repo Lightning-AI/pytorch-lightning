@@ -65,6 +65,8 @@ def train_with_pruning_callback(
     num_processes=None,
     use_custom_pruning_fn=False,
 ):
+    # Skipped as currently not supported.
+    # Todo: add support for custom pruning_fn function.
     if not use_global_unstructured and use_custom_pruning_fn:
         return
 
