@@ -28,7 +28,7 @@ from torch.nn.modules.container import ModuleDict, ModuleList
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _PYTORCH_PRUNE_AVAILABLE:
@@ -293,7 +293,6 @@ class ModelPruning(Callback):
         if self._use_lottery_ticket_hypothesis:
             self.apply_lottery_ticket_hypothesis()
 
-    @rank_zero_only
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         parameters_to_prune = self.sanitize_parameters_to_prune(
             pl_module, self._parameters_to_prune, parameters=self._parameter_names)
@@ -304,7 +303,6 @@ class ModelPruning(Callback):
             # make a copy of copy of orginal weights.
             self._initial_parameters_to_prune = [(deepcopy(m), n) for m, n in self._parameters_to_prune]
 
-    @rank_zero_only
     def on_epoch_end(self, trainer, pl_module):
         self.apply_pruning(trainer, pl_module)
 
