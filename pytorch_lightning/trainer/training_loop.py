@@ -21,7 +21,7 @@ import torch
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
@@ -477,12 +477,6 @@ class TrainLoop:
         return {'loss': loss, 'hiddens': hiddens, 'anything_else': ...}
             """
         rank_zero_warn(m)
-
-        # don't allow EvalResult in the training_step
-        if isinstance(training_step_output, EvalResult):
-            raise MisconfigurationException(
-                "training_step cannot return EvalResult, " "use a dict or TrainResult instead"
-            )
 
         training_step_output_for_epoch_end = copy(training_step_output)
         training_step_output_for_epoch_end.detach()
