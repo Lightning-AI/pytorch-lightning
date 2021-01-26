@@ -134,10 +134,6 @@ class StochasticWeightAveraging(Callback):
                 module.momentum = None
                 module.num_batches_tracked *= 0
 
-    def apply_momemta(self):
-        for bn_module in self.momenta.keys():
-            bn_module.momentum = self.momenta[bn_module]
-
     def on_fit_start(self, trainer, pl_module):
         self._average_model = deepcopy(pl_module).to("cpu")
         optimizers = trainer.optimizers
