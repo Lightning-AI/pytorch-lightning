@@ -15,19 +15,25 @@ import functools
 import os
 import pickle
 from argparse import Namespace
+from copy import deepcopy
 
 import cloudpickle
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
-from omegaconf import OmegaConf, Container
+from omegaconf import Container, OmegaConf
+from omegaconf.dictconfig import DictConfig
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
-from pytorch_lightning.utilities import AttributeDict, is_picklable
-from tests.base import EvalModelTemplate, TrialMNIST, BoringModel
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
+from pytorch_lightning.utilities import AttributeDict, HYDRA_EXPERIMENTAL_AVAILABLE, is_picklable
+from tests.base import BoringModel, EvalModelTemplate, TrialMNIST
+
+if HYDRA_EXPERIMENTAL_AVAILABLE:
+    from hydra.experimental import compose, initialize
 
 
 class SaveHparamsModel(BoringModel):
@@ -483,13 +489,13 @@ def test_hparams_save_yaml(tmpdir):
     path_yaml = os.path.join(tmpdir, 'testing-hparams.yaml')
 
     save_hparams_to_yaml(path_yaml, hparams)
-    assert load_hparams_from_yaml(path_yaml) == hparams
+    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
 
     save_hparams_to_yaml(path_yaml, Namespace(**hparams))
-    assert load_hparams_from_yaml(path_yaml) == hparams
+    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
 
     save_hparams_to_yaml(path_yaml, AttributeDict(hparams))
-    assert load_hparams_from_yaml(path_yaml) == hparams
+    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
 
     save_hparams_to_yaml(path_yaml, OmegaConf.create(hparams))
     assert load_hparams_from_yaml(path_yaml) == hparams
@@ -642,3 +648,46 @@ def test_model_with_fsspec_as_parameter(tmpdir):
     )
     trainer.fit(model)
     trainer.test()
+
+
+@pytest.mark.skipif(not HYDRA_EXPERIMENTAL_AVAILABLE, reason="Hydra experimental is not available")
+def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
+    """
+    This test relies on configuration saved under tests/models/conf/config.yaml
+    """
+
+    class TestHydraModel(BoringModel):
+
+        def __init__(self, args_0, args_1, args_2, kwarg_1=None):
+            self.save_hyperparameters()
+            self.test_hparams()
+            config_file = f"{tmpdir}/hparams.yaml"
+            save_hparams_to_yaml(config_file, self.hparams)
+            self.hparams = load_hparams_from_yaml(config_file)
+            self.test_hparams()
+            super().__init__()
+
+        def test_hparams(self):
+            assert self.hparams.args_0.log == "Something"
+            assert self.hparams.args_1['cfg'].log == "Something"
+            assert self.hparams.args_2[0].log == "Something"
+            assert self.hparams.kwarg_1['cfg'][0].log == "Something"
+
+    with initialize(config_path="conf"):
+        args_0 = compose(config_name="config")
+        args_1 = {"cfg": compose(config_name="config")}
+        args_2 = [compose(config_name="config")]
+        kwarg_1 = {"cfg": [compose(config_name="config")]}
+        model = TestHydraModel(args_0, args_1, args_2, kwarg_1=kwarg_1)
+        epochs = 2
+        checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            callbacks=[checkpoint_callback],
+            limit_train_batches=10,
+            limit_val_batches=10,
+            max_epochs=epochs,
+            logger=False,
+        )
+        trainer.fit(model)
+        _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)

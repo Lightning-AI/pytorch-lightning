@@ -29,6 +29,7 @@ import torch.nn.functional as F
 import torchvision
 
 import pytorch_lightning as pl
+from pl_examples import cli_lightning_logo
 from pytorch_lightning import Trainer
 from pytorch_lightning.metrics.functional import accuracy
 from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
@@ -54,6 +55,12 @@ class Flatten(nn.Module):
 
 
 class LitResnet(pl.LightningModule):
+    """
+    >>> LitResnet()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    LitResnet(
+      (sequential_module): Sequential(...)
+    )
+    """
     def __init__(self, lr=0.05, batch_size=32, manual_optimization=False):
         super().__init__()
 
@@ -190,6 +197,7 @@ def instantiate_datamodule(args):
 
 
 if __name__ == "__main__":
+    cli_lightning_logo()
     parser = ArgumentParser(description="Pipe Example")
     parser.add_argument("--use_ddp_sequential", action="store_true")
     parser = Trainer.add_argparse_args(parser)

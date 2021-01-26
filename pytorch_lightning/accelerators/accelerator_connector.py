@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 
 import torch
 
 from pytorch_lightning.utilities import HOROVOD_AVAILABLE
-from pytorch_lightning import _logger as log
+
 from pytorch_lightning import accelerators
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
@@ -27,6 +28,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
+
+log = logging.getLogger(__name__)
 
 
 class AcceleratorConnector:
@@ -342,8 +345,8 @@ class AcceleratorConnector:
         # throw error to force user ddp or ddp2 choice
         if self.trainer.num_nodes > 1 and not (self.trainer.use_ddp2 or self.trainer.use_ddp):
             raise MisconfigurationException(
-                'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
-                'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
+                'DataParallel does not support num_nodes > 1. '
+                'To avoid this exception, set `accelerator="ddp"` or `accelerator="ddp2"`'
             )
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.trainer.on_gpu}')

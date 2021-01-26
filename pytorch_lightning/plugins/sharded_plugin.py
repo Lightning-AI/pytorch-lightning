@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional, Union, Any
+from typing import Any, List, Optional, Union
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
-from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, AMPType, rank_zero_only
+from pytorch_lightning.utilities import AMPType, FAIRSCALE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if FAIRSCALE_AVAILABLE:
@@ -42,9 +42,6 @@ class DDPShardedPlugin(DDPPlugin):
         optimizer.consolidate_state_dict()
         return self._optim_state_dict(optimizer)
 
-    def on_before_forward(self, model: LightningModule, *args):
-        return model.transfer_batch_to_device(args, model.trainer.root_gpu)
-
     def _check_fairscale(self):
         if not FAIRSCALE_AVAILABLE:
             raise MisconfigurationException(
@@ -66,7 +63,7 @@ class DDPShardedPlugin(DDPPlugin):
         optimizers = trainer.optimizers
         for x, optimizer in enumerate(optimizers):
             if is_lightning_optimizer(optimizer):
-                optimizer = optimizer._optimizer
+                optimizer = optimizer.optimizer
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(
@@ -76,7 +73,6 @@ class DDPShardedPlugin(DDPPlugin):
                 )
                 optimizers[x] = zero_optimizer
                 del optimizer
-        trainer.convert_to_lightning_optimizers()
 
     def get_model_from_plugin(
             self,

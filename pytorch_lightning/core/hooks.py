@@ -17,9 +17,10 @@
 from typing import Any, Dict, List, Optional, Union
 
 import torch
-from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
+
+from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 
 
 class ModelHooks:
@@ -284,10 +285,9 @@ class ModelHooks:
                 if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
                     params = self.state_dict()
                     for k, v in params.items():
-                        grads = v
-                        name = k
-                        self.logger.experiment.add_histogram(tag=name, values=grads,
-                                                             global_step=self.trainer.global_step)
+                        self.logger.experiment.add_histogram(
+                            tag=k, values=v.grad, global_step=self.trainer.global_step
+                        )
 
         """
 
@@ -539,9 +539,9 @@ class DataHooks:
             any other device than the one passed in as argument (unless you know what you are doing).
 
         Note:
-            This hook only runs on single GPU training (no data-parallel). If you need multi-GPU support
-            for your custom batch objects, you need to define your custom
-            :class:`~torch.nn.parallel.DistributedDataParallel` or
+            This hook only runs on single GPU training and DDP.
+            If you need multi-GPU support for your custom batch objects in ``dp`` or ``ddp2``,
+            you need to define your custom :class:`~torch.nn.parallel.DistributedDataParallel` or
             :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
             override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
 

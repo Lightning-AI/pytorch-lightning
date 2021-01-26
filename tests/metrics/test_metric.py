@@ -6,6 +6,7 @@ import cloudpickle
 import numpy as np
 import pytest
 import torch
+from torch import nn
 
 from pytorch_lightning.metrics.metric import Metric
 
@@ -18,6 +19,20 @@ class Dummy(Metric):
     def __init__(self):
         super().__init__()
         self.add_state("x", torch.tensor(0), dist_reduce_fx=None)
+
+    def update(self):
+        pass
+
+    def compute(self):
+        pass
+
+
+class DummyList(Metric):
+    name = "DummyList"
+
+    def __init__(self):
+        super().__init__()
+        self.add_state("x", list(), dist_reduce_fx=None)
 
     def update(self):
         pass
@@ -77,11 +92,20 @@ def test_reset():
     class A(Dummy):
         pass
 
+    class B(DummyList):
+        pass
+
     a = A()
     assert a.x == 0
     a.x = torch.tensor(5)
     a.reset()
     assert a.x == 0
+
+    b = B()
+    assert isinstance(b.x, list) and len(b.x) == 0
+    b.x = torch.tensor(5)
+    b.reset()
+    assert isinstance(b.x, list) and len(b.x) == 0
 
 
 def test_update():
@@ -178,3 +202,22 @@ def test_state_dict(tmpdir):
     assert metric.state_dict() == OrderedDict(x=0)
     metric.persistent(False)
     assert metric.state_dict() == OrderedDict()
+
+
+def test_child_metric_state_dict():
+    """ test that child metric states will be added to parent state dict """
+    class TestModule(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.metric = Dummy()
+            self.metric.add_state('a', torch.tensor(0), persistent=True)
+            self.metric.add_state('b', [], persistent=True)
+            self.metric.register_buffer('c', torch.tensor(0))
+
+    module = TestModule()
+    expected_state_dict = {
+        'metric.a': torch.tensor(0),
+        'metric.b': [],
+        'metric.c': torch.tensor(0)
+    }
+    assert module.state_dict() == expected_state_dict

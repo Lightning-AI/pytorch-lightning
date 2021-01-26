@@ -40,7 +40,9 @@ RUN apt-get update -qq && \
         build-essential \
         cmake \
         git \
+        wget \
         curl \
+        unzip \
         ca-certificates \
     && \
 
@@ -75,16 +77,16 @@ ENV CONDA_ENV=lightning
 COPY environment.yml environment.yml
 
 # conda init
-RUN conda create -y --name $CONDA_ENV cudatoolkit=${CUDA_VERSION} && \
+RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
-    # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installe later
+    # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installed later
     python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
-    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python[>=]+[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
-    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'torch[>=]+[\d\.]+', 'torch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- python[>=]+[\d\.]+', '# - python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '# - pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if 'horovod' not in ln])" && \
     cat environment.yml && \
-    conda env update --file environment.yml && \
+    conda env update --name $CONDA_ENV --file environment.yml && \
     conda clean -ya && \
     rm environment.yml
 

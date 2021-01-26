@@ -1,11 +1,13 @@
+import logging
 import os
 import re
 import signal
 from subprocess import call
-from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.distributed import rank_zero_info
 import torch.distributed as torch_distrib
 import torch
+
+log = logging.getLogger(__name__)
 
 
 class SLURMConnector:
@@ -137,7 +139,7 @@ class SLURMConnector:
 
         # figure out the root node addr
         try:
-            root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
+            root_node = os.environ["SLURM_NODELIST"].split(" ")[0].split(",")[0]
         except Exception:
             root_node = "127.0.0.1"
 

@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from pytorch_lightning import LightningModule
 from torch.utils.data import Dataset
+
+from pytorch_lightning import LightningModule
 
 
 class RandomDictDataset(Dataset):

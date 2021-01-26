@@ -24,12 +24,16 @@ from unittest import mock
 import numpy as np
 import pytest
 import torch
-from torch.utils.data import Dataset
+from torch.nn import functional as F
+from torch.utils.data import DataLoader, Dataset, random_split
+from torchvision import transforms
+from torchvision.datasets.mnist import MNIST
 
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loggers import WandbLogger
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
 

@@ -42,7 +42,6 @@ class Precision(Metric):
 
     Args:
         num_classes: Number of classes in the dataset.
-        beta: Beta coefficient in the F measure.
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
 
@@ -135,7 +134,6 @@ class Recall(Metric):
 
     Args:
         num_classes: Number of classes in the dataset.
-        beta: Beta coefficient in the F measure.
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
 
@@ -207,7 +205,7 @@ class Recall(Metric):
 
     def compute(self):
         """
-        Computes accuracy over state.
+        Computes recall over state.
         """
         if self.average == 'micro':
             return self.true_positives.sum().float() / (self.actual_positives.sum() + METRIC_EPS)

@@ -15,8 +15,9 @@ import pytest
 import torch
 import torch.nn as nn
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.memory import UNKNOWN_SIZE, ModelSummary
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.models import ParityModuleRNN
 
 
@@ -66,6 +67,15 @@ class MixedDtypeModel(LightningModule):
 
     def forward(self, x):
         return self.reduce(self.embed(x))
+
+
+def test_invalid_weights_summmary():
+    """ Test that invalid value for weights_summary raises an error. """
+    with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
+        UnorderedModel().summarize(mode='temp')
+
+    with pytest.raises(MisconfigurationException, match='`weights_summary` can be None, .* got temp'):
+        Trainer(weights_summary='temp')
 
 
 @pytest.mark.parametrize(['mode'], [

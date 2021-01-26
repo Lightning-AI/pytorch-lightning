@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 This example is largely adapted from https://github.com/pytorch/examples/blob/master/imagenet/main.py
 
@@ -32,10 +45,17 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 
 import pytorch_lightning as pl
+from pl_examples import cli_lightning_logo
 from pytorch_lightning.core import LightningModule
 
 
 class ImageNetLightningModel(LightningModule):
+    """
+    >>> ImageNetLightningModel(data_path='missing')  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    ImageNetLightningModel(
+      (model): ResNet(...)
+    )
+    """
     # pull out resnet names from torchvision models
     MODEL_NAMES = sorted(
         name for name in models.__dict__
@@ -44,14 +64,14 @@ class ImageNetLightningModel(LightningModule):
 
     def __init__(
             self,
-            arch: str,
-            pretrained: bool,
-            lr: float,
-            momentum: float,
-            weight_decay: int,
             data_path: str,
-            batch_size: int,
-            workers: int,
+            arch: str = 'resnet18',
+            pretrained: bool = False,
+            lr: float = 0.1,
+            momentum: float = 0.9,
+            weight_decay: float = 1e-4,
+            batch_size: int = 4,
+            workers: int = 2,
             **kwargs,
     ):
         super().__init__()
@@ -246,4 +266,5 @@ def run_cli():
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     run_cli()

@@ -23,36 +23,16 @@ import torch
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import AllGatherGrad, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.package_utils import _module_available
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable
 from pytorch_lightning.utilities.xla_device_utils import XLA_AVAILABLE, XLADeviceUtils
 
-
-def _module_available(module_path: str) -> bool:
-    """Testing if given module is avalaible in your env
-
-    >>> _module_available('os')
-    True
-    >>> _module_available('bla.bla')
-    False
-    """
-    # todo: find a better way than try / except
-    try:
-        mods = module_path.split('.')
-        assert mods, 'nothing given to test'
-        # it has to be tested as per partets
-        for i in range(len(mods)):
-            module_path = '.'.join(mods[:i + 1])
-            if importlib.util.find_spec(module_path) is None:
-                return False
-        return True
-    except AttributeError:
-        return False
-
-
+OMEGACONF_AVAILABLE = _module_available("omegaconf")
 APEX_AVAILABLE = _module_available("apex.amp")
 NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 OMEGACONF_AVAILABLE = _module_available("omegaconf")
 HYDRA_AVAILABLE = _module_available("hydra")
+HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
 HOROVOD_AVAILABLE = _module_available("horovod.torch")
 BOLTS_AVAILABLE = _module_available("pl_bolts")
 

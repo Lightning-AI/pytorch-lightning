@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import torch
+
 from pytorch_lightning import Trainer
 from tests.base.boring_model import BoringModel
-import torch
 
 
 def test_multiple_optimizers(tmpdir):
@@ -68,6 +69,10 @@ def test_multiple_optimizers_manual(tmpdir):
     Tests that only training_step can be used
     """
     class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
         def on_train_epoch_start(self) -> None:
             self.opt_0_seen = False
             self.opt_1_seen = False
@@ -96,10 +101,6 @@ def test_multiple_optimizers_manual(tmpdir):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
-
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
 
     model = TestModel()
     model.val_dataloader = None

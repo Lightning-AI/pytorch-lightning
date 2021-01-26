@@ -19,7 +19,8 @@ from typing import Any, Optional, Union
 
 import torch
 
-from pytorch_lightning import _logger as log
+import logging
+log = logging.getLogger(__name__)
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp, group
@@ -202,10 +203,11 @@ def all_gather_ddp_if_available(
     Return:
         A tensor of shape (world_size, batch, ...)
     """
+    group = group if group is not None else torch.distributed.group.WORLD
     if torch.distributed.is_available() and torch.distributed.is_initialized():
         if sync_grads:
             return AllGatherGrad.apply(tensor, group)
         else:
-            with torch.no_grad:
+            with torch.no_grad():
                 return AllGatherGrad.apply(tensor, group)
     return tensor

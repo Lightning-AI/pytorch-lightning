@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 
 import numpy as np
@@ -18,6 +19,8 @@ import numpy as np
 TEST_ROOT = os.path.dirname(__file__)
 PROJECT_ROOT = os.path.dirname(TEST_ROOT)
 TEMP_PATH = os.path.join(PROJECT_ROOT, 'test_temp')
+DATASETS_PATH = os.path.join(PROJECT_ROOT, 'Datasets')
+LEGACY_PATH = os.path.join(PROJECT_ROOT, 'legacy')
 
 # todo: this setting `PYTHONPATH` may not be used by other evns like Conda for import packages
 if PROJECT_ROOT not in os.getenv('PYTHONPATH', ""):
@@ -29,3 +32,6 @@ RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
 
 if not os.path.isdir(TEMP_PATH):
     os.mkdir(TEMP_PATH)
+
+
+logging.basicConfig(level=logging.ERROR)

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
+from unittest.mock import patch
 
 import pytest
 
@@ -19,11 +20,7 @@ import pytorch_lightning.utilities.xla_device_utils as xla_utils
 from pytorch_lightning.utilities import XLA_AVAILABLE, TPU_AVAILABLE
 from tests.base.develop_utils import pl_multi_process_test
 
-if XLA_AVAILABLE:
-    import torch_xla.core.xla_model as xm
 
-
-# lets hope that in or env we have installed XLA only for TPU devices, otherwise, it is testing in the cycle "if I am true test that I am true :D"
 @pytest.mark.skipif(XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
     """Check tpu_device_exists returns None when torch_xla is not available"""
@@ -37,12 +34,12 @@ def test_tpu_device_presence():
     assert xla_utils.XLADeviceUtils.tpu_device_exists() is True
 
 
-def test_result_returns_within_20_seconds():
+@patch('pytorch_lightning.utilities.xla_device_utils.TPU_CHECK_TIMEOUT', 10)
+def test_result_returns_within_timeout_seconds():
     """Check that pl_multi_process returns within 10 seconds"""
-
     start = time.time()
-    result = xla_utils.pl_multi_process(time.sleep)(25)
+    result = xla_utils.pl_multi_process(time.sleep)(xla_utils.TPU_CHECK_TIMEOUT * 1.25)
     end = time.time()
     elapsed_time = int(end - start)
-    assert elapsed_time <= 20
+    assert elapsed_time <= xla_utils.TPU_CHECK_TIMEOUT
     assert result is False

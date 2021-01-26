@@ -29,6 +29,8 @@ def test_neptune_online(neptune):
     # It's important to check if the internal variable _experiment was initialized in __init__.
     # Calling logger.experiment would cause a side-effect of initializing _experiment,
     # if it wasn't already initialized.
+    assert logger._experiment is None
+    _ = logger.experiment
     assert logger._experiment == created_experiment
     assert logger.name == created_experiment.name
     assert logger.version == created_experiment.id
@@ -37,10 +39,9 @@ def test_neptune_online(neptune):
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_existing_experiment(neptune):
     logger = NeptuneLogger(experiment_id='TEST-123')
-
-    neptune.Session.with_default_backend().get_project().get_experiments.assert_called_once_with(id='TEST-123')
-
+    neptune.Session.with_default_backend().get_project().get_experiments.assert_not_called()
     experiment = logger.experiment
+    neptune.Session.with_default_backend().get_project().get_experiments.assert_called_once_with(id='TEST-123')
     assert logger.experiment_name == experiment.get_system_properties()['name']
     assert logger.params == experiment.get_parameters()
     assert logger.properties == experiment.get_properties()
@@ -50,7 +51,8 @@ def test_neptune_existing_experiment(neptune):
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_offline(neptune):
     logger = NeptuneLogger(offline_mode=True)
-
+    neptune.Session.assert_not_called()
+    _ = logger.experiment
     neptune.Session.assert_called_once_with(backend=neptune.OfflineBackend())
     assert logger.experiment == neptune.Session().get_project().create_experiment()
 
@@ -74,8 +76,8 @@ def test_neptune_additional_methods(neptune):
     created_experiment.log_metric.reset_mock()
 
     logger.log_text('test', 'text')
-    created_experiment.log_metric.assert_called_once_with('test', 'text')
-    created_experiment.log_metric.reset_mock()
+    created_experiment.log_text.assert_called_once_with('test', 'text', step=None)
+    created_experiment.log_text.reset_mock()
 
     logger.log_image('test', 'image file')
     created_experiment.log_image.assert_called_once_with('test', 'image file')

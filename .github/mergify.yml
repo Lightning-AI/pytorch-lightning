@@ -1,0 +1,58 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+pull_request_rules:
+
+  - name: warn on conflicts
+    conditions:
+      - conflict
+      - -draft # filter-out GH draft PRs
+      - -label="has conflicts"
+    actions:
+      # comment:
+      #   message: This pull request is now in conflict... :(
+      label:
+        add: [ "has conflicts" ]
+
+  - name: resolved conflicts
+    conditions:
+      - -conflict
+      - label="has conflicts"
+      - -draft # filter-out GH draft PRs
+      - -merged # not merged yet
+      - -closed
+    actions:
+      label:
+        remove: [ "has conflicts" ]
+
+  - name: update PR
+    conditions:
+      - -conflict
+      - -draft # filter-out GH draft PRs
+      - -title~=(?i)wip # skip all PR that title contains “WIP” (ignoring case)
+      - "#approved-reviews-by>=3" # number of review approvals
+    actions:
+      update: {}
+
+  - name: add core reviewer
+    conditions:
+      - -conflict # skip if conflict
+      - -draft # filter-out GH draft PRs
+      - label="0:] Ready-To-Go"
+      - "#approved-reviews-by<3" # number of review approvals
+      - "#review-requested<3" # number of requested reviews
+    actions:
+      request_reviews:
+        teams:
+          - "@PyTorchLightning/core-contributors"

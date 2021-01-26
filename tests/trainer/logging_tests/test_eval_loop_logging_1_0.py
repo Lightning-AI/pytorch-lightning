@@ -25,7 +25,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import Trainer, callbacks, seed_everything
+from pytorch_lightning import callbacks, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -292,7 +292,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
-        callbacks=[ModelCheckpoint(dirpath='val_loss')],
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     trainer.fit(model)
 
@@ -813,7 +813,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         def test_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.log('fake_test_acc', loss)
+            self.log('test_loss', loss)
             return {"y": loss}
 
     model = ExtendedModel()
@@ -825,7 +825,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         logger=TensorBoardLogger(tmpdir),
         limit_train_batches=2,
         limit_val_batches=2,
-        limit_test_batches=0,
+        limit_test_batches=2,
         max_epochs=2,
         progress_bar_refresh_rate=1,
     )
@@ -877,33 +877,15 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     expected = torch.stack(model.val_losses[4:]).mean()
     assert get_metrics_at_idx(6)["valid_loss_1"] == expected
 
-
-def test_progress_bar_dict_contains_values_on_test_epoch_end(tmpdir):
-    class TestModel(BoringModel):
-        def test_step(self, *args):
-            self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
-
-        def test_epoch_end(self, *_):
-            self.epoch_end_called = True
-            self.log('foo_2', torch.tensor(self.current_epoch), prog_bar=True,
-                     on_epoch=True, sync_dist=True, sync_dist_op='sum')
-
-        def on_test_epoch_end(self, *_):
-            self.on_test_epoch_end_called = True
-            assert self.trainer.progress_bar_dict["foo"] == self.current_epoch
-            assert self.trainer.progress_bar_dict["foo_2"] == self.current_epoch
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=1,
-        num_sanity_val_steps=2,
-        checkpoint_callback=False,
-        logger=False,
-        weights_summary=None,
-        progress_bar_refresh_rate=0,
-    )
-    model = TestModel()
-    trainer.test(model)
-    assert model.epoch_end_called
-    assert model.on_test_epoch_end_called
+    results = trainer.test(model)
+    expected_callback_metrics = {
+        'train_loss',
+        'valid_loss_0_epoch',
+        'valid_loss_0',
+        'debug_epoch',
+        'valid_loss_1',
+        'test_loss',
+        'val_loss'
+    }
+    assert set(trainer.callback_metrics) == expected_callback_metrics
+    assert set(results[0]) == {'test_loss', 'debug_epoch'}

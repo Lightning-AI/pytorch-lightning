@@ -180,9 +180,8 @@ def test_reducelronplateau_scheduling(tmpdir):
     ), 'lr scheduler was not correctly converted to dict'
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_optimizer_return_options(enable_pl_optimizer):
-    trainer = Trainer(enable_pl_optimizer=enable_pl_optimizer)
+def test_optimizer_return_options():
+    trainer = Trainer()
     model = EvalModelTemplate()
 
     # single optimizer
@@ -482,4 +481,21 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match='The lr scheduler dict must have the key "scheduler"'):
+        trainer.fit(model)
+
+
+def test_invalid_optimizer_in_scheduler(tmpdir):
+    """
+    Test exception when optimizer attatched to lr_schedulers wasn't returned
+    """
+    class InvalidOptimizerModel(BoringModel):
+        def configure_optimizers(self):
+            opt1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            opt2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(opt2, step_size=1)
+            return [opt1], [lr_scheduler]
+
+    model = InvalidOptimizerModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.raises(MisconfigurationException, match="attatched with an optimizer that wasn't returned"):
         trainer.fit(model)

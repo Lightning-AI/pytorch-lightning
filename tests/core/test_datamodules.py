@@ -13,21 +13,21 @@
 # limitations under the License.
 import pickle
 from argparse import ArgumentParser
-from unittest.mock import MagicMock
 from typing import Optional
+from unittest.mock import MagicMock
 
 import pytest
 import torch
 from torch.utils.data import DataLoader, random_split
 
-from pytorch_lightning import LightningDataModule, Trainer, seed_everything
-from tests.base import EvalModelTemplate
-from tests.base.datasets import TrialMNIST
-from tests.base.datamodules import TrialMNISTDataModule
-from tests.base.develop_utils import reset_seed
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning import LightningDataModule, seed_everything, Trainer
 from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.utilities.model_utils import is_overridden
+from tests.base import EvalModelTemplate
+from tests.base.datamodules import TrialMNISTDataModule
+from tests.base.datasets import TrialMNIST
+from tests.base.develop_utils import reset_seed
 
 
 def test_can_prepare_data(tmpdir):
@@ -170,14 +170,14 @@ def test_data_hooks_called_with_stage_kwarg(tmpdir):
 def test_dm_add_argparse_args(tmpdir):
     parser = ArgumentParser()
     parser = TrialMNISTDataModule.add_argparse_args(parser)
-    args = parser.parse_args(['--data_dir', './my_data'])
-    assert args.data_dir == './my_data'
+    args = parser.parse_args(['--data_dir', str(tmpdir)])
+    assert args.data_dir == str(tmpdir)
 
 
 def test_dm_init_from_argparse_args(tmpdir):
     parser = ArgumentParser()
     parser = TrialMNISTDataModule.add_argparse_args(parser)
-    args = parser.parse_args(['--data_dir', './my_data'])
+    args = parser.parse_args(['--data_dir', str(tmpdir)])
     dm = TrialMNISTDataModule.from_argparse_args(args)
     dm.prepare_data()
     dm.setup()

@@ -20,7 +20,7 @@ import pytest
 
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import MLFlowLogger
+from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
 from tests.base import EvalModelTemplate
 
 
@@ -120,7 +120,7 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
 
 def test_mlflow_logger_dirs_creation(tmpdir):
     """ Test that the logger creates the folders and files in the right place. """
-    if not importlib.util.find_spec('mlflow'):
+    if not _MLFLOW_AVAILABLE:
         pytest.xfail("test for explicit file creation requires mlflow dependency to be installed.")
 
     assert not os.listdir(tmpdir)
@@ -137,8 +137,13 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
 
     model = EvalModelTemplate()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3,
-                      log_gpu_memory=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_val_batches=3,
+        log_gpu_memory=True,
+    )
     trainer.fit(model)
     assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
     assert 'epoch' in os.listdir(tmpdir / exp_id / run_id / 'metrics')

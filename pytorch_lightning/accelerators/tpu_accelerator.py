@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
+import logging
 import os
 import re
 from typing import Any, Callable, Optional, Union
@@ -20,21 +21,21 @@ import torch
 import torch.multiprocessing as mp
 from torch.optim import Optimizer
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import (
-    TPU_AVAILABLE,
     move_data_to_device,
     rank_zero_info,
     rank_zero_only,
     rank_zero_warn,
+    TPU_AVAILABLE,
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+log = logging.getLogger(__name__)
 if TPU_AVAILABLE:
     import torch_xla
     import torch_xla.core.xla_model as xm
@@ -134,8 +135,7 @@ class TPUAccelerator(Accelerator):
         # setup TPU training
         self.__setup_tpu_training(model, trainer)
 
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        self.trainer.setup_trainer(model)
 
         # train or test
         results = self.train_or_test()
@@ -229,8 +229,6 @@ class TPUAccelerator(Accelerator):
         log.info(f'INIT TPU local core: {trainer.tpu_local_core_rank},'
                  f' global rank: {trainer.tpu_global_core_rank}'
                  f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
-
-        self.trainer.convert_to_lightning_optimizers()
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         # do backward pass

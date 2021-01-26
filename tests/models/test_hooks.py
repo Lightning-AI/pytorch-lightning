@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+import os
+from unittest.mock import MagicMock
 
 import pytest
 import torch
-from unittest.mock import MagicMock
+
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
-from tests.base import EvalModelTemplate, BoringModel
+import pytorch_lightning as pl
+from tests.base import BoringModel, EvalModelTemplate, RandomDataset
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
@@ -89,6 +92,58 @@ def test_training_epoch_end_metrics_collection(tmpdir):
         assert metrics[f'epoch_metric_{i}'] == i
 
 
+def test_training_epoch_end_metrics_collection_on_override(tmpdir):
+    """ Test that batch end metrics are collected when training_epoch_end is overridden at the end of an epoch. """
+    num_epochs = 1
+
+    class LoggingCallback(pl.Callback):
+
+        def on_train_epoch_end(self, trainer, pl_module):
+            self.len_outputs = 0
+
+        def on_train_epoch_end(self, trainer, pl_module, outputs):
+            self.len_outputs = len(outputs[0])
+
+    class OverriddenModel(EvalModelTemplate):
+
+        def on_train_epoch_start(self):
+            self.num_train_batches = 0
+
+        def training_epoch_end(self, outputs):  # Overridden
+            pass
+            return
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.num_train_batches += 1
+
+    class NotOverriddenModel(EvalModelTemplate):
+
+        def on_train_epoch_start(self):
+            self.num_train_batches = 0
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.num_train_batches += 1
+
+    overridden_model = OverriddenModel()
+    not_overridden_model = NotOverriddenModel()
+
+    callback = LoggingCallback()
+    trainer = Trainer(
+        max_epochs=num_epochs,
+        default_root_dir=tmpdir,
+        overfit_batches=2,
+        callbacks=[callback],
+    )
+
+    result = trainer.fit(overridden_model)
+    assert callback.len_outputs == overridden_model.num_train_batches
+    # outputs from on_train_batch_end should be accessible in on_train_epoch_end hook if training_epoch_end is overridden
+
+    result = trainer.fit(not_overridden_model)
+    assert callback.len_outputs == 0
+    # outputs from on_train_batch_end should be empty
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_transfer_batch_hook():
 
@@ -122,6 +177,49 @@ def test_transfer_batch_hook():
     expected = torch.device('cuda', 0)
     assert model.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+def test_transfer_batch_hook_ddp(tmpdir):
+    """
+    Test custom data are properly moved to the right device using ddp
+    """
+
+    class CustomBatch:
+
+        def __init__(self, data):
+            self.samples = data[0]
+
+        def to(self, device, **kwargs):
+            self.samples = self.samples.to(device, **kwargs)
+            return self
+
+    def collate_fn(batch):
+        return CustomBatch(batch)
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            assert batch.samples.device == self.device
+            assert isinstance(batch_idx, int)
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDataset(32, 64), collate_fn=collate_fn)
+
+    model = TestModel()
+    model.validation_step = None
+    model.training_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        max_epochs=1,
+        weights_summary=None,
+        accelerator="ddp",
+        gpus=2,
+    )
+    trainer.fit(model)
 
 
 @pytest.mark.parametrize(
@@ -348,8 +446,6 @@ def test_trainer_model_hook_system(tmpdir):
 
     expected = [
         'on_fit_start',
-        'on_pretrain_routine_start',
-        'on_pretrain_routine_end',
         'on_test_model_eval',
         'on_test_epoch_start',
         'on_test_batch_start',
