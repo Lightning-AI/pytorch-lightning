@@ -286,7 +286,7 @@ This pattern is implemented for the following operators (with ``a`` being metric
 * Greater (``a > b``)
 * Less Equal (``a <= b``)
 * Less (``a < b``)
-* Matrix Multiplication (``a @b ``)
+* Matrix Multiplication (``a @ b``)
 * Modulo (``a % b``)
 * Multiplication (``a * b``)
 * Inequality (``a != b``)
