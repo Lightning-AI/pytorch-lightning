@@ -27,6 +27,7 @@ timit_data/
 # C extensions
 *.so
 
+# PyCharm
 .idea/
 
 # Distribution / packaging
@@ -126,11 +127,14 @@ ENV/
 
 # mypy
 .mypy_cache/
+# pytest
+.pytest_cache/
 
 # data
 .data/
 Datasets/
 mnist/
+legacy/checkpoints/
 
 # pl tests
 ml-runs/

@@ -23,6 +23,12 @@ MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
 COPY ./ ./pytorch-lightning/
 
+# Pull the legacy checkpoints
+RUN cd pytorch-lightning && \
+    wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/ && \
+    unzip -o legacy/checkpoints.zip -d legacy/ && \
+    ls -l legacy/checkpoints/
+
 # If using this image for tests, intall more dependencies and don"t delete the source code where the tests live.
 RUN \
     # Install pytorch-lightning at the current PR, plus dependencies.

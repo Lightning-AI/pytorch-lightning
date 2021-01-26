@@ -53,8 +53,6 @@ class GPUAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         self.trainer.model = model
 
     def train(self):
