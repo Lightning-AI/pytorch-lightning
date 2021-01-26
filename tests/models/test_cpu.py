@@ -304,12 +304,11 @@ def test_cpu_model(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_train_batches=4,
+        limit_val_batches=4
     )
 
-    model = EvalModelTemplate()
-
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
