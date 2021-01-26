@@ -45,8 +45,8 @@ class StochasticWeightAveraging(Callback):
 
         r"""Implements averaged model for Stochastic Weight Averaging (SWA) Callbacks.
 
-        Stochastic Weight Averaging was proposed in `Averaging Weights Leads to
-        Wider Optima and Better Generalization`_ by Pavel Izmailov, Dmitrii
+        Stochastic Weight Averaging was proposed in ``Averaging Weights Leads to
+        Wider Optima and Better Generalization`` by Pavel Izmailov, Dmitrii
         Podoprikhin, Timur Garipov, Dmitry Vetrov and Andrew Gordon Wilson
         (UAI 2018).
 
