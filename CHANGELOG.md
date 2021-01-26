@@ -7,20 +7,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [1.1.6] - 2021-01-26
 
-### Added
-
-
 ### Changed
 
 - Increased TPU check timeout from 20s to 100s ([#5598](https://github.com/PyTorchLightning/pytorch-lightning/pull/5598))
 - Ignored `step` param in Neptune logger's log_metric method ([#5510](https://github.com/PyTorchLightning/pytorch-lightning/pull/5510))
 - Pass batch outputs to on_train_batch_end instead of epoch end outputs ([#4369](https://github.com/PyTorchLightning/pytorch-lightning/pull/4369))
-
-### Deprecated
-
-
-### Removed
-
 
 ### Fixed
 
