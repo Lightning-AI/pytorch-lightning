@@ -740,6 +740,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         weights_summary=None,
         accelerator="ddp",
         gpus=2,
+        profiler="pytorch"
     )
     trainer.fit(model)
 

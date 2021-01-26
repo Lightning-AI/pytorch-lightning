@@ -6,7 +6,7 @@ pytest>=5.0
 flake8>=3.6
 flake8-black
 check-manifest
-twine==1.13.0
+twine==3.2
 # scipy>=0.13.3
 scikit-learn>=0.22.2
 scikit-image>=0.17.2

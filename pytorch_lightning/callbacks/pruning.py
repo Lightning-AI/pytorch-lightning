@@ -114,12 +114,11 @@ class ModelPruning(Callback):
             use_global_unstructured: Whether to apply pruning globally on the model.
                 If parameters_to_prune is provided, global_unstructured will be restricted on them.
 
-            amount: quantity of parameters to prune.
-                If float, should be between 0.0 and 1.0 and
-                represent the fraction of parameters to prune.
-                If int, it represents the absolute number
-                of parameters to prune.
-                If Callable, the function will be called on every epoch.
+            amount: quantity of parameters to prune:
+
+                - float, should be between 0.0 and 1.0 and represent the fraction of parameters to prune.
+                - int, it represents the absolute number of parameters to prune.
+                - Callable, the function will be called on every epoch.
 
             prune_on_epoch_end: bool flag determines call or not to call pruning_fn on epoch end.
 
@@ -380,8 +379,8 @@ class ModelPruning(Callback):
 
                 if len(missing_modules) > 0 or len(missing_parameters) > 0:
                     raise MisconfigurationException(
-                        "Ths provided parameters_to_tune doesn't exist in the model. "
-                        f"Found mismatching modules: {missing_modules} and missing_parameters: {missing_parameters}"
+                        "Ths provided parameters_to_tune doesn't exist in the model."
+                        f" Found mismatching modules: {missing_modules} and missing_parameters: {missing_parameters}"
                     )
 
             else:
