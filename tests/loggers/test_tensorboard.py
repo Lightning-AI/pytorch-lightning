@@ -213,8 +213,11 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
     Tests to ensure that tensorboard log properly when accumulated_gradients > 1
     """
     class TestModel(BoringModel):
-        _count = 0
-        _indexes = []
+
+        def __init__(self):
+            super().__init__()
+            self._count = 0
+            self._indexes = []
 
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -222,10 +225,10 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
             self.log('count', self._count, on_step=True, on_epoch=True)
             self.log('loss', loss, on_step=True, on_epoch=True)
 
-            if self.trainer.logger_connector.should_update_logs:
-                self._indexes.append(self._count)
+            if not self.trainer.train_loop.should_accumulate():
+                if self.trainer.logger_connector.should_update_logs:
+                    self._indexes.append(self.trainer.global_step)
 
-            self._count += 1
             return loss
 
         def validation_step(self, batch, batch_idx):
@@ -245,14 +248,13 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
 
     logger_0 = TensorBoardLogger(tmpdir, default_hp_metric=False)
 
-    accumulate_grad_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=12,
-        limit_val_batches=12,
+        limit_val_batches=0,
         max_epochs=3,
         gpus=0,
-        accumulate_grad_batches=accumulate_grad_batches,
+        accumulate_grad_batches=2,
         logger=[logger_0],
         log_every_n_steps=3,
     )
@@ -260,5 +262,6 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
 
     mock_count_epochs = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_epoch" in m[2]["metrics"]]
     assert mock_count_epochs == expected
+
     mock_count_steps = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_step" in m[2]["metrics"]]
     assert model._indexes == mock_count_steps
