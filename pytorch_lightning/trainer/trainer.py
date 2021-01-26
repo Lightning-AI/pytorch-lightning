@@ -906,7 +906,7 @@ class Trainer(
 
         if datamodule is not None:
             # Attach datamodule to get setup/prepare_data added to model before the call to it below
-            self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
+            self.data_connector.attach_datamodule(model, datamodule, 'test')
 
         # attach data
         if dataloaders is not None:
