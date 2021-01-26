@@ -81,11 +81,12 @@ class ActorCategorical(nn.Module):
 
     def get_log_prob(self, pi: Categorical, actions: torch.Tensor):
         """
-        Takes in a distribution and actions and returns log prob of actions
-        under the distribution
+        Takes in a distribution and actions and returns log prob of actions under the distribution
+
         Args:
             pi: torch distribution
             actions: actions taken by distribution
+
         Returns:
             log probability of the acition under pi
         """
@@ -119,11 +120,12 @@ class ActorContinous(nn.Module):
 
     def get_log_prob(self, pi: Normal, actions: torch.Tensor):
         """
-        Takes in a distribution and actions and returns log prob of actions
-        under the distribution
+        Takes in a distribution and actions and returns log prob of actions under the distribution
+
         Args:
             pi: torch distribution
             actions: actions taken by distribution
+
         Returns:
             log probability of the acition under pi
         """
@@ -234,8 +236,10 @@ class PPOLightning(pl.LightningModule):
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Passes in a state x through the network and returns the policy and a sampled action
+
         Args:
             x: environment state
+
         Returns:
             Tuple of policy and action
         """
@@ -246,8 +250,10 @@ class PPOLightning(pl.LightningModule):
 
     def discount_rewards(self, rewards: List[float], discount: float) -> List[float]:
         """Calculate the discounted rewards of all rewards in list
+
         Args:
             rewards: list of rewards/advantages
+
         Returns:
             list of discounted rewards/advantages
         """
@@ -264,10 +270,12 @@ class PPOLightning(pl.LightningModule):
 
     def calc_advantage(self, rewards: List[float], values: List[float], last_value: float) -> List[float]:
         """Calculate the advantage given rewards, state values, and the last value of episode
+
         Args:
             rewards: list of episode rewards
             values: list of state values from critic
             last_value: value of last state of episode
+
         Returns:
             list of advantages
         """
@@ -386,6 +394,7 @@ class PPOLightning(pl.LightningModule):
             batch: batch of replay buffer/trajectory data
             batch_idx: not used
             optimizer_idx: idx that controls optimizing actor or critic network
+
         Returns:
             loss
         """
