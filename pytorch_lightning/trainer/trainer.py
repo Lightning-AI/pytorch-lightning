@@ -296,7 +296,7 @@ class Trainer(
         self._device_type = DeviceType.CPU
         self._distrib_type = None
         self._running_stage = None
-        self.is_predicting = False
+        self._predicting = False
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -519,7 +519,7 @@ class Trainer(
         # trainer _running_state should be RunningStage.TESTING
         # however, the model running_stage should be RunningStage.PREDICTING or None
         if model_ref is not None:
-            if self.is_predicting:
+            if self._predicting:
                 model_ref.running_stage = RunningStage.PREDICTING
             else:
                 model_ref.running_stage = stage
@@ -643,7 +643,7 @@ class Trainer(
                 # lightning module methods
                 with self.profiler.profile("evaluation_step_and_end"):
                     output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
-                    if self.is_predicting:
+                    if self._predicting:
                         continue
                     output = self.evaluation_loop.evaluation_step_end(output)
 
@@ -659,7 +659,7 @@ class Trainer(
             # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
 
-        if self.is_predicting:
+        if self._predicting:
             return self.evaluation_loop.on_predict_epoch_end()
 
         # lightning module method
@@ -913,7 +913,7 @@ class Trainer(
             self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
 
         # set path variable
-        self.is_predicting = True
+        self._predicting = True
         os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
 
@@ -922,7 +922,7 @@ class Trainer(
         # unset path variable
         self.teardown('test')
         del os.environ['PL_TESTING_MODE']
-        self.is_predicting = False
+        self._predicting = False
         self._set_running_stage(None)
 
         return results

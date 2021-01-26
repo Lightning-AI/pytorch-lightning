@@ -164,7 +164,7 @@ class EvaluationLoop(object):
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
 
-        if self.trainer.is_predicting:
+        if self.trainer._predicting:
             model_ref._current_fx_name = "predict"
             predictions = self.trainer.accelerator_backend.predict([args[0]])
             self._predictions[dataloader_idx].append(predictions)
