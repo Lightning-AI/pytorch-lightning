@@ -17,6 +17,7 @@ Pruning
 ^^^^^^^
 
 """
+import inspect
 from copy import deepcopy
 from functools import partial
 from typing import Callable, List, Optional, Tuple, Union
@@ -124,7 +125,7 @@ class ModelPruning(Callback):
 
     def __init__(
         self,
-        pruning_fn: Union[Callable, str],
+        pruning_fn: Union[Callable, str] = None,
         parameters_to_prune: Optional[List[Tuple[nn.Module, str]]] = None,
         parameter_names: List[str] = ["weight"],
         use_global_unstructured: bool = True,
@@ -212,6 +213,7 @@ class ModelPruning(Callback):
         self.prune_on_fit_end = prune_on_fit_end
         self.use_lottery_ticket_hypothesis = use_lottery_ticket_hypothesis
         self.parameter_names = parameter_names or self.PARAMETER_NAMES
+        self._global_kwargs = {}
 
         for param_name in self.parameter_names:
             if param_name not in self.PARAMETER_NAMES:
@@ -238,8 +240,26 @@ class ModelPruning(Callback):
                         )
 
                     pruning_fn = self.create_pruning_fn(pruning_fn, dim=pruning_dim, n=pruning_norm)
+                else:
+                    pruning_fn = self.create_pruning_fn(pruning_fn, dim=pruning_dim)
             else:
                 pruning_fn = self.create_pruning_fn(pruning_fn)
+
+        else:
+            bases = getattr(pruning_fn, "__bases__", None)
+            if bases is None or bases[0] == pytorch_prune.BasePruningMethod:
+                raise MisconfigurationException(
+                    f'pruning_fn is expected to be the str in {_PYTORCH_PRUNING_FUNCTIONS.keys()} '
+                    'or a `PyTorch BasePruningMethod`.')
+
+            if not use_global_unstructured:
+                raise MisconfigurationException(
+                    '`PyTorch BasePruningMethod` is currently support only for `use_global_unstructured=True`. ')
+
+        if use_global_unstructured and pruning_fn.PRUNING_TYPE != "unstructured":
+            raise MisconfigurationException(
+                'Only "unstructured" PRUNING_TYPE supported for '
+                f"the `pruning_method`. Found method {pruning_fn} of type {pruning_fn.PRUNING_TYPE}")
 
         self.pruning_fn = pruning_fn
 
@@ -303,12 +323,22 @@ class ModelPruning(Callback):
         for module, param in self.parameters_to_prune:
             self.pruning_fn(module, name=param, amount=amount)
 
+    def _resolve_global_kwargs(self, amount: float):
+        kwargs = {}
+        self._global_kwargs["amount"] = amount
+        params = inspect.signature(self.pruning_fn).parameters
+        for p_name in params:
+            if p_name != "self":
+                param = self._global_kwargs.get(p_name)
+                if param is not None:
+                    kwargs[p_name] = param
+        return kwargs
+
     def _apply_global_pruning(self, amount: float):
         pytorch_prune.global_unstructured(
             self.parameters_to_prune,
             pruning_method=self.pruning_fn,
-            amount=amount,
-            **self._global_kwargs
+            **self._resolve_global_kwargs(amount)
         )
 
     def apply_pruning(self, trainer, pl_module):

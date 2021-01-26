@@ -13,15 +13,19 @@
 # limitations under the License.
 import os
 
+import numpy as np
 import pytest
 import torch
 from torch import nn
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
 
 if _PYTORCH_PRUNE_AVAILABLE:
+    import torch.nn.utils.prune as pytorch_prune
+
     from pytorch_lightning.callbacks import ModelPruning
 
 
@@ -57,9 +61,12 @@ def train_with_pruning_callback(
     use_global_unstructured,
     accelerator=None,
     gpus=None,
-    num_processes=None
+    num_processes=None,
+    use_custom_pruning_fn=False,
 ):
-    seed_everything(42)
+    if not use_global_unstructured and use_custom_pruning_fn:
+        return
+
     model = PruningModel()
     model.validation_step = None
     model.test_step = None
@@ -75,6 +82,68 @@ def train_with_pruning_callback(
 
     assert torch.sum(model.layer["mlp_2"].weight == 0) == 0
 
+    class TestPruningMethod(pytorch_prune.BasePruningMethod):
+        """Prune every other entry in a tensor
+        """
+        PRUNING_TYPE = 'unstructured'
+
+        def compute_mask(self, t, default_mask):
+            mask = default_mask.clone()
+            mask.view(-1)[::2] = 0
+            return mask
+
+        @classmethod
+        def apply(cls, module, name, amount):
+            r"""Adds the forward pre-hook that enables pruning on the fly and
+            the reparametrization of a tensor in terms of the original tensor
+            and the pruning mask.
+
+            Args:
+                module (nn.Module): module containing the tensor to prune
+                name (str): parameter name within ``module`` on which pruning
+                    will act.
+                amount (int or float): quantity of parameters to prune.
+                    If ``float``, should be between 0.0 and 1.0 and represent the
+                    fraction of parameters to prune. If ``int``, it represents the
+                    absolute number of parameters to prune.
+            """
+            return super(TestPruningMethod, cls).apply(
+                module, name, amount=amount
+            )
+
+    custom_pruning_fn = TestPruningMethod
+
+    pruning_funcs_structured = [
+        "ln_structured",
+        "random_structured",
+    ]
+
+    pruning_funcs_unstructured = [
+        "l1_unstructured",
+        "random_unstructured",
+    ]
+
+    if use_global_unstructured:
+        pruning_list = pruning_funcs_unstructured
+    else:
+        pruning_list = pruning_funcs_unstructured + pruning_funcs_structured
+
+    rand_idx = np.random.randint(len(pruning_list))
+    pruning_fn = pruning_list[rand_idx]
+
+    model_pruning_args = {
+        "pruning_fn": custom_pruning_fn if use_custom_pruning_fn else pruning_fn ,
+        "parameters_to_prune": parameters_to_prune,
+        "amount": 0.3,
+        "use_global_unstructured": use_global_unstructured,
+    }
+
+    if "unstructured" not in pruning_fn:
+        model_pruning_args["pruning_dim"] = 0
+
+    if pruning_fn == "ln_structured":
+        model_pruning_args["pruning_norm"] = 1
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=10,
@@ -83,14 +152,7 @@ def train_with_pruning_callback(
         accelerator=accelerator,
         gpus=gpus,
         num_processes=num_processes,
-        callbacks=[
-            ModelPruning(
-                'l1_unstructured',
-                parameters_to_prune=parameters_to_prune,
-                amount=0.3,
-                use_global_unstructured=use_global_unstructured,
-            )
-        ]
+        callbacks=ModelPruning(**model_pruning_args)
     )
     trainer.fit(model)
     _ = trainer.test(model)
@@ -99,13 +161,48 @@ def train_with_pruning_callback(
         assert torch.sum(model.layer["mlp_2"].weight == 0) > 0
 
 
+def test_with_pruning_callback_misconfiguration(tmpdir):
+    model_pruning_args = {
+        "parameter_names": ["chocolat"],
+    }
+
+    with pytest.raises(MisconfigurationException, match='provided parameter_names'):
+        _ = ModelPruning(**model_pruning_args)
+
+    model_pruning_args = {
+        "parameter_names": ["weight"],
+        "pruning_fn": model_pruning_args
+    }
+
+    with pytest.raises(MisconfigurationException, match='pruning_fn is expected to be the str in'):
+        _ = ModelPruning(**model_pruning_args)
+
+    model_pruning_args = {
+        "parameter_names": ["weight"],
+        "pruning_fn": "random_structured"
+    }
+
+    with pytest.raises(MisconfigurationException, match='should be provided'):
+        _ = ModelPruning(**model_pruning_args)
+
+    model_pruning_args = {
+        "parameter_names": ["weight"],
+        "pruning_fn": "ln_structured",
+        "pruning_dim": 0
+    }
+
+    with pytest.raises(MisconfigurationException, match='requesting `ln_structured` pruning, the `pruning_norm`'):
+        _ = ModelPruning(**model_pruning_args)
+
+
 @pytest.mark.skipif(not _PYTORCH_PRUNE_AVAILABLE, reason="PyTorch prung is needed for this test. ")
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
 @pytest.mark.parametrize("use_global_unstructured", [False, True])
-def test_pruning_callback(tmpdir, use_global_unstructured, parameters_to_prune):
+@pytest.mark.parametrize("use_custom_pruning_fn", [False, True])
+def test_pruning_callback(tmpdir, use_global_unstructured, parameters_to_prune, use_custom_pruning_fn):
     train_with_pruning_callback(
         tmpdir, parameters_to_prune, use_global_unstructured,
-        accelerator=None, gpus=None, num_processes=1)
+        accelerator=None, gpus=None, num_processes=1, use_custom_pruning_fn=use_custom_pruning_fn)
 
 
 @pytest.mark.skipif(not _PYTORCH_PRUNE_AVAILABLE, reason="PyTorch prung is needed for this test. ")
