@@ -11,15 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Union, List
+from typing import Any, List, Optional, Union
 
 import torch
 
-from pytorch_lightning.metrics import Metric
-from pytorch_lightning.metrics.functional.average_precision import (
-    _average_precision_update,
-    _average_precision_compute
-)
+from pytorch_lightning.metrics.functional.average_precision import _average_precision_compute, _average_precision_update
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -92,9 +89,8 @@ class AveragePrecision(Metric):
         self.add_state("target", default=[], dist_reduce_fx=None)
 
         rank_zero_warn(
-            'Metric `AveragePrecision` will save all targets and'
-            ' predictions in buffer. For large datasets this may lead'
-            ' to large memory footprint.'
+            'Metric `AveragePrecision` will save all targets and predictions in buffer.'
+            ' For large datasets this may lead to large memory footprint.'
         )
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):

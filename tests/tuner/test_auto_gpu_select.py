@@ -44,9 +44,9 @@ def test_trainer_with_gpus_options_combination_at_available_gpus_env(
             Please select a valid number of GPU resources when using auto_select_gpus."
             ),
         ):
-            trainer = Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
+            Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
     else:
-        trainer = Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
+        Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
 
 
 @pytest.mark.skipif(

@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Union, Tuple, List
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 
-from pytorch_lightning.metrics import Metric
 from pytorch_lightning.metrics.functional.precision_recall_curve import (
+    _precision_recall_curve_compute,
     _precision_recall_curve_update,
-    _precision_recall_curve_compute
 )
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -73,11 +73,12 @@ class PrecisionRecallCurve(Metric):
         >>> target = torch.tensor([0, 1, 3, 2])
         >>> pr_curve = PrecisionRecallCurve(num_classes=5)
         >>> precision, recall, thresholds = pr_curve(pred, target)
-        >>> precision
-        [tensor([1., 1.]), tensor([1., 1.]), tensor([0.2500, 0.0000, 1.0000]), tensor([0.2500, 0.0000, 1.0000]), tensor([0., 1.])]
+        >>> precision   # doctest: +NORMALIZE_WHITESPACE
+        [tensor([1., 1.]), tensor([1., 1.]), tensor([0.2500, 0.0000, 1.0000]),
+         tensor([0.2500, 0.0000, 1.0000]), tensor([0., 1.])]
         >>> recall
         [tensor([1., 0.]), tensor([1., 0.]), tensor([1., 0., 0.]), tensor([1., 0., 0.]), tensor([nan, 0.])]
-        >>> thresholds   # doctest: +NORMALIZE_WHITESPACE
+        >>> thresholds
         [tensor([0.7500]), tensor([0.7500]), tensor([0.0500, 0.7500]), tensor([0.0500, 0.7500]), tensor([0.0500])]
 
     """
@@ -102,9 +103,8 @@ class PrecisionRecallCurve(Metric):
         self.add_state("target", default=[], dist_reduce_fx=None)
 
         rank_zero_warn(
-            'Metric `PrecisionRecallCurve` will save all targets and'
-            ' predictions in buffer. For large datasets this may lead'
-            ' to large memory footprint.'
+            'Metric `PrecisionRecallCurve` will save all targets and predictions in buffer.'
+            ' For large datasets this may lead to large memory footprint.'
         )
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):

@@ -34,7 +34,7 @@ def mean_squared_log_error(preds: torch.Tensor, target: torch.Tensor) -> torch.T
     Computes mean squared log error
 
     Args:
-        pred: estimated labels
+        preds: estimated labels
         target: ground truth labels
 
     Return:

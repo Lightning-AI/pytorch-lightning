@@ -16,13 +16,12 @@ import os
 import pytest
 import torch
 
-from tests.backends import ddp_model
-from tests.backends import DDPLauncher
+from tests.backends import ddp_model, DDPLauncher
 from tests.utilities.distributed import call_training_script
 
 
 @pytest.mark.parametrize('cli_args', [
-    pytest.param('--max_epochs 1 --gpus 2 --distributed_backend ddp'),
+    pytest.param('--max_epochs 1 --gpus 2 --accelerator ddp'),
 ])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
@@ -38,7 +37,7 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
 
 
 @pytest.mark.parametrize('cli_args', [
-    pytest.param('--max_epochs 1 --gpus 2 --distributed_backend ddp'),
+    pytest.param('--max_epochs 1 --gpus 2 --accelerator ddp'),
 ])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp_test_only(tmpdir, cli_args):
@@ -54,7 +53,7 @@ def test_multi_gpu_model_ddp_test_only(tmpdir, cli_args):
 
 
 @pytest.mark.parametrize('cli_args', [
-    pytest.param('--max_epochs 1 --gpus 2 --distributed_backend ddp'),
+    pytest.param('--max_epochs 1 --gpus 2 --accelerator ddp'),
 ])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):

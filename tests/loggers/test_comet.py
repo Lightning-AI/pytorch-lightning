@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest.mock import patch, DEFAULT
+from unittest.mock import DEFAULT, patch
 
 import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 def _patch_comet_atexit(monkeypatch):
@@ -154,12 +154,19 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
     logger.experiment.id = '1'
     logger.experiment.project_name = 'test'
 
-    model = EvalModelTemplate()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3)
+    limit_batches = 5
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=limit_batches,
+        limit_val_batches=limit_batches,
+    )
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == (tmpdir / 'test' / "1" / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
+    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f'epoch=0-step={limit_batches - 1}.ckpt']
 
 
 @patch('pytorch_lightning.loggers.comet.comet_ml')

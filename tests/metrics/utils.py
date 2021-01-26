@@ -11,6 +11,11 @@ from torch.multiprocessing import Pool, set_start_method
 
 from pytorch_lightning.metrics import Metric
 
+try:
+    set_start_method("spawn")
+except RuntimeError:
+    pass
+
 NUM_PROCESSES = 2
 NUM_BATCHES = 10
 BATCH_SIZE = 32
@@ -165,10 +170,7 @@ class MetricTester:
         """Setup the metric class. This will spawn the pool of workers that are
         used for metric testing and setup_ddp
         """
-        try:
-            set_start_method("spawn")
-        except RuntimeError:
-            pass
+
         self.poolSize = NUM_PROCESSES
         self.pool = Pool(processes=self.poolSize)
         self.pool.starmap(setup_ddp, [(rank, self.poolSize) for rank in range(self.poolSize)])

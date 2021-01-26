@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import types
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE, DeviceType, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if TPU_AVAILABLE:
+if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 
@@ -51,17 +51,45 @@ class LightningOptimizer:
 
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
-            self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {})
+            self.__class__ = type("Lightning" + optimizer.__class__.__name__,
+                                  (self.__class__, optimizer.__class__.__bases__[0]), {})
             self.skip_synchronize = optimizer.skip_synchronize
             self.synchronize = optimizer.synchronize
         else:
             self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
-        self._trainer = None
         self._optimizer = optimizer
+        self._trainer = None
         self._accumulate_grad_batches = accumulate_grad_batches
-        self._automatic_optimization = None
         self._optimizer_idx = None
+
+    @property
+    def optimizer(self):
+        return self._optimizer
+
+    @property
+    def defaults(self):
+        return self._optimizer.defaults
+
+    @defaults.setter
+    def defaults(self, defaults):
+        self._optimizer.defaults = defaults
+
+    @property
+    def state(self):
+        return self._optimizer.state
+
+    @state.setter
+    def state(self, state):
+        self._optimizer.state = state
+
+    @property
+    def param_groups(self):
+        return self._optimizer.param_groups
+
+    @param_groups.setter
+    def param_groups(self, param_groups):
+        self._optimizer.param_groups = param_groups
 
     @property
     def accumulate_grad_batches(self):
@@ -73,16 +101,19 @@ class LightningOptimizer:
 
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
-        self._automatic_optimization = trainer.train_loop.automatic_optimization
         for opt_idx, opt in enumerate(trainer.optimizers):
             if opt == self._optimizer:
                 self._optimizer_idx = opt_idx
                 break
 
     @classmethod
-    def to_lightning_optimizer(cls, optimizer, trainer):
-        optimizer = cls(optimizer)
-        optimizer._on_trainer_init(trainer)
+    def _to_lightning_optimizer(cls, optimizer, trainer, opt_idx):
+        # apex overrides .step function and need to be wrapped on each step
+        if trainer.amp_backend == AMPType.APEX:
+            optimizer = cls(optimizer)
+            optimizer._on_trainer_init(trainer)
+        else:
+            optimizer = trainer.lightning_optimizers[opt_idx]
         return optimizer
 
     def _accumulated_batches_reached(self):
@@ -102,7 +133,7 @@ class LightningOptimizer:
         optimizer = self._optimizer
         model = trainer.get_model()
 
-        if trainer.on_tpu:
+        if trainer._device_type == DeviceType.TPU:
             with trainer.profiler.profile(profiler_name):
                 xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
 
@@ -113,7 +144,18 @@ class LightningOptimizer:
             with trainer.profiler.profile(profiler_name):
                 optimizer.step(closure=closure, *args, **kwargs)
 
-        trainer.train_loop.on_before_zero_grad(self)
+        accelerator_backend = trainer.accelerator_backend
+        if accelerator_backend is not None and accelerator_backend.rpc_enabled:
+            if accelerator_backend.ddp_plugin.is_main_rpc_process:
+                # Initialize optimizer step on main process
+                accelerator_backend.ddp_plugin.worker_optimizer_step(
+                    model=model,
+                    opt_idx=self._optimizer_idx,
+                    *args,
+                    **kwargs
+                )
+
+        trainer.train_loop.on_before_zero_grad(optimizer)
 
         model.optimizer_zero_grad(
             trainer.current_epoch,
@@ -234,7 +276,6 @@ class LightningOptimizer:
 
         if closure is None:
             closure = do_nothing_closure
-            profile_name = f"optimizer_step_{self._optimizer_idx}"
         else:
             if not isinstance(closure, types.FunctionType):
                 raise MisconfigurationException("When closure is provided, it should be a function")

@@ -11,15 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Union, List, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 
-from pytorch_lightning.metrics import Metric
-from pytorch_lightning.metrics.functional.roc import (
-    _roc_update,
-    _roc_compute
-)
+from pytorch_lightning.metrics.functional.roc import _roc_compute, _roc_update
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -105,9 +102,8 @@ class ROC(Metric):
         self.add_state("target", default=[], dist_reduce_fx=None)
 
         rank_zero_warn(
-            'Metric `ROC` will save all targets and'
-            ' predictions in buffer. For large datasets this may lead'
-            ' to large memory footprint.'
+            'Metric `ROC` will save all targets and predictions in buffer.'
+            ' For large datasets this may lead to large memory footprint.'
         )
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):

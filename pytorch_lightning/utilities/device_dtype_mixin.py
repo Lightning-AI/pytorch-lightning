@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional
+from typing import Optional, Union
 
 import torch
 from torch.nn import Module
@@ -131,6 +131,7 @@ class DeviceDtypeModuleMixin(Module):
 
     def cpu(self) -> Module:
         """Moves all model parameters and buffers to the CPU.
+
         Returns:
             Module: self
         """

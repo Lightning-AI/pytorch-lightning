@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
 from typing import List, Tuple, Union
 
 import torch
@@ -19,10 +18,10 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities import APEX_AVAILABLE, AMPType
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 
-if APEX_AVAILABLE:
+if _APEX_AVAILABLE:
     from apex import amp
 
 
@@ -86,16 +85,15 @@ class ApexPlugin(PrecisionPlugin):
         Return:
             Apex wrapped model and optimizers
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # Default implementation used by Trainer.
-                def configure_apex(self, amp, model, optimizers, amp_level):
-                    model, optimizers = amp.initialize(
-                        model, optimizers, opt_level=amp_level,
-                    )
+            # Default implementation used by Trainer.
+            def configure_apex(self, amp, model, optimizers, amp_level):
+                model, optimizers = amp.initialize(
+                    model, optimizers, opt_level=amp_level,
+                )
 
-                    return model, optimizers
+                return model, optimizers
         """
         model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
         return model, optimizers
@@ -104,6 +102,7 @@ class ApexPlugin(PrecisionPlugin):
         """
         This code is a modification of :meth:`torch.nn.utils.clip_grad_norm_` using a higher epsilon for fp16 weights.
         This is important when setting amp_level to O2, and the master weights are in fp16.
+
         Args:
             grad_clip_val: Maximum norm of gradients.
             optimizer: Optimizer with gradients that will be clipped.

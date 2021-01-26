@@ -20,14 +20,18 @@ import cloudpickle
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
-from omegaconf import OmegaConf, Container
+from omegaconf import Container, OmegaConf
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
-from pytorch_lightning.utilities import AttributeDict, is_picklable
-from tests.base import EvalModelTemplate, TrialMNIST, BoringModel
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
+from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, AttributeDict, is_picklable
+from tests.base import BoringModel, EvalModelTemplate, TrialMNIST
+
+if _HYDRA_EXPERIMENTAL_AVAILABLE:
+    from hydra.experimental import compose, initialize
 
 
 class SaveHparamsModel(BoringModel):
@@ -354,8 +358,8 @@ class LocalVariableModelSuperLast(EvalModelTemplate):
 
     def __init__(self, arg1, arg2, *args, **kwargs):
         self.argument1 = arg1  # arg2 intentionally not set
-        arg1 = 'overwritten'
-        local_var = 1234
+        arg1 = 'overwritten'  # noqa: F841
+        local_var = 1234  # noqa: F841
         super().__init__(*args, **kwargs)  # this is intentionally here at the end
 
 
@@ -365,8 +369,8 @@ class LocalVariableModelSuperFirst(EvalModelTemplate):
     def __init__(self, arg1, arg2, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.argument1 = arg1  # arg2 intentionally not set
-        arg1 = 'overwritten'
-        local_var = 1234
+        arg1 = 'overwritten'  # noqa: F841
+        local_var = 1234  # noqa: F841
         self.save_hyperparameters()  # this is intentionally here at the end
 
 
@@ -483,13 +487,13 @@ def test_hparams_save_yaml(tmpdir):
     path_yaml = os.path.join(tmpdir, 'testing-hparams.yaml')
 
     save_hparams_to_yaml(path_yaml, hparams)
-    assert load_hparams_from_yaml(path_yaml) == hparams
+    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
 
     save_hparams_to_yaml(path_yaml, Namespace(**hparams))
-    assert load_hparams_from_yaml(path_yaml) == hparams
+    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
 
     save_hparams_to_yaml(path_yaml, AttributeDict(hparams))
-    assert load_hparams_from_yaml(path_yaml) == hparams
+    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
 
     save_hparams_to_yaml(path_yaml, OmegaConf.create(hparams))
     assert load_hparams_from_yaml(path_yaml) == hparams
@@ -595,13 +599,7 @@ class RuntimeParamChangeModelSaving(BoringModel):
         self.save_hyperparameters()
 
 
-class RuntimeParamChangeModelAssign(BoringModel):
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.hparams = kwargs
-
-
-@pytest.mark.parametrize("cls", [RuntimeParamChangeModelSaving, RuntimeParamChangeModelAssign])
+@pytest.mark.parametrize("cls", [RuntimeParamChangeModelSaving])
 def test_init_arg_with_runtime_change(tmpdir, cls):
     """Test that we save/export only the initial hparams, no other runtime change allowed"""
     model = cls(running_arg=123)
@@ -642,3 +640,46 @@ def test_model_with_fsspec_as_parameter(tmpdir):
     )
     trainer.fit(model)
     trainer.test()
+
+
+@pytest.mark.skipif(not _HYDRA_EXPERIMENTAL_AVAILABLE, reason="Hydra experimental is not available")
+def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
+    """
+    This test relies on configuration saved under tests/models/conf/config.yaml
+    """
+
+    class TestHydraModel(BoringModel):
+
+        def __init__(self, args_0, args_1, args_2, kwarg_1=None):
+            self.save_hyperparameters()
+            self.test_hparams()
+            config_file = f"{tmpdir}/hparams.yaml"
+            save_hparams_to_yaml(config_file, self.hparams)
+            self.hparams = load_hparams_from_yaml(config_file)
+            self.test_hparams()
+            super().__init__()
+
+        def test_hparams(self):
+            assert self.hparams.args_0.log == "Something"
+            assert self.hparams.args_1['cfg'].log == "Something"
+            assert self.hparams.args_2[0].log == "Something"
+            assert self.hparams.kwarg_1['cfg'][0].log == "Something"
+
+    with initialize(config_path="conf"):
+        args_0 = compose(config_name="config")
+        args_1 = {"cfg": compose(config_name="config")}
+        args_2 = [compose(config_name="config")]
+        kwarg_1 = {"cfg": [compose(config_name="config")]}
+        model = TestHydraModel(args_0, args_1, args_2, kwarg_1=kwarg_1)
+        epochs = 2
+        checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            callbacks=[checkpoint_callback],
+            limit_train_batches=10,
+            limit_val_batches=10,
+            max_epochs=epochs,
+            logger=False,
+        )
+        trainer.fit(model)
+        _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)

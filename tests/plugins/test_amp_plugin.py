@@ -7,11 +7,11 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from tests.base.boring_model import BoringModel
 
 
-@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
+@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "SLURM_NTASKS": "2",
@@ -21,8 +21,10 @@ from tests.base.boring_model import BoringModel
     "SLURM_LOCALID": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=2)
-@pytest.mark.parametrize(['ddp_backend', 'gpus', 'num_processes'],
-                         [('ddp_cpu', None, None), ('ddp', 2, 0), ('ddp2', 2, 0), ('ddp_spawn', 2, 0)])
+@pytest.mark.parametrize(
+    ['ddp_backend', 'gpus', 'num_processes'],
+    [('ddp_cpu', None, 2), ('ddp', 2, 0), ('ddp2', 2, 0), ('ddp_spawn', 2, 0)],
+)
 def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
 
     class CB(Callback):
@@ -37,15 +39,15 @@ def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         amp_backend='native',
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
-        callbacks=[CB()]
+        accelerator=ddp_backend,
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
+@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "SLURM_NTASKS": "2",
@@ -55,8 +57,10 @@ def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     "SLURM_LOCALID": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=2)
-@pytest.mark.parametrize(['ddp_backend', 'gpus', 'num_processes'],
-                         [('ddp_cpu', None, None), ('ddp', 2, 0), ('ddp2', 2, 0), ('ddp_spawn', 2, 0)])
+@pytest.mark.parametrize(
+    ['ddp_backend', 'gpus', 'num_processes'],
+    [('ddp_cpu', None, 2), ('ddp', 2, 0), ('ddp2', 2, 0), ('ddp_spawn', 2, 0)],
+)
 def test_amp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class MyNativeAMP(NativeAMPPlugin):
         pass
@@ -73,9 +77,9 @@ def test_amp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         amp_backend='native',
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
+        accelerator=ddp_backend,
         plugins=[MyNativeAMP()],
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -89,7 +93,7 @@ class GradientUnscaleBoringModel(BoringModel):
             assert norm.item() < 15.
 
 
-@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
+@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gradient_unscale(tmpdir):
     model = GradientUnscaleBoringModel()
@@ -101,11 +105,11 @@ def test_amp_gradient_unscale(tmpdir):
         limit_test_batches=2,
         limit_val_batches=2,
         amp_backend='native',
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         gpus=2,
         precision=16,
         track_grad_norm=2,
-        log_every_n_steps=1
+        log_every_n_steps=1,
     )
     trainer.fit(model)
 
@@ -118,7 +122,7 @@ class UnscaleAccumulateGradBatchesBoringModel(BoringModel):
             assert norm.item() < 15.
 
 
-@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
+@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gradient_unscale_accumulate_grad_batches(tmpdir):
     model = UnscaleAccumulateGradBatchesBoringModel()
@@ -130,7 +134,7 @@ def test_amp_gradient_unscale_accumulate_grad_batches(tmpdir):
         limit_test_batches=2,
         limit_val_batches=2,
         amp_backend='native',
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         gpus=2,
         precision=16,
         track_grad_norm=2,

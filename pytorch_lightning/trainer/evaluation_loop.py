@@ -14,12 +14,10 @@
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
-from pytorch_lightning.utilities.distributed import rank_zero_warn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.utilities.warning_utils import WarningCache
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class EvaluationLoop(object):
@@ -93,14 +91,14 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_start', *args, **kwargs)
 
-    def on_evaluation_model_eval(self, *args, **kwargs):
+    def on_evaluation_model_eval(self, *_, **__):
         model_ref = self.trainer.get_model()
         if self.testing:
             model_ref.on_test_model_eval()
         else:
             model_ref.on_validation_model_eval()
 
-    def on_evaluation_model_train(self, *args, **kwargs):
+    def on_evaluation_model_train(self, *_, **__):
         model_ref = self.trainer.get_model()
         if self.testing:
             model_ref.on_test_model_train()
@@ -119,11 +117,6 @@ class EvaluationLoop(object):
             self.trainer.reset_test_dataloader(model)
         else:
             self.trainer.reset_val_dataloader(model)
-
-    def is_using_eval_results(self):
-        outputs = self.outputs
-        using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
-        return using_eval_result
 
     def setup(self, model, max_batches, dataloaders):
         # copy properties for forward overrides
@@ -175,10 +168,12 @@ class EvaluationLoop(object):
         # run actual test step
         if self.testing:
             model_ref._current_fx_name = "test_step"
-            output = self.trainer.accelerator_backend.test_step(args)
+            with self.trainer.profiler.profile("test_step"):
+                output = self.trainer.accelerator_backend.test_step(args)
         else:
             model_ref._current_fx_name = "validation_step"
-            output = self.trainer.accelerator_backend.validation_step(args)
+            with self.trainer.profiler.profile("validation_step"):
+                output = self.trainer.accelerator_backend.validation_step(args)
 
         # capture any logged information
         self.trainer.logger_connector.cache_logged_metrics()
@@ -186,11 +181,6 @@ class EvaluationLoop(object):
         is_result_obj = isinstance(output, Result)
         if is_result_obj:
             output.track_batch_size(batch)
-
-        # allow only EvalResult when using structured results (from val_step)
-        if is_result_obj and not isinstance(output, EvalResult):
-            m = 'only EvalResults or dicts are allowed from validation_step'
-            raise MisconfigurationException(m)
 
         return output
 
@@ -205,10 +195,8 @@ class EvaluationLoop(object):
         # unset dataloder_idx in model
         self.trainer.logger_connector.evaluation_epoch_end(self.testing)
 
-        using_eval_result = self.is_using_eval_results()
-
         # call the model epoch end
-        deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders, using_eval_result)
+        deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders)
 
         # enable returning anything
         for i, r in enumerate(deprecated_results):
@@ -222,7 +210,7 @@ class EvaluationLoop(object):
         eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results()
         return eval_loop_results
 
-    def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
+    def __run_eval_epoch_end(self, num_dataloaders):
         model = self.trainer.get_model()
 
         # with a single dataloader don't pass an array
@@ -235,16 +223,12 @@ class EvaluationLoop(object):
 
         if self.testing:
             if is_overridden('test_epoch_end', model=model):
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
                 model._current_fx_name = 'test_epoch_end'
                 eval_results = model.test_epoch_end(eval_results)
                 user_reduced = True
 
         else:
             if is_overridden('validation_epoch_end', model=model):
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
                 model._current_fx_name = 'validation_epoch_end'
                 eval_results = model.validation_epoch_end(eval_results)
                 user_reduced = True
@@ -259,14 +243,11 @@ class EvaluationLoop(object):
                 ' To log, use self.log(...) or self.write(...) directly in the LightningModule'
             )
 
-        if using_eval_result and not user_reduced:
-            eval_results = self.__auto_reduce_result_objs(outputs)
-
         if not isinstance(eval_results, list):
             eval_results = [eval_results]
 
         # track depreceated metrics
-        self.trainer.logger_connector.track_metrics_deprecated(eval_results, using_eval_result, self.testing)
+        self.trainer.logger_connector.track_metrics_deprecated(eval_results, self.testing)
 
         return eval_results
 
@@ -342,9 +323,6 @@ class EvaluationLoop(object):
 
         step_log_metrics = {}
         step_pbar_metrics = {}
-        if isinstance(output, EvalResult):
-            step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
-            step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
 
         self.__log_result_step_metrics(step_log_metrics, step_pbar_metrics, batch_idx)
 

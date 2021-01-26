@@ -14,15 +14,17 @@
 
 """nn.Module with additional great features."""
 
-import collections
-import copy
-import inspect
-import os
-import re
-import tempfile
 from abc import ABC
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+import collections
+import copy
+from functools import partial
+import inspect
+import os
+from pathlib import Path
+import re
+import tempfile
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -34,15 +36,14 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
+from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
-
-if TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
 
 
 class LightningModule(
@@ -84,17 +85,8 @@ class LightningModule(
         #: Pointer to the logger object
         self.logger = None
 
-        #: True if using dp
-        self.use_dp = False
-
-        #: True if using ddp
-        self.use_ddp = False
-
-        #: True if using ddp2
-        self.use_ddp2 = False
-
-        # True if on tpu
-        self.use_tpu = False
+        self._distrib_type = None
+        self._device_type = None
 
         #: True if using amp
         self.use_amp = False
@@ -110,9 +102,13 @@ class LightningModule(
         self._running_manual_backward = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
+        self._automatic_optimization: bool = True
 
-    def optimizers(self):
-        opts = self.trainer.optimizers
+    def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
+        if use_pl_optimizer:
+            opts = list(self.trainer.lightning_optimizers.values())
+        else:
+            opts = self.trainer.optimizers
 
         # single optimizer
         if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):
@@ -159,7 +155,11 @@ class LightningModule(
         """
         If False you are responsible for calling .backward, .step, zero_grad.
         """
-        return True
+        return self._automatic_optimization
+
+    @automatic_optimization.setter
+    def automatic_optimization(self, automatic_optimization: bool) -> None:
+        self._automatic_optimization = automatic_optimization
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -169,12 +169,10 @@ class LightningModule(
             *args: The thing to print. Will be passed to Python's built-in print function.
             **kwargs: Will be passed to Python's built-in print function.
 
-        Example:
+        Example::
 
-            .. code-block:: python
-
-                def forward(self, x):
-                    self.print(x, 'in forward')
+            def forward(self, x):
+                self.print(x, 'in forward')
 
         """
         if self.trainer.is_global_zero:
@@ -278,6 +276,7 @@ class LightningModule(
                 sync_dist_group,
                 accelerator.sync_tensor,
                 self._current_dataloader_idx,
+                self.device,
             )
 
     def log_dict(
@@ -365,6 +364,38 @@ class LightningModule(
 
         return on_epoch
 
+    def all_gather(
+        self,
+        data: Union[torch.Tensor, Dict, List, Tuple],
+        group: Optional[Any] = None,
+        sync_grads: bool = False,
+    ):
+        r"""
+        Allows users to call ``self.all_gather()`` from the LightningModule, thus making
+        the ```all_gather``` operation accelerator agnostic.
+
+        ```all_gather``` is a function provided by accelerators to gather a tensor from several
+        distributed processes
+
+        Args:
+            tensor: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Return:
+            A tensor of shape (world_size, batch, ...), or if the input was a collection
+            the output will also be a collection with tensors of this shape.
+        """
+        group = group if group is not None else torch.distributed.group.WORLD
+        if self.trainer.accelerator_backend is not None:
+            all_gather = self.trainer.accelerator_backend.all_gather
+        else:
+            all_gather = all_gather_ddp_if_available
+
+        data = convert_to_tensors(data, device=self.device)
+        all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
+        return apply_to_collection(data, torch.Tensor, all_gather)
+
     def forward(self, *args, **kwargs):
         r"""
         Same as :meth:`torch.nn.Module.forward()`, however in Lightning you want this to define
@@ -384,36 +415,35 @@ class LightningModule(
         Return:
             Predicted output
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # example if we were using this model as a feature extractor
-                def forward(self, x):
-                    feature_maps = self.convnet(x)
-                    return feature_maps
+            # example if we were using this model as a feature extractor
+            def forward(self, x):
+                feature_maps = self.convnet(x)
+                return feature_maps
 
-                def training_step(self, batch, batch_idx):
-                    x, y = batch
-                    feature_maps = self(x)
-                    logits = self.classifier(feature_maps)
+            def training_step(self, batch, batch_idx):
+                x, y = batch
+                feature_maps = self(x)
+                logits = self.classifier(feature_maps)
 
-                    # ...
-                    return loss
+                # ...
+                return loss
 
-                # splitting it this way allows model to be used a feature extractor
-                model = MyModelAbove()
+            # splitting it this way allows model to be used a feature extractor
+            model = MyModelAbove()
 
-                inputs = server.get_request()
-                results = model(inputs)
-                server.write_results(results)
+            inputs = server.get_request()
+            results = model(inputs)
+            server.write_results(results)
 
-                # -------------
-                # This is in stark contrast to torch.nn.Module where normally you would have this:
-                def forward(self, batch):
-                    x, y = batch
-                    feature_maps = self.convnet(x)
-                    logits = self.classifier(feature_maps)
-                    return logits
+            # -------------
+            # This is in stark contrast to torch.nn.Module where normally you would have this:
+            def forward(self, batch):
+                x, y = batch
+                feature_maps = self.convnet(x)
+                logits = self.classifier(feature_maps)
+                return logits
 
         """
         return super().forward(*args, **kwargs)
@@ -542,7 +572,7 @@ class LightningModule(
                 return loss
 
         See Also:
-            See the :ref:`multi_gpu` guide for more details.
+            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
     def training_epoch_end(self, outputs: List[Any]) -> None:
@@ -598,14 +628,14 @@ class LightningModule(
             for val_batch in val_data:
                 out = validation_step(val_batch)
                 val_outs.append(out)
-                validation_epoch_end(val_outs)
+            validation_epoch_end(val_outs)
 
         Args:
             batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
             batch_idx (int): The index of this batch
             dataloader_idx (int): The index of the dataloader that produced this batch
-                (only if multiple val datasets used)
+                (only if multiple val dataloaders used)
 
         Return:
            Any of.
@@ -630,37 +660,36 @@ class LightningModule(
             # if you have multiple val dataloaders:
             def validation_step(self, batch, batch_idx, dataloader_idx)
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # CASE 1: A single validation dataset
-                def validation_step(self, batch, batch_idx):
-                    x, y = batch
+            # CASE 1: A single validation dataset
+            def validation_step(self, batch, batch_idx):
+                x, y = batch
 
-                    # implement your own
-                    out = self(x)
-                    loss = self.loss(out, y)
+                # implement your own
+                out = self(x)
+                loss = self.loss(out, y)
 
-                    # log 6 example images
-                    # or generated text... or whatever
-                    sample_imgs = x[:6]
-                    grid = torchvision.utils.make_grid(sample_imgs)
-                    self.logger.experiment.add_image('example_images', grid, 0)
+                # log 6 example images
+                # or generated text... or whatever
+                sample_imgs = x[:6]
+                grid = torchvision.utils.make_grid(sample_imgs)
+                self.logger.experiment.add_image('example_images', grid, 0)
 
-                    # calculate acc
-                    labels_hat = torch.argmax(out, dim=1)
-                    val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+                # calculate acc
+                labels_hat = torch.argmax(out, dim=1)
+                val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
-                    # log the outputs!
-                    self.log_dict({'val_loss': loss, 'val_acc': val_acc})
+                # log the outputs!
+                self.log_dict({'val_loss': loss, 'val_acc': val_acc})
 
-            If you pass in multiple val datasets, validation_step will have an additional argument.
+        If you pass in multiple val dataloaders, :meth:`validation_step` will have an additional argument.
 
-            .. code-block:: python
+        .. code-block:: python
 
-                # CASE 2: multiple validation datasets
-                def validation_step(self, batch, batch_idx, dataloader_idx):
-                    # dataloader_idx tells you which dataset this is.
+            # CASE 2: multiple validation dataloaders
+            def validation_step(self, batch, batch_idx, dataloader_idx):
+                # dataloader_idx tells you which dataset this is.
 
         Note:
             If you don't need to validate you don't need to implement this method.
@@ -717,17 +746,15 @@ class LightningModule(
                 out = self(x)
                 return out
 
-            def validation_epoch_end(self, val_step_outputs):
+            def validation_step_end(self, val_step_outputs):
                 for out in val_step_outputs:
                     # do something with these
 
         See Also:
-            See the :ref:`multi_gpu` guide for more details.
+            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def validation_epoch_end(
-        self, outputs: List[Any]
-    ) -> None:
+    def validation_epoch_end(self, outputs: List[Any]) -> None:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -792,7 +819,7 @@ class LightningModule(
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
             batch_idx (int): The index of this batch.
             dataloader_idx (int): The index of the dataloader that produced this batch
-                (only if multiple test datasets used).
+                (only if multiple test dataloaders used).
 
         Return:
            Any of.
@@ -808,41 +835,39 @@ class LightningModule(
             # if you have multiple test dataloaders:
             def test_step(self, batch, batch_idx, dataloader_idx)
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # CASE 1: A single test dataset
-                def test_step(self, batch, batch_idx):
-                    x, y = batch
+            # CASE 1: A single test dataset
+            def test_step(self, batch, batch_idx):
+                x, y = batch
 
-                    # implement your own
-                    out = self(x)
-                    loss = self.loss(out, y)
+                # implement your own
+                out = self(x)
+                loss = self.loss(out, y)
 
-                    # log 6 example images
-                    # or generated text... or whatever
-                    sample_imgs = x[:6]
-                    grid = torchvision.utils.make_grid(sample_imgs)
-                    self.logger.experiment.add_image('example_images', grid, 0)
+                # log 6 example images
+                # or generated text... or whatever
+                sample_imgs = x[:6]
+                grid = torchvision.utils.make_grid(sample_imgs)
+                self.logger.experiment.add_image('example_images', grid, 0)
 
-                    # calculate acc
-                    labels_hat = torch.argmax(out, dim=1)
-                    test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+                # calculate acc
+                labels_hat = torch.argmax(out, dim=1)
+                test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
-                    # log the outputs!
-                    self.log_dict({'test_loss': loss, 'test_acc': test_acc})
+                # log the outputs!
+                self.log_dict({'test_loss': loss, 'test_acc': test_acc})
 
-            If you pass in multiple validation datasets, :meth:`test_step` will have an additional
-            argument.
+        If you pass in multiple test dataloaders, :meth:`test_step` will have an additional argument.
 
-            .. code-block:: python
+        .. code-block:: python
 
-                # CASE 2: multiple test datasets
-                def test_step(self, batch, batch_idx, dataloader_idx):
-                    # dataloader_idx tells you which dataset this is.
+            # CASE 2: multiple test dataloaders
+            def test_step(self, batch, batch_idx, dataloader_idx):
+                # dataloader_idx tells you which dataset this is.
 
         Note:
-            If you don't need to validate you don't need to implement this method.
+            If you don't need to test you don't need to implement this method.
 
         Note:
             When the :meth:`test_step` is called, the model has been put in eval mode and
@@ -894,14 +919,14 @@ class LightningModule(
                 out = self.encoder(x)
                 return out
 
-            def test_epoch_end(self, output_results):
+            def test_step_end(self, output_results):
                 # this out is now the full size of the batch
                 all_test_step_outs = output_results.out
                 loss = nce_loss(all_test_step_outs)
                 self.log('test_loss', loss)
 
         See Also:
-            See the :ref:`multi_gpu` guide for more details.
+            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
     def test_epoch_end(
@@ -971,7 +996,7 @@ class LightningModule(
             - List or Tuple - List of optimizers.
             - Two lists - The first list has multiple optimizers, the second a list of LR schedulers (or lr_dict).
             - Dictionary, with an 'optimizer' key, and (optionally) a 'lr_scheduler'
-              key which value is a single LR scheduler or lr_dict.
+              key whose value is a single LR scheduler or lr_dict.
             - Tuple of dictionaries as described, with an optional 'frequency' key.
             - None - Fit will run without any optimizer.
 
@@ -983,63 +1008,63 @@ class LightningModule(
             In the former case, all optimizers will operate on the given batch in each optimization step.
             In the latter, only one optimizer will operate on the given batch at every step.
 
-            The lr_dict is a dictionary which contains scheduler and its associated configuration.
-            It has five keys. The default configuration is shown below.
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
+            The default configuration is shown below.
 
             .. code-block:: python
 
                 {
-                    'scheduler': lr_scheduler, # The LR schduler
+                    'scheduler': lr_scheduler, # The LR scheduler instance (required)
                     'interval': 'epoch', # The unit of the scheduler's step size
                     'frequency': 1, # The frequency of the scheduler
                     'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
                     'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
-                    'strict': True # Whether to crash the training if `monitor` is not found
+                    'strict': True, # Whether to crash the training if `monitor` is not found
+                    'name': None, # Custom name for LearningRateMonitor to use
                 }
 
-            If user only provides LR schedulers, then their configuration will set to default as shown above.
+            Only the ``scheduler`` key is required, the rest will be set to the defaults above.
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # most cases
-                def configure_optimizers(self):
-                    opt = Adam(self.parameters(), lr=1e-3)
-                    return opt
+            # most cases
+            def configure_optimizers(self):
+                opt = Adam(self.parameters(), lr=1e-3)
+                return opt
 
-                # multiple optimizer case (e.g.: GAN)
-                def configure_optimizers(self):
-                    generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                    disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                    return generator_opt, disriminator_opt
+            # multiple optimizer case (e.g.: GAN)
+            def configure_optimizers(self):
+                generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                return generator_opt, disriminator_opt
 
-                # example with learning rate schedulers
-                def configure_optimizers(self):
-                    generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                    disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                    discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
-                    return [generator_opt, disriminator_opt], [discriminator_sched]
+            # example with learning rate schedulers
+            def configure_optimizers(self):
+                generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
+                return [generator_opt, disriminator_opt], [discriminator_sched]
 
-                # example with step-based learning rate schedulers
-                def configure_optimizers(self):
-                    gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                    dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                    gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99),
-                                 'interval': 'step'}  # called after each training step
-                    dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
-                    return [gen_opt, dis_opt], [gen_sched, dis_sched]
+            # example with step-based learning rate schedulers
+            def configure_optimizers(self):
+                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99),
+                             'interval': 'step'}  # called after each training step
+                dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
+                return [gen_opt, dis_opt], [gen_sched, dis_sched]
 
-                # example with optimizer frequencies
-                # see training procedure in `Improved Training of Wasserstein GANs`, Algorithm 1
-                # https://arxiv.org/abs/1704.00028
-                def configure_optimizers(self):
-                    gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                    dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                    n_critic = 5
-                    return (
-                        {'optimizer': dis_opt, 'frequency': n_critic},
-                        {'optimizer': gen_opt, 'frequency': 1}
-                    )
+            # example with optimizer frequencies
+            # see training procedure in `Improved Training of Wasserstein GANs`, Algorithm 1
+            # https://arxiv.org/abs/1704.00028
+            def configure_optimizers(self):
+                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                n_critic = 5
+                return (
+                    {'optimizer': dis_opt, 'frequency': n_critic},
+                    {'optimizer': gen_opt, 'frequency': 1}
+                )
 
         Note:
 
@@ -1143,6 +1168,7 @@ class LightningModule(
             optimizer:
             optimizer_idx:
         """
+        # Todo: required argument `optimizer_idx` is not used
         for param in self.parameters():
             param.requires_grad = False
 
@@ -1152,7 +1178,6 @@ class LightningModule(
 
     def optimizer_step(
         self,
-        *args,
         epoch: int = None,
         batch_idx: int = None,
         optimizer: Optimizer = None,
@@ -1161,7 +1186,6 @@ class LightningModule(
         on_tpu: bool = None,
         using_native_amp: bool = None,
         using_lbfgs: bool = None,
-        **kwargs,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1169,7 +1193,8 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer.
 
-        .. tip:: With `Trainer(enable_pl_optimizer=True)`, you can user `optimizer.step()` directly and it will handle zero_grad, accumulated gradients, AMP, TPU and more automatically for you.
+        .. tip:: With `Trainer(enable_pl_optimizer=True)`, you can user `optimizer.step()` directly
+         and it will handle zero_grad, accumulated gradients, AMP, TPU and more automatically for you.
 
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
@@ -1187,56 +1212,55 @@ class LightningModule(
             using_native_amp: True if using native amp
             using_lbfgs: True if the matching optimizer is lbfgs
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # DEFAULT
-                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
-                    optimizer.step(closure=optimizer_closure)
+            # DEFAULT
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                optimizer.step(closure=optimizer_closure)
 
-                # Alternating schedule for optimizer steps (i.e.: GANs)
-                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
-                    # update generator opt every 2 steps
-                    if optimizer_idx == 0:
-                        if batch_idx % 2 == 0 :
-                            optimizer.step(closure=optimizer_closure)
-                            optimizer.zero_grad()
+            # Alternating schedule for optimizer steps (i.e.: GANs)
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                # update generator opt every 2 steps
+                if optimizer_idx == 0:
+                    if batch_idx % 2 == 0 :
+                        optimizer.step(closure=optimizer_closure)
+                        optimizer.zero_grad()
 
-                    # update discriminator opt every 4 steps
-                    if optimizer_idx == 1:
-                        if batch_idx % 4 == 0 :
-                            optimizer.step(closure=optimizer_closure)
-                            optimizer.zero_grad()
+                # update discriminator opt every 4 steps
+                if optimizer_idx == 1:
+                    if batch_idx % 4 == 0 :
+                        optimizer.step(closure=optimizer_closure)
+                        optimizer.zero_grad()
 
-                    # ...
-                    # add as many optimizers as you want
+                # ...
+                # add as many optimizers as you want
 
 
-            Here's another example showing how to use this for more advanced things such as
-            learning rate warm-up:
+        Here's another example showing how to use this for more advanced things such as
+        learning rate warm-up:
 
-            .. code-block:: python
+        .. code-block:: python
 
-                # learning rate warm-up
-                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
-                    # warm up lr
-                    if self.trainer.global_step < 500:
-                        lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
-                        for pg in optimizer.param_groups:
-                            pg['lr'] = lr_scale * self.learning_rate
+            # learning rate warm-up
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                # warm up lr
+                if self.trainer.global_step < 500:
+                    lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
+                    for pg in optimizer.param_groups:
+                        pg['lr'] = lr_scale * self.learning_rate
 
-                    # update params
-                    optimizer.step(closure=optimizer_closure)
-                    optimizer.zero_grad()
+                # update params
+                optimizer.step(closure=optimizer_closure)
+                optimizer.zero_grad()
 
         """
         if not isinstance(optimizer, LightningOptimizer):
             # wraps into LightingOptimizer only for running step
             optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
-        optimizer.step(closure=optimizer_closure, *args, **kwargs)
+        optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
@@ -1258,26 +1282,25 @@ class LightningModule(
             back propagation through time. The default implementation splits root level Tensors and
             Sequences at dim=1 (i.e. time dim). It assumes that each time dim is the same length.
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                def tbptt_split_batch(self, batch, split_size):
-                  splits = []
-                  for t in range(0, time_dims[0], split_size):
-                      batch_split = []
-                      for i, x in enumerate(batch):
-                          if isinstance(x, torch.Tensor):
-                              split_x = x[:, t:t + split_size]
-                          elif isinstance(x, collections.Sequence):
-                              split_x = [None] * len(x)
-                              for batch_idx in range(len(x)):
-                                  split_x[batch_idx] = x[batch_idx][t:t + split_size]
+            def tbptt_split_batch(self, batch, split_size):
+              splits = []
+              for t in range(0, time_dims[0], split_size):
+                  batch_split = []
+                  for i, x in enumerate(batch):
+                      if isinstance(x, torch.Tensor):
+                          split_x = x[:, t:t + split_size]
+                      elif isinstance(x, collections.Sequence):
+                          split_x = [None] * len(x)
+                          for batch_idx in range(len(x)):
+                              split_x[batch_idx] = x[batch_idx][t:t + split_size]
 
-                          batch_split.append(split_x)
+                      batch_split.append(split_x)
 
-                      splits.append(batch_split)
+                  splits.append(batch_split)
 
-                  return splits
+              return splits
 
         Note:
             Called in the training loop after
@@ -1313,20 +1336,27 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
-        model_summary = ModelSummary(self, mode=mode)
-        log.info("\n" + str(model_summary))
+    def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
+        model_summary = None
+
+        if mode in ModelSummary.MODES:
+            model_summary = ModelSummary(self, mode=mode)
+            log.info("\n" + str(model_summary))
+        elif mode is not None:
+            raise MisconfigurationException(
+                f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}"
+            )
+
         return model_summary
 
     def freeze(self) -> None:
         r"""
         Freeze all params for inference.
 
-        Example:
-            .. code-block:: python
+        Example::
 
-                model = MyLightningModule(...)
-                model.freeze()
+            model = MyLightningModule(...)
+            model.freeze()
 
         """
         for param in self.parameters():
@@ -1374,12 +1404,15 @@ class LightningModule(
         """
         # call .item() only once but store elements without graphs
         running_train_loss = self.trainer.train_loop.running_loss.mean()
-        avg_training_loss = (
-            running_train_loss.cpu().item()
-            if running_train_loss is not None
-            else float("NaN")
-        )
-        tqdm_dict = {"loss": "{:.3f}".format(avg_training_loss)}
+        avg_training_loss = None
+        if running_train_loss is not None:
+            avg_training_loss = running_train_loss.cpu().item()
+        elif self.trainer.train_loop.automatic_optimization:
+            avg_training_loss = float('NaN')
+
+        tqdm_dict = {}
+        if avg_training_loss is not None:
+            tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
         if self.trainer.truncated_bptt_steps is not None:
             tqdm_dict["split_idx"] = self.trainer.split_idx
@@ -1394,8 +1427,10 @@ class LightningModule(
 
     def _verify_is_manual_optimization(self, fn_name):
         if self.trainer.train_loop.automatic_optimization:
-            m = f'to use {fn_name}, please disable automatic optimization: Trainer(automatic_optimization=False)'
-            raise MisconfigurationException(m)
+            raise MisconfigurationException(
+                f'to use {fn_name}, please disable automatic optimization:'
+                ' set model property `automatic_optimization` as False'
+            )
 
     @classmethod
     def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
@@ -1433,7 +1468,6 @@ class LightningModule(
             args: single object of `dict`, `NameSpace` or `OmegaConf`
              or string names or argumenst from class `__init__`
 
-        >>> from collections import OrderedDict
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
@@ -1512,12 +1546,19 @@ class LightningModule(
         else:
             self._hparams = hp
 
-    def to_onnx(self, file_path: str, input_sample: Optional[Tensor] = None, **kwargs):
-        """Saves the model in ONNX format
+    @torch.no_grad()
+    def to_onnx(
+        self,
+        file_path: Union[str, Path],
+        input_sample: Optional[Any] = None,
+        **kwargs,
+    ):
+        """
+        Saves the model in ONNX format
 
         Args:
-            file_path: The path of the file the model should be saved to.
-            input_sample: A sample of an input tensor for tracing.
+            file_path: The path of the file the onnx model should be saved to.
+            input_sample: An input for tracing. Default: None (Use self.example_input_array)
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example:
@@ -1536,31 +1577,32 @@ class LightningModule(
             ...     os.path.isfile(tmpfile.name)
             True
         """
+        mode = self.training
 
-        if isinstance(input_sample, Tensor):
-            input_data = input_sample
-        elif self.example_input_array is not None:
-            input_data = self.example_input_array
-        else:
-            if input_sample is not None:
+        if input_sample is None:
+            if self.example_input_array is None:
                 raise ValueError(
-                    f"Received `input_sample` of type {type(input_sample)}. Expected type is `Tensor`"
+                    "Could not export to ONNX since neither `input_sample` nor"
+                    " `model.example_input_array` attribute is set."
                 )
-            raise ValueError(
-                "Could not export to ONNX since neither `input_sample` nor"
-                " `model.example_input_array` attribute is set."
-            )
-        input_data = input_data.to(self.device)
+            input_sample = self.example_input_array
+
+        input_sample = self.transfer_batch_to_device(input_sample)
+
         if "example_outputs" not in kwargs:
             self.eval()
-            with torch.no_grad():
-                kwargs["example_outputs"] = self(input_data)
+            kwargs["example_outputs"] = self(input_sample)
 
-        torch.onnx.export(self, input_data, file_path, **kwargs)
+        torch.onnx.export(self, input_sample, file_path, **kwargs)
+        self.train(mode)
 
+    @torch.no_grad()
     def to_torchscript(
-        self, file_path: Optional[str] = None, method: Optional[str] = 'script',
-            example_inputs: Optional[Union[torch.Tensor, Tuple[torch.Tensor]]] = None, **kwargs
+        self,
+        file_path: Optional[Union[str, Path]] = None,
+        method: Optional[str] = 'script',
+        example_inputs: Optional[Any] = None,
+        **kwargs,
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
@@ -1572,7 +1614,7 @@ class LightningModule(
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
             method: Whether to use TorchScript's script or trace method. Default: 'script'
-            example_inputs: Tensor to be used to do tracing when method is set to 'trace'.
+            example_inputs: An input to be used to do tracing when method is set to 'trace'.
               Default: None (Use self.example_input_array)
             **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
               :func:`torch.jit.trace` function.
@@ -1606,21 +1648,27 @@ class LightningModule(
             This LightningModule as a torchscript, regardless of whether file_path is
             defined or not.
         """
-
         mode = self.training
-        with torch.no_grad():
-            if method == 'script':
-                torchscript_module = torch.jit.script(self.eval(), **kwargs)
-            elif method == 'trace':
-                # if no example inputs are provided, try to see if model has example_input_array set
-                if example_inputs is None:
-                    example_inputs = self.example_input_array
-                # automatically send example inputs to the right device and use trace
-                example_inputs = self.transfer_batch_to_device(example_inputs, device=self.device)
-                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
-            else:
-                raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
-                                 f"{method}")
+
+        if method == 'script':
+            torchscript_module = torch.jit.script(self.eval(), **kwargs)
+        elif method == 'trace':
+            # if no example inputs are provided, try to see if model has example_input_array set
+            if example_inputs is None:
+                if self.example_input_array is None:
+                    raise ValueError(
+                        'Choosing method=`trace` requires either `example_inputs`'
+                        ' or `model.example_input_array` to be defined'
+                    )
+                example_inputs = self.example_input_array
+
+            # automatically send example inputs to the right device and use trace
+            example_inputs = self.transfer_batch_to_device(example_inputs)
+            torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
+        else:
+            raise ValueError("The 'method' parameter only supports 'script' or 'trace',"
+                             f" but value given was: {method}")
+
         self.train(mode)
 
         if file_path is not None:
@@ -1669,6 +1717,7 @@ class LightningModule(
                 line = re.sub(r"\s+", "", line, flags=re.UNICODE)
                 if ".hparams=" in line:
                     return line.split("=")[1]
+        # todo: specify the possible exception
         except Exception:
             return "hparams"
 

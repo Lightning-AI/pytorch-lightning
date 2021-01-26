@@ -14,13 +14,12 @@
 import pytest
 import torch
 
+import pytorch_lightning as pl
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from tests.base import EvalModelTemplate
-import pytorch_lightning as pl
-
 
 PRETEND_N_OF_GPUS = 16
 
@@ -37,7 +36,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        distributed_backend='dp',
+        accelerator='dp',
     )
 
     model = EvalModelTemplate()
@@ -54,8 +53,8 @@ def test_multi_gpu_model_dp(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        distributed_backend='dp',
-        progress_bar_refresh_rate=0
+        accelerator='dp',
+        progress_bar_refresh_rate=0,
     )
 
     model = EvalModelTemplate()
@@ -80,7 +79,7 @@ def test_dp_evaluate(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        distributed_backend='dp',
+        accelerator='dp',
     )
     trainer.fit(model)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path

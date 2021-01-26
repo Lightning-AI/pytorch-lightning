@@ -16,7 +16,7 @@ import os
 import time
 from collections import Counter
 from functools import wraps
-from typing import Callable, Any, Optional
+from typing import Any, Callable, Optional
 
 
 def enabled_only(fn: Callable):
@@ -87,6 +87,7 @@ class InternalDebugger(object):
         for dl in dataloaders:
             try:
                 length = len(dl)
+            # todo: specify the possible exception
             except Exception:
                 length = -1
             lengths.append(length)

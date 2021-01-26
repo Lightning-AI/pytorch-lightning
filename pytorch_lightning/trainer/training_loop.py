@@ -12,31 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
 
 import numpy as np
 import torch
-import torch.distributed as torch_distrib
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import TPU_AVAILABLE, AMPType, parsing
+from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
-from pytorch_lightning.utilities.warning_utils import WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainLoop:
-    def __init__(self, trainer):
+    def __init__(self, trainer, multiple_trainloader_mode):
         self.trainer = trainer
         self.early_stopping_accumulator = None
         self.checkpoint_accumulator = None
@@ -47,9 +46,18 @@ class TrainLoop:
         self.automatic_optimization = True
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
+        self._multiple_trainloader_mode = multiple_trainloader_mode
+        self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
 
     def on_trainer_init(
-        self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
+        self,
+        max_epochs,
+        min_epochs,
+        max_steps,
+        min_steps,
+        num_sanity_val_steps,
+        automatic_optimization,
+        weights_summary,
     ):
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
@@ -73,6 +81,12 @@ class TrainLoop:
         else:
             self.trainer.num_sanity_val_steps = num_sanity_val_steps
 
+        self.trainer.weights_summary = weights_summary
+        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
+            raise MisconfigurationException(
+                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, got {weights_summary}"
+            )
+
     @property
     def num_optimizers(self):
         num_optimizers = len(self.get_optimizers_iterable())
@@ -89,7 +103,7 @@ class TrainLoop:
 
     def on_train_start(self):
         # clear cache before training
-        if self.trainer.on_gpu and self.trainer.root_gpu is not None:
+        if self.trainer._device_type == DeviceType.GPU and self.trainer.root_gpu is not None:
             # use context because of:
             # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f"cuda:{self.trainer.root_gpu}"):
@@ -97,6 +111,9 @@ class TrainLoop:
 
         # hook
         self.trainer.call_hook("on_train_start")
+
+        # provide rank to profiler
+        self.trainer.profile_connector.on_train_start(self.trainer)
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
         # bind logger and other properties
@@ -112,6 +129,9 @@ class TrainLoop:
         # check that model is configured correctly
         self.trainer.config_validator.verify_loop_configurations(model)
 
+        # attach model log function to callback
+        self.trainer.callback_connector.attach_model_logging_functions(model)
+
     def setup_training(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
 
@@ -121,9 +141,7 @@ class TrainLoop:
         # --------------------------
         # Setup??
         # --------------------------
-        ref_model = model
-        if self.trainer.data_parallel:
-            ref_model = model.module
+        ref_model = self.trainer.get_model()
 
         # set the ranks and devices
         self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
@@ -136,7 +154,9 @@ class TrainLoop:
         self.trainer.model_connector.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
+        if (self.trainer.amp_backend == AMPType.NATIVE
+                and self.trainer.precision == 16
+                and self.trainer._device_type != DeviceType.TPU):
             self.trainer.scaler = self.trainer.precision_connector.backend.scaler
 
         # log hyper-parameters
@@ -171,7 +191,7 @@ class TrainLoop:
         # if cluster resets state, the model will update with the saved weights
         self.trainer.model = model
 
-        # restore training and model before hpc is called
+        # restore training state and model weights before hpc is called
         self.trainer.checkpoint_connector.restore_weights(model)
 
         # on pretrain routine end
@@ -206,7 +226,7 @@ class TrainLoop:
         self.trainer.accelerator_backend.on_train_end()
 
         # clear mem
-        if self.trainer.on_gpu:
+        if self.trainer._device_type == DeviceType.GPU:
             model = self.trainer.get_model()
             model.cpu()
             torch.cuda.empty_cache()
@@ -215,10 +235,14 @@ class TrainLoop:
         # TODO bake this logic into the checkpoint callback
         if should_save and self.trainer.checkpoint_connector.has_trained:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+
             if is_last and any(c.save_last for c in checkpoint_callbacks):
                 rank_zero_info("Saving latest checkpoint...")
+
             model = self.trainer.get_model()
-            [cb.on_validation_end(self.trainer, model) for cb in checkpoint_callbacks]
+
+            for callback in checkpoint_callbacks:
+                callback.on_validation_end(self.trainer, model)
 
     def on_train_epoch_start(self, epoch):
 
@@ -231,11 +255,10 @@ class TrainLoop:
         if self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
-        # set seed for distributed sampler (enables shuffling for each epoch)
-        try:
+        # todo: specify the possible exception
+        with suppress(Exception):
+            # set seed for distributed sampler (enables shuffling for each epoch)
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
-        except Exception:
-            pass
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.get_model())
@@ -323,7 +346,8 @@ class TrainLoop:
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
-            training_step_output = self.trainer.accelerator_backend.training_step(args)
+            with self.trainer.profiler.profile("training_step"):
+                training_step_output = self.trainer.accelerator_backend.training_step(args)
             self.trainer.logger_connector.cache_logged_metrics()
 
             self._check_training_step_output(training_step_output)
@@ -462,18 +486,12 @@ class TrainLoop:
             """
         rank_zero_warn(m)
 
-        # don't allow EvalResult in the training_step
-        if isinstance(training_step_output, EvalResult):
-            raise MisconfigurationException(
-                "training_step cannot return EvalResult, " "use a dict or TrainResult instead"
-            )
-
         training_step_output_for_epoch_end = copy(training_step_output)
         training_step_output_for_epoch_end.detach()
 
         return training_step_output_for_epoch_end
 
-    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
+    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.get_model()
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
@@ -485,18 +503,19 @@ class TrainLoop:
                 'native PyTorch amp and lbfgs are not compatible.'
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli')
 
+        # wraps into LightingOptimizer only for running step
+        optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
+
         # model hook
         model_ref.optimizer_step(
-            epoch=self.trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=train_step_and_backward_closure,
-            on_tpu=self.trainer.use_tpu and TPU_AVAILABLE,
+            self.trainer.current_epoch,
+            batch_idx,
+            optimizer,
+            opt_idx,
+            train_step_and_backward_closure,
+            on_tpu=self.trainer._device_type == DeviceType.TPU and _TPU_AVAILABLE,
             using_native_amp=using_native_amp,
             using_lbfgs=is_lbfgs,
-            *args,
-            **kwargs,
         )
 
     def on_before_zero_grad(self, optimizer):
@@ -543,10 +562,10 @@ class TrainLoop:
         # track epoch output
         epoch_output = [[] for _ in range(self.num_optimizers)]
 
-        # enable profiling for the dataloader
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
         should_check_val = False
+
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
             self.trainer.batch_idx = batch_idx
@@ -642,7 +661,6 @@ class TrainLoop:
         grad_norm_dic = {}
 
         # bookkeeping
-        using_results_obj = False
         self.trainer.hiddens = None
 
         # track all outputs across time and num of optimizers
@@ -758,7 +776,8 @@ class TrainLoop:
         do not block ddp gradient sync when using manual optimization
         as gradients are needed within the training step
 
-        Returns: context manager with sync behaviour off
+        Returns:
+            context manager with sync behaviour off
 
         """
         if self.trainer.accelerator_backend is not None and self.automatic_optimization:
@@ -908,9 +927,8 @@ class TrainLoop:
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
-        if should_flush_logs or self.trainer.fast_dev_run:
-            if self.trainer.is_global_zero and self.trainer.logger is not None:
-                self.trainer.logger.save()
+        if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
+            self.trainer.logger.save()
 
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
         """

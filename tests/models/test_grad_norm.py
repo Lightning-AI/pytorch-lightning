@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.states import TrainerState
 from tests.base import EvalModelTemplate
 from tests.base.develop_utils import reset_seed
 
@@ -74,9 +75,9 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
         track_grad_norm=norm_type,
         log_every_n_steps=1,  # request grad_norms every batch
     )
-    result = trainer.fit(model)
+    trainer.fit(model)
 
-    assert result == 1, "Training failed"
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     logged_metrics = trainer.dev_debugger.logged_metrics
     assert len(logged_metrics) == len(model.stored_grad_norms)
 

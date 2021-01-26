@@ -20,12 +20,19 @@
 # --------------------------------------------
 # --------------------------------------------
 import os
+
 import torch
 from torch.utils.data import Dataset
-from pytorch_lightning import Trainer, LightningModule
+
+from pl_examples import cli_lightning_logo
+from pytorch_lightning import LightningModule, Trainer
 
 
 class RandomDataset(Dataset):
+    """
+    >>> RandomDataset(size=10, length=20)  # doctest: +ELLIPSIS
+    <...bug_report_model.RandomDataset object at ...>
+    """
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -38,6 +45,12 @@ class RandomDataset(Dataset):
 
 
 class BoringModel(LightningModule):
+    """
+    >>> BoringModel()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    BoringModel(
+      (layer): Linear(...)
+    )
+    """
 
     def __init__(self):
         """
@@ -111,10 +124,9 @@ class BoringModel(LightningModule):
 #  parser = ArgumentParser()
 #  args = parser.parse_args(opt)
 
-def run_test():
+def test_run():
 
     class TestModel(BoringModel):
-
         def on_train_epoch_start(self) -> None:
             print('override any method to prove your bug')
 
@@ -137,4 +149,5 @@ def run_test():
 
 
 if __name__ == '__main__':
-    run_test()
+    cli_lightning_logo()
+    test_run()
