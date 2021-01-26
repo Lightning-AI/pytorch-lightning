@@ -1452,18 +1452,23 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
         Trainer(profiler=profiler)
 
 
+class TestLightningDataModule(LightningDataModule):
+
+    def __init__(self, dataloaders):
+        super().__init__()
+        self._dataloaders = dataloaders
+
+    def test_dataloader(self):
+        return self._dataloaders
+
+
 def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=True):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)),
                    torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
-    class TestLightningDataModule(LightningDataModule):
-
-        def test_dataloader(self):
-            return dataloaders
-
     model = BoringModel()
-    datamodule = TestLightningDataModule()
+    datamodule = TestLightningDataModule(dataloaders)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
