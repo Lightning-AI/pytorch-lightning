@@ -25,6 +25,7 @@ PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
+FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
 if SPHINX_MOCK_REQUIREMENTS:
     builtins.__LIGHTNING_SETUP__ = True
@@ -49,22 +50,30 @@ import pytorch_lightning  # noqa: E402
 # with open('readme.md', 'w') as fp:
 #     fp.write(readme)
 
+
+def _transform_changelog(path_in: str, path_out: str) -> None:
+    with open(path_in, 'r') as fp:
+        chlog_lines = fp.readlines()
+    # enrich short subsub-titles to be unique
+    chlog_ver = ''
+    for i, ln in enumerate(chlog_lines):
+        if ln.startswith('## '):
+            chlog_ver = ln[2:].split('-')[0].strip()
+        elif ln.startswith('### '):
+            ln = ln.replace('###', f'### {chlog_ver} -')
+            chlog_lines[i] = ln
+    with open(path_out, 'w') as fp:
+        fp.writelines(chlog_lines)
+
+
+os.makedirs(os.path.join(PATH_HERE, FOLDER_GENERATED), exist_ok=True)
 # copy all documents from GH templates like contribution guide
 for md in glob.glob(os.path.join(PATH_ROOT, '.github', '*.md')):
-    shutil.copy(md, os.path.join(PATH_HERE, os.path.basename(md)))
+    shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
-with open(os.path.join(PATH_ROOT, 'CHANGELOG.md'), 'r') as fp:
-    chlog_lines = fp.readlines()
-# enrich short subsub-titles to be unique
-chlog_ver = ''
-for i, ln in enumerate(chlog_lines):
-    if ln.startswith('## '):
-        chlog_ver = ln[2:].split('-')[0].strip()
-    elif ln.startswith('### '):
-        ln = ln.replace('###', f'### {chlog_ver} -')
-        chlog_lines[i] = ln
-with open(os.path.join(PATH_HERE, 'CHANGELOG.md'), 'w') as fp:
-    fp.writelines(chlog_lines)
+_transform_changelog(
+    os.path.join(PATH_ROOT, 'CHANGELOG.md'), os.path.join(PATH_HERE, FOLDER_GENERATED, 'CHANGELOG.md')
+)
 
 # -- Project information -----------------------------------------------------
 
@@ -146,7 +155,7 @@ language = None
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    'PULL_REQUEST_TEMPLATE.md',
+    f'{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md',
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.

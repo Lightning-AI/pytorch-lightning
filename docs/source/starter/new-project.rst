@@ -121,7 +121,7 @@ Step 1: Define LightningModule
 
 **SYSTEM VS MODEL**
 
-A :ref:`lightning_module` defines a *system* not a model.
+A :doc:`lightning module <../common/lightning_module>` defines a *system* not a model.
 
 .. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/model_system.png
     :width: 400
@@ -182,7 +182,7 @@ It really comes down to your application. We do, however, recommend that you kee
 * Use forward for inference (predicting).
 * Use training_step for training.
 
-More details in :ref:`lightning_module` docs.
+More details in :doc:`lightning module <../common/lightning_module>` docs.
 
 ----------
 
@@ -197,7 +197,7 @@ First, define the data however you want. Lightning just needs a :class:`~torch.u
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
     train_loader = DataLoader(dataset)
 
-Next, init the :ref:`lightning_module` and the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`,
+Next, init the :doc:`lightning module <../common/lightning_module>` and the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`,
 then call fit with both the data and model.
 
 .. code-block:: python
@@ -215,11 +215,11 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 * Epoch and batch iteration
 * Calling of optimizer.step(), backward, zero_grad()
 * Calling of .eval(), enabling/disabling grads
-* :ref:`weights_loading`
-* Tensorboard (see :ref:`loggers` options)
-* :ref:`multi_gpu` support
-* :ref:`tpu`
-* :ref:`amp` support
+* :doc:`weights loading <../common/weights_loading>`
+* Tensorboard (see :doc:`loggers <../common/loggers>` options)
+* :doc:`Multi-GPU <../advanced/multi_gpu>` support
+* :doc:`TPU <../advanced/tpu>`
+* :doc:`AMP <../advanced/amp>` support
 
 .. tip:: If you prefer to manually manage optimizers you can use the :ref:`manual_opt` mode  (ie: RL, GANs, etc...).
 
@@ -578,7 +578,7 @@ Once your training starts, you can view the logs by using your favorite logger o
     Lightning automatically shows the loss value returned from ``training_step`` in the progress bar.
     So, no need to explicitly log like this ``self.log('loss', loss, prog_bar=True)``.
 
-Read more about :ref:`loggers`.
+Read more about :doc:`loggers <../common/loggers>`.
 
 ----------------
 
@@ -630,7 +630,7 @@ Things you can do with a callback:
 - ...
 - You are only limited by your imagination
 
-:ref:`Learn more about custom callbacks <callbacks>`.
+:doc:`Learn more about custom callbacks <../extensions/callbacks>`.
 
 
 LightningDataModules
@@ -703,7 +703,7 @@ the :class:`~pytorch_lightning.trainer.Trainer`:
     # test
     trainer.test(datamodule=dm)
 
-DataModules are specifically useful for building models based on data. Read more on :ref:`datamodules`.
+DataModules are specifically useful for building models based on data. Read more on :doc:`datamodules <../extensions/datamodules>`.
 
 ------
 
@@ -750,16 +750,16 @@ Other coool features
 
 Once you define and train your first Lightning model, you might want to try other cool features like
 
-- :ref:`Automatic early stopping <early_stopping>`
-- :ref:`Automatic truncated-back-propagation-through-time <trainer:truncated_bptt_steps>`
-- :ref:`Automatically scale your batch size <training_tricks:Auto scaling of batch size>`
-- :ref:`Automatically find a good learning rate <lr_finder>`
-- :ref:`Load checkpoints directly from S3 <weights_loading:Checkpoint Loading>`
-- :ref:`Scale to massive compute clusters <slurm>`
-- :ref:`Use multiple dataloaders per train/val/test loop <multiple_loaders>`
-- :ref:`Use multiple optimizers to do reinforcement learning or even GANs <optimizers:Use multiple optimizers (like GANs)>`
+- :doc:`Automatic early stopping <../common/early_stopping>`
+- :ref:`Automatic truncated-back-propagation-through-time <common/trainer:truncated_bptt_steps>`
+- :ref:`Automatically scale your batch size <advanced/training_tricks:Auto scaling of batch size>`
+- :doc:`Automatically find a good learning rate <../advanced/lr_finder>`
+- :ref:`Load checkpoints directly from S3 <common/weights_loading:Checkpoint Loading>`
+- :doc:`Scale to massive compute clusters <../clouds/slurm>`
+- :doc:`Use multiple dataloaders per train/val/test loop <../advanced/multiple_loaders>`
+- :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimizers:Use multiple optimizers (like GANs)>`
 
-Or read our :ref:`introduction_guide` to learn more!
+Or read our :doc:`Guide <../starter/introduction_guide>` to learn more!
 
 -------------
 
@@ -785,7 +785,7 @@ Masterclass
 ===========
 We also offer a Masterclass to teach you the advanced uses of Lightning.
 
-.. image:: _images/general/PTL101_youtube_thumbnail.jpg
+.. image:: ../_images/general/PTL101_youtube_thumbnail.jpg
     :width: 500
     :align: center
     :alt: Masterclass

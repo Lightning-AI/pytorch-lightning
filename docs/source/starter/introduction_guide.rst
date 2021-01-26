@@ -57,7 +57,7 @@ The research
 The Model
 ---------
 
-The :ref:`lightning_module` holds all the core research ingredients:
+The :doc:`lightning module <../common/lightning_module>` holds all the core research ingredients:
 
 - The model
 
@@ -98,7 +98,7 @@ Let's first start with the model. In this case, we'll design a 3-layer neural ne
         x = F.log_softmax(x, dim=1)
         return x
 
-Notice this is a :ref:`lightning_module` instead of a ``torch.nn.Module``. A LightningModule is
+Notice this is a :doc:`lightning module <../common/lightning_module>` instead of a ``torch.nn.Module``. A LightningModule is
 equivalent to a pure PyTorch Module except it has added functionality. However, you can use it **EXACTLY** the same as you would a PyTorch Module.
 
 .. testcode::
@@ -488,13 +488,13 @@ Once your training starts, you can view the logs by using your favorite logger o
 
 Which will generate automatic tensorboard logs (or with the logger of your choice).
 
-.. figure:: /_images/mnist_imgs/mnist_tb.png
+.. figure:: ../_images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
    :width: 500
 
 |
 
-But you can also use any of the :ref:`number of other loggers <loggers>` we support.
+But you can also use any of the :doc:`number of other loggers <../common/loggers>` we support.
 
 
 Train on CPU
@@ -509,7 +509,7 @@ Train on CPU
 
 You should see the following weights summary and progress bar
 
-.. figure:: /_images/mnist_imgs/mnist_cpu_bar.png
+.. figure:: ../_images/mnist_imgs/mnist_cpu_bar.png
    :alt: mnist CPU bar
 
 
@@ -524,7 +524,7 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
     trainer.fit(model, train_loader)
 
 
-.. figure:: /_images/mnist_imgs/mnist_gpu.png
+.. figure:: ../_images/mnist_imgs/mnist_gpu.png
     :alt: mnist GPU bar
 
 Train on Multi-GPU
@@ -546,7 +546,7 @@ Or multiple nodes
     trainer = Trainer(gpus=8, num_nodes=4, accelerator='ddp')
     trainer.fit(model, train_loader)
 
-Refer to the :ref:`distributed computing guide for more details <multi_gpu>`.
+Refer to the :doc:`distributed computing guide for more details <../advanced/multi_gpu>`.
 
 Train on TPUs
 ^^^^^^^^^^^^^
@@ -558,11 +558,11 @@ Let's train on Colab (`full demo available here <https://colab.research.google.c
 
 First, change the runtime to TPU (and reinstall lightning).
 
-.. figure:: /_images/mnist_imgs/runtime_tpu.png
+.. figure:: ../_images/mnist_imgs/runtime_tpu.png
     :alt: mnist GPU bar
     :width: 400
 
-.. figure:: /_images/mnist_imgs/restart_runtime.png
+.. figure:: ../_images/mnist_imgs/restart_runtime.png
     :alt: mnist GPU bar
     :width: 400
 
@@ -637,19 +637,19 @@ Now we can train the LightningModule on a TPU without doing anything else!
 
 You'll now see the TPU cores booting up.
 
-.. figure:: /_images/mnist_imgs/tpu_start.png
+.. figure:: ../_images/mnist_imgs/tpu_start.png
     :alt: TPU start
     :width: 400
 
 Notice the epoch is MUCH faster!
 
-.. figure:: /_images/mnist_imgs/tpu_fast.png
+.. figure:: ../_images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
     :width: 600
 
 ----------------
 
-.. include:: hyperparameters.rst
+.. include:: ../common/hyperparameters.rst
 
 ----------------
 
@@ -917,7 +917,7 @@ With your own
             loss.backward(retain_graph=True)
 
 Every single part of training is configurable this way.
-For a full list look at :ref:`LightningModule <lightning_module>`.
+For a full list look at :doc:`LightningModule <../common/lightning_module>`.
 
 ----------------
 
@@ -955,15 +955,15 @@ And pass the callbacks into the trainer
     Trainer is init now
 
 .. tip::
-    See full list of 12+ hooks in the :ref:`callbacks`.
+    See full list of 12+ hooks in the :doc:`callbacks <../extensions/callbacks>`.
 
 ----------------
 
-.. include:: child_modules.rst
+.. include:: ../common/child_modules.rst
 
 ----------------
 
-.. include:: transfer_learning.rst
+.. include:: ../advanced/transfer_learning.rst
 
 ----------
 
@@ -1052,7 +1052,7 @@ would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
 
     loss = perceptual_loss(x1, x2, x) + CE(out, x)
 
-In Lightning, this code is organized into a :ref:`lightning_module`.
+In Lightning, this code is organized into a :doc:`lightning module <../common/lightning_module>`.
 
 Engineering code
 ================
@@ -1072,7 +1072,7 @@ over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across 
 
     dist.barrier()
 
-In Lightning, this code is abstracted out by the :ref:`trainer`.
+In Lightning, this code is abstracted out by the :doc:`trainer <../common/lightning_module>`.
 
 Non-essential code
 ==================
@@ -1091,7 +1091,7 @@ This is code that helps the research but isn't relevant to the research code. So
     generated = decoder(z)
     self.experiment.log('images', generated)
 
-In Lightning this code is organized into :ref:`callbacks`.
+In Lightning this code is organized into :doc:`callbacks <../extensions/callbacks>`.
 
 Data code
 =========
@@ -1117,6 +1117,6 @@ spread all over files.
 This code gets especially complicated once you start doing multi-GPU training or needing info about
 the data to build your models.
 
-In Lightning this code is organized inside a :ref:`datamodules`.
+In Lightning this code is organized inside a :doc:`datamodules <../extensions/datamodules>`.
 
 .. tip:: DataModules are optional but encouraged, otherwise you can use standard DataLoaders
