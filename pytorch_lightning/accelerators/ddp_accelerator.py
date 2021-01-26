@@ -292,8 +292,6 @@ class DDPAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
 
@@ -315,6 +313,7 @@ class DDPAccelerator(Accelerator):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
+        self.ddp_plugin.device_ids = device_ids
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 

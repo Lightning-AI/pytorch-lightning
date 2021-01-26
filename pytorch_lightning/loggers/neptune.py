@@ -52,7 +52,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     **ONLINE MODE**
 
-    .. code-block:: python
+    .. testcode::
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import NeptuneLogger
@@ -70,7 +70,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     **OFFLINE MODE**
 
-    .. code-block:: python
+    .. testcode::
 
         from pytorch_lightning.loggers import NeptuneLogger
 

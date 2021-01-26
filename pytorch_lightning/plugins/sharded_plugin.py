@@ -42,9 +42,6 @@ class DDPShardedPlugin(DDPPlugin):
         optimizer.consolidate_state_dict()
         return self._optim_state_dict(optimizer)
 
-    def on_before_forward(self, model: LightningModule, *args):
-        return model.transfer_batch_to_device(args, model.trainer.root_gpu)
-
     def _check_fairscale(self):
         if not _FAIRSCALE_AVAILABLE:
             raise MisconfigurationException(
@@ -57,7 +54,7 @@ class DDPShardedPlugin(DDPPlugin):
 
     def _wrap_optimizers(self, model):
         trainer = model.trainer
-        if trainer.testing is True:
+        if trainer.testing:
             return
 
         self._reinit_with_fairscale_oss(trainer)
@@ -66,7 +63,7 @@ class DDPShardedPlugin(DDPPlugin):
         optimizers = trainer.optimizers
         for x, optimizer in enumerate(optimizers):
             if is_lightning_optimizer(optimizer):
-                optimizer = optimizer._optimizer
+                optimizer = optimizer.optimizer
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(
@@ -76,7 +73,6 @@ class DDPShardedPlugin(DDPPlugin):
                 )
                 optimizers[x] = zero_optimizer
                 del optimizer
-        trainer.convert_to_lightning_optimizers()
 
     def get_model_from_plugin(
             self,

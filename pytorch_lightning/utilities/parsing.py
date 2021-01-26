@@ -115,7 +115,6 @@ def get_init_args(frame) -> dict:
     self_var, args_var, kwargs_var = parse_class_init_keys(cls)
     filtered_vars = [n for n in (self_var, args_var, kwargs_var) if n]
     exclude_argnames = (*filtered_vars, '__class__', 'frame', 'frame_args')
-
     # only collect variables that appear in the signature
     local_args = {k: local_vars[k] for k in init_parameters.keys()}
     local_args.update(local_args.get(kwargs_var, {}))

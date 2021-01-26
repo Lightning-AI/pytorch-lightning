@@ -28,7 +28,7 @@ from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConn
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins.plugin_connector import PluginConnector
 from pytorch_lightning.profiler import BaseProfiler
@@ -53,7 +53,7 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
@@ -134,7 +134,7 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
-        enable_pl_optimizer: bool = False,
+        enable_pl_optimizer: bool = None,  # todo: remove in v1.3
         multiple_trainloader_mode: str = 'max_size_cycle',
     ):
         r"""
@@ -285,7 +285,8 @@ class Trainer(
 
             enable_pl_optimizer: If True, each optimizer will be wrapped by
                 `pytorch_lightning.core.optimizer.LightningOptimizer`. It allows Lightning to
-                handle AMP, TPU, accumulated_gradients, etc..
+                handle AMP, TPU, accumulated_gradients, etc.
+                .. warning:: Currently deprecated and it will be removed in v1.3
 
             multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
                 In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
@@ -707,10 +708,7 @@ class Trainer(
                 if isinstance(eval_results, list):
                     eval_results = eval_results[-1]
 
-                if isinstance(eval_results, EvalResult):
-                    callback_metrics = eval_results.callback_metrics
-                else:
-                    _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
+                _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
                 self.logger_connector.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
@@ -918,7 +916,53 @@ class Trainer(
     @staticmethod
     def available_plugins():
         """
-            List of all available plugins that can be string arguments to the trainer.
-            Returns: List of all available plugins that are supported as string arguments.
+        List of all available plugins that can be string arguments to the trainer.
+
+        Returns:
+            List of all available plugins that are supported as string arguments.
         """
         return PluginConnector.available_plugins()
+
+    @property
+    def training(self) -> bool:
+        return self._running_stage == RunningStage.TRAINING
+
+    @training.setter
+    def training(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TRAINING
+        elif self.training:
+            self._running_stage = None
+
+    @property
+    def testing(self) -> bool:
+        return self._running_stage == RunningStage.TESTING
+
+    @testing.setter
+    def testing(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TESTING
+        elif self.testing:
+            self._running_stage = None
+
+    @property
+    def tuning(self) -> bool:
+        return self._running_stage == RunningStage.TUNING
+
+    @tuning.setter
+    def tuning(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TUNING
+        elif self.tuning:
+            self._running_stage = None
+
+    @property
+    def evaluating(self) -> bool:
+        return self._running_stage == RunningStage.EVALUATING
+
+    @evaluating.setter
+    def evaluating(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.EVALUATING
+        elif self.evaluating:
+            self._running_stage = None
