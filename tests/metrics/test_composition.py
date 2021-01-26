@@ -12,6 +12,7 @@ _MARK_TORCH_LOWER_1_4 = dict(condition=LooseVersion(torch.__version__) < LooseVe
 _MARK_TORCH_LOWER_1_5 = dict(condition=LooseVersion(torch.__version__) < LooseVersion("1.6.0"),
                              reason='required PT >= 1.6')
 
+
 class DummyMetric(Metric):
     def __init__(self, val_to_return):
         super().__init__()
