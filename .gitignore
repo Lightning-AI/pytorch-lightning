@@ -16,6 +16,7 @@ test_tube_exp/
 docs/source/api
 docs/source/*.md
 docs/source/generated
+docs/source/extensions/generated
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
