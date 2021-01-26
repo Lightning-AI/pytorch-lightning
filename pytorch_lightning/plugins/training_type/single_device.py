@@ -9,6 +9,10 @@ class SingleDevicePlugin(TrainingTypePlugin):
         self.device: torch.device = device
 
     @property
+    def on_tpu(self):
+        return self.device.type == 'xla'
+
+    @property
     def on_gpu(self):
         return self.device.type == "cuda" and torch.cuda.is_available()
 

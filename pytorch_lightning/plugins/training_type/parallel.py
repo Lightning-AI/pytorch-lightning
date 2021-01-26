@@ -91,3 +91,5 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             yield self.model.no_sync()
         else:
             yield None
+
+    

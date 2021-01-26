@@ -513,6 +513,7 @@ class Trainer(
         # TODO: the old setup is now called "pre_training", where should this hook be called now?
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.training_type_plugin.pre_training()
+        self.precision_plugin.pre_training()
 
         self.call_setup_hook(self.lightning_module)
 
@@ -522,6 +523,7 @@ class Trainer(
         else:
             self.training_type_plugin.start_training(self)
 
+        self.precision_plugin.post_training()
         self.training_type_plugin.post_training()
         self.accelerator_backend.teardown()
         results = self.training_type_plugin.results

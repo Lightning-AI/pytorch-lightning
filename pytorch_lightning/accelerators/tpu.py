@@ -1,13 +1,17 @@
-# TODO: Complete the TPUAccelerator
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.plugins.training_type import SingleTPUPlugin, TPUSpawnPlugin
+from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 
 
 class TPUAccelerator(Accelerator):
     def setup(self, trainer, model):
-        raise NotImplementedError
+        if isinstance(self.precision_plugin, MixedPrecisionPlugin):
+            raise MisconfigurationException(
+                "amp + tpu is not supported. "
+                "Only bfloats are supported on TPU. Consider using TPUHalfPrecisionPlugin"
+            )
 
-    def on_train_start(self):
-        raise NotImplementedError
-
-    def on_train_end(self):
-        raise NotImplementedError
+        if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
+            raise MisconfigurationException("TPUs only support a single tpu core or tpu spawn training.")
+        return super().setup(trainer, model)
