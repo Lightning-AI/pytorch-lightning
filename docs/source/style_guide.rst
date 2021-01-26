@@ -46,10 +46,10 @@ Here's a LightningModule that defines a model:
 
 Here's a lightningModule that defines a system:
 
-.. code-block:: python
+.. testcode::
 
-    class LitModel(pl.LightningModule):
-        def __init__(self, encoder: nn.Module = None, decoder: nn.Module = None)
+    class LitModel(LightningModule):
+        def __init__(self, encoder: nn.Module = None, decoder: nn.Module = None):
             super().__init__()
             self.encoder = encoder
             self.decoder = decoder
@@ -74,9 +74,9 @@ sensible defaults in the init so that the user doesn't have to guess.
 
 Here's an example where a user will have to go hunt through files to figure out how to init this LightningModule.
 
-.. code-block:: python
+.. testcode::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(LightningModule):
         def __init__(self, params):
             self.lr = params.lr
             self.coef_x = params.coef_x
@@ -85,10 +85,11 @@ Models defined as such leave you with many questions; what is coef_x? is it a st
 
 Instead, be explicit in your init
 
-.. code-block:: python
+.. testcode::
 
-    class LitModel(pl.LightningModule):
-        def __init__(self, encoder: nn.Module, coeff_x: float = 0.2, lr: float = 1e-3)
+    class LitModel(LightningModule):
+        def __init__(self, encoder: nn.Module, coeff_x: float = 0.2, lr: float = 1e-3):
+            ...
 
 Now the user doesn't have to guess. Instead they know the value type and the model has a sensible default where the
 user can see the value immediately.
