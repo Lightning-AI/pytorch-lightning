@@ -94,7 +94,7 @@ class LightningDataParallel(DataParallel):
                 return self.module.validation_step(*inputs[0], **kwargs[0])
 
             else:
-                return self.module(*inputs[0], **kwargs[0])
+                return self.module.predict(*inputs[0], **kwargs[0])
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
@@ -308,7 +308,7 @@ def parallel_apply(
 
                 else:
                     output = module.predict(*input, **kwargs)
-                    fx_called = 'forward'
+                    fx_called = 'predict'
 
                 if output is None:
                     warn_missing_output(fx_called)
