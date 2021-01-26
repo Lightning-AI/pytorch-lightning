@@ -28,7 +28,7 @@ from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConn
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins.plugin_connector import PluginConnector
 from pytorch_lightning.profiler import BaseProfiler
@@ -706,10 +706,7 @@ class Trainer(
                 if isinstance(eval_results, list):
                     eval_results = eval_results[-1]
 
-                if isinstance(eval_results, EvalResult):
-                    callback_metrics = eval_results.callback_metrics
-                else:
-                    _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
+                _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
                 self.logger_connector.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
@@ -917,8 +914,10 @@ class Trainer(
     @staticmethod
     def available_plugins():
         """
-            List of all available plugins that can be string arguments to the trainer.
-            Returns: List of all available plugins that are supported as string arguments.
+        List of all available plugins that can be string arguments to the trainer.
+
+        Returns:
+            List of all available plugins that are supported as string arguments.
         """
         return PluginConnector.available_plugins()
 

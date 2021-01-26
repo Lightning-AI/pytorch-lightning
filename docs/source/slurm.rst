@@ -34,7 +34,7 @@ To train a model using multiple nodes, do the following:
         def main(hparams):
             model = LightningTemplateModel(hparams)
 
-            trainer = pl.Trainer(
+            trainer = Trainer(
                 gpus=8,
                 num_nodes=4,
                 accelerator='ddp'
