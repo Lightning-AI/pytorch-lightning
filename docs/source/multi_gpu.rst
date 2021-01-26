@@ -698,7 +698,7 @@ This should be kept within the ``sequential_module`` variable within your ``Ligh
     class MyModel(LightningModule):
         def __init__(self):
             ...
-            self.sequential_module = torch.nn.Sequential(my_layers)
+            self.sequential_module = nn.Sequential(my_layers)
 
     # Split my module across 4 gpus, one layer each
     model = MyModel()
