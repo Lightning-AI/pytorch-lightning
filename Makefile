@@ -1,12 +1,13 @@
 .PHONY: test clean docs
 
+# to imitate SLURM set only single node
+export SLURM_LOCALID=0
+# assume you have installed need packages
 export SPHINX_MOCK_REQUIREMENTS=0
 
 test:
 	pip install -r requirements/devel.txt
 	# install APEX, see https://github.com/NVIDIA/apex#linux
-	# to imitate SLURM set only single node
-	export SLURM_LOCALID=0
 
 	# use this to run tests
 	rm -rf _ckpt_*
