@@ -2,6 +2,15 @@
 
 ROOT=$PWD
 
+python -m pip install protobuf
+git clone https://github.com/onnx/onnx.git
+cd onnx
+git submodule update --init --recursive
+python setup.py install
+cd $ROOT
+rm -rf onnx
+
+
 # https://github.com/microsoft/onnxruntime/blob/master/BUILD.md
 git clone --recursive https://github.com/Microsoft/onnxruntime
 cd onnxruntime
