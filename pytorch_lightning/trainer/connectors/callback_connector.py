@@ -112,12 +112,17 @@ class CallbackConnector:
     def attach_model_callbacks(self, model: LightningModule) -> None:
         """
         Attaches the callbacks defined in the model.
-        Only callbacks that are not already in the ``Trainer.callbacks`` list will be added.
+        If a callback returned by the model's configure_callback method has the same type as one or several
+        callbacks already present in the trainer callbacks list, it will replace them.
 
         Args:
             A model which may or may not define new callbacks in
             :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
         """
+        model_callbacks = model.configure_callbacks()
+        model_callback_types = [type(c) for c in model_callbacks]
+        # remove all callbacks with a type that occurs in model callbacks
+        all_callbacks = [c for c in self.trainer.callbacks if type(c) not in model_callback_types]
+        all_callbacks.extend(model_callbacks)
         # TODO: connectors refactor: move callbacks list to connector and do not write Trainer state
-        new_callbacks = [c for c in model.configure_callbacks() if c not in self.trainer.callbacks]
-        self.trainer.callbacks.extend(new_callbacks)
+        self.trainer.callbacks = all_callbacks
