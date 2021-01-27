@@ -984,11 +984,13 @@ class LightningModule(
 
     def configure_callbacks(self):
         """
-        Configure model-specific callbacks. The list returned here will append to the Trainer's
-        own callback list when the model gets attached, e.g., when ``.fit()`` or ``.test()`` gets called.
+        Configure model-specific callbacks. The list returned here will extend the list of callbacks
+        passed to the Trainer's when the model gets attached, e.g., when ``.fit()`` or ``.test()`` gets called.
+        If a callback returned here has the same type as one or several callbacks already present in
+        the Trainer's callbacks list, it will take priority and replace them.
 
         Return:
-            A list of callbacks which will be appended to in the Trainer callbacks.
+            A list of callbacks which will extend the list of callbacks in the Trainer.
 
         Example::
 
