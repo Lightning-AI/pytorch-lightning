@@ -179,9 +179,9 @@ class DataParallelAccelerator(Accelerator):
 
     def get_reference_model(self, model) -> LightningModule:
         if isinstance(model, torch.nn.DataParallel):
-            return model.module
+            model = model.module
         if isinstance(model, LightningParallelModule):
-            return model.module
+            model = model.module
         return model
 
     @property
