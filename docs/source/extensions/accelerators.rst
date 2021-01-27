@@ -16,7 +16,7 @@ To link up arbitrary hardware, implement your own Accelerator subclass
 
 .. code-block:: python
 
-    from pytorch_lightning.accelerators.accelerator import Accelerator
+    from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
 
         class MyAccelerator(Accelerator):
             def __init__(self, trainer, cluster_environment=None):
@@ -124,59 +124,59 @@ Available Accelerators
 CPU Accelerator
 ===============
 
-.. autoclass:: pytorch_lightning.accelerators.cpu_accelerator.CPUAccelerator
+.. autoclass:: pytorch_lightning.accelerators.legacy.cpu_accelerator.CPUAccelerator
     :noindex:
 
 DDP Accelerator
 ===============
 
-.. autoclass:: pytorch_lightning.accelerators.ddp_accelerator.DDPAccelerator
+.. autoclass:: pytorch_lightning.accelerators.legacy.ddp_accelerator.DDPAccelerator
     :noindex:
 
 DDP2 Accelerator
 ================
 
-.. autoclass:: pytorch_lightning.accelerators.ddp2_accelerator.DDP2Accelerator
+.. autoclass:: pytorch_lightning.accelerators.legacy.ddp2_accelerator.DDP2Accelerator
     :noindex:
 
 DDP CPU HPC Accelerator
 =======================
 
-.. autoclass:: pytorch_lightning.accelerators.ddp_cpu_hpc_accelerator.DDPCPUHPCAccelerator
+.. autoclass:: pytorch_lightning.accelerators.legacy.ddp_cpu_hpc_accelerator.DDPCPUHPCAccelerator
     :noindex:
 
 DDP CPU Spawn Accelerator
 =========================
 
-.. autoclass:: pytorch_lightning.accelerators.ddp_cpu_spawn_accelerator.DDPCPUSpawnAccelerator
+.. autoclass:: pytorch_lightning.accelerators.legacy.ddp_cpu_spawn_accelerator.DDPCPUSpawnAccelerator
     :noindex:
 
 DDP HPC Accelerator
 ===================
 
-.. autoclass:: pytorch_lightning.accelerators.ddp_hpc_accelerator.DDPHPCAccelerator
+.. autoclass:: pytorch_lightning.accelerators.legacy.ddp_hpc_accelerator.DDPHPCAccelerator
     :noindex:
 
 DDP Spawn Accelerator
 =====================
 
-.. autoclass:: pytorch_lightning.accelerators.ddp_spawn_accelerator.DDPSpawnAccelerator
+.. autoclass:: pytorch_lightning.accelerators.legacy.ddp_spawn_accelerator.DDPSpawnAccelerator
     :noindex:
 
 GPU Accelerator
 ===============
 
-.. autoclass:: pytorch_lightning.accelerators.gpu_accelerator.GPUAccelerator
+.. autoclass:: pytorch_lightning.accelerators.legacy.gpu_accelerator.GPUAccelerator
     :noindex:
 
 Horovod Accelerator
 ===================
 
-.. autoclass:: pytorch_lightning.accelerators.horovod_accelerator.HorovodAccelerator
+.. autoclass:: pytorch_lightning.accelerators.legacy.horovod_accelerator.HorovodAccelerator
     :noindex:
 
 TPU Accelerator
 ===============
 
-.. autoclass:: pytorch_lightning.accelerators.tpu_accelerator.TPUAccelerator
+.. autoclass:: pytorch_lightning.accelerators.legacy.tpu_accelerator.TPUAccelerator
     :noindex:

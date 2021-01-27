@@ -17,7 +17,7 @@ from abc import ABC
 from argparse import ArgumentParser, Namespace
 from typing import cast, List, Optional, Type, TypeVar, Union
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase
