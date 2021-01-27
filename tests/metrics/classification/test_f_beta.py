@@ -113,10 +113,7 @@ class TestFBeta(MetricTester):
     def test_fbeta(
         self, preds, target, sk_metric, num_classes, multilabel, average, beta, ddp, dist_sync_on_step
     ):
-        if beta == 1.0:
-            metric_class = F1
-        else:
-            metric_class = partial(FBeta, beta=beta)
+        metric_class = F1 if beta == 1.0 else partial(FBeta, beta=beta)
 
         self.run_class_metric_test(
             ddp=ddp,
@@ -138,10 +135,7 @@ class TestFBeta(MetricTester):
     def test_fbeta_functional(
         self, preds, target, sk_metric, num_classes, multilabel, average, beta
     ):
-        if beta == 1.0:
-            metric_functional = f1
-        else:
-            metric_functional = partial(fbeta, beta=beta)
+        metric_functional = f1 if beta == 1.0 else partial(fbeta, beta=beta)
 
         self.run_functional_metric_test(preds=preds,
                                         target=target,
