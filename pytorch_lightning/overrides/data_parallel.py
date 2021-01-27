@@ -193,7 +193,7 @@ class LightningParallelModule(torch.nn.Module):
             output,
             dtype=numbers.Number,
             function=python_scalar_to_tensor,
-            args=(self.module.device,)
+            device=self.module.device
         )
         return output
 
