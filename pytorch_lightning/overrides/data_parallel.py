@@ -96,7 +96,8 @@ class LightningParallelModule(LightningModuleWrapperBase):
     Wraps the user's LightningModule and redirects the forward call to the appropriate
     method, either ``training_step``, ``validation_step`` or ``test_step``.
     This class is used in combination with :class:`~torch.nn.parallel.DataParallel` as
-    shown in the example.
+    shown in the example. It also takes care of converting Python scalars to Tensors and
+    un-squeezes 0-dimensional Tensors as it is required by :class:`~torch.nn.parallel.DataParallel`.
 
     Example:
 
