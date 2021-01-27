@@ -32,5 +32,9 @@ else
     echo $OSTYPE  # Unknown.
 fi
 
+export ONNX_ML=1
+python setup.py bdist_wheel
+pip install --upgrade dist/*.whl
+
 cd $ROOT
 rm -rf onnxruntime
