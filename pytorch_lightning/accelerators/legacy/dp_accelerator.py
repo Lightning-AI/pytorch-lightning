@@ -21,7 +21,7 @@ from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed import LightningDistributed
-from pytorch_lightning.overrides.data_parallel import LightningDataParallel
+from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -74,7 +74,7 @@ class DataParallelAccelerator(Accelerator):
 
         # set dp device
         torch.cuda.set_device(self.trainer.root_gpu)
-        model = LightningDataParallel(model, device_ids=device_ids)
+        model = torch.nn.DataParallel(LightningParallelModule(model), device_ids=device_ids)
         return model
 
     def __init_half_precision(self, model):
@@ -178,7 +178,9 @@ class DataParallelAccelerator(Accelerator):
                     scheduler.load_state_dict(state)
 
     def get_reference_model(self, model) -> LightningModule:
-        if isinstance(model, LightningDataParallel):
+        if isinstance(model, torch.nn.DataParallel):
+            return model.module
+        if isinstance(model, LightningParallelModule):
             return model.module
         return model
 
