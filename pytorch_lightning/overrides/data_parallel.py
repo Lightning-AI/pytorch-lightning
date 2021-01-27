@@ -178,9 +178,16 @@ class LightningDistributedDataParallel(DistributedDataParallel):
         super().__init__(LightningDistributedModule(module), *args, **kwargs)
 
 
-class LightningParallelModule(torch.nn.Module):
+class LightningModuleWrapperBase(torch.nn.Module):
 
     def __init__(self, pl_module: LightningModule):
+        """
+        Wraps the user's LightningModule and redirects the forward call to the appropriate
+        method, either ``training_step``, ``validation_step`` or ```test_step``.
+
+        Args:
+            pl_module: the model to wrap
+        """
         super().__init__()
         self.module = pl_module
 
@@ -194,7 +201,16 @@ class LightningParallelModule(torch.nn.Module):
         else:
             output = self.module.validation_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "validation_step")
+        return output
 
+
+class LightningParallelModule(LightningModuleWrapperBase):
+
+    def __init__(self, pl_module: LightningModule):
+        super().__init__(pl_module)
+
+    def forward(self, *inputs, **kwargs):
+        output = super().forward(*inputs, **kwargs)
         output = apply_to_collection(
             output,
             dtype=numbers.Number,
@@ -209,7 +225,7 @@ class LightningParallelModule(torch.nn.Module):
         return output
 
 
-class LightningDistributedModule(torch.nn.Module):
+class LightningDistributedModule(LightningModuleWrapperBase):
 
     def __init__(self, pl_module: LightningModule):
         """
@@ -230,20 +246,10 @@ class LightningDistributedModule(torch.nn.Module):
             pl_module: the model to wrap
 
         """
-        super().__init__()
-        self.module = pl_module
+        super().__init__(pl_module)
 
     def forward(self, *inputs, **kwargs):
-        if self.module.training:
-            output = self.module.training_step(*inputs, **kwargs)
-            warn_if_output_is_none(output, "training_step")
-        elif self.module.testing:
-            output = self.module.test_step(*inputs, **kwargs)
-            warn_if_output_is_none(output, "test_step")
-        else:
-            output = self.module.validation_step(*inputs, **kwargs)
-            warn_if_output_is_none(output, "validation_step")
-        return output
+        return super().forward(*inputs, **kwargs)
 
 
 # In manual_optimization, we need to call reducer prepare_for_backward.
