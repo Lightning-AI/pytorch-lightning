@@ -96,6 +96,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     """ Test that batch end metrics are collected when training_epoch_end is overridden at the end of an epoch. """
 
     class LoggingCallback(pl.Callback):
+
         def on_train_epoch_start(self, trainer, pl_module):
             self.len_outputs = 0
 
