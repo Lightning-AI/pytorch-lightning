@@ -177,6 +177,7 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any):
 
 
 def warn_if_output_is_none(output: Any, method_name: str) -> None:
+    """ Warns user about which method returned None. """
     if output is None:
         warning_cache.warn(f'Your {method_name} returned None. Did you forget to return an output?')
 
