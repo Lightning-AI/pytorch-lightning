@@ -101,7 +101,7 @@ In the case of multiple optimizers, Lightning does the following:
 Learning rate scheduling
 ------------------------
 Every optimizer you use can be paired with any `LearningRateScheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
-In the basic usecase, the scheduler (or multiple schedulers) should be returned as the second output from the ``.configure_optimizers``
+In the basic use-case, the scheduler (or multiple schedulers) should be returned as the second output from the ``.configure_optimizers``
 method:
 
 .. testcode::
@@ -124,9 +124,9 @@ method:
       scheduler2 = LambdaLR(optimizer2, ...)
       return [optimizer1, optimizer2], [scheduler1, scheduler2]
 
-Schedulers which ``.step()`` method are conditioned on metric values (for example the ``ReduceLROnPlateau`` 
-scheduler) enforces that the output from ``configure_optimizers`` should be returned as dicts with the 
-keyword ``monitor`` defined as the metric that the scheduler should be conditioned on.
+Schedulers in which ``.step()`` method is conditioned on metric values (for example the
+:class:`~torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler) enforces that the output from ``configure_optimizers`` should be returned as dicts with the  keyword ``monitor`` defined as the
+metric that the scheduler should be conditioned on.
 
 .. testcode::
 
@@ -149,17 +149,17 @@ keyword ``monitor`` defined as the metric that the scheduler should be condition
           {'optimizer': optimizer2, 'lr_scheduler': scheduler2},
       )
 
-As default all schedulers will be called after each epoch ends. To change this behaviour, each scheduler should be
+By default, all schedulers will be called after each epoch ends. To change this behaviour, each scheduler should be
 returned as a dict which can contain the following keywords:
 
 * ``scheduler`` (required): the actual scheduler class
-* ``monitor`` (optional): same as above, defines the value that certain schdulers should be conditioned on
+* ``monitor`` (optional): same as above, defines the value that certain schedulers should be conditioned on
 * ``interval`` (optional): either ``epoch`` (default) for stepping after each epoch ends or ``step`` for stepping
   after each optimization step
 * ``frequency`` (optional): how many epochs/steps should pass between calls to ``scheduler.step()``. Default is 1,
   corresponding to updating the learning rate after every epoch/step.
 * ``strict`` (optional): if set to ``True`` will enforce that value specified in ``monitor`` is available while trying
-  to call ``scheduler.step()``, and stop training if not found. If ``False`` will only give an warning and continue training
+  to call ``scheduler.step()``, and stop training if not found. If ``False`` will only give a warning and continue training
   (without calling the scheduler).
 * ``name`` (optional): if using the ``LearningRateMonitor`` callback to monitor the learning rate progress, this
   keyword can be used to specify a specific name.
