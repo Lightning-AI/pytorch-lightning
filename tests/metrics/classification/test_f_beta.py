@@ -5,8 +5,8 @@ import pytest
 import torch
 from sklearn.metrics import fbeta_score
 
-from pytorch_lightning.metrics import FBeta
-from pytorch_lightning.metrics.functional import fbeta, f1
+from pytorch_lightning.metrics import F1, FBeta
+from pytorch_lightning.metrics.functional import f1, fbeta
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
@@ -18,7 +18,7 @@ from tests.metrics.classification.inputs import (
     _multilabel_inputs_no_match,
     _multilabel_prob_inputs,
 )
-from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
+from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 torch.manual_seed(42)
 
@@ -106,22 +106,23 @@ def _sk_fbeta_multidim_multiclass(preds, target, average='micro', beta=1.0):
     ],
 )
 @pytest.mark.parametrize("average", ['micro', 'macro', 'weighted', None])
-@pytest.mark.parametrize("beta", [0.5, 1.0])
+@pytest.mark.parametrize("beta", [0.5, 1.0, 2.0])
 class TestFBeta(MetricTester):
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_fbeta(
         self, preds, target, sk_metric, num_classes, multilabel, average, beta, ddp, dist_sync_on_step
     ):
+        metric_class = F1 if beta == 1.0 else partial(FBeta, beta=beta)
+
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,
-            metric_class=FBeta,
+            metric_class=metric_class,
             sk_metric=partial(sk_metric, average=average, beta=beta),
             dist_sync_on_step=dist_sync_on_step,
             metric_args={
-                "beta": beta,
                 "num_classes": num_classes,
                 "average": average,
                 "multilabel": multilabel,
@@ -134,12 +135,13 @@ class TestFBeta(MetricTester):
     def test_fbeta_functional(
         self, preds, target, sk_metric, num_classes, multilabel, average, beta
     ):
+        metric_functional = f1 if beta == 1.0 else partial(fbeta, beta=beta)
+
         self.run_functional_metric_test(preds=preds,
                                         target=target,
-                                        metric_functional=fbeta,
+                                        metric_functional=metric_functional,
                                         sk_metric=partial(sk_metric, average=average, beta=beta),
                                         metric_args={
-                                            "beta": beta,
                                             "num_classes": num_classes,
                                             "average": average,
                                             "multilabel": multilabel,
