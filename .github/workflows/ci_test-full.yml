@@ -107,16 +107,7 @@ jobs:
       if: matrix.python-version == 3.9
       run: |
         python -c "import re ; fname='requirements/extra.txt' ; req = re.sub(r'onnxruntime>=[\d\.]+', '', open(fname).read()) ; open(fname, 'w').write(req)"
-        # https://github.com/microsoft/onnxruntime/blob/master/BUILD.md
-        git clone --recursive https://github.com/Microsoft/onnxruntime
-        cd onnxruntime
-        if [[ runner.os == 'windows' ]]; then
-            .\build.bat --config RelWithDebInfo --build_shared_lib --parallel
-        elif [[ runner.os == 'macOS' ]]; then
-            ./build.sh --config RelWithDebInfo --build_shared_lib --parallel
-        else
-            ./build.sh --config RelWithDebInfo --build_shared_lib --parallel --use_xcode
-        fi
+        bash requirements/install_ONNX.sh
       shell: bash
 
     - name: Install dependencies
