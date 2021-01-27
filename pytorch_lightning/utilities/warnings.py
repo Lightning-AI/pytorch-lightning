@@ -25,4 +25,4 @@ class WarningCache:
             rank_zero_warn(m)
 
     def clear(self):
-        self.warnings = set()
+        self.warnings.clear()
