@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import itertools
+import numbers
 import threading
 import warnings
 from collections.abc import Iterable, Mapping
@@ -58,6 +59,10 @@ def get_a_var(obj):  # pragma: no-cover
             if isinstance(result, torch.Tensor):
                 return result
     return None
+
+
+def python_scalar_to_tensor(scalar: numbers.Number, device: torch.device) -> torch.Tensor:
+    return torch.tensor([scalar], device=device)
 
 
 warning_cache = WarningCache()
@@ -184,10 +189,12 @@ class LightningParallelModule(torch.nn.Module):
             output = self.module.validation_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "validation_step")
 
-        def python_scalar_to_tensor(scalar):
-            return torch.tensor([scalar], device=self.module.device)
-        
-        output = apply_to_collection(output, dtype=(int, float), function=python_scalar_to_tensor)
+        output = apply_to_collection(
+            output,
+            dtype=numbers.Number,
+            function=python_scalar_to_tensor,
+            args=(self.module.device,)
+        )
         return output
 
 
