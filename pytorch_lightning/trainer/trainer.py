@@ -23,14 +23,14 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
+from pytorch_lightning.accelerators.legacy.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.plugins.plugin_connector import PluginConnector
+from pytorch_lightning.plugins.legacy.plugin_connector import PluginConnector
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -297,6 +297,7 @@ class Trainer(
         self._device_type = DeviceType.CPU
         self._distrib_type = None
         self._running_stage = None
+        self._predicting = False
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -444,6 +445,7 @@ class Trainer(
         """
         # bookkeeping
         self._state = TrainerState.RUNNING
+        self._set_wide_running_stage(RunningStage.TRAINING)
 
         # ----------------------------
         # LINK DATA
@@ -479,7 +481,6 @@ class Trainer(
         # ----------------------------
         # hook
         self.call_hook('on_fit_start')
-
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
 
@@ -499,13 +500,39 @@ class Trainer(
 
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
+
+        self._set_wide_running_stage(None)
+
         return results or 1
+
+    def _set_wide_running_stage(self, stage):
+        model_ref = self.get_model()
+
+        if stage is None:
+            self._running_stage = stage
+            model_ref.running_stage = stage
+            return
+
+        # todo: clean up this routing mess.
+        if self._running_stage == RunningStage.TESTING:
+            stage = RunningStage.TESTING
+
+        # WARNING: With predicting,
+        # trainer _running_state should be RunningStage.TESTING
+        # however, the model running_stage should be RunningStage.PREDICTING or None
+        if model_ref is not None:
+            if self._predicting:
+                model_ref.running_stage = RunningStage.PREDICTING
+            else:
+                model_ref.running_stage = stage
+
+        self._running_stage = stage
 
     def train(self):
         self.run_sanity_check(self.get_model())
 
         # set stage for logging
-        self.logger_connector.set_stage("train")
+        self._set_wide_running_stage(RunningStage.TRAINING)
 
         self.checkpoint_connector.has_trained = False
 
@@ -567,7 +594,8 @@ class Trainer(
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
 
         # used to know if we are logging for val, test + reset cached results
-        self.logger_connector.set_stage(test_mode, reset=True)
+        self._set_wide_running_stage(RunningStage.TESTING if test_mode else RunningStage.EVALUATING)
+        self.logger_connector.reset()
 
         # bookkeeping
         self.evaluation_loop.testing = test_mode
@@ -617,6 +645,8 @@ class Trainer(
                 # lightning module methods
                 with self.profiler.profile("evaluation_step_and_end"):
                     output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                    if self._predicting:
+                        continue
                     output = self.evaluation_loop.evaluation_step_end(output)
 
                 # hook + store predictions
@@ -630,6 +660,9 @@ class Trainer(
 
             # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
+
+        if self._predicting:
+            return self.evaluation_loop.on_predict_epoch_end()
 
         # lightning module method
         deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
@@ -740,14 +773,14 @@ class Trainer(
             verbose: If True, prints the test results
 
         Returns:
-            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
+            Returns a list of dictionaries, one for each test dataloader containing their respective metrics.
         """
         # --------------------
         # SETUP HOOK
         # --------------------
         self.verbose_test = verbose
 
-        self.logger_connector.set_stage("test")
+        self._set_wide_running_stage(RunningStage.TESTING)
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -764,6 +797,8 @@ class Trainer(
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
         self.teardown('test')
+
+        self._set_wide_running_stage(None)
 
         return results
 
@@ -830,6 +865,65 @@ class Trainer(
         # teardown
         if self.is_function_implemented('teardown'):
             model.teardown('test')
+
+        return results
+
+    def predict(
+        self,
+        model: Optional[LightningModule] = None,
+        dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional[LightningDataModule] = None,
+    ):
+        r"""
+
+        Separates from fit to make sure you never run on your predictions set until you want to.
+
+        This will call the model forward function to compute predictions.
+
+        Args:
+            model: The model to predict on.
+
+            dataloaders: Either a single
+                Pytorch Dataloader or a list of them, specifying inference samples.
+
+            datamodule: A instance of :class:`LightningDataModule`.
+
+        Returns:
+            Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
+        """
+
+        # --------------------
+        # SETUP HOOK
+        # --------------------
+        # If you supply a datamodule you can't supply dataloaders
+        if dataloaders and datamodule:
+            raise MisconfigurationException(
+                'You cannot pass dataloaders to trainer.predict if you supply a datamodule'
+            )
+
+        if model is None:
+            raise MisconfigurationException('You need to pass a model to `trainer.predict`. ')
+
+        if datamodule is not None:
+            # Attach datamodule to get setup/prepare_data added to model before the call to it below
+            self.data_connector.attach_datamodule(model, datamodule, 'test')
+
+        # attach data
+        if dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
+
+        # set path variable
+        self._predicting = True
+        os.environ['PL_TESTING_MODE'] = '1'
+        self.model = model
+
+        results = self.fit(model)
+
+        # unset path variable
+        self.teardown('test')
+        del os.environ['PL_TESTING_MODE']
+        self._predicting = False
+        self._set_wide_running_stage(None)
 
         return results
 

@@ -14,16 +14,16 @@
 
 """nn.Module with additional great features."""
 
-from abc import ABC
-from argparse import Namespace
 import collections
 import copy
-from functools import partial
 import inspect
 import os
-from pathlib import Path
 import re
 import tempfile
+from abc import ABC
+from argparse import Namespace
+from functools import partial
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -66,6 +66,7 @@ class LightningModule(
         "on_gpu",
         "current_epoch",
         "global_step",
+        "running_stage",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
@@ -102,6 +103,7 @@ class LightningModule(
         self._running_manual_backward = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
+        self.running_stage = None
         self._automatic_optimization: bool = True
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
@@ -981,6 +983,12 @@ class LightningModule(
 
                     self.log('final_metric', final_value)
         """
+
+    def predict(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None):
+        """
+        Use this function with trainer.predict(...). Override if you need to add any processing logic.
+        """
+        return self(batch)
 
     def configure_callbacks(self):
         """

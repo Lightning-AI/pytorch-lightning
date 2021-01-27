@@ -15,6 +15,7 @@ import torch
 
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -128,6 +129,7 @@ class EvaluationLoop(object):
 
         self.max_batches = max_batches
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
+        self._predictions = [[] for _ in range(self.num_dataloaders)]
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
         if self.testing:
@@ -161,8 +163,17 @@ class EvaluationLoop(object):
 
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
-        # run actual test step
-        if self.testing:
+
+        if self.trainer._predicting:
+            model_ref._current_fx_name = "predict"
+            predictions = self.trainer.accelerator_backend.predict(args)
+            self._predictions[dataloader_idx].append(predictions)
+            self.trainer._progress_bar_callback.on_test_batch_end(
+                self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
+            )
+            return
+
+        elif self.testing:
             model_ref._current_fx_name = "test_step"
             with self.trainer.profiler.profile("test_step"):
                 output = self.trainer.accelerator_backend.test_step(args)
@@ -276,6 +287,18 @@ class EvaluationLoop(object):
             eval_results.append(result)
 
         return eval_results
+
+    def on_predict_epoch_end(self):
+        self.trainer._progress_bar_callback.on_test_end(self.trainer, self.trainer.get_model())
+
+        results = self._predictions
+
+        def _convert_to_numpy(v):
+            return v.cpu().numpy()
+
+        results = apply_to_collection(results, torch.Tensor, _convert_to_numpy)
+
+        return results, None
 
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # set dataloader_idx to model and track batch_size

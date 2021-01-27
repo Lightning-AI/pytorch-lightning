@@ -22,8 +22,9 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
-from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore, LoggerStages
+from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DeviceType, flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -37,9 +38,9 @@ class LoggerConnector:
         self._logged_metrics = MetricsHolder()
         self._progress_bar_metrics = MetricsHolder()
         self.eval_loop_results = []
-        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in LoggerStages}
+        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in RunningStage}
+        self._cached_results[None] = EpochResultStore(trainer, None)
         self._callback_hook_validator = CallbackHookNameValidator()
-        self._current_stage = None
 
     @property
     def callback_metrics(self) -> Dict:
@@ -75,7 +76,7 @@ class LoggerConnector:
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
-        return self._cached_results.get(self._current_stage)    # type: ignore
+        return self._cached_results.get(self.trainer._running_stage)    # type: ignore
 
     def get_metrics(self, key: str) -> Dict:
         metrics_holder = getattr(self, f"_{key}", None)
@@ -90,10 +91,8 @@ class LoggerConnector:
         metrics_holder = getattr(self, f"_{key}", None)
         metrics_holder.reset(val)
 
-    def set_stage(self, stage_or_testing: Union[str, bool], reset: bool = False) -> None:
-        self._current_stage = LoggerStages.determine_stage(stage_or_testing)
-        if reset:
-            self.cached_results.reset()
+    def reset(self) -> None:
+        self.cached_results.reset()
 
     def check_logging_in_callbacks(self, hook_fx_name, on_step: bool = None, on_epoch: bool = None) -> None:
         self._callback_hook_validator.check_logging_in_callbacks(
@@ -119,8 +118,7 @@ class LoggerConnector:
         self.cached_results._batch_size = None
 
     def cache_logged_metrics(self):
-        if self._current_stage is not None:
-            self._cached_results[self._current_stage].cache_result()
+        self._cached_results[self.trainer._running_stage].cache_result()
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
