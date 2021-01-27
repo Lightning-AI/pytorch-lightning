@@ -6,7 +6,7 @@ import torch
 from pytorch_lightning.overrides.data_parallel import LightningDistributedModule, LightningParallelModule
 
 
-@pytest.mark.parametrize(['wrapper_class'], [
+@pytest.mark.parametrize("wrapper_class", [
     LightningParallelModule,
     LightningDistributedModule,
 ])
@@ -34,7 +34,7 @@ def test_lightning_distributed_module_methods(wrapper_class):
     pl_module.validation_step.assert_called_with(batch, batch_idx)
 
 
-@pytest.mark.parametrize(['wrapper_class'], [
+@pytest.mark.parametrize("wrapper_class", [
     LightningParallelModule,
     LightningDistributedModule,
 ])
