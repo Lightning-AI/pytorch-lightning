@@ -69,7 +69,8 @@ class LightningModuleWrapperBase(torch.nn.Module):
     def __init__(self, pl_module: LightningModule):
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
-        method, either ``training_step``, ``validation_step`` or ```test_step``.
+        method, either ``training_step``, ``validation_step`` or ``test_step``.
+        Inheriting classes may also modify the inputs or outputs of forward.
 
         Args:
             pl_module: the model to wrap
@@ -91,7 +92,24 @@ class LightningModuleWrapperBase(torch.nn.Module):
 
 
 class LightningParallelModule(LightningModuleWrapperBase):
+    """
+    Wraps the user's LightningModule and redirects the forward call to the appropriate
+    method, either ``training_step``, ``validation_step`` or ``test_step``.
+    This class is used in combination with :class:`~torch.nn.parallel.DataParallel` as
+    shown in the example.
 
+    Example:
+
+        dp_model = torch.nn.DataParallel(
+            module=LightningParallelModule(lightning_module),
+            device_ids=[3, 4],
+            ...
+        )
+
+    Args:
+        pl_module: the model to wrap
+
+    """
     def __init__(self, pl_module: LightningModule):
         super().__init__(pl_module)
 
@@ -122,7 +140,7 @@ class LightningDistributedModule(LightningModuleWrapperBase):
 
         Example:
 
-            ddp_model = DistributedDataParallel(
+            ddp_model = torch.nn.parallel.DistributedDataParallel(
                 module=LightningDistributedModule(lightning_module),
                 device_ids=[local_rank],
                 ...
@@ -163,10 +181,12 @@ def warn_if_output_is_none(output: Any, method_name: str) -> None:
 
 
 def python_scalar_to_tensor(scalar: numbers.Number, device: torch.device) -> torch.Tensor:
+    """ Converts a Python scalar number to a torch tensor and places it on the given device. """
     return torch.tensor([scalar], device=device)
 
 
 def unsqueeze_scalar_tensor(tensor: torch.Tensor) -> torch.Tensor:
+    """ Un-squeezes a 0-dim tensor. """
     if tensor.dim() == 0:
         tensor = tensor.unsqueeze(0)
     return tensor
