@@ -2,8 +2,10 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
+from torch.nn import DataParallel
 
 from pytorch_lightning.overrides.data_parallel import LightningDistributedModule, LightningParallelModule, warning_cache
+from tests.base import BoringModel
 
 
 @pytest.mark.parametrize("wrapper_class", [
@@ -62,3 +64,34 @@ def test_lightning_wrapper_module_warn_none_output(wrapper_class):
         pl_module.training = False
         pl_module.testing = False
         wrapped_module()
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-gpu machine")
+def test_lightning_parallel_module_unsqueeze_scalar():
+    """ Test that LightningParallelModule takes care of un-squeezeing 0-dim tensors. """
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            loss = output["loss"]
+            loss = loss.squeeze()
+            assert loss.dim() == 0
+            # PyTorch usually warns about 0-dim tensors returned in DP
+            return {"loss": loss}
+
+    model = TestModel()
+    batch = torch.rand(2, 32)
+    batch_idx = 0
+
+    wrapped_model = LightningParallelModule(model)
+    dp_module = DataParallel(wrapped_model, device_ids=[0, 1])
+
+    output = wrapped_model(batch, batch_idx)
+    assert output["loss"].dim() == 1
+
+    with pytest.warns(None) as record:
+        output = dp_module(batch, batch_idx)
+
+    assert output["loss"].dim() == 1
+    assert not record
