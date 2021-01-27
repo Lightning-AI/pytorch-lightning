@@ -21,7 +21,7 @@ docs:
 	rm -rf ./docs/source/*/generated
 	rm -rf ./docs/source/api
 	pip install -r requirements/docs.txt
-	python -m sphinx -b html -D SPHINXOPTS="-W" docs/source docs/build
+	python -m sphinx -b html -W docs/source docs/build
 
 clean:
 	# clean all temp runs
