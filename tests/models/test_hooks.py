@@ -19,7 +19,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
+from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.trainer.states import TrainerState
 from tests.base import BoringModel, EvalModelTemplate, RandomDataset
 

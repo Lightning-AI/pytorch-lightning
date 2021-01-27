@@ -580,9 +580,9 @@ Below are the possible configurations we support.
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.init_ddp_connection`.
+If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.legacy.ddp_plugin.DDPPlugin.init_ddp_connection`.
 
-If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.configure_ddp`.
+If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.legacy.ddp_plugin.DDPPlugin.configure_ddp`.
 
 
 ----------
@@ -692,7 +692,7 @@ This should be kept within the ``sequential_module`` variable within your ``Ligh
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
+    from pytorch_lightning.plugins.legacy.ddp_sequential_plugin import DDPSequentialPlugin
     from pytorch_lightning import LightningModule
 
     class MyModel(LightningModule):
