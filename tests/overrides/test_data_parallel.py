@@ -81,7 +81,7 @@ def test_lightning_parallel_module_unsqueeze_scalar():
             return {"loss": loss}
 
     model = TestModel()
-    batch = torch.rand(2, 32)
+    batch = torch.rand(2, 32).cuda()
     batch_idx = 0
 
     wrapped_model = LightningParallelModule(model).cuda()
