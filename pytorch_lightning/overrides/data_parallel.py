@@ -65,6 +65,12 @@ def python_scalar_to_tensor(scalar: numbers.Number, device: torch.device) -> tor
     return torch.tensor([scalar], device=device)
 
 
+def unsqueeze_scalar_tensor(tensor: torch.Tensor) -> torch.Tensor:
+    if tensor.dim() == 0:
+        tensor = tensor.unsqueeze(0)
+    return tensor
+
+
 warning_cache = WarningCache()
 #
 #
@@ -195,6 +201,11 @@ class LightningParallelModule(torch.nn.Module):
             function=python_scalar_to_tensor,
             device=self.module.device
         )
+        output = apply_to_collection(
+            output,
+            dtype=torch.Tensor,
+            function=unsqueeze_scalar_tensor,
+        )
         return output
 
 
@@ -258,10 +269,6 @@ def warn_if_output_is_none(output: Any, method_name: str) -> None:
     if output is None:
         warning_cache.warn(f'Your {method_name} returned None. Did you forget to return an output?')
 
-
-def warn_missing_output(fx_called):
-    if fx_called == 'training_step':
-        warning_cache.warn("Your training_step returned None. Make sure that was your intention!")
 
 #
 # def parallel_apply(
@@ -365,21 +372,21 @@ def warn_missing_output(fx_called):
 #         outputs.append(output)
 #     return outputs
 
-
-def auto_unsqueeze_dim_zeros(output):
-    """
-    In DP or DDP2 we need to unsqueeze dim 0
-    :param output:
-    :return:
-    """
-    if isinstance(output, torch.Tensor):
-        output = output.unsqueeze(0)
-        return output
-
-    for k, v in output.items():
-        if not isinstance(v, torch.Tensor):
-            continue
-
-        is_scalar = v.dim() == 0
-        if is_scalar:
-            output[k] = output[k].unsqueeze(0)
+#
+# def auto_unsqueeze_dim_zeros(output):
+#     """
+#     In DP or DDP2 we need to unsqueeze dim 0
+#     :param output:
+#     :return:
+#     """
+#     if isinstance(output, torch.Tensor):
+#         output = output.unsqueeze(0)
+#         return output
+#
+#     for k, v in output.items():
+#         if not isinstance(v, torch.Tensor):
+#             continue
+#
+#         is_scalar = v.dim() == 0
+#         if is_scalar:
+#             output[k] = output[k].unsqueeze(0)
