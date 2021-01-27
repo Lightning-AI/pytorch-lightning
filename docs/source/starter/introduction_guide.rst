@@ -881,8 +881,30 @@ Or maybe we have a model that we use to do generation
     z = sample_noise()
     generated_imgs = model(z)
 
-How you split up what goes in ``forward`` vs ``training_step`` depends on how you want to use this model for
+
+To perform inference at scale, it is possible to use ``trainer.predict`` with LightningModule ``predict`` function
+By default, LightningModule ``predict`` calls forward, but it can be overriden to add any processing logic.
+
+.. code-block:: python
+
+    class LitMNISTDreamer(LightningModule):
+
+        def forward(self, z):
+            imgs = self.decoder(z)
+            return imgs
+
+        def predict(self, batch, batch_idx: int , dataloader_idx: int = None):
+            return self(batch)
+
+
+    model = LitMNISTDreamer()
+    trainer.predict(model, datamodule)
+
+
+How you split up what goes in ``forward`` vs ``training_step`` vs ``predict`` depends on how you want to use this model for
 prediction.
+However, we recommend ``forward`` to contain only tensor operation with your model, ``training_step`` to encapsulate ``forward`` logic with logging,
+metrics and loss computation and ``predict`` to encapsulate ``forward`` with preprocess, postprocess functions.
 
 ----------------
 
