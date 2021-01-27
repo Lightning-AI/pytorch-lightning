@@ -1,8 +1,7 @@
 from unittest.mock import Mock
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ProgressBar, EarlyStopping, LearningRateMonitor, \
-    GradientAccumulationScheduler
+from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, LearningRateMonitor, ProgressBar
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 
 
