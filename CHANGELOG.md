@@ -7,10 +7,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased.Bugfixes] - YYYY-MM-DD
 
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+
+### Removed
+
 
 ### Fixed
 
 - Fixed `log_dir` property ([#5537](https://github.com/PyTorchLightning/pytorch-lightning/pull/5537))
+
 
 
 ## [1.1.6] - 2021-01-26
