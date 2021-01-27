@@ -901,9 +901,7 @@ class Trainer(
             )
 
         if model is None:
-            raise MisconfigurationException(
-                'You need to pass a model to `trainer.predict`. '
-            )
+            raise MisconfigurationException('You need to pass a model to `trainer.predict`. ')
 
         if datamodule is not None:
             # Attach datamodule to get setup/prepare_data added to model before the call to it below

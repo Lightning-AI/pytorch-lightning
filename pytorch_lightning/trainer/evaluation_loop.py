@@ -169,7 +169,8 @@ class EvaluationLoop(object):
             predictions = self.trainer.accelerator_backend.predict(args)
             self._predictions[dataloader_idx].append(predictions)
             self.trainer._progress_bar_callback.on_test_batch_end(
-                self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx)
+                self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
+            )
             return
 
         elif self.testing:
@@ -288,8 +289,7 @@ class EvaluationLoop(object):
         return eval_results
 
     def on_predict_epoch_end(self):
-        self.trainer._progress_bar_callback.on_test_end(
-            self.trainer, self.trainer.get_model())
+        self.trainer._progress_bar_callback.on_test_end(self.trainer, self.trainer.get_model())
 
         results = self._predictions
 
