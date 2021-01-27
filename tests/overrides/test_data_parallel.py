@@ -95,3 +95,28 @@ def test_lightning_parallel_module_unsqueeze_scalar():
 
     assert output["loss"].dim() == 1
     assert not record
+
+
+@pytest.mark.parametrize("device", [
+    torch.device("cpu"),
+    torch.device("cuda", 0)
+])
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_lightning_parallel_module_python_scalar_conversion(device):
+    """ Test that LightningParallelModule can convert Python scalars to tensors. """
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            # PyTorch DP does not support Python scalars, Lightning converts them to tensors
+            output.update({"python scalar": 12.3})
+            return output
+
+    model = TestModel().to(device)
+    batch = torch.rand(2, 32).cuda()
+    batch_idx = 0
+
+    wrapped_model = LightningParallelModule(model)
+    output = wrapped_model(batch, batch_idx)
+    assert output["python scalar"] == torch.tensor([12.3], device=device)
