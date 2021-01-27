@@ -46,7 +46,7 @@ extras['dev'] = extras['extra'] + extras['loggers'] + extras['test']
 extras['all'] = extras['dev'] + extras['examples']  # + extras['docs']
 
 # These packages shall be installed only on GPU machines
-PACKAGES_GPU_ONLY = ('horovod')
+PACKAGES_GPU_ONLY = ['horovod']
 # create a version for CPU machines
 for ex in ('cpu', 'cpu-extra'):
     kw = ex.split('-')[1] if '-' in ex else 'all'
