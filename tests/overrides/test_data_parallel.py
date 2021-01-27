@@ -3,8 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
-from pytorch_lightning.overrides.data_parallel import LightningDistributedModule, LightningParallelModule
-from pytorch_lightning.overrides.data_parallel import warning_cache
+from pytorch_lightning.overrides.data_parallel import LightningDistributedModule, LightningParallelModule, warning_cache
 
 
 @pytest.mark.parametrize("wrapper_class", [
