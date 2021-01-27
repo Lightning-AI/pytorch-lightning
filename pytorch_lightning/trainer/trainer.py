@@ -445,7 +445,7 @@ class Trainer(
         """
         # bookkeeping
         self._state = TrainerState.RUNNING
-        self._set_running_stage(RunningStage.TRAINING)
+        self._set_wide_running_stage(RunningStage.TRAINING)
 
         # ----------------------------
         # LINK DATA
@@ -500,11 +500,11 @@ class Trainer(
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
 
-        self._set_running_stage(None)
+        self._set_wide_running_stage(None)
 
         return results or 1
 
-    def _set_running_stage(self, stage):
+    def _set_wide_running_stage(self, stage):
         model_ref = self.get_model()
 
         if stage is None:
@@ -531,7 +531,7 @@ class Trainer(
         self.run_sanity_check(self.get_model())
 
         # set stage for logging
-        self._set_running_stage(RunningStage.TRAINING)
+        self._set_wide_running_stage(RunningStage.TRAINING)
 
         self.checkpoint_connector.has_trained = False
 
@@ -593,7 +593,7 @@ class Trainer(
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
 
         # used to know if we are logging for val, test + reset cached results
-        self._set_running_stage(RunningStage.TESTING if test_mode else RunningStage.EVALUATING)
+        self._set_wide_running_stage(RunningStage.TESTING if test_mode else RunningStage.EVALUATING)
         self.logger_connector.reset()
 
         # bookkeeping
@@ -779,7 +779,7 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
-        self._set_running_stage(RunningStage.TESTING)
+        self._set_wide_running_stage(RunningStage.TESTING)
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -797,7 +797,7 @@ class Trainer(
 
         self.teardown('test')
 
-        self._set_running_stage(None)
+        self._set_wide_running_stage(None)
 
         return results
 
@@ -922,7 +922,7 @@ class Trainer(
         self.teardown('test')
         del os.environ['PL_TESTING_MODE']
         self._predicting = False
-        self._set_running_stage(None)
+        self._set_wide_running_stage(None)
 
         return results
 

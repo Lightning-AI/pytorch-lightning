@@ -903,6 +903,8 @@ By default, LightningModule ``predict`` calls forward, but it can be overriden t
 
 How you split up what goes in ``forward`` vs ``training_step`` vs ``predict`` depends on how you want to use this model for
 prediction.
+However, we recommend ``forward`` to contain only tensor operation with your model, ``training_step`` to encapsulate ``forward`` logic with logging,
+metrics and loss computation and ``predict`` to encapsulate ``forward`` with preprocess, postprocess functions.
 
 ----------------
 

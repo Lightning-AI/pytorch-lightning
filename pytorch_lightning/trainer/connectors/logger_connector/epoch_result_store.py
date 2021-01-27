@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import defaultdict
-from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
 import torch
@@ -22,7 +21,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DistributedType, LightningEnum
 
 
-class LoggerStages(str, Enum):
+class LoggerStages(LightningEnum):
     """ Train/validation/test phase in each training step.
     >>> # you can math the type with string
     >>> LoggerStages.TRAIN == 'train'
