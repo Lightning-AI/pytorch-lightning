@@ -21,7 +21,7 @@ jobs:
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     # TODO: the macOS is taking too long, probably caching did not work...
     # todo: building own onnxruntime takes very long...
-    timeout-minutes: 55
+    timeout-minutes: 75
 
     steps:
     - uses: actions/checkout@v2
@@ -106,6 +106,7 @@ jobs:
     - name: Build from source for Python 3.9
       if: matrix.python-version == 3.9
       run: |
+        python -c "import re ; fname='requirements/extra.txt' ; req = re.sub(r'onnxruntime>=[\d\.]+', '', open(fname).read()) ; open(fname, 'w').write(req)"
         # https://github.com/microsoft/onnxruntime/blob/master/BUILD.md
         git clone --recursive https://github.com/Microsoft/onnxruntime
         cd onnxruntime
