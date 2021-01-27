@@ -19,7 +19,10 @@ jobs:
         requires: ['minimal', 'latest']
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 35  # TODO: the macOS is taking too long, probably caching did not work...
+    # TODO: the macOS is taking too long, probably caching did not work...
+    # todo: building own onnxruntime takes very long...
+    timeout-minutes: 55
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
