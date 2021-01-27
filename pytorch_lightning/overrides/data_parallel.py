@@ -14,6 +14,7 @@
 
 import itertools
 import threading
+import warnings
 from collections.abc import Iterable, Mapping
 from itertools import chain
 
@@ -62,6 +63,18 @@ class LightningDataParallel(DataParallel):
     """
     Override the forward call in lightning so it goes to training and validation step respectively
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warnings.filterwarnings(
+            "ignore",
+            module="torch.nn.parallel*",
+            message=(
+                "Was asked to gather along dimension 0, but all"
+                " input tensors were scalars; will instead unsqueeze"
+                " and return a vector."
+            ),
+        )
 
     def forward(self, *inputs, **kwargs):
         if not self.device_ids:
