@@ -2,13 +2,13 @@
 
 ROOT=$PWD
 
-python -m pip install protobuf
-git clone https://github.com/onnx/onnx.git
-cd onnx
-git submodule update --init --recursive
-python setup.py install
-cd $ROOT
-rm -rf onnx
+#  python -m pip install protobuf
+#  git clone --recursive https://github.com/onnx/onnx.git
+#  cd onnx
+#  python setup.py bdist_wheel
+#  pip install --upgrade dist/*.whl
+#  cd $ROOT
+#  rm -rf onnx
 
 
 # https://github.com/microsoft/onnxruntime/blob/master/BUILD.md
@@ -33,6 +33,7 @@ else
 fi
 
 export ONNX_ML=1
+pip install setuptools wheel
 python setup.py bdist_wheel
 pip install --upgrade dist/*.whl
 
