@@ -177,6 +177,7 @@ class StochasticWeightAveraging(Callback):
             self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
 
         elif self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
+            # Turn off backwards and optimization, only update batch norm stats
             trainer.train_loop.do_backward = False
             self.transfer_weights(self._average_model, pl_module)
 
