@@ -1,5 +1,7 @@
 .PHONY: test clean docs
 
+export SPHINX_MOCK_REQUIREMENTS=0
+
 test:
 	pip install -r requirements/devel.txt
 	# install APEX, see https://github.com/NVIDIA/apex#linux
@@ -20,7 +22,7 @@ docs:
 	rm -rf ./docs/source/generated
 	rm -rf ./docs/source/*/generated
 	rm -rf ./docs/source/api
-	pip install -r requirements/docs.txt
+	pip install --quiet -r requirements/docs.txt
 	python -m sphinx -b html -W docs/source docs/build
 
 clean:
