@@ -114,7 +114,7 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
             return output
 
     model = TestModel().to(device)
-    batch = torch.rand(2, 32).cuda()
+    batch = torch.rand(2, 32).to(device)
     batch_idx = 0
 
     wrapped_model = LightningParallelModule(model)
