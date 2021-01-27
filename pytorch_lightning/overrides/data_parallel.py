@@ -14,21 +14,14 @@
 
 import itertools
 import numbers
-import threading
 import warnings
-from collections.abc import Iterable, Mapping
-from itertools import chain
-from typing import Any, Optional
+from typing import Any
 
 import torch
-from torch import Tensor
-from torch.cuda._utils import _get_device_index
-from torch.nn import DataParallel, Module
+from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
-from torch.nn.parallel._functions import Gather
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -46,114 +39,7 @@ def _find_tensors(obj):  # pragma: no-cover
     return []
 
 
-def get_a_var(obj):  # pragma: no-cover
-    if isinstance(obj, torch.Tensor):
-        return obj
-
-    if isinstance(obj, (list, tuple)):
-        for result in map(get_a_var, obj):
-            if isinstance(result, torch.Tensor):
-                return result
-    if isinstance(obj, dict):
-        for result in map(get_a_var, obj.items()):
-            if isinstance(result, torch.Tensor):
-                return result
-    return None
-
-
-def python_scalar_to_tensor(scalar: numbers.Number, device: torch.device) -> torch.Tensor:
-    return torch.tensor([scalar], device=device)
-
-
-def unsqueeze_scalar_tensor(tensor: torch.Tensor) -> torch.Tensor:
-    if tensor.dim() == 0:
-        tensor = tensor.unsqueeze(0)
-    return tensor
-
-
 warning_cache = WarningCache()
-#
-#
-# class LightningDataParallel(DataParallel):
-#     """
-#     Override the forward call in lightning so it goes to training and validation step respectively
-#     """
-#
-#     def forward(self, *inputs, **kwargs):
-#         if not self.device_ids:
-#             return self.module(*inputs, **kwargs)
-#
-#         for t in chain(self.module.parameters(), self.module.buffers()):
-#             if t.device != self.src_device_obj:
-#                 raise RuntimeError("module must have its parameters and buffers "
-#                                    "on device {} (device_ids[0]) but found one of "
-#                                    "them on device: {}".format(self.src_device_obj, t.device))
-#
-#         inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
-#         if len(self.device_ids) == 1:
-#             # lightning
-#             if self.module.training:
-#                 return self.module.training_step(*inputs[0], **kwargs[0])
-#             if self.module.testing:
-#                 return self.module.test_step(*inputs[0], **kwargs[0])
-#
-#             return self.module.validation_step(*inputs[0], **kwargs[0])
-#
-#         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
-#         outputs = self.parallel_apply(replicas, inputs, kwargs)
-#
-#         if isinstance(outputs[0], Result):
-#             outputs = self.__gather_structured_result(outputs)
-#         else:
-#             outputs = self.gather(outputs)
-#         return outputs
-#
-#     def __gather_structured_result(self, outputs):
-#         prototype_output = outputs[0]
-#         original_class = prototype_output.__class__
-#         outputs = [dict(x) for x in outputs]
-#
-#         # remove all the meta info
-#         meta = outputs[0]['meta']
-#         for i, output in enumerate(outputs):
-#             del output['meta']
-#
-#         outputs = self.gather(outputs)
-#
-#         result = original_class()
-#
-#         result.update(outputs)
-#         result['meta'] = meta
-#         return result
-#
-#     def gather(outputs, target_device, dim=0):
-#         r"""
-#         Gathers tensors from different GPUs on a specified device
-#           (-1 means the CPU).
-#         """
-#         def gather_map(outputs):
-#             elem = outputs[0]
-#             if isinstance(elem, torch.Tensor):
-#                 return Gather.apply(target_device, dim, *outputs)
-#             if elem is None:
-#                 return None
-#             if isinstance(elem, dict):
-#                 if not all((len(elem) == len(d) for d in outputs)):
-#                     raise ValueError('All dicts must have the same number of keys')
-#                 return type(elem)(((k, gather_map([d[k] for d in outputs]))
-#                                   for k in elem))
-#             return type(elem)(map(gather_map, zip(*outputs)))
-#
-#         # Recursive function calls like this create reference cycles.
-#         # Setting the function to None clears the refcycle.
-#         try:
-#             res = gather_map(outputs)
-#         finally:
-#             gather_map = None
-#         return res
-#
-#     def parallel_apply(self, replicas, inputs, kwargs):
-#         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
 
 
 class LightningDataParallel(DataParallel):
@@ -276,123 +162,11 @@ def warn_if_output_is_none(output: Any, method_name: str) -> None:
         warning_cache.warn(f'Your {method_name} returned None. Did you forget to return an output?')
 
 
-#
-# def parallel_apply(
-#         modules: Module,
-#         inputs: Tensor,
-#         kwargs_tup: Optional[tuple] = None,
-#         devices: Optional[list] = None,
-# ):  # pragma: no-cover
-#     r"""Applies each `module` in :attr:`modules` in parallel on arguments
-#     contained in :attr:`inputs` (positional) and :attr:`kwargs_tup` (keyword)
-#     on each of :attr:`devices`.
-#
-#     Args:
-#         modules: modules to be parallelized
-#         inputs: inputs to the modules
-#         devices: CUDA devices
-#
-#     :attr:`modules`, :attr:`inputs`, :attr:`kwargs_tup` (if given), and
-#     :attr:`devices` (if given) should all have same length. Moreover, each
-#     element of :attr:`inputs` can either be a single object as the only argument
-#     to a module, or a collection of positional arguments.
-#     """
-#     assert len(modules) == len(inputs)
-#     if kwargs_tup is not None:
-#         assert len(modules) == len(kwargs_tup)
-#     else:
-#         kwargs_tup = ({},) * len(modules)
-#     if devices is not None:
-#         assert len(modules) == len(devices)
-#     else:
-#         devices = [None] * len(modules)
-#     devices = list(map(lambda x: _get_device_index(x, True), devices))
-#     lock = threading.Lock()
-#     results = {}
-#     grad_enabled = torch.is_grad_enabled()
-#
-#     def _worker(i, module, input, kwargs, device=None):
-#         torch.set_grad_enabled(grad_enabled)
-#         if device is None:
-#             device = get_a_var(input).get_device()
-#         try:
-#             with torch.cuda.device(device):
-#                 # this also avoids accidental slicing of `input` if it is a Tensor
-#                 if not isinstance(input, (list, tuple)):
-#                     input = (input,)
-#
-#                 module = module.to(device)
-#
-#                 # ---------------
-#                 # CHANGE
-#                 if module.training:
-#                     output = module.training_step(*input, **kwargs)
-#                     fx_called = 'training_step'
-#                 elif module.testing:
-#                     output = module.test_step(*input, **kwargs)
-#                     fx_called = 'test_step'
-#                 else:
-#                     output = module.validation_step(*input, **kwargs)
-#                     fx_called = 'validation_step'
-#
-#                 if output is None:
-#                     warn_missing_output(fx_called)
-#
-#                 if output is not None and module._distrib_type in ('dp', 'ddp2'):
-#                     auto_squeeze_dim_zeros(output)
-#                 # ---------------
-#
-#             with lock:
-#                 results[i] = output
-#         # todo: specify the possible exception
-#         except Exception as ex:
-#             with lock:
-#                 results[i] = ex
-#
-#     # TODO: fix hack (maybe not a hack)
-#     # make sure each module knows what training state it's in...
-#     # fixes weird bug where copies are out of sync
-#     root_m = modules[0]
-#     for m in modules[1:]:
-#         m.training = root_m.training
-#         m.testing = root_m.testing
-#
-#     if len(modules) > 1:
-#         threads = [threading.Thread(target=_worker,
-#                                     args=(i, module, input, kwargs, device))
-#                    for i, (module, input, kwargs, device) in
-#                    enumerate(zip(modules, inputs, kwargs_tup, devices))]
-#
-#         for thread in threads:
-#             thread.start()
-#         for thread in threads:
-#             thread.join()
-#     else:
-#         _worker(0, modules[0], inputs[0], kwargs_tup[0], devices[0])
-#
-#     outputs = []
-#     for i in range(len(inputs)):
-#         output = results[i]
-#         if isinstance(output, Exception):
-#             raise output
-#         outputs.append(output)
-#     return outputs
+def python_scalar_to_tensor(scalar: numbers.Number, device: torch.device) -> torch.Tensor:
+    return torch.tensor([scalar], device=device)
 
-#
-# def auto_unsqueeze_dim_zeros(output):
-#     """
-#     In DP or DDP2 we need to unsqueeze dim 0
-#     :param output:
-#     :return:
-#     """
-#     if isinstance(output, torch.Tensor):
-#         output = output.unsqueeze(0)
-#         return output
-#
-#     for k, v in output.items():
-#         if not isinstance(v, torch.Tensor):
-#             continue
-#
-#         is_scalar = v.dim() == 0
-#         if is_scalar:
-#             output[k] = output[k].unsqueeze(0)
+
+def unsqueeze_scalar_tensor(tensor: torch.Tensor) -> torch.Tensor:
+    if tensor.dim() == 0:
+        tensor = tensor.unsqueeze(0)
+    return tensor
