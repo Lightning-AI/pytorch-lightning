@@ -60,26 +60,6 @@ class TrainingStepVariations(ABC):
                 output /= 0
         return output
 
-    def training_step__result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
-
-        # forward pass
-        x, y = batch
-        x = x.view(x.size(0), -1)
-        y_hat = self(x.to(self.device))
-
-        # calculate loss
-        loss_train = self.loss(y.to(y_hat.device), y_hat)
-        log_train = loss_train
-
-        # alternate between tensors and scalars for "log" and "progress_bar"
-        if batch_idx % 2 == 0:
-            log_train = log_train.item()
-
-        self.log('some_val', log_train * log_train, prog_bar=True, logger=False)
-        self.log('train_some_val', log_train * log_train)
-
-        return loss_train
-
     def training_step_end_full_loop_result_obj_dp(self, result):
         """
         Full loop flow train step (result obj + dp)

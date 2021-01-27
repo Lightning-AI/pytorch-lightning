@@ -21,10 +21,10 @@ import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
-from tests.backends import DDPLauncher
+from tests.accelerators.legacy import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
@@ -200,7 +200,8 @@ class SeedTrainLoaderModel(BoringModel):
 class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
     def training_step(self, batch, batch_idx, optimizer_idx):
         # manual
-        (opt_a, opt_b) = self.optimizers()
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
         loss_1 = self.step(batch)
 
         self.manual_backward(loss_1, opt_a)
