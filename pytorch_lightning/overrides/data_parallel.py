@@ -28,6 +28,7 @@ from torch.nn.parallel._functions import Gather
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -182,6 +183,11 @@ class LightningParallelModule(torch.nn.Module):
         else:
             output = self.module.validation_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "validation_step")
+
+        def python_scalar_to_tensor(scalar):
+            return torch.tensor([scalar], device=self.module.device)
+        
+        output = apply_to_collection(output, dtype=(int, float), function=python_scalar_to_tensor)
         return output
 
 
