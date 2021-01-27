@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning import Trainer
-from tests.base.boring_model import BoringModel
 import torch
 from torch.utils.data import Dataset
+
+from pytorch_lightning import Trainer
+from tests.base.boring_model import BoringModel
 
 
 class RandomDatasetA(Dataset):

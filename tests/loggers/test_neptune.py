@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
@@ -102,7 +102,7 @@ def test_neptune_additional_methods(neptune):
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
     """Verify that neptune experiment was closed after training"""
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     def _run_training(logger):
         logger._experiment = MagicMock()

@@ -14,9 +14,9 @@
 from typing import Optional, Sequence, Tuple
 
 import torch
-from pytorch_lightning.metrics.functional.reduction import reduce
-from pytorch_lightning.metrics.utils import _check_same_shape
 from torch.nn import functional as F
+
+from pytorch_lightning.metrics.utils import _check_same_shape, reduce
 
 
 def _gaussian(kernel_size: int, sigma: int, dtype: torch.dtype, device: torch.device):
@@ -125,7 +125,7 @@ def ssim(
     Computes Structual Similarity Index Measure
 
     Args:
-        pred: estimated image
+        preds: estimated image
         target: ground truth image
         kernel_size: size of the gaussian kernel (default: (11, 11))
         sigma: Standard deviation of the gaussian kernel (default: (1.5, 1.5))

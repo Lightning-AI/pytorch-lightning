@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from unittest import mock
-from unittest.mock import MagicMock, call, ANY
+from unittest.mock import ANY, call, MagicMock
 
 from pytorch_lightning import Trainer
 from tests.base import BoringModel
@@ -54,6 +53,7 @@ def test_trainer_callback_system(torch_save):
     assert callback_mock.method_calls == [
         call.on_init_start(trainer),
         call.on_init_end(trainer),
+        call.on_before_accelerator_backend_setup(trainer, model),
         call.setup(trainer, model, 'fit'),
         call.on_fit_start(trainer, model),
         call.on_pretrain_routine_start(trainer, model),
@@ -108,6 +108,7 @@ def test_trainer_callback_system(torch_save):
     assert callback_mock.method_calls == [
         call.on_init_start(trainer),
         call.on_init_end(trainer),
+        call.on_before_accelerator_backend_setup(trainer, model),
         call.setup(trainer, model, 'test'),
         call.on_fit_start(trainer, model),
         call.on_pretrain_routine_start(trainer, model),

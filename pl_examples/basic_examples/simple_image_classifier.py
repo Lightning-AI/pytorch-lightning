@@ -19,10 +19,18 @@ import torch
 from torch.nn import functional as F
 
 import pytorch_lightning as pl
+from pl_examples import cli_lightning_logo
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
 
 
 class LitClassifier(pl.LightningModule):
+    """
+    >>> LitClassifier()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    LitClassifier(
+      (l1): Linear(...)
+      (l2): Linear(...)
+    )
+    """
     def __init__(self, hidden_dim=128, learning_rate=1e-3):
         super().__init__()
         self.save_hyperparameters()
@@ -96,9 +104,12 @@ def cli_main():
     # ------------
     # testing
     # ------------
-    result = trainer.test(datamodule=dm)
+    # todo: without passing model it fails for missing best weights
+    # MisconfigurationException, 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
+    result = trainer.test(model, datamodule=dm)
     pprint(result)
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     cli_main()

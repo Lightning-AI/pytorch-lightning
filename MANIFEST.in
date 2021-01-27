@@ -42,7 +42,6 @@ exclude tests
 recursive-exclude docs *
 exclude docs
 recursive-include docs/source/_images/logos/ *
-recursive-include docs/source/_images/badges/ *
 recursive-include docs/source/_images/general/ pl_overview* tf_* tutorial_* PTL101_*
 
 # Include the Requirements
@@ -54,6 +53,7 @@ include pyproject.toml
 # Exclude build configs
 exclude *.yml
 exclude *.yaml
+exclude *.jsonnet
 
 # Exclude pyright config
 exclude .pyrightconfig.json
@@ -69,4 +69,4 @@ prune temp*
 prune test*
 prune benchmark*
 prune dockers
-
+prune legacy

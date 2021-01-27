@@ -17,7 +17,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from tests.backends.launcher import DDPLauncher
+from tests.accelerators.legacy import DDPLauncher
 from tests.base.boring_model import BoringModel
 
 
@@ -61,7 +61,7 @@ def test_get_model_ddp_cpu(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         accelerator='ddp_cpu',
-        num_processes=2
+        num_processes=2,
     )
     trainer.fit(model)
 

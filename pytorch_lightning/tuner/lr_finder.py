@@ -13,8 +13,8 @@
 # limitations under the License.
 import importlib
 import os
-from typing import List, Optional, Sequence, Union, Callable
 from functools import wraps
+from typing import Callable, List, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -27,10 +27,10 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -137,7 +137,7 @@ def lr_find(
 
     """
     if trainer.fast_dev_run:
-        rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
+        rank_zero_warn('Skipping learning rate finder since fast_dev_run is enabled.', UserWarning)
         return
 
     save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp_model.ckpt')
@@ -192,7 +192,7 @@ def lr_find(
 
     # Reset model state
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer._device_type == DeviceType.GPU)
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)
@@ -353,6 +353,7 @@ class _LRFinder(object):
             min_grad = np.gradient(loss).argmin()
             self._optimal_idx = min_grad + skip_begin
             return self.results["lr"][self._optimal_idx]
+        # todo: specify the possible exception
         except Exception:
             log.exception('Failed to compute suggesting for `lr`. There might not be enough points.')
             self._optimal_idx = None

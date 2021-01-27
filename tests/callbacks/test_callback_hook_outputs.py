@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning import Trainer, Callback
+import pytest
+
+from pytorch_lightning import Callback, Trainer
 from tests.base.boring_model import BoringModel
 
 
-def test_train_step_no_return(tmpdir):
+@pytest.mark.parametrize("single_cb", [False, True])
+def test_train_step_no_return(tmpdir, single_cb):
     """
     Tests that only training_step can be used
     """
@@ -53,7 +56,7 @@ def test_train_step_no_return(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
-        callbacks=[CB()],
+        callbacks=CB() if single_cb else [CB()],
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -62,4 +65,7 @@ def test_train_step_no_return(tmpdir):
         weights_summary=None,
     )
 
-    trainer.fit(model)
+    assert any(isinstance(c, CB) for c in trainer.callbacks)
+
+    results = trainer.fit(model)
+    assert results

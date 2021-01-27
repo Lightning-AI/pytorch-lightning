@@ -27,6 +27,10 @@ class Callback(abc.ABC):
     Subclass this class and override any of the relevant hooks
     """
 
+    def on_before_accelerator_backend_setup(self, trainer, pl_module):
+        """Called before accelerator is being setup"""
+        pass
+
     def setup(self, trainer, pl_module, stage: str):
         """Called when fit or test begins"""
         pass

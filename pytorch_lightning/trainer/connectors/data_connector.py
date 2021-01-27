@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Optional, Union
+
+from torch.utils.data import DataLoader
+
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from typing import List, Optional, Union
-from torch.utils.data import DataLoader
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class DataConnector(object):
@@ -102,6 +104,7 @@ class DataConnector(object):
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
     def attach_datamodule(self, model, datamodule: Optional[LightningDataModule], stage: str) -> None:
+        # Todo: required argument `stage` is not used
 
         # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)

@@ -17,7 +17,6 @@
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6 --build-arg CUDA_VERSION=10.2
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.5 --build-arg CUDA_VERSION=10.2
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4 --build-arg CUDA_VERSION=10.1
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.3 --build-arg CUDA_VERSION=10.1
 
 ARG CUDNN_VERSION=8
 ARG CUDA_VERSION=10.2
@@ -45,6 +44,8 @@ RUN apt-get update -qq && \
         cmake \
         git \
         wget \
+        curl \
+        unzip \
         ca-certificates \
         software-properties-common \
     && \
@@ -91,14 +92,10 @@ RUN \
     #pip install "torch==${PYTORCH_VERSION}.*" --pre && \
     # set particular PyTorch version
     python -c "import re ; fname = 'requirements.txt' ; req = re.sub(r'torch[>=]+[\d\.]+', 'torch==${PYTORCH_VERSION}.*', open(fname).read()) ; open(fname, 'w').write(req)" && \
-    # Drop fairscale for PT <= 1.4
-    if [[ $PYTORCH_VERSION < 1.4 ]] ; then \
-        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" ; \
-    fi && \
     # Install all requirements
     # todo: find a way how to install nightly PT version
     #  --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu${cuda_ver[0]}${cuda_ver[1]}/torch_nightly.html
-    pip install -r requirements/devel.txt --upgrade-strategy only-if-needed --use-feature=2020-resolver && \
+    pip install -r requirements/devel.txt --no-cache-dir && \
     rm -rf requirements*
 
 RUN \

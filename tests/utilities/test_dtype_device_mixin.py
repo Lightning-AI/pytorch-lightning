@@ -15,7 +15,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from tests.base import EvalModelTemplate
 
@@ -80,7 +80,7 @@ def test_submodules_multi_gpu_dp(tmpdir):
     model = TopModule()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        distributed_backend='dp',
+        accelerator='dp',
         gpus=2,
         callbacks=[DeviceAssertCallback()],
         max_steps=1,
@@ -93,7 +93,7 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     model = TopModule()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         gpus=2,
         callbacks=[DeviceAssertCallback()],
         max_steps=1,

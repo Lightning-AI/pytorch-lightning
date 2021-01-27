@@ -14,17 +14,18 @@
 
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
-from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
+
+from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 
 
 class ModelHooks:
     """Hooks to be used in LightningModule."""
-    def setup(self, stage: str):
+    def setup(self, stage: str) -> None:
         """
         Called at the beginning of fit and test.
         This is a good hook when you need to build models dynamically or adjust something about them.
@@ -52,7 +53,7 @@ class ModelHooks:
 
         """
 
-    def teardown(self, stage: str):
+    def teardown(self, stage: str) -> None:
         """
         Called at the end of fit and test.
 
@@ -60,13 +61,13 @@ class ModelHooks:
             stage: either 'fit' or 'test'
         """
 
-    def on_fit_start(self):
+    def on_fit_start(self) -> None:
         """
         Called at the very beginning of fit.
         If on DDP it is called on every process
         """
 
-    def on_fit_end(self):
+    def on_fit_end(self) -> None:
         """
         Called at the very end of fit.
         If on DDP it is called on every process
@@ -74,7 +75,7 @@ class ModelHooks:
 
     def on_train_start(self) -> None:
         """
-        Called at the beginning of training before sanity check.
+        Called at the beginning of training after sanity check.
         """
         # do something at the start of training
 
@@ -83,6 +84,18 @@ class ModelHooks:
         Called at the end of training before logger experiment is closed.
         """
         # do something at the end of training
+
+    def on_validation_start(self) -> None:
+        """
+        Called at the beginning of validation.
+        """
+        # do something at the start of validation
+
+    def on_validation_end(self) -> None:
+        """
+        Called at the end of validation.
+        """
+        # do something at the end of validation
 
     def on_pretrain_routine_start(self) -> None:
         """
@@ -108,9 +121,7 @@ class ModelHooks:
         """
         # do something at the end of the pretrain routine
 
-    def on_train_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop before anything happens for that batch.
 
@@ -253,6 +264,18 @@ class ModelHooks:
         """
         # do something when the epoch ends
 
+    def on_test_start(self) -> None:
+        """
+        Called at the beginning of testing.
+        """
+        # do something at the start of testing
+
+    def on_test_end(self) -> None:
+        """
+        Called at the end of testing.
+        """
+        # do something at the end of testing
+
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
         """
         Called after optimizer.step() and before optimizer.zero_grad().
@@ -368,20 +391,19 @@ class DataHooks:
             Lightning adds the correct sampler for distributed and arbitrary hardware.
             There is no need to set it yourself.
 
-        Example:
-            .. code-block:: python
+        Example::
 
-                def train_dataloader(self):
-                    transform = transforms.Compose([transforms.ToTensor(),
-                                                    transforms.Normalize((0.5,), (1.0,))])
-                    dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform,
-                                    download=True)
-                    loader = torch.utils.data.DataLoader(
-                        dataset=dataset,
-                        batch_size=self.batch_size,
-                        shuffle=True
-                    )
-                    return loader
+            def train_dataloader(self):
+                transform = transforms.Compose([transforms.ToTensor(),
+                                                transforms.Normalize((0.5,), (1.0,))])
+                dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform,
+                                download=True)
+                loader = torch.utils.data.DataLoader(
+                    dataset=dataset,
+                    batch_size=self.batch_size,
+                    shuffle=True
+                )
+                return loader
 
         """
         rank_zero_warn(
@@ -420,25 +442,24 @@ class DataHooks:
         Return:
             Single or multiple PyTorch DataLoaders.
 
-        Example:
-            .. code-block:: python
+        Example::
 
-                def test_dataloader(self):
-                    transform = transforms.Compose([transforms.ToTensor(),
-                                                    transforms.Normalize((0.5,), (1.0,))])
-                    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform,
-                                    download=True)
-                    loader = torch.utils.data.DataLoader(
-                        dataset=dataset,
-                        batch_size=self.batch_size,
-                        shuffle=False
-                    )
+            def test_dataloader(self):
+                transform = transforms.Compose([transforms.ToTensor(),
+                                                transforms.Normalize((0.5,), (1.0,))])
+                dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform,
+                                download=True)
+                loader = torch.utils.data.DataLoader(
+                    dataset=dataset,
+                    batch_size=self.batch_size,
+                    shuffle=False
+                )
 
-                    return loader
+                return loader
 
-                # can also return multiple dataloaders
-                def test_dataloader(self):
-                    return [loader_a, loader_b, ..., loader_n]
+            # can also return multiple dataloaders
+            def test_dataloader(self):
+                return [loader_a, loader_b, ..., loader_n]
 
         Note:
             If you don't need a test dataset and a :meth:`test_step`, you don't need to implement
@@ -472,25 +493,24 @@ class DataHooks:
         Return:
             Single or multiple PyTorch DataLoaders.
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                def val_dataloader(self):
-                    transform = transforms.Compose([transforms.ToTensor(),
-                                                    transforms.Normalize((0.5,), (1.0,))])
-                    dataset = MNIST(root='/path/to/mnist/', train=False,
-                                    transform=transform, download=True)
-                    loader = torch.utils.data.DataLoader(
-                        dataset=dataset,
-                        batch_size=self.batch_size,
-                        shuffle=False
-                    )
+            def val_dataloader(self):
+                transform = transforms.Compose([transforms.ToTensor(),
+                                                transforms.Normalize((0.5,), (1.0,))])
+                dataset = MNIST(root='/path/to/mnist/', train=False,
+                                transform=transform, download=True)
+                loader = torch.utils.data.DataLoader(
+                    dataset=dataset,
+                    batch_size=self.batch_size,
+                    shuffle=False
+                )
 
-                    return loader
+                return loader
 
-                # can also return multiple dataloaders
-                def val_dataloader(self):
-                    return [loader_a, loader_b, ..., loader_n]
+            # can also return multiple dataloaders
+            def val_dataloader(self):
+                return [loader_a, loader_b, ..., loader_n]
 
         Note:
             If you don't need a validation dataset and a :meth:`validation_step`, you don't need to
@@ -501,7 +521,7 @@ class DataHooks:
             will have an argument ``dataloader_idx`` which matches the order here.
         """
 
-    def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
+    def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
         wrapped in a custom data structure.
@@ -539,16 +559,16 @@ class DataHooks:
             any other device than the one passed in as argument (unless you know what you are doing).
 
         Note:
-            This hook only runs on single GPU training (no data-parallel). If you need multi-GPU support
-            for your custom batch objects, you need to define your custom
-            :class:`~torch.nn.parallel.DistributedDataParallel` or
-            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
+            This hook only runs on single GPU training and DDP (no data-parallel).
+            If you need multi-GPU support for your custom batch objects in ``dp`` or ``ddp2``,
+            you need to define your custom :class:`~torch.nn.parallel.DistributedDataParallel` or
             override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
 
         See Also:
             - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
             - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
         """
+        device = device or self.device
         return move_data_to_device(batch, device)
 
 
@@ -563,12 +583,11 @@ class CheckpointHooks:
             checkpoint: Loaded checkpoint
 
 
-        Example:
-            .. code-block:: python
+        Example::
 
-                def on_load_checkpoint(self, checkpoint):
-                    # 99% of the time you don't need to implement this method
-                    self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
+            def on_load_checkpoint(self, checkpoint):
+                # 99% of the time you don't need to implement this method
+                self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
 
         Note:
             Lightning auto-restores global step, epoch, and train state including amp scaling.
@@ -583,12 +602,11 @@ class CheckpointHooks:
         Args:
             checkpoint: Checkpoint to be saved
 
-        Example:
-            .. code-block:: python
+        Example::
 
-                def on_save_checkpoint(self, checkpoint):
-                    # 99% of use cases you don't need to implement this method
-                    checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
+            def on_save_checkpoint(self, checkpoint):
+                # 99% of use cases you don't need to implement this method
+                checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
 
         Note:
             Lightning saves all aspects of training (epoch, global step, etc...)
