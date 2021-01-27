@@ -1,7 +1,8 @@
 from unittest.mock import Mock
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ProgressBar, EarlyStopping, LearningRateMonitor, GPUStatsMonitor
+from pytorch_lightning.callbacks import ProgressBar, EarlyStopping, LearningRateMonitor, \
+    GradientAccumulationScheduler
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 
 
@@ -23,7 +24,7 @@ def test_attach_model_callbacks():
     early_stopping = EarlyStopping()
     progress_bar = ProgressBar()
     lr_monitor = LearningRateMonitor()
-    gpu_monitor = GPUStatsMonitor()
+    grad_accumulation = GradientAccumulationScheduler({1: 1})
 
     # no callbacks
     assert_composition(
@@ -58,6 +59,6 @@ def test_attach_model_callbacks():
         trainer_callbacks=[
             LearningRateMonitor(), progress_bar, EarlyStopping(), LearningRateMonitor(), EarlyStopping()
         ],
-        model_callbacks=[early_stopping, lr_monitor, gpu_monitor, early_stopping],
-        expected=[progress_bar, early_stopping, lr_monitor, gpu_monitor, early_stopping]
+        model_callbacks=[early_stopping, lr_monitor, grad_accumulation, early_stopping],
+        expected=[progress_bar, early_stopping, lr_monitor, grad_accumulation, early_stopping]
     )
