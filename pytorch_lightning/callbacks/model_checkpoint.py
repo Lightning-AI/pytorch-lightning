@@ -19,7 +19,7 @@ Model Checkpointing
 Automatically save model checkpoints during training.
 
 """
-
+import logging
 import numbers
 import os
 import re
@@ -31,12 +31,13 @@ import numpy as np
 import torch
 import yaml
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+log = logging.getLogger(__name__)
 
 
 class ModelCheckpoint(Callback):
@@ -520,12 +521,13 @@ class ModelCheckpoint(Callback):
         ckpt_name_metrics: Dict[str, Any],
         epoch: int,
         step: int,
-        del_filepath: Optional[str] = None
+        trainer,
+        del_filepath: Optional[str] = None,
     ) -> str:
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
 
         version_cnt = 0
-        while self._fs.exists(filepath) and filepath != del_filepath:
+        while self.file_exists(filepath, trainer) and filepath != del_filepath:
             filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=version_cnt)
             version_cnt += 1
 
@@ -555,7 +557,7 @@ class ModelCheckpoint(Callback):
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
         else:
             last_filepath = self._get_metric_interpolated_filepath_name(
-                ckpt_name_metrics, trainer.current_epoch, trainer.global_step
+                ckpt_name_metrics, trainer.current_epoch, trainer.global_step, trainer,
             )
 
         accelerator_backend = trainer.accelerator_backend
@@ -618,7 +620,7 @@ class ModelCheckpoint(Callback):
         if torch.isnan(current):
             current = torch.tensor(float('inf' if self.mode == "min" else '-inf'))
 
-        filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, epoch, step, del_filepath)
+        filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, epoch, step, trainer, del_filepath)
 
         # save the current score
         self.current_score = current
@@ -656,3 +658,13 @@ class ModelCheckpoint(Callback):
             filepath = os.path.join(self.dirpath, "best_k_models.yaml")
         with self._fs.open(filepath, "w") as fp:
             yaml.dump(best_k, fp)
+
+    def file_exists(self, filepath: Union[str, Path], trainer) -> bool:
+        """
+        Checks if a file exists on rank 0 and broadcasts the result to all other ranks, preventing
+        the internal state to diverge between ranks.
+        """
+        exists = self._fs.exists(filepath)
+        if trainer.accelerator_backend is not None:
+            exists = trainer.accelerator_backend.broadcast(exists)
+        return exists

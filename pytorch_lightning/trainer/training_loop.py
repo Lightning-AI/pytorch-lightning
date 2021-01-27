@@ -226,13 +226,13 @@ class TrainLoop:
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
 
-    def on_train_batch_end(self, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
         # hook
         self.trainer.call_hook('on_batch_end')
-        self.trainer.call_hook('on_train_batch_end', epoch_end_outputs, batch, batch_idx, dataloader_idx)
+        self.trainer.call_hook('on_train_batch_end', batch_end_outputs, batch, batch_idx, dataloader_idx)
 
         # figure out what to track for epoch end
-        self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
+        self.track_epoch_end_reduce_metrics(epoch_output, batch_end_outputs)
 
         # reset batch logger internals
         self.trainer.logger_connector.on_train_batch_end()
@@ -244,12 +244,27 @@ class TrainLoop:
         if self.trainer.val_dataloaders is None and not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_val_dataloader(model)
 
-    def track_epoch_end_reduce_metrics(self, epoch_output, epoch_end_outputs):
+    def track_epoch_end_reduce_metrics(self, epoch_output, batch_end_outputs):
+
         # track the outputs to reduce at the end of the epoch
-        for opt_idx, opt_outputs in enumerate(epoch_end_outputs):
+        for opt_idx, opt_outputs in enumerate(batch_end_outputs):
+            sample_output = opt_outputs[-1]
+
+            # decide if we need to reduce at the end of the epoch automatically
+            auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
+            hook_overridden = (
+                is_overridden("training_epoch_end", model=self.trainer.get_model()) or
+                is_overridden("on_train_epoch_end", model=self.trainer.get_model())
+            )
+
+            # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
+            if not(hook_overridden or auto_reduce_tng_result):
+                continue
+
             # with 1 step (no tbptt) don't use a sequence at epoch end
             if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
                 opt_outputs = opt_outputs[0]
+
             epoch_output[opt_idx].append(opt_outputs)
 
     def get_optimizers_iterable(self):
@@ -537,17 +552,14 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
-            # only track outputs when user implements training_epoch_end
-            # otherwise we will build up unnecessary memory
-            epoch_end_outputs = self.process_train_step_outputs(
+            batch_end_outputs = self.process_train_step_outputs(
                 batch_output.training_step_output_for_epoch_end,
                 self.early_stopping_accumulator,
                 self.checkpoint_accumulator,
             )
-
             # hook
             # TODO: add outputs to batches
-            self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
+            self.on_train_batch_end(epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx)
 
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
@@ -798,6 +810,10 @@ class TrainLoop:
                 if self.trainer.terminate_on_nan:
                     self.trainer.detect_nan_tensors(result.loss)
 
+                if len(self.trainer.optimizers) > 1:
+                    # revert back to previous state
+                    self.trainer.get_model().untoggle_optimizer(opt_idx)
+
         return result
 
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
@@ -897,7 +913,7 @@ class TrainLoop:
         # the training step outputs a list per optimizer. The list contains the outputs at each time step
         # when no TBPTT is used, then the list has 1 item per batch
         # when TBPTT IS used, then the list has n items (1 per time step)
-        epoch_end_outputs = []
+        batch_end_outputs = []
         for optimizer_idx_outputs in all_train_step_outputs:
             # extract one representative sample from each time step (1 if no tbptt) and 0th optimizer
             if len(optimizer_idx_outputs) == 0:
@@ -912,14 +928,9 @@ class TrainLoop:
             if isinstance(sample_output, dict) and "checkpoint_on" in sample_output:
                 checkpoint_accumulator.accumulate(sample_output["checkpoint_on"])
 
-            # decide if we need to reduce at the end of the epoch automatically
-            auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
+            batch_end_outputs.append(optimizer_idx_outputs)
 
-            # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
-            if is_overridden("training_epoch_end", model=self.trainer.get_model()) or auto_reduce_tng_result:
-                epoch_end_outputs.append(optimizer_idx_outputs)
-
-        return epoch_end_outputs
+        return batch_end_outputs
 
     def prepare_optimizers(self):
         # in manual optimization we loop over all optimizers at once

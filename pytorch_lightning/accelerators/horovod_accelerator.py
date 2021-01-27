@@ -17,7 +17,6 @@ from typing import Any, Callable, Optional, Union
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType, HOROVOD_AVAILABLE
@@ -145,6 +144,7 @@ class HorovodAccelerator(Accelerator):
         hvd.join()
 
     def broadcast(self, obj, src=0):
+        self.barrier()
         obj = hvd.broadcast_object(obj, src)
         return obj
 
