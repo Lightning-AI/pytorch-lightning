@@ -6,7 +6,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 
 
 def test_attach_model_callbacks():
-    """ Test that the callbacks defined in the model override and extend the Trainer callbacks. """
+    """ Test that the callbacks defined in the model and through Trainer get merged correctly. """
 
     def assert_composition(trainer_callbacks, model_callbacks, expected):
         model = Mock()

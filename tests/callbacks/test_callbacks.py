@@ -129,7 +129,7 @@ def test_trainer_callback_system(torch_save, tmpdir):
 
 
 def test_callbacks_configured_in_model(tmpdir):
-    """Test the callback system with callbacks added through the model hook. """
+    """ Test the callback system with callbacks added through the model hook. """
 
     model_callback_mock = Mock()
     trainer_callback_mock = Mock()
@@ -183,7 +183,7 @@ def test_callbacks_configured_in_model(tmpdir):
 
 
 def test_configure_callbacks_hook_multiple_calls(tmpdir):
-    """ Test that subsequent calls to `configure_callbacks` do not change callbacks list. """
+    """ Test that subsequent calls to `configure_callbacks` do not change the callbacks list. """
     model_callback_mock = Mock()
 
     class TestModel(BoringModel):
