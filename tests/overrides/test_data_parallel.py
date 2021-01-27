@@ -10,8 +10,8 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedModule
     LightningParallelModule,
     LightningDistributedModule,
 ])
-def test_lightning_distributed_module_methods(wrapper_class):
-    """ Test that the LightningDistributedModule redirects .forward() to the LightningModule methods. """
+def test_lightning_wrapper_module_methods(wrapper_class):
+    """ Test that the LightningWrapper redirects .forward() to the LightningModule methods. """
     pl_module = MagicMock()
     wrapped_module = wrapper_class(pl_module)
 
@@ -38,8 +38,8 @@ def test_lightning_distributed_module_methods(wrapper_class):
     LightningParallelModule,
     LightningDistributedModule,
 ])
-def test_lightning_distributed_module_warn_none_output(wrapper_class):
-    """ Test that the LightningDistributedModule warns about forgotten return statement. """
+def test_lightning_wrapper_module_warn_none_output(wrapper_class):
+    """ Test that the LightningWrapper module warns about forgotten return statement. """
     pl_module = MagicMock()
     wrapped_module = wrapper_class(pl_module)
 
