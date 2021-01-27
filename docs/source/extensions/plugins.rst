@@ -19,16 +19,16 @@ For example, to customize your own DistributedDataParallel you could do somethin
 ApexPlugin
 **********
 
-.. autoclass:: pytorch_lightning.plugins.apex.ApexPlugin
+.. autoclass:: pytorch_lightning.plugins.legacy.apex.ApexPlugin
 
 ***************
 NativeAMPPlugin
 ***************
 
-.. autoclass:: pytorch_lightning.plugins.native_amp.NativeAMPPlugin
+.. autoclass:: pytorch_lightning.plugins.legacy.native_amp.NativeAMPPlugin
 
 *********
 DDPPlugin
 *********
 
-.. autoclass:: pytorch_lightning.plugins.ddp_plugin.DDPPlugin
+.. autoclass:: pytorch_lightning.plugins.legacy.ddp_plugin.DDPPlugin

@@ -26,7 +26,7 @@ from sklearn.metrics import accuracy_score
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
+from pytorch_lightning.accelerators.legacy.horovod_accelerator import HorovodAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _NATIVE_AMP_AVAILABLE
@@ -340,7 +340,7 @@ def test_accuracy_metric_horovod():
 #     num_workers = 8
 #     init_lr = hparams.get('learning_rate') * num_workers
 #
-#     with patch('pytorch_lightning.accelerators.horovod_backend.hvd.size') as mock_hvd_size:
+#     with patch('pytorch_lightning.accelerators.legacy.horovod_backend.hvd.size') as mock_hvd_size:
 #         mock_hvd_size.return_value = 8
 #
 #         # fit model
