@@ -7,10 +7,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased.Bugfixes] - YYYY-MM-DD
 
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+
+### Removed
+
 
 ### Fixed
 
 - Fixed filtering of pytorch  "unsqueeze" warning when using DP ([#5622](https://github.com/PyTorchLightning/pytorch-lightning/pull/5622))
+
 
 
 ## [1.1.6] - 2021-01-26
