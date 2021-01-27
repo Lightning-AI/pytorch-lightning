@@ -104,6 +104,12 @@ Most of the tests in PyTorch Lightning train a trial MNIST model under various t
 
 ## Guidelines
 
+**Hint:**
+we have added basic make doe you can simply execute following actions from project root (only for Unix):
+- clean repo from temp/generated files `make clean`
+- build documentation with `make docs` in _docs/build/html_
+- test the project with `make test`
+
 ### Original code
 
 All added or edited code shall be the own original work of the particular contributor.

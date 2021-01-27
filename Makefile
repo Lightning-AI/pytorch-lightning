@@ -1,6 +1,7 @@
 .PHONY: test clean docs
 
 test:
+	pip install -r requirements/devel.txt
 	# install APEX, see https://github.com/NVIDIA/apex#linux
 	# to imitate SLURM set only single node
 	export SLURM_LOCALID=0
@@ -19,8 +20,11 @@ docs:
 	rm -rf ./docs/source/generated
 	rm -rf ./docs/source/*/generated
 	rm -rf ./docs/source/api
+	pip install -r requirements/docs.txt
 	python -m sphinx -b html -D SPHINXOPTS="-W" docs/source docs/build
 
 clean:
 	# clean all temp runs
 	rm -rf $(shell find . -name "mlruns")
+	rm -rf .mypy_cache
+	rm -rf .pytest_cache
