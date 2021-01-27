@@ -657,6 +657,12 @@ LightningModule API
 Methods
 ^^^^^^^
 
+configure_callbacks
+~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.configure_callbacks
+    :noindex:
+
 configure_optimizers
 ~~~~~~~~~~~~~~~~~~~~
 
