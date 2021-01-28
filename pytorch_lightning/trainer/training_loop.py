@@ -154,9 +154,9 @@ class TrainLoop:
         self.trainer.model_connector.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if (self.trainer.amp_backend == AMPType.NATIVE and
-                self.trainer.precision == 16 and
-                self.trainer._device_type != DeviceType.TPU):
+        if (self.trainer.amp_backend == AMPType.NATIVE
+                and self.trainer.precision == 16
+                and self.trainer._device_type != DeviceType.TPU):
             self.trainer.scaler = self.trainer.precision_connector.backend.scaler
 
         # log hyper-parameters
