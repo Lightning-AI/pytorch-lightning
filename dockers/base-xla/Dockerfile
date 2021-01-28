@@ -55,7 +55,7 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/*
 
 ENV \
-    PATH="/root/miniconda3/bin:$PATH \
+    PATH="/root/miniconda3/bin:$PATH" \
     LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
 COPY environment.yml environment.yml
 
