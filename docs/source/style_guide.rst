@@ -37,7 +37,7 @@ Here's a LightningModule that defines a model:
 
 .. testcode::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(LightningModule):
         def __init__(self, num_layers: int = 3)
             super().__init__()
             self.layer_1 = nn.Linear(...)
@@ -76,7 +76,7 @@ Here's an example where a user will have to go hunt through files to figure out 
 
 .. testcode::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(LightningModule):
         def __init__(self, params):
             self.lr = params.lr
             self.coef_x = params.coef_x
