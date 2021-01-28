@@ -4,7 +4,13 @@ import pytest
 import torch
 from torch.nn import DataParallel
 
-from pytorch_lightning.overrides.data_parallel import LightningDistributedModule, LightningParallelModule, warning_cache
+from pytorch_lightning.overrides.data_parallel import (
+    LightningDistributedModule,
+    LightningParallelModule,
+    python_scalar_to_tensor,
+    unsqueeze_scalar_tensor,
+    warning_cache,
+)
 from tests.base import BoringModel
 
 
@@ -66,6 +72,16 @@ def test_lightning_wrapper_module_warn_none_output(wrapper_class):
         wrapped_module()
 
 
+@pytest.mark.parametrize("input,expected", [
+    [torch.tensor(1.0), torch.tensor([1.0])],
+    [torch.tensor([2.0]), torch.tensor([2.0])],
+    [torch.ones(3, 4, 5), torch.ones(3, 4, 5)],
+])
+def test_unsqueeze_scalar_tensor(inp, expected):
+    """ Test that the utility function unsqueezes only scalar tensors. """
+    assert torch.all(unsqueeze_scalar_tensor(inp).eq(expected))
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-gpu machine")
 def test_lightning_parallel_module_unsqueeze_scalar():
     """ Test that LightningParallelModule takes care of un-squeezeing 0-dim tensors. """
@@ -95,6 +111,15 @@ def test_lightning_parallel_module_unsqueeze_scalar():
 
     assert output["loss"].dim() == 1
     assert not record
+
+
+@pytest.mark.parametrize("inp,expected", [
+    [1.0, torch.tensor([1.0])],
+    [2, torch.tensor([2.0])],
+    [True, torch.tensor([True])],
+])
+def test_python_scalar_to_tensor(inp, expected):
+    assert torch.all(python_scalar_to_tensor(inp).eq(expected))
 
 
 @pytest.mark.parametrize("device", [

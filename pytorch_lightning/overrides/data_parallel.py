@@ -182,7 +182,7 @@ def warn_if_output_is_none(output: Any, method_name: str) -> None:
         warning_cache.warn(f'Your {method_name} returned None. Did you forget to return an output?')
 
 
-def python_scalar_to_tensor(scalar: numbers.Number, device: torch.device) -> torch.Tensor:
+def python_scalar_to_tensor(scalar: numbers.Number, device: torch.device = torch.device("cpu")) -> torch.Tensor:
     """ Converts a Python scalar number to a torch tensor and places it on the given device. """
     return torch.tensor([scalar], device=device)
 
