@@ -65,7 +65,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
         super().__init__(LightningDistributedModule(module), *args, **kwargs)
 
 
-class LightningModuleWrapperBase(torch.nn.Module):
+class _LightningModuleWrapperBase(torch.nn.Module):
 
     def __init__(self, pl_module: LightningModule):
         """
@@ -97,7 +97,7 @@ class LightningModuleWrapperBase(torch.nn.Module):
         return output
 
 
-class LightningParallelModule(LightningModuleWrapperBase):
+class LightningParallelModule(_LightningModuleWrapperBase):
     """
     Wraps the user's LightningModule and redirects the forward call to the appropriate
     method, either ``training_step``, ``validation_step`` or ``test_step``.
@@ -136,7 +136,7 @@ class LightningParallelModule(LightningModuleWrapperBase):
         return output
 
 
-class LightningDistributedModule(LightningModuleWrapperBase):
+class LightningDistributedModule(_LightningModuleWrapperBase):
 
     def __init__(self, pl_module: LightningModule):
         """
