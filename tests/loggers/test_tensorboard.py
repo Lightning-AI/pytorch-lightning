@@ -269,6 +269,7 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
 
 @mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter')
 def test_tensorboard_finalize(summary_writer, tmpdir):
+    """ Test that the SummaryWriter closes in finalize. """
     logger = TensorBoardLogger(save_dir=tmpdir)
     logger.finalize("any")
     summary_writer().flush.assert_called()
