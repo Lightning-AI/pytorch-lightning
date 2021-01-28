@@ -122,7 +122,12 @@ class StochasticWeightAveraging(Callback):
                 return True
         return False
 
+    # Inspiration from
     def reset_batch_norm_and_save_state(self, average_model, device):
+        """
+        Credit to PyTorch Team.
+        Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L115
+        """
         self.momenta = {}
         for module in average_model.modules():
             if isinstance(module, nn.modules.batchnorm._BatchNorm):
@@ -178,20 +183,21 @@ class StochasticWeightAveraging(Callback):
 
         elif self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
             # Turn off backwards and optimization, only update batch norm stats
-            trainer.train_loop.do_backward = False
             self.transfer_weights(self._average_model, pl_module)
 
             # perform accumulation over the entire train_dataloader
-            # By doing so, it won't call optimizer.step()
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
             trainer.accumulate_grad_batches = len(trainer.train_dataloader)
-            trainer.train_loop.do_backward = False
 
         if trainer.current_epoch >= self._swa_epoch_start:
             self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
 
     @staticmethod
     def update_parameters(average_model, model, n_averaged, avg_fn):
+        """
+        Credit to PyTorch Team.
+        Taken from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L103
+        """
         for p_swa, p_model in zip(average_model.parameters(), model.parameters()):
             device = p_swa.device
             p_model_ = p_model.detach().to(device)
