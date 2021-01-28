@@ -96,7 +96,8 @@ ENV \
     # if you want this environment to be the default one, uncomment the following line:
     CONDA_DEFAULT_ENV=${CONDA_ENV}
 
-COPY ./requirements/extra.txt ./requirements/test.txt ./
+COPY ./requirements/extra.txt requirements-extra.txt
+COPY ./requirements/test.txt requirements-test.txt
 
 RUN \
     # Disable cache
