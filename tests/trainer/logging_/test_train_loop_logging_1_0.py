@@ -589,11 +589,10 @@ def test_log_works_in_train_callback(tmpdir):
         def on_train_epoch_end(self, trainer, pl_module, outputs):
             self.make_logging(pl_module, 'on_train_epoch_end', 8, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
-            
+
         def on_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_epoch_end', 9, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
-
 
     class TestModel(BoringModel):
 
