@@ -93,10 +93,12 @@ def parameter_validation(fn: Callable) -> Callable:
         post_layer_count = len(list(self.parameters()))
 
         if not pre_layer_count == post_layer_count:
-            rank_zero_warn(f'The model layers do not match after moving to the target device.'
-                           ' If your model employs weight sharing on TPU,'
-                           ' please tie your weights using the `on_post_move_to_device` model hook.'
-                           f'Layer count: [Before: {pre_layer_count} After: {post_layer_count}]')
+            rank_zero_warn(
+                f'The model layers do not match after moving to the target device.'
+                ' If your model employs weight sharing on TPU,'
+                ' please tie your weights using the `on_post_move_to_device` model hook.\n'
+                f'Layer count: [Before: {pre_layer_count} After: {post_layer_count}]'
+            )
 
         return module
 
