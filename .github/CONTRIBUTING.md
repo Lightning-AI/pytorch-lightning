@@ -225,15 +225,15 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 #### How can I help/contribute?
 
-All help is extremely welcome - reporting bugs, fixing documentation, adding test cases, solving issues and preparing bug fixes. To solve some issues you can start with label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before you start to implement anything check that the issue description that it is clear and self-assign the task to you (if it is not possible, just comment that you take it and we assign it to you...).
+All help is extremely welcome - reporting bugs, fixing documentation, adding test cases, solving issues and preparing bug fixes. To solve some issues you can start with label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before you start to implement anything check that the issue description is clear and self-assign the task to you (if it is not possible, just comment that you take it and we assign it to you...).
 
 #### Is there a recommendation for branch names?
 
-We do not rely on the name convention so far you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feature`, `docs`, `tests`, ...
+We do not rely on the name convention so far if you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feature`, `docs`, `tests`, ...
 
 #### How to rebase my PR?
 
-We recommend creating a PR in separate branch other than `master`, especially if you plan submitting several changes and do not want to wait until the first one is resolved (we can work on them in parallel).
+We recommend creating a PR in a separate branch other than `master`, especially if you plan to submit several changes and do not want to wait until the first one is resolved (we can work on them in parallel).
 
 First, make sure you have set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork) by running:
 
@@ -300,7 +300,7 @@ def test_explain_what_is_being_tested(tmpdir):
         ...
     )
     trainer.fit(model)
-    trainer.test() # [OPTIONAL]
+    trainer.test()  # [OPTIONAL]
 
     # assert the behaviour is correct.
     assert ...
@@ -312,33 +312,33 @@ python -m pytest tests/..../...py::test_explain_what_is_being_tested --verbose -
 
 #### How to contribute bugfix/feature?
 
-At this moment we have separate streams/branches for bugfixes and features as we utilize releasing from default branch (`master`).
-Bugfix shall land in this `master` branch compare to feature which shall land in `release/1.2-dev`.
-This means that in this time you starting your contribution and creating branch according to question 2) you shall start this new branch from master or future release.
+At this moment we have separate streams/branches for bugfixes and features as we utilize releasing from the default branch (`master`).
+Bugfix shall land in this `master` branch compare to the feature branch which shall land in `release/1.2-dev`.
+This means that in this time you starting your contribution and creating a branch according to question 2) you shall start this new branch from master or future release.
 Later in PR creation also pay attention to set properly the target branch, a simple understanding is that the staring (base) and target branch shall be the same.
 
-_Note, that this flow may change after 1.2 release as we will adjust releasing strategy._
+_Note, that this flow may change after the 1.2 release as we will adjust releasing strategy._
 
 #### How to fix PR with mixed base nad target branch?
 
-It can easily happen that you start your PR as bug-fix (and already created a PR accordingly) which turned to  be rather a feature or other way around.
-Do not panic, the solution is very straight forward and a quite simple.
-You need to do this two steps and in fact it do not matter much on the order:
+It can easily happen that you start your PR as a bug-fix (and already created a PR accordingly) which turned to be rather a feature or the other way around.
+Do not panic, the solution is very straightforward and quite simple.
+You need to do these two steps and in fact, it does not matter much on the order:
    - Ask someone from Core to change the base/target branch to the correct one
-   - Rebase or cherry-pick your commit onto correct base branch...
+   - Rebase or cherry-pick your commit onto the correct base branch...
      
-Let's show how to dela with the git...
+Let's show how to deal with the git...
 the sample case is moving PR from `master` to `release/1.2-dev` assuming my branch name is `my-branch`
 and the last true master commit is `ccc111` and your first commit is `mmm222`.
    * **Cherry-picking** way
      ```bash
      git checkout my-branch
-     # create local backup of your branch
+     # create a local backup of your branch
      git checkout -b my-branch-backup
      # reset your branch to the correct base
      git reset release/1.2-dev --hard
      # ACTION: this step is much easier to do with IDE
-     #  so open one and cherry pich you last commits from `my-branch-backup`
+     #  so open one and cherry-pick your last commits from `my-branch-backup`
      #  resolve all eventual conflict as the new base may contain different code
      # when all done, push back to the open PR
      git push -f 
@@ -348,8 +348,8 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
      git checkout my-branch
      # rebase your commits on the correct branch
      git rebase --onto release/1.2-dev ccc111
-     # if there are no collision you shall see just success
-     #  eventually you would need to resolve collision and in such case follow instruction in terminal
+     # if there is no collision you shall see just success
+     #  eventually you would need to resolve collision and in such case follow the instruction in terminal
      # when all done, push back to the open PR
      git push -f
      ```
