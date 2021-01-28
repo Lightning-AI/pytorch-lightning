@@ -11,9 +11,8 @@ from pytorch_lightning.overrides.data_parallel import (
     unsqueeze_scalar_tensor,
     warning_cache,
 )
-from tests.base import BoringModel
-from pytorch_lightning.overrides.data_parallel import LightningDistributedModule
 from pytorch_lightning.trainer.states import RunningStage
+from tests.base import BoringModel
 
 
 @pytest.mark.parametrize("wrapper_class", [
@@ -62,7 +61,7 @@ def test_lightning_wrapper_module_warn_none_output(wrapper_class):
         pl_module.running_stage = RunningStage.EVALUATING
 
 
-@pytest.mark.parametrize("input,expected", [
+@pytest.mark.parametrize("inp,expected", [
     [torch.tensor(1.0), torch.tensor([1.0])],
     [torch.tensor([2.0]), torch.tensor([2.0])],
     [torch.ones(3, 4, 5), torch.ones(3, 4, 5)],
