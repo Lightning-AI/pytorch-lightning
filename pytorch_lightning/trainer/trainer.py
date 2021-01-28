@@ -17,6 +17,7 @@
 import logging
 import os
 import warnings
+from itertools import count
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
 
@@ -102,8 +103,8 @@ class Trainer(
         check_val_every_n_epoch: int = 1,
         fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
-        max_epochs: int = 1000,
-        min_epochs: int = 1,
+        max_epochs: Optional[int] = None,
+        min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
         min_steps: Optional[int] = None,
         limit_train_batches: Union[int, float] = 1.0,
@@ -550,8 +551,9 @@ class Trainer(
         try:
             if self.train_loop.should_skip_training():
                 return
+
             # run all epochs
-            for epoch in range(self.current_epoch, self.max_epochs):
+            epochs = range(self.current_epoch, self.max_epochs) if self.max_epochs else count(self.current_epoch)
 
                 # hook
                 self.train_loop.on_train_epoch_start(epoch)
@@ -567,7 +569,7 @@ class Trainer(
                 self.optimizer_connector.update_learning_rates(interval='epoch')
 
                 # early stopping
-                met_min_epochs = epoch >= self.min_epochs - 1
+                met_min_epochs = epoch >= self.min_epochs - 1 if self.min_epochs else True
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:

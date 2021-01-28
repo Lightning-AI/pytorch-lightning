@@ -69,8 +69,9 @@ class TrainLoop:
         self.trainer.train_dataloader = None
         self.automatic_optimization = automatic_optimization
 
-        self.trainer.max_epochs = max_epochs
-        self.trainer.min_epochs = min_epochs
+        # If neither max_epochs or max_steps is set, then use (old) default of max_epochs = 1000
+        self.trainer.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
+        self.trainer.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
         self.trainer.max_steps = max_steps
         self.trainer.min_steps = min_steps
 
@@ -91,7 +92,7 @@ class TrainLoop:
         return num_optimizers
 
     def should_skip_training(self):
-        if self.trainer.current_epoch >= self.trainer.max_epochs:
+        if self.trainer.max_epochs is not None and if self.trainer.current_epoch >= self.trainer.max_epochs:
             return True
 
         if self.trainer.limit_train_batches == 0:

@@ -279,7 +279,7 @@ def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
     model = EvalModelTemplate(**hparams)
     model.hparams = hparams
     # now we have model.batch_size and model.hparams.batch_size
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, auto_scale_batch_size=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1000, max_steps=1, auto_scale_batch_size=True)
     expected_message = "Field `model.batch_size` and `model.hparams.batch_size` are mutually exclusive!"
     with pytest.warns(UserWarning, match=expected_message):
         trainer.tune(model)
