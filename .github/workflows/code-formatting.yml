@@ -22,21 +22,21 @@ jobs:
       - name: Run isort
         run: isort --settings-path=./pyproject.toml --check-only --diff .
 
-  #code-black:
-  #  name: Check code formatting with Black
-  #  runs-on: ubuntu-20.04
-  #  steps:
-  #    - name: Checkout
-  #      uses: actions/checkout@v2
-  #    - name: Set up Python 3.8
-  #      uses: actions/setup-python@v2
-  #      with:
-  #        python-version: 3.8
-  #    - name: Install Black
-  #      run: pip install black==19.10b0
-  #    - name: Run Black
-  #      run: echo "LGTM"
-  #      run black --skip-string-normalization --config=pyproject.toml --check . # TODO, uncomment
+  format-check-yapf:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install yapf
+          pip list
+        shell: bash
+      - name: yapf
+        run: yapf --diff --parallel --recursive .
 
   python-pep8:
     name: Python formatting PEP8

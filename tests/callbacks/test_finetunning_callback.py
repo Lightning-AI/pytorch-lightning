@@ -15,7 +15,7 @@ import torch
 from torch import nn
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import BackboneLambdaFinetuningCallback
+from pytorch_lightning.callbacks import BackboneFinetuning
 from tests.base import BoringModel
 
 
@@ -39,7 +39,7 @@ def test_finetunning_callback(tmpdir):
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.7)
             return [optimizer], [lr_scheduler]
 
-    class TestCallback(BackboneLambdaFinetuningCallback):
+    class TestCallback(BackboneFinetuning):
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
             epoch = trainer.current_epoch

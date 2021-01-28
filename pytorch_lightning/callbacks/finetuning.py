@@ -34,10 +34,10 @@ def multiplicative(epoch):
     return 2
 
 
-class BaseFinetuningCallback(Callback):
+class BaseFinetuning(Callback):
 
     r"""
-    BaseFinetuningCallback.
+    BaseFinetuning.
     Overrides any functions with your own logic.
     """
 
@@ -49,9 +49,13 @@ class BaseFinetuningCallback(Callback):
         Args:
             module: The module to unfreeze
         """
-        for param in module.parameters():
-            param.requires_grad = True
-        module.train()
+        if isinstance(module, list):
+            for m in module:
+                BaseFinetuning._make_trainable(m)
+        else:
+            for param in module.parameters():
+                param.requires_grad = True
+            module.train()
 
     @staticmethod
     def _recursive_freeze(module: Module,
@@ -63,16 +67,16 @@ class BaseFinetuningCallback(Callback):
         """
         children = list(module.children())
         if not children:
-            if not (isinstance(module, BaseFinetuningCallback.BN_TYPES) and train_bn):
+            if not (isinstance(module, BaseFinetuning.BN_TYPES) and train_bn):
                 for param in module.parameters():
                     param.requires_grad = False
                 module.eval()
             else:
                 # Make the BN layers trainable
-                BaseFinetuningCallback._make_trainable(module)
+                BaseFinetuning._make_trainable(module)
         else:
             for child in children:
-                BaseFinetuningCallback._recursive_freeze(module=child, train_bn=train_bn)
+                BaseFinetuning._recursive_freeze(module=child, train_bn=train_bn)
 
     @staticmethod
     def filter_params(module: Module,
@@ -86,15 +90,18 @@ class BaseFinetuningCallback(Callback):
         Returns:
             Generator
         """
-        children = list(module.children())
+        if isinstance(module, list):
+            children = module
+        else:
+            children = list(module.children())
         if not children:
-            if not (isinstance(module, BaseFinetuningCallback.BN_TYPES) and train_bn):
+            if not (isinstance(module, BaseFinetuning.BN_TYPES) and train_bn):
                 for param in module.parameters():
                     if param.requires_grad:
                         yield param
         else:
             for child in children:
-                for param in BaseFinetuningCallback.filter_params(module=child, train_bn=train_bn):
+                for param in BaseFinetuning.filter_params(module=child, train_bn=train_bn):
                     yield param
 
     @staticmethod
@@ -106,10 +113,23 @@ class BaseFinetuningCallback(Callback):
             train_bn: If True, leave the BatchNorm layers in training mode
         """
         for mod in module.parameters():
-            if (isinstance(mod, BaseFinetuningCallback.BN_TYPES) and train_bn):
-                BaseFinetuningCallback._make_trainable(mod)
+            if (isinstance(mod, BaseFinetuning.BN_TYPES) and train_bn):
+                BaseFinetuning._make_trainable(mod)
             else:
                 mod.requires_grad = False
+
+    @staticmethod
+    def filter_on_optimizer(optimizer, params):
+        out_params = []
+        for param in params:
+            is_in = False
+            for group in optimizer.param_groups:
+                for p in group["params"]:
+                    if p.shape == param.shape and torch.equal(p, param):
+                        is_in = True
+            if not is_in:
+                out_params.append(param)
+        return out_params
 
     @staticmethod
     def unfreeze_and_add_param_group(
@@ -120,12 +140,14 @@ class BaseFinetuningCallback(Callback):
         initial_denom_lr: float = 10.,
     ):
         """Unfreezes a module and adds its parameters to an optimizer."""
-        BaseFinetuningCallback._make_trainable(module)
+        BaseFinetuning._make_trainable(module)
         params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
         denom_lr = initial_denom_lr if lr is None else 1.
+        params = BaseFinetuning.filter_params(module=module, train_bn=train_bn)
+        params = BaseFinetuning.filter_on_optimizer(optimizer, params)
         optimizer.add_param_group(
             {
-                'params': BaseFinetuningCallback.filter_params(module=module, train_bn=train_bn),
+                'params': params,
                 'lr': params_lr / denom_lr,
             }
         )
@@ -145,7 +167,7 @@ class BaseFinetuningCallback(Callback):
         raise NotImplementedError
 
 
-class BackboneLambdaFinetuningCallback(BaseFinetuningCallback):
+class BackboneFinetuning(BaseFinetuning):
 
     r"""
     Finetunne a backbone model based on a learning rate user-defined scheduling.
@@ -173,9 +195,9 @@ class BackboneLambdaFinetuningCallback(BaseFinetuningCallback):
     Example::
 
         >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.callbacks import BackboneLambdaFinetuningCallback
+        >>> from pytorch_lightning.callbacks import BackboneFinetuning
         >>> multiplicative = lambda epoch: 1.5
-        >>> backbone_finetunning = BackboneLambdaFinetuningCallback(200, multiplicative)
+        >>> backbone_finetunning = BackboneFinetuning(200, multiplicative)
         >>> trainer = Trainer(callbacks=[backbone_finetunning])
     """
 

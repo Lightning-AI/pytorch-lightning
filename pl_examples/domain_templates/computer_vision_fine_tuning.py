@@ -56,14 +56,14 @@ from torchvision.datasets.utils import download_and_extract_archive
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks.finetuning import BaseFinetuningCallback
+from pytorch_lightning.callbacks.finetuning import BaseFinetuning
 
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
 
 
 #  --- Finetunning Callback ---
 
-class MilestonesFinetuningCallback(BaseFinetuningCallback):
+class MilestonesFinetuningCallback(BaseFinetuning):
 
     def __init__(self,
                  milestones: tuple = (5, 10),
