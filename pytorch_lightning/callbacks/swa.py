@@ -43,16 +43,20 @@ class StochasticWeightAveraging(Callback):
         device: Optional[torch.device] = torch.device("cpu"),
     ):
 
-        r"""Implements averaged model for Stochastic Weight Averaging (SWA) Callbacks.
+        r"""
+
+        This documentation is highly inspired from PyTorch Team work on pruning
+        and this callback exposes the same arguments as the underlying PyTorch ``swa_utils``.
+
+        Find source code there: https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py
+        Find SWA explanation there: https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/
+
+        Implements averaged model for Stochastic Weight Averaging (SWA) Callbacks.
 
         Stochastic Weight Averaging was proposed in ``Averaging Weights Leads to
         Wider Optima and Better Generalization`` by Pavel Izmailov, Dmitrii
         Podoprikhin, Timur Garipov, Dmitry Vetrov and Andrew Gordon Wilson
         (UAI 2018).
-
-        AveragedModel class creates a copy of the provided module :attr:`model`
-        on the device :attr:`device` and allows to compute running averages of the
-        parameters of the :attr:`model`.
 
         .. note:: `StochasticWeightAveraging` is currently not supported for multiple optimizers / schedulers.
 
