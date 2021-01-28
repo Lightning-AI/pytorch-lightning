@@ -165,6 +165,7 @@ class EvaluationLoop(object):
         model_ref._results = Result()
 
         if self.trainer._predicting:
+            args.insert(2, True)  # skip_collate_fn
             model_ref._current_fx_name = "predict"
             predictions = self.trainer.accelerator_backend.predict(args)
             self._predictions[dataloader_idx].append(predictions)

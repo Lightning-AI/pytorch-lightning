@@ -36,6 +36,6 @@ if _FAIRSCALE_AVAILABLE:
                 outputs = self.module.validation_step(*inputs, **kwargs)
 
             else:
-                outputs = self.module.predict(*inputs, **kwargs)
+                outputs = self.module.predict(*inputs, **kwargs, skip_collate_fn=True)
 
             return outputs

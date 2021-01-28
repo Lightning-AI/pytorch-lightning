@@ -94,7 +94,7 @@ class LightningDataParallel(DataParallel):
                 return self.module.validation_step(*inputs[0], **kwargs[0])
 
             else:
-                return self.module.predict(*inputs[0], **kwargs[0])
+                return self.module.predict(*inputs[0], **kwargs[0], skip_collate_fn=True)
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
@@ -212,7 +212,7 @@ class LightningDistributedModule(torch.nn.Module):
             warn_if_output_is_none(output, "validation_step")
 
         else:
-            output = self.module.predict(*inputs, **kwargs)
+            output = self.module.predict(*inputs, **kwargs, skip_collate_fn=True)
 
         return output
 
@@ -307,7 +307,7 @@ def parallel_apply(
                     fx_called = 'validation_step'
 
                 else:
-                    output = module.predict(*input, **kwargs)
+                    output = module.predict(*input, **kwargs, skip_collate_fn=True)
                     fx_called = 'predict'
 
                 if output is None:
