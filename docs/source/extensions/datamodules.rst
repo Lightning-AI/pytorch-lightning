@@ -274,6 +274,8 @@ Use this method to generate the val dataloader.  Usually you just wrap the datas
             return DataLoader(self.mnist_val, batch_size=64)
 
 
+.. _datamodule-test-dataloader-label:
+
 test_dataloader
 ^^^^^^^^^^^^^^^
 Use this method to generate the test dataloader. Usually you just wrap the dataset you defined in ``setup``.
