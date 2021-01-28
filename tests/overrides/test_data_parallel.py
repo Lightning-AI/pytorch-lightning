@@ -28,13 +28,20 @@ def test_lightning_wrapper_module_methods(wrapper_class):
     batch_idx = 3
 
     pl_module.running_stage = RunningStage.TRAINING
+    wrapped_module(batch, batch_idx)
     pl_module.training_step.assert_called_with(batch, batch_idx)
 
     pl_module.running_stage = RunningStage.TESTING
+    wrapped_module(batch, batch_idx)
     pl_module.test_step.assert_called_with(batch, batch_idx)
 
     pl_module.running_stage = RunningStage.EVALUATING
+    wrapped_module(batch, batch_idx)
     pl_module.validation_step.assert_called_with(batch, batch_idx)
+
+    pl_module.running_stage = None
+    wrapped_module(batch)
+    pl_module.predict.assert_called_with(batch)
 
 
 @pytest.mark.parametrize("wrapper_class", [
@@ -53,12 +60,20 @@ def test_lightning_wrapper_module_warn_none_output(wrapper_class):
 
     with pytest.warns(UserWarning, match="Your training_step returned None"):
         pl_module.running_stage = RunningStage.TRAINING
+        wrapped_module()
 
     with pytest.warns(UserWarning, match="Your test_step returned None"):
         pl_module.running_stage = RunningStage.TESTING
+        wrapped_module()
 
     with pytest.warns(UserWarning, match="Your validation_step returned None"):
         pl_module.running_stage = RunningStage.EVALUATING
+        wrapped_module()
+
+    with pytest.warns(None) as record:
+        pl_module.running_stage = None
+        wrapped_module()
+        assert not record
 
 
 @pytest.mark.parametrize("inp,expected", [
@@ -86,6 +101,7 @@ def test_lightning_parallel_module_unsqueeze_scalar():
             return {"loss": loss}
 
     model = TestModel()
+    model.running_stage = RunningStage.TRAINING
     batch = torch.rand(2, 32).cuda()
     batch_idx = 0
 
@@ -129,6 +145,7 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
 
     model = TestModel()
     model.to(device)
+    model.running_stage = RunningStage.TRAINING
     batch = torch.rand(2, 32).to(device)
     batch_idx = 0
 
