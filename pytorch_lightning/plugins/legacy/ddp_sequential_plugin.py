@@ -15,8 +15,8 @@ import os
 from typing import Any, List, Optional
 
 import torch
-from torch import nn
 import torch.distributed as torch_distrib
+from torch import nn
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log

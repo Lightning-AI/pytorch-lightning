@@ -46,6 +46,7 @@ class RunningStage(LightningEnum):
     TRAINING = 'train'
     EVALUATING = 'eval'
     TESTING = 'test'
+    PREDICTING = 'predict'
     TUNING = 'tune'
 
 
