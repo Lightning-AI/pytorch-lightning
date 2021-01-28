@@ -48,8 +48,8 @@ class StochasticWeightAveraging(Callback):
         This documentation is highly inspired from PyTorch Team work on pruning
         and this callback exposes the same arguments as the underlying PyTorch ``swa_utils``.
 
-        Find source code there: https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py
-        Find SWA explanation there: https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/
+        Find ``swa_utils` source code there: https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py
+        Find ``SWA explanation`` there: https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/
 
         Implements averaged model for Stochastic Weight Averaging (SWA) Callbacks.
 
