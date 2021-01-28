@@ -124,9 +124,10 @@ method:
       scheduler2 = LambdaLR(optimizer2, ...)
       return [optimizer1, optimizer2], [scheduler1, scheduler2]
 
-Schedulers in which ``.step()`` method is conditioned on metric values (for example the
-:class:`~torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler) enforces that the output from ``configure_optimizers`` should be returned as dicts with the  keyword ``monitor`` defined as the
-metric that the scheduler should be conditioned on.
+When there are schedulers in which the ``.step()`` method is conditioned on a metric value (for example the
+:class:`~torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler), Lightning requires that the output
+from ``configure_optimizers`` should be dicts, one for each optimizer, with the keyword ``monitor``
+set to metric that the scheduler should be conditioned on.
 
 .. testcode::
 
@@ -149,11 +150,15 @@ metric that the scheduler should be conditioned on.
           {'optimizer': optimizer2, 'lr_scheduler': scheduler2},
       )
 
+.. note::
+    Metrics can be made availble to condition on by simply logging it using ``self.log('metric_to_track', metric_val)``
+    in your lightning module.
+
 By default, all schedulers will be called after each epoch ends. To change this behaviour, a scheduler configuration should be
 returned as a dict which can contain the following keywords:
 
 * ``scheduler`` (required): the actual scheduler object
-* ``monitor`` (optional): same as above, defines the value that certain schedulers should be conditioned on
+* ``monitor`` (optional): metric to condition
 * ``interval`` (optional): either ``epoch`` (default) for stepping after each epoch ends or ``step`` for stepping
   after each optimization step
 * ``frequency`` (optional): how many epochs/steps should pass between calls to ``scheduler.step()``. Default is 1,
@@ -161,8 +166,8 @@ returned as a dict which can contain the following keywords:
 * ``strict`` (optional): if set to ``True`` will enforce that value specified in ``monitor`` is available while trying
   to call ``scheduler.step()``, and stop training if not found. If ``False`` will only give a warning and continue training
   (without calling the scheduler).
-* ``name`` (optional): if using the ``LearningRateMonitor`` callback to monitor the learning rate progress, this
-  keyword can be used to specify a specific name.
+* ``name`` (optional): if using the :class:`~pytorch_lightning.callbacks.LearningRateMonitor` callback to monitor the 
+  learning rate progress, this keyword can be used to specify a specific name the learning rate should be logged as.
 
 .. testcode::
 
