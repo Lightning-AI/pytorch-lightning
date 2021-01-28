@@ -22,6 +22,7 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.warnings import WarningCache
 

@@ -12,6 +12,8 @@ from pytorch_lightning.overrides.data_parallel import (
     warning_cache,
 )
 from tests.base import BoringModel
+from pytorch_lightning.overrides.data_parallel import LightningDistributedModule
+from pytorch_lightning.trainer.states import RunningStage
 
 
 @pytest.mark.parametrize("wrapper_class", [
@@ -26,19 +28,13 @@ def test_lightning_wrapper_module_methods(wrapper_class):
     batch = torch.rand(5)
     batch_idx = 3
 
-    pl_module.training = True
-    pl_module.testing = False
-    wrapped_module(batch, batch_idx)
+    pl_module.running_stage = RunningStage.TRAINING
     pl_module.training_step.assert_called_with(batch, batch_idx)
 
-    pl_module.training = False
-    pl_module.testing = True
-    wrapped_module(batch, batch_idx)
+    pl_module.running_stage = RunningStage.TESTING
     pl_module.test_step.assert_called_with(batch, batch_idx)
 
-    pl_module.training = False
-    pl_module.testing = False
-    wrapped_module(batch, batch_idx)
+    pl_module.running_stage = RunningStage.EVALUATING
     pl_module.validation_step.assert_called_with(batch, batch_idx)
 
 
@@ -57,19 +53,13 @@ def test_lightning_wrapper_module_warn_none_output(wrapper_class):
     pl_module.test_step.return_value = None
 
     with pytest.warns(UserWarning, match="Your training_step returned None"):
-        pl_module.training = True
-        pl_module.testing = False
-        wrapped_module()
+        pl_module.running_stage = RunningStage.TRAINING
 
     with pytest.warns(UserWarning, match="Your test_step returned None"):
-        pl_module.training = False
-        pl_module.testing = True
-        wrapped_module()
+        pl_module.running_stage = RunningStage.TESTING
 
     with pytest.warns(UserWarning, match="Your validation_step returned None"):
-        pl_module.training = False
-        pl_module.testing = False
-        wrapped_module()
+        pl_module.running_stage = RunningStage.EVALUATING
 
 
 @pytest.mark.parametrize("input,expected", [

@@ -14,6 +14,7 @@
 import math
 import os
 import pickle
+import platform
 import sys
 from argparse import Namespace
 from copy import deepcopy
@@ -27,7 +28,7 @@ import torch
 from omegaconf import OmegaConf
 
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Callback, LightningModule, Trainer
+from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -37,7 +38,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel, EvalModelTemplate
+from tests.base import BoringModel, EvalModelTemplate, RandomDataset
 
 
 @pytest.fixture
@@ -1445,6 +1446,86 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
                        match=r"Only None, bool, str and subclasses of `BaseProfiler`"
                              r" are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)
+
+
+class TestLightningDataModule(LightningDataModule):
+
+    def __init__(self, dataloaders):
+        super().__init__()
+        self._dataloaders = dataloaders
+
+    def test_dataloader(self):
+        return self._dataloaders
+
+
+def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=True):
+
+    dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)),
+                   torch.utils.data.DataLoader(RandomDataset(32, 2))]
+
+    model = BoringModel()
+    datamodule = TestLightningDataModule(dataloaders)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+        accelerator=accelerator,
+        gpus=gpus,
+        num_processes=num_processes,
+        plugins=plugins,
+        num_sanity_val_steps=0
+    )
+    if datamodule:
+        results = trainer.predict(model, datamodule=datamodule)
+    else:
+        results = trainer.predict(model, dataloaders=dataloaders)
+
+    # todo: address this in another PR
+    num_samples = 1 if accelerator in ["ddp", "ddp_cpu", "ddp_spawn"] else 2
+    assert len(results) == 2
+    assert len(results[0]) == num_samples
+    assert results[0][0].shape == torch.Size([1, 2])
+
+
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+@pytest.mark.parametrize('datamodule', [False, True])
+def test_trainer_predict_cpu(tmpdir, datamodule):
+    predict(tmpdir, None, None, 1, datamodule=datamodule)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+@pytest.mark.parametrize('num_gpus', [1, 2])
+def test_trainer_predict_dp(tmpdir, num_gpus):
+    predict(tmpdir, "dp", num_gpus, None)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+@pytest.mark.parametrize('plugins', [None, "ddp_sharded"])
+def test_trainer_predict_ddp(tmpdir, plugins):
+    predict(tmpdir, "ddp", 2, None, plugins=plugins)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+def test_trainer_predict_ddp_spawn(tmpdir):
+    predict(tmpdir, "ddp_spawn", 2, None)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
+def test_trainer_predict_1_gpu(tmpdir):
+    predict(tmpdir, None, 1, None)
+
+
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+def test_trainer_predict_ddp_cpu(tmpdir):
+    predict(tmpdir, "ddp_cpu", 0, 2)
 
 
 def test_pytorch_profiler_describe(pytorch_profiler):
