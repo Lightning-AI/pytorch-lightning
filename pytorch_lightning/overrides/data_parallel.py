@@ -71,6 +71,9 @@ class _LightningModuleWrapperBase(torch.nn.Module):
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
         method, either ``training_step``, ``validation_step`` or ``test_step``.
+        If the LightningModule is in none of the states `training`, `testing` or `validation`,
+        the inputs will be redirected to the
+        :meth:`~pytorch_lightning.core.lightning.LightningModule.predict` method.
         Inheriting classes may also modify the inputs or outputs of forward.
 
         Args:
@@ -100,7 +103,7 @@ class _LightningModuleWrapperBase(torch.nn.Module):
 class LightningParallelModule(_LightningModuleWrapperBase):
     """
     Wraps the user's LightningModule and redirects the forward call to the appropriate
-    method, either ``training_step``, ``validation_step`` or ``test_step``.
+    method, either ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
     This class is used in combination with :class:`~torch.nn.parallel.DataParallel` as
     shown in the example. It also takes care of converting Python scalars to Tensors and
     un-squeezes 0-dimensional Tensors as it is required by :class:`~torch.nn.parallel.DataParallel`.
@@ -141,7 +144,7 @@ class LightningDistributedModule(_LightningModuleWrapperBase):
     def __init__(self, pl_module: LightningModule):
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
-        method, either ``training_step``, ``validation_step`` or ```test_step``.
+        method, either ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
         This class is used in combination with :class:`~torch.nn.parallel.DistributedDataParallel` as
         shown in the example.
 
