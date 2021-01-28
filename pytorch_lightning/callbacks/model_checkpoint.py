@@ -80,10 +80,10 @@ class ModelCheckpoint(Callback):
             the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
             if ``save_top_k == -1``, all models are saved.
-            Please note that the monitors are checked every `period` epochs.
+            Please note that the monitors are checked every ``period`` epochs.
             if ``save_top_k >= 2`` and the callback is called multiple
             times inside an epoch, the name of the saved file will be
-            appended with a version count starting with `v0`.
+            appended with a version count starting with ``v1``.
         mode: one of {auto, min, max}.
             If ``save_top_k != 0``, the decision
             to overwrite the current save file is made
@@ -104,6 +104,17 @@ class ModelCheckpoint(Callback):
 
             .. warning::
                This argument has been deprecated in v1.1 and will be removed in v1.3
+
+    Note:
+        For extra customization, ModelCheckpoint includes the following attributes:
+
+        - ``CHECKPOINT_JOIN_CHAR = "-"``
+        - ``CHECKPOINT_NAME_LAST = "last"``
+        - ``FILE_EXTENSION = ".ckpt"``
+        - ``STARTING_VERSION = 1``
+
+        For example, you can change the default last checkpoint name by doing
+        ``checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"``
 
     Raises:
         MisconfigurationException:
@@ -136,11 +147,13 @@ class ModelCheckpoint(Callback):
         model = ...
         trainer.fit(model)
         checkpoint_callback.best_model_path
+
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
     CHECKPOINT_NAME_LAST = "last"
     FILE_EXTENSION = ".ckpt"
+    STARTING_VERSION = 1
 
     def __init__(
         self,
@@ -493,28 +506,24 @@ class ModelCheckpoint(Callback):
 
     def _get_metric_interpolated_filepath_name(
         self,
-        ckpt_name_metrics: Dict[str, Any],
+        monitor_candidates: Dict[str, Any],
         epoch: int,
         step: int,
         del_filepath: Optional[str] = None
     ) -> str:
-        filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
-
-        version_cnt = 0
+        filepath = self.format_checkpoint_name(epoch, step, monitor_candidates)
+        version = self.STARTING_VERSION
         while self._fs.exists(filepath) and filepath != del_filepath:
-            filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=version_cnt)
-            version_cnt += 1
-
+            filepath = self.format_checkpoint_name(epoch, step, monitor_candidates, ver=version)
+            version += 1
         return filepath
 
     def _monitor_candidates(self, trainer):
-        ckpt_name_metrics = deepcopy(trainer.logger_connector.logged_metrics)
-        ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
-        ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
-        ckpt_name_metrics.update({"step": trainer.global_step, "epoch": trainer.current_epoch})
-        return ckpt_name_metrics
+        monitor_candidates = deepcopy(trainer.logger_connector.callback_metrics)
+        monitor_candidates.update(step=trainer.global_step, epoch=trainer.current_epoch)
+        return monitor_candidates
 
-    def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics):
+    def _save_last_checkpoint(self, trainer, pl_module, monitor_candidates):
         should_save_last = self.monitor is None or self.save_last
         if not should_save_last:
             return
@@ -525,13 +534,13 @@ class ModelCheckpoint(Callback):
                 self.CHECKPOINT_NAME_LAST,
                 trainer.current_epoch,
                 trainer.global_step,
-                ckpt_name_metrics,
-                prefix=self.prefix
+                monitor_candidates,
+                prefix=self.prefix,
             )
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
         else:
             last_filepath = self._get_metric_interpolated_filepath_name(
-                ckpt_name_metrics, trainer.current_epoch, trainer.global_step
+                monitor_candidates, trainer.current_epoch, trainer.global_step
             )
 
         accelerator_backend = trainer.accelerator_backend
@@ -542,10 +551,10 @@ class ModelCheckpoint(Callback):
         else:
             self._save_model(last_filepath, trainer, pl_module)
         if (
-                self.last_model_path
-                and self.last_model_path != last_filepath
-                and (self.save_top_k != -1 or self.save_last)
-                and trainer.is_global_zero
+            self.last_model_path
+            and self.last_model_path != last_filepath
+            and (self.save_top_k != -1 or self.save_last)
+            and trainer.is_global_zero
         ):
             self._del_model(self.last_model_path)
         self.last_model_path = last_filepath

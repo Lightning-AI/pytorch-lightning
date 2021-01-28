@@ -28,6 +28,7 @@ from torch.nn.parallel._functions import Gather
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -78,14 +79,22 @@ class LightningDataParallel(DataParallel):
                                    "them on device: {}".format(self.src_device_obj, t.device))
 
         inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
+
         if len(self.device_ids) == 1:
-            # lightning
-            if self.module.training:
+
+            running_stage = self.module.running_stage
+
+            if running_stage == RunningStage.TRAINING:
                 return self.module.training_step(*inputs[0], **kwargs[0])
-            if self.module.testing:
+
+            elif running_stage == RunningStage.TESTING:
                 return self.module.test_step(*inputs[0], **kwargs[0])
 
-            return self.module.validation_step(*inputs[0], **kwargs[0])
+            elif running_stage == RunningStage.EVALUATING:
+                return self.module.validation_step(*inputs[0], **kwargs[0])
+
+            else:
+                return self.module.predict(*inputs[0], **kwargs[0])
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
@@ -187,15 +196,24 @@ class LightningDistributedModule(torch.nn.Module):
         self.module = pl_module
 
     def forward(self, *inputs, **kwargs):
-        if self.module.training:
+
+        running_stage = self.module.running_stage
+
+        if running_stage == RunningStage.TRAINING:
             output = self.module.training_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "training_step")
-        elif self.module.testing:
+
+        elif running_stage == RunningStage.TESTING:
             output = self.module.test_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "test_step")
-        else:
+
+        elif running_stage == RunningStage.EVALUATING:
             output = self.module.validation_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "validation_step")
+
+        else:
+            output = self.module.predict(*inputs, **kwargs)
+
         return output
 
 
@@ -276,15 +294,21 @@ def parallel_apply(
 
                 # ---------------
                 # CHANGE
-                if module.training:
+                if module.running_stage == RunningStage.TRAINING:
                     output = module.training_step(*input, **kwargs)
                     fx_called = 'training_step'
-                elif module.testing:
+
+                elif module.running_stage == RunningStage.TESTING:
                     output = module.test_step(*input, **kwargs)
                     fx_called = 'test_step'
-                else:
+
+                elif module.running_stage == RunningStage.EVALUATING:
                     output = module.validation_step(*input, **kwargs)
                     fx_called = 'validation_step'
+
+                else:
+                    output = module.predict(*input, **kwargs)
+                    fx_called = 'predict'
 
                 if output is None:
                     warn_missing_output(fx_called)

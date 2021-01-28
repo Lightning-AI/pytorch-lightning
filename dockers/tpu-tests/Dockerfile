@@ -23,6 +23,12 @@ MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
 COPY ./ ./pytorch-lightning/
 
+# Pull the legacy checkpoints
+RUN cd pytorch-lightning && \
+    wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/ && \
+    unzip -o legacy/checkpoints.zip -d legacy/ && \
+    ls -l legacy/checkpoints/
+
 # If using this image for tests, intall more dependencies and don"t delete the source code where the tests live.
 RUN \
     # Install pytorch-lightning at the current PR, plus dependencies.
@@ -31,7 +37,7 @@ RUN \
     python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
     # drop fairscale as it is not needed
     python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" && \
-    pip install -r pytorch-lightning/requirements/devel.txt --no-cache-dir --upgrade-strategy only-if-needed
+    pip install -r pytorch-lightning/requirements/devel.txt --no-cache-dir
 
 #RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
