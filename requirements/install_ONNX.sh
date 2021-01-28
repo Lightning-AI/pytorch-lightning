@@ -15,7 +15,7 @@ ROOT=$PWD
 git clone --recursive https://github.com/Microsoft/onnxruntime
 cd onnxruntime
 export ONNX_ML=1
-pip install setuptools wheel
+pip install setuptools wheel numpy
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     ./build.sh --config RelWithDebInfo --build_shared_lib --build_wheel --parallel
