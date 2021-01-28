@@ -13,378 +13,253 @@
 # limitations under the License.
 
 r"""
-ModelPruning
-^^^^^^^^^^^^
-
+Finetunning Callback
+^^^^^^^^^^^^^^^^^^^^
+Freeze and unfreeze models for finetunning purposes
 """
-import inspect
-from copy import deepcopy
-from functools import partial
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Generator, Optional
 
-from torch import nn
-from torch.nn.modules.container import ModuleDict, ModuleList
+import torch
+from torch.nn import Module
+from torch.nn.modules.container import Sequential
+from torch.optim.optimizer import Optimizer
 
-import pytorch_lightning as pl
+from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _PYTORCH_PRUNE_AVAILABLE:
-    import torch.nn.utils.prune as pytorch_prune
+
+def multiplicative(epoch):
+    return 2
 
 
-_PYTORCH_PRUNING_FUNCTIONS = {
-    "ln_structured": pytorch_prune.ln_structured,
-    "l1_unstructured": pytorch_prune.l1_unstructured,
-    "random_structured": pytorch_prune.random_structured,
-    "random_unstructured": pytorch_prune.random_unstructured,
-}
+class BaseFinetuning(Callback):
 
-_PYTORCH_PRUNING_METHOD = {
-    "ln_structured": pytorch_prune.LnStructured,
-    "l1_unstructured": pytorch_prune.L1Unstructured,
-    "random_structured": pytorch_prune.RandomStructured,
-    "random_unstructured": pytorch_prune.RandomUnstructured,
-}
+    r"""
+    BaseFinetuning.
+    Overrides any functions with your own logic.
+    """
+
+    BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
+
+    @staticmethod
+    def _make_trainable(module: Module) -> None:
+        """Unfreezes a given module.
+        Args:
+            module: The module to unfreeze
+        """
+        if isinstance(module, list):
+            for m in module:
+                BaseFinetuning._make_trainable(m)
+        else:
+            for param in module.parameters():
+                param.requires_grad = True
+            module.train()
+
+    @staticmethod
+    def _recursive_freeze(module: Module,
+                          train_bn: bool = True) -> None:
+        """Freezes the layers of a given module.
+        Args:
+            module: The module to freeze
+            train_bn: If True, leave the BatchNorm layers in training mode
+        """
+        children = list(module.children())
+        if not children:
+            if not (isinstance(module, BaseFinetuning.BN_TYPES) and train_bn):
+                for param in module.parameters():
+                    param.requires_grad = False
+                module.eval()
+            else:
+                # Make the BN layers trainable
+                BaseFinetuning._make_trainable(module)
+        else:
+            for child in children:
+                BaseFinetuning._recursive_freeze(module=child, train_bn=train_bn)
+
+    @staticmethod
+    def filter_params(module: Module,
+                      train_bn: bool = True) -> Generator:
+        """Yields the trainable parameters of a given module.
+
+        Args:
+            module: A given module
+            train_bn: If True, leave the BatchNorm layers in training mode
+
+        Returns:
+            Generator
+        """
+        if isinstance(module, list):
+            children = module
+        else:
+            children = list(module.children())
+        if not children:
+            if not (isinstance(module, BaseFinetuning.BN_TYPES) and train_bn):
+                for param in module.parameters():
+                    if param.requires_grad:
+                        yield param
+        else:
+            for child in children:
+                for param in BaseFinetuning.filter_params(module=child, train_bn=train_bn):
+                    yield param
+
+    @staticmethod
+    def freeze(module: Module, train_bn: bool = True) -> None:
+        """Freezes the layers up to index n (if n is not None).
+
+        Args:
+            module: The module to freeze (at least partially)
+            train_bn: If True, leave the BatchNorm layers in training mode
+        """
+        for mod in module.parameters():
+            if (isinstance(mod, BaseFinetuning.BN_TYPES) and train_bn):
+                BaseFinetuning._make_trainable(mod)
+            else:
+                mod.requires_grad = False
+
+    @staticmethod
+    def filter_on_optimizer(optimizer, params):
+        out_params = []
+        for param in params:
+            is_in = False
+            for group in optimizer.param_groups:
+                for p in group["params"]:
+                    if p.shape == param.shape and torch.equal(p, param):
+                        is_in = True
+            if not is_in:
+                out_params.append(param)
+        return out_params
+
+    @staticmethod
+    def unfreeze_and_add_param_group(
+        module: Module,
+        optimizer: Optimizer,
+        lr: Optional[float] = None,
+        train_bn: bool = True,
+        initial_denom_lr: float = 10.,
+    ):
+        """Unfreezes a module and adds its parameters to an optimizer."""
+        BaseFinetuning._make_trainable(module)
+        params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
+        denom_lr = initial_denom_lr if lr is None else 1.
+        params = BaseFinetuning.filter_params(module=module, train_bn=train_bn)
+        params = BaseFinetuning.filter_on_optimizer(optimizer, params)
+        optimizer.add_param_group(
+            {
+                'params': params,
+                'lr': params_lr / denom_lr,
+            }
+        )
+
+    def on_before_accelerator_backend_setup(self, _, pl_module):
+        self.freeze_before_training(pl_module)
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        """Called when the epoch begins."""
+        for opt_idx, optimizer in trainer.train_loop.prepare_optimizers():
+            self.finetunning_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
+
+    def finetunning_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+        raise NotImplementedError
+
+    def freeze_before_training(self, pl_module: LightningModule):
+        raise NotImplementedError
 
 
-class ModelPruning(Callback):
+class BackboneFinetuning(BaseFinetuning):
 
-    PARAMETER_NAMES = ("weight", "bias")
+    r"""
+    Finetunne a backbone model based on a learning rate user-defined scheduling.
+    When the backbone learning rate reaches the current model learning rate
+    and ``should_align`` is set to True, it will align with it for the rest of the training.
+
+    Args:
+        unfreeze_backbone_at_epoch: Epoch at which the backbone will be unfreezed.
+        lambda_func: Scheduling function for increasing backbone learning rate.
+        verbose: verbosity mode. Default: ``False``.
+        backbone_initial_ratio_lr:
+            Used to scale down the backbone learning rate compared to rest of model
+        backbone_initial_lr: Optional, Inital learning rate for the backbone.
+            By default, we will use current_learning /  backbone_initial_ratio_lr
+        should_align: Wheter to align with current learning rate when backbone learning
+            reaches it.
+        initial_denom_lr: When unfreezing the backbone, the intial learning rate will
+            current_learning_rate /  initial_denom_lr.
+        train_bn: Wheter to make Batch Normalization trainable.
+        should_align: Wheter to align with current learning rate when backbone learning
+            reaches it.
+        verbose: Display current learning rate for model and backbone
+        round: Precision for displaying learning rate
+
+    Example::
+
+        >>> from pytorch_lightning import Trainer
+        >>> from pytorch_lightning.callbacks import BackboneFinetuning
+        >>> multiplicative = lambda epoch: 1.5
+        >>> backbone_finetunning = BackboneFinetuning(200, multiplicative)
+        >>> trainer = Trainer(callbacks=[backbone_finetunning])
+    """
 
     def __init__(
         self,
-        pruning_fn: Union[Callable, str] = None,
-        parameters_to_prune: Optional[List[Tuple[nn.Module, str]]] = None,
-        parameter_names: List[str] = ["weight"],
-        use_global_unstructured: bool = True,
-        amount: Optional[Union[int, float]] = 0.5,
-        make_pruning_permanent: Optional[bool] = True,
-        use_lottery_ticket_hypothesis: Optional[bool] = True,
-        pruning_dim: Optional[int] = None,
-        pruning_norm: Optional[int] = None,
-    ) -> None:
-        """
+        unfreeze_backbone_at_epoch: int = 10,
+        lambda_func: Callable = multiplicative,
+        backbone_initial_ratio_lr: float = 10e-2,
+        backbone_initial_lr: Optional[float] = None,
+        should_align: bool = True,
+        initial_denom_lr: float = 10.,
+        train_bn: bool = True,
+        verbose: bool = False,
+        round: int = 12,
+    ):
+        self.unfreeze_backbone_at_epoch = unfreeze_backbone_at_epoch
+        self.backbone_initial_lr = backbone_initial_lr
+        self.lambda_func = lambda_func
+        self.backbone_initial_ratio_lr = backbone_initial_ratio_lr
+        self.should_align = should_align
+        self.initial_denom_lr = initial_denom_lr
+        self.train_bn = train_bn
+        self.round = round
+        self.verbose = verbose
 
-        Pruning Callback relying on PyTorch prune utils.
-
-        This callback is responsible to prune networks parameters
-        during your training.
-
-        Find here the PyTorch (Pruning Tutorial)[https://pytorch.org/tutorials/intermediate/pruning_tutorial.html]
-
-        .. code-block:: python
-
-            parameters_to_prune = [
-                (model.mlp_1, "weight"),
-                (model.mlp_2, "weight")
-            ]
-
-            trainer = Trainer(
-                callbacks=[
-                    ModelPruning(
-                        pruning_fn='l1_unstructured',
-                        parameters_to_prune=parameters_to_prune,
-                        amount=0.01,
-                        use_global_unstructured=True,
-                    )
-                ]
-            )
-
-        When `parameters_to_prune` is None, `parameters_to_prune` will contains all parameters from the model.
-        The user can override `filter_parameters_to_prune` to filter any nn.Module to be pruned.
-
-        Args:
-
-            pruning_fn: function from torch.nn.utils.prune module
-                or your based own subclasses from PyTorch ``BasePruningMethod``.
-                Can be string e.g. `"l1_unstructured"`.
-                See pytorch docs for more details.
-
-            parameters_to_prune: list of strings or list of tuple with
-                nn.Module and its associated string name parameters.
-
-            parameter_names: List of parameter names to be used from nn.Module.
-                Can either be `weight` or `bias`.
-
-            use_global_unstructured: Whether to apply pruning globally on the model.
-                If parameters_to_prune is provided, global_unstructured will be restricted on them.
-
-            amount: quantity of parameters to prune:
-
-                - float, should be between 0.0 and 1.0 and represent the fraction of parameters to prune.
-                - int, it represents the absolute number of parameters to prune.
-                - Callable, the function will be called on every epoch.
-
-            make_pruning_permanent: if True then all
-                reparametrization pre-hooks and tensors with mask
-                will be removed on fit end.
-
-            use_lottery_ticket_hypothesis: Wether to use algorithm describes in
-                "The lottery ticket hypothesis" (https://arxiv.org/pdf/1803.03635.pdf)
-
-            pruning_dim: if you are using structured pruning method you need
-                to specify dimension.
-
-            pruning_norm: if you are using ln_structured you need to specify norm.
-
-        """
-
-        self._use_global_unstructured = use_global_unstructured
-        self._parameters_to_prune = parameters_to_prune
-        self._use_lottery_ticket_hypothesis = use_lottery_ticket_hypothesis
-        self._parameter_names = parameter_names or self.PARAMETER_NAMES
-        self._global_kwargs = {}
-        self._initial_parameters_to_prune = None
-
-        for param_name in self._parameter_names:
-            if param_name not in self.PARAMETER_NAMES:
-                raise MisconfigurationException(
-                    f"The provided parameter_names {param_name} isn't in {self.PARAMETER_NAMES} "
-                )
-
-        if isinstance(pruning_fn, str):
-            pruning_fn = pruning_fn.lower()
-            if pruning_fn not in _PYTORCH_PRUNING_FUNCTIONS:
-                raise MisconfigurationException(
-                    f"The provided pruning_fn {pruning_fn} isn't available with "
-                    f"PyTorch build-in {_PYTORCH_PRUNING_FUNCTIONS.keys()} "
-                )
-            if "unstructured" not in pruning_fn:
-                if pruning_dim is None:
-                    raise MisconfigurationException(
-                        "When requesting `structured` pruning, the `pruning_dim` should be provided."
-                    )
-                if pruning_fn == "ln_structured":
-                    if pruning_norm is None:
-                        raise MisconfigurationException(
-                            "When requesting `ln_structured` pruning, the `pruning_norm` should be provided."
-                        )
-
-                    pruning_fn = self._create_pruning_fn(pruning_fn, dim=pruning_dim, n=pruning_norm)
-                else:
-                    pruning_fn = self._create_pruning_fn(pruning_fn, dim=pruning_dim)
-            else:
-                pruning_fn = self._create_pruning_fn(pruning_fn)
-
-        else:
-            bases = getattr(pruning_fn, "__bases__", None)
-            if bases is None or bases[0] != pytorch_prune.BasePruningMethod:
-                raise MisconfigurationException(
-                    f'pruning_fn is expected to be the str in {_PYTORCH_PRUNING_FUNCTIONS.keys()} '
-                    f'or a `PyTorch BasePruningMethod`. Found: {pruning_fn}'
-                )
-
-            if not use_global_unstructured:
-                raise MisconfigurationException(
-                    '`PyTorch BasePruningMethod` is currently support only for `use_global_unstructured=True`. ')
-
-        if use_global_unstructured and pruning_fn.PRUNING_TYPE != "unstructured":
-            raise MisconfigurationException(
-                'Only "unstructured" PRUNING_TYPE supported for '
-                f"the `pruning_method`. Found method {pruning_fn} of type {pruning_fn.PRUNING_TYPE}. "
-            )
-
-        self.pruning_fn = pruning_fn
-
-        self.make_pruning_permanent = make_pruning_permanent
-
-        if not isinstance(amount, (int, float, Callable)):
-            raise MisconfigurationException(
-                "amount should be provided and be either an int, a float or Callable function."
-            )
-
-        self.amount = amount
-
-    def filter_parameters_to_prune(self, parameters_to_prune: Optional[List[Tuple[nn.Module, str]]]):
-        """
-        This function can be overriden to control which module to prune.
-        """
-        return parameters_to_prune
-
-    def _create_pruning_fn(self, pruning_fn: str, *args, **kwargs):
-        """
-        This function takes `pruning_fn`, a function name.
-
-        IF use_global_unstructured, pruning_fn will be resolved into its associated ``PyTorch BasePruningMethod``
-        ELSE, pruning_fn will be resolved into its function counterpart from `torch.nn.utils.prune`.
-
-        """
-        if self._use_global_unstructured:
-            pruning_fn = _PYTORCH_PRUNING_METHOD[pruning_fn]
-            self._global_kwargs = kwargs
-            return pruning_fn
-        else:
-            return ModelPruning._wrap_pruning_fn(_PYTORCH_PRUNING_FUNCTIONS[pruning_fn], **kwargs)
-
-    @staticmethod
-    def _wrap_pruning_fn(pruning_fn, *args, **kwargs):
-        return partial(pruning_fn, **kwargs)
-
-    def _make_pruning_permanent(self):
-        for module, param_name in self._parameters_to_prune:
-            pytorch_prune.remove(module, param_name)
-
-    def _resolve_amount(self, current_epoch: int) -> float:
-        if isinstance(self.amount, Callable):
-            amount_fn = self.amount
-            amount = amount_fn(current_epoch)
-        else:
-            amount = self.amount
-        return amount
-
-    def _restore_original_weights(self, module: nn.Module, orig_module: nn.Module, tensor_name: str):
-        """
-        "The lottery ticket hypothesis" (https://arxiv.org/pdf/1803.03635.pdf) algorithm:
-
-            1. Randomly initialize a neural network f(x;θ0)(where θ0 ∼Dθ).
-            2. Train the network for j iterations, arriving at parameters θj .
-            3. Prune p% of the parameters in θj , creating a mask m.
-            4. Reset the remaining parameters to their values in θ0, creating the winning ticket f(x; m⊙θ0).
-
-        This function is responsible of step 4.
-        """
-        trained = getattr(module, tensor_name)
-        orig = getattr(orig_module, tensor_name)
-        if trained is None or orig is None:
+    def on_fit_start(self, trainer, pl_module):
+        if hasattr(pl_module, "backbone") and \
+           (isinstance(pl_module.backbone, Module) or isinstance(pl_module.backbone, Sequential)):
             return
-        trained.data = orig.data.to(trained.device)
-
-    def apply_lottery_ticket_hypothesis(self):
-        for (mod, tensor_name), (initial_mod, _) in zip(self._parameters_to_prune, self._initial_parameters_to_prune):
-            self._restore_original_weights(mod, initial_mod, tensor_name)
-
-    def _apply_local_pruning(self, amount: float):
-        for module, param in self._parameters_to_prune:
-            self.pruning_fn(module, name=param, amount=amount)
-
-    def _resolve_global_kwargs(self, amount: float):
-        kwargs = {}
-        self._global_kwargs["amount"] = amount
-        params = inspect.signature(self.pruning_fn).parameters
-        for p_name in params:
-            if p_name != "self":
-                param = self._global_kwargs.get(p_name)
-                if param is not None:
-                    kwargs[p_name] = param
-        return kwargs
-
-    def _apply_global_pruning(self, amount: float):
-        pytorch_prune.global_unstructured(
-            self._parameters_to_prune,
-            pruning_method=self.pruning_fn,
-            **self._resolve_global_kwargs(amount)
+        raise MisconfigurationException(
+            "The LightningModule should have a nn.Module `backbone` attribute"
         )
 
-    def apply_pruning(self, trainer: 'pl.Trainer', pl_module: LightningModule):
-        amount = self._resolve_amount(trainer.current_epoch)
+    def freeze_before_training(self, pl_module: LightningModule):
+        self.freeze(pl_module.backbone)
 
-        # the user could control the pruning frequency with amount_fn
-        if amount == 0 or amount is None:
-            return
+    def finetunning_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+        """Called when the epoch begins."""
 
-        if self._use_global_unstructured:
-            self._apply_global_pruning(amount)
-        else:
-            self._apply_local_pruning(amount)
+        if epoch == self.unfreeze_backbone_at_epoch:
+            current_lr = optimizer.param_groups[0]['lr']
+            initial_backbone_lr = self.backbone_initial_lr if self.backbone_initial_lr is not None \
+                else current_lr * self.backbone_initial_ratio_lr
+            self.previous_backbone_lr = initial_backbone_lr
+            self.unfreeze_and_add_param_group(
+                pl_module.backbone,
+                optimizer,
+                initial_backbone_lr,
+                train_bn=self.train_bn,
+                initial_denom_lr=self.initial_denom_lr
+            )
+            if self.verbose:
+                log.info(f"Current lr: {round(current_lr, self.round)}, "
+                         f"Backbone lr: {round(initial_backbone_lr, self.round)}")
 
-        if self._use_lottery_ticket_hypothesis:
-            self.apply_lottery_ticket_hypothesis()
-
-    def on_before_accelerator_backend_setup(self, trainer, pl_module):
-        parameters_to_prune = self.sanitize_parameters_to_prune(
-            pl_module, self._parameters_to_prune, parameters=self._parameter_names)
-
-        self._parameters_to_prune = self.filter_parameters_to_prune(parameters_to_prune)
-
-        if self._use_lottery_ticket_hypothesis:
-            # make a copy of copy of orginal weights.
-            self._initial_parameters_to_prune = [(deepcopy(m), n) for m, n in self._parameters_to_prune]
-
-    def on_epoch_end(self, trainer, pl_module):
-        self.apply_pruning(trainer, pl_module)
-
-        if self.make_pruning_permanent:
-            self._make_pruning_permanent()
-
-    @staticmethod
-    def _sanitize_parameters_to_prune(p):
-        """
-        Check the provide element is a pair with:
-            * nn.Module
-            * str
-
-        Example::
-
-            parameters_to_prune = [
-                (model.mlp_1, "weight"),
-                (model.mlp_2, "weight")
-            ]
-        """
-        return len(p) == 2 and isinstance(p[0], nn.Module) and isinstance(p[1], str)
-
-    @staticmethod
-    def sanitize_parameters_to_prune(
-        pl_module: LightningModule,
-        parameters_to_prune: Optional[List[Tuple[nn.Module, str]]],
-        parameters: List[str] = ["weight"]
-    ) -> List:
-        """
-        This function is responsible to check provided `parameters_to_prune` and `parameters`.
-        If parameters_to_prune is None, parameters_to_prune will be generated from all parameters of the model.
-        """
-
-        is_parameters_to_prune_none = parameters_to_prune is None
-        current_modules = [
-            m for m in pl_module.modules()
-            if not isinstance(m, (LightningModule, ModuleDict, ModuleList))
-        ]
-
-        if is_parameters_to_prune_none:
-            parameters_to_prune = []
-            for p in parameters:
-                for m in current_modules:
-                    param = getattr(m, p, None)
-                    if param is not None:
-                        parameters_to_prune.append((m, p))
-
-        if isinstance(parameters_to_prune, (tuple, list)) \
-           and len(parameters_to_prune) > 0 and not is_parameters_to_prune_none:
-
-            if all(
-                isinstance(p, (list, tuple)) and ModelPruning._sanitize_parameters_to_prune(p)
-                for p in parameters_to_prune
-            ):
-
-                missing_modules = []
-                missing_parameters = []
-
-                for module, param_name in parameters_to_prune:
-                    if module not in current_modules:
-                        missing_modules.append(module)
-                        continue
-
-                    parameter = getattr(module, param_name)
-
-                    if parameter is None:
-                        missing_parameters.append(parameter)
-
-                if len(missing_modules) > 0 or len(missing_parameters) > 0:
-                    raise MisconfigurationException(
-                        "Ths provided parameters_to_tune doesn't exist in the model."
-                        f" Found mismatching modules: {missing_modules} and missing_parameters: {missing_parameters}"
-                    )
-
-            else:
-                raise MisconfigurationException(
-                    "The provided parameters_to_prune should either be list of tuple "
-                    "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
-        else:
-            if not isinstance(parameters_to_prune, (list, tuple)):
-                raise MisconfigurationException(
-                    "The provided parameters_to_prune should either be list of tuple "
-                    "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
-
-        return parameters_to_prune
+        elif epoch > self.unfreeze_backbone_at_epoch:
+            current_lr = optimizer.param_groups[0]['lr']
+            next_current_backbone_lr = self.lambda_func(epoch + 1) * self.previous_backbone_lr
+            next_current_backbone_lr = current_lr if (self.should_align and next_current_backbone_lr > current_lr) \
+                else next_current_backbone_lr
+            optimizer.param_groups[-1]["lr"] = next_current_backbone_lr
+            self.previous_backbone_lr = next_current_backbone_lr
+            if self.verbose:
+                log.info(f"Current lr: {round(current_lr, self.round)}, "
+                         f"Backbone lr: {round(next_current_backbone_lr, self.round)}")
