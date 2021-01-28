@@ -70,7 +70,7 @@ RUN conda create -y --name $CONDA_ENV && \
     rm environment.yml
 
 ENV \
-    PATH /root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
+    PATH=/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
     LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH" \
     # if you want this environment to be the default one, uncomment the following line:
     CONDA_DEFAULT_ENV=${CONDA_ENV}
