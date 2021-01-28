@@ -21,23 +21,25 @@ import json
 import os
 import sys
 
+from pytorch_lightning import Trainer  # noqa: E402
+from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
+from pytorch_lightning.utilities import HOROVOD_AVAILABLE  # noqa: E402
+from tests.base import EvalModelTemplate  # noqa: E402
+from tests.base.develop_pipelines import run_prediction  # noqa: E402
+from tests.base.develop_utils import (reset_seed,  # noqa: E402
+                                      set_random_master_port)
+
 # this is needed because Conda does not use `PYTHONPATH` env var while pip and virtualenv do
 PYTHONPATH = os.getenv('PYTHONPATH', '')
 if ':' in PYTHONPATH:
     sys.path = PYTHONPATH.split(':') + sys.path
 
-from pytorch_lightning import Trainer  # noqa: E402
-from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
-from pytorch_lightning.utilities import HOROVOD_AVAILABLE  # noqa: E402
 
 if HOROVOD_AVAILABLE:
     import horovod.torch as hvd  # noqa: E402
 else:
     print('You requested to import Horovod which is missing or not supported for your OS.')
 
-from tests.base import EvalModelTemplate  # noqa: E402
-from tests.base.develop_pipelines import run_prediction  # noqa: E402
-from tests.base.develop_utils import set_random_master_port, reset_seed  # noqa: E402
 
 
 parser = argparse.ArgumentParser()
@@ -45,7 +47,7 @@ parser.add_argument('--trainer-options', required=True)
 parser.add_argument('--on-gpu', action='store_true', default=False)
 
 
-def run_test_from_config(trainer_options):
+def run_test_from_config(trainer_options) -> None:
     """Trains the default model with the given config."""
     set_random_master_port()
     reset_seed()
