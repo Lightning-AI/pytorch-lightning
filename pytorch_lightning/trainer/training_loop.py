@@ -154,9 +154,9 @@ class TrainLoop:
         self.trainer.model_connector.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if (self.trainer.amp_backend == AMPType.NATIVE
-                and self.trainer.precision == 16
-                and self.trainer._device_type != DeviceType.TPU):
+        if (self.trainer.amp_backend == AMPType.NATIVE and
+                self.trainer.precision == 16 and
+                self.trainer._device_type != DeviceType.TPU):
             self.trainer.scaler = self.trainer.precision_connector.backend.scaler
 
         # log hyper-parameters
@@ -273,8 +273,8 @@ class TrainLoop:
 
     def on_train_batch_end(self, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
         # hook
-        self.trainer.call_hook('on_batch_end')
         self.trainer.call_hook('on_train_batch_end', epoch_end_outputs, batch, batch_idx, dataloader_idx)
+        self.trainer.call_hook('on_batch_end')
 
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
