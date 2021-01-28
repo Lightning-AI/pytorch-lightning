@@ -589,8 +589,8 @@ class DataHooks:
                 return batch
 
         See Also:
-            - :func:`~pytorch_lightning.core.on_after_batch_transfer`
-            - :func:`~pytorch_lightning.core.transfer_batch_to_device`
+            - :func:`~pytorch_lightning.core.lightning.LightningModule.on_after_batch_transfer`
+            - :func:`~pytorch_lightning.core.lightning.LightningModule.transfer_batch_to_device`
         """
         return batch
 
@@ -614,8 +614,8 @@ class DataHooks:
                 return batch
 
         See Also:
-            - :func:`~pytorch_lightning.core.on_before_batch_transfer`
-            - :func:`~pytorch_lightning.core.transfer_batch_to_device`
+            - :func:`~pytorch_lightning.core.lightning.LightningModule.on_before_batch_transfer`
+            - :func:`~pytorch_lightning.core.lightning.LightningModule.transfer_batch_to_device`
         """
         return batch
 

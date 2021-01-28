@@ -422,8 +422,13 @@ def test_full_loop_dp(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+<<<<<<< HEAD
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_dm_apply_batch_transfer_handler(get_module_mock):
+=======
+def test_dm_prepare_batch_for_transfer(tmpdir):
+    expected_device = torch.device('cuda', 0)
+>>>>>>> suggestions
 
     class CustomBatch:
 
@@ -444,6 +449,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
             return batch
 
         def on_after_batch_transfer(self, batch):
+            assert batch.samples.device == batch.targets.device == expected_device
             self.on_after_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.targets *= 2
@@ -472,8 +478,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     model.on_after_batch_transfer = dm.on_after_batch_transfer
 
     trainer.accelerator_backend = GPUAccelerator(trainer)
-    batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
-    expected_device = torch.device('cuda', 0)
+    batch_gpu = trainer.accelerator_backend.batch_to_device(batch, expected_device)
 
     assert dm.on_before_batch_transfer_hook_rank == 0
     assert dm.transfer_batch_to_device_hook_rank == 1

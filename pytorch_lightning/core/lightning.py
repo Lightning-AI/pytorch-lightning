@@ -48,12 +48,12 @@ from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args
 
 class LightningModule(
     ABC,
-    CheckpointHooks,
-    DataHooks,
     DeviceDtypeModuleMixin,
     GradInformation,
-    ModelHooks,
     ModelIO,
+    ModelHooks,
+    DataHooks,
+    CheckpointHooks,
     Module,
 ):
     # Below is for property support of JIT in PyTorch 1.7
