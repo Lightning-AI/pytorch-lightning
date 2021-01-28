@@ -22,6 +22,7 @@ PATH_LEGACY = os.path.dirname(__file__)
 
 
 class RandomDataset(Dataset):
+
     def __init__(self, size, length: int = 100):
         self.len = length
         self.data = torch.randn(length, size)
