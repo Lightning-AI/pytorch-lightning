@@ -149,10 +149,10 @@ metric that the scheduler should be conditioned on.
           {'optimizer': optimizer2, 'lr_scheduler': scheduler2},
       )
 
-By default, all schedulers will be called after each epoch ends. To change this behaviour, each scheduler should be
+By default, all schedulers will be called after each epoch ends. To change this behaviour, a scheduler configuration should be
 returned as a dict which can contain the following keywords:
 
-* ``scheduler`` (required): the actual scheduler class
+* ``scheduler`` (required): the actual scheduler object
 * ``monitor`` (optional): same as above, defines the value that certain schedulers should be conditioned on
 * ``interval`` (optional): either ``epoch`` (default) for stepping after each epoch ends or ``step`` for stepping
   after each optimization step
@@ -167,7 +167,7 @@ returned as a dict which can contain the following keywords:
 .. testcode::
 
    # Same as the above example with additional params passed to the first scheduler
-   # In this case the ReduceLROnPlateau will step after every 10 processed batch
+   # In this case the ReduceLROnPlateau will step after every 10 processed batches
    def configure_optimizers(self):
       optimizers = [Adam(...), SGD(...)]
       schedulers = [
