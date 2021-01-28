@@ -586,13 +586,14 @@ def test_log_works_in_train_callback(tmpdir):
             # with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
+        def on_train_epoch_end(self, trainer, pl_module, outputs):
+            self.make_logging(pl_module, 'on_train_epoch_end', 8, on_steps=[False],
+                              on_epochs=self.choices, prob_bars=self.choices)
+            
         def on_epoch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False],
+            self.make_logging(pl_module, 'on_epoch_end', 9, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
 
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
-            self.make_logging(pl_module, 'on_train_epoch_end', 9, on_steps=[False],
-                              on_epochs=self.choices, prob_bars=self.choices)
 
     class TestModel(BoringModel):
 
@@ -788,13 +789,14 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
             self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
             return super().training_step(*args)
 
-        def on_epoch_end(self):
+        def on_train_epoch_end(self, *_):
+            self.on_train_epoch_end_called = True
             self.epoch_end_called = True
             self.log('foo_2', torch.tensor(self.current_epoch), prog_bar=True,
                      on_epoch=True, sync_dist=True, sync_dist_op='sum')
 
-        def on_train_epoch_end(self, *_):
-            self.on_train_epoch_end_called = True
+        def on_epoch_end(self, *_):
+            self.epoch_end_called = True
             assert self.trainer.progress_bar_dict["foo"] == self.current_epoch
             assert self.trainer.progress_bar_dict["foo_2"] == self.current_epoch
 
