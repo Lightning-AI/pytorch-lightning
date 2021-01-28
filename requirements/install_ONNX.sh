@@ -34,7 +34,8 @@ else
     echo $OSTYPE  # Unknown.
 fi
 
-pip install --upgrade $(shell find . -name "*.whl")
+find . -name "*.whl"
+pip install --upgrade $(find . -name "*.whl")
 
 cd $ROOT
 rm -rf onnxruntime
