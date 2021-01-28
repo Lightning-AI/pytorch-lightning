@@ -226,5 +226,9 @@ class StochasticWeightAveraging(Callback):
 
     @staticmethod
     def avg_fn(averaged_model_parameter, model_parameter, num_averaged):
+        """
+        Credit to PyTorch Team.
+        Taken from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95
+        """
         return averaged_model_parameter + \
             (model_parameter - averaged_model_parameter) / (num_averaged + 1)
