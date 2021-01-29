@@ -30,6 +30,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a race condition in `ModelCheckpoint` when checking if a checkpoint file exists ([#5144](https://github.com/PyTorchLightning/pytorch-lightning/pull/5144))
 
 
+- Fixed auto learning rate ordering ([#5638](https://github.com/PyTorchLightning/pytorch-lightning/pull/5638))
+
+
 ## [1.1.6] - 2021-01-26
 
 ### Changed
