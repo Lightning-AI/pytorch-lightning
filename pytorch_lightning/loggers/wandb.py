@@ -102,8 +102,9 @@ class WandbLogger(LightningLoggerBase):
 
         if offline and log_model:
             raise MisconfigurationException(
-                f'log_model={log_model} and offline={offline} is an invalid configuration'
-                ' since model checkpoints cannot be uploaded in offline mode.'
+                f'Providing log_model={log_model} and offline={offline} is an invalid configuration'
+                ' since model checkpoints cannot be uploaded in offline mode.\n'
+                'Hint: Set `offline=False` to log your model.'
             )
 
         super().__init__()
