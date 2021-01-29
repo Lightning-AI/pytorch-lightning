@@ -251,9 +251,8 @@ class CometLogger(LightningLoggerBase):
         self._experiment = None
 
     @rank_zero_only
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True,
-                   **kwargs) -> None:
-        self.experiment.log_figure(figure_name=name, figure=figure, step=step, **kwargs)
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
+        self.experiment.log_figure(figure_name=name, figure=figure, step=step)
 
         if close:
             plt.close(figure)

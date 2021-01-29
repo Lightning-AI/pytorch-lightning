@@ -17,7 +17,6 @@ from unittest.mock import MagicMock
 
 from argparse import Namespace
 import numpy as np
-import matplotlib.pyplot as plt
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection

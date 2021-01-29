@@ -171,8 +171,7 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True,
-                   **kwargs) -> None:
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
         """
         Logs a matplotlib figure.
 
@@ -181,11 +180,11 @@ class LightningLoggerBase(ABC):
             figure: plt figure handle
             step: step number at which the figure should be recorded
             close: close figure after logging
-            **kwargs: additional keyword arguments to the respective logger implementation
         """
         """Default is silent. 
         We should not raise NotImplemented because one could have multiple logger where only some support log_figure."""
-        return
+        if close:
+            plt.close(figure)
 
     @staticmethod
     def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:

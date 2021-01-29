@@ -16,11 +16,13 @@
 MLflow Logger
 -------------
 """
+from pathlib import Path
 import re
 from argparse import Namespace
 from time import time
 from typing import Any, Dict, Optional, Union
 
+import matplotlib.pyplot as plt
 try:
     import mlflow
     from mlflow.tracking import MlflowClient
@@ -171,6 +173,18 @@ class MLFlowLogger(LightningLoggerBase):
                 k = new_k
 
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
+
+    @rank_zero_only
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
+
+        filename = self.save_dir + '/' + name + f"_step{step}.png"
+        figure.savefig(filename)
+        self.experiment.log_artifact(self.run_id, filename, artifact_path="figure_" + name)
+
+        Path(filename).unlink(missing_ok=False)  # delete temporary file
+
+        if close:
+            plt.close(figure)
 
     @rank_zero_only
     def finalize(self, status: str = 'FINISHED') -> None:

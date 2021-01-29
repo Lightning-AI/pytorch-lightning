@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
 from unittest.mock import patch, MagicMock
 import pytest
 
@@ -103,20 +104,17 @@ def test_neptune_additional_methods(neptune):
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
-@pytest.mark.parametrize("close", [True, False])
-def test_neptune_log_figure(neptune, close):
+@pytest.mark.parametrize("step_idx", [10, None])
+def test_neptune_log_figure(neptune, step_idx):
     logger = NeptuneLogger(api_key='test', project_name='project')
+    logger.log_figure('dummy', tests.base.plotting.dummy_figure(), step=42, close=True)
 
-    created_experiment = neptune.Session.with_default_backend().get_project().create_experiment()
-
-    with patch('matplotlib.pyplot.close') as plt_close:
+    with mock.patch.object(logger.experiment, 'log_image') as mock_log:
         f = tests.base.plotting.dummy_figure()
-        logger.log_figure('dummy', f, step=42, close=close)
+        logger.log_figure('dummy', f, step_idx, close=True)
 
-    if close:
-        plt_close.assert_called_once_with(f)
-    else:
-        plt_close.assert_not_called()
+    mock_log.assert_called_once_with('dummy', f,
+                                     description=f"step_{step_idx}" if step_idx is not None else None)
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')

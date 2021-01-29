@@ -68,18 +68,20 @@ def test_wandb_logger_init(wandb):
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 @pytest.mark.parametrize("close", [True, False])
-def test_wandb_logger_log_figure(wandb, close):
+@pytest.mark.parametrize("step_idx", [10, None])
+def test_wandb_logger_log_figure(wandb, close, step_idx):
     logger = WandbLogger(anonymous=True, offline=True)
-    f = tests.base.plotting.dummy_figure()
+    logger.log_figure('dummy', tests.base.plotting.dummy_figure(), step_idx, close=True)  # functional test
 
-    with mock.patch('matplotlib.pyplot.close') as plt_close:
-        logger.log_figure("dummy", f, step=123, close=close)
-    logger.experiment.log.assert_called_once_with({"dummy": wandb.Image(f)}, step=123)
+    with mock.patch.object(logger.experiment, 'log') as mock_log:
+        with mock.patch('matplotlib.pyplot.close') as mock_close:
+            f = tests.base.plotting.dummy_figure()
+            logger.log_figure('dummy', f, step_idx)
+
+    mock_log.assert_called_once_with({'dummy': wandb.Image(f)}, step=step_idx)
 
     if close:
-        plt_close.assert_called_once_with(f)
-    else:
-        plt_close.assert_not_called()
+        mock_close.assert_called_once_with(f)
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')

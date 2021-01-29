@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 from unittest.mock import patch, DEFAULT
 
 import pytest
@@ -238,17 +239,16 @@ def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
 
 @patch("pytorch_lightning.loggers.comet.CometExperiment")
 @patch('pytorch_lightning.loggers.comet.comet_ml')
-@patch('matplotlib.pyplot.close')
-@pytest.mark.parametrize("close", [True, False])
-def test_comet_log_figure(comet, comet_experiment, tmpdir, monkeypatch, close):
+@pytest.mark.parametrize("step_idx", [10, None])
+def test_comet_log_figure(comet, comet_experiment, tmpdir, monkeypatch, step_idx):
 
     _patch_comet_atexit(monkeypatch)
     logger = CometLogger(project_name="test", save_dir=tmpdir)
-    f = tests.base.plotting.dummy_figure()
-    logger.log_figure("dummy", f, step=123, close=close)
-    logger.experiment.log_figure.assert_called_once_with(figure_name="dummy", figure=f, step=123)
+    logger.log_figure('dummy', tests.base.plotting.dummy_figure(), step_idx, close=True)  # functional test
 
-    if close:
-        plt.close.assert_called_once_with(f)
-    else:
-        plt.close.assert_not_called()
+    # test whether figure is closed etc.
+    with mock.patch.object(logger.experiment, 'log_figure') as mock_log:
+        f = tests.base.plotting.dummy_figure()
+        logger.log_figure('dummy', f, step_idx, close=True)
+
+    mock_log.assert_called_once_with(figure_name='dummy', figure=f, step=step_idx)

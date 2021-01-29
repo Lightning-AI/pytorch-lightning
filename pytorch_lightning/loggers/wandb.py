@@ -158,8 +158,7 @@ class WandbLogger(LightningLoggerBase):
         self.experiment.log(metrics, step=(step + self._step_offset) if step is not None else None)
 
     @rank_zero_only
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True,
-                   **kwargs) -> None:
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
         self.experiment.log({name: wandb.Image(figure)}, step=step)
 
         if close:

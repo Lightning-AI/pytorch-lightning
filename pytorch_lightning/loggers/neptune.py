@@ -259,9 +259,13 @@ class NeptuneLogger(LightningLoggerBase):
             self.log_metric(key, val, step=step)
 
     @rank_zero_only
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True,
-                   **kwargs) -> None:
-        self.experiment.log_image(name, figure)  # ToDo: Where to input the step?
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
+        if step is not None:
+            description = f"step_{step}"
+        else:
+            description = None
+
+        self.experiment.log_image(name, figure, description=description)
 
         if close:
             plt.close(figure)

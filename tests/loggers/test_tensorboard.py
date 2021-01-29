@@ -135,7 +135,14 @@ def test_tensorboard_log_metrics(tmpdir, step_idx):
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_tensorboard_log_figure(tmpdir, step_idx):
     logger = TensorBoardLogger(tmpdir)
-    logger.log_figure('dummy', tests.base.plotting.dummy_figure(), step_idx)
+    logger.log_figure('dummy', tests.base.plotting.dummy_figure(), step_idx, close=True)  # functional test
+
+    # test whether figure is closed etc.
+    with mock.patch.object(logger, 'log_figure') as mock_log:
+        f = tests.base.plotting.dummy_figure()
+        logger.log_figure('dummy', f, step_idx, close=True)
+
+    mock_log.assert_called_once_with("dummy", f, step_idx, close=True)
 
 
 def test_tensorboard_log_hyperparams(tmpdir):

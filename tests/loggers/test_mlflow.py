@@ -13,6 +13,7 @@
 # limitations under the License.
 import importlib.util
 import os
+from pathlib import Path
 
 from unittest import mock
 from unittest.mock import MagicMock
@@ -22,6 +23,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
 from tests.base import EvalModelTemplate
+import tests.base.plotting
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
@@ -171,3 +173,22 @@ def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
 
     with pytest.warns(RuntimeWarning, match='special characters in metric name'):
         logger.log_metrics(metrics)
+
+
+@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
+@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
+@pytest.mark.parametrize("step_idx", [10, None])
+def test_mlflow_log_figure(client, mlflow, step_idx, tmpdir):
+
+    logger = MLFlowLogger('test', save_dir=tmpdir)
+    logger.log_figure('dummy', tests.base.plotting.dummy_figure(), step_idx, close=True)  # functional test
+
+    # test whether figure is closed etc.
+    with mock.patch.object(logger.experiment, 'log_artifact') as mock_log:
+        f = tests.base.plotting.dummy_figure()
+        logger.log_figure('dummy', f, step_idx, close=True)
+
+    fname_expect = logger.save_dir + f'/dummy_step{step_idx}.png'
+    artifact_expect = 'figure_dummy'
+
+    mock_log.assert_called_once_with(logger.run_id, fname_expect, artifact_path=artifact_expect)
