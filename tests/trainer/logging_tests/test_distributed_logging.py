@@ -41,7 +41,7 @@ def test_global_zero_only_logging_ddp_cpu(tmpdir):
     model = TestModel()
     model.training_epoch_end = None
     trainer = Trainer(
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         num_processes=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
@@ -60,7 +60,7 @@ def test_global_zero_only_logging_ddp_spawn(tmpdir):
     model = TestModel()
     model.training_epoch_end = None
     trainer = Trainer(
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         gpus=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,

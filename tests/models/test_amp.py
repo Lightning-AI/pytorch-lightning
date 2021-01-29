@@ -16,6 +16,7 @@ from unittest import mock
 
 import pytest
 import torch
+from torch import optim
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
@@ -37,7 +38,7 @@ def test_amp_single_gpu_dp(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
-        distributed_backend='dp',
+        accelerator='dp',
         precision=16,
     )
 
@@ -56,7 +57,7 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
     )
 
@@ -77,7 +78,7 @@ def test_amp_multi_gpu_dp(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=2,
-        distributed_backend='dp',
+        accelerator='dp',
         precision=16,
     )
 
@@ -96,7 +97,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=2,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
     )
 
@@ -127,9 +128,9 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=[0],
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
     )
     trainer.is_slurm_managing_tasks = True
@@ -145,8 +146,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.slurm_connector.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_cpu_model_with_amp(enable_pl_optimizer, tmpdir):
+def test_cpu_model_with_amp(tmpdir):
     """Make sure model trains on CPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -155,7 +155,6 @@ def test_cpu_model_with_amp(enable_pl_optimizer, tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.4,
         precision=16,
-        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     model = EvalModelTemplate()
@@ -191,9 +190,15 @@ def test_amp_without_apex(tmpdir):
 @pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
+    class CustomModel(EvalModelTemplate):
+        def configure_optimizers(self):
+            optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
+            optimizer2 = optim.SGD(self.parameters(), lr=self.learning_rate)
+            lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
+            lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
+            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
-    model = EvalModelTemplate()
-
+    model = CustomModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -204,4 +209,7 @@ def test_amp_with_apex(tmpdir):
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED
-    assert trainer.dev_debugger.count_events('AMP') == 10
+    assert trainer.dev_debugger.count_events('AMP') == 20
+
+    assert isinstance(trainer.lr_schedulers[0]['scheduler'].optimizer, optim.Adam)
+    assert isinstance(trainer.lr_schedulers[1]['scheduler'].optimizer, optim.SGD)

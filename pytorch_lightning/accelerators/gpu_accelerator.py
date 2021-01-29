@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities import AMPType
 
@@ -23,7 +24,7 @@ from pytorch_lightning.utilities import AMPType
 class GPUAccelerator(Accelerator):
     amp_backend: AMPType
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using a single GPU
 
@@ -52,67 +53,27 @@ class GPUAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         self.trainer.model = model
 
-    def train(self):
-        model = self.trainer.model
+    def _step(self, model_step: Callable, args):
+        args[0] = self.to_device(args[0])
 
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = model_step(*args)
+        else:
+            output = model_step(*args)
 
-        # train or test
-        results = self.train_or_test()
-        return results
+        return output
 
     def training_step(self, args):
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.__training_step(args)
-        else:
-            output = self.__training_step(args)
-
-        return output
-
-    def __training_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.training_step(*args)
-        return output
+        return self._step(self.trainer.model.training_step, args)
 
     def validation_step(self, args):
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.__validation_step(args)
-        else:
-            output = self.__validation_step(args)
-
-        return output
-
-    def __validation_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.validation_step(*args)
-        return output
+        return self._step(self.trainer.model.validation_step, args)
 
     def test_step(self, args):
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.__test_step(args)
-        else:
-            output = self.__test_step(args)
-
-        return output
-
-    def __test_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.test_step(*args)
-        return output
+        return self._step(self.trainer.model.test_step, args)
 
     def to_device(self, batch):
         gpu_id = 0
@@ -129,3 +90,7 @@ class GPUAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return tensor
+
+    @property
+    def require_distributed_sampler(self):
+        return False

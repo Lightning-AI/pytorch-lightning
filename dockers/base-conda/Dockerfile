@@ -40,7 +40,9 @@ RUN apt-get update -qq && \
         build-essential \
         cmake \
         git \
+        wget \
         curl \
+        unzip \
         ca-certificates \
     && \
 
@@ -57,41 +59,42 @@ RUN apt-get update -qq && \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-ENV PATH="/root/miniconda3/bin:$PATH"
-ENV LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
-ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
+ENV \
+    PATH="/root/miniconda3/bin:$PATH" \
+    LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH" \
+    CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
+    HOROVOD_GPU_OPERATIONS=NCCL \
+    HOROVOD_WITH_PYTORCH=1 \
+    HOROVOD_WITHOUT_TENSORFLOW=1 \
+    HOROVOD_WITHOUT_MXNET=1 \
+    HOROVOD_WITH_GLOO=1 \
+    HOROVOD_WITHOUT_MPI=1 \
+    # MAKEFLAGS="-j$(nproc)" \
+    MAKEFLAGS="-j1" \
+    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
+    CONDA_ENV=lightning
 
-ENV HOROVOD_GPU_OPERATIONS=NCCL
-ENV HOROVOD_WITH_PYTORCH=1
-ENV HOROVOD_WITHOUT_TENSORFLOW=1
-ENV HOROVOD_WITHOUT_MXNET=1
-ENV HOROVOD_WITH_GLOO=1
-ENV HOROVOD_WITHOUT_MPI=1
-#ENV MAKEFLAGS="-j$(nproc)"
-ENV MAKEFLAGS="-j1"
-ENV TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
-
-ENV CONDA_ENV=lightning
 COPY environment.yml environment.yml
 
 # conda init
-RUN conda create -y --name $CONDA_ENV cudatoolkit=${CUDA_VERSION} && \
+RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
-    # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installe later
+    # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installed later
     python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
-    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python[>=]+[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
-    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'torch[>=]+[\d\.]+', 'torch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- python[>=]+[\d\.]+', '# - python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '# - pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if 'horovod' not in ln])" && \
     cat environment.yml && \
-    conda env update --file environment.yml && \
+    conda env update --name $CONDA_ENV --file environment.yml && \
     conda clean -ya && \
     rm environment.yml
 
-ENV PATH /root/miniconda3/envs/${CONDA_ENV}/bin:$PATH
-ENV LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
-# if you want this environment to be the default one, uncomment the following line:
-ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
+ENV \
+    PATH /root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
+    LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH" \
+    # if you want this environment to be the default one, uncomment the following line:
+    CONDA_DEFAULT_ENV=${CONDA_ENV}
 
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-test.txt

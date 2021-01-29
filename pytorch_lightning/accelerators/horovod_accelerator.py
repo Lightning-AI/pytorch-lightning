@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType, HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -28,7 +29,7 @@ if HOROVOD_AVAILABLE:
 class HorovodAccelerator(Accelerator):
     amp_backend: AMPType
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using horovod
 
@@ -89,8 +90,6 @@ class HorovodAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.
         self.trainer.global_rank = hvd.rank()
@@ -104,8 +103,7 @@ class HorovodAccelerator(Accelerator):
                 # Synchronization will be performed explicitly following backward()
                 stack.enter_context(optimizer.skip_synchronize())
 
-            # set up training routine
-            self.trainer.train_loop.setup_training(self.trainer.model)
+            self.trainer.setup_trainer(self.trainer.model)
 
             # train or test
             results = self.train_or_test()
@@ -114,46 +112,26 @@ class HorovodAccelerator(Accelerator):
         hvd.join()
         return results
 
-    def training_step(self, args):
+    def _step(self, model_step: Callable, args):
         if self.trainer.on_gpu:
-            batch = args[0]
-            batch = self.batch_to_device(batch, hvd.local_rank())
-            args[0] = batch
+            args[0] = self.batch_to_device(args[0], hvd.local_rank())
 
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
-                output = self.trainer.model.training_step(*args)
+                output = model_step(*args)
         else:
-            output = self.trainer.model.training_step(*args)
+            output = model_step(*args)
 
         return output
+
+    def training_step(self, args):
+        return self._step(self.trainer.model.training_step, args)
 
     def validation_step(self, args):
-        if self.trainer.on_gpu:
-            batch = args[0]
-            batch = self.batch_to_device(batch, hvd.local_rank())
-            args[0] = batch
-
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.trainer.model.validation_step(*args)
-        else:
-            output = self.trainer.model.validation_step(*args)
-
-        return output
+        return self._step(self.trainer.model.validation_step, args)
 
     def test_step(self, args):
-        if self.trainer.on_gpu:
-            batch = args[0]
-            batch = self.batch_to_device(batch, hvd.local_rank())
-            args[0] = batch
-
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.trainer.model.test_step(*args)
-        else:
-            output = self.trainer.model.test_step(*args)
-        return output
+        return self._step(self.trainer.model.test_step, args)
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         super().backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
@@ -166,6 +144,7 @@ class HorovodAccelerator(Accelerator):
         hvd.join()
 
     def broadcast(self, obj, src=0):
+        self.barrier()
         obj = hvd.broadcast_object(obj, src)
         return obj
 
@@ -206,3 +185,11 @@ class HorovodAccelerator(Accelerator):
         # sync all processes before reduction
         hvd.join()
         return hvd.allreduce(tensor, op=reduce_op)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        return dict(num_replicas=hvd.size(), rank=hvd.rank())
+
+    @property
+    def require_distributed_sampler(self):
+        return True

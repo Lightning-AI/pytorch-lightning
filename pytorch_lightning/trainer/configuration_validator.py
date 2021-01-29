@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -67,6 +66,21 @@ class ConfigValidator(object):
             raise MisconfigurationException(
                 'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
                 ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
+            )
+
+        trainer = self.trainer
+
+        trainer.overriden_optimizer_step = is_overridden('optimizer_step', model)
+        trainer.overriden_optimizer_zero_grad = is_overridden('optimizer_zero_grad', model)
+        automatic_optimization = trainer.train_loop.automatic_optimization
+        going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
+
+        has_overriden_optimization_functions = trainer.overriden_optimizer_step or trainer.overriden_optimizer_zero_grad
+        if (has_overriden_optimization_functions) and going_to_accumulate_grad_batches and automatic_optimization:
+            raise MisconfigurationException(
+                'When overriding `LightningModule` optimizer_step or optimizer_zero_grad'
+                ' , `accumulate_grad_batches` in `Trainer` should to be 1.'
+                ' It ensures optimizer_step or optimizer_zero_grad are called on every batch.'
             )
 
     def __verify_eval_loop_configuration(self, model, eval_loop_name):

@@ -6,7 +6,7 @@
 
 .. role:: hidden
     :class: hidden-section
-    
+
 .. _logging:
 
 
@@ -57,9 +57,11 @@ Logging from a LightningModule
 
 Lightning offers automatic log functionalities for logging scalars, or manual logging for anything else.
 
-Automatic logging
+Automatic Logging
 =================
-Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method to log from anywhere in a :ref:`lightning_module`.
+Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log`
+method to log from anywhere in a :ref:`lightning_module` and :ref:`callbacks`
+except functions with `batch_start` in their names.
 
 .. code-block:: python
 
@@ -93,6 +95,9 @@ The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a 
     -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
         suffix ``_step`` and ``_epoch``, respectively. You can refer to these keys e.g. in the `monitor`
         argument of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` or in the graphs plotted to the logger of your choice.
+
+
+If your work requires to log in an unsupported function, please open an issue with a clear description of why it is blocking you.
 
 
 Manual logging
@@ -144,8 +149,8 @@ Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`
         def experiment(self):
             # Return the experiment object associated with this logger.
             pass
-         
-        @property 
+
+        @property
         def version(self):
             # Return the experiment version, int or str.
             return '0.1'
@@ -238,7 +243,7 @@ if you are using a logger. These defaults can be customized by overriding the
 :func:`~pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict` hook in your module.
 
 .. code-block:: python
-    
+
     def get_progress_bar_dict(self):
         # don't show the version number
         items = super().get_progress_bar_dict()
@@ -254,13 +259,19 @@ Configure console logging
 *************************
 
 Lightning logs useful information about the training process and user warnings to the console.
-You can retrieve the Lightning logger and change it to your liking. For example, increase the logging level
-to see fewer messages like so:
+You can retrieve the Lightning logger and change it to your liking. For example, adjust the logging level
+or redirect output for certain modules to log files:
 
 .. code-block:: python
 
     import logging
-    logging.getLogger("lightning").setLevel(logging.ERROR)
+
+    # configure logging at the root level of lightning
+    logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
+
+    # configure logging on module level, redirect to file
+    logger = logging.getLogger("pytorch_lightning.core")
+    logger.addHandler(logging.FileHandler("core.log"))
 
 Read more about custom Python logging `here <https://docs.python.org/3/library/logging.html>`_.
 

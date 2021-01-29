@@ -14,31 +14,11 @@
 import functools
 import os
 
-import numpy as np
-
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
 from tests import TEMP_PATH, RANDOM_PORTS
 from tests.base.model_template import EvalModelTemplate
-
-
-def assert_speed_parity_relative(pl_times, pt_times, max_diff: float = 0.1):
-    # assert speeds
-    diffs = np.asarray(pl_times) - np.asarray(pt_times)
-    # norm by vanila time
-    diffs = diffs / np.asarray(pt_times)
-    assert np.alltrue(diffs < max_diff), \
-        f"lightning {diffs} was slower than PT (threshold {max_diff})"
-
-
-def assert_speed_parity_absolute(pl_times, pt_times, nb_epochs, max_diff: float = 0.55):
-    # assert speeds
-    diffs = np.asarray(pl_times) - np.asarray(pt_times)
-    # norm by vanila time
-    diffs = diffs / nb_epochs
-    assert np.alltrue(diffs < max_diff), \
-        f"lightning {diffs} was slower than PT (threshold {max_diff})"
 
 
 def get_default_logger(save_dir, version=None):

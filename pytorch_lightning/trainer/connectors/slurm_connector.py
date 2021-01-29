@@ -1,11 +1,13 @@
+import logging
 import os
 import re
 import signal
 from subprocess import call
-from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.distributed import rank_zero_info
 import torch.distributed as torch_distrib
 import torch
+
+log = logging.getLogger(__name__)
 
 
 class SLURMConnector:
@@ -54,6 +56,7 @@ class SLURMConnector:
         if self.trainer.is_slurm_managing_tasks:
             rank_zero_info('Multi-processing is handled by Slurm.')
 
+    # todo: the same function as slurm_environment.py `_resolve_root_node_address`
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
             name, numbers = root_node.split('[', maxsplit=1)
@@ -108,8 +111,8 @@ class SLURMConnector:
         # save
         log.info("bypassing sigterm")
 
+    # todo: this is the same func as slurm_environment.py `master_port`
     def connect_ddp(self, global_rank: int, world_size: int) -> None:
-        """"""
         """
         Sets up environment variables necessary for pytorch distributed communications
         based on slurm environment.
@@ -136,7 +139,7 @@ class SLURMConnector:
 
         # figure out the root node addr
         try:
-            root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
+            root_node = os.environ["SLURM_NODELIST"].split(" ")[0].split(",")[0]
         except Exception:
             root_node = "127.0.0.1"
 

@@ -28,8 +28,15 @@ to manually manage the optimization process. To do so, do the following:
 .. code-block:: python
 
     def training_step(self, batch, batch_idx, optimizer_idx):
-        # ignore optimizer_idx
-        (opt_g, opt_d) = self.optimizers()
+
+        # 1. ignore optimizer_idx
+        # 2. `use_pl_optimizer=True` means `opt_g` and `opt_d` will be of type `LightingOptimizer`
+        # `LightingOptimizer` simply wrapped your optimizer and behave the same way !
+        # When calling `optimizer.step`, `LightingOptimizer` will just handle TPU, AMP, accumulate_grad_batches, etc ... for you.
+
+        # access your optimizers with `use_pl_optimizer=False` or `optimizer.optimizer` when using use_pl_optimizer=True
+        # use_pl_optimizer=True is the default
+        (opt_g, opt_d) = self.optimizers(use_pl_optimizer=True)
 
         # do anything you want
         loss_a = ...
@@ -67,13 +74,13 @@ Under the hood Lightning does the following:
 .. code-block:: python
 
     for epoch in epochs:
-        for batch id data:
+        for batch in data:
             loss = model.training_step(batch, batch_idx, ...)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
 
-        for scheduler in scheduler:
+        for scheduler in schedulers:
             scheduler.step()
 
 In the case of multiple optimizers, Lightning does the following:
@@ -87,7 +94,7 @@ In the case of multiple optimizers, Lightning does the following:
             train_step(opt)
             opt.step()
 
-      for scheduler in scheduler:
+      for scheduler in schedulers:
          scheduler.step()
 
 
@@ -179,7 +186,7 @@ Lightning will call each optimizer sequentially:
             train_step(opt)
             opt.step()
 
-      for scheduler in scheduler:
+      for scheduler in schedulers:
          scheduler.step()
 
 ----------
@@ -191,37 +198,48 @@ override the :meth:`optimizer_step` function.
 
 For example, here step optimizer A every 2 batches and optimizer B every 4 batches
 
-.. testcode::
+.. note:: When using Trainer(enable_pl_optimizer=True), there is no need to call `.zero_grad()`.
 
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-        optimizer.step()
+.. testcode::
 
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
       optimizer.zero_grad()
 
     # Alternating schedule for optimizer steps (ie: GANs)
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         # update generator opt every 2 steps
-        if optimizer_i == 0:
+        if optimizer_idx == 0:
             if batch_nb % 2 == 0 :
-                optimizer.step()
-                optimizer.zero_grad()
+               optimizer.step(closure=closure)
 
         # update discriminator opt every 4 steps
-        if optimizer_i == 1:
+        if optimizer_idx == 1:
             if batch_nb % 4 == 0 :
-                optimizer.step()
-                optimizer.zero_grad()
+               optimizer.step(closure=closure)
 
-        # ...
-        # add as many optimizers as you want
+.. note:: When using ``Trainer(enable_pl_optimizer=True)``, ``.step`` accepts a boolean ``make_optimizer_step`` which can be used as follow.
+
+.. testcode::
+
+    def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
+      optimizer.zero_grad()
+
+    # Alternating schedule for optimizer steps (ie: GANs)
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+        # update generator opt every 2 steps
+        if optimizer_idx == 0:
+            optimizer.step(closure=closure, make_optimizer_step=(batch_nb % 2) == 0)
+
+        # update discriminator opt every 4 steps
+        if optimizer_idx == 1:
+            optimizer.step(closure=closure, make_optimizer_step=(batch_nb % 4) == 0)
 
 Here we add a learning-rate warm up
 
 .. testcode::
 
     # learning rate warm-up
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         # warm up lr
         if self.trainer.global_step < 500:
             lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -229,8 +247,30 @@ Here we add a learning-rate warm up
                 pg['lr'] = lr_scale * self.hparams.learning_rate
 
         # update params
-        optimizer.step()
-        optimizer.zero_grad()
+        optimizer.step(closure=closure)
+
+.. note:: The default ``optimizer_step`` is relying on the internal ``LightningOptimizer`` to properly perform a step. It handles TPUs, AMP, accumulate_grad_batches, zero_grad, and much more ...
+
+.. testcode::
+
+    # function hook in LightningModule
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+      optimizer.step(closure=closure)
+
+.. note:: To access your wrapped Optimizer from ``LightningOptimizer``, do as follow.
+
+.. testcode::
+
+    # function hook in LightningModule
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+
+      # `optimizer is a ``LightningOptimizer`` wrapping the optimizer.
+      # To access it, do as follow:
+      optimizer = optimizer.optimizer
+
+      # run step. However, it won't work on TPU, AMP, etc...
+      optimizer.step(closure=closure)
+
 
 ----------
 

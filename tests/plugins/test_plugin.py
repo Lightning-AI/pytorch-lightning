@@ -70,7 +70,7 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
             fast_dev_run=True,
             gpus=gpus,
             num_processes=num_processes,
-            distributed_backend=ddp_backend,
+            accelerator=ddp_backend,
             plugins=[CustomPlugin()],
             callbacks=[CB()],
         )
@@ -120,6 +120,6 @@ def test_invalid_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processe
             fast_dev_run=True,
             gpus=gpus,
             num_processes=num_processes,
-            distributed_backend=ddp_backend,
+            accelerator=ddp_backend,
             plugins=[CustomPlugin(), NativeAMPPlugin()],
         )

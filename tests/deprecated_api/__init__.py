@@ -11,15 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import warnings
-
-
-def ignore_scalar_return_in_dp():
-    # Users get confused by this warning so we silence it
-    warnings.filterwarnings('ignore', message='Was asked to gather along dimension 0, but all'
-                                              ' input tensors were scalars; will instead unsqueeze'
-                                              ' and return a vector.')
+"""Test deprecated functionality which will be removed in vX.Y.Z"""
+import sys
 
 
-ignore_scalar_return_in_dp()
+def _soft_unimport_module(str_module):
+    # once the module is imported  e.g with parsing with pytest it lives in memory
+    if str_module in sys.modules:
+        del sys.modules[str_module]

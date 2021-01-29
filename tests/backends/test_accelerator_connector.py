@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import pytest
 import os
-from tests.base.boring_model import BoringModel
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning import accelerators, Trainer
-from pytorch_lightning.cluster_environments import SLURMEnvironment, TorchElasticEnvironment, ClusterEnvironment
-from pytorch_lightning.accelerators import Accelerator
 from unittest import mock
+
+import pytest
+
+from pytorch_lightning import Trainer, accelerators
+from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.cluster_environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from tests.base.boring_model import BoringModel
 
 
 def test_accelerator_choice_cpu(tmpdir):
@@ -47,8 +49,8 @@ def test_accelerator_choice_ddp_cpu(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp_cpu',
-        callbacks=[CB()]
+        accelerator='ddp_cpu',
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -68,9 +70,9 @@ def test_accelerator_choice_ddp(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp',
+        accelerator='ddp',
         gpus=1,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -90,9 +92,9 @@ def test_accelerator_choice_ddp_spawn(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         gpus=1,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -120,9 +122,9 @@ def test_accelerator_choice_ddp_slurm(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp',
+        accelerator='ddp',
         gpus=2,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -152,9 +154,9 @@ def test_accelerator_choice_ddp2_slurm(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp2',
+        accelerator='ddp2',
         gpus=2,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -181,9 +183,9 @@ def test_accelerator_choice_ddp_te(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp',
+        accelerator='ddp',
         gpus=2,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -210,9 +212,9 @@ def test_accelerator_choice_ddp2_te(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp2',
+        accelerator='ddp2',
         gpus=2,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -239,9 +241,9 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         num_processes=1,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -267,9 +269,9 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         num_processes=1,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -288,6 +290,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
     """
     Test that we choose the custom cluster even when SLURM or TE flags are around
     """
+
     class CustomCluster(ClusterEnvironment):
         def master_address(self):
             return 'asdf'
@@ -303,9 +306,9 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
     trainer = Trainer(
         plugins=[CustomCluster()],
         fast_dev_run=True,
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         num_processes=1,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -322,7 +325,11 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_custom_accelerator(tmpdir):
     class Accel(Accelerator):
-        def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
+        def init_ddp_connection(
+                self,
+                global_rank: int,
+                world_size: int,
+                is_slurm_managing_tasks: bool = True) -> None:
             pass
 
     class CB(Callback):

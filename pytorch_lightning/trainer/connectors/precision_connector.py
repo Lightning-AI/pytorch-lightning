@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning import _logger as log
+import logging
+
 from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, AMPType, rank_zero_warn
+from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, rank_zero_warn
+
+log = logging.getLogger(__name__)
 
 
 class PrecisionConnector:
@@ -67,7 +70,6 @@ class PrecisionConnector:
                 self.trainer.amp_backend = AMPType.APEX
                 self.backend = ApexPlugin(self.trainer)
                 log.warn("LightningOptimizer doesn't support Apex")
-                self.trainer._enable_pl_optimizer = False
 
         if not self.trainer.amp_backend:
             raise ModuleNotFoundError(

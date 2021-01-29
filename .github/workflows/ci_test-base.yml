@@ -1,9 +1,9 @@
-name: CI base testing
+name: CI basic testing
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
 
@@ -76,8 +76,7 @@ jobs:
       with:
         name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
         path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
-      # Use always() to always run this step to publish test results when there are test failures
-      if: always()
+      if: failure()
 
     - name: Statistics
       if: success()

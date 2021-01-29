@@ -50,7 +50,7 @@ class TensorRunningAccum(object):
 
     def reset(self) -> None:
         """Empty the accumulator."""
-        self = TensorRunningAccum(self.window_length)
+        self.__init__(self.window_length)
 
     def last(self):
         """Get the last added element."""

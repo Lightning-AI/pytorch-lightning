@@ -129,7 +129,7 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
 
             # self.dims is returned when you call dm.size()
             # Setting default dims here because we know them.
-            # Could optionally be assigned dynamically in dm.setup() 
+            # Could optionally be assigned dynamically in dm.setup()
             self.dims = (1, 28, 28)
 
         def prepare_data(self):
@@ -268,6 +268,7 @@ Use this method to generate the val dataloader.  Usually you just wrap the datas
         def val_dataloader(self):
             return DataLoader(self.mnist_val, batch_size=64)
 
+.. _datamodule-test-dataloader-label:
 
 test_dataloader
 ^^^^^^^^^^^^^^^

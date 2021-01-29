@@ -21,7 +21,7 @@ To link up arbitrary hardware, implement your own Accelerator subclass
         class MyAccelerator(Accelerator):
             def __init__(self, trainer, cluster_environment=None):
                 super().__init__(trainer, cluster_environment)
-                self.nickname = 'my_accelator'
+                self.nickname = 'my_accelerator'
 
             def setup(self):
                 # find local rank, etc, custom things to implement

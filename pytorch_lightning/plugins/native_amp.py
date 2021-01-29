@@ -16,6 +16,7 @@ from typing import Union
 import torch
 from torch.optim import Optimizer
 
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
 
 
@@ -52,7 +53,10 @@ class NativeAMPPlugin(PrecisionPlugin):
 
         # unscale gradient to allow analyze within `on_after_backward`
         if not self.trainer.train_loop.should_accumulate() and automatic_optimization:
-            self.trainer.scaler.unscale_(optimizer)
+            if isinstance(optimizer, LightningOptimizer):
+                self.trainer.scaler.unscale_(optimizer.optimizer)
+            else:
+                self.trainer.scaler.unscale_(optimizer)
 
         return closure_loss
 
@@ -69,6 +73,11 @@ class NativeAMPPlugin(PrecisionPlugin):
         # TODO: pass the closure to the step ASAP
         with trainer.profiler.profile("closure"):
             closure()
+
+        if not self.trainer.train_loop.automatic_optimization:
+            trainer.scaler.unscale_(optimizer)
+            trainer.call_hook("on_after_backward")
+
         with trainer.profiler.profile("optimizer_step"):
             trainer.scaler.step(optimizer)
             trainer.scaler.update()

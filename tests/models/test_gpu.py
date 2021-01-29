@@ -38,19 +38,18 @@ def test_multi_gpu_none_backend(tmpdir):
     tutils.set_random_master_port()
     trainer_options = dict(
         default_root_dir=tmpdir,
-        distributed_backend=None,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.2,
         limit_val_batches=0.2,
-        gpus=2
+        gpus=2,
     )
 
     model = EvalModelTemplate()
     tpipes.run_model_test(trainer_options, model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize('gpus', [1, [0], [1]])
 def test_single_gpu_model(tmpdir, gpus):
     """Make sure single GPU works (DP mode)."""
@@ -93,7 +92,7 @@ def mocked_device_count_0(monkeypatch):
     pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)")
 ])
 def test_trainer_gpu_parse(mocked_device_count, gpus, expected_num_gpus, distributed_backend):
-    assert Trainer(gpus=gpus, distributed_backend=distributed_backend).num_gpus == expected_num_gpus
+    assert Trainer(gpus=gpus, accelerator=distributed_backend).num_gpus == expected_num_gpus
 
 
 @pytest.mark.gpus_param_tests
@@ -102,7 +101,7 @@ def test_trainer_gpu_parse(mocked_device_count, gpus, expected_num_gpus, distrib
     pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
 ])
 def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, distributed_backend):
-    assert Trainer(gpus=gpus, distributed_backend=distributed_backend).num_gpus == expected_num_gpus
+    assert Trainer(gpus=gpus, accelerator=distributed_backend).num_gpus == expected_num_gpus
 
 
 @pytest.mark.gpus_param_tests
@@ -115,7 +114,7 @@ def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, distr
     pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)")
 ])
 def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, distributed_backend):
-    assert Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu == expected_root_gpu
+    assert Trainer(gpus=gpus, accelerator=distributed_backend).root_gpu == expected_root_gpu
 
 
 @pytest.mark.gpus_param_tests
@@ -125,7 +124,7 @@ def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, distrib
     pytest.param(0, None, "ddp", id="None is None"),
 ])
 def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
-    assert Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu == expected_root_gpu
+    assert Trainer(gpus=gpus, accelerator=distributed_backend).root_gpu == expected_root_gpu
 
 
 # Asking for a gpu when non are available will result in a MisconfigurationException
@@ -141,7 +140,7 @@ def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_
 ])
 def test_root_gpu_property_0_raising(mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
     with pytest.raises(MisconfigurationException):
-        Trainer(gpus=gpus, distributed_backend=distributed_backend)
+        Trainer(gpus=gpus, accelerator=distributed_backend)
 
 
 @pytest.mark.gpus_param_tests

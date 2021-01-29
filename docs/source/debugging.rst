@@ -21,16 +21,24 @@ The following are flags that make debugging much easier.
 
 fast_dev_run
 ------------
-This flag runs a "unit test" by running 1 training batch and 1 validation batch.
-The point is to detect any bugs in the training/validation loop without having to wait for
-a full epoch to crash.
+This flag runs a "unit test" by running n if set to ``n`` (int) else 1 if set to ``True`` training and validation batch(es).
+The point is to detect any bugs in the training/validation loop without having to wait for a full epoch to crash.
 
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.fast_dev_run`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 .. testcode::
 
+    # runs 1 train, val, test batch and program ends
     trainer = Trainer(fast_dev_run=True)
+
+    # runs 7 train, val, test batches and program ends
+    trainer = Trainer(fast_dev_run=7)
+
+.. note::
+
+    This argument will disable tuner, checkpoint callbacks, early stopping callbacks,
+    loggers and logger callbacks like ``LearningRateLogger`` and runs for only 1 epoch.
 
 ----------------
 

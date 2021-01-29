@@ -37,7 +37,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        distributed_backend='dp',
+        accelerator='dp',
     )
 
     model = EvalModelTemplate()
@@ -54,8 +54,8 @@ def test_multi_gpu_model_dp(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        distributed_backend='dp',
-        progress_bar_refresh_rate=0
+        accelerator='dp',
+        progress_bar_refresh_rate=0,
     )
 
     model = EvalModelTemplate()
@@ -80,7 +80,7 @@ def test_dp_test(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        distributed_backend='dp',
+        accelerator='dp',
     )
     trainer.fit(model)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path

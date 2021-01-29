@@ -137,5 +137,9 @@ class ApexPlugin(PrecisionPlugin):
         # TODO: pass the closure to the step ASAP
         with trainer.profiler.profile("closure"):
             closure()
+
+        if not self.trainer.train_loop.automatic_optimization:
+            trainer.call_hook("on_after_backward")
+
         with trainer.profiler.profile("optimizer_step"):
             optimizer.step()

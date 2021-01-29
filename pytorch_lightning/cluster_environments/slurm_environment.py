@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import logging
 import os
 import re
-from pytorch_lightning import _logger as log
+
 from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
+
+log = logging.getLogger(__name__)
 
 
 class SLURMEnvironment(ClusterEnvironment):
@@ -26,7 +28,7 @@ class SLURMEnvironment(ClusterEnvironment):
     def master_address(self):
         # figure out the root node addr
         try:
-            root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
+            root_node = os.environ["SLURM_NODELIST"].split(" ")[0].split(",")[0]
         except Exception:
             root_node = "127.0.0.1"
 

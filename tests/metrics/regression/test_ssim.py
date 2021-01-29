@@ -53,9 +53,7 @@ def _sk_metric(preds, target, data_range, multichannel):
 class TestSSIM(MetricTester):
     atol = 6e-5
 
-    # TODO: for some reason this test hangs with ddp=True
-    # @pytest.mark.parametrize("ddp", [True, False])
-    @pytest.mark.parametrize("ddp", [False])
+    @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_ssim(self, preds, target, multichannel, ddp, dist_sync_on_step):
         self.run_class_metric_test(

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import importlib
+import logging
 import os
 from typing import List, Optional, Sequence, Union, Callable
 from functools import wraps
@@ -22,7 +23,6 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -38,6 +38,8 @@ if importlib.util.find_spec('ipywidgets') is not None:
     from tqdm.auto import tqdm
 else:
     from tqdm import tqdm
+
+log = logging.getLogger(__name__)
 
 
 def _run_lr_finder_internally(trainer, model: LightningModule):
@@ -137,7 +139,7 @@ def lr_find(
 
     """
     if trainer.fast_dev_run:
-        rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
+        rank_zero_warn('Skipping learning rate finder since fast_dev_run is enabled.', UserWarning)
         return
 
     save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp_model.ckpt')

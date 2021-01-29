@@ -14,7 +14,8 @@
 
 import itertools
 import threading
-from collections.abc import Mapping, Iterable
+import warnings
+from collections.abc import Iterable, Mapping
 from itertools import chain
 
 import torch
@@ -62,6 +63,18 @@ class LightningDataParallel(DataParallel):
     """
     Override the forward call in lightning so it goes to training and validation step respectively
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warnings.filterwarnings(
+            "ignore",
+            module="torch.nn.parallel*",
+            message=(
+                "Was asked to gather along dimension 0, but all"
+                " input tensors were scalars; will instead unsqueeze"
+                " and return a vector."
+            ),
+        )
 
     def forward(self, *inputs, **kwargs):
         if not self.device_ids:
@@ -155,15 +168,18 @@ class LightningDistributedDataParallel(DistributedDataParallel):
     """
     Override the forward call in lightning so it goes to training and validation step respectively
     """
+    PREPARE_FOR_BACKWARDS = True
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
 
     def forward(self, *inputs, **kwargs):  # pragma: no-cover
         self._sync_params()
+        self.reducer_reset_hooks()
         fx_called: str = ''
 
         if self.device_ids:
+
             inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
             if len(self.device_ids) == 1:
                 # --------------
@@ -194,6 +210,15 @@ class LightningDistributedDataParallel(DistributedDataParallel):
             else:
                 output = self.module.validation_step(*inputs, **kwargs)
 
+        if not self._reducer_prepared_for_backwards and self.PREPARE_FOR_BACKWARDS:
+            self.reducer_prepare_for_backwards(output)
+
+        if output is None:
+            warn_missing_output(f'{fx_called} returned None. Did you forget to return an output')
+        return output
+
+    def reducer_prepare_for_backwards(self, output):
+        self._reducer_prepared_for_backwards = True
         if torch.is_grad_enabled():
             # We'll return the output object verbatim since it is a freeform
             # object. We need to find any tensors in this object, though,
@@ -205,9 +230,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
             else:
                 self.reducer.prepare_for_backward([])
 
-        if output is None:
-            warn_missing_output(f'{fx_called} returned None. Did you forget to re')
-        return output
+    def reducer_reset_hooks(self):
+        self._reducer_prepared_for_backwards = False
 
 
 def warn_missing_output(fx_called):

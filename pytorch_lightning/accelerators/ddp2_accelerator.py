@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+import logging
 import os
 from typing import Any, List, Optional, Union
 
@@ -18,14 +19,17 @@ import torch
 import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
+from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, rank_zero_only, sync_ddp_if_available
 
+log = logging.getLogger(__name__)
 if HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
@@ -33,7 +37,10 @@ if HYDRA_AVAILABLE:
 
 class DDP2Accelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         """
         Runs training using DDP2 strategy on a cluster
 
@@ -101,9 +108,11 @@ class DDP2Accelerator(Accelerator):
     def broadcast(self, obj, src=0):
         return self.dist.broadcast(obj)
 
-    def model_to_device(self, model, process_idx):
+    def init_device(self, process_idx):
         self.trainer.root_gpu = process_idx
         torch.cuda.set_device(self.trainer.root_gpu)
+
+    def model_to_device(self, model):
         model.cuda(self.trainer.root_gpu)
 
     def get_device_ids(self):
@@ -133,6 +142,9 @@ class DDP2Accelerator(Accelerator):
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
 
+        # Initialize cuda device
+        self.init_device(process_idx)
+
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
@@ -142,6 +154,15 @@ class DDP2Accelerator(Accelerator):
             self.trainer.world_size,
             self.trainer.is_slurm_managing_tasks
         )
+
+        if isinstance(self.ddp_plugin, RPCPlugin):
+            if not self.ddp_plugin.is_main_rpc_process:
+                self.ddp_plugin.on_accelerator_exit_rpc_process(self.trainer)
+                self.ddp_plugin.exit_rpc_process()
+                if self.ddp_plugin.return_after_exit_rpc_process:
+                    return
+            else:
+                self.ddp_plugin.on_main_rpc_connection(self.trainer)
 
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
@@ -158,19 +179,16 @@ class DDP2Accelerator(Accelerator):
             model = self.configure_sync_batchnorm(model)
 
         # move the model to the correct device
-        self.model_to_device(model, process_idx)
+        self.model_to_device(model)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.setup_optimizers(model)
 
-        # set model properties before going into wrapper
-        self.trainer.model_connector.copy_trainer_model_properties(model)
+        self.ddp_plugin.on_after_setup_optimizers(self.trainer)
 
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
-
-        self.trainer.convert_to_lightning_optimizers()
 
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
@@ -178,8 +196,7 @@ class DDP2Accelerator(Accelerator):
         # allow user to configure ddp
         model = self.configure_ddp(model, device_ids)
 
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        self.trainer.setup_trainer(model)
 
         # train or test
         results = self.train_or_test()
@@ -189,8 +206,9 @@ class DDP2Accelerator(Accelerator):
         return results
 
     def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
+            self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
+        self.ddp_plugin.device_ids = device_ids
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
@@ -217,5 +235,33 @@ class DDP2Accelerator(Accelerator):
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return sync_ddp_if_available(tensor, group, reduce_op)
 
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        """
+        Function to gather a tensor from several distributed processes
+
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+
     def get_reference_model(self, model) -> LightningModule:
         return self.ddp_plugin.get_model_from_plugin(model)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        distributed_sampler_kwargs = dict(
+            num_replicas=self.trainer.num_nodes,
+            rank=self.trainer.global_rank
+        )
+        if self.ddp_plugin is not None:
+            distributed_sampler_kwargs = self.ddp_plugin.distributed_sampler_kwargs(distributed_sampler_kwargs)
+        return distributed_sampler_kwargs
+
+    @property
+    def require_distributed_sampler(self):
+        return True
