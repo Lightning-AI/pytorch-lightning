@@ -400,6 +400,7 @@ class CheckpointConnector:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
                 rank_zero_warn(
-                    'Warning, `hyper_parameters` dropped from checkpoint.' f' An attribute is not picklable {err}'
+                    'Warning, `hyper_parameters` dropped from checkpoint.'
+                    f' An attribute is not picklable {err}'
                 )
                 atomic_save(checkpoint, filepath)
