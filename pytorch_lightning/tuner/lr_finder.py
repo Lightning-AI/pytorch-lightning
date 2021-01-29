@@ -50,13 +50,14 @@ def __determine_lr_attr_name(trainer, model: LightningModule) -> str:
                 ' could not find this as a field in `model` or `model.hparams`.')
         return trainer.auto_lr_find
 
-    if lightning_hasattr(model, 'lr'):
-        return 'lr'
-    if lightning_hasattr(model, 'learning_rate'):
-        return 'learning_rate'
+    attr_options = ('lr', 'learning_rate')
+    for attr in attr_options:
+        if lightning_hasattr(model, attr):
+            return attr
+
     raise MisconfigurationException(
         'When auto_lr_find is set to True, expects that `model` or'
-        ' `model.hparams` either has field `lr` or `learning_rate`'
+        f' `model.hparams` either has one of these fields {attr_options}'
         ' that can overridden')
 
 
