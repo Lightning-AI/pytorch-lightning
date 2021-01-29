@@ -563,8 +563,8 @@ class DataHooks:
                 return batch
 
         See Also:
-            - :meth:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
-            - :meth:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
+            - :meth:`move_data_to_device`
+            - :meth:`apply_to_collection`
         """
         device = device or self.device
         return move_data_to_device(batch, device)
@@ -614,8 +614,8 @@ class DataHooks:
                 return batch
 
         See Also:
-            - :meth:`~pytorch_lightning.core.lightning.LightningModule.on_before_batch_transfer`
-            - :meth:`~pytorch_lightning.core.lightning.LightningModule.transfer_batch_to_device`
+            - :meth:`on_before_batch_transfer`
+            - :meth:`transfer_batch_to_device`
         """
         return batch
 
