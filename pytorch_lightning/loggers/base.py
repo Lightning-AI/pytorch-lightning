@@ -183,7 +183,9 @@ class LightningLoggerBase(ABC):
             close: close figure after logging
             **kwargs: additional keyword arguments to the respective logger implementation
         """
-        return  # silent
+        """Default is silent. 
+        We should not raise NotImplemented because one could have multiple logger where only some support log_figure."""
+        return
 
     @staticmethod
     def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
