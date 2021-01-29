@@ -230,7 +230,7 @@ To get started with code contributions, look for issues marked with the label [g
 
 #### Is there a recommendation for branch names?
 
-We reccoment you follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feature`, `docs`, or `tests` (but if you are using your own fork that's optional).
+We recommend you follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feature`, `docs`, or `tests` (but if you are using your own fork that's optional).
 
 #### How to rebase my PR?
 
