@@ -563,8 +563,8 @@ class DataHooks:
                 return batch
 
         See Also:
-            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
-            - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
+            - :meth:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
+            - :meth:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
         """
         device = device or self.device
         return move_data_to_device(batch, device)
@@ -589,8 +589,8 @@ class DataHooks:
                 return batch
 
         See Also:
-            - :func:`~pytorch_lightning.core.lightning.LightningModule.on_after_batch_transfer`
-            - :func:`~pytorch_lightning.core.lightning.LightningModule.transfer_batch_to_device`
+            - :meth:`~pytorch_lightning.core.lightning.LightningModule.on_after_batch_transfer`
+            - :meth:`~pytorch_lightning.core.lightning.LightningModule.transfer_batch_to_device`
         """
         return batch
 
@@ -614,8 +614,8 @@ class DataHooks:
                 return batch
 
         See Also:
-            - :func:`~pytorch_lightning.core.lightning.LightningModule.on_before_batch_transfer`
-            - :func:`~pytorch_lightning.core.lightning.LightningModule.transfer_batch_to_device`
+            - :meth:`~pytorch_lightning.core.lightning.LightningModule.on_before_batch_transfer`
+            - :meth:`~pytorch_lightning.core.lightning.LightningModule.transfer_batch_to_device`
         """
         return batch
 
@@ -630,7 +630,6 @@ class CheckpointHooks:
 
         Args:
             checkpoint: Loaded checkpoint
-
 
         Example::
 
