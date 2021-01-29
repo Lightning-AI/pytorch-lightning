@@ -7,6 +7,23 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 jobs:
+  pre-commit-check:
+    name: Run pre-commit hooks on all files
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install pre-commit
+        run: pip install pre-commit
+      - name: Install pre-commit hooks
+        run: pre-commit install
+      - name: Run pre-commit hooks on all files
+        run: pre-commit run --all-files
+
   imports-check-isort:
     name: Check valid import formatting with isort
     runs-on: ubuntu-20.04
