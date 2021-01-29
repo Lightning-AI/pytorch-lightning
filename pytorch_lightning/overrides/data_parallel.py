@@ -125,16 +125,16 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
     def forward(self, *inputs, **kwargs):
         output = super().forward(*inputs, **kwargs)
+
+        def output_transform(data: Any):
+            data = python_scalar_to_tensor(data, self.module.device)
+            data = unsqueeze_scalar_tensor(data)
+            return data
+
         output = apply_to_collection(
             output,
-            dtype=numbers.Number,
-            function=python_scalar_to_tensor,
-            device=self.module.device
-        )
-        output = apply_to_collection(
-            output,
-            dtype=torch.Tensor,
-            function=unsqueeze_scalar_tensor,
+            dtype=(numbers.Number, torch.Tensor),
+            function=output_transform,
         )
         return output
 
@@ -191,13 +191,15 @@ def warn_if_output_is_none(output: Any, method_name: str) -> None:
         warning_cache.warn(f'Your {method_name} returned None. Did you forget to return an output?')
 
 
-def python_scalar_to_tensor(scalar: numbers.Number, device: torch.device = torch.device("cpu")) -> torch.Tensor:
+def python_scalar_to_tensor(data: Any, device: torch.device = torch.device("cpu")) -> Any:
     """ Converts a Python scalar number to a torch tensor and places it on the given device. """
-    return torch.tensor([scalar], device=device)
+    if isinstance(data, numbers.Number):
+        data = torch.tensor([data], device=device)
+    return data
 
 
-def unsqueeze_scalar_tensor(tensor: torch.Tensor) -> torch.Tensor:
+def unsqueeze_scalar_tensor(data: Any) -> Any:
     """ Un-squeezes a 0-dim tensor. """
-    if tensor.dim() == 0:
-        tensor = tensor.unsqueeze(0)
-    return tensor
+    if isinstance(data, torch.Tensor) and data.dim() == 0:
+        data = data.unsqueeze(0)
+    return data
