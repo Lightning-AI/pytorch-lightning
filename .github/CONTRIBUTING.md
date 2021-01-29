@@ -107,7 +107,7 @@ Most of the tests in PyTorch Lightning train a trial MNIST model under various t
 **Hint:**
 To build the documentation locally, simply execute the following commands from project root (only for Unix):
 - `make clean` cleans repo from temp/generated files
--`make docs` builds documentation under _docs/build/html_
+- `make docs` builds documentation under _docs/build/html_
 - `make test` runs all project's tests
 
 ### Original code
