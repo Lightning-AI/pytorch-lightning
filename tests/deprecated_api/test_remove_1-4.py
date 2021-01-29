@@ -19,7 +19,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
 from tests.base import BoringModel
 from tests.deprecated_api import _soft_unimport_module
 
@@ -89,22 +89,6 @@ def test_v1_4_0_deprecated_trainer_device_distrib():
         assert trainer.use_horovod
 
 
-def test_v1_4_0_deprecated_trainer_phase():
-    """Test that Trainer attributes works fine."""
-    trainer = Trainer()
-
-    assert not trainer.training
-    assert not trainer.testing
-
-    trainer.training = True
-    assert trainer.training
-    assert not trainer.testing
-
-    trainer.testing = True
-    assert not trainer.training
-    assert trainer.testing
-
-
 def test_v1_4_0_deprecated_metrics():
     from pytorch_lightning.metrics.functional.classification import stat_scores_multiple_classes
     with pytest.deprecated_call(match='will be removed in v1.4'):
@@ -130,21 +114,43 @@ def test_v1_4_0_deprecated_metrics():
         precision_recall(torch.randint(0, 2, (10, 3, 3)),
                          torch.randint(0, 2, (10, 3, 3)))
 
-    from pytorch_lightning.metrics.functional import precision
-
     # Testing deprecation of class_reduction arg in the *new* precision
+    from pytorch_lightning.metrics.functional import precision
     with pytest.deprecated_call(match='will be removed in v1.4'):
         precision(torch.randint(0, 2, (10,)),
                   torch.randint(0, 2, (10,)),
                   class_reduction='micro')
 
-    from pytorch_lightning.metrics.functional import recall
-
     # Testing deprecation of class_reduction arg in the *new* recall
+    from pytorch_lightning.metrics.functional import recall
     with pytest.deprecated_call(match='will be removed in v1.4'):
         recall(torch.randint(0, 2, (10,)),
                torch.randint(0, 2, (10,)),
                class_reduction='micro')
+
+    from pytorch_lightning.metrics.functional.classification import auc
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        auc(torch.rand(10, ).sort().values,
+            torch.rand(10, ))
+
+    from pytorch_lightning.metrics.functional.classification import auroc
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        auroc(torch.rand(10, ),
+              torch.randint(0, 2, (10, )))
+
+    from pytorch_lightning.metrics.functional.classification import multiclass_auroc
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        multiclass_auroc(torch.rand(20, 5).softmax(dim=-1),
+                         torch.randint(0, 5, (20, )),
+                         num_classes=5)
+
+    from pytorch_lightning.metrics.functional.classification import auc_decorator
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        auc_decorator()
+
+    from pytorch_lightning.metrics.functional.classification import multiclass_auc_decorator
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        multiclass_auc_decorator()
 
 
 class CustomDDPPlugin(DDPPlugin):

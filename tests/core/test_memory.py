@@ -17,7 +17,9 @@ import torch.nn as nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import BoringModel
 from tests.base.models import ParityModuleRNN
 
 
@@ -31,6 +33,23 @@ class EmptyModule(LightningModule):
 
     def forward(self, *args, **kwargs):
         return {'loss': self.parameter.sum()}
+
+
+class PreCalculatedModel(BoringModel):
+    """ A model with precalculated total params size in MB for FP16 and FP32. """
+
+    def __init__(self, precision: int = 32):
+        super().__init__()
+        # 32K params
+        self.layer = nn.Linear(32, 1000, bias=False)
+        # 218K params
+        self.layer1 = nn.Linear(1000, 218, bias=False)
+        # calculate model size based on precision.
+        self.pre_calculated_model_size = 1.0 / (32 / precision)
+
+    def forward(self, x):
+        x = self.layer(x)
+        return self.layer1(x)
 
 
 class UnorderedModel(LightningModule):
@@ -247,3 +266,45 @@ def test_example_input_array_types(example_input, expected_size, mode):
     model.example_input_array = example_input
     summary = model.summarize(mode=mode)
     assert summary.in_sizes == [expected_size]
+
+
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
+def test_model_size(mode):
+    """ Test model size is calculated correctly. """
+    model = PreCalculatedModel()
+    summary = model.summarize(mode=mode)
+    assert model.pre_calculated_model_size == summary.model_size
+
+
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
+def test_empty_model_size(mode):
+    """ Test empty model size is zero. """
+    model = EmptyModule()
+    summary = model.summarize(mode=mode)
+    assert 0.0 == summary.model_size
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
+@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@pytest.mark.parametrize('precision', [16, 32])
+def test_model_size_precision(monkeypatch, tmpdir, precision):
+    """ Test model size for half and full precision. """
+    model = PreCalculatedModel(precision)
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        max_steps=1,
+        max_epochs=1,
+        precision=precision,
+    )
+    trainer.fit(model)
+    summary = model.summarize()
+    assert model.pre_calculated_model_size == summary.model_size

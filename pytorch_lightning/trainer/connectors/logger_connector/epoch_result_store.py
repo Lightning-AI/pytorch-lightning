@@ -17,12 +17,12 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DistributedType, LightningEnum
 
 
 class LoggerStages(LightningEnum):
     """ Train/validation/test phase in each training step.
-
     >>> # you can math the type with string
     >>> LoggerStages.TRAIN == 'train'
     True
@@ -371,7 +371,7 @@ class EpochResultStore:
         callback_metrics = {}
         batch_pbar_metrics = {}
         batch_log_metrics = {}
-        is_train = self._stage in LoggerStages.TRAIN.value
+        is_train = self._stage in RunningStage.TRAINING
 
         if not self._has_batch_loop_finished:
             # get pbar
