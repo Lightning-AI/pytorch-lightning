@@ -162,9 +162,6 @@ class LightningDistributedModule(_LightningModuleWrapperBase):
         """
         super().__init__(pl_module)
 
-    def forward(self, *inputs, **kwargs):
-        return super().forward(*inputs, **kwargs)
-
 
 # In manual_optimization, we need to call reducer prepare_for_backward.
 # Note: Keep track of Pytorch DDP and update if there is a change
