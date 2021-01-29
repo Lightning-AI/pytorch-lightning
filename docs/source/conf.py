@@ -363,6 +363,7 @@ import os
 import torch
 
 import pytorch_lightning as pl
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.utilities import (
     NATIVE_AMP_AVAILABLE,
     APEX_AVAILABLE,
