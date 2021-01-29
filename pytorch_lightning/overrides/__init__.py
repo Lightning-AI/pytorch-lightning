@@ -1,0 +1,2 @@
+from pytorch_lightning.overrides.data_parallel import LightningParallelModule
+from pytorch_lightning.overrides.distributed import LightningDistributedModule

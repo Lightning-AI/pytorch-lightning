@@ -21,9 +21,9 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.overrides.data_parallel import (
     LightningDataParallel,
     LightningDistributedDataParallel,
-    LightningDistributedModule,
     LightningParallelModule,
 )
+from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
 from tests.base import BoringModel
 from tests.deprecated_api import _soft_unimport_module

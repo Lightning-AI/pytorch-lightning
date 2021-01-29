@@ -4,12 +4,12 @@ import pytest
 import torch
 from torch.nn import DataParallel
 
+from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.overrides.base import warning_cache
 from pytorch_lightning.overrides.data_parallel import (
-    LightningDistributedModule,
     LightningParallelModule,
     python_scalar_to_tensor,
     unsqueeze_scalar_tensor,
-    warning_cache,
 )
 from pytorch_lightning.trainer.states import RunningStage
 from tests.base import BoringModel
