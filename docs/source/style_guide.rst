@@ -38,7 +38,7 @@ Here's a LightningModule that defines a model:
 .. testcode::
 
     class LitModel(LightningModule):
-        def __init__(self, num_layers: int = 3)
+        def __init__(self, num_layers: int = 3):
             super().__init__()
             self.layer_1 = nn.Linear()
             self.layer_2 = nn.Linear()
