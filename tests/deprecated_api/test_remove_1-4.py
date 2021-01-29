@@ -196,5 +196,5 @@ def test_v1_4_0_deprecated_lightning_data_parallel():
             match="`LightningDataParallel` is deprecated since v1.2 and will be removed in v1.4."
     ):
         dp_model = LightningDataParallel(model, device_ids=[0])
-        assert isinstance(dp_model, torch.nn.DataParallel)
-        assert isinstance(dp_model.module, LightningParallelModule)
+    assert isinstance(dp_model, torch.nn.DataParallel)
+    assert isinstance(dp_model.module, LightningParallelModule)
