@@ -229,7 +229,7 @@ All help is extremely welcome - reporting bugs, fixing documentation, adding tes
 
 #### Is there a recommendation for branch names?
 
-We do not rely on the name convention so far if you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feature`, `docs`, `tests`, ...
+We do not rely on the name convention so far if you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feature`, `docs`, or `tests`
 
 #### How to rebase my PR?
 
@@ -310,25 +310,25 @@ run our/your test with
 python -m pytest tests/..../...py::test_explain_what_is_being_tested --verbose --capture=no
 ```
 
-#### How to contribute bugfix/feature?
+#### How to contribute bugfixes/features?
 
-At this moment we have separate streams/branches for bugfixes and features as we utilize releasing from the default branch (`master`).
-Bugfix shall land in this `master` branch compare to the feature branch which shall land in `release/1.2-dev`.
-This means that in this time you starting your contribution and creating a branch according to question 2) you shall start this new branch from master or future release.
-Later in PR creation also pay attention to set properly the target branch, a simple understanding is that the staring (base) and target branch shall be the same.
+Currently we have separate streams/branches for bugfixes/features and release from the default branch (`master`).
+Bugfixes should land in this `master` branch and features should land in `release/X.y-dev`.
+This means that when starting your contribution and creating a branch according to question 2) you should start this new branch from master or future release dev branch.
+Later in PR creation also pay attention to properly set the target branch, usually the starting (base) and target branch are the same.
 
 _Note, that this flow may change after the 1.2 release as we will adjust releasing strategy._
 
-#### How to fix PR with mixed base nad target branch?
+#### How to fix PR with mixed base and target branches?
 
-It can easily happen that you start your PR as a bug-fix (and already created a PR accordingly) which turned to be rather a feature or the other way around.
+Sometimes you start your PR as a bug-fix but it turns out to be more of a feature (or the other way around).
 Do not panic, the solution is very straightforward and quite simple.
-You need to do these two steps and in fact, it does not matter much on the order:
+All you need to do are these two steps in arbitrary order:
    - Ask someone from Core to change the base/target branch to the correct one
-   - Rebase or cherry-pick your commit onto the correct base branch...
+   - Rebase or cherry-pick your commits onto the correct base branch...
      
 Let's show how to deal with the git...
-the sample case is moving PR from `master` to `release/1.2-dev` assuming my branch name is `my-branch`
+the sample case is moving a PR from `master` to `release/1.2-dev` assuming my branch name is `my-branch`
 and the last true master commit is `ccc111` and your first commit is `mmm222`.
    * **Cherry-picking** way
      ```bash
