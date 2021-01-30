@@ -285,9 +285,10 @@ class Accelerator(object):
         self.training_type_plugin.post_optimizer_step(optimizer, opt_idx)
         return res
 
-    def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
-        """Zeros all model parameter's gradients
-        """
+    def optimizer_zero_grad(
+        self, current_epoch: int, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int
+    ) -> None:
+        """Zeros all model parameter's gradients"""
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
