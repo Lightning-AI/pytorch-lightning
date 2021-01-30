@@ -39,7 +39,6 @@ class TrainingTypePlugin(Plugin, ABC):
     @abstractmethod
     def root_device(self) -> torch.device:
         """Returns the root device"""
-        raise NotImplementedError
 
     @abstractmethod
     def model_to_device(self):
