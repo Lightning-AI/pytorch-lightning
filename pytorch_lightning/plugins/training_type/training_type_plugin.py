@@ -52,7 +52,6 @@ class TrainingTypePlugin(Plugin, ABC):
     @abstractmethod
     def reduce(self, output, *args, **kwargs):
         """Reduces the given output (e.g. across GPUs/Processes)"""
-        raise NotImplementedError
 
     @abstractmethod
     def barrier(self, name: Optional[str] = None):
