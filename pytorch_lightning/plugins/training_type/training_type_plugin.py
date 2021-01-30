@@ -10,9 +10,8 @@ from pytorch_lightning.plugins.base_plugin import Plugin
 
 
 class TrainingTypePlugin(Plugin, ABC):
-    """A Plugin to change the behaviour of the training, validation and test-loop.
+    """A Plugin to change the behaviour of the training, validation and test-loop."""
 
-    """
     def __init__(self):
         self._model = None
         self._results = None
@@ -21,46 +20,39 @@ class TrainingTypePlugin(Plugin, ABC):
     @property
     @abstractmethod
     def on_gpu(self) -> bool:
-        """Returns whether the current process is done on GPU
-        """
+        """Returns whether the current process is done on GPU"""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
-        """Returns the root device
-        """
+        """Returns the root device"""
         raise NotImplementedError
 
     @abstractmethod
     def model_to_device(self):
-        """Moves the model to the correct device
-        """
+        """Moves the model to the correct device"""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def is_global_zero(self) -> bool:
-        """Whether the current process is the rank zero process not only on the local node, but for all nodes.
-        """
+        """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
         raise NotImplementedError
 
     @abstractmethod
     def reduce(self, output, *args, **kwargs):
-        """Reduces the given output (e.g. across GPUs/Processes)
-        """
+        """Reduces the given output (e.g. across GPUs/Processes)"""
         raise NotImplementedError
 
     @abstractmethod
     def barrier(self, name: Optional[str] = None):
-        """Forces all possibly joined processes to wait for each other
-        """
+        """Forces all possibly joined processes to wait for each other"""
         raise NotImplementedError
 
     @abstractmethod
     def broadcast(self, obj: object, src: int = 0) -> object:
-        """Broadcasts an object to all processes
-        """
+        """Broadcasts an object to all processes"""
         raise NotImplementedError
 
     # TODO method this is currently unused. Check after complete refactors are pushed
@@ -72,18 +64,15 @@ class TrainingTypePlugin(Plugin, ABC):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
         devices = os.environ.get("CUDA_VISIBLE_DEVICES", all_gpu_ids)
-        log.info(f'LOCAL_RANK: {self.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]')
+        log.info(f"LOCAL_RANK: {self.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        """Reduce the early stopping decision across all possibly spawned processes
-        """
+        """Reduce the early stopping decision across all possibly spawned processes"""
         return should_stop
 
     @property
     def model(self) -> torch.nn.Module:
-        """Returns the potentially wrapped LightningModule
-
-        """
+        """Returns the potentially wrapped LightningModule"""
         return self._model
 
     @model.setter
@@ -92,9 +81,7 @@ class TrainingTypePlugin(Plugin, ABC):
 
     @property
     def lightning_module(self) -> LightningModule:
-        """Returns the pure LightningModule without potential wrappers
-
-        """
+        """Returns the pure LightningModule without potential wrappers"""
         return self._model
 
     @property
@@ -110,10 +97,10 @@ class TrainingTypePlugin(Plugin, ABC):
     def rpc_enabled(self) -> bool:
         return False
 
-    def start_training(self, trainer: 'Trainer') -> None:
+    def start_training(self, trainer: "Trainer") -> None:
         # double dispatch to initiate the training loop
         self._results = trainer.train()
 
-    def start_testing(self, trainer: 'Trainer') -> None:
+    def start_testing(self, trainer: "Trainer") -> None:
         # double dispatch to initiate the test loop
         self._results = trainer.run_test()

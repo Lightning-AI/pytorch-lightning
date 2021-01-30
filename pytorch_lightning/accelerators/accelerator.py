@@ -229,7 +229,14 @@ class Accelerator(object):
 
         return output
 
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, current_epoch: int, batch_idx: int, opt_idx: int, lambda_closure: Callable):
+    def optimizer_step(
+        self,
+        optimizer: torch.optim.Optimizer,
+        current_epoch: int,
+        batch_idx: int,
+        opt_idx: int,
+        lambda_closure: Callable,
+    ):
         """performs the actual optimizer step.
 
         Args:
@@ -265,16 +272,15 @@ class Accelerator(object):
         self.training_type_plugin.post_optimizer_step(optimizer, opt_idx)
         return res
 
-    def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
-        """Zeros all model parameter's gradients
-        """
+    def optimizer_zero_grad(
+        self, current_epoch: int, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int
+    ) -> None:
+        """Zeros all model parameter's gradients"""
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
     def clip_gradients(self, optimizer: torch.optim.Optimizer, clip_val: Union[int, float]) -> None:
-        """clips all the optimizer parameters to the given value
-
-        """
+        """clips all the optimizer parameters to the given value"""
 
         self.precision_plugin.clip_gradients(optimizer, clip_val)
 
@@ -287,11 +293,10 @@ class Accelerator(object):
         pass
 
     def on_train_end(self) -> None:
-        """Hook to do something at the end of the training
-        """
+        """Hook to do something at the end of the training"""
         pass
 
-    def setup_optimizers(self, trainer: 'Trainer', model: LightningModule):
+    def setup_optimizers(self, trainer: "Trainer", model: LightningModule):
         """creates optimizers and schedulers
 
         Args:
@@ -306,25 +311,21 @@ class Accelerator(object):
         self.optimizer_frequencies = optimizer_frequencies
 
     def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
-        """Attaches the training type plugin to the accelerator. 
+        """Attaches the training type plugin to the accelerator.
         Also transfers ownership of the model to this plugin
 
         """
         plugin.connect(model)
 
     def connect_precision_plugin(self, plugin: PrecisionPlugin):
-        """Attaches the precision plugin to the accelerator
-
-        """
+        """Attaches the precision plugin to the accelerator"""
         model, optimizers, schedulers = plugin.connect(self.model, self.optimizers, self.lr_schedulers)
         self.model = model
         self.optimizers = optimizers
         self.schedulers = schedulers
 
     def to_device(self, batch: Any) -> Any:
-        """Pushes the batch to the root device
-
-        """
+        """Pushes the batch to the root device"""
         return self.batch_to_device(batch, self.root_device)
 
     @property

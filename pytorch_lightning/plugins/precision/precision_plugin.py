@@ -4,7 +4,7 @@ from typing import Generator, Union
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins .base_plugin import Plugin
+from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.core import LightningModule
 
 
@@ -13,7 +13,7 @@ class PrecisionPlugin(Plugin):
     precision = 32
 
     def master_params(self, optimizer: torch.optim.Optimizer) -> Generator[torch.Tensor, None, None]:
-        """The master params of the model. Returns the plain model params here. 
+        """The master params of the model. Returns the plain model params here.
         Maybe different in other precision plugins.
 
         """
@@ -22,9 +22,7 @@ class PrecisionPlugin(Plugin):
                 yield p
 
     def connect(self, model: torch.nn.Module, optimizers, lr_schedulers):
-        """Connects this plugin to the accelerator and the training process
-
-        """
+        """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
     def backward(
@@ -61,9 +59,7 @@ class PrecisionPlugin(Plugin):
         return closure_loss
 
     def clip_gradients(self, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = float(2.0)):
-        """Clips the gradients to a specific value
-
-        """
+        """Clips the gradients to a specific value"""
         # TODO: separate TPU case from here
         if clip_val is None:
             return
