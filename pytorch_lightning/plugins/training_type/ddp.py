@@ -9,7 +9,7 @@ import torch
 import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.plugins .training_type.parallel import ParallelPlugin
+from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, unwrap_lightning_module
