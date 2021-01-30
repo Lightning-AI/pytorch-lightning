@@ -48,7 +48,6 @@ class TrainingTypePlugin(Plugin, ABC):
     @abstractmethod
     def is_global_zero(self) -> bool:
         """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
-        raise NotImplementedError
 
     @abstractmethod
     def reduce(self, output, *args, **kwargs):
