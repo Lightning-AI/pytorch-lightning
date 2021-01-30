@@ -43,7 +43,6 @@ class TrainingTypePlugin(Plugin, ABC):
     @abstractmethod
     def model_to_device(self):
         """Moves the model to the correct device"""
-        raise NotImplementedError
 
     @property
     @abstractmethod
