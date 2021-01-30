@@ -33,10 +33,6 @@ pytorch_lightning/profiler/*
 
 
 # TODO
-pytorch_lightning/trainer/*
-
-
-# TODO
 pytorch_lightning/tuner/*
 
 
