@@ -18,7 +18,6 @@ from typing import Optional
 import torch
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.base_plugin import Plugin
 
 
