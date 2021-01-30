@@ -21,21 +21,21 @@ from typing import Any, List, Optional, Union
 import numpy as np
 import torch
 import torch.distributed as torch_distrib
-from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.legacy.rpc_plugin import RPCPlugin
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
+from pytorch_lightning.accelerators.legacy.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import (
     all_gather_ddp_if_available,
     find_free_network_port,
     rank_zero_only,
-    sync_ddp_if_available, ReduceOp,
+    sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -162,6 +162,9 @@ class DDPAccelerator(Accelerator):
         return self._step(args)
 
     def test_step(self, args):
+        return self._step(args)
+
+    def predict(self, args):
         return self._step(args)
 
     def _step(self, args):
@@ -292,8 +295,6 @@ class DDPAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
 
@@ -315,6 +316,7 @@ class DDPAccelerator(Accelerator):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
+        self.ddp_plugin.device_ids = device_ids
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 

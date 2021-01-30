@@ -14,16 +14,16 @@
 
 """nn.Module with additional great features."""
 
-from abc import ABC
-from argparse import Namespace
 import collections
 import copy
-from functools import partial
 import inspect
 import os
-from pathlib import Path
 import re
 import tempfile
+from abc import ABC
+from argparse import Namespace
+from functools import partial
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -66,6 +66,7 @@ class LightningModule(
         "on_gpu",
         "current_epoch",
         "global_step",
+        "running_stage",
         "global_rank",
         "local_rank",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
@@ -104,9 +105,14 @@ class LightningModule(
         self._running_manual_backward = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
+        self.running_stage = None
+        self._automatic_optimization: bool = True
 
-    def optimizers(self):
-        opts = self.trainer.optimizers
+    def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
+        if use_pl_optimizer:
+            opts = list(self.trainer.lightning_optimizers.values())
+        else:
+            opts = self.trainer.optimizers
 
         # single optimizer
         if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):
@@ -161,7 +167,11 @@ class LightningModule(
         """
         If False you are responsible for calling .backward, .step, zero_grad.
         """
-        return True
+        return self._automatic_optimization
+
+    @automatic_optimization.setter
+    def automatic_optimization(self, automatic_optimization: bool) -> None:
+        self._automatic_optimization = automatic_optimization
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -171,12 +181,10 @@ class LightningModule(
             *args: The thing to print. Will be passed to Python's built-in print function.
             **kwargs: Will be passed to Python's built-in print function.
 
-        Example:
+        Example::
 
-            .. code-block:: python
-
-                def forward(self, x):
-                    self.print(x, 'in forward')
+            def forward(self, x):
+                self.print(x, 'in forward')
 
         """
         if self.trainer.is_global_zero:
@@ -420,36 +428,35 @@ class LightningModule(
         Return:
             Predicted output
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # example if we were using this model as a feature extractor
-                def forward(self, x):
-                    feature_maps = self.convnet(x)
-                    return feature_maps
+            # example if we were using this model as a feature extractor
+            def forward(self, x):
+                feature_maps = self.convnet(x)
+                return feature_maps
 
-                def training_step(self, batch, batch_idx):
-                    x, y = batch
-                    feature_maps = self(x)
-                    logits = self.classifier(feature_maps)
+            def training_step(self, batch, batch_idx):
+                x, y = batch
+                feature_maps = self(x)
+                logits = self.classifier(feature_maps)
 
-                    # ...
-                    return loss
+                # ...
+                return loss
 
-                # splitting it this way allows model to be used a feature extractor
-                model = MyModelAbove()
+            # splitting it this way allows model to be used a feature extractor
+            model = MyModelAbove()
 
-                inputs = server.get_request()
-                results = model(inputs)
-                server.write_results(results)
+            inputs = server.get_request()
+            results = model(inputs)
+            server.write_results(results)
 
-                # -------------
-                # This is in stark contrast to torch.nn.Module where normally you would have this:
-                def forward(self, batch):
-                    x, y = batch
-                    feature_maps = self.convnet(x)
-                    logits = self.classifier(feature_maps)
-                    return logits
+            # -------------
+            # This is in stark contrast to torch.nn.Module where normally you would have this:
+            def forward(self, batch):
+                x, y = batch
+                feature_maps = self.convnet(x)
+                logits = self.classifier(feature_maps)
+                return logits
 
         """
         return super().forward(*args, **kwargs)
@@ -578,7 +585,7 @@ class LightningModule(
                 return loss
 
         See Also:
-            See the :ref:`multi_gpu` guide for more details.
+            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
     def training_epoch_end(self, outputs: List[Any]) -> None:
@@ -634,14 +641,14 @@ class LightningModule(
             for val_batch in val_data:
                 out = validation_step(val_batch)
                 val_outs.append(out)
-                validation_epoch_end(val_outs)
+            validation_epoch_end(val_outs)
 
         Args:
             batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
             batch_idx (int): The index of this batch
             dataloader_idx (int): The index of the dataloader that produced this batch
-                (only if multiple val datasets used)
+                (only if multiple val dataloaders used)
 
         Return:
            Any of.
@@ -666,37 +673,36 @@ class LightningModule(
             # if you have multiple val dataloaders:
             def validation_step(self, batch, batch_idx, dataloader_idx)
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # CASE 1: A single validation dataset
-                def validation_step(self, batch, batch_idx):
-                    x, y = batch
+            # CASE 1: A single validation dataset
+            def validation_step(self, batch, batch_idx):
+                x, y = batch
 
-                    # implement your own
-                    out = self(x)
-                    loss = self.loss(out, y)
+                # implement your own
+                out = self(x)
+                loss = self.loss(out, y)
 
-                    # log 6 example images
-                    # or generated text... or whatever
-                    sample_imgs = x[:6]
-                    grid = torchvision.utils.make_grid(sample_imgs)
-                    self.logger.experiment.add_image('example_images', grid, 0)
+                # log 6 example images
+                # or generated text... or whatever
+                sample_imgs = x[:6]
+                grid = torchvision.utils.make_grid(sample_imgs)
+                self.logger.experiment.add_image('example_images', grid, 0)
 
-                    # calculate acc
-                    labels_hat = torch.argmax(out, dim=1)
-                    val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+                # calculate acc
+                labels_hat = torch.argmax(out, dim=1)
+                val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
-                    # log the outputs!
-                    self.log_dict({'val_loss': loss, 'val_acc': val_acc})
+                # log the outputs!
+                self.log_dict({'val_loss': loss, 'val_acc': val_acc})
 
-            If you pass in multiple val datasets, validation_step will have an additional argument.
+        If you pass in multiple val dataloaders, :meth:`validation_step` will have an additional argument.
 
-            .. code-block:: python
+        .. code-block:: python
 
-                # CASE 2: multiple validation datasets
-                def validation_step(self, batch, batch_idx, dataloader_idx):
-                    # dataloader_idx tells you which dataset this is.
+            # CASE 2: multiple validation dataloaders
+            def validation_step(self, batch, batch_idx, dataloader_idx):
+                # dataloader_idx tells you which dataset this is.
 
         Note:
             If you don't need to validate you don't need to implement this method.
@@ -758,7 +764,7 @@ class LightningModule(
                     # do something with these
 
         See Also:
-            See the :ref:`multi_gpu` guide for more details.
+            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
     def validation_epoch_end(self, outputs: List[Any]) -> None:
@@ -826,7 +832,7 @@ class LightningModule(
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
             batch_idx (int): The index of this batch.
             dataloader_idx (int): The index of the dataloader that produced this batch
-                (only if multiple test datasets used).
+                (only if multiple test dataloaders used).
 
         Return:
            Any of.
@@ -842,41 +848,39 @@ class LightningModule(
             # if you have multiple test dataloaders:
             def test_step(self, batch, batch_idx, dataloader_idx)
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # CASE 1: A single test dataset
-                def test_step(self, batch, batch_idx):
-                    x, y = batch
+            # CASE 1: A single test dataset
+            def test_step(self, batch, batch_idx):
+                x, y = batch
 
-                    # implement your own
-                    out = self(x)
-                    loss = self.loss(out, y)
+                # implement your own
+                out = self(x)
+                loss = self.loss(out, y)
 
-                    # log 6 example images
-                    # or generated text... or whatever
-                    sample_imgs = x[:6]
-                    grid = torchvision.utils.make_grid(sample_imgs)
-                    self.logger.experiment.add_image('example_images', grid, 0)
+                # log 6 example images
+                # or generated text... or whatever
+                sample_imgs = x[:6]
+                grid = torchvision.utils.make_grid(sample_imgs)
+                self.logger.experiment.add_image('example_images', grid, 0)
 
-                    # calculate acc
-                    labels_hat = torch.argmax(out, dim=1)
-                    test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+                # calculate acc
+                labels_hat = torch.argmax(out, dim=1)
+                test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
-                    # log the outputs!
-                    self.log_dict({'test_loss': loss, 'test_acc': test_acc})
+                # log the outputs!
+                self.log_dict({'test_loss': loss, 'test_acc': test_acc})
 
-            If you pass in multiple validation datasets, :meth:`test_step` will have an additional
-            argument.
+        If you pass in multiple test dataloaders, :meth:`test_step` will have an additional argument.
 
-            .. code-block:: python
+        .. code-block:: python
 
-                # CASE 2: multiple test datasets
-                def test_step(self, batch, batch_idx, dataloader_idx):
-                    # dataloader_idx tells you which dataset this is.
+            # CASE 2: multiple test dataloaders
+            def test_step(self, batch, batch_idx, dataloader_idx):
+                # dataloader_idx tells you which dataset this is.
 
         Note:
-            If you don't need to validate you don't need to implement this method.
+            If you don't need to test you don't need to implement this method.
 
         Note:
             When the :meth:`test_step` is called, the model has been put in eval mode and
@@ -935,7 +939,7 @@ class LightningModule(
                 self.log('test_loss', loss)
 
         See Also:
-            See the :ref:`multi_gpu` guide for more details.
+            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
     def test_epoch_end(
@@ -991,6 +995,12 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
+    def predict(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None):
+        """
+        Use this function with trainer.predict(...). Override if you need to add any processing logic.
+        """
+        return self(batch)
+
     def configure_optimizers(
             self,
     ):
@@ -1034,47 +1044,46 @@ class LightningModule(
 
             Only the ``scheduler`` key is required, the rest will be set to the defaults above.
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # most cases
-                def configure_optimizers(self):
-                    opt = Adam(self.parameters(), lr=1e-3)
-                    return opt
+            # most cases
+            def configure_optimizers(self):
+                opt = Adam(self.parameters(), lr=1e-3)
+                return opt
 
-                # multiple optimizer case (e.g.: GAN)
-                def configure_optimizers(self):
-                    generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                    disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                    return generator_opt, disriminator_opt
+            # multiple optimizer case (e.g.: GAN)
+            def configure_optimizers(self):
+                generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                return generator_opt, disriminator_opt
 
-                # example with learning rate schedulers
-                def configure_optimizers(self):
-                    generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                    disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                    discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
-                    return [generator_opt, disriminator_opt], [discriminator_sched]
+            # example with learning rate schedulers
+            def configure_optimizers(self):
+                generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
+                return [generator_opt, disriminator_opt], [discriminator_sched]
 
-                # example with step-based learning rate schedulers
-                def configure_optimizers(self):
-                    gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                    dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                    gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99),
-                                 'interval': 'step'}  # called after each training step
-                    dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
-                    return [gen_opt, dis_opt], [gen_sched, dis_sched]
+            # example with step-based learning rate schedulers
+            def configure_optimizers(self):
+                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99),
+                             'interval': 'step'}  # called after each training step
+                dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
+                return [gen_opt, dis_opt], [gen_sched, dis_sched]
 
-                # example with optimizer frequencies
-                # see training procedure in `Improved Training of Wasserstein GANs`, Algorithm 1
-                # https://arxiv.org/abs/1704.00028
-                def configure_optimizers(self):
-                    gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                    dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                    n_critic = 5
-                    return (
-                        {'optimizer': dis_opt, 'frequency': n_critic},
-                        {'optimizer': gen_opt, 'frequency': 1}
-                    )
+            # example with optimizer frequencies
+            # see training procedure in `Improved Training of Wasserstein GANs`, Algorithm 1
+            # https://arxiv.org/abs/1704.00028
+            def configure_optimizers(self):
+                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                n_critic = 5
+                return (
+                    {'optimizer': dis_opt, 'frequency': n_critic},
+                    {'optimizer': gen_opt, 'frequency': 1}
+                )
 
         Note:
 
@@ -1222,50 +1231,49 @@ class LightningModule(
             using_native_amp: True if using native amp
             using_lbfgs: True if the matching optimizer is lbfgs
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                # DEFAULT
-                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
-                    optimizer.step(closure=optimizer_closure)
+            # DEFAULT
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                optimizer.step(closure=optimizer_closure)
 
-                # Alternating schedule for optimizer steps (i.e.: GANs)
-                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
-                    # update generator opt every 2 steps
-                    if optimizer_idx == 0:
-                        if batch_idx % 2 == 0 :
-                            optimizer.step(closure=optimizer_closure)
-                            optimizer.zero_grad()
+            # Alternating schedule for optimizer steps (i.e.: GANs)
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                # update generator opt every 2 steps
+                if optimizer_idx == 0:
+                    if batch_idx % 2 == 0 :
+                        optimizer.step(closure=optimizer_closure)
+                        optimizer.zero_grad()
 
-                    # update discriminator opt every 4 steps
-                    if optimizer_idx == 1:
-                        if batch_idx % 4 == 0 :
-                            optimizer.step(closure=optimizer_closure)
-                            optimizer.zero_grad()
+                # update discriminator opt every 4 steps
+                if optimizer_idx == 1:
+                    if batch_idx % 4 == 0 :
+                        optimizer.step(closure=optimizer_closure)
+                        optimizer.zero_grad()
 
-                    # ...
-                    # add as many optimizers as you want
+                # ...
+                # add as many optimizers as you want
 
 
-            Here's another example showing how to use this for more advanced things such as
-            learning rate warm-up:
+        Here's another example showing how to use this for more advanced things such as
+        learning rate warm-up:
 
-            .. code-block:: python
+        .. code-block:: python
 
-                # learning rate warm-up
-                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
-                    # warm up lr
-                    if self.trainer.global_step < 500:
-                        lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
-                        for pg in optimizer.param_groups:
-                            pg['lr'] = lr_scale * self.learning_rate
+            # learning rate warm-up
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                # warm up lr
+                if self.trainer.global_step < 500:
+                    lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
+                    for pg in optimizer.param_groups:
+                        pg['lr'] = lr_scale * self.learning_rate
 
-                    # update params
-                    optimizer.step(closure=optimizer_closure)
-                    optimizer.zero_grad()
+                # update params
+                optimizer.step(closure=optimizer_closure)
+                optimizer.zero_grad()
 
         """
         if not isinstance(optimizer, LightningOptimizer):
@@ -1293,26 +1301,25 @@ class LightningModule(
             back propagation through time. The default implementation splits root level Tensors and
             Sequences at dim=1 (i.e. time dim). It assumes that each time dim is the same length.
 
-        Examples:
-            .. code-block:: python
+        Examples::
 
-                def tbptt_split_batch(self, batch, split_size):
-                  splits = []
-                  for t in range(0, time_dims[0], split_size):
-                      batch_split = []
-                      for i, x in enumerate(batch):
-                          if isinstance(x, torch.Tensor):
-                              split_x = x[:, t:t + split_size]
-                          elif isinstance(x, collections.Sequence):
-                              split_x = [None] * len(x)
-                              for batch_idx in range(len(x)):
-                                  split_x[batch_idx] = x[batch_idx][t:t + split_size]
+            def tbptt_split_batch(self, batch, split_size):
+              splits = []
+              for t in range(0, time_dims[0], split_size):
+                  batch_split = []
+                  for i, x in enumerate(batch):
+                      if isinstance(x, torch.Tensor):
+                          split_x = x[:, t:t + split_size]
+                      elif isinstance(x, collections.Sequence):
+                          split_x = [None] * len(x)
+                          for batch_idx in range(len(x)):
+                              split_x[batch_idx] = x[batch_idx][t:t + split_size]
 
-                          batch_split.append(split_x)
+                      batch_split.append(split_x)
 
-                      splits.append(batch_split)
+                  splits.append(batch_split)
 
-                  return splits
+              return splits
 
         Note:
             Called in the training loop after
@@ -1365,11 +1372,10 @@ class LightningModule(
         r"""
         Freeze all params for inference.
 
-        Example:
-            .. code-block:: python
+        Example::
 
-                model = MyLightningModule(...)
-                model.freeze()
+            model = MyLightningModule(...)
+            model.freeze()
 
         """
         for param in self.parameters():

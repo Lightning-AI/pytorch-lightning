@@ -1,4 +1,3 @@
-
 # Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,14 +59,12 @@ from pytorch_lightning.callbacks.finetuning import BaseFinetuningCallback
 
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
 
-
 #  --- Finetunning Callback ---
+
 
 class MilestonesFinetuningCallback(BaseFinetuningCallback):
 
-    def __init__(self,
-                 milestones: tuple = (5, 10),
-                 train_bn: bool = True):
+    def __init__(self, milestones: tuple = (5, 10), train_bn: bool = True):
         self.milestones = milestones
         self.train_bn = train_bn
 
@@ -78,17 +75,13 @@ class MilestonesFinetuningCallback(BaseFinetuningCallback):
         if epoch == self.milestones[0]:
             # unfreeze 5 last layers
             self.unfreeze_and_add_param_group(
-                module=pl_module.feature_extractor[-5:],
-                optimizer=optimizer,
-                train_bn=self.train_bn
+                module=pl_module.feature_extractor[-5:], optimizer=optimizer, train_bn=self.train_bn
             )
 
         elif epoch == self.milestones[1]:
             # unfreeze remaing layers
             self.unfreeze_and_add_param_group(
-                module=pl_module.feature_extractor[:-5],
-                optimizer=optimizer,
-                train_bn=self.train_bn
+                module=pl_module.feature_extractor[:-5], optimizer=optimizer, train_bn=self.train_bn
             )
 
 
@@ -149,10 +142,12 @@ class TransferLearningModel(pl.LightningModule):
         self.feature_extractor = nn.Sequential(*_layers)
 
         # 2. Classifier:
-        _fc_layers = [nn.Linear(2048, 256),
-                      nn.ReLU(),
-                      nn.Linear(256, 32),
-                      nn.Linear(32, 1)]
+        _fc_layers = [
+            nn.Linear(2048, 256),
+            nn.ReLU(),
+            nn.Linear(256, 32),
+            nn.Linear(32, 1),
+        ]
         self.fc = nn.Sequential(*_fc_layers)
 
         # 3. Loss:
@@ -218,25 +213,21 @@ class TransferLearningModel(pl.LightningModule):
 
         train_dataset = ImageFolder(
             root=data_path.joinpath("train"),
-            transform=transforms.Compose(
-                [
-                    transforms.Resize((224, 224)),
-                    transforms.RandomHorizontalFlip(),
-                    transforms.ToTensor(),
-                    normalize,
-                ]
-            ),
+            transform=transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                normalize,
+            ]),
         )
 
         valid_dataset = ImageFolder(
             root=data_path.joinpath("validation"),
-            transform=transforms.Compose(
-                [
-                    transforms.Resize((224, 224)),
-                    transforms.ToTensor(),
-                    normalize,
-                ]
-            ),
+            transform=transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                normalize,
+            ]),
         )
 
         self.train_dataset = train_dataset
@@ -303,8 +294,10 @@ class TransferLearningModel(pl.LightningModule):
 
 def main(args: argparse.Namespace) -> None:
     """Train the model.
+
     Args:
         args: Model hyper-parameters
+
     Note:
         For the sake of the example, the images dataset will be downloaded
         to a temporary directory.

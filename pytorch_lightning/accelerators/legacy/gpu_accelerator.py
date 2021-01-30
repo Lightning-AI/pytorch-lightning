@@ -15,11 +15,10 @@ from typing import Any, Callable, Optional, Union
 
 import torch
 
-from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
+from pytorch_lightning.accelerators.legacy.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import ReduceOp
 
 
 class GPUAccelerator(Accelerator):
@@ -54,8 +53,6 @@ class GPUAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         self.trainer.model = model
 
     def train(self):
@@ -87,6 +84,9 @@ class GPUAccelerator(Accelerator):
 
     def test_step(self, args):
         return self._step(self.trainer.model.test_step, args)
+
+    def predict(self, args):
+        return self._step(self.trainer.model.predict, args)
 
     def to_device(self, batch):
         gpu_id = 0

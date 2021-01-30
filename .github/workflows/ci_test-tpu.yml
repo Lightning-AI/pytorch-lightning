@@ -2,7 +2,7 @@ name: TPU tests
 
 on:
   push:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
+    branches: [master, "release/*"]
 # TODO: temporal disable TPU testing until we find way how to pass credentials to forked PRs
 #  pull_request:
 #    branches:

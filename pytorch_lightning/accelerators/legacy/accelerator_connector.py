@@ -16,20 +16,8 @@ import os
 import torch
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning import accelerators
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
-from pytorch_lightning.accelerators.legacy import (
-    DDP2Accelerator,
-    DDPCPUHPCAccelerator,
-    DDPHPCAccelerator,
-    DDPSpawnAccelerator,
-    DDPCPUSpawnAccelerator,
-    DDPAccelerator,
-    DataParallelAccelerator,
-    HorovodAccelerator,
-    TPUAccelerator,
-    GPUAccelerator,
-    CPUAccelerator,
-)
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
 from pytorch_lightning.utilities import (
@@ -232,42 +220,42 @@ class AcceleratorConnector:
         # TODO: clean-up this branching as most just select class and uses the very same arguments
         # choose the appropriate accelerator backend
         if self.trainer._distrib_type == DistributedType.DDP2:
-            accelerator_backend = DDP2Accelerator(
+            accelerator_backend = accelerators.DDP2Accelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_ddp_cpu_slurm:
-            accelerator_backend = DDPCPUHPCAccelerator(
+            accelerator_backend = accelerators.DDPCPUHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_slurm_ddp:
-            accelerator_backend = DDPHPCAccelerator(
+            accelerator_backend = accelerators.DDPHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_ddp_cpu_torch_elastic:
-            accelerator_backend = DDPCPUHPCAccelerator(
+            accelerator_backend = accelerators.DDPCPUHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_torchelastic_ddp:
-            accelerator_backend = DDPHPCAccelerator(
+            accelerator_backend = accelerators.DDPHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
 
         elif self.trainer._distrib_type == DistributedType.DDP_SPAWN:
-            accelerator_backend = DDPSpawnAccelerator(
+            accelerator_backend = accelerators.DDPSpawnAccelerator(
                 self.trainer,
                 nprocs=self.trainer.num_processes,
                 cluster_environment=cluster_env,
@@ -275,7 +263,7 @@ class AcceleratorConnector:
             )
 
         elif use_ddp_cpu_spawn:
-            accelerator_backend = DDPCPUSpawnAccelerator(
+            accelerator_backend = accelerators.DDPCPUSpawnAccelerator(
                 self.trainer,
                 nprocs=self.trainer.num_processes,
                 cluster_environment=cluster_env,
@@ -283,26 +271,26 @@ class AcceleratorConnector:
             )
 
         elif self.trainer.distributed_backend == "ddp":
-            accelerator_backend = DDPAccelerator(
+            accelerator_backend = accelerators.DDPAccelerator(
                 self.trainer,
                 cluster_env,
                 ddp_plugin=self.trainer.plugin_connector.ddp_plugin
             )
 
         elif self.trainer._distrib_type == DistributedType.DP:
-            accelerator_backend = DataParallelAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DataParallelAccelerator(self.trainer, cluster_env)
 
         elif self.trainer._distrib_type == DistributedType.HOROVOD:
-            accelerator_backend = HorovodAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.HorovodAccelerator(self.trainer, cluster_env)
 
         elif self.trainer._device_type == DeviceType.GPU and self.trainer.num_gpus == 1:
-            accelerator_backend = GPUAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.GPUAccelerator(self.trainer, cluster_env)
 
         elif self.trainer._device_type == DeviceType.TPU:
-            accelerator_backend = TPUAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.TPUAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.distributed_backend is None:
-            accelerator_backend = CPUAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.CPUAccelerator(self.trainer, cluster_env)
         else:
             raise MisconfigurationException(
                 f'`Trainer(accelerator={self.trainer.distributed_backend}, num_nodes={self.trainer.num_nodes},'

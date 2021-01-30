@@ -41,8 +41,7 @@ def test_automatic_optimization(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
+def test_automatic_optimization_num_calls(tmpdir):
 
     with patch("torch.optim.SGD.step") as sgd_step, \
          patch("torch.optim.SGD.zero_grad") as sgd_zero_grad, \
@@ -71,16 +70,12 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
                     if batch_idx % 2 == 0:
                         assert isinstance(optimizer, SGD)
                         optimizer.step(closure=optimizer_closure)
-                        if not enable_pl_optimizer:
-                            optimizer.zero_grad()
 
                 # update discriminator opt every 4 steps
                 if optimizer_idx == 1:
                     if batch_idx % 4 == 0:
                         assert isinstance(optimizer, Adam)
                         optimizer.step(closure=optimizer_closure)
-                        if not enable_pl_optimizer:
-                            optimizer.zero_grad()
 
         model = TestModel()
         model.training_epoch_end = None
@@ -91,7 +86,6 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
             limit_train_batches=8,
             limit_val_batches=1,
             accumulate_grad_batches=1,
-            enable_pl_optimizer=enable_pl_optimizer
         )
 
         trainer.fit(model)
@@ -102,8 +96,7 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
     assert adam_zero_grad.call_count == 2
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_params_groups_and_state_are_accessible(enable_pl_optimizer, tmpdir):
+def test_params_groups_and_state_are_accessible(tmpdir):
 
     class TestModel(BoringModel):
 
@@ -136,7 +129,6 @@ def test_params_groups_and_state_are_accessible(enable_pl_optimizer, tmpdir):
         limit_train_batches=8,
         limit_val_batches=1,
         accumulate_grad_batches=1,
-        enable_pl_optimizer=enable_pl_optimizer
     )
 
     trainer.fit(model)

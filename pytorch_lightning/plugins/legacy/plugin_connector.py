@@ -26,21 +26,20 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class PluginConnector:
 
-    def __init__(self, trainer, plugins: Optional[Union[str, list]]):
+    def __init__(self, trainer):
         self.trainer = trainer
-        self.plugins = plugins or []
+        self.plugins = []
         self.ddp_plugin = DDPPlugin()
         self.cloud_environment = None
-        self.amp_plugin = NativeAMPPlugin(trainer)
-        self.apex_plugin = ApexPlugin(trainer)
-        self.plugins = self._convert_str_custom_plugins(self.plugins)
-        # TODO: do we need this?
-        #self self.plugins = self._append_required_plugins(self.plugins)
-        self.__attach_cluster()
-        # TODO: attach training_type_plugin
 
-    def on_trainer_init(self):
+    def on_trainer_init(self, plugins: Optional[Union[str, list]]):
+        self.plugins = plugins
+        if self.plugins is None:
+            self.plugins = []
+        self.plugins = self._convert_str_custom_plugins(self.plugins)
+        self.plugins = self._append_required_plugins(self.plugins)
         self.__attach_ddp()
+        self.__attach_cluster()
         self.__attach_amp()
         self.__attach_apex()
 
@@ -103,10 +102,12 @@ class PluginConnector:
     def _convert_str_custom_plugins(self, plugins: Union[str, list]):
         """
         Converts string inputs to corresponding supported lightning plugins.
+
         Args:
             plugins: List of plugins or string to choose lightning plugin.
 
-        Returns: List of plugins where strings are now plugins.
+        Returns:
+            List of plugins where strings are now plugins.
         """
         if isinstance(plugins, str):
             return [self._convert_str_to_plugin(plugins)]
@@ -133,9 +134,11 @@ class PluginConnector:
         Args:
             plugins: List of plugins
 
-        Returns: List of plugins containing additional plugins if needed.
+        Returns:
+            List of plugins containing additional plugins if needed.
 
         Example::
+
             class MyPlugin(DDPPlugin):
                 def required_plugins(self):
                     return [MyCustomAMPPlugin()]
@@ -163,7 +166,9 @@ class PluginConnector:
     def available_plugins(cls):
         """
         List of all available plugins that can be string arguments to the trainer.
-        Returns: List of all available plugins that are supported as string arguments.
+
+        Returns:
+            List of all available plugins that are supported as string arguments.
         """
         return [e.name for e in LightningCustomPlugins]
 

@@ -64,8 +64,6 @@ class DataParallelAccelerator(Accelerator):
         if self.trainer.amp_backend:
             model = self.__init_half_precision(model)
 
-        self.trainer.convert_to_lightning_optimizers()
-
         self.trainer.model = model
 
     def __init_torch_data_parallel(self, model):
@@ -132,6 +130,9 @@ class DataParallelAccelerator(Accelerator):
         return self._step(args)
 
     def test_step(self, args):
+        return self._step(args)
+
+    def predict(self, args):
         return self._step(args)
 
     def training_step_end(self, output):

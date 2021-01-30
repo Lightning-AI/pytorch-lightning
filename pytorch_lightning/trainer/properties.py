@@ -21,7 +21,6 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import Callback, ProgressBarBase, ModelCheckpoint, EarlyStopping
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
@@ -67,6 +66,7 @@ class TrainerProperties(ABC):
     num_nodes: int
     num_processes: int
     accelerator_connector: BackendConnector
+    _lightning_optimizers = None
 
     @property
     def accelerator(self):
@@ -384,6 +384,12 @@ class TrainerProperties(ABC):
         return self.lightning_module
 
     @property
+    def lightning_optimizers(self):
+        if self._lightning_optimizers is None:
+            self.convert_to_lightning_optimizers()
+        return self._lightning_optimizers
+
+    @property
     def lightning_module(self):
         return self.training_type_plugin.lightning_module
 
@@ -425,15 +431,9 @@ class TrainerProperties(ABC):
 
     # TODO: refactor this so that it can be done in LightningOptimizer
     def __getstate__(self):
-        # unwrap optimizer
-        self.accelerator.optimizers = [opt._optimizer if is_lightning_optimizer(opt) else opt for opt in self.optimizers]
+        # remove lightning_optimizers
+        self._lightning_optimizers = None
         return self.__dict__
-
-    # TODO: refactor this so that it can be done in LightningOptimizer
-    def __setstate__(self, d):
-        self.__dict__ = d
-        # wrap optimizers if enable_pl_optimzer is True
-        self.accelerator.optimizers = self.convert_to_lightning_optimizers(self.optimizers)
 
     @property
     def require_distributed_sampler(self):
