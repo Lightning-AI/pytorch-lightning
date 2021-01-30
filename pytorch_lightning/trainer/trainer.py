@@ -29,7 +29,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins.legacy.plugin_connector import PluginConnector
 from pytorch_lightning.profiler import BaseProfiler
@@ -308,7 +308,7 @@ class Trainer(
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
         self.optimizer_connector = OptimizerConnector(self)
-        self.plugin_connector = PluginConnector(self, plugins)
+        self.plugin_connector = PluginConnector(self)
         self.accelerator_connector = BackendConnector(
             num_processes,
             tpu_cores,
@@ -419,7 +419,7 @@ class Trainer(
 
         # last thing are the plugins which override whatever the trainer used by default
         # TODO: probably not needed anymore after refactor
-        self.plugin_connector.on_trainer_init()
+        self.plugin_connector.on_trainer_init(plugins)
 
         # Callback system
         self.on_init_end()

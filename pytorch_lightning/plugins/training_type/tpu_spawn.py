@@ -6,7 +6,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.seed import seed_everything
 from typing import Any, Dict, Optional
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn,
+from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 
