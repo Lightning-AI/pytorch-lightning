@@ -17,11 +17,13 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.plugins import TrainingTypePlugin
-from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
-from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.training_type import TrainingTypePlugin, HorovodPlugin
+from pytorch_lightning.plugins.precision import (
+    PrecisionPlugin,
+    MixedPrecisionPlugin,
+    ApexMixedPrecisionPlugin,
+    NativeMixedPrecisionPlugin,
+)
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
@@ -327,7 +329,7 @@ class Accelerator(object):
         """
         plugin.connect(model)
 
-    def connect_precision_plugin(self, plugin):  #: PrecisionPlugin # fixme
+    def connect_precision_plugin(self, plugin: PrecisionPlugin):
         """Attaches the precision plugin to the accelerator"""
         model, optimizers, schedulers = plugin.connect(self.model, self.optimizers, self.lr_schedulers)
         self.model = model
