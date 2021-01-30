@@ -41,8 +41,4 @@ pytorch_lightning/tuner/*
 
 
 # TODO
-pytorch_lightning/utilities/*
-
-
-# TODO
 tests/*

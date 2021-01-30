@@ -235,8 +235,10 @@ def lightning_getattr(model, attribute):
     elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
         attr = getattr(trainer.datamodule, attribute)
     else:
-        raise ValueError(f'{attribute} is neither stored in the model namespace'
-                         ' nor the `hparams` namespace/dict, nor the datamodule.')
+        raise ValueError(
+            f'{attribute} is neither stored in the model namespace'
+            ' nor the `hparams` namespace/dict, nor the datamodule.'
+        )
     return attr
 
 
@@ -246,8 +248,10 @@ def lightning_setattr(model, attribute, value):
         Will also set the attribute on datamodule, if it exists.
     """
     if not lightning_hasattr(model, attribute):
-        raise ValueError(f'{attribute} is neither stored in the model namespace'
-                         ' nor the `hparams` namespace/dict, nor the datamodule.')
+        raise ValueError(
+            f'{attribute} is neither stored in the model namespace'
+            ' nor the `hparams` namespace/dict, nor the datamodule.'
+        )
 
     trainer = getattr(model, 'trainer', None)
 
