@@ -9,7 +9,6 @@ _DATASETS_PATH = os.path.join(_PACKAGE_ROOT, 'Datasets')
 _TORCHVISION_AVAILABLE = _module_available("torchvision")
 _DALI_AVAILABLE = _module_available("nvidia.dali")
 
-
 LIGHTNING_LOGO = """
                     ####
                 ###########

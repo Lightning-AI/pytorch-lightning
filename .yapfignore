@@ -1,9 +1,6 @@
 .git/*
 
 # TODO
-pl_examples/*
-
-# TODO
 pytorch_lightning/*
 
 # TODO
