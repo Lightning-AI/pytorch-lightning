@@ -236,8 +236,7 @@ def lightning_getattr(model, attribute):
         attr = getattr(trainer.datamodule, attribute)
     else:
         raise ValueError(
-            f'{attribute} is neither stored in the model namespace'
-            ' nor the `hparams` namespace/dict, nor the datamodule.'
+            f'{attribute} is neither stored in the model namespace nor the `hparams` namespace/dict, nor the datamodule.'
         )
     return attr
 
@@ -249,8 +248,7 @@ def lightning_setattr(model, attribute, value):
     """
     if not lightning_hasattr(model, attribute):
         raise ValueError(
-            f'{attribute} is neither stored in the model namespace'
-            ' nor the `hparams` namespace/dict, nor the datamodule.'
+            f'{attribute} is neither stored in the model namespace nor the `hparams` namespace/dict, nor the datamodule.'
         )
 
     trainer = getattr(model, 'trainer', None)

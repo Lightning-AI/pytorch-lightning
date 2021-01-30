@@ -75,9 +75,8 @@ class LightningDataParallel(DataParallel):
         for t in chain(self.module.parameters(), self.module.buffers()):
             if t.device != self.src_device_obj:
                 raise RuntimeError(
-                    "module must have its parameters and buffers "
-                    "on device {} (device_ids[0]) but found one of "
-                    "them on device: {}".format(self.src_device_obj, t.device)
+                    f"module must have its parameters and buffers on device {self.src_device_obj} (device_ids[0])"
+                    f" but found one of them on device: {t.device}"
                 )
 
         inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)

@@ -33,8 +33,7 @@ def has_len(dataloader: DataLoader) -> bool:
         # try getting the length
         if len(dataloader) == 0:
             raise ValueError(
-                '`Dataloader` returned 0 length.'
-                ' Please make sure that your Dataloader at least returns 1 batch'
+                '`Dataloader` returned 0 length. Please make sure that your Dataloader at least returns 1 batch'
             )
         has_len = True
     except TypeError:
