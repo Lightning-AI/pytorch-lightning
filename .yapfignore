@@ -18,10 +18,6 @@ pytorch_lightning/core/*
 
 
 # TODO
-pytorch_lightning/distributed/*
-
-
-# TODO
 pytorch_lightning/loggers/*
 
 
