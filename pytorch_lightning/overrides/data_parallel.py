@@ -74,9 +74,10 @@ class LightningDataParallel(DataParallel):
 
         for t in chain(self.module.parameters(), self.module.buffers()):
             if t.device != self.src_device_obj:
-                raise RuntimeError("module must have its parameters and buffers "
-                                   "on device {} (device_ids[0]) but found one of "
-                                   "them on device: {}".format(self.src_device_obj, t.device))
+                raise RuntimeError(
+                    f"module must have its parameters and buffers on device {self.src_device_obj} (device_ids[0])"
+                    f" but found one of them on device: {t.device}"
+                )
 
         inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
 
@@ -127,6 +128,7 @@ class LightningDataParallel(DataParallel):
         r"""
         Override the gather method to support python scalars as well.
         """
+
         def gather_map(outputs):
             elem = outputs[0]
             elem_type = type(elem)
@@ -140,8 +142,7 @@ class LightningDataParallel(DataParallel):
             if isinstance(elem, Mapping):
                 if not all((len(elem) == len(d) for d in outputs)):
                     raise ValueError('All dicts must have the same number of keys')
-                return elem_type(((k, gather_map([d[k] for d in outputs]))
-                                  for k in elem))
+                return elem_type(((k, gather_map([d[k] for d in outputs])) for k in elem))
 
             if isinstance(elem, Iterable) and not isinstance(elem, str):
                 return elem_type(map(gather_map, zip(*outputs)))
@@ -247,10 +248,10 @@ def warn_missing_output(fx_called):
 
 
 def parallel_apply(
-        modules: Module,
-        inputs: Tensor,
-        kwargs_tup: Optional[tuple] = None,
-        devices: Optional[list] = None,
+    modules: Module,
+    inputs: Tensor,
+    kwargs_tup: Optional[tuple] = None,
+    devices: Optional[list] = None,
 ):  # pragma: no-cover
     r"""Applies each `module` in :attr:`modules` in parallel on arguments
     contained in :attr:`inputs` (positional) and :attr:`kwargs_tup` (keyword)
@@ -270,7 +271,7 @@ def parallel_apply(
     if kwargs_tup is not None:
         assert len(modules) == len(kwargs_tup)
     else:
-        kwargs_tup = ({},) * len(modules)
+        kwargs_tup = ({}, ) * len(modules)
     if devices is not None:
         assert len(modules) == len(devices)
     else:
@@ -288,7 +289,7 @@ def parallel_apply(
             with torch.cuda.device(device):
                 # this also avoids accidental slicing of `input` if it is a Tensor
                 if not isinstance(input, (list, tuple)):
-                    input = (input,)
+                    input = (input, )
 
                 module = module.to(device)
 
@@ -333,10 +334,10 @@ def parallel_apply(
         m.testing = root_m.testing
 
     if len(modules) > 1:
-        threads = [threading.Thread(target=_worker,
-                                    args=(i, module, input, kwargs, device))
-                   for i, (module, input, kwargs, device) in
-                   enumerate(zip(modules, inputs, kwargs_tup, devices))]
+        threads = [
+            threading.Thread(target=_worker, args=(i, module, input, kwargs, device))
+            for i, (module, input, kwargs, device) in enumerate(zip(modules, inputs, kwargs_tup, devices))
+        ]
 
         for thread in threads:
             thread.start()
