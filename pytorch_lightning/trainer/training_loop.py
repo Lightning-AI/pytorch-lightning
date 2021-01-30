@@ -342,13 +342,6 @@ class TrainLoop:
             return None, None
 
         # -----------------------------------------
-        # process result return (DEPRECATE in 1.0)
-        # -----------------------------------------
-        if isinstance(training_step_output, Result):
-            training_step_output_for_epoch_end = self._process_result(training_step_output, split_batch)
-            return training_step_output_for_epoch_end, training_step_output
-
-        # -----------------------------------------
         # process hybrid (1.0)
         # -----------------------------------------
         # no need for these checks in 1.0.0
