@@ -1492,7 +1492,7 @@ def test_disabled_training_for_insufficient_limit_train_batches(tmpdir, limit_tr
     for key in before_state_dict.keys():
         assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key])) != should_train
 
-    params_string = f"""`limit_train_batches = {limit_train_batches}`, `dataset_len = {dataset_len}` & `batch_size = {batch_size}`
+    params_string = f"""`limit_train_batches={limit_train_batches}`, `dataset_len={dataset_len}` & `batch_size={batch_size}`
                         as `num_training_batches = {num_training_batches}`"""
     if should_train:
         error_string = f"should run with {params_string}"
