@@ -140,10 +140,7 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     for gpu in gpus:
         if gpu not in all_available_gpus:
             raise MisconfigurationException(
-                f"""
-                You requested GPUs: {gpus}
-                But your machine only has: {all_available_gpus}
-            """
+                f"You requested GPUs: {gpus}\n But your machine only has: {all_available_gpus}"
             )
     return gpus
 
