@@ -4,13 +4,7 @@ from typing import Any, Callable, Iterable, Optional, Union
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins import TrainingTypePlugin, HorovodPlugin
-from pytorch_lightning.plugins.precision import (
-    ApexMixedPrecisionPlugin,
-    MixedPrecisionPlugin,
-    NativeMixedPrecisionPlugin,
-    PrecisionPlugin,
-)
+from pytorch_lightning.plugins import TrainingTypePlugin
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -33,7 +27,7 @@ class Accelerator(object):
 
     def __init__(
         self,
-        precision_plugin: PrecisionPlugin,
+        precision_plugin,  #: PrecisionPlugin  # fixme
         training_type_plugin: TrainingTypePlugin,
     ) -> None:
         """
@@ -224,8 +218,9 @@ class Accelerator(object):
         )
 
         # TODO: this is a hack, find a better solution for this (hook?)
-        if isinstance(self.training_type_plugin, HorovodPlugin):
-            optimizer.synchronize()
+        # fixme: uncomment when this class is added
+        # if isinstance(self.training_type_plugin, HorovodPlugin):
+        #     optimizer.synchronize()
 
         return output
 
@@ -249,9 +244,11 @@ class Accelerator(object):
         """
         model_ref = self.lightning_module
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        native_amp = (
-            isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.NATIVE
-        )
+        # fixme: uncomment when this class is added
+        # is_native_amp = (
+        #     isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.NATIVE
+        # )
+        is_native_amp = False
 
         self.precision_plugin.pre_optimizer_step(optimizer, opt_idx)
         self.training_type_plugin.pre_optimizer_step(optimizer, opt_idx)
@@ -264,7 +261,7 @@ class Accelerator(object):
             optimizer_idx=opt_idx,
             optimizer_closure=lambda_closure,
             on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=native_amp,
+            using_native_amp=is_native_amp,
             using_lbfgs=is_lbfgs,
         )
 
@@ -317,7 +314,7 @@ class Accelerator(object):
         """
         plugin.connect(model)
 
-    def connect_precision_plugin(self, plugin: PrecisionPlugin):
+    def connect_precision_plugin(self, plugin):  #: PrecisionPlugin # fixme
         """Attaches the precision plugin to the accelerator"""
         model, optimizers, schedulers = plugin.connect(self.model, self.optimizers, self.lr_schedulers)
         self.model = model
@@ -330,12 +327,13 @@ class Accelerator(object):
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:
-        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
-            return AMPType.APEX
-        elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
-            return AMPType.NATIVE
-        else:
-            return None
+        # fixme: uncomment when this class is added
+        # if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+        #     return AMPType.APEX
+        # elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+        #     return AMPType.NATIVE
+        # return None
+        pass
 
     @property
     def precision(self) -> int:
