@@ -34,7 +34,6 @@ class TrainingTypePlugin(Plugin, ABC):
     @abstractmethod
     def on_gpu(self) -> bool:
         """Returns whether the current process is done on GPU"""
-        raise NotImplementedError
 
     @property
     @abstractmethod
