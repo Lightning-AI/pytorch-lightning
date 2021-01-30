@@ -56,7 +56,6 @@ class TrainingTypePlugin(Plugin, ABC):
     @abstractmethod
     def barrier(self, name: Optional[str] = None):
         """Forces all possibly joined processes to wait for each other"""
-        raise NotImplementedError
 
     @abstractmethod
     def broadcast(self, obj: object, src: int = 0) -> object:
