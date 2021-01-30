@@ -14,10 +14,6 @@ pytorch_lightning/cluster_environments/*
 
 
 # TODO
-pytorch_lightning/core/*
-
-
-# TODO
 pytorch_lightning/loggers/*
 
 
