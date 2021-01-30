@@ -2,7 +2,7 @@
 
 
 # TODO
-pytorch_lightning/accelerators/*
+pytorch_lightning/accelerators/legacy/*
 
 
 # TODO
@@ -25,7 +25,7 @@ pytorch_lightning/loggers/*
 pytorch_lightning/metrics/*
 
 # TODO
-pytorch_lightning/plugins/*
+pytorch_lightning/plugins/legacy/*
 
 
 # TODO
