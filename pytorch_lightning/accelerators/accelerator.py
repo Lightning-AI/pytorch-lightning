@@ -18,7 +18,6 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins import TrainingTypePlugin
-from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import LightningEnum
 
