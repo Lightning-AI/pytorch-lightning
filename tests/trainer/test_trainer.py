@@ -11,21 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from argparse import Namespace
-from copy import deepcopy
 import math
 import os
-from pathlib import Path
 import pickle
 import sys
+from argparse import Namespace
+from copy import deepcopy
+from pathlib import Path
 from unittest.mock import ANY, call, patch
 
 import cloudpickle
-from omegaconf import OmegaConf
 import pytest
 import torch
+from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
 
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
@@ -37,7 +38,6 @@ from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate, RandomDataset
-import tests.base.develop_utils as tutils
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1454,7 +1454,7 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
 def test_disabled_training_for_insufficient_limit_train_batches(tmpdir, limit_train_batches, global_step,
                                                                 num_training_batches, current_epoch, should_train):
     """
-    Verify when `limit_train_batches` is float & between [0.0, 0.1] and 
+    Verify when `limit_train_batches` is float & between [0.0, 0.1] and
     `int(self.num_training_batches * self.limit_train_batches) == 0`, the training loop is disabled.
     """
     class CurrentModel(BoringModel):
