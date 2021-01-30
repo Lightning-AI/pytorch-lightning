@@ -21,12 +21,12 @@ from pytorch_lightning.metrics.classification.helpers import _input_format_class
 def _del_column(tensor: torch.Tensor, index: int):
     """ Delete the column at index."""
 
-    return torch.cat([tensor[:, :index], tensor[:, (index + 1) :]], 1)
+    return torch.cat([tensor[:, :index], tensor[:, (index + 1):]], 1)
 
 
-def _stat_scores(
-    preds: torch.Tensor, target: torch.Tensor, reduce: str = "micro"
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+def _stat_scores(preds: torch.Tensor,
+                 target: torch.Tensor,
+                 reduce: str = "micro",) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Calculate the number of tp, fp, tn, fn.
 
     Args:

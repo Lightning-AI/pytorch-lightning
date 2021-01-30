@@ -20,11 +20,15 @@ from pytorch_lightning.metrics.utils import _stable_1d_sort
 
 def _auc_update(x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     if x.ndim > 1 or y.ndim > 1:
-        raise ValueError(f'Expected both `x` and `y` tensor to be 1d, but got'
-                         f' tensors with dimention {x.ndim} and {y.ndim}')
+        raise ValueError(
+            f'Expected both `x` and `y` tensor to be 1d, but got'
+            f' tensors with dimention {x.ndim} and {y.ndim}'
+        )
     if x.numel() != y.numel():
-        raise ValueError(f'Expected the same number of elements in `x` and `y`'
-                         f' tensor but received {x.numel()} and {y.numel()}')
+        raise ValueError(
+            f'Expected the same number of elements in `x` and `y`'
+            f' tensor but received {x.numel()} and {y.numel()}'
+        )
     return x, y
 
 
