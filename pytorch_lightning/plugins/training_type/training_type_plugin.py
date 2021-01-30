@@ -60,7 +60,6 @@ class TrainingTypePlugin(Plugin, ABC):
     @abstractmethod
     def broadcast(self, obj: object, src: int = 0) -> object:
         """Broadcasts an object to all processes"""
-        raise NotImplementedError
 
     # TODO method this is currently unused. Check after complete refactors are pushed
     def set_nvidia_flags(self, is_slurm_managing_tasks, device_ids):
