@@ -4,8 +4,8 @@ from typing import Generator, Union
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.plugins.base_plugin import Plugin
 
 
 class PrecisionPlugin(Plugin):

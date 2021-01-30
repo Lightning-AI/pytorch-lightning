@@ -1,3 +1,3 @@
 from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.plugins.precision import *
-from pytorch_lightning.plugins.training_type import *
+from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
