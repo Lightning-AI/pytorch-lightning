@@ -28,11 +28,6 @@ pytorch_lightning/loggers/*
 # TODO
 pytorch_lightning/metrics/*
 
-
-# TODO
-pytorch_lightning/overrides/*
-
-
 # TODO
 pytorch_lightning/plugins/*
 
