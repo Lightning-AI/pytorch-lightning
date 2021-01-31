@@ -44,7 +44,6 @@ from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_wa
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
-    import torch_xla
     import torch_xla.core.xla_model as xm
 except ImportError:
     XLA_AVAILABLE = False
@@ -241,8 +240,8 @@ class BackendConnector(object):
             use_ddp_cpu_spawn = self.use_ddp and self.distributed_backend == "ddp_cpu"
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self.is_using_torchelastic
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
-            use_ddp_sharded = self.distributed_backend == "ddp_sharded"
-            use_ddp_sharded_spawn = self.distributed_backend == "ddp_sharded_spawn"
+            # use_ddp_sharded = self.distributed_backend == "ddp_sharded"
+            # use_ddp_sharded_spawn = self.distributed_backend == "ddp_sharded_spawn"
 
             if self.on_tpu:
                 ddp_plugin_cls = TPUSpawnPlugin
