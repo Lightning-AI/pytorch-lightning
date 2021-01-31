@@ -6,6 +6,7 @@ import torch
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -74,7 +75,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def __save_end_of_training_weights(self, model: LightningModule, trainer: Trainer) -> None:
         # when training ends on these platforms dump weights to get out of the main process
-        if self.on_colab_kaggle:
+        if on_colab_kaggle():
             rank_zero_warn("cleaning up... please do not interrupt")
             self.save_spawn_weights(model)
 
@@ -91,10 +92,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
         return move_data_to_device(checkpoint, torch.device("cpu"))
-
-    @property
-    def on_colab_kaggle(self) -> bool:
-       return bool(os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE'))
 
     def broadcast(self, obj: object, src:int=0)->object:
         buffer = io.BytesIO()
