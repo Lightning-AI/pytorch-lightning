@@ -27,9 +27,9 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 def unwrap_lightning_module(wrapped_model):
     model = wrapped_model
-    if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
+    if isinstance(model, (DistributedDataParallel, DataParallel)):
         model = model.module
-    if isinstance(model, LightningDistributedModule):
+    if isinstance(model, _LightningModuleWrapperBase):
         model = model.module
     return model
 

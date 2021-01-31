@@ -14,9 +14,10 @@
 from typing import List
 
 import torch
+from torch.nn import DataParallel
 
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.overrides.data_parallel import LightningDataParallel
+from pytorch_lightning.overrides import LightningParallelModule
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 
 
@@ -26,7 +27,7 @@ class DataParallelPlugin(ParallelPlugin):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
     def setup(self, model):
-        self._model = LightningDataParallel(model, self.parallel_devices)
+        self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)
 
     def reduce(self, output, *args, **kwargs):
         if isinstance(output, Result):
