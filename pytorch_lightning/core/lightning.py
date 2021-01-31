@@ -994,7 +994,7 @@ class LightningModule(
         """
         Configure model-specific callbacks.
         When the model gets attached, e.g., when ``.fit()`` or ``.test()`` gets called,
-        the list returned here will be merged with the list of callbacks passed to the Trainer's `callbacks` argument.
+        the list returned here will be merged with the list of callbacks passed to the Trainer's ``callbacks`` argument.
         If a callback returned here has the same type as one or several callbacks already present in
         the Trainer's callbacks list, it will take priority and replace them.
 

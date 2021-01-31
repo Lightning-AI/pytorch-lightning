@@ -534,9 +534,9 @@ Example::
             print("Training is done.")
 
 
-Model-specific callbacks can also be added inside the LightningModule through
+Model-specific callbacks can also be added inside the ``LightningModule`` through
 :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
-Callbacks returned in this hook will extend the list initially given to the Trainer argument, and replace
+Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
 the trainer callbacks should there be two or more of the same type.
 
 
