@@ -1454,7 +1454,7 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
 def test_disabled_training_for_insufficient_limit_train_batches(tmpdir, limit_train_batches, global_step,
                                                                 num_training_batches, current_epoch, should_train):
     """
-    Verify when `limit_train_batches` is float & between [0.0, 0.1] and
+    Verify when `limit_train_batches` is float & between [0.0, 1.0] and
     `int(self.num_training_batches * self.limit_train_batches) == 0`, the training loop is disabled.
     """
     class CurrentModel(BoringModel):
