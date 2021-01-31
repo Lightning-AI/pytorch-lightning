@@ -4,7 +4,7 @@ from typing import List, Optional
 
 import torch
 
-from pytorch_lightning.plugins .training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
