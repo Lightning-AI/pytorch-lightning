@@ -14,8 +14,8 @@
 import os
 from typing import Union
 
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
