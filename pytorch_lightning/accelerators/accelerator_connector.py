@@ -20,21 +20,43 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, \
-    PrecisionPlugin, ShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.plugins import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
-    DataParallelPlugin, DDP2Plugin, HorovodPlugin, DDPShardedPlugin, DDPSpawnShardedPlugin
+from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
+from pytorch_lightning.plugins import (
+    ApexMixedPrecisionPlugin,
+    DataParallelPlugin,
+    DDP2Plugin,
+    DDPPlugin,
+    DDPShardedPlugin,
+    DDPSpawnPlugin,
+    DDPSpawnShardedPlugin,
+    HorovodPlugin,
+    NativeMixedPrecisionPlugin,
+    PrecisionPlugin,
+    ShardedNativeMixedPrecisionPlugin,
+    SingleDevicePlugin,
+    SingleTPUPlugin,
+    TPUHalfPrecisionPlugin,
+    TPUSpawnPlugin,
+)
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.utilities import AMPType, _NATIVE_AMP_AVAILABLE, _APEX_AVAILABLE, device_parser, DeviceType, \
-    DistributedType, _TPU_AVAILABLE
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
+from pytorch_lightning.utilities import (
+    _APEX_AVAILABLE,
+    _NATIVE_AMP_AVAILABLE,
+    _TPU_AVAILABLE,
+    AMPType,
+    device_parser,
+    DeviceType,
+    DistributedType,
+    rank_zero_only,
+)
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     import torch_xla
+    import torch_xla.core.xla_model as xm
 except ImportError:
     XLA_AVAILABLE = False
 else:
@@ -49,22 +71,23 @@ else:
 
 
 class BackendConnector(object):
+
     def __init__(
-        self,
-        num_processes,
-        tpu_cores,
-        distributed_backend,
-        auto_select_gpus,
-        gpus,
-        num_nodes,
-        sync_batchnorm,
-        benchmark,
-        replace_sampler_ddp,
-        deterministic,
-        precision,
-        amp_type, 
-        amp_level,
-        cluster_environment,
+            self,
+            num_processes,
+            tpu_cores,
+            distributed_backend,
+            auto_select_gpus,
+            gpus,
+            num_nodes,
+            sync_batchnorm,
+            benchmark,
+            replace_sampler_ddp,
+            deterministic,
+            precision,
+            amp_type,
+            amp_level,
+            cluster_environment,
     ):
         # initialization
         self._device_type = DeviceType.CPU
@@ -182,14 +205,14 @@ class BackendConnector(object):
         if self.on_gpu:
             devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
         elif self.on_tpu:
-            raise NotImplementedError
+            devices = [xm.xla_device(i) for i in self.parallel_device_ids]
         else:
             devices = [torch.device("cpu")] * self.num_processes
         return devices
 
     @property
     def is_using_torchelastic(self):
-        te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
+        te_flags_passed = "WORLD_SIZE" in os.environ and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
         return te_flags_passed
 
     def select_precision_plugin(self):
@@ -198,42 +221,46 @@ class BackendConnector(object):
             return PrecisionPlugin()
 
         elif self.precision == 16:
-            if self.amp_type == 'native':
+            if self.on_tpu:
+                return TPUHalfPrecisionPlugin()
+
+            if self.amp_type == "native":
                 if not _NATIVE_AMP_AVAILABLE:
-                    rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
-                                ' Consider upgrading with `pip install torch>=1.6`.'
-                                ' We will attempt to use NVIDIA Apex for this session.')
-                    self.amp_type = 'apex'
+                    rank_zero_warn(
+                        "You have asked for native AMP but your PyTorch version does not support it."
+                        " Consider upgrading with `pip install torch>=1.6`."
+                        " We will attempt to use NVIDIA Apex for this session."
+                    )
+                    self.amp_type = "apex"
                 else:
-                    log.info('Using native 16bit precision.')
-                    if self.distributed_backend == 'ddp_sharded' or self.distributed_backend == 'ddp_sharded_spawn':
+                    log.info("Using native 16bit precision.")
+                    if self.distributed_backend == "ddp_sharded" or self.distributed_backend == "ddp_sharded_spawn":
                         return ShardedNativeMixedPrecisionPlugin()
                     self.amp_type = AMPType.NATIVE
                     return NativeMixedPrecisionPlugin()
 
-            if self.amp_type == 'apex':
+            if self.amp_type == "apex":
                 if not _APEX_AVAILABLE:
-                    rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
-                                   ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
+                    rank_zero_warn(
+                        "You have asked for Apex AMP but you have not installed it yet."
+                        " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
+                    )
                 else:
-                    if self.distributed_backend == 'ddp_sharded' or self.distributed_backend == 'ddp_sharded_spawn':
+                    if self.distributed_backend == "ddp_sharded" or self.distributed_backend == "ddp_sharded_spawn":
                         raise MisconfigurationException(
-                            'Sharded Plugin is not supported with Apex AMP, '
-                            'please using native AMP for 16-bit precision.'
+                            "Sharded Plugin is not supported with Apex AMP, "
+                            "please using native AMP for 16-bit precision."
                         )
-                    log.info('Using APEX 16bit precision.')
+                    log.info("Using APEX 16bit precision.")
                     self.amp_type = AMPType.APEX
                     return ApexMixedPrecisionPlugin(self.amp_level)
         else:
-            raise NotImplementedError('We only support precisions 32 and 16!')
+            raise NotImplementedError("We only support precisions 32 and 16!")
 
     def select_training_type_plugin(self):
         cluster_environment = self.select_cluster_environment()
         if self.use_ddp2:
-            plugin = DDP2Plugin(
-                parallel_devices=self.parallel_devices,
-                cluster_environment=cluster_environment
-            )
+            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=cluster_environment)
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
@@ -244,9 +271,12 @@ class BackendConnector(object):
             use_ddp_sharded = self.distributed_backend == "ddp_sharded"
             use_ddp_sharded_spawn = self.distributed_backend == "ddp_sharded_spawn"
 
+            if self.on_tpu:
+                ddp_plugin_cls = TPUSpawnPlugin
+
             # ddp script mode uses the same flags as TE
             # TODO: decouple from TE
-            if os.environ.get('PL_IN_DDP_SUBPROCESS', False):
+            if os.environ.get("PL_IN_DDP_SUBPROCESS", False):
                 use_torchelastic_ddp = False
 
             if use_ddp_sharded:
@@ -270,6 +300,8 @@ class BackendConnector(object):
             plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
         elif self.use_horovod:
             plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
+        elif self.on_tpu:
+            plugin = SingleTPUPlugin(self.tpu_id)
         else:
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{self.root_gpu}" if self.on_gpu else "cpu"))
         return plugin
@@ -281,6 +313,8 @@ class BackendConnector(object):
 
         if self.on_gpu:
             acc_cls = GPUAccelerator
+        elif self.on_tpu:
+            acc_cls = TPUAccelerator
         else:
             acc_cls = CPUAccelerator
 
@@ -348,16 +382,17 @@ class BackendConnector(object):
                 'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
             )
             # todo: in some cases it yield in comarison None and int
-            if ((self.num_nodes and self.num_nodes > 1)
-                    or (self.num_processes and self.num_processes > 1)):
+            if ((self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1)):
                 self._distrib_type = DistributedType.DDP
             else:
                 rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
                 self._distrib_type = None
 
         # for DDP overwrite nb processes by requested GPUs
-        if (self._device_type == DeviceType.GPU
-                and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)):
+        if (
+                self._device_type == DeviceType.GPU
+                and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
+        ):
             self.num_processes = self.num_gpus
 
         # Horovod si an extra case...
@@ -372,14 +407,12 @@ class BackendConnector(object):
                 'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
             )
 
-        rank_zero_info(
-            f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}'
-        )
+        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
         num_cores = self.tpu_cores if self.tpu_cores is not None else 0
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
-            rank_zero_warn('GPU available but not used. Set the --gpus flag when calling the script.')
+            rank_zero_warn("GPU available but not used. Set the --gpus flag when calling the script.")
 
     def _set_horovod_backend(self):
         self.check_horovod()
@@ -421,7 +454,7 @@ class BackendConnector(object):
             num_requested_gpus = self.num_gpus * self.num_nodes
             num_slurm_tasks = 0
             try:
-                num_slurm_tasks = int(os.environ['SLURM_NTASKS'])
+                num_slurm_tasks = int(os.environ["SLURM_NTASKS"])
                 self.is_slurm_managing_tasks = num_slurm_tasks == num_requested_gpus
 
                 # enable slurm cpu
@@ -429,8 +462,8 @@ class BackendConnector(object):
                     self.is_slurm_managing_tasks = num_slurm_tasks == self.num_processes
 
                 # in interactive mode we don't manage tasks
-                job_name = os.environ['SLURM_JOB_NAME']
-                if job_name == 'bash':
+                job_name = os.environ["SLURM_JOB_NAME"]
+                if job_name == "bash":
                     self.is_slurm_managing_tasks = False
 
             except Exception:
@@ -439,7 +472,7 @@ class BackendConnector(object):
 
         # used for tests only, set this flag to simulate slurm managing a task
         try:
-            should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
+            should_fake = int(os.environ["FAKE_SLURM_MANAGING_TASKS"])
             if should_fake:
                 self.is_slurm_managing_tasks = True
         except Exception:
@@ -447,4 +480,4 @@ class BackendConnector(object):
 
         # notify user the that slurm is managing tasks
         if self.is_slurm_managing_tasks:
-            rank_zero_info('Multi-processing is handled by Slurm.')
+            rank_zero_info("Multi-processing is handled by Slurm.")
