@@ -160,4 +160,12 @@ class AUROC(Metric):
         """
         preds = torch.cat(self.preds, dim=0)
         target = torch.cat(self.target, dim=0)
-        return _auroc_compute(preds, target, self.mode, self.num_classes, self.pos_label, self.average, self.max_fpr,)
+        return _auroc_compute(
+            preds,
+            target,
+            self.mode,
+            self.num_classes,
+            self.pos_label,
+            self.average,
+            self.max_fpr,
+        )
