@@ -20,7 +20,7 @@ import pytest
 from pytorch_lightning import accelerators, Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.cluster_environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities import DistributedType
 from tests.base.boring_model import BoringModel
 

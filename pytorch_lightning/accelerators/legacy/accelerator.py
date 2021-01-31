@@ -17,7 +17,7 @@ from typing import Any, Optional, Union
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.legacy.rpc_plugin import RPCPlugin

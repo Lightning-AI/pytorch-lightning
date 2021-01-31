@@ -21,8 +21,8 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
-from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
+from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
+from pytorch_lightning.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     DataParallelPlugin,
