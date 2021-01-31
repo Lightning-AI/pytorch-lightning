@@ -1,7 +1,7 @@
 import torch
 
-from pytorch_lightning.plugins .training_type.ddp import DDPPlugin
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 
 
 class DDP2Plugin(DDPPlugin):
