@@ -18,6 +18,7 @@ from torch.nn import DataParallel
 
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides import LightningParallelModule
+from pytorch_lightning.overrides.data_parallel import unwrap_lightning_module
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 
 
@@ -44,7 +45,7 @@ class DataParallelPlugin(ParallelPlugin):
 
     @property
     def lightning_module(self):
-        return getattr(self._model, "module", None)
+        return unwrap_lightning_module(self.model)
 
     def model_to_device(self):
         # no need to do anything when model is wrapped in torch.nn.DataParallel
