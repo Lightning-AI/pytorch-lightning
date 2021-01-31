@@ -5,6 +5,7 @@ from typing import Optional
 import torch
 
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
+from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 
 if _TPU_AVAILABLE:
@@ -32,10 +33,6 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def post_training(self) -> None:
         model = self.lightning_module
 
-        if self.on_colab_kaggle:
+        if on_colab_kaggle():
             rank_zero_warn("cleaning up... please do not interrupt")
             self.save_spawn_weights(model)
-
-    @property
-    def on_colab_kaggle(self) -> bool:
-        return bool(os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE"))
