@@ -223,3 +223,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         if isinstance(output, torch.Tensor):
             output = sync_ddp_if_available(output, group, reduce_op)
         return output
+
+    def training_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def validation_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)

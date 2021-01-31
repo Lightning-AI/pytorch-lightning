@@ -54,3 +54,12 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         :meth:`consolidate_state_dict`.
         """
         return optimizer.state_dict()
+
+    def training_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def validation_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)

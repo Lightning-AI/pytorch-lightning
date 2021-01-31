@@ -58,3 +58,13 @@ class DataParallelPlugin(ParallelPlugin):
 
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
         return should_stop
+
+    def training_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def validation_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
