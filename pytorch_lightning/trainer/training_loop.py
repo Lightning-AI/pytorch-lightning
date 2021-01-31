@@ -449,11 +449,7 @@ class TrainLoop:
         return training_step_output_for_epoch_end
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
-        with self.trainer.profiler.profile("optimizer_step"):
-            # optimizer step lightningModule hook
-            self.trainer.accelerator_backend.optimizer_step(
-                optimizer, self.trainer.current_epoch, batch_idx, opt_idx, train_step_and_backward_closure
-            )
+        model_ref = self.trainer.get_model()
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
         using_native_amp = self.trainer.amp_backend == AMPType.NATIVE

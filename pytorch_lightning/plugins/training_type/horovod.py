@@ -86,9 +86,6 @@ class HorovodPlugin(ParallelPlugin):
             ) for optimizer in optimizers
         ]
 
-        optimizers = self.lightning_module.trainer.convert_to_lightning_optimizers(optimizers)
-        self.lightning_module.trainer.optimizers = optimizers
-
     def start_training(self, trainer):
         with ExitStack() as stack:
             for optimizer in trainer.optimizers:

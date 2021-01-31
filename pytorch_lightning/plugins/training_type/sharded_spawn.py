@@ -32,9 +32,6 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
                 )
                 optimizers[x] = zero_optimizer
                 del optimizer
-        trainer = self.lightning_module.trainer
-        trainer.optimizers = trainer.convert_to_lightning_optimizers(optimizers)
-
 
     def _wrap_optimizers(self):
         trainer = self.model.trainer

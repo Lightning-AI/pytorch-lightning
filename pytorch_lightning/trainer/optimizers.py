@@ -81,7 +81,7 @@ class TrainerOptimizersMixin(ABC):
 
         return optimizers, lr_schedulers, optimizer_frequencies
 
-    def convert_to_lightning_optimizers(self, optimizers):
+    def convert_to_lightning_optimizers(self):
         def _convert_to_lightning_optimizer(trainer, optimizer):
             if not isinstance(optimizer, LightningOptimizer):
                 optimizer = LightningOptimizer(optimizer)

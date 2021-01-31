@@ -66,7 +66,6 @@ class Accelerator(object):
         self.connect_training_type_plugin(self.training_type_plugin, model)
         self.setup_optimizers(trainer, model)
         self.connect_precision_plugin(self.precision_plugin)
-        self.optimizers = trainer.convert_to_lightning_optimizers(self.optimizers)
 
     @property
     def model(self) -> torch.nn.Module:
