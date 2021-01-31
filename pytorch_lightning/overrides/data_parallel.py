@@ -30,8 +30,7 @@ class LightningDataParallel(DataParallel):
     def __init__(self, module: LightningModule, *args, **kwargs):
         warnings.warn(
             "The usage of `LightningDataParallel` is deprecated since v1.2 and will be removed in v1.4."
-            " From now on we recommend to directly subclass `torch.nn.parallel.DataParallel`.",
-            DeprecationWarning
+            " From now on we recommend to directly subclass `torch.nn.parallel.DataParallel`.", DeprecationWarning
         )
         super().__init__(LightningParallelModule(module), *args, **kwargs)
 
@@ -67,6 +66,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         pl_module: the model to wrap
 
     """
+
     def __init__(self, pl_module: LightningModule):
         super().__init__(pl_module)
 
