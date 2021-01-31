@@ -56,22 +56,23 @@ class BoringModel(LightningModule):
     def __init__(self):
         """
         Testing PL Module
+
         Use as follows:
         - subclass
         - modify the behavior for what you want
+
         class TestModel(BaseTestModel):
             def training_step(...):
                 # do your own thing
+
         or:
+
         model = BaseTestModel()
         model.training_epoch_end = None
+
         """
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
-
-    @property
-    def automatic_optimization(self):
-        return True
 
     def forward(self, x):
         return self.layer(x)
@@ -81,7 +82,7 @@ class BoringModel(LightningModule):
         return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
 
     def step(self, x):
-        x = self(x)
+        x = self.layer(x)
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
 
