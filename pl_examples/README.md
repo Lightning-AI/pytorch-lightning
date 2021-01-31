@@ -1,4 +1,4 @@
-# Examples   
+# Examples
 Our most robust examples showing all sorts of implementations
 can be found in our sister library [PyTorch-Lightning-Bolts](https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2).
 
@@ -14,6 +14,6 @@ In this folder we add 3 simple examples:
 ---
 
 ## Domain examples
-This folder contains older examples. You should instead use the examples 
-in [PyTorch-Lightning-Bolts](https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2) 
+This folder contains older examples. You should instead use the examples
+in [PyTorch-Lightning-Bolts](https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2)
 for advanced use cases.

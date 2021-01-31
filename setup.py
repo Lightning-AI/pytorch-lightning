@@ -29,7 +29,7 @@ PATH_ROOT = os.path.dirname(__file__)
 builtins.__LIGHTNING_SETUP__ = True
 
 import pytorch_lightning  # noqa: E402
-from pytorch_lightning.setup_tools import _load_long_description, _load_requirements  # noqa: E402
+from pytorch_lightning.setup_tools import _load_readme_description, _load_requirements  # noqa: E402
 
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
@@ -46,9 +46,7 @@ extras['dev'] = extras['extra'] + extras['loggers'] + extras['test']
 extras['all'] = extras['dev'] + extras['examples']  # + extras['docs']
 
 # These packages shall be installed only on GPU machines
-PACKAGES_GPU_ONLY = (
-    'horovod',
-)
+PACKAGES_GPU_ONLY = ['horovod']
 # create a version for CPU machines
 for ex in ('cpu', 'cpu-extra'):
     kw = ex.split('-')[1] if '-' in ex else 'all'
@@ -61,7 +59,7 @@ for ex in ('cpu', 'cpu-extra'):
 # the goal of the project is simplicity for researchers, don't want to add too much
 # engineer specific practices
 setup(
-    name="pytorch-lightning-nightly",
+    name="pytorch-lightning",
     version=pytorch_lightning.__version__,
     description=pytorch_lightning.__docs__,
     author=pytorch_lightning.__author__,
@@ -69,25 +67,21 @@ setup(
     url=pytorch_lightning.__homepage__,
     download_url='https://github.com/PyTorchLightning/pytorch-lightning',
     license=pytorch_lightning.__license__,
-    packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks']),
-
-    long_description=_load_long_description(PATH_ROOT),
+    packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks', 'legacy', 'legacy/*']),
+    long_description=_load_readme_description(PATH_ROOT),
     long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,
-
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     setup_requires=[],
     install_requires=_load_requirements(PATH_ROOT),
     extras_require=extras,
-
     project_urls={
         "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
         "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
         "Source Code": "https://github.com/PyTorchLightning/pytorch-lightning",
     },
-
     classifiers=[
         'Environment :: Console',
         'Natural Language :: English',

@@ -57,9 +57,7 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
     """Parse CLI arguments, required for custom bool types."""
     args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
 
-    types_default = {
-        arg: (arg_types, arg_default) for arg, arg_types, arg_default in get_init_arguments_and_types(cls)
-    }
+    types_default = {arg: (arg_types, arg_default) for arg, arg_types, arg_default in get_init_arguments_and_types(cls)}
 
     modified_args = {}
     for k, v in vars(args).items():
@@ -130,7 +128,7 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         try:
             arg_types = tuple(arg_type.__args__)
         except AttributeError:
-            arg_types = (arg_type,)
+            arg_types = (arg_type, )
 
         name_type_default.append((arg, arg_types, arg_default))
 
@@ -156,7 +154,10 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
         >>> parser = Trainer.add_argparse_args(parser)
         >>> args = parser.parse_args([])
     """
-    parser = ArgumentParser(parents=[parent_parser], add_help=False,)
+    parser = ArgumentParser(
+        parents=[parent_parser],
+        add_help=False,
+    )
 
     blacklist = ['kwargs']
     depr_arg_names = cls.get_deprecated_arg_names() + blacklist
@@ -164,9 +165,7 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
     allowed_types = (str, int, float, bool)
 
     args_help = parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__)
-    for arg, arg_types, arg_default in (
-        at for at in get_init_arguments_and_types(cls) if at[0] not in depr_arg_names
-    ):
+    for arg, arg_types, arg_default in (at for at in get_init_arguments_and_types(cls) if at[0] not in depr_arg_names):
         arg_types = [at for at in allowed_types if at in arg_types]
         if not arg_types:
             # skip argument with not supported type

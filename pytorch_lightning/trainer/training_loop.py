@@ -21,8 +21,9 @@ import torch
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.step_result import EvalResult, Result
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
@@ -110,6 +111,9 @@ class TrainLoop:
 
         # hook
         self.trainer.call_hook("on_train_start")
+
+        # provide rank to profiler
+        self.trainer.profile_connector.on_train_start(self.trainer)
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
         # bind logger and other properties
@@ -339,7 +343,8 @@ class TrainLoop:
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
-            training_step_output = self.trainer.accelerator_backend.training_step(args)
+            with self.trainer.profiler.profile("training_step"):
+                training_step_output = self.trainer.accelerator_backend.training_step(args)
             self.trainer.logger_connector.cache_logged_metrics()
 
             self._check_training_step_output(training_step_output)
@@ -478,12 +483,6 @@ class TrainLoop:
             """
         rank_zero_warn(m)
 
-        # don't allow EvalResult in the training_step
-        if isinstance(training_step_output, EvalResult):
-            raise MisconfigurationException(
-                "training_step cannot return EvalResult, " "use a dict or TrainResult instead"
-            )
-
         training_step_output_for_epoch_end = copy(training_step_output)
         training_step_output_for_epoch_end.detach()
 
@@ -500,6 +499,9 @@ class TrainLoop:
             raise MisconfigurationException(
                 'native PyTorch amp and lbfgs are not compatible.'
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+
+        # wraps into LightingOptimizer only for running step
+        optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
         # model hook
         model_ref.optimizer_step(
@@ -598,8 +600,9 @@ class TrainLoop:
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.run_evaluation(test_mode=False)
+
                 # reset stage to train
-                self.trainer.logger_connector.set_stage("train")
+                self.trainer._set_wide_running_stage(RunningStage.TRAINING)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -771,7 +774,8 @@ class TrainLoop:
         do not block ddp gradient sync when using manual optimization
         as gradients are needed within the training step
 
-        Returns: context manager with sync behaviour off
+        Returns:
+            context manager with sync behaviour off
 
         """
         if self.trainer.accelerator_backend is not None and self.automatic_optimization:

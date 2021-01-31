@@ -58,8 +58,10 @@ class MNISTDataModule(LightningDataModule):
         super().__init__(*args, **kwargs)
         if num_workers and platform.system() == "Windows":
             # see: https://stackoverflow.com/a/59680818
-            warn(f"You have requested num_workers={num_workers} on Windows,"
-                 " but currently recommended is 0, so we set it for you")
+            warn(
+                f"You have requested num_workers={num_workers} on Windows,"
+                " but currently recommended is 0, so we set it for you"
+            )
             num_workers = 0
 
         self.dims = (1, 28, 28)
@@ -132,9 +134,9 @@ class MNISTDataModule(LightningDataModule):
         if not _TORCHVISION_AVAILABLE:
             return None
         if self.normalize:
-            mnist_transforms = transform_lib.Compose(
-                [transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5,), std=(0.5,))]
-            )
+            mnist_transforms = transform_lib.Compose([
+                transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5, ), std=(0.5, ))
+            ])
         else:
             mnist_transforms = transform_lib.ToTensor()
 
