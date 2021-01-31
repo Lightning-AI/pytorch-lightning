@@ -18,9 +18,13 @@ import torch
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+if _NATIVE_AMP_AVAILABLE:
+    from torch.cuda.amp import autocast
+else:
+    autocast = None
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def __init__(self):
@@ -74,6 +78,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         return closure_loss
 
     @contextmanager
-    def train_step_context(self) -> Generator[torch.cuda.amp.autocast, None, None]:
+    def train_step_context(self) -> Generator[autocast, None, None]:
         """Enable autocast context"""
         yield torch.cuda.amp.autocast()

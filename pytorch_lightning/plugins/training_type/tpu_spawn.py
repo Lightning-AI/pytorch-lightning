@@ -14,10 +14,14 @@ from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.seed import seed_everything
 
 if _TPU_AVAILABLE:
-    import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.distributed.xla_multiprocessing as xmp
+    from torch_xla import ParallelLoader
+    from torch_xla.core.xla_model import rendezvous
+else:
+    xm, xla_pl, xmp, ParallelLoader, rendezvous = [None] * 5
+
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
     def __init__(self, parallel_devices: Sequence, num_nodes: int = 1, **kwargs: Dict[str, Any]) -> None:
@@ -31,7 +35,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def distributed_sampler_kwargs(self) -> dict:
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
-    def process_dataloader(self, dataloader: Union[Iterable, torch.utils.data.DataLoader]) -> xla_pl.ParallelLoader:
+    def process_dataloader(self, dataloader: Union[Iterable, torch.utils.data.DataLoader]) -> ParallelLoader:
         device = xm.xla_device(self.trainer.tpu_id)
         dataloader = xla_pl.ParallelLoader(dataloader, [device])
         dataloader = dataloader.per_device_loader(device)
@@ -83,7 +87,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         pass
 
     def barrier(self, name: Optional[str] = None) -> None:
-        torch_xla.core.xla_model.rendezvous(f"pl.Trainer.{name}")
+        rendezvous(f"pl.Trainer.{name}")
 
     def on_save(self, checkpoint: dict) -> dict:
         """
@@ -136,7 +140,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
         should_stop = torch.tensor(int(should_stop), device=self.lightning_module.device)
         stop = xm.mesh_reduce('stop_signal', should_stop, sum)
-        torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
+        rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
         should_stop = int(stop.item()) == self.world_size
         return should_stop
 

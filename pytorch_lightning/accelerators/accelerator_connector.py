@@ -28,9 +28,7 @@ from pytorch_lightning.plugins import (
     DataParallelPlugin,
     DDP2Plugin,
     DDPPlugin,
-    DDPShardedPlugin,
     DDPSpawnPlugin,
-    DDPSpawnShardedPlugin,
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
@@ -253,11 +251,12 @@ class BackendConnector(object):
             if os.environ.get("PL_IN_DDP_SUBPROCESS", False):
                 use_torchelastic_ddp = False
 
-            if use_ddp_sharded:
-                ddp_plugin_cls = DDPShardedPlugin
-            elif use_ddp_sharded_spawn:
-                ddp_plugin_cls = DDPSpawnShardedPlugin
-            elif use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
+            # fixme
+            # if use_ddp_sharded:
+            #     ddp_plugin_cls = DDPShardedPlugin
+            # elif use_ddp_sharded_spawn:
+            #     ddp_plugin_cls = DDPSpawnShardedPlugin
+            if use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
                 ddp_plugin_cls = DDPPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
                 ddp_plugin_cls = DDPSpawnPlugin
