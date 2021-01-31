@@ -15,7 +15,7 @@ from typing import Any
 
 import torch
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.warnings import WarningCache
 

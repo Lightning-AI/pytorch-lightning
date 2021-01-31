@@ -17,7 +17,7 @@ from typing import Any
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 
 
