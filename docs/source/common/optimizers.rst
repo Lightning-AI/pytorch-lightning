@@ -101,6 +101,8 @@ In the case of multiple optimizers, Lightning does the following:
 Learning rate scheduling
 ------------------------
 Every optimizer you use can be paired with any `LearningRateScheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
+In the basic use-case, the scheduler (or multiple schedulers) should be returned as the second output from the ``.configure_optimizers``
+method:
 
 .. testcode::
 
@@ -114,14 +116,6 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
       scheduler = LambdaLR(optimizer, ...)
       return [optimizer], [scheduler]
 
-   # The ReduceLROnPlateau scheduler requires a monitor
-   def configure_optimizers(self):
-      return {
-          'optimizer': Adam(...),
-          'lr_scheduler': ReduceLROnPlateau(optimizer, ...),
-          'monitor': 'metric_to_track'
-      }
-
    # Two optimizers each with a scheduler
    def configure_optimizers(self):
       optimizer1 = Adam(...)
@@ -130,7 +124,22 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
       scheduler2 = LambdaLR(optimizer2, ...)
       return [optimizer1, optimizer2], [scheduler1, scheduler2]
 
-   # Alternatively
+When there are schedulers in which the ``.step()`` method is conditioned on a metric value (for example the
+:class:`~torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler), Lightning requires that the output
+from ``configure_optimizers`` should be dicts, one for each optimizer, with the keyword ``monitor``
+set to metric that the scheduler should be conditioned on.
+
+.. testcode::
+
+   # The ReduceLROnPlateau scheduler requires a monitor
+   def configure_optimizers(self):
+      return {
+          'optimizer': Adam(...),
+          'lr_scheduler': ReduceLROnPlateau(optimizer, ...),
+          'monitor': 'metric_to_track'
+      }
+
+   # In the case of two optimizers, only one using the ReduceLROnPlateau scheduler
    def configure_optimizers(self):
       optimizer1 = Adam(...)
       optimizer2 = SGD(...)
@@ -141,15 +150,37 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
           {'optimizer': optimizer2, 'lr_scheduler': scheduler2},
       )
 
-   # Same as above with additional params passed to the first scheduler
+.. note::
+    Metrics can be made availble to condition on by simply logging it using ``self.log('metric_to_track', metric_val)``
+    in your lightning module.
+
+By default, all schedulers will be called after each epoch ends. To change this behaviour, a scheduler configuration should be
+returned as a dict which can contain the following keywords:
+
+* ``scheduler`` (required): the actual scheduler object
+* ``monitor`` (optional): metric to condition
+* ``interval`` (optional): either ``epoch`` (default) for stepping after each epoch ends or ``step`` for stepping
+  after each optimization step
+* ``frequency`` (optional): how many epochs/steps should pass between calls to ``scheduler.step()``. Default is 1,
+  corresponding to updating the learning rate after every epoch/step.
+* ``strict`` (optional): if set to ``True`` will enforce that value specified in ``monitor`` is available while trying
+  to call ``scheduler.step()``, and stop training if not found. If ``False`` will only give a warning and continue training
+  (without calling the scheduler).
+* ``name`` (optional): if using the :class:`~pytorch_lightning.callbacks.LearningRateMonitor` callback to monitor the 
+  learning rate progress, this keyword can be used to specify a specific name the learning rate should be logged as.
+
+.. testcode::
+
+   # Same as the above example with additional params passed to the first scheduler
+   # In this case the ReduceLROnPlateau will step after every 10 processed batches
    def configure_optimizers(self):
       optimizers = [Adam(...), SGD(...)]
       schedulers = [
          {
             'scheduler': ReduceLROnPlateau(optimizers[0], ...),
             'monitor': 'metric_to_track',
-            'interval': 'epoch',
-            'frequency': 1,
+            'interval': 'step',
+            'frequency': 10,
             'strict': True,
          },
          LambdaLR(optimizers[1], ...)
