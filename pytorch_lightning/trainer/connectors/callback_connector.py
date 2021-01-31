@@ -127,7 +127,7 @@ class CallbackConnector:
             rank_zero_info(
                 "The following callbacks returned in LightningModule.configure_callbacks will override"
                 " existing callbacks attached to Trainer:"
-                f" {', '.join(str(t.__name__) for t in override_types)}"
+                f" {', '.join(sorted(t.__name__ for t in override_types))}"
             )
         # remove all callbacks with a type that occurs in model callbacks
         all_callbacks = [c for c in self.trainer.callbacks if type(c) not in override_types]
