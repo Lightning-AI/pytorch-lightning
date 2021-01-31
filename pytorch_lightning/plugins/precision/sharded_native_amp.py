@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union, cast
+from typing import cast, Union
 
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins .precision.native_amp import NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, _FAIRSCALE_AVAILABLE
+from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 
 if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -24,7 +24,8 @@ if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
 
 
 class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
-
+    """Mixed Precision for Sharded Training
+    """
     def __init__(self):
         super().__init__()
         self.scaler = ShardedGradScaler()

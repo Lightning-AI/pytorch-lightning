@@ -1,24 +1,43 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import List, Tuple
 
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins .precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import AMPType, _APEX_AVAILABLE, rank_zero_warn
+from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, rank_zero_warn
 
 if _APEX_AVAILABLE:
     from apex import amp
 
+
 class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
-    def __init__(self, amp_level):
+    """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
+
+    def __init__(self, amp_level: str):
         self.backend = AMPType.APEX
         self.amp_level = amp_level
 
-    def master_params(self, optimizer):
+    def master_params(self, optimizer: torch.optim.Optimizer):
         return amp.master_params(optimizer)
 
-    def connect(self, model, optimizers, lr_schedulers):
+    def connect(self, model: torch.nn.Module, optimizers, lr_schedulers):
+        """Connects the precision plugin to the training process,
+        configures apex and reinits the schedulers
+        """
         model, optimizers = self.configure_apex(amp, model, optimizers, self.amp_level)
         self.reinit_scheduler_properties(optimizers, lr_schedulers)
         return model, optimizers, lr_schedulers
@@ -33,6 +52,16 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         *args,
         **kwargs,
     ):
+        """performs the actual backpropagation
+
+        Args:
+            model: the model to be optimized
+            closure_loss: the loss value obtained from the closure
+            optimizer: the optimizer to perform the step lateron
+            opt_idx: the optimizer's index
+            should_accumulate: whether to accumulate gradients or not
+
+        """
         closure_loss = amp.scale_loss(closure_loss, optimizer)
 
         # enter apex context
@@ -93,9 +122,10 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     @staticmethod
     def reinit_scheduler_properties(optimizers: list, schedulers: list):
+        """Reinitializes schedulers with correct properties"""
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
-            scheduler = scheduler['scheduler']
+            scheduler = scheduler["scheduler"]
 
             for optimizer in optimizers:
                 state = None
@@ -105,7 +135,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
                 if scheduler.optimizer == optimizer:
                     # Find the mro belonging to the base lr scheduler class
                     for i, mro in enumerate(scheduler.__class__.__mro__):
-                        if mro in (optim.lr_scheduler._LRScheduler, optim.lr_scheduler.ReduceLROnPlateau):
+                        if mro in (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
                             idx = i
                             state = scheduler.state_dict()
                         else:
