@@ -16,8 +16,8 @@ from typing import Any, Callable, Optional, Union
 import torch
 
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType
 
 
