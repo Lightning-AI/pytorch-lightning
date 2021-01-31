@@ -95,7 +95,7 @@ class TrainLoop:
         return num_optimizers
 
     def should_skip_training(self):
-        if self.trainer.max_epochs is not None and if self.trainer.current_epoch >= self.trainer.max_epochs:
+        if self.trainer.max_epochs is not None and self.trainer.current_epoch >= self.trainer.max_epochs:
             return True
 
         if self.trainer.limit_train_batches == 0:
