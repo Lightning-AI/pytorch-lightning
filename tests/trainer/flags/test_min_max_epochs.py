@@ -1,8 +1,8 @@
 import pytest
 
-from tests.base.boring_model import BoringModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
+from tests.base.boring_model import BoringModel
 
 
 # @pytest.mark.parametrize("min_epochs", [None, 2])
