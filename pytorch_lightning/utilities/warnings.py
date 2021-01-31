@@ -23,3 +23,6 @@ class WarningCache:
         if m not in self.warnings:
             self.warnings.add(m)
             rank_zero_warn(m)
+
+    def clear(self):
+        self.warnings.clear()

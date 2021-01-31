@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 import subprocess
 import sys
@@ -9,28 +22,33 @@ import torch
 import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.plugins .training_type.parallel import ParallelPlugin
 from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.distributed import LightningDistributed
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, unwrap_lightning_module
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE
-from pytorch_lightning.utilities.distributed import find_free_network_port, rank_zero_only, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    find_free_network_port,
+    rank_zero_only,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
 if _HYDRA_AVAILABLE:
-    from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
-
-if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-else:
-
-    class ReduceOp:
-        SUM = None
+    from hydra.utils import get_original_cwd, to_absolute_path
 
 
 class DDPPlugin(ParallelPlugin):
+    """
+    Plugin for multi-process single-device training on one or multiple nodes.
+
+    The master process in each node spawns N-1 child processes via :func:`subprocess.Popen`,
+    where N is the number of devices (e.g. GPU) per node.
+    It is very similar to how :mod:`torch.distributed.launch` launches processes.
+    """
 
     distributed_backend = "ddp"
 
@@ -60,7 +78,9 @@ class DDPPlugin(ParallelPlugin):
     @property
     def lightning_module(self):
         # the model may not be wrapped with DistributedDataParallel if calling this too early
-        return unwrap_lightning_module(self._model)
+        # fixme: uncomment when this class will actually be used
+        # return unwrap_lightning_module(self._model)
+        pass
 
     @property
     def distributed_sampler_kwargs(self):

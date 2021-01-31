@@ -1,22 +1,31 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from typing import List, Optional
 
 import torch
 
-from pytorch_lightning.plugins .training_type.training_type_plugin import TrainingTypePlugin
-from pytorch_lightning.cluster_environments import ClusterEnvironment
-from pytorch_lightning.core import LightningModule
+from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.utilities.distributed import ReduceOp
 
-if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-else:
-
-    class ReduceOp:
-        SUM = None
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
+
     def __init__(
         self,
         parallel_devices: List[torch.device],
@@ -51,10 +60,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     @property
     def distributed_sampler_kwargs(self):
-        distributed_sampler_kwargs = dict(
-            num_replicas=len(self.parallel_devices),
-            rank=self.global_rank
-        )
+        distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
@@ -91,5 +97,3 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             yield self.model.no_sync()
         else:
             yield None
-
-    

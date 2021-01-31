@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 import re
 from typing import Any, Dict, Optional, Union
@@ -7,21 +20,20 @@ import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.plugins .training_type.parallel import ParallelPlugin
 from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, unwrap_lightning_module
-from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
-from pytorch_lightning.utilities.distributed import find_free_network_port, rank_zero_only
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available, rank_zero_warn
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.distributed import (
+    find_free_network_port,
+    rank_zero_only,
+    rank_zero_warn,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.seed import seed_everything
-
-if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-else:
-
-    class ReduceOp:
-        SUM = None
 
 
 class DDPSpawnPlugin(ParallelPlugin):
@@ -52,7 +64,9 @@ class DDPSpawnPlugin(ParallelPlugin):
     @property
     def lightning_module(self):
         # the model may not be wrapped with DistributedDataParallel if calling this too early
-        return unwrap_lightning_module(self._model)
+        # fixme: uncomment when this class will actually be used
+        # return unwrap_lightning_module(self._model)
+        pass
 
     @property
     def distributed_sampler_kwargs(self):
@@ -75,12 +89,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.world_size = self.num_nodes * self.num_processes
 
     def start_training(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer,))
+        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, ))
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_testing(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer,))
+        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, ))
 
     def new_process(self, process_idx, trainer):
         # TODO: check if needed

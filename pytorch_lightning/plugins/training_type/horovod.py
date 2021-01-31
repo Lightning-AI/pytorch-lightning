@@ -1,26 +1,33 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from contextlib import ExitStack
 from typing import Any, List, Optional, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning.plugins .training_type.parallel import ParallelPlugin
 from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
-if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-else:
-
-    class ReduceOp:
-        SUM = None
-
 
 class HorovodPlugin(ParallelPlugin):
+
     def __init__(self, parallel_devices: List[torch.device]):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
@@ -43,6 +50,7 @@ class HorovodPlugin(ParallelPlugin):
         self.model_to_device()
 
     def pre_training(self):
+
         def _unpack_lightning_optimizer(opt):
             return opt._optimizer if isinstance(opt, LightningOptimizer) else opt
 
@@ -75,8 +83,7 @@ class HorovodPlugin(ParallelPlugin):
         optimizers = [
             hvd.DistributedOptimizer(
                 optimizer, named_parameters=_filter_named_parameters(self.lightning_module, optimizer)
-            )
-            for optimizer in optimizers
+            ) for optimizer in optimizers
         ]
 
         optimizers = self.lightning_module.trainer.convert_to_lightning_optimizers(optimizers)
@@ -118,7 +125,8 @@ class HorovodPlugin(ParallelPlugin):
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if group is not None:
             raise ValueError(
-                "Horovod does not support allreduce using a subcommunicator at this time. " "Unset `group`."
+                "Horovod does not support allreduce using a subcommunicator at this time. "
+                "Unset `group`."
             )
 
         if reduce_op is None or reduce_op == "sum":
@@ -135,7 +143,8 @@ class HorovodPlugin(ParallelPlugin):
     def gather_all_tensors(self, result: Union[torch.Tensor], group: Optional[Any] = None):
         if group is not None:
             raise ValueError(
-                "Horovod does not support allgather using a subcommunicator at this time. " "Unset `group`."
+                "Horovod does not support allgather using a subcommunicator at this time. "
+                "Unset `group`."
             )
 
         if len(result.shape) == 0:
