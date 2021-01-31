@@ -13,14 +13,16 @@
 # limitations under the License.
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.trainer import Trainer
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class TrainingTypePlugin(Plugin, ABC):
@@ -105,10 +107,10 @@ class TrainingTypePlugin(Plugin, ABC):
     def rpc_enabled(self) -> bool:
         return False
 
-    def start_training(self, trainer: Trainer) -> None:
+    def start_training(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the training loop
         self._results = trainer.train()
 
-    def start_testing(self, trainer: Trainer) -> None:
+    def start_testing(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
         self._results = trainer.run_test()

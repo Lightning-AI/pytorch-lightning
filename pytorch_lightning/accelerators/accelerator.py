@@ -17,13 +17,14 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.plugins.training_type import TrainingTypePlugin, HorovodPlugin
 from pytorch_lightning.plugins.precision import (
-    PrecisionPlugin,
-    MixedPrecisionPlugin,
     ApexMixedPrecisionPlugin,
+    MixedPrecisionPlugin,
     NativeMixedPrecisionPlugin,
+    PrecisionPlugin,
 )
+from pytorch_lightning.plugins.training_type import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
