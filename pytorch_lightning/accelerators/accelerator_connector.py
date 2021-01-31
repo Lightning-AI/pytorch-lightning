@@ -21,8 +21,6 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
-from pytorch_lightning.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     DataParallelPlugin,
@@ -38,6 +36,8 @@ from pytorch_lightning.plugins import (
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
 )
+from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
+from pytorch_lightning.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE, AMPType, device_parser, rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
@@ -60,6 +60,7 @@ else:
 
 
 class BackendConnector(object):
+
     def __init__(
         self,
         num_processes,

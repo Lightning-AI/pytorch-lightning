@@ -14,6 +14,7 @@ if _TPU_AVAILABLE:
 
 
 class SingleTPUPlugin(SingleDevicePlugin):
+
     def __init__(self, device: torch.device):
         super().__init__(device)
 

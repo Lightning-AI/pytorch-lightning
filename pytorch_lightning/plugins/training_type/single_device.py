@@ -7,6 +7,7 @@ from pytorch_lightning.plugins.training_type.training_type_plugin import Trainin
 
 
 class SingleDevicePlugin(TrainingTypePlugin):
+
     def __init__(self, device: torch.device) -> bool:
         super().__init__()
         self.device: torch.device = device

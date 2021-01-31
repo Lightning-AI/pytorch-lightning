@@ -14,5 +14,18 @@ from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin  
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin  # noqa: F401
 
-
-__all__ = ["ApexMixedPrecisionPlugin", "DataParallelPlugin", "DDP2Plugin", "DDPPlugin", "DDPSpawnPlugin", "HorovodPlugin", "NativeMixedPrecisionPlugin", "PrecisionPlugin", "ShardedNativeMixedPrecisionPlugin", "SingleDevicePlugin", "SingleTPUPlugin", "TPUHalfPrecisionPlugin", "TPUSpawnPlugin",]
+__all__ = [
+    "ApexMixedPrecisionPlugin",
+    "DataParallelPlugin",
+    "DDP2Plugin",
+    "DDPPlugin",
+    "DDPSpawnPlugin",
+    "HorovodPlugin",
+    "NativeMixedPrecisionPlugin",
+    "PrecisionPlugin",
+    "ShardedNativeMixedPrecisionPlugin",
+    "SingleDevicePlugin",
+    "SingleTPUPlugin",
+    "TPUHalfPrecisionPlugin",
+    "TPUSpawnPlugin",
+]

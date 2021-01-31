@@ -7,7 +7,6 @@ import torch
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
-from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import rank_zero_only
@@ -24,10 +23,13 @@ else:
 
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
+
     def __init__(self, parallel_devices: Sequence, num_nodes: int = 1, **kwargs: Dict[str, Any]) -> None:
 
         parallel_devices = [xm.xla_device(device) if isinstance(device, int) else device for device in parallel_devices]
-        super().__init__(parallel_devices, num_nodes=num_nodes, cluster_environment=None, sync_batchnorm=False, **kwargs)
+        super().__init__(
+            parallel_devices, num_nodes=num_nodes, cluster_environment=None, sync_batchnorm=False, **kwargs
+        )
         self.tpu_local_core_rank = 0
         self.start_method = None
 
@@ -48,12 +50,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         pass
 
     def set_world_ranks(self, process_idx: int) -> None:
-            self.tpu_local_core_rank = xm.get_local_ordinal()
-            self.tpu_global_core_rank = xm.get_ordinal()
-            self.global_rank = self.tpu_local_core_rank
-            self.world_size = self.num_nodes * self.num_processes
+        self.tpu_local_core_rank = xm.get_local_ordinal()
+        self.tpu_global_core_rank = xm.get_ordinal()
+        self.global_rank = self.tpu_local_core_rank
+        self.world_size = self.num_nodes * self.num_processes
 
-    def new_process(self, process_idx: int, trainer: Trainer) ->None:
+    def new_process(self, process_idx: int, trainer) -> None:
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
             seed_everything(int(seed))
@@ -77,7 +79,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
-    def __save_end_of_training_weights(self, model: LightningModule, trainer: Trainer) -> None:
+    def __save_end_of_training_weights(self, model: LightningModule, trainer) -> None:
         # when training ends on these platforms dump weights to get out of the main process
         if on_colab_kaggle():
             rank_zero_warn("cleaning up... please do not interrupt")
@@ -97,7 +99,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         """
         return move_data_to_device(checkpoint, torch.device("cpu"))
 
-    def broadcast(self, obj: object, src:int=0)->object:
+    def broadcast(self, obj: object, src: int = 0) -> object:
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
@@ -178,10 +180,18 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         self.lightning_module = model
 
-    def start_training(self, trainer: Trainer) -> None:
-        xmp.spawn(self.new_process, args=(self.lightning_module, trainer, self.mp_queue),
-                  nproc=len(self.parallel_devices), start_method=self.start_method)
+    def start_training(self, trainer) -> None:
+        xmp.spawn(
+            self.new_process,
+            args=(self.lightning_module, trainer, self.mp_queue),
+            nproc=len(self.parallel_devices),
+            start_method=self.start_method
+        )
 
-    def start_testing(self, trainer: Trainer) -> None:
-        xmp.spawn(self.new_process, args=(self.lightning_module, trainer, self.mp_queue),
-                  nproc=len(self.parallel_devices), start_method=self.start_method)
+    def start_testing(self, trainer) -> None:
+        xmp.spawn(
+            self.new_process,
+            args=(self.lightning_module, trainer, self.mp_queue),
+            nproc=len(self.parallel_devices),
+            start_method=self.start_method
+        )

@@ -6,6 +6,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TPUAccelerator(Accelerator):
+
     def setup(self, trainer, model):
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException(

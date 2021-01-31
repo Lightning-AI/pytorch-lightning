@@ -22,9 +22,9 @@ import torch
 import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE
 from pytorch_lightning.utilities.distributed import (

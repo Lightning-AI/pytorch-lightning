@@ -26,7 +26,9 @@ if _NATIVE_AMP_AVAILABLE:
 else:
     autocast = None
 
+
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
+
     def __init__(self):
         self.backend = AMPType.NATIVE
         self.scaler = torch.cuda.amp.GradScaler()
