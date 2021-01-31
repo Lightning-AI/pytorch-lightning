@@ -134,14 +134,18 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.use_horovod
 
     @property
-    def use_single_gpu(self):
-        return self.accelerator_connector.use_single_gpu
-
-    @property
     def use_tpu(self):
         # TODO update this, what is the difference between use_tpu and on_tpu?
         return False
         # return self.accelerator_connector.use_tpu
+
+    @property
+    def _distrib_type(self):
+        return self.accelerator_connector._distrib_type
+
+    @property
+    def _device_type(self):
+        return self.accelerator_connector._device_type
 
     @property
     def num_nodes(self):

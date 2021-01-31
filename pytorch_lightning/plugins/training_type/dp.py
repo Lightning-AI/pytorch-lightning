@@ -68,4 +68,3 @@ class DataParallelPlugin(ParallelPlugin):
 
     def test_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
-

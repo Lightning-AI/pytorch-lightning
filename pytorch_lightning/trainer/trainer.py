@@ -296,8 +296,6 @@ class Trainer(
                 reload when reaching the minimum length of datasets.
         """
         super().__init__()
-        self._device_type = DeviceType.CPU
-        self._distrib_type = None
         self._running_stage = None
         self._predicting = False
 
