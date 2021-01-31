@@ -393,7 +393,7 @@ def test_dp_resume(tmpdir):
         # haven't trained with the new loaded model
         dp_model = new_trainer.model
         dp_model.eval()
-        dp_model.module.running_stage = RunningStage.EVALUATING
+        dp_model.module.module.running_stage = RunningStage.EVALUATING
 
         dataloader = trainer.train_dataloader
         tpipes.run_prediction(dp_model, dataloader, dp=True)
