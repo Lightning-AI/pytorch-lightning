@@ -44,7 +44,7 @@ class DataParallelPlugin(ParallelPlugin):
 
     @property
     def lightning_module(self):
-        return self._model.module
+        return getattr(self._model, "module", None)
 
     def model_to_device(self):
         # no need to do anything when model is wrapped in torch.nn.DataParallel
