@@ -1,7 +1,6 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping
 from tests.base.boring_model import BoringModel
 
 
