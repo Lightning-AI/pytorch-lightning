@@ -76,4 +76,4 @@ def test_attach_model_callbacks_override_info(caplog):
     with caplog.at_level(logging.INFO):
         cb_connector.attach_model_callbacks(model)
 
-    assert "existing callbacks attached to Trainer: EarlyStopping, LearningRateMonitor" in caplog.text
+    assert "existing callbacks passed to Trainer: EarlyStopping, LearningRateMonitor" in caplog.text
