@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import Mock
 
 from pytorch_lightning import Trainer
@@ -61,3 +62,18 @@ def test_attach_model_callbacks():
         model_callbacks=[early_stopping, lr_monitor, grad_accumulation, early_stopping],
         expected=[progress_bar, early_stopping, lr_monitor, grad_accumulation, early_stopping]
     )
+
+
+def test_attach_model_callbacks_override_info(caplog):
+    """ Test that the logs contain the info about overriding callbacks returned by configure_callbacks. """
+    model = Mock()
+    model.configure_callbacks.return_value = [LearningRateMonitor(), EarlyStopping()]
+    trainer = Trainer(
+        checkpoint_callback=False,
+        callbacks=[EarlyStopping(), LearningRateMonitor(), ProgressBar()]
+    )
+    cb_connector = CallbackConnector(trainer)
+    with caplog.at_level(logging.INFO):
+        cb_connector.attach_model_callbacks(model)
+
+    assert "existing callbacks attached to Trainer: LearningRateMonitor, EarlyStopping" in caplog.text
