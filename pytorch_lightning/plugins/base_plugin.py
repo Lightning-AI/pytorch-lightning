@@ -29,7 +29,6 @@ class Plugin(ABC):
 
     def pre_optimizer_step(self, optimizer: torch.optim.Optimizer, optimizer_idx: int) -> None:
         """Hook to do something before each optimizer step."""
-        pass
 
     def post_optimizer_step(self, optimizer: torch.optim.Optimizer, optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""
