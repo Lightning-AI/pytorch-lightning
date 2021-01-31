@@ -117,7 +117,7 @@ class DeprecatedDistDeviceAttributes:
         # todo, limiting to exclude DDP2 is not clear but it comes from connectors...
         return (
             self._device_type and self._device_type == DeviceType.GPU and self.num_gpus == 1
-            and self._distrib_type not in (DistributedType.DDP2, )
+            and self._distrib_type != DistributedType.DDP2
         )
 
     @use_single_gpu.setter

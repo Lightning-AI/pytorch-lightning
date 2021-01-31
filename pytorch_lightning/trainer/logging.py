@@ -66,8 +66,8 @@ class TrainerLoggingMixin(ABC):
             for k, v in output.items():
                 if k in ['log', 'progress_bar']:
                     m = inspect.cleandoc(
-                        f"The {{{k}:dict keyword}} was deprecated in 0.9.1 and will be removed in 1.0.0"
-                        " Please use self.log(...) inside the lightningModule instead."
+                        f"The {{{k}:dict keyword}} was deprecated in 0.9.1 and will be removed in 1.0.0\n"
+                        " Please use self.log(...) inside the lightningModule instead.\n"
                         " # log on a step or aggregate epoch metric to the logger and/or progress bar"
                         " (inside LightningModule)\n"
                         " self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)"
