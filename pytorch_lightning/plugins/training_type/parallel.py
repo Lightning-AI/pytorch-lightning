@@ -18,6 +18,7 @@ else:
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
+
     def __init__(
         self,
         parallel_devices: List[torch.device],
@@ -52,10 +53,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     @property
     def distributed_sampler_kwargs(self):
-        distributed_sampler_kwargs = dict(
-            num_replicas=len(self.parallel_devices),
-            rank=self.global_rank
-        )
+        distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
@@ -92,5 +90,3 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             yield self.model.no_sync()
         else:
             yield None
-
-    

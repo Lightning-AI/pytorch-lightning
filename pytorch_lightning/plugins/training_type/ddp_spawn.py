@@ -82,12 +82,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.world_size = self.num_nodes * self.num_processes
 
     def start_training(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer,))
+        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, ))
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_testing(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer,))
+        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, ))
 
     def new_process(self, process_idx, trainer):
         # TODO: check if needed
