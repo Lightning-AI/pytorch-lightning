@@ -20,17 +20,10 @@ from torch.optim.lr_scheduler import _LRScheduler
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import ReduceOp, rank_zero_only
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-
-if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-else:
-
-    class ReduceOp:
-        SUM = None
 
 
 class HorovodPlugin(ParallelPlugin):

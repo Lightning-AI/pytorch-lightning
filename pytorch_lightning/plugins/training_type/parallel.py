@@ -21,13 +21,7 @@ from pytorch_lightning.cluster_environments.cluster_environment import ClusterEn
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
-
-if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-else:
-
-    class ReduceOp:
-        SUM = None
+from pytorch_lightning.utilities.distributed import ReduceOp
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):

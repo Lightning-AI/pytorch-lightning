@@ -27,19 +27,13 @@ from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
+    ReduceOp,
     find_free_network_port,
     rank_zero_only,
     rank_zero_warn,
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.seed import seed_everything
-
-if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-else:
-
-    class ReduceOp:
-        SUM = None
 
 
 class DDPSpawnPlugin(ParallelPlugin):
