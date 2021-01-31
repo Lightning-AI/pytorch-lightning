@@ -129,6 +129,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `LightningDataParallel` in favor of new wrapper module `LightningParallelModule` ([#5670](https://github.com/PyTorchLightning/pytorch-lightning/pull/5670))
 
 
+- Deprecated `reload_dataloaders_every_epoch` argument of `Trainer` ([#5043](https://github.com/PyTorchLightning/pytorch-lightning/pull/5043))
+
+
 ### Removed
 
 - Removed deprecated checkpoint argument `filepath` ([#5321](https://github.com/PyTorchLightning/pytorch-lightning/pull/5321))
@@ -209,10 +212,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ## [1.1.2] - 2020-12-23
-=======
-### Deprecated
-- Deprecated `reload_dataloaders_every_epoch` argument of `Trainer` ([#5043](https://github.com/PyTorchLightning/pytorch-lightning/pull/5043))
->>>>>>> Update CHANGELOG.md
 
 ### Added
 

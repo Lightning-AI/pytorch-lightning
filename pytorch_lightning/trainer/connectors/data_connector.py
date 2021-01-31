@@ -27,7 +27,13 @@ class DataConnector(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, check_val_every_n_epoch, reload_dataloaders_every_n_epochs, reload_dataloaders_every_epoch, prepare_data_per_node):
+    def on_trainer_init(
+        self,
+        check_val_every_n_epoch,
+        reload_dataloaders_every_n_epochs,
+        reload_dataloaders_every_epoch,
+        prepare_data_per_node
+    ):
         self.trainer.datamodule = None
         self.trainer.prepare_data_per_node = prepare_data_per_node
 
