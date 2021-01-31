@@ -28,5 +28,6 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
 	rm -rf ./docs/build
-	rm -rf ./docs/source/**/generated
+	rm -rf ./docs/source/generated
+	rm -rf ./docs/source/*/generated
 	rm -rf ./docs/source/api
