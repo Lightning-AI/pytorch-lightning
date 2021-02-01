@@ -38,21 +38,22 @@ if FAIRSCALE_PIPE_AVAILABLE:
     from fairscale.nn.pipe.pipeline import PipelineStyle
 
 
-
 class RPCSequentialPlugin(RPCPlugin):
+
     def __init__(
-            self,
-            parallel_devices,
-            num_nodes:int=1,
-            cluster_environment: ClusterEnvironment = None,
-            sync_batchnorm=False,
-            balance: Optional[List[int]] = None,
-            microbatches: int = 8,
-            checkpoint: str = 'except_last',
-            balance_mode: str = "balance_by_size",
-            pipelined_backward: Optional[bool] = True,
-            rpc_timeout_sec: float = DEFAULT_RPC_TIMEOUT_SEC,
-            **kwargs):
+        self,
+        parallel_devices,
+        num_nodes: int = 1,
+        cluster_environment: ClusterEnvironment = None,
+        sync_batchnorm=False,
+        balance: Optional[List[int]] = None,
+        microbatches: int = 8,
+        checkpoint: str = 'except_last',
+        balance_mode: str = "balance_by_size",
+        pipelined_backward: Optional[bool] = True,
+        rpc_timeout_sec: float = DEFAULT_RPC_TIMEOUT_SEC,
+        **kwargs
+    ):
         """
         Provides sequential model parallelism for :class:`nn.Sequential <torch.nn.Sequential>` module.
         If the module requires lots of memory, Pipe can be used to reduce this by leveraging multiple GPUs.
@@ -91,12 +92,14 @@ class RPCSequentialPlugin(RPCPlugin):
             `get_model_parallel_world_size() > 1`
         """
         self._check_pipe_available()
-        super().__init__(parallel_devices=parallel_devices,
-                         num_nodes=num_nodes,
-                         cluster_environment=cluster_environment,
-                         sync_batchnorm=sync_batchnorm,
-                         rpc_timeout_sec=rpc_timeout_sec,
-                         **kwargs)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            num_nodes=num_nodes,
+            cluster_environment=cluster_environment,
+            sync_batchnorm=sync_batchnorm,
+            rpc_timeout_sec=rpc_timeout_sec,
+            **kwargs
+        )
 
         self.balance = balance
 
@@ -107,9 +110,9 @@ class RPCSequentialPlugin(RPCPlugin):
         self.main_rpc_process = False  # Updated by main process, default for all secondary processes
 
     def init_ddp_connection(
-            self,
-            global_rank: int,
-            world_size: int,
+        self,
+        global_rank: int,
+        world_size: int,
     ) -> None:
         # what is this used for?
         self.prepared_for_backwards = False
@@ -119,10 +122,7 @@ class RPCSequentialPlugin(RPCPlugin):
             global_rank=global_rank,
             world_size=world_size,
         )
-        super().init_rpc_connection(
-            global_rank=global_rank,
-            world_size=world_size
-        )
+        super().init_rpc_connection(global_rank=global_rank, world_size=world_size)
         model = self.lightning_module
         self.gpus_per_model = self._infer_check_num_gpus()
         self.init_model_parallel_groups()
@@ -150,7 +150,8 @@ class RPCSequentialPlugin(RPCPlugin):
         model = self.lightning_module
         if model.example_input_array is None:
             raise MisconfigurationException(
-                'Please set example_input_array to your model, so we can infer the right model balance for you')
+                'Please set example_input_array to your model, so we can infer the right model balance for you'
+            )
         balance_func = getattr(pipe_balance, self.balance_mode)
         self.balance = balance_func(self.gpus_per_model, model.sequential_module, model.example_input_array)
         self._sync_balance_to_all_parallel_groups()
@@ -173,7 +174,8 @@ class RPCSequentialPlugin(RPCPlugin):
         if not hasattr(model, "sequential_module") or not isinstance(model.sequential_module, nn.Sequential):
             raise MisconfigurationException(
                 'Could not find a PipeLightningModule within the model. '
-                'Did you set your sequential model as the `sequential_module` attribute of your model?')
+                'Did you set your sequential model as the `sequential_module` attribute of your model?'
+            )
 
     def _find_and_init_pipe_module(self, model):
         if hasattr(model, "sequential_module") and isinstance(model.sequential_module, LightningPipeModule):
@@ -206,7 +208,8 @@ class RPCSequentialPlugin(RPCPlugin):
         if sum(self.balance) != len(model.sequential_module):
             raise MisconfigurationException(
                 f'The provided balance sum: {sum(self.balance)} does not'
-                f' match your Sequential length: {len(model.sequential_module)}')
+                f' match your Sequential length: {len(model.sequential_module)}'
+            )
 
     def _skip_init_connections(self):
         """
@@ -218,10 +221,7 @@ class RPCSequentialPlugin(RPCPlugin):
 
     def init_model_parallel_groups(self):
         num_model_parallel = 1  # TODO currently no support for vertical model parallel
-        mpu.initialize_model_parallel(
-            model_parallel_size_=num_model_parallel,
-            pipeline_length=self.gpus_per_model
-        )
+        mpu.initialize_model_parallel(model_parallel_size_=num_model_parallel, pipeline_length=self.gpus_per_model)
 
     def _infer_check_num_gpus(self):
         """
@@ -265,46 +265,35 @@ class RPCSequentialPlugin(RPCPlugin):
     def _check_arguments(self, trainer):
         if trainer.amp_backend is not None:
             raise MisconfigurationException(
-                'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision')
+                'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision'
+            )
 
-    def configure_ddp(
-            self,
-            model: LightningModule, device_ids: List[int]) -> DistributedDataParallel:
+    def configure_ddp(self, model: LightningModule, device_ids: List[int]) -> DistributedDataParallel:
         ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
         # Plugin handle backwards across processes. Currently not supported for DDP + pipe parallel
         ddp_plugin.PREPARE_FOR_BACKWARDS = False
         return ddp_plugin
 
     @rank_zero_only
-    def rpc_save_model(
-            self,
-            save_model_fn,
-            last_filepath,
-            trainer,
-            pl_module) -> None:
+    def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
         model = self.lightning_module
         if not hasattr(model.sequential_module, "foreach_worker"):
             return
         current_layers = pl_module.sequential_module
         model.sequential_module.foreach_worker(
-            save_layers_on_all_rank_zero_workers,
-            {"gpus_per_model": self.gpus_per_model},
-            include_self=True
+            save_layers_on_all_rank_zero_workers, {"gpus_per_model": self.gpus_per_model}, include_self=True
         )
         pl_module.sequential_module = load_sequential_from_saved_layers(self.gpus_per_model)
         save_model_fn(last_filepath, trainer, pl_module)
         pl_module.sequential_module = current_layers
 
-    def worker_optimizer_step(
-            self,
-            model: LightningModule,
-            opt_idx: int,
-            *args,
-            **kwargs) -> None:
+    def worker_optimizer_step(self, model: LightningModule, opt_idx: int, *args, **kwargs) -> None:
         model.sequential_module.foreach_worker(
-            run_optimizer,
-            {"opt_idx": opt_idx, "args": args, "kwargs": kwargs},
-            include_self=False
+            run_optimizer, {
+                "opt_idx": opt_idx,
+                "args": args,
+                "kwargs": kwargs
+            }, include_self=False
         )
 
     def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
@@ -341,12 +330,7 @@ class LightningPipeModule(nn.Module):
     This class wraps Fairscale Pipe and PipeRCPWrapper class.
     """
 
-    def __init__(
-            self,
-            module: nn.Sequential,
-            balance: List[int],
-            microbatches: int = 8,
-            checkpoint='never'):
+    def __init__(self, module: nn.Sequential, balance: List[int], microbatches: int = 8, checkpoint='never'):
         super().__init__()
         self.module = module
         self.balance = balance

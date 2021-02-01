@@ -38,31 +38,32 @@ class RPCPlugin(DDPPlugin):
     that need to be addressed when using RPC communication when building custom RPC Plugins.
     """
 
-    def __init__(self, parallel_devices,
+    def __init__(
+        self,
+        parallel_devices,
         num_nodes=1,
         cluster_environment: ClusterEnvironment = None,
-        sync_batchnorm=False,rpc_timeout_sec: float = DEFAULT_RPC_TIMEOUT_SEC, **kwargs):
+        sync_batchnorm=False,
+        rpc_timeout_sec: float = DEFAULT_RPC_TIMEOUT_SEC,
+        **kwargs
+    ):
         self.rpc_timeout_sec = rpc_timeout_sec
         self.rpc_initialized = False
-        super().__init__(parallel_devices=parallel_devices,
-                         num_nodes=num_nodes,
-                         cluster_environment=cluster_environment,
-                         sync_batchnorm=sync_batchnorm,
-                         **kwargs)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            num_nodes=num_nodes,
+            cluster_environment=cluster_environment,
+            sync_batchnorm=sync_batchnorm,
+            **kwargs
+        )
 
-    def init_rpc_connection(self,
-                            global_rank: int,
-                            world_size: int) -> None:
+    def init_rpc_connection(self, global_rank: int, world_size: int) -> None:
         os.environ['MASTER_PORT'] = os.getenv('RPC_MASTER_PORT', '15000')
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
         rpc._set_rpc_timeout(self.rpc_timeout_sec)
         self.rpc_initialized = True
 
-    def rpc_save_model(self,
-                       save_model_fn,
-                       last_filepath,
-                       trainer,
-                       pl_module) -> None:
+    def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
         """
         Override to save model to disk.
         This is required as the main process will be required to handle aggregating model states from RPC processes.
@@ -104,11 +105,7 @@ class RPCPlugin(DDPPlugin):
         """
         raise NotImplementedError
 
-    def worker_optimizer_step(self,
-                              model: LightningModule,
-                              opt_idx: int,
-                              *args,
-                              **kwargs) -> None:
+    def worker_optimizer_step(self, model: LightningModule, opt_idx: int, *args, **kwargs) -> None:
         """
         Called when optimizer step is run on the main process. Used to signal any RPC workers to run optimizer step.
         Args:
