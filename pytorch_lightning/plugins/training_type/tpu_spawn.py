@@ -54,7 +54,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.global_rank = self.tpu_local_core_rank
         self.world_size = self.num_nodes * self.num_processes
 
-    def create_new_process(self, process_idx: int, trainer) -> None:
+    def new_process(self, process_idx: int, trainer) -> None:
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
             seed_everything(int(seed))
