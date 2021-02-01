@@ -1449,7 +1449,7 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
 
 @pytest.mark.parametrize(
     ["limit_train_batches", "global_step", "num_training_batches", "current_epoch", "should_train"],
-    [pytest.param(0.2, 0, 0, 0, False), pytest.param(0.5, 10, 2, 4, True)],
+    [(0.2, 0, 0, 0, False), (0.5, 10, 2, 4, True)],
 )
 def test_disabled_training_for_insufficient_limit_train_batches(tmpdir, limit_train_batches, global_step,
                                                                 num_training_batches, current_epoch, should_train):
@@ -1478,19 +1478,12 @@ def test_disabled_training_for_insufficient_limit_train_batches(tmpdir, limit_tr
 
     model = CurrentModel()
 
-    before_state_dict = deepcopy(model.state_dict())
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=5,
         limit_train_batches=limit_train_batches,
     )
     result = trainer.fit(model, train_loader)
-
-    after_state_dict = model.state_dict()
-
-    for key in before_state_dict.keys():
-        assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key])) != should_train
 
     params_string = f"""`limit_train_batches={limit_train_batches}`, `dataset_len={dataset_len}`
                         & `batch_size={batch_size}` as
