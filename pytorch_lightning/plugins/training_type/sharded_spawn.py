@@ -33,7 +33,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
 
     def _wrap_optimizers(self):
         trainer = self.model.trainer
-        if trainer.testing is True:
+        if trainer.testing:
             return
         self._reinit_optimizers_with_oss()
 
