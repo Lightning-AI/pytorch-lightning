@@ -179,18 +179,24 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         self.lightning_module = model
 
+   @property
+   def xmp_spawn_kwargs(self):
+        return {
+            "args": (self.lightning_module, trainer, self.mp_queue),
+             "nproc": len(self.parallel_devices),
+             "start_method": self.start_method
+          }
+   
+
+
     def start_training(self, trainer) -> None:
         xmp.spawn(
             self.new_process,
-            args=(self.lightning_module, trainer, self.mp_queue),
-            nproc=len(self.parallel_devices),
-            start_method=self.start_method
+            **self.xmp_spawn_kwargs
         )
 
     def start_testing(self, trainer) -> None:
         xmp.spawn(
             self.new_process,
-            args=(self.lightning_module, trainer, self.mp_queue),
-            nproc=len(self.parallel_devices),
-            start_method=self.start_method
+            **self.xmp_spawn_kwargs
         )
