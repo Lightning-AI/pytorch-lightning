@@ -67,6 +67,7 @@ class RPCPlugin(DDPPlugin):
         """
         Override to save model to disk.
         This is required as the main process will be required to handle aggregating model states from RPC processes.
+
         Args:
             save_model_fn: The saving function to save final model.
             last_filepath: The filepath to save the model to.
@@ -78,6 +79,7 @@ class RPCPlugin(DDPPlugin):
     def on_main_rpc_connection(self, trainer) -> None:
         """
         Called when main rpc connection has been established.
+
         Args:
             trainer: The trainer object.
         """
@@ -86,6 +88,7 @@ class RPCPlugin(DDPPlugin):
     def on_accelerator_exit_rpc_process(self) -> None:
         """
         Called to exit RPC process within the accelerator, that is being managed by main process.
+
         Args:
             trainer: The trainer object.
         """
@@ -101,13 +104,16 @@ class RPCPlugin(DDPPlugin):
         """
         Override to decide whether to skip train/test function after shutdown completed.
         Usually RPC shutdown is a join/exit function, afterwards we want to exit the process.
-        Returns: Whether to return after rpc exit.
+
+        Returns:
+            Whether to return after RPC exit.
         """
         raise NotImplementedError
 
     def worker_optimizer_step(self, model: LightningModule, opt_idx: int, *args, **kwargs) -> None:
         """
         Called when optimizer step is run on the main process. Used to signal any RPC workers to run optimizer step.
+
         Args:
             model: The LightningModule.
             opt_idx: The idx of the optimizer to carry out step on.

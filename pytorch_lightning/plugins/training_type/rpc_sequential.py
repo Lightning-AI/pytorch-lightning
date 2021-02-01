@@ -28,14 +28,14 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-log = logging.getLogger(__name__)
-
 if FAIRSCALE_PIPE_AVAILABLE:
     import fairscale.nn.model_parallel as mpu
     from fairscale.nn import PipeRPCWrapper
     from fairscale.nn.pipe import balance as pipe_balance
     from fairscale.nn.pipe import rpc as rpc_pipe
     from fairscale.nn.pipe.pipeline import PipelineStyle
+
+log = logging.getLogger(__name__)
 
 
 class RPCSequentialPlugin(RPCPlugin):
@@ -200,7 +200,7 @@ class RPCSequentialPlugin(RPCPlugin):
         else:
             raise MisconfigurationException(
                 'Could not find a PipeLightningModule within the model. '
-                'Did you defined set your sequential model as an `sequential_module` attribute of your model ?'
+                'Did you defined set your sequential model as a `sequential_module` attribute of your model?'
             )
 
     def _assert_valid_model_balance(self):
