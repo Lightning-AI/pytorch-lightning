@@ -24,9 +24,8 @@ else:
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
 
-    def __init__(self, parallel_devices: Sequence, num_nodes: int = 1, **kwargs: Dict[str, Any]) -> None:
+    def __init__(self, parallel_devices: Sequence[int], num_nodes: int = 1, **kwargs: Dict[str, Any]) -> None:
 
-        parallel_devices = [xm.xla_device(device) if isinstance(device, int) else device for device in parallel_devices]
         super().__init__(
             parallel_devices, num_nodes=num_nodes, cluster_environment=None, sync_batchnorm=False, **kwargs
         )
@@ -38,7 +37,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
     def process_dataloader(self, dataloader: Union[Iterable, torch.utils.data.DataLoader]) -> ParallelLoader:
-        device = xm.xla_device(self.trainer.tpu_id)
+        device = xm.xla_device()
         dataloader = xla_pl.ParallelLoader(dataloader, [device])
         dataloader = dataloader.per_device_loader(device)
         return dataloader
