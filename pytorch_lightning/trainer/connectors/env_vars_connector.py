@@ -28,7 +28,6 @@ def overwrite_by_env_vars(fn: Callable) -> Callable:
     def overwrite_by_env_vars(self, *args, **kwargs):
         # get the class
         cls = self.__class__
-
         if args:  # inace any args passed move them to kwargs
             # parse only the argument names
             cls_arg_names = [arg[0] for arg in get_init_arguments_and_types(cls)]
