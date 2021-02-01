@@ -14,7 +14,6 @@
 from typing import Optional
 
 import torch
-from torch import optim
 
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
 from pytorch_lightning.core.lightning import LightningModule

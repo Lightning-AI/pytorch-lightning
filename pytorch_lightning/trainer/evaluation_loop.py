@@ -21,6 +21,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class EvaluationLoop(object):
+
     def __init__(self, trainer):
         self.trainer = trainer
         self.outputs = []
@@ -138,13 +139,9 @@ class EvaluationLoop(object):
         args = [batch, batch_idx]
 
         multiple_val_loaders = (
-            not self.trainer.testing
-            and self._get_num_dataloaders(self.trainer.val_dataloaders) > 1
+            not self.trainer.testing and self._get_num_dataloaders(self.trainer.val_dataloaders) > 1
         )
-        multiple_test_loaders = (
-            self.trainer.testing
-            and self._get_num_dataloaders(self.trainer.test_dataloaders) > 1
-        )
+        multiple_test_loaders = (self.trainer.testing and self._get_num_dataloaders(self.trainer.test_dataloaders) > 1)
 
         if multiple_test_loaders or multiple_val_loaders:
             args.append(dataloader_idx)
@@ -256,7 +253,7 @@ class EvaluationLoop(object):
             eval_results = [eval_results]
 
         # track depreceated metrics
-        self.trainer.logger_connector.track_metrics_deprecated(eval_results, self.testing)
+        self.trainer.logger_connector.track_metrics_deprecated(eval_results)
 
         return eval_results
 
@@ -305,7 +302,8 @@ class EvaluationLoop(object):
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # set dataloader_idx to model and track batch_size
         self.trainer.logger_connector.on_evaluation_batch_start(
-            self.trainer.testing, batch, dataloader_idx, self.num_dataloaders)
+            self.trainer.testing, batch, dataloader_idx, self.num_dataloaders
+        )
 
         if self.trainer.testing:
             self.trainer.call_hook('on_test_batch_start', batch, batch_idx, dataloader_idx)

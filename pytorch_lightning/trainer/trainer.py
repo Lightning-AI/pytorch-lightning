@@ -13,7 +13,6 @@
 # limitations under the License.
 """Trainer to automate the training."""
 
-import os
 import warnings
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
@@ -65,7 +64,8 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
-    'ignore', message='torch.distributed.reduce_op is deprecated, please use torch.distributed.ReduceOp instead'
+    'ignore', message='torch.distributed.reduce_op is deprecated, '
+    'please use torch.distributed.ReduceOp instead'
 )
 
 
@@ -441,7 +441,7 @@ class Trainer(
         self.model_connector.copy_trainer_model_properties(model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
+        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and self._device_type != DeviceType.TPU:
             self.scaler = self.precision_connector.backend.scaler
 
         # log hyper-parameters
@@ -629,7 +629,7 @@ class Trainer(
     def run_evaluation(self, max_batches=None):
 
         # used to know if we are logging for val, test + reset cached results
-        self._set_wide_running_stage(RunningStage.TESTING if test_mode else RunningStage.EVALUATING)
+        self._set_wide_running_stage(RunningStage.TESTING if self.testing else RunningStage.EVALUATING)
         self.logger_connector.reset()
 
         # bookkeeping
@@ -679,7 +679,7 @@ class Trainer(
 
                 # lightning module methods
                 with self.profiler.profile("evaluation_step_and_end"):
-                    output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                    output = self.evaluation_loop.evaluation_step(batch, batch_idx, dataloader_idx)
                     if self._predicting:
                         continue
                     output = self.evaluation_loop.evaluation_step_end(output)
@@ -870,10 +870,8 @@ class Trainer(
 
         # run tests
         self.tested_ckpt_path = ckpt_path
-        self.testing = True
         self.model = model
         results = self.fit(model)
-        self.testing = False
 
         # teardown
         if self.is_function_implemented('teardown'):
@@ -890,10 +888,8 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        self.testing = True
         self.model = model
         results = self.fit(model)
-        self.testing = False
 
         # teardown
         if self.is_function_implemented('teardown'):
@@ -928,12 +924,16 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        self._set_wide_running_stage(RunningStage.TESTING)
+
         # If you supply a datamodule you can't supply dataloaders
         if dataloaders and datamodule:
-            raise MisconfigurationException('You cannot pass dataloaders to trainer.predict if you supply a datamodule')
+            raise MisconfigurationException(
+                'You cannot pass dataloaders to trainer.predict if you supply a datamodule.'
+            )
 
         if model is None:
-            raise MisconfigurationException('You need to pass a model to `trainer.predict`. ')
+            raise MisconfigurationException('You need to pass a model to `trainer.predict`.')
 
         if datamodule is not None:
             # Attach datamodule to get setup/prepare_data added to model before the call to it below
@@ -945,14 +945,12 @@ class Trainer(
 
         # set path variable
         self._predicting = True
-        os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
 
         results = self.fit(model)
 
         # unset path variable
         self.teardown('test')
-        del os.environ['PL_TESTING_MODE']
         self._predicting = False
         self._set_wide_running_stage(None)
 

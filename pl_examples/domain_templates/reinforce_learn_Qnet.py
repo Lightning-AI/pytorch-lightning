@@ -395,14 +395,15 @@ class DQNLightning(pl.LightningModule):
         parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
         parser.add_argument("--env", type=str, default="CartPole-v0", help="gym environment tag")
         parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
-        parser.add_argument("--sync_rate", type=int, default=10,
-                            help="how many frames do we update the target network")
-        parser.add_argument("--replay_size", type=int, default=1000,
-                            help="capacity of the replay buffer")
-        parser.add_argument("--warm_start_steps", type=int, default=1000,
-                            help="how many samples do we use to fill our buffer at the start of training")
-        parser.add_argument("--eps_last_frame", type=int, default=1000,
-                            help="what frame should epsilon stop decaying")
+        parser.add_argument("--sync_rate", type=int, default=10, help="how many frames do we update the target network")
+        parser.add_argument("--replay_size", type=int, default=1000, help="capacity of the replay buffer")
+        parser.add_argument(
+            "--warm_start_steps",
+            type=int,
+            default=1000,
+            help="how many samples do we use to fill our buffer at the start of training"
+        )
+        parser.add_argument("--eps_last_frame", type=int, default=1000, help="what frame should epsilon stop decaying")
         parser.add_argument("--eps_start", type=float, default=1.0, help="starting value of epsilon")
         parser.add_argument("--eps_end", type=float, default=0.01, help="final value of epsilon")
         parser.add_argument("--episode_length", type=int, default=200, help="max length of an episode")

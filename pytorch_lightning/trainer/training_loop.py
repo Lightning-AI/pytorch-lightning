@@ -12,21 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from contextlib import contextmanager, suppress
-from copy import copy, deepcopy
+from contextlib import contextmanager
+from contextlib import suppress
+from copy import copy
+from copy import deepcopy
 
 import numpy as np
 import torch
 
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
-from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.supporters import Accumulator
+from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities import parsing
+from pytorch_lightning.utilities.distributed import rank_zero_info
+from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -35,6 +42,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainLoop:
+
     def __init__(self, trainer, multiple_trainloader_mode):
         self.trainer = trainer
         self.early_stopping_accumulator = None
@@ -128,6 +136,9 @@ class TrainLoop:
 
         # check that model is configured correctly
         self.trainer.config_validator.verify_loop_configurations(model)
+
+        # attach model log function to callback
+        self.trainer.callback_connector.attach_model_logging_functions(model)
 
     def setup_training(self):
         """
@@ -457,7 +468,8 @@ class TrainLoop:
         if using_native_amp and is_lbfgs:
             raise MisconfigurationException(
                 'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+                ' To request, please file a Github issue in PyTorch and tag @mcarilli'
+            )
 
         # wraps into LightingOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
@@ -558,7 +570,7 @@ class TrainLoop:
             # -----------------------------------------
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
-                self.trainer.run_evaluation(test_mode=False)
+                self.trainer.run_evaluation()
 
                 # reset stage to train
                 self.trainer._set_wide_running_stage(RunningStage.TRAINING)
@@ -600,10 +612,7 @@ class TrainLoop:
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
-            epoch_output,
-            self.checkpoint_accumulator,
-            self.early_stopping_accumulator,
-            self.num_optimizers
+            epoch_output, self.checkpoint_accumulator, self.early_stopping_accumulator, self.num_optimizers
         )
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
@@ -658,11 +667,8 @@ class TrainLoop:
                     # automatic_optimization=False: don't block synchronization here
                     with self.block_ddp_sync_behaviour():
                         self.training_step_and_backward(
-                            split_batch,
-                            batch_idx,
-                            opt_idx,
-                            optimizer,
-                            self.trainer.hiddens)
+                            split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
+                        )
 
                     batch_outputs = self._process_closure_result(
                         batch_outputs=batch_outputs,
@@ -679,11 +685,7 @@ class TrainLoop:
 
                         def train_step_and_backward_closure():
                             result = self.training_step_and_backward(
-                                split_batch,
-                                batch_idx,
-                                opt_idx,
-                                optimizer,
-                                self.trainer.hiddens
+                                split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
                             )
                             return None if result is None else result.loss
 
@@ -692,10 +694,7 @@ class TrainLoop:
 
                     else:
                         self._curr_step_result = self.training_step(
-                            split_batch,
-                            batch_idx,
-                            opt_idx,
-                            self.trainer.hiddens
+                            split_batch, batch_idx, opt_idx, self.trainer.hiddens
                         )
 
                     if self._curr_step_result is None:
@@ -742,9 +741,7 @@ class TrainLoop:
         else:
             yield None
 
-    def _process_closure_result(
-        self, batch_outputs: list, opt_idx: int
-    ) -> list:
+    def _process_closure_result(self, batch_outputs: list, opt_idx: int) -> list:
         opt_closure_result = self._curr_step_result
 
         if opt_closure_result is not None:
