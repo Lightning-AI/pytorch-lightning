@@ -268,7 +268,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
 def test_lr_finder_fails_fast_on_bad_config(tmpdir):
     """ Test that tune fails if the model does not have a lr BEFORE running lr find """
-    # note: this did not raise an exception before #5648 because lr_find is skipped
+    # note: this did not raise an exception before #5638 because lr_find is skipped
     # during fast_dev_run and the lr attribute check was done after lr_find
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, auto_lr_find=True)
     with pytest.raises(MisconfigurationException, match='either has one of these fields'):
