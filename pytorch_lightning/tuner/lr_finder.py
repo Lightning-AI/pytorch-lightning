@@ -57,9 +57,9 @@ def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
             return attr
 
     raise MisconfigurationException(
-        'When auto_lr_find is set to True, expects that `model` or'
-        f' `model.hparams` either has one of these fields {attr_options}'
-        ' that can overridden')
+        'When `auto_lr_find=True`, either `model` or `model.hparams` should'
+        f' have one of these fields: {attr_options}', that can be overridden.'
+    )
 
 
 def _run_lr_finder_internally(trainer, model: LightningModule):
