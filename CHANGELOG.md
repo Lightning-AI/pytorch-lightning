@@ -110,6 +110,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Made `LightningModule.global_rank`, `LightningModule.local_rank` and `LightningModule.logger` read-only properties ([#5730](https://github.com/PyTorchLightning/pytorch-lightning/pull/5730))
 
 
+- Changed trainer-related attributes in LightningModule as read-only property: `global_rank`, `local_rank`, `logger` ([#5730](https://github.com/PyTorchLightning/pytorch-lightning/pull/5730))
+
+
 - Refactored Accelerators and Plugins 
     * Added base classes for plugins ([#5715](https://github.com/PyTorchLightning/pytorch-lightning/pull/5715))
     * Added parallel plugins for DP, DDP, DDPSpawn, DDP2 and Horovod ([#5714](https://github.com/PyTorchLightning/pytorch-lightning/pull/5714))
