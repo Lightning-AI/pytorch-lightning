@@ -70,6 +70,7 @@ class ConfusionMatrix(Metric):
                 [1., 1.]])
 
     """
+
     def __init__(
         self,
         num_classes: int,
