@@ -22,7 +22,8 @@ class Plugin(ABC):
     """Basic Plugin class to derive precision and training type plugins from."""
 
     @abstractmethod
-    def connect(self, model: torch.nn.Module, *args: Sequence, **kwargs: Sequence) -> Optional[Tuple[torch.nn.Module, Sequence, Sequence]]:
+    def connect(self, model: torch.nn.Module, *args: Sequence,
+                **kwargs: Sequence) -> Optional[Tuple[torch.nn.Module, Sequence, Sequence]]:
         """Connects the plugin with the accelerator (and thereby with trainer and model).
         Will be called by the accelerator.
         """
