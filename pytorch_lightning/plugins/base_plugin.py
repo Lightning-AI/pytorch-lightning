@@ -43,11 +43,14 @@ class Plugin(ABC):
     @contextlib.contextmanager
     def train_step_context(self) -> Generator:
         """A contextmanager for the trainstep"""
+        yield
 
     @contextlib.contextmanager
     def val_step_context(self) -> Generator:
         """A contextmanager for the validation step"""
+        yield
 
     @contextlib.contextmanager
     def test_step_context(self) -> Generator:
         """A contextmanager for the teststep"""
+        yield

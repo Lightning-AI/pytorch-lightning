@@ -25,6 +25,15 @@ from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
+def unwrap_lightning_module(wrapped_model) -> LightningModule:
+    model = wrapped_model
+    if isinstance(model, (DistributedDataParallel, DataParallel)):
+        model = model.module
+    if isinstance(model, _LightningModuleWrapperBase):
+        model = model.module
+    return model
+
+
 class LightningDataParallel(DataParallel):
 
     def __init__(self, module: LightningModule, *args, **kwargs):
