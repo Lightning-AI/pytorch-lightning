@@ -17,19 +17,16 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.plugins import TrainingTypePlugin
-from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.enums import LightningEnum
-from pytorch_lightning.plugins import TrainingTypePlugin, HorovodPlugin
 from pytorch_lightning.plugins.precision import (
     ApexMixedPrecisionPlugin,
     MixedPrecisionPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
 )
-from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.plugins.training_type import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
 
 class Accelerator(object):
@@ -265,7 +262,7 @@ class Accelerator(object):
         """
         model_ref = self.lightning_module
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        is_native_amp = (
+        native_amp = (
             isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.NATIVE
         )
 
@@ -280,7 +277,7 @@ class Accelerator(object):
             optimizer_idx=opt_idx,
             optimizer_closure=lambda_closure,
             on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=is_native_amp,
+            using_native_amp=native_amp,
             using_lbfgs=is_lbfgs,
         )
 
@@ -350,8 +347,7 @@ class Accelerator(object):
             return AMPType.APEX
         elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
             return AMPType.NATIVE
-        else:
-            return None
+        return None
 
     @property
     def precision(self) -> int:
