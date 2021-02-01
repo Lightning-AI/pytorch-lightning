@@ -63,7 +63,7 @@ def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
 
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
-    lr_attr_name = __determine_lr_attr_name(trainer, model)
+    lr_attr_name = _determine_lr_attr_name(trainer, model)
     lr_finder = lr_find(trainer, model)
     if lr_finder is None:
         return
