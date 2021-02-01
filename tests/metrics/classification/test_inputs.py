@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch import rand, randint
 
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 from pytorch_lightning.metrics.utils import select_topk, to_onehot
 from tests.metrics.classification.inputs import _binary_inputs as _bin
 from tests.metrics.classification.inputs import _binary_prob_inputs as _bin_prob
@@ -155,32 +155,36 @@ def _mlmd_prob_to_mc_preds_tr(x):
     ],
 )
 def test_usual_cases(inputs, num_classes, is_multiclass, top_k, exp_mode, post_preds, post_target):
-    preds_out, target_out, mode = _input_format_classification(
-        preds=inputs.preds[0],
-        target=inputs.target[0],
-        threshold=THRESHOLD,
-        num_classes=num_classes,
-        is_multiclass=is_multiclass,
-        top_k=top_k,
-    )
+    def __get_data_type_enum(str_exp_mode):
+        return next(DataType[n] for n in dir(DataType) if DataType[n] == str_exp_mode)
 
-    assert mode == exp_mode
-    assert torch.equal(preds_out, post_preds(inputs.preds[0]).int())
-    assert torch.equal(target_out, post_target(inputs.target[0]).int())
+    for exp_mode in (exp_mode, __get_data_type_enum(exp_mode)):
+        preds_out, target_out, mode = _input_format_classification(
+            preds=inputs.preds[0],
+            target=inputs.target[0],
+            threshold=THRESHOLD,
+            num_classes=num_classes,
+            is_multiclass=is_multiclass,
+            top_k=top_k,
+        )
 
-    # Test that things work when batch_size = 1
-    preds_out, target_out, mode = _input_format_classification(
-        preds=inputs.preds[0][[0], ...],
-        target=inputs.target[0][[0], ...],
-        threshold=THRESHOLD,
-        num_classes=num_classes,
-        is_multiclass=is_multiclass,
-        top_k=top_k,
-    )
+        assert mode == exp_mode
+        assert torch.equal(preds_out, post_preds(inputs.preds[0]).int())
+        assert torch.equal(target_out, post_target(inputs.target[0]).int())
 
-    assert mode == exp_mode
-    assert torch.equal(preds_out, post_preds(inputs.preds[0][[0], ...]).int())
-    assert torch.equal(target_out, post_target(inputs.target[0][[0], ...]).int())
+        # Test that things work when batch_size = 1
+        preds_out, target_out, mode = _input_format_classification(
+            preds=inputs.preds[0][[0], ...],
+            target=inputs.target[0][[0], ...],
+            threshold=THRESHOLD,
+            num_classes=num_classes,
+            is_multiclass=is_multiclass,
+            top_k=top_k,
+        )
+
+        assert mode == exp_mode
+        assert torch.equal(preds_out, post_preds(inputs.preds[0][[0], ...]).int())
+        assert torch.equal(target_out, post_target(inputs.target[0][[0], ...]).int())
 
 
 # Test that threshold is correctly applied
