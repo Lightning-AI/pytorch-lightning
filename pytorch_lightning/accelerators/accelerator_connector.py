@@ -41,7 +41,9 @@ from pytorch_lightning.plugins.environments.torchelastic_environment import Torc
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
+    _HOROVOD_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _TPU_AVAILABLE,
     AMPType,
     device_parser,
     DeviceType,
@@ -51,19 +53,8 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
-    import torch_xla.core.xla_model as xm
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
-try:
+if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    _HOROVOD_AVAILABLE = False
-else:
-    _HOROVOD_AVAILABLE = True
 
 
 class BackendConnector(object):
@@ -407,7 +398,7 @@ class BackendConnector(object):
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
         num_cores = self.tpu_cores if self.tpu_cores is not None else 0
-        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
             rank_zero_warn("GPU available but not used. Set the --gpus flag when calling the script.")
