@@ -225,7 +225,10 @@ Example:
             self.layer_1 = nn.Linear(32, 10, bias=False)
             self.layer_2 = nn.Linear(10, 32, bias=False)
             self.layer_3 = nn.Linear(32, 10, bias=False)
-            self.layer_3.weight = self.layer_1.weight # Weights will be copied on TPU
+            # TPU shared weights are copied independently
+            # on the XLA device and this line won't have any effect.
+            # However, it works fine for CPU and GPU.
+            self.layer_3.weight = self.layer_1.weight
 
         def forward(self, x):
             x = self.layer_1(x)
