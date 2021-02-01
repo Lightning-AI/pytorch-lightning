@@ -21,10 +21,9 @@ import torch.multiprocessing as mp
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.overrides.data_parallel import unwrap_lightning_module
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load

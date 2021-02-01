@@ -1,10 +1,12 @@
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.plugins.training_type import SingleTPUPlugin, TPUSpawnPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
+from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
+from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TPUAccelerator(Accelerator):
+
     def setup(self, trainer, model):
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException(

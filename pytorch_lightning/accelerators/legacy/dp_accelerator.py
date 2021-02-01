@@ -17,11 +17,11 @@ import torch
 from torch import optim
 
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
-from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 

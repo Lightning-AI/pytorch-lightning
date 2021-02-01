@@ -21,16 +21,12 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
-from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     DataParallelPlugin,
     DDP2Plugin,
     DDPPlugin,
-    DDPShardedPlugin,
     DDPSpawnPlugin,
-    DDPSpawnShardedPlugin,
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
@@ -40,10 +36,13 @@ from pytorch_lightning.plugins import (
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
 )
+from pytorch_lightning.plugins.environments import SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
+    _HOROVOD_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _TPU_AVAILABLE,
     AMPType,
     device_parser,
     DeviceType,
@@ -53,39 +52,28 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
-    import torch_xla.core.xla_model as xm
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
-try:
+if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    _HOROVOD_AVAILABLE = False
-else:
-    _HOROVOD_AVAILABLE = True
 
 
 class BackendConnector(object):
 
     def __init__(
-            self,
-            num_processes,
-            tpu_cores,
-            distributed_backend,
-            auto_select_gpus,
-            gpus,
-            num_nodes,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic,
-            precision,
-            amp_type,
-            amp_level,
-            cluster_environment,
+        self,
+        num_processes,
+        tpu_cores,
+        distributed_backend,
+        auto_select_gpus,
+        gpus,
+        num_nodes,
+        sync_batchnorm,
+        benchmark,
+        replace_sampler_ddp,
+        deterministic,
+        precision,
+        amp_type,
+        amp_level,
+        cluster_environment,
     ):
         # initialization
         self._device_type = DeviceType.CPU
@@ -102,7 +90,7 @@ class BackendConnector(object):
         self.replace_sampler_ddp = replace_sampler_ddp
         self.deterministic = deterministic
         self.precision = precision
-        self.amp_type = None if amp_type is None else amp_type.lower()
+        self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
         self.cluster_environment = cluster_environment
         self.is_slurm_managing_tasks = False
@@ -203,7 +191,9 @@ class BackendConnector(object):
         if self.on_gpu:
             devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
         elif self.on_tpu:
-            devices = [xm.xla_device(i) for i in self.parallel_device_ids]
+            # explicitly don't make a tpu device here!
+            # https://github.com/PyTorchLightning/pytorch-lightning/issues/3169
+            devices = [i for i in self.parallel_device_ids]
         else:
             devices = [torch.device("cpu")] * self.num_processes
         return devices
@@ -266,8 +256,8 @@ class BackendConnector(object):
             use_ddp_cpu_spawn = self.use_ddp and self.on_cpu
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self.is_using_torchelastic
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
-            use_ddp_sharded = self.distributed_backend == "ddp_sharded"
-            use_ddp_sharded_spawn = self.distributed_backend == "ddp_sharded_spawn"
+            # use_ddp_sharded = self.distributed_backend == "ddp_sharded"
+            # use_ddp_sharded_spawn = self.distributed_backend == "ddp_sharded_spawn"
 
             if self.on_tpu:
                 ddp_plugin_cls = TPUSpawnPlugin
@@ -277,11 +267,12 @@ class BackendConnector(object):
             if os.environ.get("PL_IN_DDP_SUBPROCESS", False):
                 use_torchelastic_ddp = False
 
-            if use_ddp_sharded:
-                ddp_plugin_cls = DDPShardedPlugin
-            elif use_ddp_sharded_spawn:
-                ddp_plugin_cls = DDPSpawnShardedPlugin
-            elif use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
+            # fixme
+            # if use_ddp_sharded:
+            #     ddp_plugin_cls = DDPShardedPlugin
+            # elif use_ddp_sharded_spawn:
+            #     ddp_plugin_cls = DDPSpawnShardedPlugin
+            if use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
                 ddp_plugin_cls = DDPPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
                 ddp_plugin_cls = DDPSpawnPlugin
@@ -388,8 +379,8 @@ class BackendConnector(object):
 
         # for DDP overwrite nb processes by requested GPUs
         if (
-                self._device_type == DeviceType.GPU
-                and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
+            self._device_type == DeviceType.GPU
+            and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
         ):
             self.num_processes = self.num_gpus
 
@@ -407,7 +398,7 @@ class BackendConnector(object):
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
         num_cores = self.tpu_cores if self.tpu_cores is not None else 0
-        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
             rank_zero_warn("GPU available but not used. Set the --gpus flag when calling the script.")

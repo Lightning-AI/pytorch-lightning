@@ -14,7 +14,7 @@
 from enum import Enum
 from typing import List, Optional, Union
 
-from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.plugins.legacy.apex import ApexPlugin
 from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.legacy.native_amp import NativeAMPPlugin

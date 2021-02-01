@@ -346,8 +346,7 @@ class Accelerator(object):
             return AMPType.APEX
         elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
             return AMPType.NATIVE
-        else:
-            return None
+        return None
 
     @property
     def precision(self) -> int:

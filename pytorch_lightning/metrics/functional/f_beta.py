@@ -19,15 +19,13 @@ from pytorch_lightning.metrics.utils import _input_format_classification_one_hot
 
 
 def _fbeta_update(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        threshold: float = 0.5,
-        multilabel: bool = False
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: int,
+    threshold: float = 0.5,
+    multilabel: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    preds, target = _input_format_classification_one_hot(
-        num_classes, preds, target, threshold, multilabel
-    )
+    preds, target = _input_format_classification_one_hot(num_classes, preds, target, threshold, multilabel)
     true_positives = torch.sum(preds * target, dim=1)
     predicted_positives = torch.sum(preds, dim=1)
     actual_positives = torch.sum(target, dim=1)
@@ -35,11 +33,11 @@ def _fbeta_update(
 
 
 def _fbeta_compute(
-        true_positives: torch.Tensor,
-        predicted_positives: torch.Tensor,
-        actual_positives: torch.Tensor,
-        beta: float = 1.0,
-        average: str = "micro"
+    true_positives: torch.Tensor,
+    predicted_positives: torch.Tensor,
+    actual_positives: torch.Tensor,
+    beta: float = 1.0,
+    average: str = "micro"
 ) -> torch.Tensor:
     if average == "micro":
         precision = true_positives.sum().float() / predicted_positives.sum()
@@ -48,19 +46,19 @@ def _fbeta_compute(
         precision = true_positives.float() / predicted_positives
         recall = true_positives.float() / actual_positives
 
-    num = (1 + beta ** 2) * precision * recall
-    denom = beta ** 2 * precision + recall
+    num = (1 + beta**2) * precision * recall
+    denom = beta**2 * precision + recall
     return class_reduce(num, denom, weights=actual_positives, class_reduction=average)
 
 
 def fbeta(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        beta: float = 1.0,
-        threshold: float = 0.5,
-        average: str = "micro",
-        multilabel: bool = False
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: int,
+    beta: float = 1.0,
+    threshold: float = 0.5,
+    average: str = "micro",
+    multilabel: bool = False
 ) -> torch.Tensor:
     """
     Computes f_beta metric.
@@ -107,12 +105,12 @@ def fbeta(
 
 
 def f1(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        threshold: float = 0.5,
-        average: str = "micro",
-        multilabel: bool = False
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: int,
+    threshold: float = 0.5,
+    average: str = "micro",
+    multilabel: bool = False
 ) -> torch.Tensor:
     """
     Computes F1 metric. F1 metrics correspond to a equally weighted average of the
