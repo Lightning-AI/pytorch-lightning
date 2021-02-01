@@ -20,10 +20,10 @@ import torch
 from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
-from pytorch_lightning.utilities import RPC_AVAILABLE
+from pytorch_lightning.utilities import _RPC_AVAILABLE
 
 DEFAULT_RPC_TIMEOUT_SEC = 60.
-if RPC_AVAILABLE:
+if _RPC_AVAILABLE:
     from torch.distributed import rpc
     with suppress(ModuleNotFoundError, ImportError):
         from torch.distributed.rpc.constants import DEFAULT_RPC_TIMEOUT_SEC
