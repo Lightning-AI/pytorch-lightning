@@ -1522,7 +1522,7 @@ class LightningModule(
 
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
-             or string names or argumenst from class `__init__`
+             or string names or arguments from class `__init__`
 
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
