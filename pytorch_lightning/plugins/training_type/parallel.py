@@ -18,6 +18,7 @@ from typing import List, Optional
 import torch
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
@@ -45,6 +46,10 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
     @property
     def on_gpu(self):
         return self.root_device.type == "cuda" and torch.cuda.is_available()
+
+    @property
+    def lightning_module(self):
+        return unwrap_lightning_module(self._model)
 
     @abstractmethod
     def setup(self, model):
