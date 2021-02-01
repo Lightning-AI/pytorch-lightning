@@ -42,6 +42,7 @@ class AUC(Metric):
             Callback that performs the allgather operation on the metric state. When ``None``, DDP
             will be used to perform the allgather
     """
+
     def __init__(
         self,
         reorder: bool = False,
