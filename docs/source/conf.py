@@ -361,6 +361,7 @@ doctest_global_setup = """
 import importlib
 import os
 import torch
+from torch import nn
 
 import pytorch_lightning as pl
 from pytorch_lightning import LightningModule, Trainer
