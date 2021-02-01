@@ -16,8 +16,8 @@ if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.distributed.xla_multiprocessing as xmp
-    from torch_xla import ParallelLoader
     from torch_xla.core.xla_model import rendezvous
+    from torch_xla.distributed.parallel_loader import ParallelLoader
 else:
     xm, xla_pl, xmp, ParallelLoader, rendezvous = [None] * 5
 
