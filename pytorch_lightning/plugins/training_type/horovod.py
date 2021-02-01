@@ -45,6 +45,7 @@ class HorovodPlugin(ParallelPlugin):
 
         self.global_rank = hvd.rank()
         self.local_rank = hvd.local_rank()
+        self.world_size = hvd.size()
         rank_zero_only.rank = self.global_rank
 
         self.model_to_device()
