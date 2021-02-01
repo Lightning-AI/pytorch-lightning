@@ -11,6 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment  # noqa: F401
-from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment  # noqa: F401
-from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment  # noqa: F401
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment  # noqa: F401
+from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment  # noqa: F401
+from pytorch_lightning.plugins.environments.torchelastic_environment import TorchElasticEnvironment  # noqa: F401

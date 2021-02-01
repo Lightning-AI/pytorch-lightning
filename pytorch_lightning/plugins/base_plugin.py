@@ -22,7 +22,8 @@ class Plugin(ABC):
     """Basic Plugin class to derive precision and training type plugins from."""
 
     @abstractmethod
-    def connect(self, model: torch.nn.Module, *args: Sequence, **kwargs: Sequence) -> Optional[Tuple[torch.nn.Module, Sequence, Sequence]]:
+    def connect(self, model: torch.nn.Module, *args: Sequence,
+                **kwargs: Sequence) -> Optional[Tuple[torch.nn.Module, Sequence, Sequence]]:
         """Connects the plugin with the accelerator (and thereby with trainer and model).
         Will be called by the accelerator.
         """
@@ -32,27 +33,21 @@ class Plugin(ABC):
 
     def post_optimizer_step(self, optimizer: torch.optim.Optimizer, optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""
-        pass
 
     def pre_training(self) -> None:
         """Hook to do something before the training starts."""
-        pass
 
     def post_training(self) -> None:
         """Hook to do something after the training finishes."""
-        pass
 
     @contextlib.contextmanager
     def train_step_context(self) -> Generator:
         """A contextmanager for the trainstep"""
-        yield
 
     @contextlib.contextmanager
     def val_step_context(self) -> Generator:
         """A contextmanager for the validation step"""
-        yield
 
     @contextlib.contextmanager
     def test_step_context(self) -> Generator:
         """A contextmanager for the teststep"""
-        yield
