@@ -1,11 +1,7 @@
 from unittest.mock import Mock
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
-    LearningRateMonitor,
-    ModelCheckpoint,
-    ProgressBar,
-)
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, ProgressBar
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):
