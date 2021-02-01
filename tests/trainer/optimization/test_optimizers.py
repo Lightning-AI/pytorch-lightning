@@ -181,9 +181,8 @@ def test_reducelronplateau_scheduling(tmpdir):
     ), 'lr scheduler was not correctly converted to dict'
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_optimizer_return_options(enable_pl_optimizer):
-    trainer = Trainer(enable_pl_optimizer=enable_pl_optimizer)
+def test_optimizer_return_options():
+    trainer = Trainer()
     model = EvalModelTemplate()
 
     # single optimizer

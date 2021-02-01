@@ -18,6 +18,8 @@ import numpy as np
 _TEST_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_TEST_ROOT)
 _TEMP_PATH = os.path.join(_PROJECT_ROOT, 'test_temp')
+DATASETS_PATH = os.path.join(_PROJECT_ROOT, 'Datasets')
+LEGACY_PATH = os.path.join(_PROJECT_ROOT, 'legacy')
 
 # todo: this setting `PYTHONPATH` may not be used by other evns like Conda for import packages
 if _PROJECT_ROOT not in os.getenv('PYTHONPATH', ""):

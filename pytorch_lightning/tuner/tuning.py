@@ -50,12 +50,10 @@ class Tuner:
                 val_dataloaders=val_dataloaders,
                 datamodule=datamodule,
             )
-            model.logger = self.trainer.logger  # reset logger binding
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
             self.internal_find_lr(model)
-            model.logger = self.trainer.logger  # reset logger binding
 
     def scale_batch_size(
             self,

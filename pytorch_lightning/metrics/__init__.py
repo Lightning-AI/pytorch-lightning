@@ -13,6 +13,8 @@
 # limitations under the License.
 from pytorch_lightning.metrics.classification import (  # noqa: F401
     Accuracy,
+    AUC,
+    AUROC,
     AveragePrecision,
     ConfusionMatrix,
     F1,

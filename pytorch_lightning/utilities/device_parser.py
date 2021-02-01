@@ -30,7 +30,9 @@ def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
     if gpus is None:
         return None
 
-    assert isinstance(gpus, list), "gpus should be a list"
+    if not isinstance(gpus, list):
+        raise TypeError("gpus should be a list")
+
     assert len(gpus) > 0, "gpus should be a non empty list"
 
     # set root gpu
@@ -137,10 +139,9 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     all_available_gpus = _get_all_available_gpus()
     for gpu in gpus:
         if gpu not in all_available_gpus:
-            raise MisconfigurationException(f"""
-                You requested GPUs: {gpus}
-                But your machine only has: {all_available_gpus}
-            """)
+            raise MisconfigurationException(
+                f"You requested GPUs: {gpus}\n But your machine only has: {all_available_gpus}"
+            )
     return gpus
 
 

@@ -25,9 +25,10 @@ PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
-builtins.__LIGHTNING_SETUP__ = True
-
+FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
+if SPHINX_MOCK_REQUIREMENTS:
+    builtins.__LIGHTNING_SETUP__ = True
 
 import pytorch_lightning  # noqa: E402
 
@@ -49,22 +50,31 @@ import pytorch_lightning  # noqa: E402
 # with open('readme.md', 'w') as fp:
 #     fp.write(readme)
 
+
+def _transform_changelog(path_in: str, path_out: str) -> None:
+    with open(path_in, 'r') as fp:
+        chlog_lines = fp.readlines()
+    # enrich short subsub-titles to be unique
+    chlog_ver = ''
+    for i, ln in enumerate(chlog_lines):
+        if ln.startswith('## '):
+            chlog_ver = ln[2:].split('-')[0].strip()
+        elif ln.startswith('### '):
+            ln = ln.replace('###', f'### {chlog_ver} -')
+            chlog_lines[i] = ln
+    with open(path_out, 'w') as fp:
+        fp.writelines(chlog_lines)
+
+
+os.makedirs(os.path.join(PATH_HERE, FOLDER_GENERATED), exist_ok=True)
 # copy all documents from GH templates like contribution guide
 for md in glob.glob(os.path.join(PATH_ROOT, '.github', '*.md')):
-    shutil.copy(md, os.path.join(PATH_HERE, os.path.basename(md)))
+    shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
-with open(os.path.join(PATH_ROOT, 'CHANGELOG.md'), 'r') as fp:
-    chlog_lines = fp.readlines()
-# enrich short subsub-titles to be unique
-chlog_ver = ''
-for i, ln in enumerate(chlog_lines):
-    if ln.startswith('## '):
-        chlog_ver = ln[2:].split('-')[0].strip()
-    elif ln.startswith('### '):
-        ln = ln.replace('###', f'### {chlog_ver} -')
-        chlog_lines[i] = ln
-with open(os.path.join(PATH_HERE, 'CHANGELOG.md'), 'w') as fp:
-    fp.writelines(chlog_lines)
+_transform_changelog(
+    os.path.join(PATH_ROOT, 'CHANGELOG.md'),
+    os.path.join(PATH_HERE, FOLDER_GENERATED, 'CHANGELOG.md'),
+)
 
 # -- Project information -----------------------------------------------------
 
@@ -77,12 +87,11 @@ version = pytorch_lightning.__version__
 # The full version, including alpha/beta/rc tags
 release = pytorch_lightning.__version__
 
-
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 
-needs_sphinx = '2.0'
+needs_sphinx = '3.4'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -146,7 +155,7 @@ language = None
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    'PULL_REQUEST_TEMPLATE.md',
+    f'{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md',
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -193,7 +202,6 @@ html_static_path = ['_images', '_templates', '_static']
 #
 # html_sidebars = {}
 
-
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
@@ -226,9 +234,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, project, project + ' Documentation', [author], 1)
-]
+man_pages = [(master_doc, project, project + ' Documentation', [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -236,8 +242,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, project, project + ' Documentation', author, project,
-     'One line description of project.', 'Miscellaneous'),
+    (
+        master_doc,
+        project,
+        project + ' Documentation',
+        author,
+        project,
+        'One line description of project.',
+        'Miscellaneous',
+    ),
 ]
 
 # -- Options for Epub output -------------------------------------------------
@@ -277,7 +290,7 @@ todo_include_todos = True
 def setup(app):
     # this is for hiding doctest decoration,
     # see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
-    app.add_javascript('copybutton.js')
+    app.add_js_file('copybutton.js')
     app.add_css_file('main.css')
 
 
@@ -360,7 +373,10 @@ doctest_global_setup = """
 import importlib
 import os
 import torch
+from torch import nn
 
+import pytorch_lightning as pl
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities import (
     _NATIVE_AMP_AVAILABLE,
     _APEX_AVAILABLE,
