@@ -17,6 +17,7 @@ Root module for all distributed operations in Lightning.
 Currently supports training on CPU, GPU (dp, ddp, ddp2, horovod) and TPU.
 
 """
+from weakref import proxy
 
 
 class ModelConnector:
@@ -30,7 +31,7 @@ class ModelConnector:
         self.trainer.train_loop.automatic_optimization = automatic_optimization
 
         for m in [model, ref_model]:
-            m.trainer = self.trainer
+            m.trainer = proxy(self.trainer)
             m.logger = self.trainer.logger
             m._device_type = str(self.trainer._device_type)
             m._distrib_type = str(self.trainer._distrib_type)
