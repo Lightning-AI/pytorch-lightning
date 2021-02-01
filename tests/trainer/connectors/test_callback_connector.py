@@ -19,4 +19,3 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model.configure_callbacks.return_value = []
     trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, checkpoint2])
     assert trainer.callbacks == [progress_bar, lr_monitor, checkpoint1, checkpoint2]
-
