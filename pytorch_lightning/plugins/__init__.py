@@ -4,6 +4,7 @@ from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionP
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.tpu_bfloat import TPUHalfPrecisionPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin  # noqa: F401
