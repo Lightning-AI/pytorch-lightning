@@ -17,18 +17,22 @@ Quantization
 ^^^^^^^^^^^^
 
 """
+import torch
+
+from pytorch_lightning import Callback
 
 
-class Quantization(Callback):
+class StaticQuantization(Callback):
 
     def __init__(
         self,
-        ...
     ) -> None:
         pass
 
-    def on_before_accelerator_backend_setup(self, trainer, pl_module):
-        pass
+    def on_fit_end(self, trainer, pl_module):
+        # insert observers
+        torch.quantization.prepare(pl_module, inplace=True)
+        # Calibrate the model and collect statistics
 
-    def on_epoch_end(self, trainer, pl_module):
-        pass
+        # convert to quantized version
+        torch.quantization.convert(pl_module, inplace=True)
