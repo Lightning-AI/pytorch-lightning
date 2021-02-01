@@ -39,8 +39,6 @@ class ModelConnector:
             m.tpu_local_core_rank = self.trainer.tpu_local_core_rank
             m.tpu_global_core_rank = self.trainer.tpu_global_core_rank
             m.precision = self.trainer.precision
-            m.global_rank = self.trainer.global_rank
-            m.local_rank = self.trainer.local_rank
 
     def get_model(self):
         return self._get_reference_model(self.trainer.model)

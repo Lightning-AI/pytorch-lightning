@@ -67,6 +67,8 @@ class LightningModule(
         "current_epoch",
         "global_step",
         "running_stage",
+        "global_rank",
+        "local_rank",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
@@ -131,6 +133,14 @@ class LightningModule(
     def global_step(self) -> int:
         """Total training batches seen across all epochs"""
         return self.trainer.global_step if self.trainer else 0
+
+    @property
+    def global_rank(self):
+        return self.trainer.global_rank if self.trainer else 0
+
+    @property
+    def local_rank(self):
+        return self.trainer.local_rank if self.trainer else 0
 
     @example_input_array.setter
     def example_input_array(self, example: Any) -> None:
