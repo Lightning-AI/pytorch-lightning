@@ -102,7 +102,7 @@ PyTorch Lightning Documentation
    common/early_stopping
    common/fast_training
    common/hyperparameters
-   lightning_cli
+   common/lightning_cli
    advanced/lr_finder
    advanced/multi_gpu
    advanced/multiple_loaders
