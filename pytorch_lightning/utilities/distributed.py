@@ -24,6 +24,7 @@ from pytorch_lightning import _logger as log
 if torch.distributed.is_available():
     from torch.distributed import group, ReduceOp
 else:
+
     class ReduceOp:
         SUM = None
 
@@ -108,7 +109,9 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
 
 
 def sync_ddp_if_available(
-    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+    result: Union[torch.Tensor],
+    group: Optional[Any] = None,
+    reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
     Function to reduce a tensor across worker processes during distributed training
@@ -117,6 +120,7 @@ def sync_ddp_if_available(
         group: the process group to gather results from. Defaults to all processes (world)
         reduce_op: the reduction operation. Defaults to sum.
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+
     Return:
         reduced value
     """
@@ -126,7 +130,9 @@ def sync_ddp_if_available(
 
 
 def sync_ddp(
-    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+    result: Union[torch.Tensor],
+    group: Optional[Any] = None,
+    reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
@@ -161,13 +167,12 @@ def sync_ddp(
 
 
 class AllGatherGrad(torch.autograd.Function):
+
     @staticmethod
     def forward(ctx, tensor, group=group.WORLD):
         ctx.group = group
 
-        gathered_tensor = [
-            torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())
-        ]
+        gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
 
         torch.distributed.all_gather(gathered_tensor, tensor, group=group)
         gathered_tensor = torch.stack(gathered_tensor, dim=0)
@@ -178,12 +183,7 @@ class AllGatherGrad(torch.autograd.Function):
     def backward(ctx, *grad_output):
         grad_output = torch.cat(grad_output)
 
-        torch.distributed.all_reduce(
-            grad_output,
-            op=torch.distributed.ReduceOp.SUM,
-            async_op=False,
-            group=ctx.group
-        )
+        torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
 
         return grad_output[torch.distributed.get_rank()]
 

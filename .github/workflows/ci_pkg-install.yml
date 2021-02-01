@@ -3,7 +3,7 @@ name: Install pkg
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
 
@@ -27,13 +27,13 @@ jobs:
 
       - name: Prepare env
         run: |
-          pip install check-manifest "twine==1.13.0"
+          pip install check-manifest "twine==3.2" setuptools wheel
 
       - name: Create package
         run: |
           check-manifest
           # python setup.py check --metadata --strict
-          python setup.py sdist
+          python setup.py sdist bdist_wheel
 
       - name: Check package
         run: |
@@ -46,12 +46,18 @@ jobs:
           # this is just a hotfix because of Win cannot install it directly
           pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 
-      - name: Install package
+      - name: Install | Uninstall package - archive
         run: |
-          # pip install virtualenv
-          # virtualenv vEnv --system-site-packages
-          # source vEnv/bin/activate
-          pip install dist/*
-          cd .. & python -c "import pytorch_lightning as pl ; print(pl.__version__)"
-          # deactivate
-          # rm -rf vEnv
+          # install as archive
+          pip install dist/*.tar.gz
+          cd ..
+          python -c "import pytorch_lightning as pl ; print(pl.__version__)"
+          pip uninstall -y pytorch-lightning
+
+      - name: Install | Uninstall package - wheel
+        run: |
+          # install as wheel
+          pip install dist/*.whl
+          cd ..
+          python -c "import pytorch_lightning as pl ; print(pl.__version__)"
+          pip uninstall -y pytorch-lightning

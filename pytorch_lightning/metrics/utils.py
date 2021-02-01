@@ -264,3 +264,20 @@ def class_reduce(
     raise ValueError(
         f"Reduction parameter {class_reduction} unknown." f" Choose between one of these: {valid_reduction}"
     )
+
+
+def _stable_1d_sort(x: torch, N: int = 2049):
+    """
+    Stable sort of 1d tensors. Pytorch defaults to a stable sorting algorithm
+    if number of elements are larger than 2048. This function pads the tensors,
+    makes the sort and returns the sorted array (with the padding removed)
+    See this discussion: https://discuss.pytorch.org/t/is-torch-sort-stable/20714
+    """
+    if x.ndim > 1:
+        raise ValueError('Stable sort only works on 1d tensors')
+    n = x.numel()
+    if N - n > 0:
+        x_max = x.max()
+        x_pad = torch.cat([x, (x_max + 1) * torch.ones(2049 - n, dtype=x.dtype, device=x.device)], 0)
+    x_sort = x_pad.sort()
+    return x_sort.values[:n], x_sort.indices[:n]
