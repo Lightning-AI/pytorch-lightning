@@ -42,7 +42,7 @@ else:
 log = logging.getLogger(__name__)
 
 
-def __determine_lr_attr_name(trainer, model: LightningModule) -> str:
+def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
     if isinstance(trainer.auto_lr_find, str):
         if not lightning_hasattr(model, trainer.auto_lr_find):
             raise MisconfigurationException(
