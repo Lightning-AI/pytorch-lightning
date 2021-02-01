@@ -17,7 +17,7 @@ from typing import Optional
 
 import torch
 
-from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _RPC_AVAILABLE
