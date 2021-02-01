@@ -271,5 +271,5 @@ def test_lr_finder_fails_fast_on_bad_config(tmpdir):
     # note: this did not raise an exception before #5638 because lr_find is skipped
     # during fast_dev_run and the lr attribute check was done after lr_find
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, auto_lr_find=True)
-    with pytest.raises(MisconfigurationException, match='either has one of these fields'):
+    with pytest.raises(MisconfigurationException, match='should have one of these fields'):
         trainer.tune(BoringModel())
