@@ -32,8 +32,8 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 def to_onehot(
-        tensor: torch.Tensor,
-        num_classes: Optional[int] = None,
+    tensor: torch.Tensor,
+    num_classes: Optional[int] = None,
 ) -> torch.Tensor:
     """
     Converts a dense label tensor to one-hot format
@@ -48,10 +48,7 @@ def to_onehot(
     return __to(tensor, num_classes)
 
 
-def to_categorical(
-        tensor: torch.Tensor,
-        argmax_dim: int = 1
-) -> torch.Tensor:
+def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
     """
     Converts a tensor of probabilities to a dense label tensor
 
@@ -67,9 +64,9 @@ def to_categorical(
 
 
 def get_num_classes(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
 ) -> int:
     """
     Calculates the number of classes for a given prediction and target tensor.
@@ -86,9 +83,10 @@ def get_num_classes(
 
 
 def stat_scores(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        class_index: int, argmax_dim: int = 1,
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    class_index: int,
+    argmax_dim: int = 1,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Calculates the number of true positive, false positive, true negative
@@ -126,11 +124,11 @@ def stat_scores(
 
 
 def stat_scores_multiple_classes(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        argmax_dim: int = 1,
-        reduction: str = 'none',
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    argmax_dim: int = 1,
+    reduction: str = 'none',
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Calculates the number of true positive, false positive, true negative
@@ -160,13 +158,13 @@ def stat_scores_multiple_classes(
         raise ValueError("reduction type %s not supported" % reduction)
 
     if reduction == 'none':
-        pred = pred.view((-1,)).long()
-        target = target.view((-1,)).long()
+        pred = pred.view((-1, )).long()
+        target = target.view((-1, )).long()
 
-        tps = torch.zeros((num_classes + 1,), device=pred.device)
-        fps = torch.zeros((num_classes + 1,), device=pred.device)
-        fns = torch.zeros((num_classes + 1,), device=pred.device)
-        sups = torch.zeros((num_classes + 1,), device=pred.device)
+        tps = torch.zeros((num_classes + 1, ), device=pred.device)
+        fps = torch.zeros((num_classes + 1, ), device=pred.device)
+        fns = torch.zeros((num_classes + 1, ), device=pred.device)
+        sups = torch.zeros((num_classes + 1, ), device=pred.device)
 
         match_true = (pred == target).float()
         match_false = 1 - match_true
@@ -214,12 +212,12 @@ def _confmat_normalize(cm):
 
 
 def precision_recall(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        class_reduction: str = 'micro',
-        return_support: bool = False,
-        return_state: bool = False
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    class_reduction: str = 'micro',
+    return_support: bool = False,
+    return_state: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Computes precision and recall for different thresholds
@@ -272,10 +270,10 @@ def precision_recall(
 
 
 def precision(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        class_reduction: str = 'micro',
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    class_reduction: str = 'micro',
 ) -> torch.Tensor:
     """
     Computes precision score.
@@ -311,15 +309,14 @@ def precision(
         " It will be removed in v1.4.0", DeprecationWarning
     )
 
-    return precision_recall(pred=pred, target=target,
-                            num_classes=num_classes, class_reduction=class_reduction)[0]
+    return precision_recall(pred=pred, target=target, num_classes=num_classes, class_reduction=class_reduction)[0]
 
 
 def recall(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        class_reduction: str = 'micro',
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    class_reduction: str = 'micro',
 ) -> torch.Tensor:
     """
     Computes recall score.
@@ -354,16 +351,15 @@ def recall(
         " It will be removed in v1.4.0", DeprecationWarning
     )
 
-    return precision_recall(pred=pred, target=target,
-                            num_classes=num_classes, class_reduction=class_reduction)[1]
+    return precision_recall(pred=pred, target=target, num_classes=num_classes, class_reduction=class_reduction)[1]
 
 
 # todo: remove in 1.3
 def roc(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        pos_label: int = 1.,
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    sample_weight: Optional[Sequence] = None,
+    pos_label: int = 1.,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Computes the Receiver Operating Characteristic (ROC). It assumes classifier is binary.
@@ -380,10 +376,10 @@ def roc(
 
 # TODO: deprecated in favor of general ROC in pytorch_lightning/metrics/functional/roc.py
 def _roc(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        pos_label: int = 1.,
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    sample_weight: Optional[Sequence] = None,
+    pos_label: int = 1.,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Computes the Receiver Operating Characteristic (ROC). It assumes classifier is binary.
@@ -431,10 +427,10 @@ def _roc(
 
 # TODO: deprecated in favor of general ROC in pytorch_lightning/metrics/functional/roc.py
 def multiclass_roc(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        num_classes: Optional[int] = None,
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    sample_weight: Optional[Sequence] = None,
+    num_classes: Optional[int] = None,
 ) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
     """
     Computes the Receiver Operating Characteristic (ROC) for multiclass predictors.
@@ -481,8 +477,8 @@ def multiclass_roc(
 
 
 def auc(
-        x: torch.Tensor,
-        y: torch.Tensor,
+    x: torch.Tensor,
+    y: torch.Tensor,
 ) -> torch.Tensor:
     """
     Computes Area Under the Curve (AUC) using the trapezoidal rule
@@ -514,12 +510,10 @@ def auc(
 
 
 def auc_decorator() -> Callable:
-    rank_zero_warn(
-        "This `auc_decorator` was deprecated in v1.2.0."
-        " It will be removed in v1.4.0", DeprecationWarning
-    )
+    rank_zero_warn("This `auc_decorator` was deprecated in v1.2.0." " It will be removed in v1.4.0", DeprecationWarning)
 
     def wrapper(func_to_decorate: Callable) -> Callable:
+
         @wraps(func_to_decorate)
         def new_func(*args, **kwargs) -> torch.Tensor:
             x, y = func_to_decorate(*args, **kwargs)[:2]
@@ -538,6 +532,7 @@ def multiclass_auc_decorator() -> Callable:
     )
 
     def wrapper(func_to_decorate: Callable) -> Callable:
+
         @wraps(func_to_decorate)
         def new_func(*args, **kwargs) -> torch.Tensor:
             results = []
@@ -553,11 +548,11 @@ def multiclass_auc_decorator() -> Callable:
 
 
 def auroc(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        pos_label: int = 1.,
-        max_fpr: float = None,
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    sample_weight: Optional[Sequence] = None,
+    pos_label: int = 1.,
+    max_fpr: float = None,
 ) -> torch.Tensor:
     """
     Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from prediction scores
@@ -589,15 +584,16 @@ def auroc(
         " `pytorch_lightning.metrics.functional.auroc import auroc`."
         " It will be removed in v1.4.0", DeprecationWarning
     )
-    return __auroc(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label, max_fpr=max_fpr,
-                   num_classes=1)
+    return __auroc(
+        preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label, max_fpr=max_fpr, num_classes=1
+    )
 
 
 def multiclass_auroc(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        num_classes: Optional[int] = None,
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    sample_weight: Optional[Sequence] = None,
+    num_classes: Optional[int] = None,
 ) -> torch.Tensor:
     """
     Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from multiclass
@@ -635,30 +631,33 @@ def multiclass_auroc(
     if not torch.allclose(pred.sum(dim=1), torch.tensor(1.0)):
         raise ValueError(
             "Multiclass AUROC metric expects the target scores to be"
-            " probabilities, i.e. they should sum up to 1.0 over classes")
+            " probabilities, i.e. they should sum up to 1.0 over classes"
+        )
 
     if torch.unique(target).size(0) != pred.size(1):
         raise ValueError(
             f"Number of classes found in in 'target' ({torch.unique(target).size(0)})"
             f" does not equal the number of columns in 'pred' ({pred.size(1)})."
             " Multiclass AUROC is not defined when all of the classes do not"
-            " occur in the target labels.")
+            " occur in the target labels."
+        )
 
     if num_classes is not None and num_classes != pred.size(1):
         raise ValueError(
             f"Number of classes deduced from 'pred' ({pred.size(1)}) does not equal"
-            f" the number of classes passed in 'num_classes' ({num_classes}).")
+            f" the number of classes passed in 'num_classes' ({num_classes})."
+        )
 
     return __auroc(preds=pred, target=target, sample_weights=sample_weight, num_classes=num_classes)
 
 
 def dice_score(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        bg: bool = False,
-        nan_score: float = 0.0,
-        no_fg_score: float = 0.0,
-        reduction: str = 'elementwise_mean',
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    bg: bool = False,
+    nan_score: float = 0.0,
+    no_fg_score: float = 0.0,
+    reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
     """
     Compute dice score from prediction scores
@@ -709,12 +708,12 @@ def dice_score(
 
 # todo: remove in 1.4
 def iou(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        ignore_index: Optional[int] = None,
-        absent_score: float = 0.0,
-        num_classes: Optional[int] = None,
-        reduction: str = 'elementwise_mean',
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    ignore_index: Optional[int] = None,
+    absent_score: float = 0.0,
+    num_classes: Optional[int] = None,
+    reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
     """
     Intersection over union, or Jaccard index calculation.
@@ -772,10 +771,10 @@ def iou(
 
 # todo: remove in 1.3
 def precision_recall_curve(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        pos_label: int = 1.,
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    sample_weight: Optional[Sequence] = None,
+    pos_label: int = 1.,
 ):
     """
     Computes precision-recall pairs for different thresholds.
@@ -793,10 +792,10 @@ def precision_recall_curve(
 
 # todo: remove in 1.3
 def multiclass_precision_recall_curve(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        num_classes: Optional[int] = None,
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    sample_weight: Optional[Sequence] = None,
+    num_classes: Optional[int] = None,
 ):
     """
     Computes precision-recall pairs for different thresholds given a multiclass scores.
@@ -816,10 +815,10 @@ def multiclass_precision_recall_curve(
 
 # todo: remove in 1.3
 def average_precision(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        pos_label: int = 1.,
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    sample_weight: Optional[Sequence] = None,
+    pos_label: int = 1.,
 ):
     """
     Compute average precision from prediction scores.

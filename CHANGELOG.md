@@ -110,9 +110,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Extended support for purely iteration-based training ([#5726](https://github.com/PyTorchLightning/pytorch-lightning/pull/5726))
 
 
-- Refactored Accelerators and Plugins (
-    [#5715](https://github.com/PyTorchLightning/pytorch-lightning/pull/5715),
-    )
+- Refactored Accelerators and Plugins 
+    * Added base classes for plugins ([#5715](https://github.com/PyTorchLightning/pytorch-lightning/pull/5715))
+    * Added parallel plugins for DP, DDP, DDPSpawn, DDP2 and Horovod ([#5714](https://github.com/PyTorchLightning/pytorch-lightning/pull/5714))
+
 
 
 ### Deprecated
@@ -121,6 +122,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Moved accelerators and plugins to its `legacy` pkg ([#5645](https://github.com/PyTorchLightning/pytorch-lightning/pull/5645))
+
+
+- Deprecated `LightningDistributedDataParallel` in favor of new wrapper module `LightningDistributedModule` ([#5185](https://github.com/PyTorchLightning/pytorch-lightning/pull/5185))
+
+
+- Deprecated `LightningDataParallel` in favor of new wrapper module `LightningParallelModule` ([#5670](https://github.com/PyTorchLightning/pytorch-lightning/pull/5670))
 
 
 ### Removed

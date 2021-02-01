@@ -86,6 +86,7 @@ class AUROC(Metric):
         tensor(0.7778)
 
     """
+
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -111,8 +112,9 @@ class AUROC(Metric):
 
         allowed_average = (None, 'macro', 'weighted')
         if self.average not in allowed_average:
-            raise ValueError('Argument `average` expected to be one of the following:'
-                             f' {allowed_average} but got {average}')
+            raise ValueError(
+                f'Argument `average` expected to be one of the following: {allowed_average} but got {average}'
+            )
 
         if self.max_fpr is not None:
             if (not isinstance(max_fpr, float) and 0 < max_fpr <= 1):
@@ -146,8 +148,10 @@ class AUROC(Metric):
         self.target.append(target)
 
         if self.mode is not None and self.mode != mode:
-            raise ValueError('The mode of data (binary, multi-label, multi-class) should be constant, but changed'
-                             f' between batches from {self.mode} to {mode}')
+            raise ValueError(
+                'The mode of data (binary, multi-label, multi-class) should be constant, but changed'
+                f' between batches from {self.mode} to {mode}'
+            )
         self.mode = mode
 
     def compute(self) -> torch.Tensor:
@@ -163,5 +167,5 @@ class AUROC(Metric):
             self.num_classes,
             self.pos_label,
             self.average,
-            self.max_fpr
+            self.max_fpr,
         )
