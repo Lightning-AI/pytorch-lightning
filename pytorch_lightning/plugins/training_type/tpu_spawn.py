@@ -25,7 +25,6 @@ else:
 class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def __init__(self, parallel_devices: Sequence[int], num_nodes: int = 1, **kwargs: Dict[str, Any]) -> None:
-
         super().__init__(
             parallel_devices, num_nodes=num_nodes, cluster_environment=None, sync_batchnorm=False, **kwargs
         )
@@ -179,15 +178,13 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         self.lightning_module = model
 
-   @property
-   def xmp_spawn_kwargs(self):
+    @property
+    def xmp_spawn_kwargs(self):
         return {
             "args": (self.lightning_module, trainer, self.mp_queue),
              "nproc": len(self.parallel_devices),
              "start_method": self.start_method
           }
-   
-
 
     def start_training(self, trainer) -> None:
         xmp.spawn(
