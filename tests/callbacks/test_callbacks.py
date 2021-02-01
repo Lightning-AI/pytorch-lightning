@@ -195,10 +195,13 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        progress_bar_refresh_rate=0,
+        checkpoint_callback=False,
+        progress_bar_refresh_rate=1,
     )
 
     callbacks_before_fit = trainer.callbacks.copy()
+    assert callbacks_before_fit
+
     trainer.fit(model)
     callbacks_after_fit = trainer.callbacks.copy()
     assert callbacks_after_fit == callbacks_before_fit + [model_callback_mock]

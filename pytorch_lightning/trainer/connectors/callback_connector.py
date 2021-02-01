@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Union
+from typing import List, Union
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
@@ -47,7 +47,6 @@ class CallbackConnector:
         self.trainer.callbacks = callbacks or []
 
         # configure checkpoint callback
-        # it is important that this is the last callback to run
         # pass through the required args to figure out defaults
         self.configure_checkpoint_callbacks(checkpoint_callback)
 
@@ -55,6 +54,10 @@ class CallbackConnector:
         self.trainer._progress_bar_callback = self.configure_progress_bar(
             progress_bar_refresh_rate, process_position
         )
+
+        # push all checkpoint callbacks to the end
+        # it is important that these are the last callbacks to run
+        self.trainer.callbacks = _tail_checkpoint_callbacks(self.trainer.callbacks)
 
     def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):
         if isinstance(checkpoint_callback, ModelCheckpoint):
@@ -114,6 +117,8 @@ class CallbackConnector:
         Attaches the callbacks defined in the model.
         If a callback returned by the model's configure_callback method has the same type as one or several
         callbacks already present in the trainer callbacks list, it will replace them.
+        In addition, all :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
+        will be pushed to the end of the list, ensuring they run last.
 
         Args:
             A model which may or may not define new callbacks in
@@ -134,5 +139,23 @@ class CallbackConnector:
         # remove all callbacks with a type that occurs in model callbacks
         all_callbacks = [c for c in self.trainer.callbacks if type(c) not in override_types]
         all_callbacks.extend(model_callbacks)
+        all_callbacks = _tail_checkpoint_callbacks(all_callbacks)
         # TODO: connectors refactor: move callbacks list to connector and do not write Trainer state
         self.trainer.callbacks = all_callbacks
+
+
+def _tail_checkpoint_callbacks(callbacks: List[Callback]) -> List[Callback]:
+    """
+    Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
+    checkpoint callbacks is preserved, as well as the order of all other callbacks.
+
+    Args:
+        callbacks: A list of callbacks.
+
+    Return:
+        A new list in which the last elements are ModelCheckpoints if there were any present in the
+        input.
+    """
+    checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
+    not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
+    return not_checkpoints + checkpoints

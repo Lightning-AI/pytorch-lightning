@@ -538,6 +538,7 @@ Model-specific callbacks can also be added inside the ``LightningModule`` throug
 :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
 Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
 the trainer callbacks should there be two or more of the same type.
+:class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
 
 
 check_val_every_n_epoch

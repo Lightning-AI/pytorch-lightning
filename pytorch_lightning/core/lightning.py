@@ -997,6 +997,8 @@ class LightningModule(
         the list returned here will be merged with the list of callbacks passed to the Trainer's ``callbacks`` argument.
         If a callback returned here has the same type as one or several callbacks already present in
         the Trainer's callbacks list, it will take priority and replace them.
+        In addition, Lightning will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        callbacks run last.
 
         Return:
             A list of callbacks which will extend the list of callbacks in the Trainer.
