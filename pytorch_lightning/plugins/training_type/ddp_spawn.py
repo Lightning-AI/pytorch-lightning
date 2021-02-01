@@ -18,10 +18,11 @@ from typing import Any, Dict, Optional, Union
 import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
+from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.cloud_io import atomic_save
@@ -60,13 +61,6 @@ class DDPSpawnPlugin(ParallelPlugin):
     @property
     def root_device(self):
         return self.parallel_devices[self.local_rank]
-
-    @property
-    def lightning_module(self):
-        # the model may not be wrapped with DistributedDataParallel if calling this too early
-        # fixme: uncomment when this class will actually be used
-        # return unwrap_lightning_module(self._model)
-        pass
 
     @property
     def distributed_sampler_kwargs(self):
@@ -155,10 +149,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.__recover_child_process_weights(best_path, last_path)
 
     def configure_ddp(self):
-        # if unset, default `find_unused_parameters` `True`
-        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        self.model = LightningDistributedDataParallel(
-            self.model,
+        self._model = DistributedDataParallel(
+            LightningDistributedModule(self.model),
             device_ids=self.determine_ddp_device_ids(),
             **self._ddp_kwargs,
         )
@@ -226,3 +218,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         if isinstance(output, torch.Tensor):
             output = sync_ddp_if_available(output, group, reduce_op)
         return output
+
+    def training_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def validation_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
