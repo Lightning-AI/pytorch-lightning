@@ -17,6 +17,7 @@ import pytest
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
 
@@ -59,6 +60,17 @@ def test_property_local_rank():
     trainer = Mock(local_rank=123)
     model.trainer = trainer
     assert model.local_rank == 123
+
+
+def test_property_logger(tmpdir):
+    """ Test that the logger in LightningModule is accessible via the Trainer. """
+    model = BoringModel()
+    assert model.logger is None
+
+    logger = TensorBoardLogger(tmpdir)
+    trainer = Mock(logger=logger)
+    model.trainer = trainer
+    assert model.logger == logger
 
 
 def test_automatic_optimization(tmpdir):

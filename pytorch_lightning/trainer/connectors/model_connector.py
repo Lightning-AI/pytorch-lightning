@@ -32,7 +32,6 @@ class ModelConnector:
 
         for m in [model, ref_model]:
             m.trainer = proxy(self.trainer)
-            m.logger = self.trainer.logger
             m._device_type = str(self.trainer._device_type)
             m._distrib_type = str(self.trainer._distrib_type)
             m.use_amp = self.trainer.amp_backend is not None

@@ -85,9 +85,6 @@ class LightningModule(
         #: Pointer to the trainer object
         self.trainer = None
 
-        #: Pointer to the logger object
-        self.logger = None
-
         self._distrib_type = None
         self._device_type = None
 
@@ -135,11 +132,13 @@ class LightningModule(
         return self.trainer.global_step if self.trainer else 0
 
     @property
-    def global_rank(self):
+    def global_rank(self) -> int:
+        """ The index of the current process across all nodes and devices. """
         return self.trainer.global_rank if self.trainer else 0
 
     @property
-    def local_rank(self):
+    def local_rank(self) -> int:
+        """ The index of the current process within a single node. """
         return self.trainer.local_rank if self.trainer else 0
 
     @example_input_array.setter
@@ -172,6 +171,11 @@ class LightningModule(
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:
         self._automatic_optimization = automatic_optimization
+
+    @property
+    def logger(self):
+        """ Reference to the logger object in the Trainer. """
+        return self.trainer.logger if self.trainer else None
 
     def print(self, *args, **kwargs) -> None:
         r"""
