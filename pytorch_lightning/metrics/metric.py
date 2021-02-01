@@ -122,8 +122,7 @@ class Metric(nn.Module, ABC):
 
         """
         if (
-            not isinstance(default, torch.Tensor)
-            and not isinstance(default, list)  # noqa: W503
+            not isinstance(default, torch.Tensor) and not isinstance(default, list)  # noqa: W503
             or (isinstance(default, list) and len(default) != 0)  # noqa: W503
         ):
             raise ValueError("state variable must be a tensor or any empty list (where you can append tensors)")
@@ -193,6 +192,7 @@ class Metric(nn.Module, ABC):
             setattr(self, attr, reduced)
 
     def _wrap_update(self, update):
+
         @functools.wraps(update)
         def wrapped_func(*args, **kwargs):
             self._computed = None
@@ -201,6 +201,7 @@ class Metric(nn.Module, ABC):
         return wrapped_func
 
     def _wrap_compute(self, compute):
+
         @functools.wraps(compute)
         def wrapped_func(*args, **kwargs):
             # return cached value
@@ -314,8 +315,7 @@ class Metric(nn.Module, ABC):
         _params = (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
         filtered_kwargs = {
             k: v
-            for k, v in kwargs.items()
-            if k in self._update_signature.parameters.keys()
+            for k, v in kwargs.items() if k in self._update_signature.parameters.keys()
             and self._update_signature.parameters[k].kind not in _params
         }
 
@@ -544,14 +544,16 @@ class MetricCollection(nn.ModuleDict):
             for name, metric in metrics.items():
                 if not isinstance(metric, Metric):
                     raise ValueError(
-                        f"Value {metric} belonging to key {name}" " is not an instance of `pl.metrics.Metric`"
+                        f"Value {metric} belonging to key {name}"
+                        " is not an instance of `pl.metrics.Metric`"
                     )
                 self[name] = metric
         elif isinstance(metrics, (tuple, list)):
             for metric in metrics:
                 if not isinstance(metric, Metric):
                     raise ValueError(
-                        f"Input {metric} to `MetricCollection` is not a instance" " of `pl.metrics.Metric`"
+                        f"Input {metric} to `MetricCollection` is not a instance"
+                        " of `pl.metrics.Metric`"
                     )
                 name = metric.__class__.__name__
                 if name in self:

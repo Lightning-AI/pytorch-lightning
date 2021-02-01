@@ -31,7 +31,7 @@ _DEFAULT_BADGES = [
 ]
 
 
-def _load_requirements(path_dir: str , file_name: str = 'requirements.txt', comment_char: str = '#') -> List[str]:
+def _load_requirements(path_dir: str, file_name: str = 'requirements.txt', comment_char: str = '#') -> List[str]:
     """Load requirements from a file
 
     >>> _load_requirements(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
@@ -72,8 +72,7 @@ def _load_readme_description(path_dir: str, homepage: str = __homepage__, versio
 
     # readthedocs badge
     text = text.replace('badge/?version=stable', f'badge/?version={version}')
-    text = text.replace('pytorch-lightning.readthedocs.io/en/stable/',
-                        f'pytorch-lightning.readthedocs.io/en/{version}')
+    text = text.replace('pytorch-lightning.readthedocs.io/en/stable/', f'pytorch-lightning.readthedocs.io/en/{version}')
     # codecov badge
     text = text.replace('/branch/master/graph/badge.svg', f'/release/{version}/graph/badge.svg')
     # replace github badges for release ones

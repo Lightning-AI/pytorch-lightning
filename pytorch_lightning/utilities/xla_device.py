@@ -34,6 +34,7 @@ def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
 
 
 def pl_multi_process(func):
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         queue = Queue()

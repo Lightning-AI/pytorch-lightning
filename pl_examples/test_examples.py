@@ -53,11 +53,13 @@ ARGS_DDP_AMP = ARGS_DEFAULT + """
 """
 
 
-@pytest.mark.parametrize('import_cli', [
-    'pl_examples.basic_examples.simple_image_classifier',
-    'pl_examples.basic_examples.backbone_image_classifier',
-    'pl_examples.basic_examples.autoencoder',
-])
+@pytest.mark.parametrize(
+    'import_cli', [
+        'pl_examples.basic_examples.simple_image_classifier',
+        'pl_examples.basic_examples.backbone_image_classifier',
+        'pl_examples.basic_examples.autoencoder',
+    ]
+)
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize('cli_args', [ARGS_DP, ARGS_DP_AMP])
 def test_examples_dp(tmpdir, import_cli, cli_args):
@@ -88,11 +90,13 @@ def test_examples_dp(tmpdir, import_cli, cli_args):
 #         module.cli_main()
 
 
-@pytest.mark.parametrize('import_cli', [
-    'pl_examples.basic_examples.simple_image_classifier',
-    'pl_examples.basic_examples.backbone_image_classifier',
-    'pl_examples.basic_examples.autoencoder',
-])
+@pytest.mark.parametrize(
+    'import_cli', [
+        'pl_examples.basic_examples.simple_image_classifier',
+        'pl_examples.basic_examples.backbone_image_classifier',
+        'pl_examples.basic_examples.autoencoder',
+    ]
+)
 @pytest.mark.parametrize('cli_args', [ARGS_DEFAULT])
 def test_examples_cpu(tmpdir, import_cli, cli_args):
 

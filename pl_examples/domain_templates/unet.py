@@ -36,11 +36,11 @@ class UNet(nn.Module):
     """
 
     def __init__(
-            self,
-            num_classes: int = 19,
-            num_layers: int = 5,
-            features_start: int = 64,
-            bilinear: bool = False,
+        self,
+        num_classes: int = 19,
+        num_layers: int = 5,
+        features_start: int = 64,
+        bilinear: bool = False,
     ):
         """
         Args:
@@ -97,7 +97,7 @@ class DoubleConv(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_ch),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
         )
 
     def forward(self, x):
@@ -121,10 +121,7 @@ class Down(nn.Module):
 
     def __init__(self, in_ch: int, out_ch: int):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            DoubleConv(in_ch, out_ch)
-        )
+        self.net = nn.Sequential(nn.MaxPool2d(kernel_size=2, stride=2), DoubleConv(in_ch, out_ch))
 
     def forward(self, x):
         return self.net(x)

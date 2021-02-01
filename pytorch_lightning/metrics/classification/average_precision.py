@@ -68,6 +68,7 @@ class AveragePrecision(Metric):
         [tensor(1.), tensor(1.), tensor(0.2500), tensor(0.2500), tensor(nan)]
 
     """
+
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -102,10 +103,7 @@ class AveragePrecision(Metric):
             target: Ground truth values
         """
         preds, target, num_classes, pos_label = _average_precision_update(
-            preds,
-            target,
-            self.num_classes,
-            self.pos_label
+            preds, target, self.num_classes, self.pos_label
         )
         self.preds.append(preds)
         self.target.append(target)

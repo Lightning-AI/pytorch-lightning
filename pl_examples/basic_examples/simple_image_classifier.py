@@ -31,6 +31,7 @@ class LitClassifier(pl.LightningModule):
       (l2): Linear(...)
     )
     """
+
     def __init__(self, hidden_dim=128, learning_rate=1e-3):
         super().__init__()
         self.save_hyperparameters()
