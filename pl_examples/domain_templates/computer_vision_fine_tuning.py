@@ -55,14 +55,14 @@ from torchvision.datasets.utils import download_and_extract_archive
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks.finetuning import BaseFinetuningCallback
+from pytorch_lightning.callbacks.finetuning import BaseFinetuning
 
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
 
 #  --- Finetunning Callback ---
 
 
-class MilestonesFinetuningCallback(BaseFinetuningCallback):
+class MilestonesFinetuningCallback(BaseFinetuning):
 
     def __init__(self, milestones: tuple = (5, 10), train_bn: bool = True):
         self.milestones = milestones
@@ -71,7 +71,7 @@ class MilestonesFinetuningCallback(BaseFinetuningCallback):
     def freeze_before_training(self, pl_module: pl.LightningModule):
         self.freeze(module=pl_module.feature_extractor, train_bn=self.train_bn)
 
-    def finetunning_function(self, pl_module: pl.LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: pl.LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
         if epoch == self.milestones[0]:
             # unfreeze 5 last layers
             self.unfreeze_and_add_param_group(
