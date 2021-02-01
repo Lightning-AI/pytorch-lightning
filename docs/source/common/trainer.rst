@@ -335,7 +335,8 @@ optimizer behavior
 Example::
 
     def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        opt = self.optimizers(use_pl_optimizer=True)
 
         loss = ...
         self.manual_backward(loss, opt)
@@ -350,7 +351,8 @@ In the multi-optimizer case, ignore the optimizer_idx flag and use the optimizer
 Example::
 
     def training_step(self, batch, batch_idx, optimizer_idx):
-        (opt_a, opt_b) = self.optimizers()
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
 
         gen_loss = ...
         self.manual_backward(gen_loss, opt_a)
@@ -452,7 +454,7 @@ Example::
     trainer.tune(model)
 
 .. note::
-    See the :ref:`learning rate finder guide <lr_finder>`.
+    See the :doc:`learning rate finder guide <../advanced/lr_finder>`.
 
 benchmark
 ^^^^^^^^^
@@ -531,6 +533,14 @@ Example::
         def on_train_end(self, trainer, pl_module):
             print("Training is done.")
 
+
+Model-specific callbacks can also be added inside the ``LightningModule`` through
+:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
+Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
+the trainer callbacks should there be two or more of the same type.
+:class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
+
+
 check_val_every_n_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -578,7 +588,7 @@ To disable automatic checkpointing, set this to `False`.
 
 You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
 callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
-See :ref:`Saving and Loading Weights <weights_loading>` for how to customize checkpointing.
+See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
 
 .. testcode::
 
@@ -689,7 +699,7 @@ Writes logs to disk this often.
     trainer = Trainer(flush_logs_every_n_steps=100)
 
 See Also:
-    - :ref:`logging`
+    - :doc:`logging <../extensions/logging>`
 
 gpus
 ^^^^
@@ -735,7 +745,7 @@ Example::
     trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
-    - :ref:`Multi-GPU training guide <multi_gpu>`.
+    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -860,7 +870,7 @@ How often to add logging rows (does not write to disk)
     trainer = Trainer(log_every_n_steps=50)
 
 See Also:
-    - :ref:`logging`
+    - :doc:`logging <../extensions/logging>`
 
 log_gpu_memory
 ^^^^^^^^^^^^^^
@@ -903,7 +913,7 @@ logger
 
 |
 
-:ref:`Logger <loggers>` (or iterable collection of loggers) for experiment tracking.
+:doc:`Logger <../common/loggers>` (or iterable collection of loggers) for experiment tracking.
 
 .. testcode::
 
@@ -1220,7 +1230,7 @@ profiler
 
 To profile individual steps during training and assist in identifying bottlenecks.
 
-See the :ref:`profiler documentation <profiler>`. for more details.
+See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 
 .. testcode::
 
@@ -1501,10 +1511,10 @@ override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
 
 .. testcode::
 
-        class LitMNIST(LightningModule):
-            def tbptt_split_batch(self, batch, split_size):
-                # do your own splitting on the batch
-                return splits
+    class LitMNIST(LightningModule):
+        def tbptt_split_batch(self, batch, split_size):
+            # do your own splitting on the batch
+            return splits
 
 val_check_interval
 ^^^^^^^^^^^^^^^^^^
