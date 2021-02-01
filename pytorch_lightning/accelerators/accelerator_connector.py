@@ -90,7 +90,7 @@ class BackendConnector(object):
         self.replace_sampler_ddp = replace_sampler_ddp
         self.deterministic = deterministic
         self.precision = precision
-        self.amp_type = None if amp_type is None else amp_type.lower()
+        self.amp_type =  amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
         self.cluster_environment = cluster_environment
         self.is_slurm_managing_tasks = False
