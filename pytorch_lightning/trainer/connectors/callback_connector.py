@@ -111,6 +111,7 @@ class CallbackConnector:
             callback.log = model.log
             callback.log_dict = model.log_dict
 
+
 def _tail_checkpoint_callbacks(callbacks: List[Callback]) -> List[Callback]:
     """
     Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
