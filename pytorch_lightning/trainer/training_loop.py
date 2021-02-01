@@ -630,9 +630,9 @@ class TrainLoop:
             self.trainer.logger_connector.set_stage("train")
 
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
-        should_train_only_check = self.trainer.disable_validation or should_skip_eval
+        should_train_only = self.trainer.disable_validation or should_skip_eval
 
-        if should_train_only_check:
+        if should_train_only:
             # update epoch level lr_schedulers
             self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
             self.check_checkpoint_callback(True)
@@ -893,17 +893,14 @@ class TrainLoop:
         is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
         epoch_end_val_check = self.trainer.val_check_batch == self.trainer.num_training_batches
 
-        if on_epoch:
-            should_check_val = (
-                (is_val_check_batch and epoch_end_val_check)
-                or self.trainer.should_stop
-                or is_last_batch_for_infinite_dataset
-            )
-        else:
-            should_check_val = (
-                is_val_check_batch
-                and not epoch_end_val_check
-            )
+        should_check_val = (
+            (is_val_check_batch and epoch_end_val_check)
+            or self.trainer.should_stop
+            or is_last_batch_for_infinite_dataset
+        ) if on_epoch else (
+            is_val_check_batch
+            and not epoch_end_val_check
+        )
 
         return should_check_val and can_check_val
 
