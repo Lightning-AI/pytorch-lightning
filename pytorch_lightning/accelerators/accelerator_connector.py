@@ -58,6 +58,7 @@ if _HOROVOD_AVAILABLE:
 
 
 class BackendConnector(object):
+
     def __init__(
         self,
         num_processes,

@@ -5,6 +5,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class GPUAccelerator(Accelerator):
+
     def setup(self, trainer, model):
         if "cuda" not in str(self.root_device):
             raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
