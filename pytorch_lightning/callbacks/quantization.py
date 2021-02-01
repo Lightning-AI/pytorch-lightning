@@ -19,10 +19,10 @@ Quantization
 """
 import torch
 
-from pytorch_lightning import Callback
+from pytorch_lightning.callbacks.base import Callback
 
 
-class StaticQuantization(Callback):
+class StaticModelQuantization(Callback):
 
     def __init__(
         self,
@@ -36,3 +36,13 @@ class StaticQuantization(Callback):
 
         # convert to quantized version
         torch.quantization.convert(pl_module, inplace=True)
+
+
+class QuantizationAwareTraining(Callback):
+
+    def __init__(
+        self,
+    ) -> None:
+        pass
+
+    # todo

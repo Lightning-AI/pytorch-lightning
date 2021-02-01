@@ -171,13 +171,9 @@ class Callback(abc.ABC):
         pass
 
     def on_after_backward(self, trainer, pl_module):
-        """
-        Called after loss.backward() and before optimizers do anything.
-        """
+        """Called after loss.backward() and before optimizers do anything."""
         pass
 
     def on_before_zero_grad(self, trainer, pl_module, optimizer):
-        """
-        Called after optimizer.step() and before optimizer.zero_grad().
-        """
+        """Called after ``optimizer.step()`` and before ``optimizer.zero_grad()``."""
         pass
