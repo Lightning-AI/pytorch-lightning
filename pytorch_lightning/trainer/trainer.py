@@ -455,7 +455,7 @@ class Trainer(
 
         # hook
         self.data_connector.prepare_data(model)
-        self.callback_connector.attach_model_callbacks(model)
+        self.callback_connector._attach_model_callbacks(model)
 
         # bookkeeping
         # we reuse fit in .test() but change its behavior using this flag

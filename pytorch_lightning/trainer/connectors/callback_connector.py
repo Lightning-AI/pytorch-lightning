@@ -109,7 +109,7 @@ class CallbackConnector:
             callback.log = model.log
             callback.log_dict = model.log_dict
 
-    def attach_model_callbacks(self, model: LightningModule) -> None:
+    def _attach_model_callbacks(self, model: LightningModule) -> None:
         """
         Attaches the callbacks defined in the model.
         If a callback returned by the model's configure_callback method has the same type as one or several

@@ -18,7 +18,7 @@ def test_attach_model_callbacks():
             callbacks=trainer_callbacks
         )
         cb_connector = CallbackConnector(trainer)
-        cb_connector.attach_model_callbacks(model)
+        cb_connector._attach_model_callbacks(model)
         assert trainer.callbacks == expected
 
     early_stopping = EarlyStopping()
@@ -74,6 +74,6 @@ def test_attach_model_callbacks_override_info(caplog):
     )
     cb_connector = CallbackConnector(trainer)
     with caplog.at_level(logging.INFO):
-        cb_connector.attach_model_callbacks(model)
+        cb_connector._attach_model_callbacks(model)
 
     assert "existing callbacks passed to Trainer: EarlyStopping, LearningRateMonitor" in caplog.text
