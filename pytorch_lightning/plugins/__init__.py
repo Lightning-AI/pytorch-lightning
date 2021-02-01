@@ -13,6 +13,8 @@ from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin  # noq
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin  # noqa: F401
 
 __all__ = [
