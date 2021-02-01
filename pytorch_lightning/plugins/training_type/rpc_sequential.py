@@ -25,10 +25,10 @@ from pytorch_lightning.cluster_environments.cluster_environment import ClusterEn
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.training_type.rpc import DEFAULT_RPC_TIMEOUT_SEC, RPCPlugin
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if FAIRSCALE_PIPE_AVAILABLE:
+if _FAIRSCALE_PIPE_AVAILABLE:
     import fairscale.nn.model_parallel as mpu
     from fairscale.nn import PipeRPCWrapper
     from fairscale.nn.pipe import balance as pipe_balance
@@ -319,7 +319,7 @@ class RPCSequentialPlugin(RPCPlugin):
             torch_distrib.barrier(group=self.data_parallel_group)
 
     def _check_pipe_available(self):
-        if not FAIRSCALE_PIPE_AVAILABLE:
+        if not _FAIRSCALE_PIPE_AVAILABLE:
             raise MisconfigurationException(
                 'PipeRPCPlugin requires FairScale and currently is only supported on PyTorch 1.6.'
             )
