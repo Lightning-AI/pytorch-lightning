@@ -64,26 +64,6 @@ class PredictLoop(object):
         model_ref = self.trainer.get_model()
         model_ref.on_predict_model_eval()
 
-    def on_evaluation_model_train(self, *_, **__):
-        model_ref = self.trainer.get_model()
-        if self.testing:
-            model_ref.on_test_model_train()
-        else:
-            model_ref.on_validation_model_train()
-
-    def on_evaluation_end(self, *args, **kwargs):
-        if self.testing:
-            self.trainer.call_hook('on_test_end', *args, **kwargs)
-        else:
-            self.trainer.call_hook('on_validation_end', *args, **kwargs)
-
-    def reload_evaluation_dataloaders(self):
-        model = self.trainer.get_model()
-        if self.testing:
-            self.trainer.reset_test_dataloader(model)
-        else:
-            self.trainer.reset_val_dataloader(model)
-
     def setup(self, model, max_batches, dataloaders):
         # copy properties for forward overrides
         self.trainer.model_connector.copy_trainer_model_properties(model)
