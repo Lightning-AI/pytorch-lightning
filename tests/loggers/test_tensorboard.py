@@ -24,7 +24,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import BoringModel
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @pytest.mark.skipif(
@@ -32,16 +32,14 @@ from tests.base import BoringModel
     reason="Minimal PT version is set to 1.5",
 )
 def test_tensorboard_hparams_reload(tmpdir):
-    class CustomModel(BoringModel):
-        def __init__(self, b1=0.5, b2=0.999):
-            super().__init__()
-            self.save_hyperparameters()
+    model = EvalModelTemplate()
 
-    model = CustomModel()
-    trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
 
-    folder_path = trainer.logger.log_dir
+    assert trainer.log_dir == trainer.logger.log_dir
+    folder_path = trainer.log_dir
 
     # make sure yaml is there
     with open(os.path.join(folder_path, "hparams.yaml")) as file:
@@ -49,8 +47,7 @@ def test_tensorboard_hparams_reload(tmpdir):
         # scalar values to Python the dictionary format
         yaml_params = yaml.safe_load(file)
         assert yaml_params["b1"] == 0.5
-        assert yaml_params["b2"] == 0.999
-        assert len(yaml_params.keys()) == 2
+        assert len(yaml_params.keys()) == 10
 
     # verify artifacts
     assert len(os.listdir(os.path.join(folder_path, "checkpoints"))) == 1
@@ -59,8 +56,14 @@ def test_tensorboard_hparams_reload(tmpdir):
     event_acc = EventAccumulator(folder_path)
     event_acc.Reload()
 
-    data_pt_1_5 = b'\x12\x1b"\x04\n\x02b1"\x04\n\x02b2*\r\n\x0b\x12\thp_metric'
-    data_pt_1_6 = b'\x12\x1f"\x06\n\x02b1 \x03"\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
+    data_pt_1_5 = b'\x12\x93\x01"\x0b\n\tdrop_prob"\x0c\n\nbatch_size"\r\n\x0bin_features"\x0f\n\rlearning_rate"' \
+                  b'\x10\n\x0eoptimizer_name"\x0b\n\tdata_root"\x0e\n\x0cout_features"\x0c\n\nhidden_dim"' \
+                  b'\x04\n\x02b1"\x04\n\x02b2*\r\n\x0b\x12\thp_metric'
+    data_pt_1_6 = b'\x12\xa7\x01"\r\n\tdrop_prob \x03"\x0e\n\nbatch_size \x03"\x0f\n\x0bin_features \x03"' \
+                  b'\x11\n\rlearning_rate \x03"\x12\n\x0eoptimizer_name \x01"\r\n\tdata_root \x01"' \
+                  b'\x10\n\x0cout_features \x03"\x0e\n\nhidden_dim \x03"\x06\n\x02b1 \x03"' \
+                  b'\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
+
     hparams_data = data_pt_1_6 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0") else data_pt_1_5
 
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
