@@ -57,3 +57,6 @@ def train_with_quantization_callback(tmpdir):
         callbacks=[StaticModelQuantization],
     )
     trainer.fit(model)
+
+    # todo: test that the trained model is smaller then initial
+    # todo: test that the test score is almost the same as with pure training
