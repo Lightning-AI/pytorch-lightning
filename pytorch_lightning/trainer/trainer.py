@@ -306,7 +306,7 @@ class Trainer(
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
         self.optimizer_connector = OptimizerConnector(self)
-        self.plugin_connector = PluginConnector(self)
+        self.plugin_connector = PluginConnector(self, plugins)
         self.accelerator_connector = BackendConnector(
             num_processes,
             tpu_cores,
@@ -417,7 +417,7 @@ class Trainer(
 
         # last thing are the plugins which override whatever the trainer used by default
         # TODO: probably not needed anymore after refactor
-        self.plugin_connector.on_trainer_init(plugins)
+        # self.plugin_connector.on_trainer_init(plugins)
 
         # Callback system
         self.on_init_end()

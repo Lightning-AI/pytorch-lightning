@@ -319,6 +319,8 @@ class BackendConnector(object):
         return env
 
     def set_distributed_mode(self):
+        if isinstance(self.distributed_backend, Accelerator):
+            return
 
         if self.distributed_backend is None:
             if self.has_horovodrun():
@@ -346,27 +348,27 @@ class BackendConnector(object):
         # special case with TPUs
         elif self.distributed_backend == 'tpu':
             self._device_type = DeviceType.TPU
-        # set all other requested distrib. types adn if it was not set in the
+        # set all other requested distrib. types and if it was not set in the
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)
 
         # unless you request explicitly for CPU and some GPU are available use them
         _on_cpu = self.distributed_backend and 'cpu' in self.distributed_backend
-        if (self.num_gpus > 0 and not _on_cpu):
+        if self.num_gpus > 0 and not _on_cpu:
             self._device_type = DeviceType.GPU
 
-        _distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
+        # _distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
-        if (self.num_gpus == 0 and self._distrib_type in _distrib_types):
-            rank_zero_warn(
-                'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
-            )
-            # todo: in some cases it yield in comarison None and int
-            if ((self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1)):
-                self._distrib_type = DistributedType.DDP
-            else:
-                rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
-                self._distrib_type = None
+        # if (self.num_gpus == 0 and self._distrib_type in _distrib_types):
+        #     rank_zero_warn(
+        #         'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
+        #     )
+        #     # todo: in some cases it yield in comarison None and int
+        #     if ((self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1)):
+        #         self._distrib_type = DistributedType.DDP
+        #     else:
+        #         rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
+        #         self._distrib_type = None
 
         # for DDP overwrite nb processes by requested GPUs
         if (
