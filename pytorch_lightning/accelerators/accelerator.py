@@ -374,3 +374,6 @@ class Accelerator(object):
 
     def on_save(self, checkpoint):
         return checkpoint
+
+    def barrier(self, name: Optional[str] = None) -> None:
+        self.training_type_plugin.barrier(name=name)

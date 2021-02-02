@@ -275,7 +275,6 @@ class LightningModule(
                 raise MisconfigurationException(
                     f"Logged key: {name} should not contain information about dataloader_idx.")
 
-            accelerator = self.trainer.accelerator_backend
             training_type_plugin = self.trainer.training_type_plugin
 
             self._results.log(

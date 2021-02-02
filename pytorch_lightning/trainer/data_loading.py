@@ -93,6 +93,7 @@ class TrainerDataLoadingMixin(ABC):
             return dataloader
 
         is_in_dist = self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
+
         need_dist_sampler = is_in_dist and not isinstance(dataloader.sampler, DistributedSampler)
         if self.accelerator_connector.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):

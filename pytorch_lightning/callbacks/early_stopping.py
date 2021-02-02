@@ -196,6 +196,7 @@ class EarlyStopping(Callback):
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
             self.wait_count = 0
+            should_stop = False
         else:
             self.wait_count += 1
             should_stop = self.wait_count >= self.patience

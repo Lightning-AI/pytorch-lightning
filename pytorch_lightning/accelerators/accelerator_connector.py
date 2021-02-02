@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from typing import Optional, Sequence
 
 import torch
 
@@ -26,15 +27,21 @@ from pytorch_lightning.plugins import (
     DataParallelPlugin,
     DDP2Plugin,
     DDPPlugin,
+    DDPShardedPlugin,
     DDPSpawnPlugin,
+    DDPSpawnShardedPlugin,
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
+    RPCPlugin,
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
     SingleTPUPlugin,
     TPUHalfPrecisionPlugin,
-    TPUSpawnPlugin, DDPShardedPlugin, DDPSpawnShardedPlugin,
+    TPUSpawnPlugin,
+    TrainingTypePlugin,
+    DDPShardedPlugin, 
+    DDPSpawnShardedPlugin,
 )
 from pytorch_lightning.plugins.environments import SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
@@ -74,6 +81,7 @@ class BackendConnector(object):
         amp_type,
         amp_level,
         cluster_environment,
+        plugins,
     ):
         # initialization
         self._device_type = DeviceType.CPU
@@ -94,6 +102,11 @@ class BackendConnector(object):
         self.amp_level = amp_level
         self.cluster_environment = cluster_environment
         self.is_slurm_managing_tasks = False
+
+        self._precision_plugin: Optional[PrecisionPlugin] = None
+        self._training_type_plugin: Optional[TrainingTypePlugin] = None
+
+        self.handle_given_plugins(plugins)
 
         # init the default rank if exists
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
@@ -135,6 +148,56 @@ class BackendConnector(object):
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
         self.replace_sampler_ddp = replace_sampler_ddp
+
+    def handle_given_plugins(self, plugins: Optional[Sequence]):
+        if plugins is None:
+            return
+
+        if not isinstance(plugins, Sequence):
+            plugins = [plugins]
+
+        training_type = None
+        precision = None
+
+        for plug in plugins:
+            if isinstance(plug, TrainingTypePlugin):
+                if training_type is None:
+                    training_type = plug
+                else:
+                    raise MisconfigurationException(
+                        'You can only specify one precision and one training type plugin. '
+                        'Found more than 1 training type plugin'
+                    )
+            elif isinstance(plug, PrecisionPlugin):
+                if precision is None:
+                    precision = plug
+                else:
+                    raise MisconfigurationException(
+                        'You can only specify one precision and one training type plugin. '
+                        'Found more than 1 precision plugin'
+                    )
+            else:
+                raise MisconfigurationException(
+                    f'Found invalid type for plugin {plug}. '
+                    'Expected a precision or training type plugin.'
+                )
+
+        self._training_type_plugin = training_type
+        self._precision_plugin = precision
+
+    @property
+    def precision_plugin(self) -> PrecisionPlugin:
+        if self._precision_plugin is None:
+            self._precision_plugin = self.select_precision_plugin()
+
+        return self._precision_plugin
+
+    @property
+    def training_type_plugin(self) -> TrainingTypePlugin:
+        if self._training_type_plugin is None:
+            self._training_type_plugin = self.select_training_type_plugin()
+
+        return self._training_type_plugin
 
     @property
     def on_cpu(self):
@@ -205,6 +268,9 @@ class BackendConnector(object):
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 
+            if isinstance(self.training_type_plugin, RPCPlugin):
+                raise MisconfigurationException
+
             if self.amp_type == "native":
                 if not _NATIVE_AMP_AVAILABLE:
                     rank_zero_warn(
@@ -215,7 +281,7 @@ class BackendConnector(object):
                     self.amp_type = "apex"
                 else:
                     log.info("Using native 16bit precision.")
-                    if self.distributed_backend == "ddp_sharded" or self.distributed_backend == "ddp_sharded_spawn":
+                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
                         return ShardedNativeMixedPrecisionPlugin()
                     self.amp_type = AMPType.NATIVE
                     return NativeMixedPrecisionPlugin()
@@ -227,7 +293,7 @@ class BackendConnector(object):
                         " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
                     )
                 else:
-                    if self.distributed_backend == "ddp_sharded" or self.distributed_backend == "ddp_sharded_spawn":
+                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
                         raise MisconfigurationException(
                             "Sharded Plugin is not supported with Apex AMP, "
                             "please using native AMP for 16-bit precision."
@@ -289,6 +355,12 @@ class BackendConnector(object):
     def select_accelerator(self):
         if isinstance(self.distributed_backend, Accelerator):
             # custom accelerator from user
+            if self._precision_plugin is not None or self._training_type_plugin is not None:
+                # plugins also specified by user
+                rank_zero_warn(
+                    'Specified Precision and TrainingType Plugins will be ignored, '
+                    'since an Accelerator instance was provided'
+                )
             return self.distributed_backend
 
         if self.on_gpu:
@@ -299,8 +371,8 @@ class BackendConnector(object):
             acc_cls = CPUAccelerator
 
         return acc_cls(
-            precision_plugin=self.select_precision_plugin(),
-            training_type_plugin=self.select_training_type_plugin(),
+            precision_plugin=self.precision_plugin,
+            training_type_plugin=self.training_type_plugin,
         )
 
     def select_cluster_environment(self):

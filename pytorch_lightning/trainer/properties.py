@@ -15,11 +15,12 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import cast, List, Optional, Type, TypeVar, Union, Any
+from typing import Any, cast, List, Optional, Type, TypeVar, Union
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
-from pytorch_lightning.callbacks import Callback, ProgressBarBase, ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
@@ -45,6 +46,10 @@ if _HOROVOD_AVAILABLE:
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+
+from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class TrainerProperties(ABC):

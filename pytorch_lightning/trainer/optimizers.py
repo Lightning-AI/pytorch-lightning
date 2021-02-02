@@ -141,6 +141,7 @@ class TrainerOptimizersMixin(ABC):
                 raise ValueError(f'The provided lr scheduler "{scheduler}" is invalid')
         return lr_schedulers
 
+
 class _MockOptimizer(Optimizer):
     """The `_MockOptimizer` will be used inplace of an optimizer in the event that `None`
     is returned from `configure_optimizers`.
