@@ -320,7 +320,6 @@ class Trainer(
             precision,
             amp_backend,
             amp_level,
-            self.plugin_connector.cloud_environment,
             plugins
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)

@@ -43,7 +43,7 @@ from pytorch_lightning.plugins import (
     DDPShardedPlugin, 
     DDPSpawnShardedPlugin,
 )
-from pytorch_lightning.plugins.environments import SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.plugins.environments import SLURMEnvironment, TorchElasticEnvironment, ClusterEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
@@ -80,7 +80,6 @@ class BackendConnector(object):
         precision,
         amp_type,
         amp_level,
-        cluster_environment,
         plugins,
     ):
         # initialization
@@ -100,11 +99,11 @@ class BackendConnector(object):
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
-        self.cluster_environment = cluster_environment
         self.is_slurm_managing_tasks = False
 
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
+        self._cluster_environment: Optional[ClusterEnvironment] = None
 
         self.handle_given_plugins(plugins)
 
@@ -158,6 +157,7 @@ class BackendConnector(object):
 
         training_type = None
         precision = None
+        cluster_environment = None
 
         for plug in plugins:
             if isinstance(plug, TrainingTypePlugin):
@@ -176,6 +176,15 @@ class BackendConnector(object):
                         'You can only specify one precision and one training type plugin. '
                         'Found more than 1 precision plugin'
                     )
+
+            elif isinstance(plug, ClusterEnvironment):
+                if cluster_environment is None:
+                    cluster_environment = plug
+                else:
+                    raise MisconfigurationException(
+                        'You can only specify one cluster environment '
+                        'Found more than 1 cluster environment plugin'
+                    )
             else:
                 raise MisconfigurationException(
                     f'Found invalid type for plugin {plug}. '
@@ -184,6 +193,7 @@ class BackendConnector(object):
 
         self._training_type_plugin = training_type
         self._precision_plugin = precision
+        self._cluster_environment = cluster_environment
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -198,6 +208,10 @@ class BackendConnector(object):
             self._training_type_plugin = self.select_training_type_plugin()
 
         return self._training_type_plugin
+
+    @property
+    def cluster_environment(self) -> ClusterEnvironment:
+        return self._cluster_environment
 
     @property
     def on_cpu(self):
@@ -376,8 +390,8 @@ class BackendConnector(object):
         )
 
     def select_cluster_environment(self):
-        if self.cluster_environment is not None:
-            return self.cluster_environment
+        if self._cluster_environment is not None:
+            return self._cluster_environment
         if self.is_slurm_managing_tasks:
             env = SLURMEnvironment()
         elif self.is_using_torchelastic:
