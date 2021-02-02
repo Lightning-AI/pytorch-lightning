@@ -326,6 +326,9 @@ class Trainer(
         self.model = None
         self.shown_warnings = set()
 
+        # the trainer is being created, env variables shouldn't exist.
+        self.__sanetize_env_variables()
+
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
         self.callback_connector.on_trainer_init(
@@ -424,6 +427,13 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
+    def __sanetize_env_variables(self):
+        if 'PL_TESTING_MODE' in os.environ:
+            del os.environ['PL_TESTING_MODE']
+
+        if 'PL_PREDICTING_MODE' in os.environ:
+            del os.environ['PL_PREDICTING_MODE']
+
     def fit(
         self,
         model: LightningModule,
@@ -517,14 +527,11 @@ class Trainer(
         model.running_stage = self._running_stage
 
     def _set_wide_running_stage(self, stage):
+        """
+        This function is used to set the running_state on both
+        the trainer and the model
+        """
         model_ref = self.get_model()
-
-        # todo: clean up this routing mess.
-        if self._running_stage == RunningStage.TESTING:
-            stage = RunningStage.TESTING
-
-        elif self._running_stage == RunningStage.PREDICTING:
-            stage = RunningStage.PREDICTING
 
         if model_ref is not None:
             model_ref.running_stage = stage
@@ -834,6 +841,7 @@ class Trainer(
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
         self.teardown('test')
+        del os.environ['PL_TESTING_MODE']
 
         self._set_wide_running_stage(None)
 
@@ -875,7 +883,6 @@ class Trainer(
         self.model = model
         os.environ['PL_TESTING_MODE'] = '1'
         results = self.fit(model)
-        del os.environ['PL_TESTING_MODE']
 
         # teardown
         if self.is_function_implemented('teardown'):
@@ -893,8 +900,8 @@ class Trainer(
         # run test
         # sets up testing so we short circuit to eval
         self.model = model
+        os.environ['PL_TESTING_MODE'] = '1'
         results = self.fit(model)
-        self.testing = False
 
         # teardown
         if self.is_function_implemented('teardown'):
