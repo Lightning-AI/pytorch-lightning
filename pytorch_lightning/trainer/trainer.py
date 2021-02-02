@@ -330,11 +330,9 @@ class Trainer(
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
-        self.accelerator_backend = None
         self.train_loop = TrainLoop(self, multiple_trainloader_mode)
         self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
-        self.plugin_connector = PluginConnector(self)
 
         # training state
         self.weights_summary = weights_summary
