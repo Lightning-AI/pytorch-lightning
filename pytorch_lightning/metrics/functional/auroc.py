@@ -16,7 +16,7 @@ from typing import Optional, Sequence, Tuple
 
 import torch
 
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 from pytorch_lightning.metrics.functional.auc import auc
 from pytorch_lightning.metrics.functional.roc import roc
 from pytorch_lightning.utilities import LightningEnum
@@ -102,7 +102,7 @@ def _auroc_compute(
             elif average == AverageMethods.MACRO:
                 return torch.mean(torch.stack(auc_scores))
             elif average == AverageMethods.WEIGHTED:
-                if mode == 'multi-label':
+                if mode == DataType.MULTILABEL:
                     support = torch.sum(target, dim=0)
                 else:
                     support = torch.bincount(target.flatten(), minlength=num_classes)

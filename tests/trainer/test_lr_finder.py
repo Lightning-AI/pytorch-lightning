@@ -90,6 +90,8 @@ def test_trainer_reset_correctly(tmpdir):
         assert attributes_before[key] == attributes_after[key], \
             f'Attribute {key} was not reset correctly after learning rate finder'
 
+    assert model.trainer == trainer
+
 
 @pytest.mark.parametrize('use_hparams', [False, True])
 def test_trainer_arg_bool(tmpdir, use_hparams):
