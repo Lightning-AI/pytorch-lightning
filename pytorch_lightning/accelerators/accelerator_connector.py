@@ -123,9 +123,6 @@ class BackendConnector(object):
         self.interactive_ddp_procs = []
         self.global_rank = 0
 
-        # NVIDIA setup
-        # self.set_nvidia_flags(self.trainer.is_slurm_managing_tasks, self.trainer.data_parallel_device_ids)
-
         # benchmarking
         # TODO: should this be moved to GPU accelerator?
         torch.backends.cudnn.benchmark = self.benchmark
