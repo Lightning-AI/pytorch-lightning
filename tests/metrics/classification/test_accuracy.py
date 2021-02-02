@@ -6,7 +6,7 @@ import torch
 from sklearn.metrics import accuracy_score as sk_accuracy
 
 from pytorch_lightning.metrics import Accuracy
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 from pytorch_lightning.metrics.functional import accuracy
 from tests.metrics.classification.inputs import (
     _binary_inputs,
@@ -29,12 +29,12 @@ def _sk_accuracy(preds, target, subset_accuracy):
     sk_preds, sk_target, mode = _input_format_classification(preds, target, threshold=THRESHOLD)
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
 
-    if mode == "multi-dim multi-class" and not subset_accuracy:
+    if mode == DataType.MULTIDIM_MULTICLASS and not subset_accuracy:
         sk_preds, sk_target = np.transpose(sk_preds, (0, 2, 1)), np.transpose(sk_target, (0, 2, 1))
         sk_preds, sk_target = sk_preds.reshape(-1, sk_preds.shape[2]), sk_target.reshape(-1, sk_target.shape[2])
-    elif mode == mode == "multi-dim multi-class" and subset_accuracy:
+    elif mode == DataType.MULTIDIM_MULTICLASS and subset_accuracy:
         return np.all(sk_preds == sk_target, axis=(1, 2)).mean()
-    elif mode == "multi-label" and not subset_accuracy:
+    elif mode == DataType.MULTILABEL and not subset_accuracy:
         sk_preds, sk_target = sk_preds.reshape(-1), sk_target.reshape(-1)
 
     return sk_accuracy(y_true=sk_target, y_pred=sk_preds)

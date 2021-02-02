@@ -73,7 +73,6 @@ class Accelerator(object):
         self.connect_training_type_plugin(self.training_type_plugin, model)
         self.setup_optimizers(trainer, model)
         self.connect_precision_plugin(self.precision_plugin)
-        self.optimizers = trainer.convert_to_lightning_optimizers(self.optimizers)
 
     @property
     def model(self) -> torch.nn.Module:
@@ -141,7 +140,7 @@ class Accelerator(object):
 
         with self.precision_plugin.train_step_context():
             with self.training_type_plugin.train_step_context():
-                return self.lightning_module.training_step(*args)
+                return self.training_type_plugin.training_step(*args)
 
     def validation_step(self, args):
         """The actual validation step.
@@ -160,7 +159,7 @@ class Accelerator(object):
 
         with self.precision_plugin.val_step_context():
             with self.training_type_plugin.val_step_context():
-                return self.lightning_module.validation_step(*args)
+                return self.training_type_plugin.validation_step(*args)
 
     def test_step(self, args):
         """The actual test step.
@@ -179,7 +178,7 @@ class Accelerator(object):
 
         with self.precision_plugin.test_step_context():
             with self.training_type_plugin.test_step_context():
-                return self.lightning_module.test_step(*args)
+                return self.training_type_plugin.test_step(*args)
 
     def training_step_end(self, output):
         """A hook to do something at the end of the training step
