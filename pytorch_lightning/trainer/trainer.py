@@ -52,6 +52,7 @@ from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
@@ -108,6 +109,7 @@ class Trainer(
         limit_train_batches: Union[int, float] = 1.0,
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
+        limit_predict_batches: Union[int, float] = 1.0,
         val_check_interval: Union[int, float] = 1.0,
         flush_logs_every_n_steps: int = 100,
         log_every_n_steps: int = 50,
@@ -297,7 +299,6 @@ class Trainer(
         self._device_type = DeviceType.CPU
         self._distrib_type = None
         self._running_stage = None
-        self._predicting = False
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -316,8 +317,9 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
-        self.evaluation_loop = EvaluationLoop(self)
         self.train_loop = TrainLoop(self, multiple_trainloader_mode)
+        self.evaluation_loop = EvaluationLoop(self)
+        self.predict_loop = PredictLoop(self)
         self.plugin_connector = PluginConnector(self)
 
         # training state
@@ -407,6 +409,7 @@ class Trainer(
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,
+            limit_predict_batches,
             val_check_interval,
             overfit_batches,
             fast_dev_run,
@@ -457,8 +460,8 @@ class Trainer(
         self.data_connector.prepare_data(model)
 
         # bookkeeping
-        # we reuse fit in .test() but change its behavior using this flag
-        self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
+        # we reuse fit in .test() and .predict() but change its behavior using flags
+        self._resolve_running_stage_with_flags(model)
 
         # ----------------------------
         # SET UP TRAINING
@@ -504,26 +507,27 @@ class Trainer(
 
         return results or 1
 
+    def _resolve_running_stage_with_flags(self, model):
+        if 'PL_TESTING_MODE' in os.environ:
+            self.testing = os.getenv('PL_TESTING_MODE', self.testing)
+
+        elif 'PL_PREDICTING_MODE' in os.environ:
+            self.predicting = os.getenv('PL_PREDICTING_MODE', self.predicting)
+
+        model.running_stage = self._running_stage
+
     def _set_wide_running_stage(self, stage):
         model_ref = self.get_model()
-
-        if stage is None:
-            self._running_stage = stage
-            model_ref.running_stage = stage
-            return
 
         # todo: clean up this routing mess.
         if self._running_stage == RunningStage.TESTING:
             stage = RunningStage.TESTING
 
-        # WARNING: With predicting,
-        # trainer _running_state should be RunningStage.TESTING
-        # however, the model running_stage should be RunningStage.PREDICTING or None
+        elif self._running_stage == RunningStage.PREDICTING:
+            stage = RunningStage.PREDICTING
+
         if model_ref is not None:
-            if self._predicting:
-                model_ref.running_stage = RunningStage.PREDICTING
-            else:
-                model_ref.running_stage = stage
+            model_ref.running_stage = stage
 
         self._running_stage = stage
 
@@ -644,8 +648,6 @@ class Trainer(
                 # lightning module methods
                 with self.profiler.profile("evaluation_step_and_end"):
                     output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
-                    if self._predicting:
-                        continue
                     output = self.evaluation_loop.evaluation_step_end(output)
 
                 # hook + store predictions
@@ -659,9 +661,6 @@ class Trainer(
 
             # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
-
-        if self._predicting:
-            return self.evaluation_loop.on_predict_epoch_end()
 
         # lightning module method
         deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
@@ -714,6 +713,45 @@ class Trainer(
                         result[k] = v.cpu().item()
 
         return eval_loop_results
+
+    def run_predict(self):
+        # prepare dataloaders
+        dataloaders, max_batches = self.predict_loop.get_predict_dataloaders(None)
+
+        # check if we want to skip this evaluation
+        if self.predict_loop.should_skip_predict(dataloaders, max_batches):
+            return []
+
+        # ref model
+        model = self.get_model()
+
+        # enable eval mode + no grads
+        self.predict_loop.on_predict_model_eval()
+        model.zero_grad()
+        torch.set_grad_enabled(False)
+
+        # set up the eval loop
+        self.predict_loop.setup(model, max_batches, dataloaders)
+
+        # run validation/testing
+        for dataloader_idx, dataloader in enumerate(dataloaders):
+            dataloader = self.accelerator_backend.process_dataloader(dataloader)
+            dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
+
+            for batch_idx, batch in enumerate(dataloader):
+                if batch is None:
+                    continue
+
+                # stop short when running on limited batches
+                if batch_idx >= dl_max_batches:
+                    break
+
+                # lightning module methods
+                with self.profiler.profile("predict"):
+                    self.predict_loop.predict(batch, batch_idx, dataloader_idx)
+
+        results = self.predict_loop.on_predict_epoch_end()
+        return results
 
     def run_sanity_check(self, ref_model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
@@ -790,10 +828,12 @@ class Trainer(
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
+        os.environ['PL_TESTING_MODE'] = '1'
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
         else:
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
+        del os.environ['PL_TESTING_MODE']
 
         self.teardown('test')
 
@@ -834,12 +874,8 @@ class Trainer(
 
         # run tests
         self.tested_ckpt_path = ckpt_path
-        self.testing = True
-        os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
         results = self.fit(model)
-        self.testing = False
-        del os.environ['PL_TESTING_MODE']
 
         # teardown
         if self.is_function_implemented('teardown'):
@@ -856,7 +892,6 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        self.testing = True
         self.model = model
         results = self.fit(model)
         self.testing = False
@@ -905,23 +940,21 @@ class Trainer(
 
         if datamodule is not None:
             # Attach datamodule to get setup/prepare_data added to model before the call to it below
-            self.data_connector.attach_datamodule(model, datamodule, 'test')
+            self.data_connector.attach_datamodule(model, datamodule, 'predict')
 
         # attach data
         if dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
+            self.data_connector.attach_dataloaders(model, predict_dataloaders=dataloaders)
 
         # set path variable
-        self._predicting = True
-        os.environ['PL_TESTING_MODE'] = '1'
+        os.environ['PL_PREDICTING_MODE'] = '1'
         self.model = model
 
         results = self.fit(model)
 
         # unset path variable
         self.teardown('test')
-        del os.environ['PL_TESTING_MODE']
-        self._predicting = False
+        del os.environ['PL_PREDICTING_MODE']
         self._set_wide_running_stage(None)
 
         return results
@@ -1036,6 +1069,17 @@ class Trainer(
         if val:
             self._running_stage = RunningStage.TESTING
         elif self.testing:
+            self._running_stage = None
+
+    @property
+    def predicting(self) -> bool:
+        return self._running_stage == RunningStage.PREDICTING
+
+    @predicting.setter
+    def predicting(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.PREDICTING
+        elif self.predicting:
             self._running_stage = None
 
     @property

@@ -57,7 +57,7 @@ class CPUAccelerator(Accelerator):
         self.trainer.train_loop.setup_training(model)
 
         # train or test
-        results = self.train_or_test()
+        results = self.train_or_test_or_predict()
         return results
 
     def _step(self, model_step: Callable, args):

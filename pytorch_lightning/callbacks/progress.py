@@ -279,6 +279,20 @@ class ProgressBar(ProgressBarBase):
         )
         return bar
 
+    def init_predict_tqdm(self) -> tqdm:
+        """ Override this to customize the tqdm bar for training. """
+        bar = tqdm(
+            desc='Predicting',
+            initial=self.train_batch_idx,
+            position=(2 * self.process_position),
+            disable=self.is_disabled,
+            leave=True,
+            dynamic_ncols=True,
+            file=sys.stdout,
+            smoothing=0,
+        )
+        return bar
+
     def init_validation_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for validation. """
         bar = tqdm(
@@ -291,12 +305,10 @@ class ProgressBar(ProgressBarBase):
         )
         return bar
 
-    def init_test_tqdm(self, trainer=None) -> tqdm:
+    def init_test_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for testing. """
-        desc = "Testing"
-        desc = "Predicting" if trainer is not None and getattr(trainer, "is_predicting", False) else "Testing"
         bar = tqdm(
-            desc=desc,
+            desc="Testing",
             position=(2 * self.process_position),
             disable=self.is_disabled,
             leave=True,
@@ -363,7 +375,7 @@ class ProgressBar(ProgressBarBase):
 
     def on_test_start(self, trainer, pl_module):
         super().on_test_start(trainer, pl_module)
-        self.test_progress_bar = self.init_test_tqdm(trainer=trainer)
+        self.test_progress_bar = self.init_test_tqdm()
         self.test_progress_bar.total = convert_inf(self.total_test_batches)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -374,6 +386,19 @@ class ProgressBar(ProgressBarBase):
     def on_test_end(self, trainer, pl_module):
         super().on_test_end(trainer, pl_module)
         self.test_progress_bar.close()
+
+    def on_predict_start(self, trainer, pl_module):
+        super().on_train_start(trainer, pl_module)
+        self.predict_progress_bar = self.init_train_tqdm()
+
+    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        if self._should_update(self.test_batch_idx, self.total_test_batches):
+            self._update_bar(self.predict_progress_bar)
+
+    def on_predict_end(self, trainer, pl_module):
+        super().on_test_end(trainer, pl_module)
+        self.predict_progress_bar.close()
 
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)

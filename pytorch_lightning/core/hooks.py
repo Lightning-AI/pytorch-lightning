@@ -216,6 +216,12 @@ class ModelHooks:
         """
         self.train()
 
+    def on_predict_model_eval(self) -> None:
+        """
+        Sets the model to eval during the test loop
+        """
+        self.eval()
+
     def on_epoch_start(self) -> None:
         """
         Called in the training loop at the very beginning of the epoch.
@@ -518,6 +524,31 @@ class DataHooks:
 
         Note:
             In the case where you return multiple validation dataloaders, the :meth:`validation_step`
+            will have an argument ``dataloader_idx`` which matches the order here.
+        """
+
+    def predict_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+        r"""
+        Implement one or multiple PyTorch DataLoaders for prediction.
+
+        It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
+
+        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
+        - ...
+        - :meth:`prepare_data`
+        - :meth:`train_dataloader`
+        - :meth:`val_dataloader`
+        - :meth:`test_dataloader`
+
+        Note:
+            Lightning adds the correct sampler for distributed and arbitrary hardware
+            There is no need to set it yourself.
+
+        Return:
+            Single or multiple PyTorch DataLoaders.
+
+        Note:
+            In the case where you return multiple prediction dataloaders, the :meth:`predict`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
 

@@ -261,6 +261,10 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
         pass
 
     @abstractmethod
+    def predict_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
+        pass
+
+    @abstractmethod
     def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
         pass
 

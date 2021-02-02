@@ -107,7 +107,7 @@ class HorovodAccelerator(Accelerator):
             self.trainer.train_loop.setup_training(self.trainer.model)
 
             # train or test
-            results = self.train_or_test()
+            results = self.train_or_test_or_predict()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()

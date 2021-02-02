@@ -1457,6 +1457,9 @@ class TestLightningDataModule(LightningDataModule):
     def test_dataloader(self):
         return self._dataloaders
 
+    def predict_dataloader(self):
+        return self._dataloaders
+
 
 def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=True):
 
