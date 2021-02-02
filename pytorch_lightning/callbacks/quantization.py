@@ -27,13 +27,13 @@ class StaticModelQuantization(Callback):
     def __init__(
         self,
     ) -> None:
-        pass
+        self.num_batches = 3
 
     def on_fit_end(self, trainer, pl_module):
         # tweak model for best results
         # change code directly or use manipulation APIs
         pl_module.eval()
-        pl_module = torch.quantization.fuse_modules(pl_module, [["conv1", "bn1", "relu1"]])
+        # pl_module = torch.quantization.fuse_modules(pl_module, [["conv1", "bn1", "relu1"]])
 
         # specify which part to quantize and how
         pl_module.qconfig = torch.quantization.get_default_qconfig("fbgemm")
@@ -43,8 +43,10 @@ class StaticModelQuantization(Callback):
 
         # collect calibration statistics
         qmodel.eval()
-        for batch, target in data_loader:
-            pl_module(batch)
+        for idx, batch in enumerate(trainer.train_dataloader):
+            if idx >= self.num_batches:
+                break
+            pl_module.validation_step(self, batch, idx)
 
         # convert to quantized version
         torch.quantization.convert(qmodel, inplace=True)

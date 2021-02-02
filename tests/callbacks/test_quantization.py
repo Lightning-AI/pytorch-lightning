@@ -44,17 +44,18 @@ class QuantModel(BoringModel):
         return {"loss": loss}
 
 
-def train_with_quantization_callback(tmpdir):
+def test_static_quantization(tmpdir):
 
     model = QuantModel()
     model.validation_step = None
     model.test_step = None
 
+    qcb = StaticModelQuantization()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=10,
         max_epochs=2,
-        callbacks=[StaticModelQuantization],
+        callbacks=[qcb],
     )
     trainer.fit(model)
 
