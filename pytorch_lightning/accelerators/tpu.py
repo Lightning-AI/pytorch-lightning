@@ -27,14 +27,25 @@ class TPUAccelerator(Accelerator):
         return super().setup(trainer, model)
 
     def optimizer_step(
-        self, optimizer: torch.optim.Optimizer, current_epoch: int, batch_idx: int, opt_idx: int,
-        lambda_closure: Callable
+        self,
+        optimizer: torch.optim.Optimizer,
+        opt_idx: int,
+        lambda_closure: Callable,
+        **kwargs
     ):
+        """performs the actual optimizer step.
+
+        Args:
+            optimizer: the optimizer performing the step
+            opt_idx: index of the current optimizer
+            lambda_closure: closure calculating the loss value
+
+        """
 
         self.precision_plugin.pre_optimizer_step(optimizer, opt_idx)
         self.training_type_plugin.pre_optimizer_step(optimizer, opt_idx)
 
-        xm.optimizer_step(optimizer, optimizer_args={'closure': lambda_closure})
+        xm.optimizer_step(optimizer, optimizer_args={'closure': lambda_closure, **kwargs})
 
         self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
         self.training_type_plugin.post_optimizer_step(optimizer, opt_idx)

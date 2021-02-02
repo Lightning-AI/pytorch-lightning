@@ -128,34 +128,13 @@ class LightningOptimizer:
         is_final_batch = self._trainer.train_loop._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
-    def __optimizer_step(self, *args, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
+    def __optimizer_step(self, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
         trainer = self._trainer
         optimizer = self._optimizer
         model = trainer.get_model()
 
-        trainer.precision_plugin.pre_optimizer_step(optimizer, self._optimizer_idx)
-        trainer.training_type_plugin.pre_optimizer_step(optimizer, self._optimizer_idx)
-
         with trainer.profiler.profile(profiler_name):
-            if trainer._device_type == DeviceType.TPU:
-                xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
-
-            else:
-                optimizer.step(closure=closure, *args, **kwargs)
-
-        accelerator_backend = trainer.accelerator_backend
-        if accelerator_backend is not None and accelerator_backend.rpc_enabled:
-            if accelerator_backend.ddp_plugin.is_main_rpc_process:
-                # Initialize optimizer step on main process
-                accelerator_backend.ddp_plugin.worker_optimizer_step(
-                    model=model,
-                    opt_idx=self._optimizer_idx,
-                    *args,
-                    **kwargs
-                )
-
-        trainer.precision_plugin.post_optimizer_step(optimizer, self._optimizer_idx)
-        trainer.training_type_plugin.post_optimizer_step(optimizer, self._optimizer_idx)
+            trainer.accelerator_backend.optimizer_step(optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
 
         trainer.train_loop.on_before_zero_grad(optimizer)
 
