@@ -10,23 +10,18 @@ from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin  # 
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.rpc import RPCPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequentialPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin  # noqa: F401
 
 __all__ = [
-    "ApexMixedPrecisionPlugin",
-    "DataParallelPlugin",
-    "DDP2Plugin",
-    "DDPPlugin",
-    "DDPSpawnPlugin",
-    "HorovodPlugin",
-    "NativeMixedPrecisionPlugin",
-    "PrecisionPlugin",
-    "ShardedNativeMixedPrecisionPlugin",
-    "SingleDevicePlugin",
-    "SingleTPUPlugin",
-    "TPUHalfPrecisionPlugin",
-    "TPUSpawnPlugin",
+    "ApexMixedPrecisionPlugin", "DataParallelPlugin", "DDP2Plugin", "DDPPlugin", "DDPSpawnPlugin", "HorovodPlugin",
+    "NativeMixedPrecisionPlugin", "PrecisionPlugin", "ShardedNativeMixedPrecisionPlugin", "SingleDevicePlugin",
+    "SingleTPUPlugin", "TPUHalfPrecisionPlugin", "TPUSpawnPlugin", 'RPCPlugin', 'RPCSequentialPlugin'
+    'TrainingTypePlugin', 'ParallelPlugin', 'Plugin', 'DDPShardedPlugin', 'DDPSpawnShardedPlugin'
 ]
