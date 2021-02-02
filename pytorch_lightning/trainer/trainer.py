@@ -23,11 +23,12 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
-from pytorch_lightning.accelerators.legacy.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins.legacy.plugin_connector import PluginConnector
@@ -42,7 +43,6 @@ from pytorch_lightning.trainer.connectors.env_vars_connector import overwrite_by
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
-from pytorch_lightning.trainer.connectors.precision_connector import PrecisionConnector
 from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
@@ -62,12 +62,13 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
-    'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
+    "ignore", message="torch.distributed.reduce_op is deprecated, " "please use torch.distributed.ReduceOp instead"
 )
+os.environ["PYTHONWARNINGS"] = "ignore:semaphore_tracker:UserWarning"
 
 
 class Trainer(
@@ -114,7 +115,7 @@ class Trainer(
         accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
-        weights_summary: Optional[str] = 'top',
+        weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
@@ -294,20 +295,36 @@ class Trainer(
                 reload when reaching the minimum length of datasets.
         """
         super().__init__()
-        self._device_type = DeviceType.CPU
-        self._distrib_type = None
         self._running_stage = None
         self._predicting = False
+
+        distributed_backend = distributed_backend or accelerator
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
         self.optimizer_connector = OptimizerConnector(self)
-        self.accelerator_connector = AcceleratorConnector(self)
-        self.logger_connector = LoggerConnector(self)
+        self.plugin_connector = PluginConnector(self, plugins)
+        self.accelerator_connector = BackendConnector(
+            num_processes,
+            tpu_cores,
+            distributed_backend,
+            auto_select_gpus,
+            gpus,
+            num_nodes,
+            sync_batchnorm,
+            benchmark,
+            replace_sampler_ddp,
+            deterministic,
+            precision,
+            amp_backend,
+            amp_level,
+            self.plugin_connector.cloud_environment
+        )
+        self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
-        self.precision_connector = PrecisionConnector(self)
+        # self.precision_connector = PrecisionConnector(self)
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
@@ -315,13 +332,11 @@ class Trainer(
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
-        self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
         self.train_loop = TrainLoop(self, multiple_trainloader_mode)
-        self.plugin_connector = PluginConnector(self)
 
         # training state
-        self.model = None
+        self.weights_summary = weights_summary
         self.shown_warnings = set()
 
         # init callbacks
@@ -350,22 +365,6 @@ class Trainer(
         # init training tricks
         self.training_tricks_connector.on_trainer_init(
             gradient_clip_val, track_grad_norm, accumulate_grad_batches, truncated_bptt_steps, terminate_on_nan
-        )
-
-        # init accelerator related flags
-        self.accelerator_connector.on_trainer_init(
-            num_processes,
-            tpu_cores,
-            accelerator,
-            distributed_backend,
-            auto_select_gpus,
-            gpus,
-            num_nodes,
-            log_gpu_memory,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic,
         )
 
         # init train loop related flags
@@ -413,10 +412,11 @@ class Trainer(
         )
 
         # set precision
-        self.precision_connector.on_trainer_init(precision, amp_level, amp_backend)
+        # self.precision_connector.on_trainer_init(precision, amp_level, amp_backend)
 
         # last thing are the plugins which override whatever the trainer used by default
-        self.plugin_connector.on_trainer_init(plugins)
+        # TODO: probably not needed anymore after refactor
+        # self.plugin_connector.on_trainer_init(plugins)
 
         # Callback system
         self.on_init_end()
@@ -458,45 +458,53 @@ class Trainer(
 
         # bookkeeping
         # we reuse fit in .test() but change its behavior using this flag
-        self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
+        self.testing = os.environ.get("PL_TESTING_MODE", self.testing)
 
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.accelerator_backend = self.accelerator_connector.select_accelerator()
-        self.call_hook("on_before_accelerator_backend_setup", model)
-        self.accelerator_backend.setup(model)
-
-        # ----------------------------
-        # INSPECT THESE FOR MAIN LOOPS
-        # ----------------------------
-        # assign training and eval functions... inspect these to see the train and eval loops :)
-        self.accelerator_backend.train_loop = self.train
-        self.accelerator_backend.validation_loop = self.run_evaluation
-        self.accelerator_backend.test_loop = self.run_evaluation
+        # self.accelerator_backend = self.accelerator_connector.select_accelerator()
+        self.accelerator_backend.setup(self, model)
+        self.train_loop.setup_training(model)
 
         # ----------------------------
         # TRAIN
         # ----------------------------
         # hook
-        self.call_hook('on_fit_start')
-        results = self.accelerator_backend.train()
+        self.call_hook("on_fit_start")
+
+        # plugin will setup training (e.g. ddp will launch child processes)
+        # TODO: the old setup is now called "pre_training", where should this hook be called now?
+        self.call_hook("on_before_accelerator_backend_setup", model)
+        self.training_type_plugin.pre_training()
+        self.precision_plugin.pre_training()
+
+        self.call_setup_hook(self.lightning_module)
+
+        # double dispatch: let the plugin initiate the training/test loop.
+        if self.testing:
+            self.training_type_plugin.start_testing(self)
+        else:
+            self.training_type_plugin.start_training(self)
+
+        self.precision_plugin.post_training()
+        self.training_type_plugin.post_training()
         self.accelerator_backend.teardown()
+        results = self.training_type_plugin.results
 
         # ----------------------------
         # POST-Training CLEAN UP
         # ----------------------------
         # hook
-        self.call_hook('on_fit_end')
+        self.call_hook("on_fit_end")
 
         # hook
-        self.teardown('fit')
-        if self.is_function_implemented('teardown'):
-            model.teardown('fit')
+        self.teardown("fit")
+        if self.is_function_implemented("teardown"):
+            model.teardown("fit")
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
-
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
 
@@ -527,7 +535,44 @@ class Trainer(
 
         self._running_stage = stage
 
+    def pre_training_routine(self):
+        # wait for all to join if on distributed
+        self.accelerator.training_type_plugin.barrier("setup_training")
+
+        # register auto-resubmit when on SLURM
+        self.slurm_connector.register_slurm_signal_handlers()
+
+        # --------------------------
+        # Pre-train
+        # --------------------------
+        # on pretrain routine start
+        ref_model = self.get_model()
+
+        self.on_pretrain_routine_start(ref_model)
+        if self.is_function_implemented("on_pretrain_routine_start"):
+            ref_model.on_pretrain_routine_start()
+
+        # print model summary
+        if self.is_global_zero and self.weights_summary is not None and not self.testing:
+            if self.weights_summary in ModelSummary.MODES:
+                ref_model.summarize(mode=self.weights_summary)
+            else:
+                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+
+        # restore training and model before hpc is called
+        self.checkpoint_connector.restore_weights(ref_model)
+
+        # on pretrain routine end
+        self.on_pretrain_routine_end(ref_model)
+        if self.is_function_implemented("on_pretrain_routine_end"):
+            ref_model.on_pretrain_routine_end()
+
     def train(self):
+        self.pre_training_routine()
+
+        if not self.is_global_zero and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
+
         self.run_sanity_check(self.get_model())
 
         # set stage for logging
@@ -563,7 +608,7 @@ class Trainer(
                     return
 
                 # update LR schedulers
-                self.optimizer_connector.update_learning_rates(interval='epoch')
+                self.optimizer_connector.update_learning_rates(interval="epoch")
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
@@ -572,14 +617,18 @@ class Trainer(
                 if self.should_stop:
                     if met_min_epochs and met_min_steps:
                         return
-                    log.info(
-                        'Trainer was signaled to stop but required minimum epochs'
-                        f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                        ' not been met. Training will continue...'
-                    )
+                    else:
+                        log.info(
+                            "Trainer was signaled to stop but required minimum epochs"
+                            f" ({self.min_epochs}) or minimum steps ({self.min_steps}) has"
+                            " not been met. Training will continue..."
+                        )
+
+            # hook
+            self.train_loop.on_train_end()
 
         except KeyboardInterrupt:
-            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
+            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
 
             # user could press ctrl+c many times... only shutdown once
             if not self.interrupted:
@@ -698,6 +747,9 @@ class Trainer(
         return outputs
 
     def run_test(self):
+        if not self.is_global_zero and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
+
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
         with self.profiler.profile("run_test_evaluation"):
@@ -716,7 +768,7 @@ class Trainer(
         return eval_loop_results
 
     def run_sanity_check(self, ref_model):
-        using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
+        using_val_step = ref_model.val_dataloader is not None and is_overridden("validation_step", ref_model)
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
         # run tiny validation (if validation defined)
@@ -750,7 +802,7 @@ class Trainer(
         self,
         model: Optional[LightningModule] = None,
         test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        ckpt_path: Optional[str] = 'best',
+        ckpt_path: Optional[str] = "best",
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ):
@@ -784,18 +836,18 @@ class Trainer(
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
             raise MisconfigurationException(
-                'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
+                "You cannot pass test_dataloaders to trainer.test if you supply a datamodule"
             )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
+        self.data_connector.attach_datamodule(model or self.get_model(), datamodule, "test")
 
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
         else:
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
-        self.teardown('test')
+        self.teardown("test")
 
         self._set_wide_running_stage(None)
 
@@ -805,7 +857,7 @@ class Trainer(
         model = self.get_model()
 
         # if user requests the best checkpoint but we don't have it, error
-        if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
+        if ckpt_path == "best" and not self.checkpoint_callback.best_model_path:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
             )
@@ -813,20 +865,20 @@ class Trainer(
         # load best weights
         if ckpt_path is not None:
             # ckpt_path is 'best' so load the best model
-            if ckpt_path == 'best':
+            if ckpt_path == "best":
                 ckpt_path = self.checkpoint_callback.best_model_path
 
             if len(ckpt_path) == 0:
                 rank_zero_warn(
-                    f'.test() found no path for the best weights, {ckpt_path}. Please '
-                    f'specify a path for a checkpoint .test(ckpt_path=PATH)'
+                    f".test() found no path for the best weights, {ckpt_path}. Please "
+                    f"specify a path for a checkpoint .test(ckpt_path=PATH)"
                 )
                 return {}
-            if self.accelerator_backend is not None and not self._device_type == DeviceType.TPU:
-                self.accelerator_backend.barrier()
+            if not self._device_type == DeviceType.TPU:
+                self.training_type_plugin.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt['state_dict'])
+            model.load_state_dict(ckpt["state_dict"])
 
         # attach dataloaders
         if test_dataloaders is not None:
@@ -835,16 +887,15 @@ class Trainer(
         # run tests
         self.tested_ckpt_path = ckpt_path
         self.testing = True
-        os.environ['PL_TESTING_MODE'] = '1'
-        self.model = model
+        os.environ["PL_TESTING_MODE"] = "1"
         results = self.fit(model)
         self.testing = False
-        del os.environ['PL_TESTING_MODE']
+        del os.environ["PL_TESTING_MODE"]
 
         # teardown
-        if self.is_function_implemented('teardown'):
+        if self.is_function_implemented("teardown"):
             model_ref = self.get_model()
-            model_ref.teardown('test')
+            model_ref.teardown("test")
 
         return results
 
@@ -857,13 +908,12 @@ class Trainer(
         # run test
         # sets up testing so we short circuit to eval
         self.testing = True
-        self.model = model
         results = self.fit(model)
         self.testing = False
 
         # teardown
-        if self.is_function_implemented('teardown'):
-            model.teardown('test')
+        if self.is_function_implemented("teardown"):
+            model.teardown("test")
 
         return results
 
@@ -952,7 +1002,7 @@ class Trainer(
 
     def call_setup_hook(self, model):
         # call setup after the ddp process has connected
-        stage_name = 'test' if self.testing else 'fit'
+        stage_name = "test" if self.testing else "fit"
         if self.datamodule is not None:
             called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
             if not called:

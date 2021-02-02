@@ -23,6 +23,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
@@ -102,13 +103,6 @@ class TrainLoop:
         return False
 
     def on_train_start(self):
-        # clear cache before training
-        if self.trainer._device_type == DeviceType.GPU and self.trainer.root_gpu is not None:
-            # use context because of:
-            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
-            with torch.cuda.device(f"cuda:{self.trainer.root_gpu}"):
-                torch.cuda.empty_cache()
-
         # hook
         self.trainer.call_hook("on_train_start")
 
@@ -116,8 +110,8 @@ class TrainLoop:
         self.trainer.profile_connector.on_train_start(self.trainer)
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
-        # bind logger and other properties
-        self.trainer.model_connector.copy_trainer_model_properties(model)
+        # # bind logger and other properties
+        # self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # clean hparams
         if hasattr(model, "hparams"):
@@ -141,11 +135,7 @@ class TrainLoop:
         # --------------------------
         # Setup??
         # --------------------------
-        ref_model = self.trainer.get_model()
-
-        # set the ranks and devices
-        self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
-        self.trainer.accelerator_backend.dist.device = ref_model.device
+        ref_model = model
 
         # give model convenience properties
         ref_model.trainer = self.trainer
@@ -165,36 +155,6 @@ class TrainLoop:
             self.trainer.logger.log_hyperparams(ref_model.hparams_initial)
             self.trainer.logger.log_graph(ref_model)
             self.trainer.logger.save()
-
-        # wait for all to join if on distributed
-        self.trainer.accelerator_backend.barrier("setup_training")
-
-        # register auto-resubmit when on SLURM
-        self.trainer.slurm_connector.register_slurm_signal_handlers()
-
-        # --------------------------
-        # Pre-train
-        # --------------------------
-        # on pretrain routine start
-        self.trainer.on_pretrain_routine_start(ref_model)
-        if self.trainer.is_function_implemented("on_pretrain_routine_start"):
-            ref_model.on_pretrain_routine_start()
-
-        # print model summary
-        if self.trainer.is_global_zero and not self.trainer.testing:
-            ref_model.summarize(mode=self.trainer.weights_summary)
-
-        # track model now.
-        # if cluster resets state, the model will update with the saved weights
-        self.trainer.model = model
-
-        # restore training state and model weights before hpc is called
-        self.trainer.checkpoint_connector.restore_weights(model)
-
-        # on pretrain routine end
-        self.trainer.on_pretrain_routine_end(ref_model)
-        if self.trainer.is_function_implemented("on_pretrain_routine_end"):
-            ref_model.on_pretrain_routine_end()
 
     def on_train_end(self):
         if self._teardown_already_run:
@@ -518,12 +478,15 @@ class TrainLoop:
     def on_before_zero_grad(self, optimizer):
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 
+    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
+        self.trainer.accelerator_backend.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
+
     def track_and_norm_grad(self, optimizer):
         # track gradient norms
         grad_norm_dic = self._track_gradient_norm()
 
         # clip gradients
-        self.trainer.accelerator_backend.clip_gradients(optimizer)
+        self.trainer.accelerator_backend.clip_gradients(optimizer, self.trainer.gradient_clip_val)
         self._cur_grad_norm_dict = grad_norm_dic
 
     def _track_gradient_norm(self):
@@ -778,8 +741,8 @@ class TrainLoop:
             context manager with sync behaviour off
 
         """
-        if self.trainer.accelerator_backend is not None and self.automatic_optimization:
-            yield self.trainer.accelerator_backend.block_ddp_plugin_sync_behaviour()
+        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and self.automatic_optimization:
+            yield self.trainer.training_type_plugin.block_backward_sync()
         else:
             yield None
 
@@ -844,12 +807,14 @@ class TrainLoop:
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
         self.trainer.dev_debugger.track_event("backward_call")
 
+        should_accumulate = self.should_accumulate()
+
         # backward can be called manually in the training loop
         if isinstance(result, torch.Tensor):
-            self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, *args, **kwargs)
+            self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, should_accumulate, *args, **kwargs)
         else:
             result.closure_loss = self.trainer.accelerator_backend.backward(
-                result.closure_loss, optimizer, opt_idx, *args, **kwargs
+                result.closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
             )
 
         if not self.should_accumulate():
