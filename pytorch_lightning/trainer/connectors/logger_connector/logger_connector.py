@@ -19,11 +19,12 @@ from typing import Any, Dict, Iterable, Union
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
-from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore, LoggerStages
+from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DeviceType, flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -37,9 +38,9 @@ class LoggerConnector:
         self._logged_metrics = MetricsHolder()
         self._progress_bar_metrics = MetricsHolder()
         self.eval_loop_results = []
-        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in LoggerStages}
+        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in RunningStage}
+        self._cached_results[None] = EpochResultStore(trainer, None)
         self._callback_hook_validator = CallbackHookNameValidator()
-        self._current_stage = None
 
     @property
     def callback_metrics(self) -> Dict:
@@ -75,7 +76,7 @@ class LoggerConnector:
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
-        return self._cached_results.get(self._current_stage)    # type: ignore
+        return self._cached_results.get(self.trainer._running_stage)    # type: ignore
 
     def get_metrics(self, key: str) -> Dict:
         metrics_holder = getattr(self, f"_{key}", None)
@@ -90,10 +91,8 @@ class LoggerConnector:
         metrics_holder = getattr(self, f"_{key}", None)
         metrics_holder.reset(val)
 
-    def set_stage(self, stage_or_testing: Union[str, bool], reset: bool = False) -> None:
-        self._current_stage = LoggerStages.determine_stage(stage_or_testing)
-        if reset:
-            self.cached_results.reset()
+    def reset(self) -> None:
+        self.cached_results.reset()
 
     def check_logging_in_callbacks(self, hook_fx_name, on_step: bool = None, on_epoch: bool = None) -> None:
         self._callback_hook_validator.check_logging_in_callbacks(
@@ -119,8 +118,7 @@ class LoggerConnector:
         self.cached_results._batch_size = None
 
     def cache_logged_metrics(self):
-        if self._current_stage is not None:
-            self._cached_results[self._current_stage].cache_result()
+        self._cached_results[self.trainer._running_stage].cache_result()
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
@@ -205,7 +203,7 @@ class LoggerConnector:
         self._logged_metrics.update(logged_metrics_tmp)
         self.cached_results.legacy_batch_log_metrics.update(logged_metrics_tmp)
 
-    def log_metrics(self, metrics, grad_norm_dic, step=None, log_train_step_metrics=False):
+    def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
         If `step` parameter is None and `step` key is presented is metrics,
         uses metrics["step"] as a step
@@ -234,11 +232,8 @@ class LoggerConnector:
 
         elif step is None:
             # added metrics by Lightning for convenience
-            if log_train_step_metrics:
-                step = self.trainer.total_batch_idx
-            else:
-                scalar_metrics['epoch'] = self.trainer.current_epoch
-                step = self.trainer.global_step
+            scalar_metrics['epoch'] = self.trainer.current_epoch
+            step = self.trainer.global_step
 
         # log actual metrics
         if self.trainer.logger is not None:
@@ -259,8 +254,8 @@ class LoggerConnector:
 
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
-    def track_metrics_deprecated(self, deprecated_eval_results, using_eval_result, test_mode):
-        self._track_callback_metrics(deprecated_eval_results, using_eval_result)
+    def track_metrics_deprecated(self, deprecated_eval_results, test_mode):
+        self._track_callback_metrics(deprecated_eval_results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
 
     def evaluation_epoch_end(self, testing):
@@ -314,53 +309,41 @@ class LoggerConnector:
         self.eval_loop_results = []
         return results
 
-    def _track_callback_metrics(self, eval_results, using_eval_result):
+    def _track_callback_metrics(self, eval_results):
         if len(eval_results) > 0 and (eval_results[0] is None or not isinstance(eval_results[0], Result)):
             return
 
-        if using_eval_result:
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    self.trainer.logger_connector.callback_metrics.update(eval_result.callback_metrics)
-                    if self.trainer.testing:
-                        self.trainer.logger_connector.evaluation_callback_metrics.update(
-                            eval_result.callback_metrics)
-            else:
-                self.trainer.logger_connector.callback_metrics.update(eval_results.callback_metrics)
-                if self.trainer.testing:
-                    self.trainer.logger_connector.evaluation_callback_metrics.update(eval_results.callback_metrics)
-        else:
-            flat = {}
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    # with a scalar return, auto set it to "val_loss" for callbacks
-                    if isinstance(eval_result, torch.Tensor):
-                        flat = {'val_loss': eval_result}
-                    elif isinstance(eval_result, dict):
-                        flat = flatten_dict(eval_result)
-
-                    # removing val_loss magic word to map to checkpoint + ES callback
-                    if 'val_loss' in flat:
-                        flat['checkpoint_on'] = flat['val_loss']
-                        flat['early_stop_on'] = flat['val_loss']
-                    self.trainer.logger_connector.callback_metrics.update(flat)
-                    if self.trainer.testing:
-                        self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
-            else:
+        flat = {}
+        if isinstance(eval_results, list):
+            for eval_result in eval_results:
                 # with a scalar return, auto set it to "val_loss" for callbacks
-                if isinstance(eval_results, torch.Tensor):
-                    flat = {'val_loss': eval_results}
-                else:
-                    flat = flatten_dict(eval_results)
+                if isinstance(eval_result, torch.Tensor):
+                    flat = {'val_loss': eval_result}
+                elif isinstance(eval_result, dict):
+                    flat = flatten_dict(eval_result)
 
                 # removing val_loss magic word to map to checkpoint + ES callback
                 if 'val_loss' in flat:
                     flat['checkpoint_on'] = flat['val_loss']
                     flat['early_stop_on'] = flat['val_loss']
-
                 self.trainer.logger_connector.callback_metrics.update(flat)
                 if self.trainer.testing:
                     self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
+        else:
+            # with a scalar return, auto set it to "val_loss" for callbacks
+            if isinstance(eval_results, torch.Tensor):
+                flat = {'val_loss': eval_results}
+            else:
+                flat = flatten_dict(eval_results)
+
+            # removing val_loss magic word to map to checkpoint + ES callback
+            if 'val_loss' in flat:
+                flat['checkpoint_on'] = flat['val_loss']
+                flat['early_stop_on'] = flat['val_loss']
+
+            self.trainer.logger_connector.callback_metrics.update(flat)
+            if self.trainer.testing:
+                self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
 
     def __process_eval_epoch_end_results_and_log_legacy_update(self, prog_bar_metrics, log_metrics, callback_metrics):
         # eval loop returns all metrics
@@ -397,16 +380,7 @@ class LoggerConnector:
             prog_bar_metrics, log_metrics, callback_metrics = {}, {}, {}
 
             for result_idx, result in enumerate(eval_results):
-                if isinstance(result, EvalResult):
-                    prog_bar_metrics = result.epoch_pbar_metrics
-                    log_metrics = result.epoch_log_metrics
-                    callback_metrics = result.callback_metrics
-
-                    # in testing we don't need the callback metrics
-                    if test_mode:
-                        callback_metrics = {}
-                else:
-                    _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.trainer.process_dict_result(result)
+                _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.trainer.process_dict_result(result)
 
                 if num_loaders > 1:
                     self.__process_eval_epoch_end_results_and_log_legacy_update(
@@ -643,6 +617,8 @@ class LoggerConnector:
         return gathered_epoch_outputs
 
     def log_train_step_metrics(self, batch_output):
+        if self.trainer.train_loop.should_accumulate() and self.trainer.train_loop.automatic_optimization:
+            return
         _, batch_log_metrics = self.cached_results.update_logger_connector()
         # when metrics should be logged
         if self.should_update_logs or self.trainer.fast_dev_run is True:
@@ -651,5 +627,5 @@ class LoggerConnector:
             if grad_norm_dic is None:
                 grad_norm_dic = {}
             if len(batch_log_metrics) > 0 or len(grad_norm_dic) > 0:
-                self.log_metrics(batch_log_metrics, grad_norm_dic, log_train_step_metrics=True)
+                self.log_metrics(batch_log_metrics, grad_norm_dic)
                 self._callback_metrics.update(batch_log_metrics)

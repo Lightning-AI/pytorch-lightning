@@ -19,7 +19,9 @@ from pytorch_lightning.metrics.classification.helpers import _input_format_class
 
 
 def _hamming_distance_update(
-    preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    threshold: float = 0.5,
 ) -> Tuple[torch.Tensor, int]:
     preds, target, _ = _input_format_classification(preds, target, threshold=threshold)
 
@@ -49,7 +51,7 @@ def hamming_distance(preds: torch.Tensor, target: torch.Tensor, threshold: float
     treats each possible label separately - meaning that, for example, multi-class data is
     treated as if it were multi-label.
 
-    Accepts all input types listed in :ref:`metrics:Input types`.
+    Accepts all input types listed in :ref:`extensions/metrics:input types`.
 
     Args:
         preds: Predictions from model

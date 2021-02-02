@@ -115,7 +115,6 @@ def get_init_args(frame) -> dict:
     self_var, args_var, kwargs_var = parse_class_init_keys(cls)
     filtered_vars = [n for n in (self_var, args_var, kwargs_var) if n]
     exclude_argnames = (*filtered_vars, '__class__', 'frame', 'frame_args')
-
     # only collect variables that appear in the signature
     local_args = {k: local_vars[k] for k in init_parameters.keys()}
     local_args.update(local_args.get(kwargs_var, {}))
@@ -236,8 +235,10 @@ def lightning_getattr(model, attribute):
     elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
         attr = getattr(trainer.datamodule, attribute)
     else:
-        raise ValueError(f'{attribute} is neither stored in the model namespace'
-                         ' nor the `hparams` namespace/dict, nor the datamodule.')
+        raise ValueError(
+            f'The {attribute} is neither stored in the model namespace nor the `hparams` namespace/dict,'
+            ' nor the datamodule.'
+        )
     return attr
 
 
@@ -247,8 +248,10 @@ def lightning_setattr(model, attribute, value):
         Will also set the attribute on datamodule, if it exists.
     """
     if not lightning_hasattr(model, attribute):
-        raise ValueError(f'{attribute} is neither stored in the model namespace'
-                         ' nor the `hparams` namespace/dict, nor the datamodule.')
+        raise ValueError(
+            f'The {attribute} is neither stored in the model namespace nor the `hparams` namespace/dict,'
+            ' nor the datamodule.'
+        )
 
     trainer = getattr(model, 'trainer', None)
 

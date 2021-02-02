@@ -50,7 +50,7 @@ def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
         nn.ReLU(),
         nn.Linear(hidden_size, hidden_size),
         nn.ReLU(),
-        nn.Linear(hidden_size, n_actions)
+        nn.Linear(hidden_size, n_actions),
     )
 
     return network
@@ -81,11 +81,12 @@ class ActorCategorical(nn.Module):
 
     def get_log_prob(self, pi: Categorical, actions: torch.Tensor):
         """
-        Takes in a distribution and actions and returns log prob of actions
-        under the distribution
+        Takes in a distribution and actions and returns log prob of actions under the distribution
+
         Args:
             pi: torch distribution
             actions: actions taken by distribution
+
         Returns:
             log probability of the acition under pi
         """
@@ -119,11 +120,12 @@ class ActorContinous(nn.Module):
 
     def get_log_prob(self, pi: Normal, actions: torch.Tensor):
         """
-        Takes in a distribution and actions and returns log prob of actions
-        under the distribution
+        Takes in a distribution and actions and returns log prob of actions under the distribution
+
         Args:
             pi: torch distribution
             actions: actions taken by distribution
+
         Returns:
             log probability of the acition under pi
         """
@@ -157,6 +159,7 @@ class PPOLightning(pl.LightningModule):
         trainer = Trainer()
         trainer.fit(model)
     """
+
     def __init__(
         self,
         env: str,
@@ -171,7 +174,6 @@ class PPOLightning(pl.LightningModule):
         clip_ratio: float = 0.2,
         **kwargs,
     ) -> None:
-
         """
         Args:
             env: gym environment tag
@@ -211,8 +213,10 @@ class PPOLightning(pl.LightningModule):
             actor_mlp = create_mlp(self.env.observation_space.shape, self.env.action_space.n)
             self.actor = ActorCategorical(actor_mlp)
         else:
-            raise NotImplementedError('Env action space should be of type Box (continous) or Discrete (categorical). '
-                                      f'Got type: {type(self.env.action_space)}')
+            raise NotImplementedError(
+                'Env action space should be of type Box (continous) or Discrete (categorical).'
+                f' Got type: {type(self.env.action_space)}'
+            )
 
         self.batch_states = []
         self.batch_actions = []
@@ -234,8 +238,10 @@ class PPOLightning(pl.LightningModule):
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Passes in a state x through the network and returns the policy and a sampled action
+
         Args:
             x: environment state
+
         Returns:
             Tuple of policy and action
         """
@@ -246,8 +252,10 @@ class PPOLightning(pl.LightningModule):
 
     def discount_rewards(self, rewards: List[float], discount: float) -> List[float]:
         """Calculate the discounted rewards of all rewards in list
+
         Args:
             rewards: list of rewards/advantages
+
         Returns:
             list of discounted rewards/advantages
         """
@@ -264,10 +272,12 @@ class PPOLightning(pl.LightningModule):
 
     def calc_advantage(self, rewards: List[float], values: List[float], last_value: float) -> List[float]:
         """Calculate the advantage given rewards, state values, and the last value of episode
+
         Args:
             rewards: list of episode rewards
             values: list of state values from critic
             last_value: value of last state of episode
+
         Returns:
             list of advantages
         """
@@ -279,9 +289,7 @@ class PPOLightning(pl.LightningModule):
 
         return adv
 
-    def generate_trajectory_samples(
-            self,
-    ) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
+    def generate_trajectory_samples(self) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
         """
         Contains the logic for generating trajectory data to train policy and value network
         Yield:
@@ -337,8 +345,8 @@ class PPOLightning(pl.LightningModule):
 
             if epoch_end:
                 train_data = zip(
-                    self.batch_states, self.batch_actions, self.batch_logp,
-                    self.batch_qvals, self.batch_adv)
+                    self.batch_states, self.batch_actions, self.batch_logp, self.batch_qvals, self.batch_adv
+                )
 
                 for state, action, logp_old, qval, adv in train_data:
                     yield state, action, logp_old, qval, adv
@@ -386,6 +394,7 @@ class PPOLightning(pl.LightningModule):
             batch: batch of replay buffer/trajectory data
             batch_idx: not used
             optimizer_idx: idx that controls optimizing actor or critic network
+
         Returns:
             loss
         """
@@ -445,12 +454,18 @@ class PPOLightning(pl.LightningModule):
         parser.add_argument("--lr_critic", type=float, default=1e-3, help="learning rate of critic network")
         parser.add_argument("--max_episode_len", type=int, default=1000, help="capacity of the replay buffer")
         parser.add_argument("--batch_size", type=int, default=512, help="batch_size when training network")
-        parser.add_argument("--steps_per_epoch", type=int, default=2048,
-                            help="how many action-state pairs to rollout for trajectory collection per epoch")
-        parser.add_argument("--nb_optim_iters", type=int, default=4,
-                            help="how many steps of gradient descent to perform on each batch")
-        parser.add_argument("--clip_ratio", type=float, default=0.2,
-                            help="hyperparameter for clipping in the policy objective")
+        parser.add_argument(
+            "--steps_per_epoch",
+            type=int,
+            default=2048,
+            help="how many action-state pairs to rollout for trajectory collection per epoch"
+        )
+        parser.add_argument(
+            "--nb_optim_iters", type=int, default=4, help="how many steps of gradient descent to perform on each batch"
+        )
+        parser.add_argument(
+            "--clip_ratio", type=float, default=0.2, help="hyperparameter for clipping in the policy objective"
+        )
 
         return parser
 

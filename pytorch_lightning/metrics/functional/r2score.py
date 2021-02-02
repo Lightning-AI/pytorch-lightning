@@ -20,13 +20,15 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 def _r2score_update(
-        preds: torch.tensor,
-        target: torch.Tensor,
+    preds: torch.tensor,
+    target: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     _check_same_shape(preds, target)
     if preds.ndim > 2:
-        raise ValueError('Expected both prediction and target to be 1D or 2D tensors,'
-                         f' but recevied tensors with dimension {preds.shape}')
+        raise ValueError(
+            'Expected both prediction and target to be 1D or 2D tensors,'
+            f' but recevied tensors with dimension {preds.shape}'
+        )
     if len(preds) < 2:
         raise ValueError('Needs atleast two samples to calculate r2 score.')
 
@@ -38,12 +40,14 @@ def _r2score_update(
     return sum_squared_error, sum_error, residual, total
 
 
-def _r2score_compute(sum_squared_error: torch.Tensor,
-                     sum_error: torch.Tensor,
-                     residual: torch.Tensor,
-                     total: torch.Tensor,
-                     adjusted: int = 0,
-                     multioutput: str = "uniform_average") -> torch.Tensor:
+def _r2score_compute(
+    sum_squared_error: torch.Tensor,
+    sum_error: torch.Tensor,
+    residual: torch.Tensor,
+    total: torch.Tensor,
+    adjusted: int = 0,
+    multioutput: str = "uniform_average"
+) -> torch.Tensor:
     mean_error = sum_error / total
     diff = sum_squared_error - sum_error * mean_error
     raw_scores = 1 - (residual / diff)
@@ -56,31 +60,32 @@ def _r2score_compute(sum_squared_error: torch.Tensor,
         diff_sum = torch.sum(diff)
         r2score = torch.sum(diff / diff_sum * raw_scores)
     else:
-        raise ValueError('Argument `multioutput` must be either `raw_values`,'
-                         f' `uniform_average` or `variance_weighted`. Received {multioutput}.')
+        raise ValueError(
+            'Argument `multioutput` must be either `raw_values`,'
+            f' `uniform_average` or `variance_weighted`. Received {multioutput}.'
+        )
 
     if adjusted < 0 or not isinstance(adjusted, int):
-        raise ValueError('`adjusted` parameter should be an integer larger or'
-                         ' equal to 0.')
+        raise ValueError('`adjusted` parameter should be an integer larger or' ' equal to 0.')
 
     if adjusted != 0:
         if adjusted > total - 1:
-            rank_zero_warn("More independent regressions than datapoints in"
-                           " adjusted r2 score. Falls back to standard r2 score.",
-                           UserWarning)
+            rank_zero_warn(
+                "More independent regressions than datapoints in"
+                " adjusted r2 score. Falls back to standard r2 score.", UserWarning
+            )
         elif adjusted == total - 1:
-            rank_zero_warn("Division by zero in adjusted r2 score. Falls back to"
-                           " standard r2 score.", UserWarning)
+            rank_zero_warn("Division by zero in adjusted r2 score. Falls back to" " standard r2 score.", UserWarning)
         else:
             r2score = 1 - (1 - r2score) * (total - 1) / (total - adjusted - 1)
     return r2score
 
 
 def r2score(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        adjusted: int = 0,
-        multioutput: str = "uniform_average",
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    adjusted: int = 0,
+    multioutput: str = "uniform_average",
 ) -> torch.Tensor:
     r"""
     Computes r2 score also known as `coefficient of determination

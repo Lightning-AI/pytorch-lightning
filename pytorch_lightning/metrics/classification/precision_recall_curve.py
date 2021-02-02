@@ -82,6 +82,7 @@ class PrecisionRecallCurve(Metric):
         [tensor([0.7500]), tensor([0.7500]), tensor([0.0500, 0.7500]), tensor([0.0500, 0.7500]), tensor([0.0500])]
 
     """
+
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -116,18 +117,17 @@ class PrecisionRecallCurve(Metric):
             target: Ground truth values
         """
         preds, target, num_classes, pos_label = _precision_recall_curve_update(
-            preds,
-            target,
-            self.num_classes,
-            self.pos_label
+            preds, target, self.num_classes, self.pos_label
         )
         self.preds.append(preds)
         self.target.append(target)
         self.num_classes = num_classes
         self.pos_label = pos_label
 
-    def compute(self) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-                               Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
+    def compute(
+        self
+    ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[List[torch.Tensor], List[torch.Tensor],
+                                                                      List[torch.Tensor]]]:
         """
         Compute the precision-recall curve
 

@@ -11,14 +11,66 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
+
+
+def test_property_current_epoch():
+    """ Test that the current_epoch in LightningModule is accessible via the Trainer. """
+    model = BoringModel()
+    assert model.current_epoch == 0
+
+    trainer = Mock(current_epoch=123)
+    model.trainer = trainer
+    assert model.current_epoch == 123
+
+
+def test_property_global_step():
+    """ Test that the global_step in LightningModule is accessible via the Trainer. """
+    model = BoringModel()
+    assert model.global_step == 0
+
+    trainer = Mock(global_step=123)
+    model.trainer = trainer
+    assert model.global_step == 123
+
+
+def test_property_global_rank():
+    """ Test that the global rank in LightningModule is accessible via the Trainer. """
+    model = BoringModel()
+    assert model.global_rank == 0
+
+    trainer = Mock(global_rank=123)
+    model.trainer = trainer
+    assert model.global_rank == 123
+
+
+def test_property_local_rank():
+    """ Test that the local rank in LightningModule is accessible via the Trainer. """
+    model = BoringModel()
+    assert model.local_rank == 0
+
+    trainer = Mock(local_rank=123)
+    model.trainer = trainer
+    assert model.local_rank == 123
+
+
+def test_property_logger(tmpdir):
+    """ Test that the logger in LightningModule is accessible via the Trainer. """
+    model = BoringModel()
+    assert model.logger is None
+
+    logger = TensorBoardLogger(tmpdir)
+    trainer = Mock(logger=logger)
+    model.trainer = trainer
+    assert model.logger == logger
 
 
 def test_automatic_optimization(tmpdir):
@@ -41,8 +93,7 @@ def test_automatic_optimization(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
+def test_automatic_optimization_num_calls(tmpdir):
 
     with patch("torch.optim.SGD.step") as sgd_step, \
          patch("torch.optim.SGD.zero_grad") as sgd_zero_grad, \
@@ -71,16 +122,12 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
                     if batch_idx % 2 == 0:
                         assert isinstance(optimizer, SGD)
                         optimizer.step(closure=optimizer_closure)
-                        if not enable_pl_optimizer:
-                            optimizer.zero_grad()
 
                 # update discriminator opt every 4 steps
                 if optimizer_idx == 1:
                     if batch_idx % 4 == 0:
                         assert isinstance(optimizer, Adam)
                         optimizer.step(closure=optimizer_closure)
-                        if not enable_pl_optimizer:
-                            optimizer.zero_grad()
 
         model = TestModel()
         model.training_epoch_end = None
@@ -91,7 +138,6 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
             limit_train_batches=8,
             limit_val_batches=1,
             accumulate_grad_batches=1,
-            enable_pl_optimizer=enable_pl_optimizer
         )
 
         trainer.fit(model)
@@ -102,8 +148,7 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
     assert adam_zero_grad.call_count == 2
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_params_groups_and_state_are_accessible(enable_pl_optimizer, tmpdir):
+def test_params_groups_and_state_are_accessible(tmpdir):
 
     class TestModel(BoringModel):
 
@@ -136,7 +181,6 @@ def test_params_groups_and_state_are_accessible(enable_pl_optimizer, tmpdir):
         limit_train_batches=8,
         limit_val_batches=1,
         accumulate_grad_batches=1,
-        enable_pl_optimizer=enable_pl_optimizer
     )
 
     trainer.fit(model)

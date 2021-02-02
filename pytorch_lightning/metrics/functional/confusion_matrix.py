@@ -15,26 +15,24 @@ from typing import Optional
 
 import torch
 
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 from pytorch_lightning.utilities import rank_zero_warn
 
 
-def _confusion_matrix_update(preds: torch.Tensor,
-                             target: torch.Tensor,
-                             num_classes: int,
-                             threshold: float = 0.5) -> torch.Tensor:
+def _confusion_matrix_update(
+    preds: torch.Tensor, target: torch.Tensor, num_classes: int, threshold: float = 0.5
+) -> torch.Tensor:
     preds, target, mode = _input_format_classification(preds, target, threshold)
-    if mode not in ('binary', 'multi-label'):
+    if mode not in (DataType.BINARY, DataType.MULTILABEL):
         preds = preds.argmax(dim=1)
         target = target.argmax(dim=1)
     unique_mapping = (target.view(-1) * num_classes + preds.view(-1)).to(torch.long)
-    bins = torch.bincount(unique_mapping, minlength=num_classes ** 2)
+    bins = torch.bincount(unique_mapping, minlength=num_classes**2)
     confmat = bins.reshape(num_classes, num_classes)
     return confmat
 
 
-def _confusion_matrix_compute(confmat: torch.Tensor,
-                              normalize: Optional[str] = None) -> torch.Tensor:
+def _confusion_matrix_compute(confmat: torch.Tensor, normalize: Optional[str] = None) -> torch.Tensor:
     allowed_normalize = ('true', 'pred', 'all', None)
     assert normalize in allowed_normalize, \
         f"Argument average needs to one of the following: {allowed_normalize}"
@@ -55,11 +53,11 @@ def _confusion_matrix_compute(confmat: torch.Tensor,
 
 
 def confusion_matrix(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        normalize: Optional[str] = None,
-        threshold: float = 0.5
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: int,
+    normalize: Optional[str] = None,
+    threshold: float = 0.5
 ) -> torch.Tensor:
     """
     Computes the confusion matrix. Works with binary, multiclass, and multilabel data.

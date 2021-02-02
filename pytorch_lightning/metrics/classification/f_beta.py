@@ -87,7 +87,9 @@ class FBeta(Metric):
         process_group: Optional[Any] = None,
     ):
         super().__init__(
-            compute_on_step=compute_on_step, dist_sync_on_step=dist_sync_on_step, process_group=process_group,
+            compute_on_step=compute_on_step,
+            dist_sync_on_step=dist_sync_on_step,
+            process_group=process_group,
         )
 
         self.num_classes = num_classes
@@ -98,8 +100,10 @@ class FBeta(Metric):
 
         allowed_average = ("micro", "macro", "weighted", None)
         if self.average not in allowed_average:
-            raise ValueError('Argument `average` expected to be one of the following:'
-                             f' {allowed_average} but got {self.average}')
+            raise ValueError(
+                'Argument `average` expected to be one of the following:'
+                f' {allowed_average} but got {self.average}'
+            )
 
         self.add_state("true_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
         self.add_state("predicted_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
@@ -125,8 +129,9 @@ class FBeta(Metric):
         """
         Computes fbeta over state.
         """
-        return _fbeta_compute(self.true_positives, self.predicted_positives,
-                              self.actual_positives, self.beta, self.average)
+        return _fbeta_compute(
+            self.true_positives, self.predicted_positives, self.actual_positives, self.beta, self.average
+        )
 
 
 class F1(FBeta):
