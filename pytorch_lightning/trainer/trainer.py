@@ -31,7 +31,6 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.plugins.legacy.plugin_connector import PluginConnector
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -305,7 +304,6 @@ class Trainer(
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
         self.optimizer_connector = OptimizerConnector(self)
-        self.plugin_connector = PluginConnector(self, plugins)
         self.accelerator_connector = BackendConnector(
             num_processes,
             tpu_cores,
@@ -320,7 +318,8 @@ class Trainer(
             precision,
             amp_backend,
             amp_level,
-            self.plugin_connector.cloud_environment
+            self.plugin_connector.cloud_environment,
+            plugins
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
@@ -1055,16 +1054,6 @@ class Trainer(
         if not skip:
             self._cache_logged_metrics()
         return output
-
-    @staticmethod
-    def available_plugins():
-        """
-        List of all available plugins that can be string arguments to the trainer.
-
-        Returns:
-            List of all available plugins that are supported as string arguments.
-        """
-        return PluginConnector.available_plugins()
 
     @property
     def training(self) -> bool:
