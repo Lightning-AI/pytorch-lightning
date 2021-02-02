@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABC
-from argparse import ArgumentParser, Namespace
 import inspect
 import os
+from abc import ABC
+from argparse import ArgumentParser, Namespace
 from typing import cast, List, Optional, Type, TypeVar, Union
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -63,16 +63,10 @@ class TrainerProperties(ABC):
 
     @property
     def log_dir(self):
-        if self.checkpoint_callback is not None:
-            dirpath = self.checkpoint_callback.dirpath
-            dirpath = os.path.split(dirpath)[0]
-        elif self.logger is not None:
-            if isinstance(self.logger, TensorBoardLogger):
-                dirpath = self.logger.log_dir
-            else:
-                dirpath = self.logger.save_dir
+        if self.logger is None:
+            dirpath = self.default_root_dir
         else:
-            dirpath = self._default_root_dir
+            dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
 
         if self.accelerator_backend is not None:
             dirpath = self.accelerator_backend.broadcast(dirpath)

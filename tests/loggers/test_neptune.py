@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import torch
 
@@ -114,7 +114,9 @@ def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
             limit_train_batches=0.05,
             logger=logger,
         )
+        assert trainer.log_dir is None
         trainer.fit(model)
+        assert trainer.log_dir is None
         return logger
 
     logger_close_after_fit = _run_training(NeptuneLogger(offline_mode=True))

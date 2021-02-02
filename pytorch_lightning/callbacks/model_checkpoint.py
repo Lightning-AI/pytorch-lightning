@@ -194,7 +194,7 @@ class ModelCheckpoint(Callback):
         """
         When pretrain routine starts we build the ckpt dir on the fly
         """
-        self.__resolve_ckpt_dir(trainer, pl_module)
+        self.__resolve_ckpt_dir(trainer)
         self.save_function = trainer.save_checkpoint
 
     def on_validation_end(self, trainer, pl_module):
@@ -448,7 +448,7 @@ class ModelCheckpoint(Callback):
         ckpt_name = f"{filename}{self.FILE_EXTENSION}"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
-    def __resolve_ckpt_dir(self, trainer, pl_module):
+    def __resolve_ckpt_dir(self, trainer):
         """
         Determines model checkpoint save directory at runtime. References attributes from the
         trainer's logger to determine where to save checkpoints.
