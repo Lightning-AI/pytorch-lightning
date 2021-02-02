@@ -39,7 +39,7 @@ class BaseFinetuning(Callback):
 
     r"""
     BaseFinetuning.
-    Overrides ``freeze_before_training`` and ``finetune_function`` with your own logic.
+    Override ``freeze_before_training`` and ``finetune_function`` with your own logic.
 
     .. note:: Make sure to filter the parameters based on `requires_grad`
 
