@@ -20,9 +20,6 @@ from torch.optim.optimizer import Optimizer
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-
 
 def is_lightning_optimizer(optimizer):
     return isinstance(optimizer, LightningOptimizer)
@@ -133,16 +130,8 @@ class LightningOptimizer:
         optimizer = self._optimizer
         model = trainer.get_model()
 
-        if trainer._device_type == DeviceType.TPU:
-            with trainer.profiler.profile(profiler_name):
-                xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
-
-        elif trainer.amp_backend is not None:
-            trainer.precision_connector.backend.optimizer_step(trainer, optimizer, closure)
-
-        else:
-            with trainer.profiler.profile(profiler_name):
-                optimizer.step(closure=closure, *args, **kwargs)
+        with trainer.profiler.profile(profiler_name):
+            trainer.accelerator_backend.optimizer_step(*args, lambda_closure=closure, **kwargs)
 
         accelerator_backend = trainer.accelerator_backend
         if accelerator_backend is not None and accelerator_backend.rpc_enabled:

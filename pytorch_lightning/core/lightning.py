@@ -275,7 +275,7 @@ class LightningModule(
                 raise MisconfigurationException(
                     f"Logged key: {name} should not contain information about dataloader_idx.")
 
-            accelerator = self.trainer.accelerator_backend
+            training_type_plugin = self.trainer.training_type_plugin
 
             self._results.log(
                 name,
@@ -291,7 +291,7 @@ class LightningModule(
                 sync_dist,
                 sync_dist_op,
                 sync_dist_group,
-                accelerator.sync_tensor,
+                training_type_plugin.reduce,
                 self._current_dataloader_idx,
                 self.device,
             )
