@@ -18,7 +18,7 @@ from abc import ABC
 from copy import deepcopy
 from typing import Callable, Iterable, List, Optional, Tuple, Union
 
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, BatchSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
@@ -107,6 +107,27 @@ class TrainerDataLoadingMixin(ABC):
 
         return dataloader
 
+    @staticmethod
+    def _resolve_batch_sampler(dl_args, dataloader, sampler):
+        batch_sampler = getattr(dataloader, "batch_sampler")
+        if batch_sampler is not None and type(batch_sampler) is not BatchSampler:
+            batch_sampler = type(batch_sampler)(
+                sampler, 
+                batch_size=batch_sampler.batch_size, 
+                drop_last=batch_sampler.drop_last
+            )
+            dl_args['batch_sampler'] = batch_sampler
+            dl_args['batch_size'] =  1
+            dl_args['shuffle'] =  False
+            dl_args['sampler'] =  None
+            dl_args['drop_last'] =  False
+        else:
+            dl_args['sampler'] = sampler
+            dl_args['shuffle'] = False
+            dl_args['batch_sampler'] = None
+        return dl_args
+
+
     def replace_sampler(self, dataloader, sampler):
         skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
         skip_signature_keys = ('args', 'kwargs', 'self')
@@ -124,9 +145,9 @@ class TrainerDataLoadingMixin(ABC):
             name: attrs[name] for name in params
             if name in attrs and name not in skip_keys
         }
-        dl_args['sampler'] = sampler
-        dl_args['shuffle'] = False
-        dl_args['batch_sampler'] = None
+
+        dl_args = self._resolve_batch_sampler(dl_args, dataloader, sampler)
+
         multiprocessing_context = dataloader.multiprocessing_context
         dl_args['multiprocessing_context'] = multiprocessing_context
 

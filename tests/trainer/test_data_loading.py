@@ -16,6 +16,7 @@ import os
 import pytest
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.data.sampler import BatchSampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -41,25 +42,40 @@ class FailureCustomDataLoader(DataLoader):
         super().__init__(dataset, *args, **kwargs)
 
 
+class CustomBatchSampler(BatchSampler):
+    pass
+
+
 class TestModel(BoringModel):
 
     def __init__(self, numbers_test_dataloaders,
-                 save_preds_on_dl_idx, failure):
+                 save_preds_on_dl_idx, mode):
         super().__init__()
         self._numbers_test_dataloaders = numbers_test_dataloaders
         self._save_preds_on_dl_idx = save_preds_on_dl_idx
-        self._failure = failure
+        self._mode = mode
+
+    def test_step(self, batch, batch_idx, dataloader_idx=None):
+        return super().test_step(batch, batch_idx)
 
     def create_dataset(self):
-        dataloader_cls = FailureCustomDataLoader if self._failure > 0 else CustomDataLoader
-        return dataloader_cls(32, IndexedRandomDataset(32, 64), batch_size=2)
+        dataset = IndexedRandomDataset(32, 64)
+        batch_sampler = None
+        batch_size = 2
+        if self._mode == 3:
+            batch_size = 1
+            batch_sampler = CustomBatchSampler(SequentialSampler(dataset), batch_size=batch_size, drop_last=True)
+            dataloader_cls = CustomDataLoader
+        else:
+            dataloader_cls = FailureCustomDataLoader if self._mode > 0 else CustomDataLoader
+        return dataloader_cls(32, dataset, batch_size=batch_size, batch_sampler=batch_sampler)
 
     def test_dataloader(self):
         return [self.create_dataset()] * self._numbers_test_dataloaders
 
 
-def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
-                                num_dl_idx, failure=0):
+def check_replace_distrubuted_sampler(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
+                                num_dl_idx, mode=0):
     num_processes = 2
     limit_test_batches = 2
     trainer_args = {
@@ -73,32 +89,29 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
     else:
         trainer_args["gpus"] = gpus
 
-    model = TestModel(num_dl_idx, save_preds_on_dl_idx, failure)
+    model = TestModel(num_dl_idx, save_preds_on_dl_idx, mode)
     model.test_epoch_end = None
 
     trainer = Trainer(**trainer_args)
-    if failure == 1:
-        match = "Missing attributes are"
+    if mode < 3:
+        if mode == 1:
+            match = "Missing attributes are"
+        else:
+            match = "DistributedSampler within"
+        with pytest.raises(MisconfigurationException, match=match):
+            _ = trainer.test(model)
     else:
-        match = "DistributedSampler within"
-    with pytest.raises(MisconfigurationException, match=match):
         _ = trainer.test(model)
-        return
 
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_misconfiguration_on_dataloader(tmpdir):
-    """
-    Test Lightning raise a MisConfiguration error as we can't re-instantiate user Dataloader
-    """
-    check_prediction_collection(tmpdir, True, "ddp", 2, 2, failure=1)
+@pytest.mark.parametrize("mode", [1, 3])
+def test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler(tmpdir, mode):
+    check_replace_distrubuted_sampler(tmpdir, True, "ddp", 2, 2, mode=mode)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
-def test_prediction_collection_1_gpu_failure(tmpdir):
-    """
-    Test `PredictionCollection` will raise warning as we are using an invalid custom Dataloader
-    """
-    check_prediction_collection(tmpdir, True, None, 1, 1, failure=2)
+def test_replace_distrubuted_sampler_1_gpu_mode(tmpdir):
+    check_replace_distrubuted_sampler(tmpdir, True, None, 1, 1, mode=2)
