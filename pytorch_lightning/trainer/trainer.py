@@ -934,7 +934,6 @@ class Trainer(
         self.model = model
         os.environ['PL_TESTING_MODE'] = '1'
         results = self.fit(model)
-        del os.environ['PL_TESTING_MODE']
 
         # teardown
         if self.is_function_implemented("teardown"):
