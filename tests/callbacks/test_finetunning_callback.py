@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch
 from torch import nn
 
@@ -62,3 +63,55 @@ def test_finetunning_callback(tmpdir):
         max_epochs=8,
     )
     trainer.fit(model)
+
+
+def test_finetunning_callback_warning(tmpdir):
+    """Test finetunning callbacks works as expected"""
+
+    seed_everything(42)
+
+    class FinetunningBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.backbone = nn.Linear(32, 2, bias=False)
+            self.layer = None
+
+        def training_step(self, batch, batch_idx):
+            output = self(batch)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
+        def forward(self, x):
+            x = self.backbone(x)
+            return x
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
+            return optimizer
+
+    class TestCallback(BackboneFinetuning):
+
+        def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
+            """Called when the epoch begins."""
+
+            if epoch == 0:
+                self.unfreeze_and_add_param_group(
+                    pl_module.backbone,
+                    optimizer,
+                    0.1,
+                    train_bn=self.train_bn,
+                    initial_denom_lr=self.initial_denom_lr
+                )
+
+    model = FinetunningBoringModel()
+    model.validation_step = None
+    callback = TestCallback(unfreeze_backbone_at_epoch=3, verbose=False)
+
+    with pytest.warns(UserWarning, match="Did you init your optimizer in"):
+        trainer = Trainer(
+            limit_train_batches=1,
+            default_root_dir=tmpdir,
+            callbacks=[callback],
+            max_epochs=2,
+        )
+        trainer.fit(model)

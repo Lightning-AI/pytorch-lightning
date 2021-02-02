@@ -17,7 +17,7 @@ Finetunning Callback
 ^^^^^^^^^^^^^^^^^^^^
 Freeze and unfreeze models for finetunning purposes
 """
-from typing import Callable, Generator, Optional
+from typing import Callable, Generator, List, Optional, Union
 
 import torch
 from torch.nn import Module
@@ -27,6 +27,7 @@ from torch.optim.optimizer import Optimizer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -75,7 +76,7 @@ class BaseFinetuning(Callback):
     BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
 
     @staticmethod
-    def _make_trainable(module: Module) -> None:
+    def _make_trainable(module: Union[Module, List[Module]]) -> None:
         """Unfreezes a given module.
         Args:
             module: The module to unfreeze
@@ -110,7 +111,7 @@ class BaseFinetuning(Callback):
                 BaseFinetuning._recursive_freeze(module=child, train_bn=train_bn)
 
     @staticmethod
-    def filter_params(module: Module,
+    def filter_params(module: Union[Module, List[Module]],
                       train_bn: bool = True) -> Generator:
         """Yields the trainable parameters of a given module.
 
@@ -122,18 +123,17 @@ class BaseFinetuning(Callback):
             Generator
         """
         if isinstance(module, list):
-            children = module
-        else:
-            children = list(module.children())
-        if not children:
+            for mod in module:
+                for param in BaseFinetuning.filter_params(module=mod, train_bn=train_bn):
+                    yield param
+
+        modules = list(module.children()) + [module]
+
+        for module in modules:
             if not (isinstance(module, BaseFinetuning.BN_TYPES) and train_bn):
                 for param in module.parameters():
                     if param.requires_grad:
                         yield param
-        else:
-            for child in children:
-                for param in BaseFinetuning.filter_params(module=child, train_bn=train_bn):
-                    yield param
 
     @staticmethod
     def freeze(module: Module, train_bn: bool = True) -> None:
@@ -152,19 +152,28 @@ class BaseFinetuning(Callback):
     @staticmethod
     def filter_on_optimizer(optimizer, params):
         out_params = []
+        removed_params = []
         for param in params:
-            is_in = False
-            for group in optimizer.param_groups:
-                for p in group["params"]:
-                    if p.shape == param.shape and torch.equal(p, param):
-                        is_in = True
-            if not is_in:
+            if not any(
+                torch.equal(p, param)
+                for group in optimizer.param_groups
+                for p in group["params"]
+            ):
                 out_params.append(param)
+            else:
+                removed_params.append(param)
+
+        if len(removed_params) != 0:
+            rank_zero_warn(
+                "The provided params to be freezed already exist within another group of this optimizer. "
+                "Those parameters will be skipped. "
+                "HINT: Did you init your optimizer in `configure_optimizer` as such: "
+                f"{type(optimizer)}(filter(lambda p: p.requires_grad, self.parameters()), ...) ", UserWarning)
         return out_params
 
     @staticmethod
     def unfreeze_and_add_param_group(
-        module: Module,
+        module: Union[Module, List[Module]],
         optimizer: Optimizer,
         lr: Optional[float] = None,
         train_bn: bool = True,
