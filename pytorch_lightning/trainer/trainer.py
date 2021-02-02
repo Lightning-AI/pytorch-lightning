@@ -53,6 +53,7 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
@@ -304,6 +305,7 @@ class Trainer(
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
         self.optimizer_connector = OptimizerConnector(self)
+
         self.accelerator_connector = BackendConnector(
             num_processes,
             tpu_cores,

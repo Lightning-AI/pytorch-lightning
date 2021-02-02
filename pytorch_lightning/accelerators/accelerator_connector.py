@@ -40,6 +40,8 @@ from pytorch_lightning.plugins import (
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
+    DDPShardedPlugin, 
+    DDPSpawnShardedPlugin,
 )
 from pytorch_lightning.plugins.environments import SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
@@ -127,15 +129,11 @@ class BackendConnector(object):
         # override dist backend when using tpus
         if self.on_tpu:
             self.distributed_backend = "tpu"
-            self.use_tpu = True
 
         # init flags for SLURM+DDP to work
         self.world_size = 1
         self.interactive_ddp_procs = []
         self.global_rank = 0
-
-        # NVIDIA setup
-        # self.set_nvidia_flags(self.trainer.is_slurm_managing_tasks, self.trainer.data_parallel_device_ids)
 
         # benchmarking
         # TODO: should this be moved to GPU accelerator?
@@ -148,9 +146,6 @@ class BackendConnector(object):
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
-
-        # TODO: move this to TPU accelerator/plugin
-        self.on_colab_kaggle = os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE")
 
         self.replace_sampler_ddp = replace_sampler_ddp
 
@@ -323,15 +318,14 @@ class BackendConnector(object):
             use_ddp_sharded = self.distributed_backend == "ddp_sharded"
             use_ddp_sharded_spawn = self.distributed_backend == "ddp_sharded_spawn"
 
-            if self.on_tpu:
-                ddp_plugin_cls = TPUSpawnPlugin
-
-            # ddp script mode uses the same flags as TE
             # TODO: decouple from TE
+            # ddp script mode uses the same flags as TE
             if os.environ.get("PL_IN_DDP_SUBPROCESS", False):
                 use_torchelastic_ddp = False
 
-            if use_ddp_sharded:
+            if self.on_tpu:
+                ddp_plugin_cls = TPUSpawnPlugin
+            elif use_ddp_sharded:
                 ddp_plugin_cls = DDPShardedPlugin
             elif use_ddp_sharded_spawn:
                 ddp_plugin_cls = DDPSpawnShardedPlugin
@@ -397,6 +391,8 @@ class BackendConnector(object):
         return env
 
     def set_distributed_mode(self):
+        if isinstance(self.distributed_backend, Accelerator):
+            return
 
         if self.distributed_backend is None:
             if self.has_horovodrun():
@@ -424,27 +420,27 @@ class BackendConnector(object):
         # special case with TPUs
         elif self.distributed_backend == 'tpu':
             self._device_type = DeviceType.TPU
-        # set all other requested distrib. types adn if it was not set in the
+        # set all other requested distrib. types and if it was not set in the
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)
 
         # unless you request explicitly for CPU and some GPU are available use them
         _on_cpu = self.distributed_backend and 'cpu' in self.distributed_backend
-        if (self.num_gpus > 0 and not _on_cpu):
+        if self.num_gpus > 0 and not _on_cpu:
             self._device_type = DeviceType.GPU
 
-        _distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
+        # _distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
-        if (self.num_gpus == 0 and self._distrib_type in _distrib_types):
-            rank_zero_warn(
-                'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
-            )
-            # todo: in some cases it yield in comarison None and int
-            if ((self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1)):
-                self._distrib_type = DistributedType.DDP
-            else:
-                rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
-                self._distrib_type = None
+        # if (self.num_gpus == 0 and self._distrib_type in _distrib_types):
+        #     rank_zero_warn(
+        #         'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
+        #     )
+        #     # todo: in some cases it yield in comarison None and int
+        #     if ((self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1)):
+        #         self._distrib_type = DistributedType.DDP
+        #     else:
+        #         rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
+        #         self._distrib_type = None
 
         # for DDP overwrite nb processes by requested GPUs
         if (

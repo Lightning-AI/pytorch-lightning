@@ -132,7 +132,8 @@ class LightningOptimizer:
 
         with trainer.profiler.profile(profiler_name):
             trainer.accelerator_backend.optimizer_step(*args, lambda_closure=closure, **kwargs)
-
+            
+        # TODO: Do we need this?
         accelerator_backend = trainer.accelerator_backend
         if accelerator_backend is not None and accelerator_backend.rpc_enabled:
             if accelerator_backend.ddp_plugin.is_main_rpc_process:

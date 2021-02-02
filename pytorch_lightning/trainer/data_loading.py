@@ -316,7 +316,7 @@ class TrainerDataLoadingMixin(ABC):
         dataloader = self._flatten_dl_only(dataloader)
 
         if self.accelerator_backend is not None:
-            self.accelerator_backend.barrier('get_dataloaders')
+            self.training_type_plugin.barrier('get_dataloaders')
         return dataloader
 
     def _flatten_dl_only(self, dataloaders):
