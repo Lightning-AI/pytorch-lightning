@@ -135,9 +135,6 @@ class BackendConnector(object):
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
-        # TODO: move this to TPU accelerator/plugin
-        self.on_colab_kaggle = os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE")
-
         self.replace_sampler_ddp = replace_sampler_ddp
 
     @property
