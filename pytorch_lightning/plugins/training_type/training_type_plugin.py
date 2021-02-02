@@ -64,18 +64,6 @@ class TrainingTypePlugin(Plugin, ABC):
     def broadcast(self, obj: object, src: int = 0) -> object:
         """Broadcasts an object to all processes"""
 
-    # TODO method this is currently unused. Check after complete refactors are pushed
-    def set_nvidia_flags(self, is_slurm_managing_tasks: bool, device_ids: Optional[Sequence]) -> None:
-        if device_ids is None:
-            return
-
-        # set the correct cuda visible devices (using pci order)
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
-        devices = os.environ.get("CUDA_VISIBLE_DEVICES", all_gpu_ids)
-        if self.lightning_module is not None:
-            log.info(f"LOCAL_RANK: {self.lightning_module.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
-
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
         """Reduce the early stopping decision across all possibly spawned processes"""
         return should_stop

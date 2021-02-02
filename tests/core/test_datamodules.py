@@ -13,21 +13,24 @@
 # limitations under the License.
 import pickle
 from argparse import ArgumentParser
+from unittest import mock
+from unittest.mock import MagicMock, PropertyMock
 from typing import Any, Dict
-from unittest.mock import MagicMock
 
 import pytest
 import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
-from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.base import BoringDataModule, BoringModel
 from tests.base.develop_utils import reset_seed
 
 
-def test_can_prepare_data(tmpdir):
+@mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
+@mock.patch("pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
+def test_can_prepare_data(local_rank, node_rank):
 
     dm = BoringDataModule()
     trainer = Trainer()
@@ -37,33 +40,36 @@ def test_can_prepare_data(tmpdir):
     # prepare_data_per_node = True
     # local rank = 0   (True)
     trainer.prepare_data_per_node = True
-    trainer.local_rank = 0
+
+    local_rank.return_value = 0
+    assert trainer.local_rank == 0
     assert trainer.data_connector.can_prepare_data()
 
     # local rank = 1   (False)
-    trainer.local_rank = 1
+    local_rank.return_value = 1
+    assert trainer.local_rank == 1
     assert not trainer.data_connector.can_prepare_data()
 
     # prepare_data_per_node = False (prepare across all nodes)
     # global rank = 0   (True)
     trainer.prepare_data_per_node = False
-    trainer.node_rank = 0
-    trainer.local_rank = 0
+    node_rank.return_value = 0
+    local_rank.return_value = 0
     assert trainer.data_connector.can_prepare_data()
 
     # global rank = 1   (False)
-    trainer.node_rank = 1
-    trainer.local_rank = 0
+    node_rank.return_value = 1
+    local_rank.return_value = 0
     assert not trainer.data_connector.can_prepare_data()
-    trainer.node_rank = 0
-    trainer.local_rank = 1
+    node_rank.return_value = 0
+    local_rank.return_value = 1
     assert not trainer.data_connector.can_prepare_data()
 
     # 2 dm
     # prepar per node = True
     # local rank = 0 (True)
     trainer.prepare_data_per_node = True
-    trainer.local_rank = 0
+    local_rank.return_value = 0
 
     # is_overridden prepare data = True
     # has been called
@@ -392,7 +398,8 @@ def test_full_loop_dp(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_dm_transfer_batch_to_device(tmpdir):
+@mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
+def test_dm_transfer_batch_to_device(get_module_mock):
     class CustomBatch:
         def __init__(self, data):
             self.samples = data[0]
@@ -415,11 +422,10 @@ def test_dm_transfer_batch_to_device(tmpdir):
 
     trainer = Trainer(gpus=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
-    trainer.get_model = MagicMock(return_value=model)
+    get_module_mock.return_value = model
+    if is_overridden('transfer_batch_to_device', dm):
+        model.transfer_batch_to_device = dm.transfer_batch_to_device
 
-    model.transfer_batch_to_device = dm.transfer_batch_to_device
-
-    trainer.accelerator_backend = GPUAccelerator(trainer)
     batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
     assert dm.hook_called

@@ -15,7 +15,7 @@
 import os
 import platform
 import time
-from typing import Type, Union
+from typing import Type
 
 import pytest
 import torch
@@ -32,10 +32,8 @@ from tests.base.boring_model import BoringModel, RandomDataset
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_one_gpu():
-    plugin_parity_test(
+    sharded_parity_test(
         gpus=1,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
     )
 
@@ -45,11 +43,9 @@ def test_ddp_sharded_plugin_correctness_one_gpu():
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_amp_one_gpu():
-    plugin_parity_test(
+    sharded_parity_test(
         gpus=1,
         precision=16,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
     )
 
@@ -59,10 +55,8 @@ def test_ddp_sharded_plugin_correctness_amp_one_gpu():
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_multi_gpu():
-    plugin_parity_test(
+    sharded_parity_test(
         gpus=2,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
         max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
@@ -73,11 +67,9 @@ def test_ddp_sharded_plugin_correctness_multi_gpu():
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
-    plugin_parity_test(
+    sharded_parity_test(
         gpus=2,
         precision=16,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
         max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
@@ -88,11 +80,9 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
-    plugin_parity_test(
+    sharded_parity_test(
         gpus=2,
         precision=16,
-        accelerator='ddp_spawn',
-        plugin='ddp_sharded',
         model_cls=SeedTrainLoaderModel,
         max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
@@ -105,11 +95,9 @@ def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
 )
 @DDPLauncher.run("--accelerator ddp --gpus 2 --precision 32")
 def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir, args=None):
-    plugin_parity_test(
+    sharded_parity_test(
         gpus=args.gpus,
         precision=args.precision,
-        accelerator=args.accelerator,
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
     )
 
@@ -121,11 +109,9 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir, args=None):
 )
 @DDPLauncher.run("--accelerator ddp --gpus 2  --precision 16")
 def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
-    plugin_parity_test(
+    sharded_parity_test(
         gpus=args.gpus,
         precision=args.precision,
-        accelerator=args.accelerator,
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
     )
 
@@ -138,10 +124,8 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
     """
         Ensures same results using multiple optimizers across multiple GPUs
     """
-    plugin_parity_test(
-        plugin=DDPShardedPlugin(),
+    sharded_parity_test(
         gpus=2,
-        accelerator='ddp_spawn',
         model_cls=SeedTrainLoaderMultipleOptimizersModel,
         max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
@@ -155,10 +139,8 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim_manual(tmpdir):
     """
         Ensures using multiple optimizers across multiple GPUs with manual optimization
     """
-    plugin_parity_test(
-        plugin=DDPShardedPlugin(),
+    sharded_parity_test(
         gpus=2,
-        accelerator='ddp_spawn',
         model_cls=SeedTrainLoaderManualModel,
         max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
@@ -273,9 +255,7 @@ def plugin_parity_test(
 
     Args:
         model_cls: Model class to use for test.
-        plugin: Plugin to parity test.
         seed: Seed for generators. Note that this does not handle the seed for data-loading on multi-process.
-        accelerator: Accelerator type for test.
         gpus: Number of GPUS to enable.
         precision: Whether to use AMP or normal FP32 training.
         max_percent_speed_diff: The maximum speed difference compared to normal DDP training.
@@ -293,7 +273,7 @@ def plugin_parity_test(
         max_epochs=1,
         gpus=gpus,
         precision=precision,
-        accelerator=accelerator,
+        accelerator='ddp_spawn',
     )
 
     max_memory_ddp, ddp_time = record_ddp_fit_model_stats(trainer=trainer, model=ddp_model, use_cuda=use_cuda)
@@ -307,8 +287,7 @@ def plugin_parity_test(
         max_epochs=1,
         gpus=gpus,
         precision=precision,
-        accelerator=accelerator,
-        plugins=[plugin],
+        accelerator='ddp_sharded_spawn',
     )
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(

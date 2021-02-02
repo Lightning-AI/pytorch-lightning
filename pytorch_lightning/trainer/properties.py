@@ -15,10 +15,12 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import cast, List, Optional, Type, TypeVar, Union
+from typing import Any, cast, List, Optional, Type, TypeVar, Union
 
-from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
@@ -41,6 +43,13 @@ if _TPU_AVAILABLE:
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
+from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+
+from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class TrainerProperties(ABC):
@@ -59,13 +68,103 @@ class TrainerProperties(ABC):
     _default_root_dir: str
     _weights_save_path: str
     accelerator_backend: Accelerator
-    logger: LightningLoggerBase
-    model_connector: ModelConnector
-    checkpoint_connector: CheckpointConnector
-    callbacks: List[Callback]
     num_nodes: int
     num_processes: int
+    accelerator_connector: BackendConnector
     _lightning_optimizers = None
+
+    @property
+    def accelerator(self):
+        return self.accelerator_connector.accelerator
+
+    @property
+    def accelerator_backend(self):
+        # for backward compatibility
+        return self.accelerator
+
+    @property
+    def distributed_backend(self):
+        # for backward compatibility
+        return self.accelerator_connector.distributed_backend
+
+    @property
+    def training_type_plugin(self):
+        return self.accelerator.training_type_plugin
+
+    @property
+    def precision_plugin(self):
+        return self.accelerator.precision_plugin
+
+    @property
+    def global_rank(self):
+        return self.accelerator.training_type_plugin.global_rank
+
+    @property
+    def local_rank(self):
+        # some training types define a local rank
+        return getattr(self.accelerator.training_type_plugin, "local_rank", 0)
+
+    @property
+    def node_rank(self):
+        # some training types define a local rank
+        return getattr(self.accelerator.training_type_plugin, "node_rank", 0)
+
+    @property
+    def world_size(self):
+        # some training types define a world size
+        return getattr(self.accelerator.training_type_plugin, "world_size", 1)
+
+    @property
+    def on_gpu(self):
+        return self.accelerator_connector.on_gpu
+
+    @property
+    def on_tpu(self):
+        return self.accelerator_connector.on_tpu
+
+    @property
+    def use_dp(self):
+        return self.accelerator_connector.use_dp
+
+    @property
+    def use_ddp(self):
+        return self.accelerator_connector.use_ddp
+
+    @property
+    def use_ddp2(self):
+        return self.accelerator_connector.use_ddp2
+
+    @property
+    def use_horovod(self):
+        return self.accelerator_connector.use_horovod
+
+    @property
+    def use_tpu(self):
+        return self.accelerator_connector.on_tpu
+
+    @property
+    def _distrib_type(self):
+        return self.accelerator_connector._distrib_type
+
+    @property
+    def _device_type(self):
+        return self.accelerator_connector._device_type
+
+    @property
+    def num_nodes(self):
+        return self.accelerator_connector.num_nodes
+
+    @property
+    def num_processes(self):
+        return self.accelerator_connector.num_processes
+
+    @property
+    def root_gpu(self):
+        return self.accelerator_connector.root_gpu
+
+    @property
+    def data_parallel_device_ids(self):
+        return self.accelerator_connector.parallel_device_ids
 
     @property
     def log_dir(self):
@@ -172,11 +271,12 @@ class TrainerProperties(ABC):
         return add_argparse_args(cls, parent_parser)
 
     @property
+    def gpus(self) -> Optional[Union[List[int], str, int]]:
+        return self.accelerator_connector.gpus
+
+    @property
     def num_gpus(self) -> int:
-        gpus = self.data_parallel_device_ids
-        if gpus is None:
-            return 0
-        return len(gpus)
+        return self.accelerator_connector.num_gpus
 
     @property
     def data_parallel(self) -> bool:
@@ -203,7 +303,7 @@ class TrainerProperties(ABC):
     @property
     def enable_validation(self) -> bool:
         """ Check if we should run validation during training. """
-        model_ref = self.model_connector.get_model()
+        model_ref = self.get_model()
         val_loop_enabled = is_overridden('validation_step', model_ref) and self.limit_val_batches > 0
         return val_loop_enabled
 
@@ -264,8 +364,31 @@ class TrainerProperties(ABC):
     def save_checkpoint(self, filepath, weights_only: bool = False):
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
 
+    @property
+    def model(self) -> Any:
+        """
+        The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
+        To access the pure LightningModule, use
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.lightning_module` instead.
+        """
+        return self.accelerator.model
+
+    @model.setter
+    def model(self, model: Any):
+        """
+        Setter for the model, pass-through to accelerator and plugin where the model reference is stored.
+        Used by the Tuner to reset the state of Trainer and Accelerator.
+
+        Args:
+            model: The LightningModule, possibly wrapped into DataParallel or DistributedDataParallel, depending
+                on the backend.
+        """
+        self.accelerator.model = model
+
     def get_model(self):
-        return self.model_connector.get_model()
+        # TODO: rename this to lightning_module (see training type plugin)
+        # backward compatible
+        return self.lightning_module
 
     @property
     def lightning_optimizers(self):
@@ -273,6 +396,47 @@ class TrainerProperties(ABC):
             self.convert_to_lightning_optimizers()
         return self._lightning_optimizers
 
+    @property
+    def lightning_module(self):
+        return self.training_type_plugin.lightning_module
+
+    @property
+    def optimizers(self):
+        return self.accelerator.optimizers
+
+    @optimizers.setter
+    def optimizers(self, new_optims):
+        self.accelerator.optimizers = new_optims
+
+    @property
+    def lr_schedulers(self):
+        return self.accelerator.lr_schedulers
+
+    @lr_schedulers.setter
+    def lr_schedulers(self, new_schedulers):
+        self.accelerator.lr_schedulers = new_schedulers
+
+    @property
+    def optimizer_frequencies(self):
+        return self.accelerator.optimizer_frequencies
+
+    @optimizer_frequencies.setter
+    def optimizer_frequencies(self, new_freqs):
+        self.accelerator.optimizer_frequencies = new_freqs
+
+    @property
+    def amp_backend(self):
+        return self.accelerator.amp_backend
+
+    @property
+    def precision(self):
+        return self.accelerator.precision
+
+    @property
+    def scaler(self):
+        return self.accelerator.scaler
+
+    # TODO: refactor this so that it can be done in LightningOptimizer
     def __getstate__(self):
         # remove lightning_optimizers
         self._lightning_optimizers = None
@@ -289,8 +453,9 @@ class TrainerProperties(ABC):
     @property
     def distributed_sampler_kwargs(self):
         if self.accelerator_backend is not None:
-            return self.accelerator_backend.distributed_sampler_kwargs
+            return self.training_type_plugin.distributed_sampler_kwargs
 
+        # TODO: make sure the cases below are handled by the training_type_plugin
         if self._device_type == DeviceType.TPU:
             kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 

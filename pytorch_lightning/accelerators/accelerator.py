@@ -263,45 +263,35 @@ class Accelerator(object):
     def optimizer_step(
         self,
         optimizer: torch.optim.Optimizer,
-        current_epoch: int,
-        batch_idx: int,
         opt_idx: int,
         lambda_closure: Callable,
+        **kwargs
     ):
         """performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step
-            current_epoch: current training epoch
-            batch_idx: index of the current batch
             opt_idx: index of the current optimizer
             lambda_closure: closure calculating the loss value
 
         """
-        model_ref = self.lightning_module
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        native_amp = (
-            isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.NATIVE
-        )
 
         self.precision_plugin.pre_optimizer_step(optimizer, opt_idx)
         self.training_type_plugin.pre_optimizer_step(optimizer, opt_idx)
 
-        # model hook
-        res = model_ref.optimizer_step(
-            epoch=current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=lambda_closure,
-            on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=native_amp,
-            using_lbfgs=is_lbfgs,
-        )
+        optimizer.step(closure=lambda_closure, **kwargs)
 
         self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
         self.training_type_plugin.post_optimizer_step(optimizer, opt_idx)
-        return res
+
+        if self.rpc_enabled and self.training_type_plugin.is_main_rpc_process:
+
+                # Initialize optimizer step on main process
+                self.training_type_plugin.worker_optimizer_step(
+                    model=self.lightning_module,
+                    opt_idx=opt_idx,
+                    **kwargs
+                )
 
     def optimizer_zero_grad(
         self, current_epoch: int, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int
@@ -393,3 +383,6 @@ class Accelerator(object):
 
     def on_save(self, checkpoint):
         return checkpoint
+
+    def barrier(self, name: Optional[str] = None) -> None:
+        self.training_type_plugin.barrier(name=name)
