@@ -1653,12 +1653,11 @@ class FailureCustomDataLoader(DataLoader):
 class TestModel(BoringModel):
 
     def __init__(self, numbers_test_dataloaders,
-                 save_preds_on_dl_idx, failure, enable_predict_auto_id):
+                 save_preds_on_dl_idx, failure):
         super().__init__()
         self._numbers_test_dataloaders = numbers_test_dataloaders
         self._save_preds_on_dl_idx = save_preds_on_dl_idx
         self._failure = failure
-        self.enable_predict_auto_id = enable_predict_auto_id
 
     def create_dataset(self):
         dataloader_cls = FailureCustomDataLoader if self._failure > 0 else CustomDataLoader
@@ -1669,14 +1668,13 @@ class TestModel(BoringModel):
 
 
 def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
-                                num_dl_idx, failure=0, enable_predict_auto_id=True):
+                                num_dl_idx, failure=0):
     num_processes = 2
     limit_test_batches = 2
     trainer_args = {
         "default_root_dir": tmpdir,
         "limit_test_batches" : limit_test_batches,
         "accelerator": accelerator,
-        "enable_predict_auto_id": enable_predict_auto_id
     }
 
     if accelerator == "ddp_cpu":
@@ -1684,7 +1682,7 @@ def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
     else:
         trainer_args["gpus"] = gpus
 
-    model = TestModel(num_dl_idx, save_preds_on_dl_idx, failure, enable_predict_auto_id)
+    model = TestModel(num_dl_idx, save_preds_on_dl_idx, failure)
     model.test_epoch_end = None
 
     trainer = Trainer(**trainer_args)
