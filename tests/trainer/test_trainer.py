@@ -26,7 +26,6 @@ import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf
-from torch.utils.data import DataLoader
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
@@ -1629,90 +1628,3 @@ def test_pytorch_profiler_nested(tmpdir):
 
         expected_c = ['add']
         assert [e.name for e in pa['c']] == expected_c
-
-
-class IndexedRandomDataset(RandomDataset):
-
-    def __getitem__(self, index):
-        return self.data[index]
-
-
-class CustomDataLoader(DataLoader):
-
-    def __init__(self, num_features, dataset, *args, **kwargs):
-        self.num_features = num_features
-        super().__init__(dataset, *args, **kwargs)
-
-
-class FailureCustomDataLoader(DataLoader):
-
-    def __init__(self, num_features, dataset, *args, **kwargs):
-        super().__init__(dataset, *args, **kwargs)
-
-
-class TestModel(BoringModel):
-
-    def __init__(self, numbers_test_dataloaders,
-                 save_preds_on_dl_idx, failure):
-        super().__init__()
-        self._numbers_test_dataloaders = numbers_test_dataloaders
-        self._save_preds_on_dl_idx = save_preds_on_dl_idx
-        self._failure = failure
-
-    def create_dataset(self):
-        dataloader_cls = FailureCustomDataLoader if self._failure > 0 else CustomDataLoader
-        return dataloader_cls(32, IndexedRandomDataset(32, 64), batch_size=2)
-
-    def test_dataloader(self):
-        return [self.create_dataset()] * self._numbers_test_dataloaders
-
-
-def check_prediction_collection(tmpdir, save_preds_on_dl_idx, accelerator, gpus,
-                                num_dl_idx, failure=0):
-    num_processes = 2
-    limit_test_batches = 2
-    trainer_args = {
-        "default_root_dir": tmpdir,
-        "limit_test_batches" : limit_test_batches,
-        "accelerator": accelerator,
-    }
-
-    if accelerator == "ddp_cpu":
-        trainer_args["num_processes"] = num_processes
-    else:
-        trainer_args["gpus"] = gpus
-
-    model = TestModel(num_dl_idx, save_preds_on_dl_idx, failure)
-    model.test_epoch_end = None
-
-    trainer = Trainer(**trainer_args)
-    if failure == 1:
-        try:
-            _ = trainer.test(model)
-        except MisconfigurationException as e:
-            assert "Missing attributes are {'num_features'}." in str(e)
-            return
-
-    else:
-        try:
-            _ = trainer.test(model)
-        except MisconfigurationException as e:
-            assert "inject DistributedSampler within FailureCustomDataLoader" in str(e)
-
-
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_misconfiguration_on_dataloader(tmpdir):
-    """
-    Test Lightning raise a MisConfiguration error as we can't re-instantiate user Dataloader
-    """
-    check_prediction_collection(tmpdir, True, "ddp", 2, 2, failure=1)
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
-def test_prediction_collection_1_gpu_failure(tmpdir):
-    """
-    Test `PredictionCollection` will raise warning as we are using an invalid custom Dataloader
-    """
-    check_prediction_collection(tmpdir, True, None, 1, 1, failure=2)

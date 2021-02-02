@@ -108,21 +108,21 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     def replace_sampler(self, dataloader, sampler):
-        skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
-        skip_valid_keys = ['args', 'kwargs', 'self']
+        skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
+        skip_signature_keys = ('args', 'kwargs', 'self')
 
-        params = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
+        attrs = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
 
-        valid_kwargs = set(inspect.signature(dataloader.__init__).parameters)
+        params = set(inspect.signature(dataloader.__init__).parameters)
         contains_dataset = True
 
         if type(dataloader) is not DataLoader:
-            contains_dataset = "dataset" in valid_kwargs
-            valid_kwargs.update(inspect.signature(DataLoader.__init__).parameters)
+            contains_dataset = "dataset" in params
+            params.update(inspect.signature(DataLoader.__init__).parameters)
 
         dl_args = {
-            name: params[name] for name in valid_kwargs
-            if name in params and name not in skip_keys
+            name: attrs[name] for name in params
+            if name in attrs and name not in skip_keys
         }
         dl_args['sampler'] = sampler
         dl_args['shuffle'] = False
@@ -130,7 +130,7 @@ class TrainerDataLoadingMixin(ABC):
         multiprocessing_context = dataloader.multiprocessing_context
         dl_args['multiprocessing_context'] = multiprocessing_context
 
-        missing_kwargs = valid_kwargs.difference(skip_valid_keys).difference(dl_args)
+        missing_kwargs = params.difference(skip_signature_keys).difference(dl_args)
         if missing_kwargs:
             """
             Example:
