@@ -828,12 +828,10 @@ class Trainer(
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
-        os.environ['PL_TESTING_MODE'] = '1'
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
         else:
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
-        del os.environ['PL_TESTING_MODE']
 
         self.teardown('test')
 
@@ -875,7 +873,9 @@ class Trainer(
         # run tests
         self.tested_ckpt_path = ckpt_path
         self.model = model
+        os.environ['PL_TESTING_MODE'] = '1'
         results = self.fit(model)
+        del os.environ['PL_TESTING_MODE']
 
         # teardown
         if self.is_function_implemented('teardown'):
