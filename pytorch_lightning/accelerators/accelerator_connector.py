@@ -34,7 +34,7 @@ from pytorch_lightning.plugins import (
     SingleDevicePlugin,
     SingleTPUPlugin,
     TPUHalfPrecisionPlugin,
-    TPUSpawnPlugin,
+    TPUSpawnPlugin, DDPShardedPlugin, DDPSpawnShardedPlugin,
 )
 from pytorch_lightning.plugins.environments import SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
@@ -256,23 +256,21 @@ class BackendConnector(object):
             use_ddp_cpu_spawn = self.use_ddp and self.on_cpu
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self.is_using_torchelastic
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
-            # use_ddp_sharded = self.distributed_backend == "ddp_sharded"
-            # use_ddp_sharded_spawn = self.distributed_backend == "ddp_sharded_spawn"
+            use_ddp_sharded = self.distributed_backend == "ddp_sharded"
+            use_ddp_sharded_spawn = self.distributed_backend == "ddp_sharded_spawn"
 
-            if self.on_tpu:
-                ddp_plugin_cls = TPUSpawnPlugin
-
-            # ddp script mode uses the same flags as TE
             # TODO: decouple from TE
+            # ddp script mode uses the same flags as TE
             if os.environ.get("PL_IN_DDP_SUBPROCESS", False):
                 use_torchelastic_ddp = False
 
-            # fixme
-            # if use_ddp_sharded:
-            #     ddp_plugin_cls = DDPShardedPlugin
-            # elif use_ddp_sharded_spawn:
-            #     ddp_plugin_cls = DDPSpawnShardedPlugin
-            if use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
+            if self.on_tpu:
+                ddp_plugin_cls = TPUSpawnPlugin
+            elif use_ddp_sharded:
+                ddp_plugin_cls = DDPShardedPlugin
+            elif use_ddp_sharded_spawn:
+                ddp_plugin_cls = DDPSpawnShardedPlugin
+            elif use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
                 ddp_plugin_cls = DDPPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
                 ddp_plugin_cls = DDPSpawnPlugin
