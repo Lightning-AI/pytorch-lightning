@@ -271,3 +271,6 @@ class DDPPlugin(ParallelPlugin):
 
     def test_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
+
+    def predict(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
