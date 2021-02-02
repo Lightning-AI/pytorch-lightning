@@ -116,7 +116,6 @@ class BackendConnector(object):
         # override dist backend when using tpus
         if self.on_tpu:
             self.distributed_backend = "tpu"
-            self.use_tpu = True
 
         # init flags for SLURM+DDP to work
         self.world_size = 1

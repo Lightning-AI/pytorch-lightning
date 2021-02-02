@@ -135,9 +135,7 @@ class TrainerProperties(ABC):
 
     @property
     def use_tpu(self):
-        # TODO update this, what is the difference between use_tpu and on_tpu?
-        return False
-        # return self.accelerator_connector.use_tpu
+        return self.accelerator_connector.on_tpu
 
     @property
     def _distrib_type(self):
