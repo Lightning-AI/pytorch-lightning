@@ -567,7 +567,7 @@ class Trainer(
         if self.is_function_implemented("on_pretrain_routine_end"):
             ref_model.on_pretrain_routine_end()
 
-    def train(self):
+    def run_train(self):
         self.pre_dispatch_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
