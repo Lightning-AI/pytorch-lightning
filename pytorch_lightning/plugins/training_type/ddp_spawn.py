@@ -106,7 +106,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # where to store ip_table
         self.init_ddp_connection(self.global_rank, self.world_size)
 
-        # TODO: we moved it to the trainer.fit after calling pre_training
+        # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
         # self.trainer.call_setup_hook(self.model)
 
@@ -139,7 +139,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
-    def post_training(self):
+    def post_dispatch(self):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()

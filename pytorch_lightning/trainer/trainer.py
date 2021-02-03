@@ -338,9 +338,6 @@ class Trainer(
         self.weights_summary = weights_summary
         self.shown_warnings = set()
 
-        # the trainer is being created, env variables shouldn't exist.
-        self.__sanetize_env_variables()
-
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
         self.callback_connector.on_trainer_init(
@@ -424,13 +421,6 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    def __sanetize_env_variables(self):
-        if 'PL_TESTING_MODE' in os.environ:
-            del os.environ['PL_TESTING_MODE']
-
-        if 'PL_PREDICTING_MODE' in os.environ:
-            del os.environ['PL_PREDICTING_MODE']
-
     def fit(
         self,
         model: LightningModule,
@@ -455,7 +445,11 @@ class Trainer(
         """
         # bookkeeping
         self._state = TrainerState.RUNNING
-        self._set_wide_running_stage(RunningStage.TRAINING)
+
+        # bookkeeping
+        # we reuse fit in .test() and .predict(). When already set, it shouldn't be modified.
+        if self._running_stage is None:
+            self._set_wide_running_stage(RunningStage.TRAINING)
 
         # ----------------------------
         # LINK DATA
@@ -466,41 +460,29 @@ class Trainer(
         # hook
         self.data_connector.prepare_data(model)
 
-        # bookkeeping
-        # we reuse fit in .test() and .predict() but change its behavior using flags
-        self._resolve_running_stage_with_flags(model)
-
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
         # self.accelerator_backend = self.accelerator_connector.select_accelerator()
+        self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator_backend.setup(self, model)
         self.train_loop.setup_training(model)
 
         # ----------------------------
-        # TRAIN
+        # FITTING
         # ----------------------------
+
         # hook
         self.call_hook("on_fit_start")
 
-        # plugin will setup training (e.g. ddp will launch child processes)
-        # TODO: the old setup is now called "pre_training", where should this hook be called now?
-        self.call_hook("on_before_accelerator_backend_setup", model)
-        self.training_type_plugin.pre_training()
-        self.precision_plugin.pre_training()
+        self.pre_dispath()
 
-        self.call_setup_hook(self.lightning_module)
+        # dispath `start_training` or `start_testing` or `start_predicting`
+        self.dispatch()
 
-        # double dispatch: let the plugin initiate the training/test loop.
-        if self.testing:
-            self.training_type_plugin.start_testing(self)
-        else:
-            self.training_type_plugin.start_training(self)
+        self.post_dispath()
 
-        self.precision_plugin.post_training()
-        self.training_type_plugin.post_training()
         self.accelerator_backend.teardown()
-        results = self.training_type_plugin.results
 
         # ----------------------------
         # POST-Training CLEAN UP
@@ -520,16 +502,26 @@ class Trainer(
 
         self._set_wide_running_stage(None)
 
-        return results or 1
+        return self.training_type_plugin.results or 1
 
-    def _resolve_running_stage_with_flags(self, model):
-        if 'PL_TESTING_MODE' in os.environ:
-            self.testing = os.getenv('PL_TESTING_MODE', self.testing)
+    def pre_dispath(self):
+        self.training_type_plugin.pre_dispatch()
+        self.precision_plugin.pre_dispatch()
+        self.call_setup_hook(self.lightning_module)
 
-        elif 'PL_PREDICTING_MODE' in os.environ:
-            self.predicting = os.getenv('PL_PREDICTING_MODE', self.predicting)
+    def post_dispath(self):
+        self.training_type_plugin.post_dispatch()
+        self.precision_plugin.post_dispatch()
 
-        model.running_stage = self._running_stage
+    def dispatch(self):
+        if self.training:
+            self.training_type_plugin.start_training(self)
+
+        elif self.testing:
+            self.training_type_plugin.start_testing(self)
+
+        elif self.predicting:
+            self.training_type_plugin.start_predicting(self)
 
     def _set_wide_running_stage(self, stage):
         """
@@ -543,7 +535,7 @@ class Trainer(
 
         self._running_stage = stage
 
-    def pre_training_routine(self):
+    def pre_dispatch_routine(self):
         # wait for all to join if on distributed
         self.accelerator.training_type_plugin.barrier("setup_training")
 
@@ -576,7 +568,7 @@ class Trainer(
             ref_model.on_pretrain_routine_end()
 
     def train(self):
-        self.pre_training_routine()
+        self.pre_dispatch_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
@@ -890,9 +882,6 @@ class Trainer(
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
         self.teardown('test')
-        del os.environ['PL_TESTING_MODE']
-
-        self._set_wide_running_stage(None)
 
         return results
 
@@ -930,7 +919,6 @@ class Trainer(
         # run tests
         self.tested_ckpt_path = ckpt_path
         self.model = model
-        os.environ['PL_TESTING_MODE'] = '1'
         results = self.fit(model)
 
         # teardown
@@ -949,7 +937,6 @@ class Trainer(
         # run test
         # sets up testing so we short circuit to eval
         self.model = model
-        os.environ['PL_TESTING_MODE'] = '1'
         results = self.fit(model)
 
         # teardown
@@ -960,7 +947,7 @@ class Trainer(
 
     def predict(
         self,
-        model: Optional[LightningModule] = None,
+        model: Optional[LightningModule],
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
     ):
@@ -986,6 +973,9 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         # If you supply a datamodule you can't supply dataloaders
+
+        self._set_wide_running_stage(RunningStage.PREDICTING)
+
         if dataloaders and datamodule:
             raise MisconfigurationException(
                 'You cannot pass dataloaders to trainer.predict if you supply a datamodule'
@@ -1002,16 +992,8 @@ class Trainer(
         if dataloaders is not None:
             self.data_connector.attach_dataloaders(model, predict_dataloaders=dataloaders)
 
-        # set path variable
-        os.environ['PL_PREDICTING_MODE'] = '1'
         self.model = model
-
         results = self.fit(model)
-
-        # unset path variable
-        self.teardown('test')
-        del os.environ['PL_PREDICTING_MODE']
-        self._set_wide_running_stage(None)
 
         return results
 

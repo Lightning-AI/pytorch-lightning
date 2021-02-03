@@ -24,14 +24,14 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def on_tpu(self) -> bool:
         return True
 
-    def pre_training(self) -> None:
+    def pre_dispatch(self) -> None:
         if isinstance(self.device, int):
             self.device = xm.xla_device(self.device)
 
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
 
-    def post_training(self) -> None:
+    def post_dispatch(self) -> None:
         model = self.lightning_module
 
         if on_colab_kaggle():

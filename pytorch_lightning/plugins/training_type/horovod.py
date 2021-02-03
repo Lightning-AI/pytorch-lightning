@@ -50,7 +50,7 @@ class HorovodPlugin(ParallelPlugin):
 
         self.model_to_device()
 
-    def pre_training(self):
+    def pre_dispatch(self):
 
         def _unpack_lightning_optimizer(opt):
             return opt._optimizer if isinstance(opt, LightningOptimizer) else opt

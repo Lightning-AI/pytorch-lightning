@@ -34,11 +34,23 @@ class Plugin(ABC):
     def post_optimizer_step(self, optimizer: torch.optim.Optimizer, optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""
 
-    def pre_training(self) -> None:
+    def pre_dispatch(self) -> None:
         """Hook to do something before the training starts."""
 
-    def post_training(self) -> None:
+    def post_dispatch(self) -> None:
         """Hook to do something after the training finishes."""
+
+    def pre_testing(self) -> None:
+        """Hook to do something before the testing starts."""
+
+    def post_testing(self) -> None:
+        """Hook to do something after the testing finishes."""
+
+    def pre_predicting(self) -> None:
+        """Hook to do something before the predicting starts."""
+
+    def post_predicting(self) -> None:
+        """Hook to do something after the predicting finishes."""
 
     @contextlib.contextmanager
     def train_step_context(self) -> Generator:

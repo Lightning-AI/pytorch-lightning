@@ -144,7 +144,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         should_stop = int(stop.item()) == self.world_size
         return should_stop
 
-    def post_training(self) -> None:
+    def post_dispatch(self) -> None:
         # TODO: Check if trainer references can be resolved otherwise
         model = self.lightning_module
 
