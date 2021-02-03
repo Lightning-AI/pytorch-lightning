@@ -58,6 +58,15 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.node_rank = 0
         self.mp_queue = None
 
+    def __getstate__(self):
+        """ Makes this plugin pickleable without destroying the queue in the current process. """
+        state = self.__dict__.copy()
+        state["mp_queue"] = None
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+
     @property
     def root_device(self):
         return self.parallel_devices[self.local_rank]
@@ -83,14 +92,16 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.world_size = self.num_nodes * self.num_processes
 
     def start_training(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, ))
+        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, self.mp_queue))
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_testing(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, ))
+        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, self.mp_queue))
 
-    def new_process(self, process_idx, trainer):
+    def new_process(self, process_idx, trainer, mp_queue):
+        self.mp_queue = mp_queue
+
         # TODO: check if needed
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
