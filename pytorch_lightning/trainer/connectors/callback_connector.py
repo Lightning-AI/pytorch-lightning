@@ -25,14 +25,14 @@ class CallbackConnector:
         self.trainer = trainer
 
     def on_trainer_init(
-            self,
-            callbacks,
-            checkpoint_callback,
-            progress_bar_refresh_rate,
-            process_position,
-            default_root_dir,
-            weights_save_path,
-            resume_from_checkpoint
+        self,
+        callbacks,
+        checkpoint_callback,
+        progress_bar_refresh_rate,
+        process_position,
+        default_root_dir,
+        weights_save_path,
+        resume_from_checkpoint,
     ):
         self.trainer.resume_from_checkpoint = resume_from_checkpoint
 
@@ -51,9 +51,7 @@ class CallbackConnector:
         self.configure_checkpoint_callbacks(checkpoint_callback)
 
         # init progress bar
-        self.trainer._progress_bar_callback = self.configure_progress_bar(
-            progress_bar_refresh_rate, process_position
-        )
+        self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
     def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):
         if isinstance(checkpoint_callback, ModelCheckpoint):
@@ -61,8 +59,7 @@ class CallbackConnector:
             rank_zero_warn(
                 "Passing a ModelCheckpoint instance to Trainer(checkpoint_callbacks=...)"
                 " is deprecated since v1.1 and will no longer be supported in v1.3."
-                " Use `callbacks` argument instead.",
-                DeprecationWarning
+                " Use `callbacks` argument instead.", DeprecationWarning
             )
             self.trainer.callbacks.append(checkpoint_callback)
 

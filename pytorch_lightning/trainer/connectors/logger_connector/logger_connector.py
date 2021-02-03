@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class LoggerConnector:
+
     def __init__(self, trainer):
         self.trainer = trainer
         self._callback_metrics = MetricsHolder()
@@ -76,14 +77,14 @@ class LoggerConnector:
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
-        return self._cached_results.get(self.trainer._running_stage)    # type: ignore
+        return self._cached_results.get(self.trainer._running_stage)  # type: ignore
 
     def get_metrics(self, key: str) -> Dict:
         metrics_holder = getattr(self, f"_{key}", None)
         model_ref = self.trainer.get_model()
         metrics_holder.convert(
             self.trainer._device_type == DeviceType.TPU,
-            model_ref.device if model_ref is not None else model_ref
+            model_ref.device if model_ref is not None else model_ref,
         )
         return metrics_holder.metrics
 
