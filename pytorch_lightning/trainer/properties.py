@@ -19,14 +19,10 @@ from typing import Any, cast, List, Optional, Type, TypeVar, Union
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loggers.base import LightningLoggerBase
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType
 from pytorch_lightning.utilities.argparse import (
@@ -36,20 +32,14 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.model_helpers import is_overridden
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-
-from pytorch_lightning.loggers.base import LightningLoggerBase
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class TrainerProperties(ABC):
