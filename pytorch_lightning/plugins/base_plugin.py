@@ -35,10 +35,10 @@ class Plugin(ABC):
         """Hook to do something after each optimizer step."""
 
     def pre_dispatch(self) -> None:
-        """Hook to do something before the training starts."""
+        """Hook to do something before the dispatch starts."""
 
     def post_dispatch(self) -> None:
-        """Hook to do something after the training finishes."""
+        """Hook to do something after the dispatch finishes."""
 
     @contextlib.contextmanager
     def train_step_context(self) -> Generator:
