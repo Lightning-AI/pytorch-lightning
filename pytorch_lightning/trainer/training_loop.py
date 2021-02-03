@@ -12,23 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from contextlib import contextmanager, suppress
-from copy import copy, deepcopy
+from contextlib import contextmanager
+from contextlib import suppress
+from copy import copy
+from copy import deepcopy
 
 import numpy as np
 import torch
 
-from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
-from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.supporters import Accumulator
+from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities import parsing
+from pytorch_lightning.utilities.distributed import rank_zero_info
+from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden

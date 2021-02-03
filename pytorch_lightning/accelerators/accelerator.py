@@ -17,16 +17,15 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.plugins.precision import (
-    ApexMixedPrecisionPlugin,
-    MixedPrecisionPlugin,
-    NativeMixedPrecisionPlugin,
-    PrecisionPlugin,
-)
+from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
+from pytorch_lightning.plugins.precision import NativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, LightningEnum
+from pytorch_lightning.utilities.enums import AMPType
+from pytorch_lightning.utilities.enums import LightningEnum
 
 
 class Accelerator(object):
@@ -234,8 +233,8 @@ class Accelerator(object):
     def backward(
         self,
         closure_loss: torch.Tensor,
-        optimizer: torch.optim.Optimizer,
-        opt_idx: int,
+        optimizer: Optimizer,
+        optimizer_idx: int,
         should_accumulate: bool,
         *args,
         **kwargs,
@@ -244,17 +243,15 @@ class Accelerator(object):
 
         Args:
             closure_loss: a tensor holding the loss value to backpropagate
-            optimizer: the optimizer to do the step later on.
-            opt_idx: the index of the optimizer
             should_accumulate: whether to accumulate gradients
         """
+        self.training_type_plugin.pre_backward(closure_loss, should_accumulate)
+
         output = self.precision_plugin.backward(
-            self.lightning_module, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
+            self.lightning_module, closure_loss, optimizer, optimizer_idx, should_accumulate, *args, **kwargs
         )
 
-        # TODO: this is a hack, find a better solution for this (hook?)
-        if isinstance(self.training_type_plugin, HorovodPlugin):
-            optimizer.synchronize()
+        self.training_type_plugin.post_backward(closure_loss, should_accumulate)
 
         return output
 

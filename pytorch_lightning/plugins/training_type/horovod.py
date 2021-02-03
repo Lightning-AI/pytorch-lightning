@@ -20,7 +20,8 @@ from torch.optim.lr_scheduler import _LRScheduler
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import ReduceOp
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -155,3 +156,7 @@ class HorovodPlugin(ParallelPlugin):
         gathered = hvd.allgather(result)
         gathered_result = list(gathered.split(1, dim=0))
         return gathered_result
+
+    def post_backward(self, loss: torch.Tensor, should_accumulate: bool):
+        for optimizer in self.optimizers:
+            optimizer.synchronize()

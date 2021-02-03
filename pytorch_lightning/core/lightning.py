@@ -27,23 +27,31 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-from torch import ScriptModule, Tensor
+from torch import ScriptModule
+from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
-from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
+from pytorch_lightning.core.hooks import CheckpointHooks
+from pytorch_lightning.core.hooks import DataHooks
+from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
+from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES
+from pytorch_lightning.core.saving import ModelIO
+from pytorch_lightning.core.saving import PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.apply_func import convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.parsing import collect_init_args
+from pytorch_lightning.utilities.parsing import get_init_args
 
 
 class LightningModule(
@@ -1127,7 +1135,7 @@ class LightningModule(
             "`configure_optimizers` must be implemented to be used with the Lightning Trainer"
         )
 
-    def manual_backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
+    def manual_backward(self, loss: Tensor, optimizer: Optimizer = None, *args, **kwargs) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -1148,12 +1156,17 @@ class LightningModule(
                 self.manual_backward(loss, opt_a)
                 opt_a.step()
         """
+        if optimizer is not None:
+            rank_zero_warn(
+                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4",
+                DeprecationWarning)
+
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
 
         # backward
         self._running_manual_backward = True
-        self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
+        self.trainer.train_loop.backward(loss, None, None, *args, **kwargs)
         self._running_manual_backward = False
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:

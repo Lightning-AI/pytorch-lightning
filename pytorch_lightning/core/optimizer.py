@@ -17,7 +17,9 @@ from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType
+from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TPU_AVAILABLE:
@@ -38,14 +40,7 @@ class LightningOptimizer:
     the backward and optimizer_step logic across accelerators, AMP, accumulate_grad_batches
     """
     def __init__(self,
-                 optimizer: Optimizer,
-                 accumulate_grad_batches: Optional[int] = None):
-
-        assert accumulate_grad_batches is None or isinstance(accumulate_grad_batches, int)
-        if isinstance(accumulate_grad_batches, int) and accumulate_grad_batches < 1:
-            raise MisconfigurationException(
-                f"accumulate_grad_batches parameters {accumulate_grad_batches} should be >= 1"
-            )
+                 optimizer: Optimizer):
 
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k != 'step'}
 
@@ -60,7 +55,6 @@ class LightningOptimizer:
 
         self._optimizer = optimizer
         self._trainer = None
-        self._accumulate_grad_batches = accumulate_grad_batches
         self._optimizer_idx = None
 
     @property
@@ -91,14 +85,6 @@ class LightningOptimizer:
     def param_groups(self, param_groups):
         self._optimizer.param_groups = param_groups
 
-    @property
-    def accumulate_grad_batches(self):
-        return self._accumulate_grad_batches
-
-    @accumulate_grad_batches.setter
-    def accumulate_grad_batches(self, accumulate_grad_batches):
-        self._accumulate_grad_batches = accumulate_grad_batches
-
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
         for opt_idx, opt in enumerate(trainer.optimizers):
@@ -116,19 +102,7 @@ class LightningOptimizer:
             optimizer = trainer.lightning_optimizers[opt_idx]
         return optimizer
 
-    def _accumulated_batches_reached(self):
-        if self.accumulate_grad_batches is None:
-            return self._trainer.train_loop._accumulated_batches_reached()
-        return (self._trainer.batch_idx + 1) % self.accumulate_grad_batches == 0
-
-    @property
-    def _should_accumulate(self):
-        # checks if backward or backward + optimizer step (via closure)
-        accumulation_done = self._accumulated_batches_reached()
-        is_final_batch = self._trainer.train_loop._num_training_batches_reached()
-        return not (accumulation_done or is_final_batch)
-
-    def __optimizer_step(self, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
+    def __optimizer_step(self, zero_grad: bool = False, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
         trainer = self._trainer
         optimizer = self._optimizer
         model = trainer.get_model()
@@ -136,14 +110,16 @@ class LightningOptimizer:
         with trainer.profiler.profile(profiler_name):
             trainer.accelerator_backend.optimizer_step(optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
 
-        trainer.train_loop.on_before_zero_grad(optimizer)
+        if self._trainer.train_loop.automatic_optimization or zero_grad:
 
-        model.optimizer_zero_grad(
-            trainer.current_epoch,
-            trainer.batch_idx,
-            optimizer,
-            self._optimizer_idx
-        )
+            trainer.train_loop.on_before_zero_grad(optimizer)
+
+            model.optimizer_zero_grad(
+                trainer.current_epoch,
+                trainer.batch_idx,
+                optimizer,
+                self._optimizer_idx
+            )
 
     def _check_make_optimizer_step(self, make_optimizer_step: Optional[bool]) -> bool:
         if make_optimizer_step is not None and self._trainer.overriden_optimizer_zero_grad:
@@ -155,11 +131,23 @@ class LightningOptimizer:
                 return True
 
         if make_optimizer_step is None:
-            make_optimizer_step = not self._should_accumulate
+            make_optimizer_step = True
 
         return make_optimizer_step
 
-    def step(self, *args, closure: Optional[Callable] = None, make_optimizer_step: Optional[bool] = None, **kwargs):
+    def toggle_optimizer(self):
+        model = self.trainer.get_model()
+        model.toggle_optimizer(self, self._optimizer_idx)
+
+    def step(
+        self,
+        *args,
+        closure: Optional[Callable] = None,
+        make_optimizer_step: Optional[bool] = None,
+        zero_grad : bool = False,
+        toggle_optimizer : bool = False,
+        **kwargs
+    ):
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -172,9 +160,11 @@ class LightningOptimizer:
             closure: One could provide its own optimizer_closure. Set to None by default.
 
             make_optimizer_step: Whether to force an optimizer step. When nothing is provided,
-                we will use `accumulate_grad_batches` for accumulation frequency by default.
-                However, one coud provide True and False based on its own scheduling.
-                Refer to example 2 and 3
+                we will use perform an optimizer step.
+
+            zero_grad: Whether to perform zero_grad after performing an `optimizer.step()`
+
+            toggle_optimizer: Wheter to toggle the model based the optimizer.
 
             args: Any parameters provided to wrapped optimizer.step()
 
@@ -185,39 +175,12 @@ class LightningOptimizer:
             def training_step(...):
                 (opt_a, opt_b) = self.optimizers()
                 loss_a = ...
+
                 # automatically applies scaling, etc...
-                self.manual_backward(loss_a, opt_a)
+
+                self.manual_backward(loss_a)
                 opt_a.step()
-
-        Example::
-
-            def training_step(self, batch, batch_idx):
-                # using Boring Model
-                opt = self.optimizers() # only 1 optimizer
-
-                def compute_loss():
-                    x = batch[0]
-                    x = F.dropout(x, 0.1)
-                    predictions = self(x)
-                    predictions = F.dropout(predictions, 0.1)
-                    loss = self.loss(None, predictions)
-                    return loss
-
-                def closure():
-                    # emulate MC dropout training
-                    num_backward = 1
-                    losses = []
-                    for backward_idx in range(num_backward + 1):
-                        loss = compute_loss()
-                        losses.append(loss)
-                        retain_graph = num_backward!= backward_idx
-                        self.manual_backward(loss, opt, retain_graph=retain_graph)
-                    loss_mean = torch.stack(losses).mean()
-                    loss_std = torch.stack(losses).std()
-                    self.log("train_loss_mean", loss_mean, on_step=True, prog_bar=True, on_epoch=True)
-                    self.log("train_loss_std", loss_std, on_step=True, prog_bar=True, on_epoch=True)
-
-                opt.step(loss, closure=closure)
+                opt_a.zero_grad()
 
         Example::
 
@@ -225,33 +188,49 @@ class LightningOptimizer:
 
             def training_step(self, batch, batch_idx, optimizer_idx):
 
-                # emulate gans training
                 opt_gen, opt_dis = self.optimizers()
 
-                # Note: Be careful, don't log on the same key in self.log in both closure
-                # as they will be aggregated together on epoch_end
+                ...
+                loss_total = loss_gen + loss_dis
 
-                def gen_closure():
-                    ... forward and compute loss for generator
-                    loss_gen = ...
-                    self.log("loss_gen", loss_gen, on_step=True, on_epoch=True)
-                    self.manual_backward(loss_gen, opt_gen)
+                self.manual_backward(loss_total)
 
-                def dis_closure():
-                    ... forward and compute loss for discriminator
-                    loss_dis = ...
-                    self.log("loss_dis", loss_dis, on_step=True, on_epoch=True)
-                    self.manual_backward(loss_dis, opt_dis)
+                opt_gen.step()
+                opt_gen.zero_grad()
 
-                # this will accumulate gradients for 2 batches and then call opt_gen.step()
-                opt_gen.step(closure=gen_closure, make_optimizer_step=batch_idx % 2 == 0)
-
-                # update discriminator every 4 batches
-                # therefore, no gradient accumulation for discriminator
+                # perform accumulated gradients for 4 batches
                 if batch_idx % 4 == 0 :
-                    # Note: Set make_optimizer_step to True or it will use by default
-                    # Trainer(accumulate_grad_batches=x)
-                    opt_dis.step(closure=optimizer_closure, make_optimizer_step=True)
+                    opt_dis.step()
+                    opt_dis.zero_grad()
+
+        Even better when using multi-gpus and complex accumulated gradient strategy
+
+        Example::
+
+            # Scenario for a gan.
+
+                opt_gen, opt_dis = self.optimizers()
+
+                def closure():
+                    ...
+                    if batch_idx % 4 == 0:
+                        loss = loss_gen + loss_dis
+                    else:
+                        loss = loss_gen
+                    self.manual_backward(loss)
+
+                # perform 2 batches gradient accumulation
+                # toggle optimizer, so discriminator doesn't receive gradients
+                # except on discriminator steps.
+                opt_gen.step(
+                    closure=closure,
+                    make_optimizer_step=batch_idx % 2 == 0,
+                    zero_grad=True,
+                    toggle_optimizer=batch_idx % 4 != 0)
+
+                if batch_idx % 4 == 0:
+                    opt_gen.step(zero_grad=True)
+
         """
         profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
@@ -263,8 +242,11 @@ class LightningOptimizer:
 
         make_optimizer_step = self._check_make_optimizer_step(make_optimizer_step)
 
+        if toggle_optimizer:
+            self.toggle_optimizer()
+
         if make_optimizer_step:
-            self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
+            self.__optimizer_step(*args, zero_grad=zero_grad, closure=closure, profiler_name=profiler_name, **kwargs)
         else:
             # make sure to call optimizer_closure when accumulating
             with self._trainer.profiler.profile(f"closure_{self._optimizer_idx}"):

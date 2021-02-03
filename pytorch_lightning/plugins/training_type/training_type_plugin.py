@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 from typing import Any, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
@@ -67,6 +68,16 @@ class TrainingTypePlugin(Plugin, ABC):
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
         """Reduce the early stopping decision across all possibly spawned processes"""
         return should_stop
+
+    def pre_backward(self, loss: torch.Tensor, should_accumulate: bool):
+        pass
+
+    def post_backward(self, loss: torch.Tensor, should_accumulate: bool):
+        pass
+
+    @property
+    def optimizers(self):
+        return self.lightning_module.trainer.accelerator.optimizers
 
     @property
     def model(self) -> torch.nn.Module:
