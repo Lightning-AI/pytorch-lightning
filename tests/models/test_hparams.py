@@ -60,7 +60,7 @@ class SaveHparamsDecoratedModel(BoringModel):
     """ Tests that a model can take an object """
     @decorate
     @decorate
-    def __init__(self, hparams, *my_args, **my_kwargs):
+    def __init__(self, hparams, *_my_args, **_my_kwargs):
         super().__init__()
         self.save_hyperparameters(hparams)
 
@@ -69,7 +69,7 @@ class AssignHparamsDecoratedModel(BoringModel):
     """ Tests that a model can take an object with explicit setter"""
     @decorate
     @decorate
-    def __init__(self, hparams, *my_args, **my_kwargs):
+    def __init__(self, hparams, *_my_args, **_my_kwargs):
         super().__init__()
         self.hparams = hparams
 
@@ -279,7 +279,7 @@ class AggSubClassEvalModel(SubClassEvalModel):
 class UnconventionalArgsEvalModel(EvalModelTemplate):
     """ A model that has unconventional names for "self", "*args" and "**kwargs". """
 
-    def __init__(obj, *more_args, other_arg=300, **more_kwargs):
+    def __init__(obj, *more_args, _other_arg=300, **more_kwargs):
         # intentionally named obj
         super().__init__(*more_args, **more_kwargs)
         obj.save_hyperparameters()

@@ -43,4 +43,18 @@ order_by_type = "False"
 make_whitelist = true
 min_confidence = 95
 paths = ["pytorch_lightning"]
+ignore_names = [
+    "*idx",
+    "*batch",
+    "loc",
+    "signum",
+    "new_dtype",
+    "new_device",
+    "*_nb",
+    "mocked_device_count*",
+    "*param*",
+    "cmd_line",
+    "my_path",
+    "torch_save"
+]
 sort_by_size = true
