@@ -230,7 +230,8 @@ class CheckpointConnector:
             if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
             rank_zero_warn(
-                'warning, `hyper_parameters` dropped from checkpoint.' f' An attribute is not picklable {err}'
+                'warning, `hyper_parameters` dropped from checkpoint.'
+                f' An attribute is not picklable {err}'
             )
             atomic_save(checkpoint, filepath)
 
@@ -297,9 +298,10 @@ class CheckpointConnector:
             checkpoint['lr_schedulers'] = lr_schedulers
 
             # dump amp scaling
-            if (self.trainer.amp_backend == AMPType.NATIVE
-                    and self.trainer._device_type != DeviceType.TPU
-                    and self.trainer.scaler is not None):
+            if (
+                self.trainer.amp_backend == AMPType.NATIVE and self.trainer._device_type != DeviceType.TPU
+                and self.trainer.scaler is not None
+            ):
                 checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
             elif self.trainer.amp_backend == AMPType.APEX:
                 checkpoint['amp_scaling_state'] = amp.state_dict()
@@ -409,6 +411,7 @@ class CheckpointConnector:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
                 rank_zero_warn(
-                    'Warning, `hyper_parameters` dropped from checkpoint.' f' An attribute is not picklable {err}'
+                    'Warning, `hyper_parameters` dropped from checkpoint.'
+                    f' An attribute is not picklable {err}'
                 )
                 atomic_save(checkpoint, filepath)

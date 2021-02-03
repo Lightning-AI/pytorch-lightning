@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Trainer to automate the training."""
 
 import os
@@ -66,7 +65,7 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
-    "ignore", message="torch.distributed.reduce_op is deprecated, " "please use torch.distributed.ReduceOp instead"
+    'ignore', message='torch.distributed.reduce_op is deprecated, please use torch.distributed.ReduceOp instead'
 )
 os.environ["PYTHONWARNINGS"] = "ignore:semaphore_tracker:UserWarning"
 
@@ -81,6 +80,7 @@ class Trainer(
     TrainerDataLoadingMixin,
     DeprecatedDistDeviceAttributes,
 ):
+
     @overwrite_by_env_vars
     def __init__(
         self,
@@ -946,9 +946,7 @@ class Trainer(
         # --------------------
         # If you supply a datamodule you can't supply dataloaders
         if dataloaders and datamodule:
-            raise MisconfigurationException(
-                'You cannot pass dataloaders to trainer.predict if you supply a datamodule'
-            )
+            raise MisconfigurationException('You cannot pass dataloaders to trainer.predict if you supply a datamodule')
 
         if model is None:
             raise MisconfigurationException('You need to pass a model to `trainer.predict`. ')

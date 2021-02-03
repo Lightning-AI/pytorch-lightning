@@ -109,9 +109,7 @@ class DeprecatedDistDeviceAttributes:
 
     @use_horovod.setter
     def use_horovod(self, val: bool) -> None:
-        rank_zero_warn(
-            "Internal: `use_horovod` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning
-        )
+        rank_zero_warn("Internal: `use_horovod` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
         if val:
             self.accelerator_connector._distrib_type = DistributedType.HOROVOD
 
@@ -128,7 +126,8 @@ class DeprecatedDistDeviceAttributes:
     @use_single_gpu.setter
     def use_single_gpu(self, val: bool) -> None:
         rank_zero_warn(
-            "Internal: `use_single_gpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning,
+            "Internal: `use_single_gpu` is deprecated in v1.2 and will be removed in v1.4.",
+            DeprecationWarning,
         )
         if val:
             self.accelerator_connector._device_type = DeviceType.GPU

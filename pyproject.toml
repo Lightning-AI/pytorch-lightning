@@ -6,13 +6,7 @@ requires = [
 
 [tool.autopep8]
 max_line_length = 120
-ignore = ["W504", "W504", "E402", "E731", "C40", "E741", "F40", "F841"]
-
-[tool.black]
-# https://github.com/psf/black
-line-length = 120
-target-version = ["py38"]
-exclude = "(.eggs|.git|.hg|.mypy_cache|.nox|.tox|.venv|.svn|_build|buck-out|build|dist)"
+ignore = ["W503", "W504", "E402", "E731", "C40", "E741", "F40", "F841"]
 
 [tool.isort]
 known_first_party = [
@@ -22,7 +16,7 @@ known_first_party = [
     "pytorch_lightning",
     "tests",
 ]
-profile = "black"
+profile = "google"
 line_length = 120
 force_sort_within_sections = "False"
 order_by_type = "False"

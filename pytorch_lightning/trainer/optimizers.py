@@ -26,6 +26,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainerOptimizersMixin(ABC):
+
     def init_optimizers(self, model: LightningModule) -> Tuple[List, List, List]:
         optim_conf = model.configure_optimizers()
         if optim_conf is None:
@@ -82,6 +83,7 @@ class TrainerOptimizersMixin(ABC):
         return optimizers, lr_schedulers, optimizer_frequencies
 
     def convert_to_lightning_optimizers(self):
+
         def _convert_to_lightning_optimizer(trainer, optimizer):
             if not isinstance(optimizer, LightningOptimizer):
                 optimizer = LightningOptimizer(optimizer)
@@ -132,9 +134,11 @@ class TrainerOptimizersMixin(ABC):
                         ' For example:'
                         ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
                     )
-                lr_schedulers.append(
-                    {**default_config, 'scheduler': scheduler, 'reduce_on_plateau': True, 'monitor': monitor}
-                )
+                lr_schedulers.append({
+                    **default_config, 'scheduler': scheduler,
+                    'reduce_on_plateau': True,
+                    'monitor': monitor
+                })
             elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
                 lr_schedulers.append({**default_config, 'scheduler': scheduler})
             else:
