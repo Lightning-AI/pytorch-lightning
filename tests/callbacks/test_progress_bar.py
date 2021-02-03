@@ -352,7 +352,7 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches, refresh_rate, tes
     progress_bar.test_progress_bar.update.assert_has_calls([call(delta) for delta in test_deltas])
 
 
-def test_test_progress_bar_thing(tmpdir):
+def test_tensor_to_float_conversion(tmpdir):
     """Check tensor gets converted to float"""
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
