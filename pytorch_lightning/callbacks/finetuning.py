@@ -36,8 +36,10 @@ def multiplicative(epoch):
 class BaseFinetuningCallback(Callback):
 
     r"""
+
     BaseFinetuningCallback.
     Overrides any functions with your own logic.
+
     """
 
     @staticmethod
@@ -150,26 +152,38 @@ class BaseFinetuningCallback(Callback):
 class BackboneLambdaFinetuningCallback(BaseFinetuningCallback):
 
     r"""
+
     Finetunne a backbone model based on a learning rate user-defined scheduling.
     When the backbone learning rate reaches the current model learning rate
     and ``should_align`` is set to True, it will align with it for the rest of the training.
 
     Args:
+
         unfreeze_backbone_at_epoch: Epoch at which the backbone will be unfreezed.
+
         lambda_func: Scheduling function for increasing backbone learning rate.
+
         verbose: verbosity mode. Default: ``False``.
+
         backbone_initial_ratio_lr:
             Used to scale down the backbone learning rate compared to rest of model
+
         backbone_initial_lr: Optional, Inital learning rate for the backbone.
             By default, we will use current_learning /  backbone_initial_ratio_lr
+
         should_align: Wheter to align with current learning rate when backbone learning
             reaches it.
+
         initial_denom_lr: When unfreezing the backbone, the intial learning rate will
             current_learning_rate /  initial_denom_lr.
+
         train_bn: Wheter to make Batch Normalization trainable.
+
         should_align: Wheter to align with current learning rate when backbone learning
             reaches it.
+
         verbose: Display current learning rate for model and backbone
+
         round: Precision for displaying learning rate
 
     Example::
@@ -179,6 +193,7 @@ class BackboneLambdaFinetuningCallback(BaseFinetuningCallback):
         >>> multiplicative = lambda epoch: 1.5
         >>> backbone_finetunning = BackboneLambdaFinetuningCallback(200, multiplicative)
         >>> trainer = Trainer(callbacks=[backbone_finetunning])
+
     """
 
     def __init__(
