@@ -523,6 +523,12 @@ class Trainer(
         elif self.predicting:
             self.training_type_plugin.start_predicting(self)
 
+        else:
+            raise MisconfigurationException(
+                f"Received {self._running_stage}. Please, open an issue, it shouldn't happen."
+            )
+
+
     def _set_wide_running_stage(self, stage):
         """
         This function is used to set the running_state on both
