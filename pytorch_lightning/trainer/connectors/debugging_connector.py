@@ -25,13 +25,13 @@ class DebuggingConnector:
         self.trainer = trainer
 
     def on_init_start(
-            self,
-            limit_train_batches,
-            limit_val_batches,
-            limit_test_batches,
-            val_check_interval,
-            overfit_batches,
-            fast_dev_run
+        self,
+        limit_train_batches,
+        limit_val_batches,
+        limit_test_batches,
+        val_check_interval,
+        overfit_batches,
+        fast_dev_run,
     ):
         if not isinstance(fast_dev_run, (bool, int)):
             raise MisconfigurationException(
