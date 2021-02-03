@@ -16,6 +16,7 @@ from unittest import mock
 from unittest.mock import call, Mock
 
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
@@ -349,3 +350,25 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches, refresh_rate, tes
     )
     trainer.test(model)
     progress_bar.test_progress_bar.update.assert_has_calls([call(delta) for delta in test_deltas])
+
+
+def test_test_progress_bar_thing(tmpdir):
+    """Check tensor gets converted to float"""
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log('foo', torch.tensor(0.123), prog_bar=True)
+            self.log('bar', {"baz": torch.tensor([1])}, prog_bar=True)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.fit(TestModel())
+
+    pbar = trainer.progress_bar_callback.main_progress_bar
+    actual = str(pbar.postfix)
+    assert actual.endswith("foo=0.123, bar={'baz': tensor([1])}")
