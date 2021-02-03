@@ -25,7 +25,6 @@ from torch import nn
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.callbacks.finetuning import BaseFinetuningCallback
 from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -86,7 +85,7 @@ class StochasticWeightAveraging(Callback):
 
             device (torch.device, optional): if provided, the averaged model will be
                 stored on the `device`. Default: `cpu`
-                When None is provided, it will infer the `device` from ``pl_module``
+                When None is provided, it will infer the `device` from ``pl_module``.
 
         """
 
@@ -121,8 +120,7 @@ class StochasticWeightAveraging(Callback):
     def pl_module_contains_batch_norm(pl_module):
         return any(isinstance(module, nn.modules.batchnorm._BatchNorm) for module in pl_module.modules())
 
-    # Inspiration from
-    def reset_batch_norm_and_save_state(self, average_model, device):
+    def reset_batch_norm_and_save_state(self, average_model):
         """
         Credit to PyTorch Team.
         Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L115
@@ -131,15 +129,24 @@ class StochasticWeightAveraging(Callback):
         for module in average_model.modules():
             if isinstance(module, nn.modules.batchnorm._BatchNorm):
                 module.running_mean = torch.zeros_like(
-                    module.running_mean, device=device, dtype=module.running_mean.dtype)
+                    module.running_mean, device=average_model.device, dtype=module.running_mean.dtype)
                 module.running_var = torch.ones_like(
-                    module.running_var, device=device, dtype=module.running_var.dtype)
+                    module.running_var, device=average_model.device, dtype=module.running_var.dtype)
                 self.momenta[module] = module.momentum
                 module.momentum = None
                 module.num_batches_tracked *= 0
 
-    def on_fit_start(self, trainer, pl_module):
-        self._average_model = deepcopy(pl_module).to("cpu")
+    def reset_momemta(self):
+        """
+        Credit to PyTorch Team.
+        Taken from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164
+        """
+        for bn_module in self.momenta.keys():
+            bn_module.momentum = self.momenta[bn_module]
+
+    def on_before_accelerator_backend_setup(self, trainer, pl_module):
+        # copy the model before moving it to accelerator device.
+        self._average_model = deepcopy(pl_module)
         optimizers = trainer.optimizers
         lr_schedulers = trainer.lr_schedulers
 
@@ -149,13 +156,13 @@ class StochasticWeightAveraging(Callback):
         if len(lr_schedulers) > 1:
             raise MisconfigurationException("SWA currently not supported for more than 1 lr_scheduler.")
 
-        self._max_epochs = trainer.max_epochs
-
         # convert float to integer.
         if isinstance(self._swa_epoch_start, float):
-            self._swa_epoch_start = int(self._max_epochs * self._swa_epoch_start)
+            self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
 
         self._model_contains_batch_norm = self.pl_module_contains_batch_norm(pl_module)
+
+        self._max_epochs = trainer.max_epochs
 
         if self._model_contains_batch_norm:
             # virtually increase max_epochs to perform batch norm update on latest epoch.
@@ -163,6 +170,9 @@ class StochasticWeightAveraging(Callback):
 
     def on_train_epoch_start(self, trainer, pl_module):
         if trainer.current_epoch == self._swa_epoch_start:
+            # move average model to request device.
+            self._average_model = self._average_model.to(self._device or pl_module.device)
+
             optimizers = trainer.optimizers
             lr_scheduler = trainer.lr_schedulers[0]["scheduler"]
 
@@ -180,24 +190,36 @@ class StochasticWeightAveraging(Callback):
 
             self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
 
-        if self._swa_epoch_start <= trainer.current_epoch and trainer.current_epoch < self._max_epochs:
+        if self._swa_epoch_start <= trainer.current_epoch <= trainer.max_epochs - 1:
             self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
 
         if trainer.current_epoch == self._max_epochs:
-            if not self._model_contains_batch_norm:
-                self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
-
             # Transfer weights from average model to pl_module
             self.transfer_weights(self._average_model, pl_module)
 
-            if self._model_contains_batch_norm:
-                # Only update batch norm stats - Freeze the rest
-                BaseFinetuningCallback.freeze(pl_module, train_bn=True)
+            # Reset bachnorm for update
+            self.reset_batch_norm_and_save_state(pl_module)
+
+            # There is no need to perform either backward or optimizer
+            # as we are performing only one pass over the train dataloaders
+            # to compute activation statistics
+            # Therefore, we will virtually increase `num_training_batches` by 1
+            # and skip backward.
+            trainer.train_loop.skip_backward = True
+            trainer.num_training_batches += 1
+            self._accumulate_grad_batches = trainer.accumulate_grad_batches
+            trainer.accumulate_grad_batches = len(trainer.train_dataloader)
 
     def on_fit_end(self, trainer, pl_module):
-        if self._model_contains_batch_norm:
-            # Make entire model trainable
-            BaseFinetuningCallback._make_trainable(pl_module)
+        trainer.train_loop.skip_backward = False
+        if not self._model_contains_batch_norm:
+            # Transfer weights from average model to pl_module
+            self.transfer_weights(self._average_model, pl_module)
+        else:
+            # resetting default user parameters
+            trainer.accumulate_grad_batches = self._accumulate_grad_batches
+            trainer.num_training_batches -= 1
+            self.reset_momemta()
 
     @staticmethod
     def update_parameters(average_model, model, n_averaged, avg_fn):

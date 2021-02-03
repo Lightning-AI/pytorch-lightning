@@ -47,6 +47,7 @@ class TrainLoop:
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
         self._multiple_trainloader_mode = multiple_trainloader_mode
+        self._skip_backward = False
         self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
 
     def on_trainer_init(
@@ -841,6 +842,10 @@ class TrainLoop:
         return result
 
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
+        # useful
+        if self._skip_backward:
+            return
+
         self.trainer.dev_debugger.track_event("backward_call")
 
         # backward can be called manually in the training loop
