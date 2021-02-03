@@ -62,12 +62,12 @@ class TestModel(BoringModel):
         dataset = IndexedRandomDataset(32, 64)
         batch_sampler = None
         batch_size = 2
-        if self._mode == 3:
+        if self._mode == 2:
             batch_size = 1
             batch_sampler = CustomBatchSampler(SequentialSampler(dataset), batch_size=batch_size, drop_last=True)
             dataloader_cls = CustomDataLoader
         else:
-            dataloader_cls = FailureCustomDataLoader if self._mode > 0 else CustomDataLoader
+            dataloader_cls = FailureCustomDataLoader
         return dataloader_cls(32, dataset, batch_size=batch_size, batch_sampler=batch_sampler)
 
     def test_dataloader(self):
@@ -99,8 +99,8 @@ def check_replace_distrubuted_sampler(
     model.test_epoch_end = None
 
     trainer = Trainer(**trainer_args)
-    if mode < 3:
-        match = "Missing attributes are" if mode == 1 else "DistributedSampler within"
+    if mode == 1:
+        match = "DistributedSampler within"
         with pytest.raises(MisconfigurationException, match=match):
             trainer.test(model)
     else:
@@ -110,11 +110,6 @@ def check_replace_distrubuted_sampler(
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize("mode", [1, 3])
+@pytest.mark.parametrize("mode", [1, 2])
 def test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler(tmpdir, mode):
     check_replace_distrubuted_sampler(tmpdir, True, "ddp", 2, 2, mode)
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
-def test_replace_distrubuted_sampler_1_gpu_mode(tmpdir):
-    check_replace_distrubuted_sampler(tmpdir, True, None, 1, 1, 2)
