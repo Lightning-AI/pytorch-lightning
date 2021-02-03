@@ -114,3 +114,12 @@ class TrainingTypePlugin(Plugin, ABC):
     def start_testing(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
         self._results = trainer.run_test()
+
+    def training_step(self, *args, **kwargs):
+        return self.lightning_module.training_step(*args, **kwargs)
+
+    def validation_step(self, *args, **kwargs):
+        return self.lightning_module.validation_step(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.lightning_module.test_step(*args, **kwargs)

@@ -19,6 +19,7 @@ from pytorch_lightning.core.lightning import LightningModule
 
 
 class TrainerModelHooksMixin(ABC):
+
     def is_function_implemented(self, f_name, model=None):
         if model is None:
             model = self.get_model()

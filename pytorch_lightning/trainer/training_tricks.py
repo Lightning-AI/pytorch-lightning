@@ -29,7 +29,7 @@ class TrainerTrainingTricksMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     default_root_dir: str
-    progress_bar_callback: ...
+    progress_bar_callback:...
     on_gpu: bool
 
     @abstractmethod
@@ -47,9 +47,7 @@ class TrainerTrainingTricksMixin(ABC):
 
         # check if loss is nan
         if not torch.isfinite(loss).all():
-            raise ValueError(
-                'The loss returned in `training_step` is nan or inf.'
-            )
+            raise ValueError('The loss returned in `training_step` is nan or inf.')
         # check if a network weight is nan
         for name, param in model.named_parameters():
             if not torch.isfinite(param).all():

@@ -21,12 +21,12 @@ class TrainingTricksConnector:
         self.trainer = trainer
 
     def on_trainer_init(
-            self,
-            gradient_clip_val,
-            track_grad_norm,
-            accumulate_grad_batches,
-            truncated_bptt_steps,
-            terminate_on_nan
+        self,
+        gradient_clip_val,
+        track_grad_norm,
+        accumulate_grad_batches,
+        truncated_bptt_steps,
+        terminate_on_nan,
     ):
 
         self.trainer.terminate_on_nan = terminate_on_nan

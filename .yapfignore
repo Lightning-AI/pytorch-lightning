@@ -20,20 +20,12 @@ pytorch_lightning/core/*
 # TODO
 pytorch_lightning/loggers/*
 
-
-# TODO
-pytorch_lightning/metrics/*
-
 # TODO
 pytorch_lightning/plugins/legacy/*
 
 
 # TODO
 pytorch_lightning/profiler/*
-
-
-# TODO
-pytorch_lightning/trainer/*
 
 
 # TODO
