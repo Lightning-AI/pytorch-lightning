@@ -258,13 +258,7 @@ class Accelerator(object):
 
         return output
 
-    def optimizer_step(
-        self,
-        optimizer: torch.optim.Optimizer,
-        opt_idx: int,
-        lambda_closure: Callable,
-        **kwargs
-    ):
+    def optimizer_step(self, optimizer: torch.optim.Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs):
         """performs the actual optimizer step.
 
         Args:
@@ -284,12 +278,8 @@ class Accelerator(object):
 
         if self.rpc_enabled and self.training_type_plugin.is_main_rpc_process:
 
-                # Initialize optimizer step on main process
-                self.training_type_plugin.worker_optimizer_step(
-                    model=self.lightning_module,
-                    opt_idx=opt_idx,
-                    **kwargs
-                )
+            # Initialize optimizer step on main process
+            self.training_type_plugin.worker_optimizer_step(model=self.lightning_module, opt_idx=opt_idx, **kwargs)
 
     def optimizer_zero_grad(
         self, current_epoch: int, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int

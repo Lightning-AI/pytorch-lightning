@@ -102,9 +102,7 @@ class DeprecatedDistDeviceAttributes:
 
     @property
     def use_horovod(self) -> bool:
-        rank_zero_warn(
-            "Internal: `use_horovod` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning
-        )
+        rank_zero_warn("Internal: `use_horovod` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
         return self.accelerator_connector._distrib_type == DistributedType.HOROVOD
 
     @use_horovod.setter
@@ -119,9 +117,10 @@ class DeprecatedDistDeviceAttributes:
             "Internal: `use_single_gpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning
         )
         # todo, limiting to exclude DDP2 is not clear but it comes from connectors...
-        return (self.accelerator_connector._device_type and self.accelerator_connector._device_type == DeviceType.GPU
-                and self.num_gpus == 1
-                and self.accelerator_connector._distrib_type not in (DistributedType.DDP2, ))
+        return (
+            self.accelerator_connector._device_type and self.accelerator_connector._device_type == DeviceType.GPU
+            and self.num_gpus == 1 and self.accelerator_connector._distrib_type not in (DistributedType.DDP2, )
+        )
 
     @use_single_gpu.setter
     def use_single_gpu(self, val: bool) -> None:

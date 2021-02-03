@@ -40,7 +40,7 @@ from pytorch_lightning.plugins import (
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
-    DDPShardedPlugin, 
+    DDPShardedPlugin,
     DDPSpawnShardedPlugin,
 )
 from pytorch_lightning.plugins.environments import SLURMEnvironment, TorchElasticEnvironment, ClusterEnvironment
