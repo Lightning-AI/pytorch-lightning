@@ -36,8 +36,7 @@ class DataConnector(object):
 
     def get_profiled_train_dataloader(self, train_dataloader):
         profiled_dl = self.trainer.profiler.profile_iterable(
-            enumerate(self._with_is_last(train_dataloader)),
-            "get_train_batch"
+            enumerate(self._with_is_last(train_dataloader)), "get_train_batch"
         )
         return profiled_dl
 

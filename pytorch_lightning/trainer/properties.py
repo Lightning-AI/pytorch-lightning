@@ -115,34 +115,6 @@ class TrainerProperties(ABC):
         return getattr(self.accelerator.training_type_plugin, "world_size", 1)
 
     @property
-    def on_gpu(self):
-        return self.accelerator_connector.on_gpu
-
-    @property
-    def on_tpu(self):
-        return self.accelerator_connector.on_tpu
-
-    @property
-    def use_dp(self):
-        return self.accelerator_connector.use_dp
-
-    @property
-    def use_ddp(self):
-        return self.accelerator_connector.use_ddp
-
-    @property
-    def use_ddp2(self):
-        return self.accelerator_connector.use_ddp2
-
-    @property
-    def use_horovod(self):
-        return self.accelerator_connector.use_horovod
-
-    @property
-    def use_tpu(self):
-        return self.accelerator_connector.on_tpu
-
-    @property
     def _distrib_type(self):
         return self.accelerator_connector._distrib_type
 
@@ -441,6 +413,9 @@ class TrainerProperties(ABC):
         # remove lightning_optimizers
         self._lightning_optimizers = None
         return self.__dict__
+
+    def __setstate__(self, state):
+        self.__dict__ = state
 
     @property
     def require_distributed_sampler(self):

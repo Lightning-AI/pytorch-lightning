@@ -24,6 +24,7 @@ def overwrite_by_env_vars(fn: Callable) -> Callable:
     input arguments should be moved automatically to the correct device.
 
     """
+
     @wraps(fn)
     def overwrite_by_env_vars(self, *args, **kwargs):
         # get the class

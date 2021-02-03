@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Trainer to automate the training."""
 
 import os
@@ -67,7 +66,7 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
-    "ignore", message="torch.distributed.reduce_op is deprecated, " "please use torch.distributed.ReduceOp instead"
+    'ignore', message='torch.distributed.reduce_op is deprecated, please use torch.distributed.ReduceOp instead'
 )
 os.environ["PYTHONWARNINGS"] = "ignore:semaphore_tracker:UserWarning"
 
@@ -82,6 +81,7 @@ class Trainer(
     TrainerDataLoadingMixin,
     DeprecatedDistDeviceAttributes,
 ):
+
     @overwrite_by_env_vars
     def __init__(
         self,
@@ -306,20 +306,8 @@ class Trainer(
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = BackendConnector(
-            num_processes,
-            tpu_cores,
-            distributed_backend,
-            auto_select_gpus,
-            gpus,
-            num_nodes,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic,
-            precision,
-            amp_backend,
-            amp_level,
-            plugins
+            num_processes, tpu_cores, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm, benchmark,
+            replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
@@ -983,9 +971,7 @@ class Trainer(
         self._set_running_stage(RunningStage.PREDICTING, model)
 
         if dataloaders and datamodule:
-            raise MisconfigurationException(
-                'You cannot pass dataloaders to trainer.predict if you supply a datamodule'
-            )
+            raise MisconfigurationException('You cannot pass dataloaders to trainer.predict if you supply a datamodule')
 
         if datamodule is not None:
             # Attach datamodule to get setup/prepare_data added to model before the call to it below

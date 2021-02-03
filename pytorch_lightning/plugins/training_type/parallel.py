@@ -17,6 +17,7 @@ from contextlib import contextmanager
 from typing import List, Optional
 
 import torch
+from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
@@ -99,7 +100,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """
-        if isinstance(self.model, LightningDistributedDataParallel):
+        if isinstance(self.model, (LightningDistributedDataParallel, DistributedDataParallel)):
             yield self.model.no_sync()
         else:
             yield None
