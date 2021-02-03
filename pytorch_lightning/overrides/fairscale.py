@@ -35,7 +35,10 @@ if _FAIRSCALE_AVAILABLE:
             elif running_stage == RunningStage.EVALUATING:
                 outputs = self.module.validation_step(*inputs, **kwargs)
 
-            else:
+            elif running_stage == RunningStage.PREDICTING:
                 outputs = self.module.predict(*inputs, **kwargs)
+
+            else:
+                outputs = self.module(*inputs, **kwargs)
 
             return outputs

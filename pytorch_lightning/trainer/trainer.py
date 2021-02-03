@@ -60,6 +60,7 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_utils import is_overridden
@@ -449,7 +450,7 @@ class Trainer(
         # bookkeeping
         # we reuse fit in .test() and .predict(). When already set, it shouldn't be modified.
         if self._running_stage is None:
-            self._set_wide_running_stage(RunningStage.TRAINING)
+            self._set_running_stage(RunningStage.TRAINING, model)
 
         # ----------------------------
         # LINK DATA
@@ -500,7 +501,7 @@ class Trainer(
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
 
-        self._set_wide_running_stage(None)
+        self._set_running_stage(None, model)
 
         return self.training_type_plugin.results or 1
 
@@ -529,16 +530,12 @@ class Trainer(
             )
 
 
-    def _set_wide_running_stage(self, stage):
+    def _set_running_stage(self, stage: LightningEnum, model_ref: LightningModule):
         """
         This function is used to set the running_state on both
         the trainer and the model
         """
-        model_ref = self.get_model()
-
-        if model_ref is not None:
-            model_ref.running_stage = stage
-
+        model_ref.running_stage = stage
         self._running_stage = stage
 
     def pre_training_routine(self):
@@ -582,7 +579,7 @@ class Trainer(
         self.run_sanity_check(self.get_model())
 
         # set stage for logging
-        self._set_wide_running_stage(RunningStage.TRAINING)
+        self._set_running_stage(RunningStage.TRAINING, self.get_model())
 
         self.checkpoint_connector.has_trained = False
 
@@ -646,9 +643,11 @@ class Trainer(
             self.train_loop.on_train_end()
 
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
+        # ref model
+        model = self.get_model()
 
         # used to know if we are logging for val, test + reset cached results
-        self._set_wide_running_stage(RunningStage.TESTING if test_mode else RunningStage.EVALUATING)
+        self._set_running_stage(RunningStage.TESTING if test_mode else RunningStage.EVALUATING, model)
         self.logger_connector.reset()
 
         # bookkeeping
@@ -660,9 +659,6 @@ class Trainer(
         # check if we want to skip this evaluation
         if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
-
-        # ref model
-        model = self.get_model()
 
         # enable eval mode + no grads
         self.evaluation_loop.on_evaluation_model_eval()
@@ -871,7 +867,9 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
-        self._set_wide_running_stage(RunningStage.TESTING)
+        model = model or self.get_model()
+
+        self._set_running_stage(RunningStage.TESTING, model)
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -880,7 +878,7 @@ class Trainer(
             )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.data_connector.attach_datamodule(model or self.get_model(), datamodule, "test")
+        self.data_connector.attach_datamodule(model, datamodule, "test")
 
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
@@ -953,7 +951,7 @@ class Trainer(
 
     def predict(
         self,
-        model: Optional[LightningModule],
+        model: Optional[LightningModule] = None,
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
     ):
@@ -980,15 +978,14 @@ class Trainer(
         # --------------------
         # If you supply a datamodule you can't supply dataloaders
 
-        self._set_wide_running_stage(RunningStage.PREDICTING)
+        model = model or self.get_model()
+
+        self._set_running_stage(RunningStage.PREDICTING, model)
 
         if dataloaders and datamodule:
             raise MisconfigurationException(
                 'You cannot pass dataloaders to trainer.predict if you supply a datamodule'
             )
-
-        if model is None:
-            raise MisconfigurationException('You need to pass a model to `trainer.predict`. ')
 
         if datamodule is not None:
             # Attach datamodule to get setup/prepare_data added to model before the call to it below

@@ -18,7 +18,6 @@ from copy import copy, deepcopy
 import numpy as np
 import torch
 
-from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
@@ -566,7 +565,7 @@ class TrainLoop:
                 self.trainer.run_evaluation(test_mode=False)
 
                 # reset stage to train
-                self.trainer._set_wide_running_stage(RunningStage.TRAINING)
+                self.trainer._set_running_stage(RunningStage.TRAINING, model)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
