@@ -18,7 +18,7 @@ Also, check :ref:`accelerators` as a new and more general approach to a cluster 
 Cluster setup
 -------------
 
-To setup multi-node computing cluster you need:
+To setup a multi-node computing cluster you need:
 
 1) Multiple computers with PyTorch Lightning installed
 2) A network connectivity between them with firewall rules that allow traffic flow on a specified *MASTER_PORT*.
@@ -32,8 +32,8 @@ PyTorch Lightning follows the design of `PyTorch distributed communication packa
 - *NODE_RANK* - required; id of the node in the cluster
 
 
-Train script design
--------------------
+Training script design
+----------------------
 
 To train a model using multiple nodes, do the following:
 
@@ -44,7 +44,7 @@ To train a model using multiple nodes, do the following:
     .. code-block:: python
 
        # train on 32 GPUs across 4 nodes
-       trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
+       trainer = Trainer(gpus=8, num_nodes=4, accelerator='ddp')
 
 
 Submit a job to the cluster
@@ -55,6 +55,6 @@ This means that you need to:
 
 1. Copy all third-party libraries to each node (usually means - distribute requirements.txt file and install it).
 
-2. Copy all your import dependencies and script itself to each node.
+2. Copy all your import dependencies and the script itself to each node.
 
 3. Run the script on each node.
