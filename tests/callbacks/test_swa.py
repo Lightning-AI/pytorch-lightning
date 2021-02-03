@@ -50,6 +50,9 @@ if _PYTORCH_GREATER_EQUAL_1_6_0:
             super().on_train_epoch_end(trainer, pl_module, *_)
             if self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
                 assert self.n_averaged > 0
+                assert not pl_module.layer[0].weight.requires_grad
+                assert pl_module.layer[1].weight.requires_grad
+                assert not pl_module.layer[3].weight.requires_grad
 
 
 def train_with_swa(tmpdir, accelerator=None, gpus=None, num_processes=None):
@@ -67,7 +70,7 @@ def train_with_swa(tmpdir, accelerator=None, gpus=None, num_processes=None):
     )
     trainer.fit(model)
 
-    assert swa_callback.swa_model is not None
+    assert swa_callback is not None
     assert trainer.get_model() == model
 
 

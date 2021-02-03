@@ -23,7 +23,9 @@ from typing import Callable, Optional, Union
 import torch
 from torch import nn
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.callbacks.finetuning import BaseFinetuningCallback
 from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -40,31 +42,31 @@ class StochasticWeightAveraging(Callback):
         annealing_epochs: int = 10,
         annealing_strategy: str = "cos",
         avg_fn: Optional[Callable] = None,
-        device: Optional[torch.device] = torch.device("cpu"),
+        device: Optional[Union[torch.device, str]] = torch.device("cpu"),
     ):
 
         r"""
 
-        This documentation is highly inspired from PyTorch Team work on pruning
-        and this callback exposes the same arguments as the underlying PyTorch ``swa_utils``.
-
-        Find ``swa_utils` source code there: https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py
-        Find ``SWA explanation`` there: https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/
-
-        Implements averaged model for Stochastic Weight Averaging (SWA) Callbacks.
+        Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
 
         Stochastic Weight Averaging was proposed in ``Averaging Weights Leads to
         Wider Optima and Better Generalization`` by Pavel Izmailov, Dmitrii
         Podoprikhin, Timur Garipov, Dmitry Vetrov and Andrew Gordon Wilson
         (UAI 2018).
 
+        This documentation is highly inspired by PyTorch's work on swa
+        and this callback exposes the same arguments as PyTorch's ``swa_utils`` function.
+
+        Find ``swa_utils` source code there: https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py
+        Find ``SWA explanation`` there: https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/
+
         .. note:: `StochasticWeightAveraging` is currently not supported for multiple optimizers / schedulers.
 
         Arguments:
 
-            swa_epoch_start (int, float): If provided as int, the average model will start from
+            swa_epoch_start (int, float): If provided as int, the procedure will start from
                 ``swa_epoch_start`` epoch. If provided as float between 0 and 1,
-                the average model will start from ``int(swa_epoch_start * max_epochs)`` epoch
+                the procedure will start from ``int(swa_epoch_start * max_epochs)`` epoch
 
             swa_lrs (float or list): the learning rate value for all param groups
                 together or separately for each group.
@@ -102,10 +104,10 @@ class StochasticWeightAveraging(Callback):
             raise MisconfigurationException("swa_lrs should be a positive float or a list of positive float.")
 
         if avg_fn is not None and not isinstance(avg_fn, Callable):
-            raise MisconfigurationException("avg_fn should be function.")
+            raise MisconfigurationException("avg_fn should be callable.")
 
-        if device is not None and not isinstance(device, torch.device):
-            raise MisconfigurationException(f"device is expected to be None or a torch.device. Found {device}")
+        if device is not None and not isinstance(device, (torch.device, str)):
+            raise MisconfigurationException(f"device is expected to be a torch.device or a str. Found {device}")
 
         self._swa_epoch_start = swa_epoch_start
         self._swa_lrs = swa_lrs
@@ -115,16 +117,9 @@ class StochasticWeightAveraging(Callback):
         self._device = device
         self._model_contains_batch_norm = None
 
-    @property
-    def swa_model(self):
-        return getattr(self, "_average_model")
-
     @staticmethod
     def pl_module_contains_batch_norm(pl_module):
-        for module in pl_module.modules():
-            if isinstance(module, nn.modules.batchnorm._BatchNorm):
-                return True
-        return False
+        return any(isinstance(module, nn.modules.batchnorm._BatchNorm) for module in pl_module.modules())
 
     # Inspiration from
     def reset_batch_norm_and_save_state(self, average_model, device):
@@ -135,10 +130,10 @@ class StochasticWeightAveraging(Callback):
         self.momenta = {}
         for module in average_model.modules():
             if isinstance(module, nn.modules.batchnorm._BatchNorm):
-                running_mean_dtype = module.running_mean.dtype
-                running_var_dype = module.running_var.dtype
-                module.running_mean = torch.zeros_like(module.running_mean, device=device, dtype=running_mean_dtype)
-                module.running_var = torch.ones_like(module.running_var, device=device, dtype=running_var_dype)
+                module.running_mean = torch.zeros_like(
+                    module.running_mean, device=device, dtype=module.running_mean.dtype)
+                module.running_var = torch.ones_like(
+                    module.running_var, device=device, dtype=module.running_var.dtype)
                 self.momenta[module] = module.momentum
                 module.momentum = None
                 module.num_batches_tracked *= 0
@@ -185,16 +180,24 @@ class StochasticWeightAveraging(Callback):
 
             self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
 
-        elif self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
-            # Turn off backwards and optimization, only update batch norm stats
+        if self._swa_epoch_start <= trainer.current_epoch and trainer.current_epoch < self._max_epochs:
+            self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
+
+        if trainer.current_epoch == self._max_epochs:
+            if not self._model_contains_batch_norm:
+                self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
+
+            # Transfer weights from average model to pl_module
             self.transfer_weights(self._average_model, pl_module)
 
-            # perform accumulation over the entire train_dataloader
-            self._accumulate_grad_batches = trainer.accumulate_grad_batches
-            trainer.accumulate_grad_batches = len(trainer.train_dataloader)
+            if self._model_contains_batch_norm:
+                # Only update batch norm stats - Freeze the rest
+                BaseFinetuningCallback.freeze(pl_module, train_bn=True)
 
-        if trainer.current_epoch >= self._swa_epoch_start:
-            self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
+    def on_fit_end(self, trainer, pl_module):
+        if self._model_contains_batch_norm:
+            # Make entire model trainable
+            BaseFinetuningCallback._make_trainable(pl_module)
 
     @staticmethod
     def update_parameters(average_model, model, n_averaged, avg_fn):
@@ -204,25 +207,16 @@ class StochasticWeightAveraging(Callback):
         """
         for p_swa, p_model in zip(average_model.parameters(), model.parameters()):
             device = p_swa.device
+            p_swa_ = p_swa.detach()
             p_model_ = p_model.detach().to(device)
-
-            if n_averaged == 0:
-                p_swa.detach().copy_(p_model_)
-            else:
-                p_swa.detach().copy_(
-                    avg_fn(
-                        p_swa.detach(),
-                        p_model_,
-                        n_averaged.to(device)
-                    )
-                )
+            src = p_model_ if n_averaged == 0 else avg_fn(p_swa_, p_model_, n_averaged.to(device))
+            p_swa_.copy_(src)
         n_averaged += 1
 
     @staticmethod
-    def transfer_weights(average_module, pl_module):
-        for p_swa, p_model in zip(average_module.parameters(), pl_module.parameters()):
-            device = p_model.device
-            p_model.detach().copy_(p_swa.to(device))
+    def transfer_weights(src_pl_module: 'pl.LightningModule', dst_pl_module: 'pl.LightningModule'):
+        for src_param, dst_param in zip(src_pl_module.parameters(), dst_pl_module.parameters()):
+            dst_param.detach().copy_(src_param.to(dst_param.device))
 
     @staticmethod
     def avg_fn(averaged_model_parameter, model_parameter, num_averaged):

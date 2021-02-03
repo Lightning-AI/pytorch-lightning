@@ -19,9 +19,8 @@ Freeze and unfreeze models for finetunning purposes
 """
 from typing import Callable, Generator, Optional
 
-import torch
-from torch.nn import Module
-from torch.nn.modules.container import Sequential
+from torch.nn import Module, ModuleDict, ModuleList, Sequential
+from torch.nn.modules.batchnorm import _BatchNorm
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning import _logger as log
@@ -40,8 +39,6 @@ class BaseFinetuningCallback(Callback):
     BaseFinetuningCallback.
     Overrides any functions with your own logic.
     """
-
-    BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
 
     @staticmethod
     def _make_trainable(module: Module) -> None:
@@ -63,7 +60,7 @@ class BaseFinetuningCallback(Callback):
         """
         children = list(module.children())
         if not children:
-            if not (isinstance(module, BaseFinetuningCallback.BN_TYPES) and train_bn):
+            if not (isinstance(module, _BatchNorm) and train_bn):
                 for param in module.parameters():
                     param.requires_grad = False
                 module.eval()
@@ -88,7 +85,7 @@ class BaseFinetuningCallback(Callback):
         """
         children = list(module.children())
         if not children:
-            if not (isinstance(module, BaseFinetuningCallback.BN_TYPES) and train_bn):
+            if not (isinstance(module, _BatchNorm) and train_bn):
                 for param in module.parameters():
                     if param.requires_grad:
                         yield param
@@ -105,11 +102,16 @@ class BaseFinetuningCallback(Callback):
             module: The module to freeze (at least partially)
             train_bn: If True, leave the BatchNorm layers in training mode
         """
-        for mod in module.parameters():
-            if (isinstance(mod, BaseFinetuningCallback.BN_TYPES) and train_bn):
+        modules = filter(
+            lambda m: not isinstance(m, (Sequential, ModuleDict, ModuleList, LightningModule)),
+            module.modules()
+        )
+        for mod in modules:
+            if (isinstance(mod, _BatchNorm) and train_bn):
                 BaseFinetuningCallback._make_trainable(mod)
             else:
-                mod.requires_grad = False
+                for param in mod.parameters():
+                    param.requires_grad = False
 
     @staticmethod
     def unfreeze_and_add_param_group(
