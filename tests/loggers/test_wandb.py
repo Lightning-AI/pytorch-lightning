@@ -13,11 +13,16 @@
 # limitations under the License.
 import os
 import pickle
+import types
+from argparse import ArgumentParser
 from unittest import mock
+
+import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-from tests.base import BoringModel, EvalModelTemplate
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import EvalModelTemplate
 
 
 def get_warnings(recwarn):
@@ -202,4 +207,4 @@ def test_wandb_sanitize_callable_params(tmpdir):
 def test_wandb_logger_offline_log_model(wandb, tmpdir):
     """ Test that log_model=True raises an error in offline mode """
     with pytest.raises(MisconfigurationException, match='checkpoints cannot be uploaded in offline mode'):
-        logger = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)
+        _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)

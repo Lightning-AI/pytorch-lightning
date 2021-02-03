@@ -13,20 +13,10 @@
 # limitations under the License.
 import os
 
-<<<<<<< HEAD
-from pytorch_lightning import Trainer
-from tests.base.boring_model import BoringModel
-
-=======
-import pytest
-import torch
-
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities import APEX_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel, RandomDataset
+from tests.base.boring_model import BoringModel
 
 
 class TestModel(BoringModel):
@@ -37,7 +27,6 @@ class TestModel(BoringModel):
     def training_step(self, *args, **kwargs):
         assert self.trainer.log_dir == self.expected_log_dir
         return super().training_step(*args, **kwargs)
->>>>>>> 793fe736 (Fix log_dir property (#5537))
 
 
 def test_logdir(tmpdir):

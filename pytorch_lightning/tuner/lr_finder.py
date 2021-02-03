@@ -14,7 +14,7 @@
 import importlib
 import os
 from functools import wraps
-from typing import Any, Callable, List, Optional, Sequence, Union
+from typing import Callable, List, Optional, Sequence, Union
 
 import numpy as np
 import torch
