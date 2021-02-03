@@ -19,7 +19,10 @@ Use or override one of the progress bar callbacks.
 
 """
 import importlib
+import io
+import os
 import sys
+from typing import Optional
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -168,11 +171,11 @@ class ProgressBarBase(Callback):
         """
         raise NotImplementedError
 
-    def print(self, *args):
+    def print(self, *args, **kwargs):
         """
         You should provide a way to print without breaking the progress bar.
         """
-        raise NotImplementedError
+        print(*args, **kwargs)
 
     def on_init_end(self, trainer):
         self._trainer = trainer
@@ -438,7 +441,9 @@ class ProgressBar(ProgressBarBase):
     def on_predict_end(self, trainer, pl_module):
         self.predict_progress_bar.close()
 
-    def print(self, *args, sep=' ', end='\n', file=None, nolock=False):
+    def print(
+        self, *args, sep: str = ' ', end: str = os.linesep, file: Optional[io.TextIOBase] = None, nolock: bool = False
+    ):
         active_progress_bar = None
 
         if not self.main_progress_bar.disable:
