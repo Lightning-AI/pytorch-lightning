@@ -445,7 +445,7 @@ class BackendConnector(object):
 
         _distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
-        if self.num_gpus == 0 and self._distrib_type in _distrib_types:
+        if self.num_gpus == 0 and self._distrib_type in _distrib_types and not _on_cpu:
             rank_zero_warn(
                 'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
             )
