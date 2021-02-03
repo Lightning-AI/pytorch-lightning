@@ -50,5 +50,5 @@ def test_all_callback_states_saved(tmpdir):
     ckpt = torch.load(str(tmpdir / "all_states.ckpt"))
     state0 = ckpt["callbacks"][type(callback0)]
     state1 = ckpt["callbacks"][type(callback1)]
-    assert "content0" in state0
-    assert "content1" in state1
+    assert "content0" in state0 and state0["content0"] == 0
+    assert "content1" in state1 and state1["content1"] == 1
