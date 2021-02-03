@@ -100,14 +100,11 @@ def check_replace_distrubuted_sampler(
 
     trainer = Trainer(**trainer_args)
     if mode < 3:
-        if mode == 1:
-            match = "Missing attributes are"
-        else:
-            match = "DistributedSampler within"
+        match = "Missing attributes are" if mode == 1 else "DistributedSampler within"
         with pytest.raises(MisconfigurationException, match=match):
-            _ = trainer.test(model)
+            trainer.test(model)
     else:
-        _ = trainer.test(model)
+        trainer.test(model)
 
 
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
