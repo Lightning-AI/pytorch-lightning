@@ -32,7 +32,7 @@ class StatefulCallback1(Callback):
         return {"content1": 1}
 
 
-def test_all_callback_states_saved(tmpdir):
+def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     """ Test that all callback states get saved even if the ModelCheckpoint is not given as last. """
 
     callback0 = StatefulCallback0()
@@ -52,3 +52,4 @@ def test_all_callback_states_saved(tmpdir):
     state1 = ckpt["callbacks"][type(callback1)]
     assert "content0" in state0 and state0["content0"] == 0
     assert "content1" in state1 and state1["content1"] == 1
+    assert type(checkpoint_callback) in ckpt["callbacks"]
