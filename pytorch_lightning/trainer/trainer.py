@@ -541,7 +541,7 @@ class Trainer(
 
         self._running_stage = stage
 
-    def pre_dispatch_routine(self):
+    def pre_training_routine(self):
         # wait for all to join if on distributed
         self.accelerator.training_type_plugin.barrier("setup_training")
 
@@ -574,7 +574,7 @@ class Trainer(
             ref_model.on_pretrain_routine_end()
 
     def run_train(self):
-        self.pre_dispatch_routine()
+        self.pre_training_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
