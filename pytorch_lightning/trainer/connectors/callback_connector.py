@@ -54,7 +54,7 @@ class CallbackConnector:
 
         # push all checkpoint callbacks to the end
         # it is important that these are the last callbacks to run
-        self.trainer.callbacks = _reorder_callbacks(self.trainer.callbacks)
+        self.trainer.callbacks = self._reorder_callbacks(self.trainer.callbacks)
 
     def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):
         if isinstance(checkpoint_callback, ModelCheckpoint):
@@ -108,19 +108,19 @@ class CallbackConnector:
             callback.log = model.log
             callback.log_dict = model.log_dict
 
+    @staticmethod
+    def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
+        """
+        Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
+        checkpoint callbacks is preserved, as well as the order of all other callbacks.
 
-def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
-    """
-    Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
-    checkpoint callbacks is preserved, as well as the order of all other callbacks.
+        Args:
+            callbacks: A list of callbacks.
 
-    Args:
-        callbacks: A list of callbacks.
-
-    Return:
-        A new list in which the last elements are ModelCheckpoints if there were any present in the
-        input.
-    """
-    checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
-    not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
-    return not_checkpoints + checkpoints
+        Return:
+            A new list in which the last elements are ModelCheckpoints if there were any present in the
+            input.
+        """
+        checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
+        not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
+        return not_checkpoints + checkpoints
