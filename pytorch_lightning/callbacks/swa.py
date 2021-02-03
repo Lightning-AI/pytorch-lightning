@@ -210,7 +210,7 @@ class StochasticWeightAveraging(Callback):
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
             trainer.accumulate_grad_batches = len(trainer.train_dataloader)
 
-    def on_fit_end(self, trainer, pl_module):
+    def on_train_end(self, trainer, pl_module):
         trainer.train_loop.skip_backward = False
         if not self._model_contains_batch_norm:
             # Transfer weights from average model to pl_module
