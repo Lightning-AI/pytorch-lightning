@@ -26,13 +26,7 @@ class TPUAccelerator(Accelerator):
             raise MisconfigurationException("TPUs only support a single tpu core or tpu spawn training.")
         return super().setup(trainer, model)
 
-    def optimizer_step(
-        self,
-        optimizer: torch.optim.Optimizer,
-        opt_idx: int,
-        lambda_closure: Callable,
-        **kwargs
-    ):
+    def optimizer_step(self, optimizer: torch.optim.Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs):
         """performs the actual optimizer step.
 
         Args:

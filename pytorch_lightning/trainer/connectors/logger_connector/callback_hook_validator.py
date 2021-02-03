@@ -18,8 +18,9 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class CallbackHookNameValidator:
 
     @staticmethod
-    def check_logging_in_callbacks(current_hook_fx_name: str = None, on_step: bool = None,
-                                   on_epoch: bool = None) -> None:
+    def check_logging_in_callbacks(
+        current_hook_fx_name: str = None, on_step: bool = None, on_epoch: bool = None
+    ) -> None:
         if current_hook_fx_name is None:
             return
 

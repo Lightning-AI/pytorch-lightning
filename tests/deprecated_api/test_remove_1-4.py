@@ -24,7 +24,8 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningParallelModule,
 )
 from pytorch_lightning.overrides.distributed import LightningDistributedModule
-from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from tests.base import BoringModel
 from tests.deprecated_api import _soft_unimport_module
 
@@ -50,8 +51,8 @@ def test_v1_4_0_deprecated_imports():
 def test_v1_4_0_deprecated_trainer_device_distrib():
     """Test that Trainer attributes works fine."""
     trainer = Trainer()
-    trainer._distrib_type = None
-    trainer._device_type = None
+    trainer.accelerator_connector._distrib_type = None
+    trainer.accelerator_connector._device_type = None
 
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.on_cpu = True
@@ -67,7 +68,7 @@ def test_v1_4_0_deprecated_trainer_device_distrib():
         trainer.on_tpu = True
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         assert trainer.on_tpu
-    trainer._device_type = None
+    trainer.accelerator_connector._device_type = None
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         trainer.use_tpu = True
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
@@ -158,21 +159,20 @@ def test_v1_4_0_deprecated_metrics():
         multiclass_auc_decorator()
 
 
-class CustomDDPPlugin(DDPPlugin):
+class CustomDDPPlugin(DDPSpawnPlugin):
 
-    def configure_ddp(self, model, device_ids):
+    def configure_ddp(self):
         # old, deprecated implementation
         with pytest.deprecated_call(
             match='`LightningDistributedDataParallel` is deprecated since v1.2 and will be removed in v1.4.'
         ):
-            model = LightningDistributedDataParallel(
-                module=model,
-                device_ids=device_ids,
+            self._model = LightningDistributedDataParallel(
+                module=self.lightning_module,
+                device_ids=self.determine_ddp_device_ids(),
                 **self._ddp_kwargs,
             )
-            assert isinstance(model, torch.nn.parallel.DistributedDataParallel)
-            assert isinstance(model.module, LightningDistributedModule)
-        return model
+            assert isinstance(self.model, torch.nn.parallel.DistributedDataParallel)
+            assert isinstance(self.model.module, LightningDistributedModule)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -184,7 +184,12 @@ def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
         fast_dev_run=True,
         gpus=2,
         accelerator="ddp_spawn",
-        plugins=[CustomDDPPlugin()]
+        plugins=[
+            CustomDDPPlugin(
+                parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
+                cluster_environment=TorchElasticEnvironment(),
+            )
+        ]
     )
     trainer.fit(model)
 
