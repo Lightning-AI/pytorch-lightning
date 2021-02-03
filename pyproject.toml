@@ -55,6 +55,8 @@ ignore_names = [
     "*param*",
     "cmd_line",
     "my_path",
-    "torch_save"
+    "torch_save",
+    "using_lbfgs",
+    "kw",
 ]
 sort_by_size = true
