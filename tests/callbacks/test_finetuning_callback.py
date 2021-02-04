@@ -14,6 +14,7 @@
 import pytest
 import torch
 from torch import nn
+from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
@@ -127,7 +128,7 @@ def test_finetuning_callback_warning(tmpdir):
     assert model.backbone.has_been_used
 
 
-def test_freeze_function(tmpdir):
+def test_freeze_unfreeze_function(tmpdir):
     """Test freeze properly set requieres_grad on the modules"""
 
     seed_everything(42)
@@ -148,7 +149,59 @@ def test_freeze_function(tmpdir):
     assert not model.backbone[1].weight.requires_grad
     assert not model.backbone[3].weight.requires_grad
 
-    BaseFinetuning.un(model, train_bn=False)
+    BaseFinetuning.make_trainable(model)
+    assert model.backbone[0].weight.requires_grad
+    assert model.backbone[1].weight.requires_grad
+    assert model.backbone[3].weight.requires_grad
+
+    BaseFinetuning.freeze(model.backbone[0], train_bn=False)
     assert not model.backbone[0].weight.requires_grad
-    assert not model.backbone[1].weight.requires_grad
+
+    BaseFinetuning.freeze([model.backbone[1], model.backbone[3]], train_bn=True)
+    assert model.backbone[1].weight.requires_grad
     assert not model.backbone[3].weight.requires_grad
+
+
+def test_unfreeze_and_add_param_group_function(tmpdir):
+    """Test unfreeze_and_add_param_group properly unfreeze parameters and add to the correct param_group"""
+
+    seed_everything(42)
+
+    class FreezeModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.backbone = nn.Sequential(
+                nn.Linear(32, 32, bias=False),
+                nn.Linear(32, 32, bias=False),
+                nn.Linear(32, 32, bias=False),
+                nn.Linear(32, 32, bias=False),
+                nn.Linear(32, 32, bias=False),
+                nn.BatchNorm1d(32)
+            )
+
+    model = FreezeModel()
+    optimizer = SGD(model.backbone[0].parameters(), lr=0.01)
+
+    with pytest.warns(UserWarning, match="The provided params to be freezed already"):
+        BaseFinetuning.unfreeze_and_add_param_group(model.backbone[0], optimizer=optimizer)
+    assert optimizer.param_groups[0]["lr"] == 0.01
+
+    model.backbone[1].weight.requires_grad = False
+    BaseFinetuning.unfreeze_and_add_param_group(model.backbone[1], optimizer=optimizer)
+    assert len(optimizer.param_groups) == 2
+    assert optimizer.param_groups[1]["lr"] == 0.001
+    assert torch.equal(optimizer.param_groups[1]["params"][0], model.backbone[1].weight)
+    assert model.backbone[1].weight.requires_grad
+
+    with pytest.warns(UserWarning, match="The provided params to be freezed already"):
+        BaseFinetuning.unfreeze_and_add_param_group(model, optimizer=optimizer, lr=100, train_bn=False)
+    assert len(optimizer.param_groups) == 3
+    assert optimizer.param_groups[2]["lr"] == 100
+    assert len(optimizer.param_groups[2]["params"]) == 3
+    for group_idx, group in enumerate(optimizer.param_groups):
+        if group_idx == 0:
+            assert torch.equal(optimizer.param_groups[0]["params"][0], model.backbone[0].weight)
+        if group_idx == 2:
+            assert torch.equal(optimizer.param_groups[2]["params"][0], model.backbone[2].weight)
+            assert torch.equal(optimizer.param_groups[2]["params"][1], model.backbone[3].weight)
+            assert torch.equal(optimizer.param_groups[2]["params"][2], model.backbone[4].weight)

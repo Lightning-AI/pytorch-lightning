@@ -22,7 +22,6 @@ from typing import Callable, Generator, Iterable, List, Optional, Union
 import torch
 from torch.nn import Module, ModuleDict, ModuleList, Sequential
 from torch.nn.modules.batchnorm import _BatchNorm
-from torch.nn.modules.container import Sequential
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning import _logger as log
@@ -84,83 +83,77 @@ class BaseFinetuning(Callback):
     """
 
     @staticmethod
-    def _make_trainable(module: Union[Module, List[Module]]) -> None:
-        """Unfreezes a given module.
-        Args:
-            module: The module to unfreeze
-        """
-        if isinstance(module, list):
-            for m in module:
-                BaseFinetuning._make_trainable(m)
+    def sanetize_modules(modules: Union[Module, List[Module]]) -> List[Module]:
+        if isinstance(modules, list):
+            _modules = []
+            for m in modules:
+                _modules.extend(m.modules())
+
         else:
-            for param in module.parameters():
-                param.requires_grad = True
-            module.train()
+            _modules = modules.modules()
 
-    @staticmethod
-    def _recursive_freeze(module: Module,
-                          train_bn: bool = True) -> None:
-        """Freezes the layers of a given module.
-        Args:
-            module: The module to freeze
-            train_bn: If True, leave the BatchNorm layers in training mode
-        """
-        modules = filter(
+        return list(filter(
             lambda m: not isinstance(m, (Sequential, ModuleDict, ModuleList, LightningModule)),
-            module.modules()
-        )
-        for mod in modules:
-            if (isinstance(mod, _BatchNorm) and train_bn):
-                BaseFinetuning._make_trainable(mod)
-            else:
-                for param in mod.parameters():
-                    param.requires_grad = True
+            _modules
+        ))
 
     @staticmethod
-    def filter_params(module: Union[Module, List[Module]],
-                      train_bn: bool = True) -> Generator:
-        """Yields the trainable parameters of a given module.
+    def filter_params(
+        modules: Union[Module, List[Module]],
+        train_bn: bool = True,
+        requires_grad: bool = True
+    ) -> Generator:
+        """Yields the `requires_grad` parameters of a given module or list of modules.
 
         Args:
             module: A given module
-            train_bn: If True, leave the BatchNorm layers in training mode
+            requires_grad: Wether to create a generator for trainable or non-trainable parameters.
 
         Returns:
             Generator
         """
-        if isinstance(module, list):
-            for mod in module:
-                for param in BaseFinetuning.filter_params(module=mod, train_bn=train_bn):
+        modules = BaseFinetuning.sanetize_modules(modules)
+        for mod in modules:
+            if isinstance(mod, _BatchNorm) and not train_bn:
+                continue
+            for param in mod.parameters():
+                if param.requires_grad == requires_grad:
                     yield param
 
-        modules = list(module.children()) + [module]
-
+    @staticmethod
+    def make_trainable(modules: Union[Module, List[Module]]) -> None:
+        """Unfreezes a given module.
+        Args:
+            module: The module to unfreeze
+            requires_grad: Wether to make the model trainable
+        """
+        modules = BaseFinetuning.sanetize_modules(modules)
         for module in modules:
-            if not (isinstance(module, _BatchNorm) and train_bn):
-                for param in module.parameters():
-                    if param.requires_grad:
-                        yield param
+            for param in module.parameters():
+                param.requires_grad = True
 
     @staticmethod
-    def freeze(module: Module, train_bn: bool = True) -> None:
+    def freeze(modules: Union[Module, List[Module]], train_bn: bool = True) -> None:
         """Freezes the layers up to index n (if n is not None).
         Args:
+
             module: The module to freeze (at least partially)
             train_bn: If True, leave the BatchNorm layers in training mode
         """
-        modules = filter(
-            lambda m: not isinstance(m, (Sequential, ModuleDict, ModuleList, LightningModule)),
-            module.modules()
-        )
+        modules = BaseFinetuning.sanetize_modules(modules)
         for mod in modules:
-            if (isinstance(mod, _BatchNorm) and train_bn):
-                BaseFinetuning._make_trainable(mod)
+            if isinstance(mod, _BatchNorm) and train_bn:
+                BaseFinetuning.make_trainable(mod)
             else:
                 for param in mod.parameters():
                     param.requires_grad = False
 
     @staticmethod
-    def filter_on_optimizer(optimizer: Optimizer, params: Iterable) -> Iterable:
+    def filter_on_optimizer(optimizer: Optimizer, params: Iterable) -> List:
+        """
+        This function is used to exclude any parameter which already exists in
+        this optimizer
+        """
         out_params = []
         removed_params = []
         for param in params:
@@ -183,24 +176,41 @@ class BaseFinetuning(Callback):
 
     @staticmethod
     def unfreeze_and_add_param_group(
-        module: Union[Module, List[Module]],
+        modules: Union[Module, List[Module]],
         optimizer: Optimizer,
         lr: Optional[float] = None,
-        train_bn: bool = True,
         initial_denom_lr: float = 10.,
+        train_bn: bool = True,
     ):
-        """Unfreezes a module and adds its parameters to an optimizer."""
-        BaseFinetuning._make_trainable(module)
+        """ Unfreezes a module and adds its parameters to an optimizer.
+        Args:
+
+            modules: The module or list of modules to unfreeze and
+                adds the parameters to an optimizer as a new param group.
+
+            optimizer: The provided optimizer will receive new parameters and will add them to
+                `add_param_group`
+
+            lr: Learning rate for the new param group.
+
+            initial_denom_lr: If no lr is provided, the learning from the first param group will be used
+                and divided by initial_denom_lr.
+
+            train_bn: Wether to train the BatchNormalization layers.
+
+        """
+        BaseFinetuning.make_trainable(modules)
         params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
         denom_lr = initial_denom_lr if lr is None else 1.
-        params = BaseFinetuning.filter_params(module=module, train_bn=train_bn)
+        params = BaseFinetuning.filter_params(modules, train_bn=train_bn, requires_grad=True)
         params = BaseFinetuning.filter_on_optimizer(optimizer, params)
-        optimizer.add_param_group(
-            {
-                'params': params,
-                'lr': params_lr / denom_lr,
-            }
-        )
+        if len(params) > 0:
+            optimizer.add_param_group(
+                {
+                    'params': params,
+                    'lr': params_lr / denom_lr,
+                }
+            )
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         self.freeze_before_training(pl_module)
