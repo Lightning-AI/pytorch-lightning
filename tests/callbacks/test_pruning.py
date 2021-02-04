@@ -17,17 +17,13 @@ import platform
 import numpy as np
 import pytest
 import torch
+import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE
+from pytorch_lightning.callbacks import ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
-
-if _PYTORCH_PRUNE_AVAILABLE:
-    import torch.nn.utils.prune as pytorch_prune
-
-    from pytorch_lightning.callbacks import ModelPruning
 
 
 class PruningModel(BoringModel):
@@ -198,7 +194,6 @@ def test_with_pruning_callback_misconfiguration(tmpdir):
         _ = ModelPruning(**model_pruning_args)
 
 
-@pytest.mark.skipif(not _PYTORCH_PRUNE_AVAILABLE, reason="PyTorch prung is needed for this test. ")
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
 @pytest.mark.parametrize("use_global_unstructured", [False, True])
 @pytest.mark.parametrize("use_custom_pruning_fn", [False, True])
@@ -208,7 +203,6 @@ def test_pruning_callback(tmpdir, use_global_unstructured, parameters_to_prune, 
         accelerator=None, gpus=None, num_processes=1, use_custom_pruning_fn=use_custom_pruning_fn)
 
 
-@pytest.mark.skipif(not _PYTORCH_PRUNE_AVAILABLE, reason="PyTorch prung is needed for this test. ")
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
 @pytest.mark.parametrize("use_global_unstructured", [False, True])
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
@@ -219,14 +213,12 @@ def test_pruning_callback_ddp(tmpdir, use_global_unstructured, parameters_to_pru
         accelerator="ddp", gpus=2, num_processes=0)
 
 
-@pytest.mark.skipif(not _PYTORCH_PRUNE_AVAILABLE, reason="PyTorch prung is needed for this test. ")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_pruning_callback_ddp_spawn(tmpdir):
     train_with_pruning_callback(tmpdir, False, True, accelerator="ddp_spawn", gpus=2, num_processes=None)
 
 
-@pytest.mark.skipif(not _PYTORCH_PRUNE_AVAILABLE, reason="PyTorch prung is needed for this test. ")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_pruning_callback_ddp_cpu(tmpdir):
     train_with_pruning_callback(tmpdir, True, False, accelerator="ddp_cpu", gpus=None, num_processes=2)
