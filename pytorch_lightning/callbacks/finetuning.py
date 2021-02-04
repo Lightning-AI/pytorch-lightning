@@ -17,10 +17,11 @@ Finetunning Callback
 ^^^^^^^^^^^^^^^^^^^^
 Freeze and unfreeze models for finetunning purposes
 """
-from typing import Callable, Generator, List, Optional, Union
+from typing import Callable, Generator, Iterable, List, Optional, Union
 
 import torch
-from torch.nn import Module
+from torch.nn import Module, ModuleDict, ModuleList, Sequential
+from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.modules.container import Sequential
 from torch.optim.optimizer import Optimizer
 
@@ -38,10 +39,19 @@ def multiplicative(epoch):
 class BaseFinetuning(Callback):
 
     r"""
-    BaseFinetuning.
-    Override ``freeze_before_training`` and ``finetune_function`` with your own logic.
 
-    .. note:: Make sure to filter the parameters based on `requires_grad`
+    This class implements the base logic for writing your own Finetuning Callback.
+
+    Override ``freeze_before_training`` and ``finetune_function`` methods with your own logic.
+
+    ``freeze_before_training``: This method is called before ``configure_optimizers``
+        and should be used to freeze any modules parameters.
+
+    ``finetune_function``: This method is called on every train epoch start and should be used to
+        ``unfreeze`` any parameters. Those parameters needs to be added in a new ``param_group``
+        within the optimizer.
+
+    .. note:: Make sure to filter the parameters based on `requires_grad`.
 
     Example::
 
@@ -51,7 +61,7 @@ class BaseFinetuning(Callback):
 
             def configure_optimizer(self):
                 # Make sure to filter the parameters based on `requires_grad`
-                return Adam(filter(lambda p: p.requires_grad, parameters))
+                return Adam(filter(lambda p: p.requires_grad, self.parameters))
 
         class FeatureExtractorFreezeUnfreeze(BaseFinetuning):
 
@@ -63,8 +73,8 @@ class BaseFinetuning(Callback):
                 # Here, we are freezing ``feature_extractor``
                 self.freeze(pl_module.feature_extractor)
 
-            def finetune_function(self, pl_module, current_epoch, optimizer, opt_idx):
-                # When ``current_epoch`` is 10, feature_extractor will start to be trained.
+            def finetune_function(self, pl_module, current_epoch, optimizer, optimizer_idx):
+                # When ``current_epoch`` is 10, feature_extractor will start training.
                 if current_epoch == self._unfreeze_at_epoch:
                     self.unfreeze_and_add_param_group(
                         module=pl_module.feature_extractor,
@@ -72,8 +82,6 @@ class BaseFinetuning(Callback):
                         train_bn=True,
                     )
     """
-
-    BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
 
     @staticmethod
     def _make_trainable(module: Union[Module, List[Module]]) -> None:
@@ -97,18 +105,16 @@ class BaseFinetuning(Callback):
             module: The module to freeze
             train_bn: If True, leave the BatchNorm layers in training mode
         """
-        children = list(module.children())
-        if not children:
-            if not (isinstance(module, BaseFinetuning.BN_TYPES) and train_bn):
-                for param in module.parameters():
-                    param.requires_grad = False
-                module.eval()
+        modules = filter(
+            lambda m: not isinstance(m, (Sequential, ModuleDict, ModuleList, LightningModule)),
+            module.modules()
+        )
+        for mod in modules:
+            if (isinstance(mod, _BatchNorm) and train_bn):
+                BaseFinetuning._make_trainable(mod)
             else:
-                # Make the BN layers trainable
-                BaseFinetuning._make_trainable(module)
-        else:
-            for child in children:
-                BaseFinetuning._recursive_freeze(module=child, train_bn=train_bn)
+                for param in mod.parameters():
+                    param.requires_grad = True
 
     @staticmethod
     def filter_params(module: Union[Module, List[Module]],
@@ -130,7 +136,7 @@ class BaseFinetuning(Callback):
         modules = list(module.children()) + [module]
 
         for module in modules:
-            if not (isinstance(module, BaseFinetuning.BN_TYPES) and train_bn):
+            if not (isinstance(module, _BatchNorm) and train_bn):
                 for param in module.parameters():
                     if param.requires_grad:
                         yield param
@@ -138,19 +144,23 @@ class BaseFinetuning(Callback):
     @staticmethod
     def freeze(module: Module, train_bn: bool = True) -> None:
         """Freezes the layers up to index n (if n is not None).
-
         Args:
             module: The module to freeze (at least partially)
             train_bn: If True, leave the BatchNorm layers in training mode
         """
-        for mod in module.parameters():
-            if (isinstance(mod, BaseFinetuning.BN_TYPES) and train_bn):
+        modules = filter(
+            lambda m: not isinstance(m, (Sequential, ModuleDict, ModuleList, LightningModule)),
+            module.modules()
+        )
+        for mod in modules:
+            if (isinstance(mod, _BatchNorm) and train_bn):
                 BaseFinetuning._make_trainable(mod)
             else:
-                mod.requires_grad = False
+                for param in mod.parameters():
+                    param.requires_grad = False
 
     @staticmethod
-    def filter_on_optimizer(optimizer, params):
+    def filter_on_optimizer(optimizer: Optimizer, params: Iterable) -> Iterable:
         out_params = []
         removed_params = []
         for param in params:
@@ -192,7 +202,7 @@ class BaseFinetuning(Callback):
             }
         )
 
-    def on_before_accelerator_backend_setup(self, _, pl_module):
+    def on_before_accelerator_backend_setup(self, trainer, pl_module):
         self.freeze_before_training(pl_module)
 
     def on_train_epoch_start(self, trainer, pl_module):
@@ -216,26 +226,33 @@ class BaseFinetuning(Callback):
 class BackboneFinetuning(BaseFinetuning):
 
     r"""
-    Finetunne a backbone model based on a learning rate user-defined scheduling.
+
+    Finetune a backbone model based on a learning rate user-defined scheduling.
     When the backbone learning rate reaches the current model learning rate
     and ``should_align`` is set to True, it will align with it for the rest of the training.
 
     Args:
+
         unfreeze_backbone_at_epoch: Epoch at which the backbone will be unfreezed.
+
         lambda_func: Scheduling function for increasing backbone learning rate.
-        verbose: verbosity mode. Default: ``False``.
+
         backbone_initial_ratio_lr:
             Used to scale down the backbone learning rate compared to rest of model
+
         backbone_initial_lr: Optional, Inital learning rate for the backbone.
             By default, we will use current_learning /  backbone_initial_ratio_lr
+
         should_align: Wheter to align with current learning rate when backbone learning
             reaches it.
+
         initial_denom_lr: When unfreezing the backbone, the intial learning rate will
             current_learning_rate /  initial_denom_lr.
+
         train_bn: Wheter to make Batch Normalization trainable.
-        should_align: Wheter to align with current learning rate when backbone learning
-            reaches it.
+
         verbose: Display current learning rate for model and backbone
+
         round: Precision for displaying learning rate
 
     Example::
@@ -245,6 +262,7 @@ class BackboneFinetuning(BaseFinetuning):
         >>> multiplicative = lambda epoch: 1.5
         >>> backbone_finetunning = BackboneFinetuning(200, multiplicative)
         >>> trainer = Trainer(callbacks=[backbone_finetunning])
+
     """
 
     def __init__(

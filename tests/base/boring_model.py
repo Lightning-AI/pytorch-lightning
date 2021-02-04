@@ -93,7 +93,7 @@ class BoringModel(LightningModule):
         return out
 
     def training_step(self, batch, batch_idx):
-        output = self.layer(batch)
+        output = self(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
 
@@ -104,7 +104,7 @@ class BoringModel(LightningModule):
         torch.stack([x["loss"] for x in outputs]).mean()
 
     def validation_step(self, batch, batch_idx):
-        output = self.layer(batch)
+        output = self(batch)
         loss = self.loss(batch, output)
         return {"x": loss}
 
@@ -112,7 +112,7 @@ class BoringModel(LightningModule):
         torch.stack([x['x'] for x in outputs]).mean()
 
     def test_step(self, batch, batch_idx):
-        output = self.layer(batch)
+        output = self(batch)
         loss = self.loss(batch, output)
         return {"y": loss}
 

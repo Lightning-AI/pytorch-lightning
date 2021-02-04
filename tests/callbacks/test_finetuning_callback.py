@@ -14,24 +14,27 @@
 import pytest
 import torch
 from torch import nn
+from torch.utils.data import DataLoader
 
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import BackboneFinetuning
-from tests.base import BoringModel
+from pytorch_lightning import LightningModule, seed_everything, Trainer
+from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning
+from tests.base import BoringModel, RandomDataset
 
 
-def test_finetunning_callback(tmpdir):
-    """Test finetunning callbacks works as expected"""
+def test_finetuning_callback(tmpdir):
+    """Test finetuning callbacks works as expected"""
 
     seed_everything(42)
 
-    class FinetunningBoringModel(BoringModel):
+    class FinetuningBoringModel(BoringModel):
         def __init__(self):
             super().__init__()
             self.backbone = nn.Sequential(nn.Linear(32, 32, bias=False), nn.BatchNorm1d(32), nn.ReLU())
             self.layer = torch.nn.Linear(32, 2)
+            self.backbone.has_been_used = False
 
         def forward(self, x):
+            self.backbone.has_been_used = True
             x = self.backbone(x)
             return self.layer(x)
 
@@ -39,6 +42,9 @@ def test_finetunning_callback(tmpdir):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.7)
             return [optimizer], [lr_scheduler]
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=2)
 
     class TestCallback(BackboneFinetuning):
 
@@ -53,7 +59,7 @@ def test_finetunning_callback(tmpdir):
                 else:
                     assert backbone_lr == current_lr
 
-    model = FinetunningBoringModel()
+    model = FinetuningBoringModel()
     callback = TestCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
     trainer = Trainer(
@@ -64,26 +70,28 @@ def test_finetunning_callback(tmpdir):
     )
     trainer.fit(model)
 
+    assert model.backbone.has_been_used
 
-def test_finetunning_callback_warning(tmpdir):
-    """Test finetunning callbacks works as expected"""
+
+def test_finetuning_callback_warning(tmpdir):
+    """Test finetuning callbacks works as expected"""
 
     seed_everything(42)
 
-    class FinetunningBoringModel(BoringModel):
+    class FinetuningBoringModel(BoringModel):
         def __init__(self):
             super().__init__()
             self.backbone = nn.Linear(32, 2, bias=False)
             self.layer = None
-
-        def training_step(self, batch, batch_idx):
-            output = self(batch)
-            loss = self.loss(batch, output)
-            return {"loss": loss}
+            self.backbone.has_been_used = False
 
         def forward(self, x):
+            self.backbone.has_been_used = True
             x = self.backbone(x)
             return x
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=2)
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
@@ -103,7 +111,7 @@ def test_finetunning_callback_warning(tmpdir):
                     initial_denom_lr=self.initial_denom_lr
                 )
 
-    model = FinetunningBoringModel()
+    model = FinetuningBoringModel()
     model.validation_step = None
     callback = TestCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
@@ -115,3 +123,32 @@ def test_finetunning_callback_warning(tmpdir):
             max_epochs=2,
         )
         trainer.fit(model)
+
+    assert model.backbone.has_been_used
+
+
+def test_freeze_function(tmpdir):
+    """Test freeze properly set requieres_grad on the modules"""
+
+    seed_everything(42)
+
+    class FreezeModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.backbone = nn.Sequential(nn.Linear(32, 32), nn.BatchNorm1d(32), nn.ReLU(), nn.Linear(32, 2))
+
+    model = FreezeModel()
+    BaseFinetuning.freeze(model, train_bn=True)
+    assert not model.backbone[0].weight.requires_grad
+    assert model.backbone[1].weight.requires_grad
+    assert not model.backbone[3].weight.requires_grad
+
+    BaseFinetuning.freeze(model, train_bn=False)
+    assert not model.backbone[0].weight.requires_grad
+    assert not model.backbone[1].weight.requires_grad
+    assert not model.backbone[3].weight.requires_grad
+
+    BaseFinetuning.un(model, train_bn=False)
+    assert not model.backbone[0].weight.requires_grad
+    assert not model.backbone[1].weight.requires_grad
+    assert not model.backbone[3].weight.requires_grad
