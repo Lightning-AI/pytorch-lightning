@@ -135,32 +135,6 @@ class TrainLoop:
         # attach model log function to callback
         self.trainer.callback_connector.attach_model_logging_functions(model)
 
-    def setup_training(self, model: LightningModule):
-        """
-        Sanity check a few things before starting actual training.
-        """
-        # --------------------------
-        # Pre-train
-        # --------------------------
-        ref_model = model
-
-        # set local properties on the model
-        self.trainer.model_connector.copy_trainer_model_properties(ref_model)
-
-        # init amp. Must be done here instead of __init__ to allow ddp to work
-        if (
-            self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16
-            and self.trainer._device_type != DeviceType.TPU
-        ):
-            self.trainer.scaler = self.trainer.precision_connector.backend.scaler
-
-        # log hyper-parameters
-        if self.trainer.logger is not None:
-            # save exp to get started (this is where the first experiment logs are written)
-            self.trainer.logger.log_hyperparams(ref_model.hparams_initial)
-            self.trainer.logger.log_graph(ref_model)
-            self.trainer.logger.save()
-
     def on_train_end(self):
         if self._teardown_already_run:
             return

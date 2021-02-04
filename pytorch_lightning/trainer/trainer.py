@@ -418,11 +418,6 @@ class Trainer(
         # --------------------------
         # Setup??
         # --------------------------
-        ref_model = self.get_model()
-
-        # set the ranks and devices
-        self.accelerator_backend.dist.rank = self.global_rank
-        self.accelerator_backend.dist.device = ref_model.device
 
         # set local properties on the model
         self.model_connector.copy_trainer_model_properties(model)
@@ -434,19 +429,9 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            self.logger.log_hyperparams(ref_model.hparams_initial)
-            self.logger.log_graph(ref_model)
+            self.logger.log_hyperparams(model.hparams_initial)
+            self.logger.log_graph(model)
             self.logger.save()
-
-        # wait for all to join if on distributed
-        self.accelerator_backend.barrier("setup_trainer")
-
-        # register auto-resubmit when on SLURM
-        self.slurm_connector.register_slurm_signal_handlers()
-
-        # track model now.
-        # if cluster resets state, the model will update with the saved weights
-        self.model = model
 
     def fit(
         self,
@@ -487,7 +472,7 @@ class Trainer(
         # SET UP TRAINING
         # ----------------------------
         self.accelerator_backend.setup(self, model)
-        self.train_loop.setup_training(model)
+        self.setup_trainer(model)
 
         # ----------------------------
         # TRAIN
