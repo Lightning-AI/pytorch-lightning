@@ -28,7 +28,8 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel, RandomDataset
+from tests.base.boring_model import BoringModel
+from tests.base.boring_model import RandomDataset
 
 
 def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Callable:
@@ -454,3 +455,21 @@ def test_metrics_holder(to_float, tmpdir):
     assert excepted_function(metrics["x"])
     assert excepted_function(metrics["y"])
     assert excepted_function(metrics["z"])
+
+
+def test_logging_to_progress_bar_with_reserved_key(tmpdir):
+    """ Test that logging a metric with a reserved name to the progress bar raises a warning. """
+    class TestModel(BoringModel):
+
+        def training_step(self, *args, **kwargs):
+            output = super().training_step(*args, **kwargs)
+            self.log("loss", output["loss"], prog_bar=True)
+            return output
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=2,
+    )
+    with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the .* 'loss'"):
+        trainer.fit(model)
