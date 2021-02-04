@@ -20,16 +20,12 @@ from copy import deepcopy
 import numpy as np
 import torch
 
-from pytorch_lightning.plugins import ParallelPlugin
+from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
-from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator
@@ -139,7 +135,7 @@ class TrainLoop:
         # attach model log function to callback
         self.trainer.callback_connector.attach_model_logging_functions(model)
 
-    def setup_training(self):
+    def setup_training(self, model: LightningModule):
         """
         Sanity check a few things before starting actual training.
         """
@@ -147,9 +143,6 @@ class TrainLoop:
         # Pre-train
         # --------------------------
         ref_model = model
-
-        # give model convenience properties
-        ref_model.trainer = self.trainer
 
         # set local properties on the model
         self.trainer.model_connector.copy_trainer_model_properties(ref_model)

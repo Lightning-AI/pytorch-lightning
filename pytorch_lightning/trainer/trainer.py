@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Trainer to automate the training."""
-
+import os
 import warnings
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
@@ -486,7 +486,6 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        # self.accelerator_backend = self.accelerator_connector.select_accelerator()
         self.accelerator_backend.setup(self, model)
         self.train_loop.setup_training(model)
 
@@ -583,7 +582,7 @@ class Trainer(
                 raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
 
         # restore training and model before hpc is called
-        self.checkpoint_connector.restore_weights(ref_model)
+        self.checkpoint_connector.restore_weights()
 
         # on pretrain routine end
         self.on_pretrain_routine_end(ref_model)
