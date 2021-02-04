@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Iterable, Optional, Union
+from typing import Any, Callable, Iterable, Optional, Union, TYPE_CHECKING
 
 import torch
 from torch.optim import Optimizer
@@ -27,6 +27,9 @@ from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class Accelerator(object):
