@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 
 import pytest
 import torch
@@ -107,6 +108,7 @@ def test_swa_callback_1_gpu(tmpdir):
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
 @pytest.mark.parametrize("batchnorm", (True, False))
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_swa_num_calls(tmpdir, batchnorm):
     model = SwaTestModel(batchnorm=batchnorm)
     swa_start = 2
@@ -129,6 +131,9 @@ def test_swa_num_calls(tmpdir, batchnorm):
     assert not trainer.train_loop._skip_backward
     assert trainer.accumulate_grad_batches == 2
     assert trainer.num_training_batches == 5
+
+    # check backward call count. the batchnorm update epoch should not backward
+    assert trainer.dev_debugger.count_events("backward_call") == max_epochs * trainer.limit_train_batches
 
     assert swa_callback.update_parameters_calls == max_epochs - (swa_start - 1)
     assert swa_callback.transfer_weights_calls == 1
