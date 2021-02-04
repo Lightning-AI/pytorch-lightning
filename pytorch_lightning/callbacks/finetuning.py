@@ -19,8 +19,9 @@ Freeze and unfreeze models for finetunning purposes
 """
 from typing import Callable, Generator, Optional
 
-from torch.nn import Module, ModuleDict, ModuleList, Sequential
-from torch.nn.modules.batchnorm import _BatchNorm
+import torch
+from torch.nn import Module
+from torch.nn.modules.container import Sequential
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning import _logger as log
@@ -36,11 +37,11 @@ def multiplicative(epoch):
 class BaseFinetuningCallback(Callback):
 
     r"""
-
     BaseFinetuningCallback.
     Overrides any functions with your own logic.
-
     """
+
+    BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
 
     @staticmethod
     def _make_trainable(module: Module) -> None:
@@ -62,7 +63,7 @@ class BaseFinetuningCallback(Callback):
         """
         children = list(module.children())
         if not children:
-            if not (isinstance(module, _BatchNorm) and train_bn):
+            if not (isinstance(module, BaseFinetuningCallback.BN_TYPES) and train_bn):
                 for param in module.parameters():
                     param.requires_grad = False
                 module.eval()
@@ -87,7 +88,7 @@ class BaseFinetuningCallback(Callback):
         """
         children = list(module.children())
         if not children:
-            if not (isinstance(module, _BatchNorm) and train_bn):
+            if not (isinstance(module, BaseFinetuningCallback.BN_TYPES) and train_bn):
                 for param in module.parameters():
                     if param.requires_grad:
                         yield param
@@ -104,16 +105,11 @@ class BaseFinetuningCallback(Callback):
             module: The module to freeze (at least partially)
             train_bn: If True, leave the BatchNorm layers in training mode
         """
-        modules = filter(
-            lambda m: not isinstance(m, (Sequential, ModuleDict, ModuleList, LightningModule)),
-            module.modules()
-        )
-        for mod in modules:
-            if (isinstance(mod, _BatchNorm) and train_bn):
+        for mod in module.parameters():
+            if (isinstance(mod, BaseFinetuningCallback.BN_TYPES) and train_bn):
                 BaseFinetuningCallback._make_trainable(mod)
             else:
-                for param in mod.parameters():
-                    param.requires_grad = False
+                mod.requires_grad = False
 
     @staticmethod
     def unfreeze_and_add_param_group(
@@ -152,38 +148,26 @@ class BaseFinetuningCallback(Callback):
 class BackboneLambdaFinetuningCallback(BaseFinetuningCallback):
 
     r"""
-
     Finetunne a backbone model based on a learning rate user-defined scheduling.
     When the backbone learning rate reaches the current model learning rate
     and ``should_align`` is set to True, it will align with it for the rest of the training.
 
     Args:
-
         unfreeze_backbone_at_epoch: Epoch at which the backbone will be unfreezed.
-
         lambda_func: Scheduling function for increasing backbone learning rate.
-
         verbose: verbosity mode. Default: ``False``.
-
         backbone_initial_ratio_lr:
             Used to scale down the backbone learning rate compared to rest of model
-
         backbone_initial_lr: Optional, Inital learning rate for the backbone.
             By default, we will use current_learning /  backbone_initial_ratio_lr
-
         should_align: Wheter to align with current learning rate when backbone learning
             reaches it.
-
         initial_denom_lr: When unfreezing the backbone, the intial learning rate will
             current_learning_rate /  initial_denom_lr.
-
         train_bn: Wheter to make Batch Normalization trainable.
-
         should_align: Wheter to align with current learning rate when backbone learning
             reaches it.
-
         verbose: Display current learning rate for model and backbone
-
         round: Precision for displaying learning rate
 
     Example::
@@ -193,7 +177,6 @@ class BackboneLambdaFinetuningCallback(BaseFinetuningCallback):
         >>> multiplicative = lambda epoch: 1.5
         >>> backbone_finetunning = BackboneLambdaFinetuningCallback(200, multiplicative)
         >>> trainer = Trainer(callbacks=[backbone_finetunning])
-
     """
 
     def __init__(
