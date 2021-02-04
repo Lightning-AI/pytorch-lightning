@@ -1176,16 +1176,22 @@ class LightningModule(
             optimizer: Current optimizer used in training_loop
             optimizer_idx: Current optimizer idx in training_loop
         """
+
+        # Iterate over all optimizer parameters to preserve their `requires_grad` information
+        # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
         for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
             for group in opt.param_groups:
                 for param in group['params']:
-                    # If a param appears in multiple optimizers, use `requires_grad` from before toggle
+                    # If a param appears in multiple optimizers, use the `requires_grad` info already set
                     if param in param_requires_grad_state:
                         param.requires_grad = param_requires_grad_state[param]
                     else:
                         param_requires_grad_state[param] = param.requires_grad
                         param.requires_grad = False
+
+        # Then iterate over the current optimizer's parameters and set its `requires_grad`
+        # properties accordingly
         for group in optimizer.param_groups:
             for param in group['params']:
                 param.requires_grad = param_requires_grad_state[param]
