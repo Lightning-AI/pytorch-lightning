@@ -111,10 +111,10 @@ class CheckpointConnector:
         return restored
 
     def restore_states(
-            self,
-            model: LightningModule,
-            checkpoint_path: str,
-            on_gpu: bool,
+        self,
+        model: LightningModule,
+        checkpoint_path: str,
+        on_gpu: bool,
     ) -> Dict[str, Any]:
         """Restore all states from checkpoint in the specified path.
 
