@@ -82,6 +82,9 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
     Test that the user can use our LightningOptimizer. Not recommended for now.
     """
     class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx, optimizer_idx=None):
             (opt_1, opt_2) = self.optimizers()
@@ -106,10 +109,6 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
 
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
             return [optimizer_1, optimizer_2], [lr_scheduler]
-
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
 
     model = TestModel()
     model.training_step_end = None
@@ -134,6 +133,9 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
     Test that the user can use our LightningOptimizer. Not recommended.
     """
     class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx, optimizer_idx=None):
             (opt_1, opt_2) = self.optimizers()
@@ -158,10 +160,6 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
 
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
             return [optimizer_1, optimizer_2], [lr_scheduler]
-
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
 
     model = TestModel()
     model.training_step_end = None
