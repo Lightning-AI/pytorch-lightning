@@ -136,7 +136,7 @@ class StochasticWeightAveraging(Callback):
                 module.momentum = None
                 module.num_batches_tracked *= 0
 
-    def reset_momemta(self):
+    def reset_momenta(self):
         """
         Credit to PyTorch Team.
         Taken from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164
@@ -163,7 +163,6 @@ class StochasticWeightAveraging(Callback):
         self._model_contains_batch_norm = self.pl_module_contains_batch_norm(pl_module)
 
         self._max_epochs = trainer.max_epochs
-
         if self._model_contains_batch_norm:
             # virtually increase max_epochs to perform batch norm update on latest epoch.
             trainer.max_epochs += 1
@@ -219,7 +218,7 @@ class StochasticWeightAveraging(Callback):
             # resetting default user parameters
             trainer.accumulate_grad_batches = self._accumulate_grad_batches
             trainer.num_training_batches -= 1
-            self.reset_momemta()
+            self.reset_momenta()
 
     @staticmethod
     def update_parameters(average_model, model, n_averaged, avg_fn):
