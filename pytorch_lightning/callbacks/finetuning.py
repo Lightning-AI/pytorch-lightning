@@ -190,9 +190,9 @@ class BaseFinetuning(Callback):
 
         if removed_params:
             rank_zero_warn(
-                "The provided params to be freezed already exist within another group of this optimizer. "
-                "Those parameters will be skipped. "
-                "HINT: Did you init your optimizer in `configure_optimizer` as such: "
+                "The provided params to be freezed already exist within another group of this optimizer."
+                " Those parameters will be skipped.\n"
+                "HINT: Did you init your optimizer in `configure_optimizer` as such:\n"
                 f"{type(optimizer)}(filter(lambda p: p.requires_grad, self.parameters()), ...) ", UserWarning)
         return out_params
 
