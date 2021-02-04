@@ -265,7 +265,17 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             self.layer_3[1].weight.requires_grad = False
             self.layer_3[5].weight.requires_grad = False
 
-        def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+        def optimizer_step(
+            self,
+            current_epoch,
+            batch_nb,
+            optimizer,
+            optimizer_idx,
+            closure,
+            on_tpu=False,
+            using_native_amp=False,
+            using_lbfgs=False
+        ):
             if optimizer_idx == 0:
                 assert self.layer_1[0].weight.requires_grad is True
                 assert self.layer_1[2].weight.requires_grad is False
