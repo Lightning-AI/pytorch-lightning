@@ -29,14 +29,9 @@ jobs:
 
     - uses: actions/upload-artifact@v2
       with:
-        name: pypi-packages
+        name: pypi-packages-${{ github.sha }}
         path: dist
 
-  publish-package:
-    runs-on: ubuntu-20.04
-    needs: build-package
-    steps:
-    - uses: actions/checkout@v2
     - name: Upload to release
       if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       uses: svenstaro/upload-release-action@v2
@@ -47,6 +42,19 @@ jobs:
         asset_name: packages
         overwrite: false
         file_glob: true
+
+  publish-package:
+    runs-on: ubuntu-20.04
+    needs: build-package
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/download-artifact@v2
+      with:
+        name: pypi-packages-${{ github.sha }}
+        path: dist
+    - name: Show packages
+      run: |
+        ls -lh dist/
 
     - name: Delay releasing
       if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
@@ -102,7 +110,7 @@ jobs:
 
     - uses: actions/download-artifact@v2
       with:
-        name: pypi-packages
+        name: pypi-packages-${{ github.sha }}
         path: dist
 
     - name: Pull files from S3
