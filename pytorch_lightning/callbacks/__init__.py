@@ -24,7 +24,6 @@ from pytorch_lightning.callbacks.pruning import ModelPruning
 from pytorch_lightning.callbacks.swa import StochasticWeightAveraging
 from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0
 
-
 __all__ = [
     'BackboneLambdaFinetuningCallback',
     'BaseFinetuningCallback',

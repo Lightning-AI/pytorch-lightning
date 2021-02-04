@@ -97,7 +97,7 @@ class StochasticWeightAveraging(Callback):
 
         if not isinstance(swa_lrs, (float, list)) \
            or isinstance(swa_lrs, float) and swa_lrs <= 0 \
-           or isinstance(swa_lrs, list) and not all(lr > 0 for lr in swa_lrs):
+           or isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs):
             raise MisconfigurationException("swa_lrs should be a positive float or a list of positive float.")
 
         if avg_fn is not None and not isinstance(avg_fn, Callable):

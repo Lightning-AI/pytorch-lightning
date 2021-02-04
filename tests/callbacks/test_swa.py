@@ -21,6 +21,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, RandomDataset
 
 if _PYTORCH_GREATER_EQUAL_1_6_0:
@@ -122,10 +123,22 @@ def test_swa_callback_ddp_spawn(tmpdir):
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
 def test_swa_callback_1_gpu(tmpdir):
-    train_with_swa(tmpdir, accelerator=None , gpus=1)
+    train_with_swa(tmpdir, accelerator=None, gpus=1)
 
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
 @pytest.mark.parametrize("batchnorm", (True, False))
 def test_swa_callback(tmpdir, batchnorm):
     train_with_swa(tmpdir, batchnorm=batchnorm)
+
+
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
+def test_swa_raises():
+    with pytest.raises(MisconfigurationException):
+        StochasticWeightAveraging(swa_epoch_start=0, swa_lrs=0.1)
+    with pytest.raises(MisconfigurationException):
+        StochasticWeightAveraging(swa_epoch_start=1.5, swa_lrs=0.1)
+    with pytest.raises(MisconfigurationException):
+        StochasticWeightAveraging(swa_epoch_start=-1, swa_lrs=0.1)
+    with pytest.raises(MisconfigurationException):
+        StochasticWeightAveraging(swa_epoch_start=5, swa_lrs=[0.2, 1])
