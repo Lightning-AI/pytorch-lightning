@@ -19,7 +19,7 @@ from unittest.mock import MagicMock, PropertyMock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, Callback
 from pytorch_lightning.trainer.states import TrainerState
 from tests.base import BoringModel, EvalModelTemplate, RandomDataset
 
