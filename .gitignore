@@ -147,3 +147,7 @@ test-reports/
 wandb
 .forked/
 *.prof
+*.tar.gz
+
+# dataset generated from bolts in examples.
+cifar-10-batches-py

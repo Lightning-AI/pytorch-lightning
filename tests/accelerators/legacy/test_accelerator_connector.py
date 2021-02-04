@@ -32,6 +32,7 @@ from tests.base.boring_model import BoringModel
 
 def test_accelerator_choice_cpu(tmpdir):
     trainer = Trainer(
+        default_root_dir=tmpdir,
         fast_dev_run=True,
     )
     assert isinstance(trainer.accelerator_backend, CPUAccelerator)

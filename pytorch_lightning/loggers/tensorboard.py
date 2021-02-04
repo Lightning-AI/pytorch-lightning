@@ -144,8 +144,21 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
-                        metrics: Optional[Dict[str, Any]] = None) -> None:
+    def log_hyperparams(
+        self,
+        params: Union[Dict[str, Any], Namespace],
+        metrics: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Record hyperparameters. TensorBoard logs with and without saved hyperparameters
+        are incompatible, the hyperparameters are then not displayed in the TensorBoard.
+        Please delete or move the previously saved logs to display the new ones with hyperparameters.
+
+        Args:
+            params: a dictionary-like container with the hyperparameters
+            metrics: Dictionary with metric names as keys and measured quantities as values
+        """
+
         params = self._convert_params(params)
 
         # store params to output

@@ -386,8 +386,8 @@ def test_trainer_model_hook_system(tmpdir):
         'on_save_checkpoint',
         'on_validation_end',
         'on_validation_model_train',
-        'on_epoch_end',
         'on_train_epoch_end',
+        'on_epoch_end',
         'on_train_end',
         'on_fit_end',
         'teardown',
@@ -400,8 +400,6 @@ def test_trainer_model_hook_system(tmpdir):
 
     expected = [
         'on_fit_start',
-        # 'on_pretrain_routine_start',
-        # 'on_pretrain_routine_end',
         'on_test_model_eval',
         'on_test_start',
         'on_test_epoch_start',
