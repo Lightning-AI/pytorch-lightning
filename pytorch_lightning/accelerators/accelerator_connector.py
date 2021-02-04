@@ -223,7 +223,7 @@ class BackendConnector(object):
 
     @property
     def tpu_id(self):
-        if self.on_tpu:
+        if self.on_tpu and isinstance(self.tpu_cores, list):
             return self.tpu_cores[0]
 
         return None
@@ -364,7 +364,10 @@ class BackendConnector(object):
         elif self.use_horovod:
             plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
         elif self.on_tpu:
-            plugin = SingleTPUPlugin(self.tpu_id)
+            if isinstance(self.tpu_cores, list):
+                plugin = SingleTPUPlugin(self.tpu_id)
+            else:
+                plugin = TPUSpawnPlugin(parallel_devices=list(range(8)))
         else:
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{self.root_gpu}" if self.on_gpu else "cpu"))
         return plugin
