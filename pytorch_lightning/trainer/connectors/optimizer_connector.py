@@ -16,6 +16,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class OptimizerConnector:
+
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -50,9 +51,8 @@ class OptimizerConnector:
                 if lr_scheduler['reduce_on_plateau']:
                     monitor_key = lr_scheduler['monitor']
                     monitor_val = (
-                        monitor_metrics.get(monitor_key)
-                        if monitor_metrics is not None
-                        else self.trainer.logger_connector.callback_metrics.get(monitor_key)
+                        monitor_metrics.get(monitor_key) if monitor_metrics is not None else
+                        self.trainer.logger_connector.callback_metrics.get(monitor_key)
                     )
                     if monitor_val is None:
                         if lr_scheduler.get('strict', True):

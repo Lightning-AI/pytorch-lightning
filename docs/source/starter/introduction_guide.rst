@@ -488,7 +488,7 @@ Once your training starts, you can view the logs by using your favorite logger o
 
 Which will generate automatic tensorboard logs (or with the logger of your choice).
 
-.. figure:: ../_images/mnist_imgs/mnist_tb.png
+.. figure:: ../_static/images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
    :width: 500
 
@@ -509,7 +509,7 @@ Train on CPU
 
 You should see the following weights summary and progress bar
 
-.. figure:: ../_images/mnist_imgs/mnist_cpu_bar.png
+.. figure:: ../_static/images/mnist_imgs/mnist_cpu_bar.png
    :alt: mnist CPU bar
 
 
@@ -524,7 +524,7 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
     trainer.fit(model, train_loader)
 
 
-.. figure:: ../_images/mnist_imgs/mnist_gpu.png
+.. figure:: ../_static/images/mnist_imgs/mnist_gpu.png
     :alt: mnist GPU bar
 
 Train on Multi-GPU
@@ -558,11 +558,11 @@ Let's train on Colab (`full demo available here <https://colab.research.google.c
 
 First, change the runtime to TPU (and reinstall lightning).
 
-.. figure:: ../_images/mnist_imgs/runtime_tpu.png
+.. figure:: ../_static/images/mnist_imgs/runtime_tpu.png
     :alt: mnist GPU bar
     :width: 400
 
-.. figure:: ../_images/mnist_imgs/restart_runtime.png
+.. figure:: ../_static/images/mnist_imgs/restart_runtime.png
     :alt: mnist GPU bar
     :width: 400
 
@@ -637,13 +637,13 @@ Now we can train the LightningModule on a TPU without doing anything else!
 
 You'll now see the TPU cores booting up.
 
-.. figure:: ../_images/mnist_imgs/tpu_start.png
+.. figure:: ../_static/images/mnist_imgs/tpu_start.png
     :alt: TPU start
     :width: 400
 
 Notice the epoch is MUCH faster!
 
-.. figure:: ../_images/mnist_imgs/tpu_fast.png
+.. figure:: ../_static/images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
     :width: 600
 
@@ -768,7 +768,7 @@ Once you train your model simply call ``.test()``.
 
         --------------------------------------------------------------
         TEST RESULTS
-        {'test_loss': tensor(1.1703, device='cuda:0')}
+        {'test_loss': 1.1703}
         --------------------------------------------------------------
 
 You can also run the test from a saved lightning model

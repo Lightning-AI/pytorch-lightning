@@ -18,7 +18,8 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+
+from pytorch_lightning import Trainer, Callback
 from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.trainer.states import TrainerState
 from tests.base import BoringModel, EvalModelTemplate, RandomDataset
@@ -89,6 +90,57 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     # metrics are kept after each epoch
     for i in range(num_epochs):
         assert metrics[f'epoch_metric_{i}'] == i
+
+
+def test_training_epoch_end_metrics_collection_on_override(tmpdir):
+    """ Test that batch end metrics are collected when training_epoch_end is overridden at the end of an epoch. """
+
+    class LoggingCallback(Callback):
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            self.len_outputs = 0
+
+        def on_train_epoch_end(self, trainer, pl_module, outputs):
+            self.len_outputs = len(outputs[0])
+
+    class OverriddenModel(EvalModelTemplate):
+
+        def on_train_epoch_start(self):
+            self.num_train_batches = 0
+
+        def training_epoch_end(self, outputs):  # Overridden
+            return
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.num_train_batches += 1
+
+    class NotOverriddenModel(EvalModelTemplate):
+
+        def on_train_epoch_start(self):
+            self.num_train_batches = 0
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.num_train_batches += 1
+
+    overridden_model = OverriddenModel()
+    not_overridden_model = NotOverriddenModel()
+
+    callback = LoggingCallback()
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        overfit_batches=2,
+        callbacks=[callback],
+    )
+
+    trainer.fit(overridden_model)
+    # outputs from on_train_batch_end should be accessible in on_train_epoch_end hook
+    # if training_epoch_end is overridden
+    assert callback.len_outputs == overridden_model.num_train_batches
+
+    trainer.fit(not_overridden_model)
+    # outputs from on_train_batch_end should be empty
+    assert callback.len_outputs == 0
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -388,8 +440,8 @@ def test_trainer_model_hook_system(tmpdir):
         'on_save_checkpoint',
         'on_validation_end',
         'on_validation_model_train',
-        'on_epoch_end',
         'on_train_epoch_end',
+        'on_epoch_end',
         'on_train_end',
         'on_fit_end',
         'teardown',
@@ -402,8 +454,6 @@ def test_trainer_model_hook_system(tmpdir):
 
     expected = [
         'on_fit_start',
-        'on_pretrain_routine_start',
-        'on_pretrain_routine_end',
         'on_test_model_eval',
         'on_test_start',
         'on_test_epoch_start',
