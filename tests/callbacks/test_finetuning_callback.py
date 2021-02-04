@@ -157,7 +157,7 @@ def test_freeze_unfreeze_function(tmpdir):
     BaseFinetuning.freeze(model.backbone[0], train_bn=False)
     assert not model.backbone[0].weight.requires_grad
 
-    BaseFinetuning.freeze([model.backbone[1], model.backbone[3]], train_bn=True)
+    BaseFinetuning.freeze(([(model.backbone[1]), [model.backbone[3]]]), train_bn=True)
     assert model.backbone[1].weight.requires_grad
     assert not model.backbone[3].weight.requires_grad
 

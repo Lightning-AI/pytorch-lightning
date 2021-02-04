@@ -13,15 +13,16 @@
 # limitations under the License.
 
 r"""
-Finetunning Callback
+finetuning Callback
 ^^^^^^^^^^^^^^^^^^^^
-Freeze and unfreeze models for finetunning purposes
+Freeze and unfreeze models for finetuning purposes
 """
 from typing import Callable, Generator, Iterable, List, Optional, Union
 
 import torch
-from torch.nn import Module, ModuleDict, ModuleList, Sequential
+from torch.nn import Module
 from torch.nn.modules.batchnorm import _BatchNorm
+from torch.nn.modules.container import Container, ModuleDict, ModuleList, Sequential
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning import _logger as log
@@ -73,7 +74,7 @@ class BaseFinetuning(Callback):
                 self.freeze(pl_module.feature_extractor)
 
             def finetune_function(self, pl_module, current_epoch, optimizer, optimizer_idx):
-                # When ``current_epoch`` is 10, feature_extractor will start training.
+                # When `current_epoch` is 10, feature_extractor will start training.
                 if current_epoch == self._unfreeze_at_epoch:
                     self.unfreeze_and_add_param_group(
                         module=pl_module.feature_extractor,
@@ -83,31 +84,41 @@ class BaseFinetuning(Callback):
     """
 
     @staticmethod
-    def flatten_modules(modules: Union[Module, List[Module]]) -> List[Module]:
-        if isinstance(modules, list):
+    def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
+        """
+        This function is used to flatten a module or an iterable of modules into a list of its modules.
+
+        Args:
+            modules: A given module or an iterable of modules
+
+        Returns:
+            List of modules
+        """
+        if isinstance(modules, Iterable):
             _modules = []
             for m in modules:
-                _modules.extend(m.modules())
+                _modules.extend(BaseFinetuning.flatten_modules(m))
 
         else:
             _modules = modules.modules()
 
         return list(filter(
-            lambda m: not isinstance(m, (Sequential, ModuleDict, ModuleList, LightningModule)),
+            lambda m: not isinstance(m, (Container, Sequential, ModuleDict, ModuleList, LightningModule)),
             _modules
         ))
 
     @staticmethod
     def filter_params(
-        modules: Union[Module, List[Module]],
+        modules: Union[Module, Iterable[Union[Module, Iterable]]],
         train_bn: bool = True,
         requires_grad: bool = True
     ) -> Generator:
         """Yields the `requires_grad` parameters of a given module or list of modules.
 
         Args:
-            module: A given module
-            requires_grad: Wether to create a generator for trainable or non-trainable parameters.
+            modules: A given module or an iterable of modules
+            train_bn: Whether to train BatchNorm module
+            requires_grad: Whether to create a generator for trainable or non-trainable parameters.
 
         Returns:
             Generator
@@ -121,11 +132,11 @@ class BaseFinetuning(Callback):
                     yield param
 
     @staticmethod
-    def make_trainable(modules: Union[Module, List[Module]]) -> None:
-        """Unfreezes a given module.
+    def make_trainable(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> None:
+        """
+        Unfreezes the parameters of the provided modules
         Args:
-            module: The module to unfreeze
-            requires_grad: Wether to make the model trainable
+            modules: A given module or an iterable of modules
         """
         modules = BaseFinetuning.flatten_modules(modules)
         for module in modules:
@@ -133,12 +144,16 @@ class BaseFinetuning(Callback):
                 param.requires_grad = True
 
     @staticmethod
-    def freeze(modules: Union[Module, List[Module]], train_bn: bool = True) -> None:
-        """Freezes the layers up to index n (if n is not None).
-        Args:
+    def freeze(modules: Union[Module, Iterable[Union[Module, Iterable]]], train_bn: bool = True) -> None:
+        """
+        Freezes the parameters of the provided modules
 
-            module: The module to freeze (at least partially)
+        Args:
+            modules: A given module or an iterable of modules
             train_bn: If True, leave the BatchNorm layers in training mode
+
+        Returns:
+            None
         """
         modules = BaseFinetuning.flatten_modules(modules)
         for mod in modules:
@@ -153,6 +168,13 @@ class BaseFinetuning(Callback):
         """
         This function is used to exclude any parameter which already exists in
         this optimizer
+
+        Args:
+            optimizer: Optimizer used for parameter exclusion
+            params: Iterable of parameters used to check against the provided optimizer
+
+        Returns:
+            List of parameters not contained in this optimizer param groups
         """
         out_params = []
         removed_params = []
@@ -166,7 +188,7 @@ class BaseFinetuning(Callback):
             else:
                 removed_params.append(param)
 
-        if len(removed_params) != 0:
+        if removed_params:
             rank_zero_warn(
                 "The provided params to be freezed already exist within another group of this optimizer. "
                 "Those parameters will be skipped. "
@@ -176,20 +198,19 @@ class BaseFinetuning(Callback):
 
     @staticmethod
     def unfreeze_and_add_param_group(
-        modules: Union[Module, List[Module]],
+        modules: Union[Module, Iterable[Union[Module, Iterable]]],
         optimizer: Optimizer,
         lr: Optional[float] = None,
         initial_denom_lr: float = 10.,
         train_bn: bool = True,
-    ):
+    ) -> None:
         """
-
         Unfreezes a module and adds its parameters to an optimizer.
 
         Args:
 
-            modules: The module or list of modules to unfreeze and
-                adds the parameters to an optimizer as a new param group.
+            modules: A module or iterable of modules to unfreeze.
+                Their parameters will be added to an optimizer as a new param group.
 
             optimizer: The provided optimizer will receive new parameters and will add them to
                 `add_param_group`
@@ -199,8 +220,10 @@ class BaseFinetuning(Callback):
             initial_denom_lr: If no lr is provided, the learning from the first param group will be used
                 and divided by initial_denom_lr.
 
-            train_bn: Wether to train the BatchNormalization layers.
+            train_bn: Whether to train the BatchNormalization layers.
 
+        Returns:
+            None
         """
         BaseFinetuning.make_trainable(modules)
         params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
@@ -273,8 +296,8 @@ class BackboneFinetuning(BaseFinetuning):
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import BackboneFinetuning
         >>> multiplicative = lambda epoch: 1.5
-        >>> backbone_finetunning = BackboneFinetuning(200, multiplicative)
-        >>> trainer = Trainer(callbacks=[backbone_finetunning])
+        >>> backbone_finetuning = BackboneFinetuning(200, multiplicative)
+        >>> trainer = Trainer(callbacks=[backbone_finetuning])
 
     """
 

@@ -59,7 +59,7 @@ from pytorch_lightning.callbacks.finetuning import BaseFinetuning
 
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
 
-#  --- Finetunning Callback ---
+#  --- Finetuning Callback ---
 
 
 class MilestonesFinetuningCallback(BaseFinetuning):
@@ -306,7 +306,7 @@ def main(args: argparse.Namespace) -> None:
     with TemporaryDirectory(dir=args.root_data_path) as tmp_dir:
 
         model = TransferLearningModel(dl_path=tmp_dir, **vars(args))
-        finetunning_callback = MilestonesFinetuningCallback(milestones=args.milestones)
+        finetuning_callback = MilestonesFinetuningCallback(milestones=args.milestones)
 
         trainer = pl.Trainer(
             weights_summary=None,
@@ -314,7 +314,7 @@ def main(args: argparse.Namespace) -> None:
             num_sanity_val_steps=0,
             gpus=args.gpus,
             max_epochs=args.nb_epochs,
-            callbacks=[finetunning_callback]
+            callbacks=[finetuning_callback]
         )
 
         trainer.fit(model)
