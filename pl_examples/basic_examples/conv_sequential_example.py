@@ -39,15 +39,16 @@ if _BOLTS_AVAILABLE:
     import pl_bolts
     from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
 
-
 #####################
 #      Modules      #
 #####################
 
 
 class Flatten(nn.Module):
+
     def forward(self, x):
         return x.view(x.size(0), -1)
+
 
 ###############################
 #       LightningModule       #
@@ -61,6 +62,7 @@ class LitResnet(pl.LightningModule):
       (sequential_module): Sequential(...)
     )
     """
+
     def __init__(self, lr=0.05, batch_size=32, manual_optimization=False):
         super().__init__()
 
@@ -90,9 +92,7 @@ class LitResnet(pl.LightningModule):
             nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, padding=1),
             nn.ReLU(inplace=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
-
             Flatten(),
-
             nn.Dropout(p=0.1),
             nn.Linear(4096, 1024),
             nn.ReLU(inplace=False),
@@ -159,7 +159,8 @@ class LitResnet(pl.LightningModule):
                     optimizer,
                     0.1,
                     epochs=self.trainer.max_epochs,
-                    steps_per_epoch=math.ceil(45000 / self.hparams.batch_size)),
+                    steps_per_epoch=math.ceil(45000 / self.hparams.batch_size)
+                ),
                 'interval': 'step',
             }
         }
@@ -172,6 +173,7 @@ class LitResnet(pl.LightningModule):
 #################################
 #     Instantiate Data Module   #
 #################################
+
 
 def instantiate_datamodule(args):
     train_transforms = torchvision.transforms.Compose([

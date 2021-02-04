@@ -72,7 +72,8 @@ for md in glob.glob(os.path.join(PATH_ROOT, '.github', '*.md')):
     shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
 _transform_changelog(
-    os.path.join(PATH_ROOT, 'CHANGELOG.md'), os.path.join(PATH_HERE, FOLDER_GENERATED, 'CHANGELOG.md')
+    os.path.join(PATH_ROOT, 'CHANGELOG.md'),
+    os.path.join(PATH_HERE, FOLDER_GENERATED, 'CHANGELOG.md'),
 )
 
 # -- Project information -----------------------------------------------------
@@ -85,7 +86,6 @@ author = pytorch_lightning.__author__
 version = pytorch_lightning.__version__
 # The full version, including alpha/beta/rc tags
 release = pytorch_lightning.__version__
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -183,14 +183,14 @@ html_theme_options = {
     'logo_only': False,
 }
 
-html_logo = '_images/logos/lightning_logo-name.svg'
+html_logo = '_static/images/logo.svg'
 
-html_favicon = '_images/logos/lightning_icon.svg'
+html_favicon = '_static/images/icon.svg'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_images', '_templates', '_static']
+html_static_path = ['_templates', '_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -201,7 +201,6 @@ html_static_path = ['_images', '_templates', '_static']
 # 'searchbox.html']``.
 #
 # html_sidebars = {}
-
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
@@ -235,9 +234,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, project, project + ' Documentation', [author], 1)
-]
+man_pages = [(master_doc, project, project + ' Documentation', [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -245,8 +242,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, project, project + ' Documentation', author, project,
-     'One line description of project.', 'Miscellaneous'),
+    (
+        master_doc,
+        project,
+        project + ' Documentation',
+        author,
+        project,
+        'One line description of project.',
+        'Miscellaneous',
+    ),
 ]
 
 # -- Options for Epub output -------------------------------------------------

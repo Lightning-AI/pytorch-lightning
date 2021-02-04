@@ -22,8 +22,8 @@ from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.utilities import (
     _TPU_AVAILABLE,
     move_data_to_device,
@@ -134,8 +134,7 @@ class TPUAccelerator(Accelerator):
         # setup TPU training
         self.__setup_tpu_training(model, trainer)
 
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        self.trainer.setup_trainer(model)
 
         # train or test
         results = self.train_or_test()
@@ -158,6 +157,9 @@ class TPUAccelerator(Accelerator):
 
     def test_step(self, args):
         return self._step(self.trainer.model.test_step, args)
+
+    def predict(self, args):
+        return self._step(self.trainer.model.predict, args)
 
     def process_dataloader(self, dataloader):
         device = xm.xla_device(self.trainer.tpu_id)

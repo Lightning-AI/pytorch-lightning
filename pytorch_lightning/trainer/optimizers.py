@@ -26,6 +26,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainerOptimizersMixin(ABC):
+
     def init_optimizers(self, model: LightningModule) -> Tuple[List, List, List]:
         optim_conf = model.configure_optimizers()
         if optim_conf is None:
@@ -82,6 +83,7 @@ class TrainerOptimizersMixin(ABC):
         return optimizers, lr_schedulers, optimizer_frequencies
 
     def convert_to_lightning_optimizers(self):
+
         def _convert_to_lightning_optimizer(trainer, optimizer):
             if not isinstance(optimizer, LightningOptimizer):
                 optimizer = LightningOptimizer(optimizer)
@@ -132,9 +134,11 @@ class TrainerOptimizersMixin(ABC):
                         ' For example:'
                         ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
                     )
-                lr_schedulers.append(
-                    {**default_config, 'scheduler': scheduler, 'reduce_on_plateau': True, 'monitor': monitor}
-                )
+                lr_schedulers.append({
+                    **default_config, 'scheduler': scheduler,
+                    'reduce_on_plateau': True,
+                    'monitor': monitor
+                })
             elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
                 lr_schedulers.append({**default_config, 'scheduler': scheduler})
             else:
@@ -145,6 +149,7 @@ class TrainerOptimizersMixin(ABC):
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
             scheduler = scheduler['scheduler']
+            state = None
 
             for optimizer in optimizers:
                 # check that we dont mix users optimizers and schedulers
@@ -152,14 +157,13 @@ class TrainerOptimizersMixin(ABC):
                     # Find the mro belonging to the base lr scheduler class
                     for i, mro in enumerate(scheduler.__class__.__mro__):
                         if mro in (optim.lr_scheduler._LRScheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                            idx = i
                             state = scheduler.state_dict()
-                        else:
-                            state = None
+                            scheduler.__class__.__mro__[i].__init__(scheduler, optimizer)
+                            scheduler.load_state_dict(state)
+                            break
 
-                scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
                 if state is not None:
-                    scheduler.load_state_dict(state)
+                    break
 
 
 class _MockOptimizer(Optimizer):

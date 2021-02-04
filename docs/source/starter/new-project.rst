@@ -785,7 +785,7 @@ Masterclass
 ===========
 We also offer a Masterclass to teach you the advanced uses of Lightning.
 
-.. image:: ../_images/general/PTL101_youtube_thumbnail.jpg
+.. image:: ../_static/images/general/PTL101_youtube_thumbnail.jpg
     :width: 500
     :align: center
     :alt: Masterclass

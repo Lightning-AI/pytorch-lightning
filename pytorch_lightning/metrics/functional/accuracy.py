@@ -15,7 +15,7 @@ from typing import Optional, Tuple
 
 import torch
 
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 
 
 def _accuracy_update(
@@ -24,19 +24,19 @@ def _accuracy_update(
 
     preds, target, mode = _input_format_classification(preds, target, threshold=threshold, top_k=top_k)
 
-    if mode == "multi-label" and top_k:
+    if mode == DataType.MULTILABEL and top_k:
         raise ValueError("You can not use the `top_k` parameter to calculate accuracy for multi-label inputs.")
 
-    if mode == "binary" or (mode == "multi-label" and subset_accuracy):
+    if mode == DataType.BINARY or (mode == DataType.MULTILABEL and subset_accuracy):
         correct = (preds == target).all(dim=1).sum()
         total = torch.tensor(target.shape[0], device=target.device)
-    elif mode == "multi-label" and not subset_accuracy:
+    elif mode == DataType.MULTILABEL and not subset_accuracy:
         correct = (preds == target).sum()
         total = torch.tensor(target.numel(), device=target.device)
-    elif mode == "multi-class" or (mode == "multi-dim multi-class" and not subset_accuracy):
+    elif mode == DataType.MULTICLASS or (mode == DataType.MULTIDIM_MULTICLASS and not subset_accuracy):
         correct = (preds * target).sum()
         total = target.sum()
-    elif mode == "multi-dim multi-class" and subset_accuracy:
+    elif mode == DataType.MULTIDIM_MULTICLASS and subset_accuracy:
         sample_correct = (preds * target).sum(dim=(1, 2))
         correct = (sample_correct == target.shape[2]).sum()
         total = torch.tensor(target.shape[0], device=target.device)

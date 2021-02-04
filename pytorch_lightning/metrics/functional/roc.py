@@ -22,29 +22,26 @@ from pytorch_lightning.metrics.functional.precision_recall_curve import (
 
 
 def _roc_update(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        pos_label: Optional[int] = None,
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    pos_label: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, int, int]:
     return _precision_recall_curve_update(preds, target, num_classes, pos_label)
 
 
 def _roc_compute(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        pos_label: int,
-        sample_weights: Optional[Sequence] = None,
-) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: int,
+    pos_label: int,
+    sample_weights: Optional[Sequence] = None,
+) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[List[torch.Tensor], List[torch.Tensor],
+                                                                  List[torch.Tensor]]]:
 
     if num_classes == 1:
         fps, tps, thresholds = _binary_clf_curve(
-            preds=preds,
-            target=target,
-            sample_weights=sample_weights,
-            pos_label=pos_label
+            preds=preds, target=target, sample_weights=sample_weights, pos_label=pos_label
         )
         # Add an extra threshold position
         # to make sure that the curve starts at (0, 0)
@@ -81,13 +78,13 @@ def _roc_compute(
 
 
 def roc(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        pos_label: Optional[int] = None,
-        sample_weights: Optional[Sequence] = None,
-) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    pos_label: Optional[int] = None,
+    sample_weights: Optional[Sequence] = None,
+) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[List[torch.Tensor], List[torch.Tensor],
+                                                                  List[torch.Tensor]]]:
     """
     Computes the Receiver Operating Characteristic (ROC).
 

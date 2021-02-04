@@ -14,16 +14,16 @@
 
 """nn.Module with additional great features."""
 
-from abc import ABC
-from argparse import Namespace
 import collections
 import copy
-from functools import partial
 import inspect
 import os
-from pathlib import Path
 import re
 import tempfile
+from abc import ABC
+from argparse import Namespace
+from functools import partial
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -66,6 +66,10 @@ class LightningModule(
         "on_gpu",
         "current_epoch",
         "global_step",
+        "running_stage",
+        "global_rank",
+        "local_rank",
+        "logger",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
@@ -81,9 +85,6 @@ class LightningModule(
 
         #: Pointer to the trainer object
         self.trainer = None
-
-        #: Pointer to the logger object
-        self.logger = None
 
         self._distrib_type = None
         self._device_type = None
@@ -102,6 +103,7 @@ class LightningModule(
         self._running_manual_backward = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
+        self.running_stage = None
         self._automatic_optimization: bool = True
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
@@ -129,6 +131,16 @@ class LightningModule(
     def global_step(self) -> int:
         """Total training batches seen across all epochs"""
         return self.trainer.global_step if self.trainer else 0
+
+    @property
+    def global_rank(self) -> int:
+        """ The index of the current process across all nodes and devices. """
+        return self.trainer.global_rank if self.trainer else 0
+
+    @property
+    def local_rank(self) -> int:
+        """ The index of the current process within a single node. """
+        return self.trainer.local_rank if self.trainer else 0
 
     @example_input_array.setter
     def example_input_array(self, example: Any) -> None:
@@ -160,6 +172,11 @@ class LightningModule(
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:
         self._automatic_optimization = automatic_optimization
+
+    @property
+    def logger(self):
+        """ Reference to the logger object in the Trainer. """
+        return self.trainer.logger if self.trainer else None
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -981,6 +998,12 @@ class LightningModule(
 
                     self.log('final_metric', final_value)
         """
+
+    def predict(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None):
+        """
+        Use this function with trainer.predict(...). Override if you need to add any processing logic.
+        """
+        return self(batch)
 
     def configure_optimizers(
             self,

@@ -18,8 +18,8 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning import accelerators
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
-from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
-from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
+from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
+from pytorch_lightning.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 from pytorch_lightning.utilities import (
     _HOROVOD_AVAILABLE,
     _TPU_AVAILABLE,
@@ -364,8 +364,8 @@ class AcceleratorConnector:
         _ddp = (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         if (self.trainer.num_nodes > 1 and self.trainer._distrib_type not in _ddp):
             raise MisconfigurationException(
-                'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
-                'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
+                'DataParallel does not support num_nodes > 1. '
+                'To avoid this exception, set `accelerator="ddp"` or `accelerator="ddp2"`'
             )
 
         rank_zero_info(

@@ -16,7 +16,7 @@ from typing import Any, Callable, Optional, Union
 import torch
 
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -50,16 +50,6 @@ class CPUAccelerator(Accelerator):
 
         self.trainer.model = model
 
-    def train(self):
-        model = self.trainer.model
-
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
-
-        # train or test
-        results = self.train_or_test()
-        return results
-
     def _step(self, model_step: Callable, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
@@ -76,6 +66,9 @@ class CPUAccelerator(Accelerator):
 
     def test_step(self, args):
         return self._step(self.trainer.model.test_step, args)
+
+    def predict(self, args):
+        return self._step(self.trainer.model.predict, args)
 
     def sync_tensor(self,
                     tensor: Union[torch.Tensor],

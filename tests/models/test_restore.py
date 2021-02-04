@@ -25,7 +25,7 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from tests.base import BoringModel, EvalModelTemplate, GenericEvalModelTemplate
 
 
@@ -141,7 +141,7 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
     # initial training
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
     trainer = Trainer(**args, callbacks=[checkpoint])
-    assert checkpoint is trainer.callbacks[0] is trainer.checkpoint_callback
+    assert checkpoint is trainer.callbacks[-1] is trainer.checkpoint_callback
     trainer.fit(model)
 
     # resumed training
@@ -150,7 +150,7 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
     # precedence over the one in the last.ckpt file
     trainer = Trainer(**args, callbacks=[new_checkpoint], resume_from_checkpoint=str(tmpdir / "last.ckpt"))
     assert checkpoint is not new_checkpoint
-    assert new_checkpoint is trainer.callbacks[0] is trainer.checkpoint_callback
+    assert new_checkpoint is trainer.callbacks[-1] is trainer.checkpoint_callback
     trainer.fit(model)
 
 
@@ -393,6 +393,7 @@ def test_dp_resume(tmpdir):
         # haven't trained with the new loaded model
         dp_model = new_trainer.model
         dp_model.eval()
+        dp_model.module.module.running_stage = RunningStage.EVALUATING
 
         dataloader = trainer.train_dataloader
         tpipes.run_prediction(dp_model, dataloader, dp=True)

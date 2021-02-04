@@ -13,7 +13,7 @@
 # limitations under the License.
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks.finetuning import BackboneLambdaFinetuningCallback, BaseFinetuningCallback
+from pytorch_lightning.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from pytorch_lightning.callbacks.lambda_function import LambdaCallback
@@ -25,8 +25,8 @@ from pytorch_lightning.callbacks.swa import StochasticWeightAveraging
 from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0
 
 __all__ = [
-    'BackboneLambdaFinetuningCallback',
-    'BaseFinetuningCallback',
+    'BackboneFinetuning',
+    'BaseFinetuning',
     'Callback',
     'EarlyStopping',
     'GPUStatsMonitor',

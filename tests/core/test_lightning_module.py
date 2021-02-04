@@ -11,14 +11,66 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
+
+
+def test_property_current_epoch():
+    """ Test that the current_epoch in LightningModule is accessible via the Trainer. """
+    model = BoringModel()
+    assert model.current_epoch == 0
+
+    trainer = Mock(current_epoch=123)
+    model.trainer = trainer
+    assert model.current_epoch == 123
+
+
+def test_property_global_step():
+    """ Test that the global_step in LightningModule is accessible via the Trainer. """
+    model = BoringModel()
+    assert model.global_step == 0
+
+    trainer = Mock(global_step=123)
+    model.trainer = trainer
+    assert model.global_step == 123
+
+
+def test_property_global_rank():
+    """ Test that the global rank in LightningModule is accessible via the Trainer. """
+    model = BoringModel()
+    assert model.global_rank == 0
+
+    trainer = Mock(global_rank=123)
+    model.trainer = trainer
+    assert model.global_rank == 123
+
+
+def test_property_local_rank():
+    """ Test that the local rank in LightningModule is accessible via the Trainer. """
+    model = BoringModel()
+    assert model.local_rank == 0
+
+    trainer = Mock(local_rank=123)
+    model.trainer = trainer
+    assert model.local_rank == 123
+
+
+def test_property_logger(tmpdir):
+    """ Test that the logger in LightningModule is accessible via the Trainer. """
+    model = BoringModel()
+    assert model.logger is None
+
+    logger = TensorBoardLogger(tmpdir)
+    trainer = Mock(logger=logger)
+    model.trainer = trainer
+    assert model.logger == logger
 
 
 def test_automatic_optimization(tmpdir):

@@ -42,18 +42,21 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
 
 
 # ParityModuleMNIST runs with num_workers=1
-@pytest.mark.parametrize('cls_model,max_diff_speed,max_diff_memory', [
-    (ParityModuleRNN, 0.05, 0.0),
-    (ParityModuleMNIST, 0.25, 0.0),  # todo: lower this thr
-])
+@pytest.mark.parametrize(
+    'cls_model,max_diff_speed,max_diff_memory',
+    [
+        (ParityModuleRNN, 0.05, 0.0),
+        (ParityModuleMNIST, 0.25, 0.0),  # todo: lower this thr
+    ]
+)
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_pytorch_parity(
-        tmpdir,
-        cls_model: LightningModule,
-        max_diff_speed: float,
-        max_diff_memory: float,
-        num_epochs: int = 4,
-        num_runs: int = 3,
+    tmpdir,
+    cls_model: LightningModule,
+    max_diff_speed: float,
+    max_diff_memory: float,
+    num_epochs: int = 4,
+    num_runs: int = 3,
 ):
     """
     Verify that the same  pytorch and lightning models achieve the same results

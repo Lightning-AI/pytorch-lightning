@@ -18,7 +18,12 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.overrides.data_parallel import (
+    LightningDataParallel,
+    LightningDistributedDataParallel,
+    LightningParallelModule,
+)
+from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
 from tests.base import BoringModel
 from tests.deprecated_api import _soft_unimport_module
@@ -114,21 +119,43 @@ def test_v1_4_0_deprecated_metrics():
         precision_recall(torch.randint(0, 2, (10, 3, 3)),
                          torch.randint(0, 2, (10, 3, 3)))
 
-    from pytorch_lightning.metrics.functional import precision
-
     # Testing deprecation of class_reduction arg in the *new* precision
+    from pytorch_lightning.metrics.functional import precision
     with pytest.deprecated_call(match='will be removed in v1.4'):
         precision(torch.randint(0, 2, (10,)),
                   torch.randint(0, 2, (10,)),
                   class_reduction='micro')
 
-    from pytorch_lightning.metrics.functional import recall
-
     # Testing deprecation of class_reduction arg in the *new* recall
+    from pytorch_lightning.metrics.functional import recall
     with pytest.deprecated_call(match='will be removed in v1.4'):
         recall(torch.randint(0, 2, (10,)),
                torch.randint(0, 2, (10,)),
                class_reduction='micro')
+
+    from pytorch_lightning.metrics.functional.classification import auc
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        auc(torch.rand(10, ).sort().values,
+            torch.rand(10, ))
+
+    from pytorch_lightning.metrics.functional.classification import auroc
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        auroc(torch.rand(10, ),
+              torch.randint(0, 2, (10, )))
+
+    from pytorch_lightning.metrics.functional.classification import multiclass_auroc
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        multiclass_auroc(torch.rand(20, 5).softmax(dim=-1),
+                         torch.randint(0, 5, (20, )),
+                         num_classes=5)
+
+    from pytorch_lightning.metrics.functional.classification import auc_decorator
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        auc_decorator()
+
+    from pytorch_lightning.metrics.functional.classification import multiclass_auc_decorator
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        multiclass_auc_decorator()
 
 
 class CustomDDPPlugin(DDPPlugin):
@@ -143,6 +170,8 @@ class CustomDDPPlugin(DDPPlugin):
                 device_ids=device_ids,
                 **self._ddp_kwargs,
             )
+            assert isinstance(model, torch.nn.parallel.DistributedDataParallel)
+            assert isinstance(model.module, LightningDistributedModule)
         return model
 
 
@@ -158,3 +187,14 @@ def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
         plugins=[CustomDDPPlugin()]
     )
     trainer.fit(model)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_v1_4_0_deprecated_lightning_data_parallel():
+    model = BoringModel()
+    with pytest.deprecated_call(
+            match="`LightningDataParallel` is deprecated since v1.2 and will be removed in v1.4."
+    ):
+        dp_model = LightningDataParallel(model, device_ids=[0])
+    assert isinstance(dp_model, torch.nn.DataParallel)
+    assert isinstance(dp_model.module, LightningParallelModule)
