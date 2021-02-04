@@ -83,7 +83,7 @@ class BaseFinetuning(Callback):
     """
 
     @staticmethod
-    def sanetize_modules(modules: Union[Module, List[Module]]) -> List[Module]:
+    def flatten_modules(modules: Union[Module, List[Module]]) -> List[Module]:
         if isinstance(modules, list):
             _modules = []
             for m in modules:
@@ -112,7 +112,7 @@ class BaseFinetuning(Callback):
         Returns:
             Generator
         """
-        modules = BaseFinetuning.sanetize_modules(modules)
+        modules = BaseFinetuning.flatten_modules(modules)
         for mod in modules:
             if isinstance(mod, _BatchNorm) and not train_bn:
                 continue
@@ -127,7 +127,7 @@ class BaseFinetuning(Callback):
             module: The module to unfreeze
             requires_grad: Wether to make the model trainable
         """
-        modules = BaseFinetuning.sanetize_modules(modules)
+        modules = BaseFinetuning.flatten_modules(modules)
         for module in modules:
             for param in module.parameters():
                 param.requires_grad = True
@@ -140,7 +140,7 @@ class BaseFinetuning(Callback):
             module: The module to freeze (at least partially)
             train_bn: If True, leave the BatchNorm layers in training mode
         """
-        modules = BaseFinetuning.sanetize_modules(modules)
+        modules = BaseFinetuning.flatten_modules(modules)
         for mod in modules:
             if isinstance(mod, _BatchNorm) and train_bn:
                 BaseFinetuning.make_trainable(mod)
