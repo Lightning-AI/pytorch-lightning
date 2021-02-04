@@ -96,6 +96,7 @@ PyTorch Lightning Documentation
    cloud_training
    amp
    slurm
+   cluster
    child_modules
    debugging
    loggers
