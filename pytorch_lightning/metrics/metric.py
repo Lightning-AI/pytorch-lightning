@@ -299,11 +299,7 @@ class Metric(nn.Module, ABC):
             self._persistent[key] = mode
 
     def state_dict(self, destination=None, prefix='', keep_vars=False):
-        destination = super().state_dict(
-            destination=destination,
-            prefix=prefix,
-            keep_vars=keep_vars
-        )
+        destination = super().state_dict(destination=destination, prefix=prefix, keep_vars=keep_vars)
         # Register metric states to be part of the state_dict
         for key in self._defaults.keys():
             if self._persistent[key]:
@@ -312,10 +308,7 @@ class Metric(nn.Module, ABC):
                     if torch.is_tensor(current_val):
                         current_val = current_val.detach()
                     elif isinstance(current_val, list):
-                        current_val = [
-                            cur_v.detach() if torch.is_tensor(cur_v) else cur_v
-                            for cur_v in current_val
-                        ]
+                        current_val = [cur_v.detach() if torch.is_tensor(cur_v) else cur_v for cur_v in current_val]
                 destination[prefix + key] = current_val
         return destination
 

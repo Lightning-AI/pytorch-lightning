@@ -220,8 +220,11 @@ def lightning_get_all_attr_holders(model, attribute):
 
 
 def lightning_get_first_attr_holder(model, attribute):
-    """ Special attribute finding for lightning.  Gets the object or dict that holds attribute, or None. Checks for attribute in model namespace,
-            the old hparams namespace/dict, and the datamodule, returns the last one that has it. """
+    """
+    Special attribute finding for lightning.  Gets the object or dict that holds attribute, or None.
+     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule,
+     returns the last one that has it.
+     """
     holders = lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:
         return None
@@ -240,8 +243,10 @@ def lightning_getattr(model, attribute):
         the old hparams namespace/dict, and the datamodule. """
     holder = lightning_get_first_attr_holder(model, attribute)
     if holder is None:
-        raise ValueError(f'{attribute} is neither stored in the model namespace'
-                         ' nor the `hparams` namespace/dict, nor the datamodule.')
+        raise ValueError(
+            f'{attribute} is neither stored in the model namespace'
+            ' nor the `hparams` namespace/dict, nor the datamodule.'
+        )
 
     if isinstance(holder, dict):
         return holder[attribute]
@@ -255,8 +260,10 @@ def lightning_setattr(model, attribute, value):
     """
     holders = lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:
-        raise ValueError(f'{attribute} is neither stored in the model namespace'
-                         ' nor the `hparams` namespace/dict, nor the datamodule.')
+        raise ValueError(
+            f'{attribute} is neither stored in the model namespace'
+            ' nor the `hparams` namespace/dict, nor the datamodule.'
+        )
 
     for holder in holders:
         if isinstance(holder, dict):
