@@ -22,7 +22,7 @@ sys.path.insert(0, ROOT)
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 from pytorch_lightning import LightningModule  # noqa: E402
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer  # noqa: E402
 from tests.base.boring_model import BoringModel  # noqa: E402
 
 
