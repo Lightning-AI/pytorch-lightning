@@ -25,16 +25,15 @@ from tests.base import BoringModel, RandomDataset
 if _PYTORCH_GREATER_EQUAL_1_6_0:
     from pytorch_lightning.callbacks import StochasticWeightAveraging
 
-    class TestModel(BoringModel):
+    class SwaTestModel(BoringModel):
 
-        def __init__(self):
+        def __init__(self, batchnorm: bool = True):
             super().__init__()
-            self.layer = nn.Sequential(
-                nn.Linear(32, 32),
-                nn.BatchNorm1d(32),
-                nn.ReLU(),
-                nn.Linear(32, 2),
-            )
+            layers = [nn.Linear(32, 32)]
+            if batchnorm:
+                layers.append(nn.BatchNorm1d(32))
+            layers += [nn.ReLU(), nn.Linear(32, 2)]
+            self.layer = nn.Sequential(*layers)
 
         def training_step(self, batch, batch_idx):
             output = self.forward(batch)
@@ -44,17 +43,32 @@ if _PYTORCH_GREATER_EQUAL_1_6_0:
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
-    class SwaCheck(StochasticWeightAveraging):
+    class SwaTestCallback(StochasticWeightAveraging):
+        update_parameters_calls: int = 0
+        transfer_weights_calls: int = 0
 
-        def on_train_epoch_end(self, trainer, pl_module, *_):
-            super().on_train_epoch_end(trainer, pl_module, *_)
-            if self._model_contains_batch_norm and trainer.current_epoch == self._max_epochs:
-                assert self.n_averaged > 0
+        def update_parameters(self, *args, **kwargs):
+            self.update_parameters_calls += 1
+            return StochasticWeightAveraging.update_parameters(*args, **kwargs)
+
+        def transfer_weights(self, *args, **kwargs):
+            self.transfer_weights_calls += 1
+            return StochasticWeightAveraging.transfer_weights(*args, **kwargs)
+
+        def on_train_epoch_end(self, trainer, *_):
+            super().on_train_epoch_end(trainer, *_)
+            swa_start = self._swa_epoch_start - 1
+            swa_end = self._max_epochs - 1
+            if swa_start <= trainer.current_epoch <= swa_end:
+                swa_epoch = trainer.current_epoch - swa_start
+                assert self.n_averaged == swa_epoch + 1
+            elif trainer.current_epoch > swa_end:
+                assert self.n_averaged == self._max_epochs - swa_start
 
 
 def train_with_swa(tmpdir, accelerator=None, gpus=None, num_processes=None):
-    model = TestModel()
-    swa_callback = SwaCheck(swa_epoch_start=2, swa_lrs=0.005)
+    model = SwaTestModel()
+    swa_callback = SwaTestCallback(swa_epoch_start=2, swa_lrs=0.005)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -66,31 +80,53 @@ def train_with_swa(tmpdir, accelerator=None, gpus=None, num_processes=None):
         num_processes=num_processes
     )
     trainer.fit(model)
-
-    assert swa_callback is not None
     assert trainer.get_model() == model
 
 
-@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.7.0")
-def test_stochastic_weight_averaging_callback(tmpdir):
-    train_with_swa(tmpdir, num_processes=1)
-
-
-@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.7.0")
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
-def test_stochastic_weight_averaging_callback_ddp(tmpdir):
+def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp" , gpus=2)
 
 
-@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.7.0")
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_stochastic_weight_averaging_callback_ddp_spawn(tmpdir):
+def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_spawn" , gpus=2)
 
 
-@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.7.0")
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
-def test_stochastic_weight_averaging_callback_1_gpu(tmpdir):
+def test_swa_callback_1_gpu(tmpdir):
     train_with_swa(tmpdir, accelerator=None , gpus=1)
+
+
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
+@pytest.mark.parametrize("batchnorm", (True, False))
+def test_swa_num_calls(tmpdir, batchnorm):
+    model = SwaTestModel(batchnorm=batchnorm)
+    swa_start = 2
+    max_epochs = 5
+    swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
+    assert swa_callback.update_parameters_calls == 0
+    assert swa_callback.transfer_weights_calls == 0
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=max_epochs,
+        limit_train_batches=5,
+        limit_val_batches=0,
+        callbacks=[swa_callback],
+        accumulate_grad_batches=2
+    )
+    trainer.fit(model)
+
+    # make sure these are correctly set again
+    assert not trainer.train_loop.skip_backward
+    assert trainer.accumulate_grad_batches == 2
+    assert trainer.num_training_batches == 5
+
+    assert swa_callback.update_parameters_calls == max_epochs - (swa_start - 1)
+    assert swa_callback.transfer_weights_calls == 1

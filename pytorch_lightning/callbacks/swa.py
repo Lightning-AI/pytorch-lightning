@@ -64,7 +64,7 @@ class StochasticWeightAveraging(Callback):
         Arguments:
 
             swa_epoch_start (int, float): If provided as int, the procedure will start from
-                ``swa_epoch_start`` epoch. If provided as float between 0 and 1,
+                the ``swa_epoch_start``-th epoch. If provided as float between 0 and 1,
                 the procedure will start from ``int(swa_epoch_start * max_epochs)`` epoch
 
             swa_lrs (float or list): the learning rate value for all param groups
@@ -168,7 +168,10 @@ class StochasticWeightAveraging(Callback):
             trainer.max_epochs += 1
 
     def on_train_epoch_start(self, trainer, pl_module):
-        if trainer.current_epoch == self._swa_epoch_start:
+        swa_start = self._swa_epoch_start - 1
+        swa_end = self._max_epochs - 1
+
+        if trainer.current_epoch == swa_start:
             # move average model to request device.
             self._average_model = self._average_model.to(self._device or pl_module.device)
 
@@ -183,39 +186,39 @@ class StochasticWeightAveraging(Callback):
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1
             )
 
-            rank_zero_warn(f"swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
-
+            rank_zero_warn(f"Swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
             trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
 
             self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
 
-        if self._swa_epoch_start <= trainer.current_epoch <= trainer.max_epochs - 1:
+        if swa_start <= trainer.current_epoch <= swa_end:
             self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
 
-        if trainer.current_epoch == self._max_epochs:
+        if trainer.current_epoch > swa_end:
             # Transfer weights from average model to pl_module
             self.transfer_weights(self._average_model, pl_module)
 
-            # Reset bachnorm for update
+            # Reset BatchNorm for update
             self.reset_batch_norm_and_save_state(pl_module)
 
-            # There is no need to perform either backward or optimizer
-            # as we are performing only one pass over the train dataloaders
-            # to compute activation statistics
-            # Therefore, we will virtually increase `num_training_batches` by 1
-            # and skip backward.
+            # There is no need to perform either backward or optimizeras we are
+            # performing only one pass over the train dataloader to compute activation statistics
+            # Therefore, we will virtually increase `num_training_batches` by 1 and skip backward.
             trainer.train_loop.skip_backward = True
             trainer.num_training_batches += 1
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
             trainer.accumulate_grad_batches = len(trainer.train_dataloader)
 
-    def on_train_end(self, trainer, pl_module):
+    def on_train_epoch_end(self, trainer, pl_module, *args):
+        # TODO: this should be done on_epoch_end but it is currently broken
+        # and the PR to fix it hasn't been merged to this branch yet
         trainer.train_loop.skip_backward = False
-        if not self._model_contains_batch_norm:
-            # Transfer weights from average model to pl_module
+        swa_end = self._max_epochs - 1
+        if trainer.current_epoch == swa_end and not self._model_contains_batch_norm:
+            # Last SWA epoch. Transfer weights from average model to pl_module
             self.transfer_weights(self._average_model, pl_module)
-        else:
-            # resetting default user parameters
+        elif trainer.current_epoch > swa_end:
+            # BatchNorm epoch update over. reset state
             trainer.accumulate_grad_batches = self._accumulate_grad_batches
             trainer.num_training_batches -= 1
             self.reset_momenta()
