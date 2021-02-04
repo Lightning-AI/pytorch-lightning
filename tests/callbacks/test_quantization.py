@@ -13,30 +13,55 @@
 # limitations under the License.
 import torch
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.callbacks import StaticModelQuantization, QuantizationAwareTraining
+from pytorch_lightning import Trainer, LightningModule, LightningDataModule
+from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.metrics.functional import mean_absolute_error
-from tests.base import BoringModel
-from tests.base.simple_model import RandomDataset
 
-TARGET_VALUE = 100
 
-class QuantModel(LightningModule):
+class RandDataset(Dataset):
+    def __init__(self, size=32, length=64, target_val = 100.):
+        self.len = length
+        self.data = torch.randn(length, size)
+        self.target_val = torch.tensor([target_val], dtype=self.data.dtype)
+
+    def __getitem__(self, index):
+        return self.data[index], self.target_val
+
+    def __len__(self):
+        return self.len
+
+
+class RandDataModule(LightningDataModule):
+
+    def __init__(self):
+        super().__init__()
+        self.random_train = RandDataset(32, 128)
+        self.random_val = RandDataset(32, 64)
+        self.random_test = RandDataset(32, 64)
+
+    def train_dataloader(self):
+        return DataLoader(self.random_train)
+
+    def val_dataloader(self):
+        return DataLoader(self.random_val)
+
+    def test_dataloader(self):
+        return DataLoader(self.random_test)
+
+
+class LinearModel(LightningModule):
 
     def __init__(self):
         super().__init__()
         self.layers = nn.ModuleDict()
-        self.layers["mlp_1"] = nn.Linear(32, 32)
-        self.layers["mlp_1a"] = torch.nn.ReLU()
-        self.layers["mlp_2"] = nn.Linear(32, 64)
-        self.layers["mlp_2a"] = torch.nn.ReLU()
-        self.layers["mlp_3"] = nn.Linear(64, 64)
-        self.layers["mlp_3a"] = torch.nn.ReLU()
-        self.layers["mlp_4"] = nn.Linear(64, 32)
-        self.layers["mlp_4a"] = torch.nn.ReLU()
-        self.layers["mlp_5"] = nn.Linear(32, 2)
+        self.layers[f"mlp_0"] = nn.Linear(32, 64)
+        self.layers[f"mlp_0a"] = torch.nn.ReLU()
+        for i in range(1, 3):
+            self.layers[f"mlp_{i}"] = nn.Linear(64, 64)
+            self.layers[f"mlp_{i}a"] = torch.nn.ReLU()
+        self.layers["mlp_end"] = nn.Linear(64, 1)
 
     def forward(self, x):
         for n in sorted(self.layers):
@@ -47,52 +72,44 @@ class QuantModel(LightningModule):
         optimizer = torch.optim.Adam(self.layers.parameters(), lr=0.01)
         return [optimizer], []
 
-    def targets(self, output):
-        return torch.ones_like(output) * TARGET_VALUE
-
-    def metric(self, output):
-        return mean_absolute_error(output, self.targets(output)).item()
+    def measure(self, output, target):
+        return mean_absolute_error(output, target).item()
 
     def training_step(self, batch, batch_idx):
-        output = self.forward(batch)
+        x, y = batch
+        output = self.forward(x)
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-        loss = torch.nn.functional.mse_loss(output, self.targets(output))
-        self.log('train_MAE', self.metric(output), prog_bar=True)
+        loss = torch.nn.functional.mse_loss(output, y)
+        self.log('train_MAE', self.measure(output, y), prog_bar=True)
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
-        output = self.forward(batch)
-        self.log('val_MAE', self.metric(output), prog_bar=True)
-
-    def train_dataloader(self):
-        return DataLoader(RandomDataset(32, 64))
-
-    def val_dataloader(self):
-        return DataLoader(RandomDataset(32, 64))
-
+        x, y = batch
+        output = self.forward(x)
+        self.log('val_MAE', self.measure(output, y), prog_bar=True)
 
 
 def test_quantization(tmpdir):
 
-    model = QuantModel()
-    # model.validation_step = None
-    model.test_step = None
-
-    org_size = model.model_size()
-
-    qcb = QuantizationAwareTraining()
-    trainer = Trainer(
+    dm = RandDataModule()
+    trainer_args = dict(
         default_root_dir=tmpdir,
-        limit_train_batches=10,
-        max_epochs=15,
-        callbacks=[qcb],
+        max_epochs=10,
     )
-    trainer.fit(model)
+    model = LinearModel()
+    Trainer(**trainer_args).fit(model, datamodule=dm)
+    org_size = model.model_size()
+    org_mae = torch.mean(torch.tensor([model.measure(model(x), y) for x, y in dm.test_dataloader()]))
 
-    mae = torch.mean(torch.tensor([model.metric(model(x)) for x in RandomDataset(32, 64)]))
-    print(mae)
-    # mae = torch.mean(torch.tensor([model.metric(qcb.qmodel(x.type(torch.float32))) for x in RandomDataset(32, 64)]))
-    # print(mae)
+    qmodel = LinearModel()
+    qcb = QuantizationAwareTraining()
+    Trainer(callbacks=[qcb], **trainer_args).fit(qmodel, datamodule=dm)
+    quant_size = qmodel.model_size()
+    quant_mae = torch.mean(torch.tensor([model.measure(qmodel(x), y) for x, y in dm.test_dataloader()]))
 
-    # todo: test that the trained model is smaller then initial
-    # todo: test that the test score is almost the same as with pure training
+    # test that the trained model is smaller then initial
+    size_ratio = quant_size / org_size
+    assert size_ratio < 0.65
+    # test that the test score is almost the same as with pure training
+    diff_mae = abs(org_mae - quant_mae)
+    assert diff_mae < 25

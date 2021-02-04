@@ -17,83 +17,54 @@ Quantization
 ^^^^^^^^^^^^
 
 """
-from typing import Any, Callable
+from typing import Any, Callable, Union
 
 import torch
+from torch.quantization import MinMaxObserver, QConfig
 
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
-def wrap_quantize_forward_context(func: Callable) -> Callable:
+def wrap_quantize_forward_context(model, func: Callable) -> Callable:
     """
     This decorator is used as context manager...
     """
 
-    def wrapper(self, batch) -> Any:
-        batch = self.quant(batch)
-        batch = self.forward(batch)
-        batch = self.dequant(batch)
-        return batch
+    def wrapper(*args, **kwargs) -> Any:
+        # todo: not clear argument passing
+        res = model.quant(*args, **kwargs)
+        res = func(res)
+        res = model.dequant(res)
+        return res
 
     return wrapper
-
-
-class StaticModelQuantization(Callback):
-
-    def __init__(
-        self,
-            num_batches: int = 3,
-    ) -> None:
-        self.num_batches = num_batches
-        self._count_validations = 0
-        self.qmodel = None
-
-    def on_fit_start(self, trainer, pl_module):
-        # specify which part to quantize and how
-        pl_module.qconfig = torch.quantization.get_default_qconfig("fbgemm")
-        # todo: fuse selected by user or write func to fuse all
-        # torch.quantization.fuse_modules(pl_module, modules_to_fuse=..., inplace=True)
-
-        torch.quantization.prepare(pl_module, inplace=True)
-        # self.qmodel = torch.quantization.prepare(pl_module, inplace=False)
-        # self.qmodel.eval()
-
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self._count_validations += 1
-
-    def on_fit_end(self, trainer, pl_module):
-        # change code directly or use manipulation APIs
-        # pl_module.eval()
-
-        # # todo: if missing validation
-        # for idx, batch in enumerate(trainer.train_dataloader):
-        #     if idx >= self.num_batches:
-        #         break
-        #     self.qmodel(batch)
-        #
-        # # convert to quantized version
-        # torch.quantization.convert(self.qmodel, inplace=True)
-
-        pass
 
 
 class QuantizationAwareTraining(Callback):
 
     def __init__(
         self,
+        qconfig: Union[str, QConfig] = 'fbgemm',
+        fusing = None,
     ) -> None:
-        pass
+        if not isinstance(qconfig, (str, QConfig)):
+            raise MisconfigurationException(f"Unsupported qconfig: f{self._qconfig}")
+        self._qconfig = qconfig
 
     def on_fit_start(self, trainer, pl_module):
 
         pl_module.quant = torch.quantization.QuantStub()
         pl_module.dequant = torch.quantization.DeQuantStub()
-        pl_module.forward = wrap_quantize_forward_context(pl_module.forward)
+        pl_module.forward = wrap_quantize_forward_context(pl_module, pl_module.forward)
 
         # attach a global qconfig, which contains information about what kind
         # of observers to attach. Use 'fbgemm' for server inference
-        pl_module.qconfig = torch.quantization.get_default_qat_qconfig('fbgemm')
+        if isinstance(self._qconfig, str):
+            pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
+        elif isinstance(self._qconfig, QConfig):
+            pl_module.qconfig = self._qconfig
 
         # Prepare the model for QAT. This inserts observers and fake_quants in
         # the model that will observe weight and activation tensors during calibration.
@@ -105,4 +76,4 @@ class QuantizationAwareTraining(Callback):
         # used with each activation tensor, fuses modules where appropriate,
         # and replaces key operators with quantized implementations.
         pl_module.eval()
-        self.qmodel = torch.quantization.convert(pl_module)
+        torch.quantization.convert(pl_module, inplace=True)
