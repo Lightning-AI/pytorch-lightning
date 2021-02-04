@@ -13,7 +13,7 @@
 # limitations under the License.
 
 r"""
-finetuning Callback
+Finetuning Callback
 ^^^^^^^^^^^^^^^^^^^^
 Freeze and unfreeze models for finetuning purposes
 """
@@ -51,7 +51,7 @@ class BaseFinetuning(Callback):
         ``unfreeze`` any parameters. Those parameters needs to be added in a new ``param_group``
         within the optimizer.
 
-    .. note:: Make sure to filter the parameters based on `requires_grad`.
+    .. note:: Make sure to filter the parameters based on ``requires_grad``.
 
     Example::
 
@@ -135,6 +135,7 @@ class BaseFinetuning(Callback):
     def make_trainable(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> None:
         """
         Unfreezes the parameters of the provided modules
+
         Args:
             modules: A given module or an iterable of modules
         """
