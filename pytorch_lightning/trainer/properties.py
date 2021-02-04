@@ -14,32 +14,23 @@
 import inspect
 import os
 from abc import ABC
-from argparse import ArgumentParser
-from argparse import Namespace
-from typing import cast, List, Optional, Type, TypeVar, Union
 from argparse import ArgumentParser, Namespace
 from typing import Any, cast, List, Optional, Type, TypeVar, Union
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.callbacks import ProgressBarBase
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities import _TPU_AVAILABLE
-from pytorch_lightning.utilities import DeviceType
-from pytorch_lightning.utilities import DistributedType
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.argparse import add_argparse_args
-from pytorch_lightning.utilities.argparse import from_argparse_args
-from pytorch_lightning.utilities.argparse import parse_argparser
-from pytorch_lightning.utilities.argparse import parse_env_variables
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType, rank_zero_warn
+from pytorch_lightning.utilities.argparse import (
+    add_argparse_args,
+    from_argparse_args,
+    parse_argparser,
+    parse_env_variables,
+)
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 if _TPU_AVAILABLE:
