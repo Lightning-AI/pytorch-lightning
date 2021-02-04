@@ -14,11 +14,10 @@
 import inspect
 import os
 from unittest import mock
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 
 import pytest
 import torch
-from unittest.mock import PropertyMock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState

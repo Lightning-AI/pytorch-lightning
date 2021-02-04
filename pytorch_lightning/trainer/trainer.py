@@ -45,12 +45,12 @@ from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import DeprecatedDistDeviceAttributes
+from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
-from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner

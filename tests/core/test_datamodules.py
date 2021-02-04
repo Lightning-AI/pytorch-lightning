@@ -13,9 +13,9 @@
 # limitations under the License.
 import pickle
 from argparse import ArgumentParser
+from typing import Any, Dict
 from unittest import mock
 from unittest.mock import MagicMock, PropertyMock
-from typing import Any, Dict
 
 import pytest
 import torch

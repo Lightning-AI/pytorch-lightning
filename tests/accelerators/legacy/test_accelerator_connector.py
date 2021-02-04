@@ -22,9 +22,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.plugins import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, DDP2Plugin
-from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPSpawnPlugin, PrecisionPlugin, SingleDevicePlugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities import DistributedType
 from tests.base.boring_model import BoringModel

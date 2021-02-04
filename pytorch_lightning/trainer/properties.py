@@ -20,7 +20,6 @@ from typing import Any, cast, List, Optional, Type, TypeVar, Union
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
-
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import TrainerState
@@ -38,6 +37,7 @@ if _TPU_AVAILABLE:
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
+
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.utilities.model_helpers import is_overridden
 

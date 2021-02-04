@@ -5,9 +5,8 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin, \
-    ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin, ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
