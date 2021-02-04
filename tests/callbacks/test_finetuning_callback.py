@@ -34,6 +34,11 @@ def test_finetuning_callback(tmpdir):
             self.layer = torch.nn.Linear(32, 2)
             self.backbone.has_been_used = False
 
+        def training_step(self, batch, batch_idx):
+            output = self(batch)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
         def forward(self, x):
             self.backbone.has_been_used = True
             x = self.backbone(x)
@@ -85,6 +90,11 @@ def test_finetuning_callback_warning(tmpdir):
             self.backbone = nn.Linear(32, 2, bias=False)
             self.layer = None
             self.backbone.has_been_used = False
+
+        def training_step(self, batch, batch_idx):
+            output = self(batch)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
 
         def forward(self, x):
             self.backbone.has_been_used = True

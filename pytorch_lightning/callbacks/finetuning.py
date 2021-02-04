@@ -230,7 +230,7 @@ class BaseFinetuning(Callback):
         denom_lr = initial_denom_lr if lr is None else 1.
         params = BaseFinetuning.filter_params(modules, train_bn=train_bn, requires_grad=True)
         params = BaseFinetuning.filter_on_optimizer(optimizer, params)
-        if len(params) > 0:
+        if params:
             optimizer.add_param_group(
                 {
                     'params': params,

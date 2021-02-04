@@ -147,3 +147,4 @@ test-reports/
 wandb
 .forked/
 *.prof
+cifar-10-python.tar.gz
