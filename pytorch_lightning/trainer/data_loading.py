@@ -18,7 +18,10 @@ from abc import ABC
 from copy import deepcopy
 from typing import Callable, Iterable, List, Optional, Tuple, Union
 
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import BatchSampler
+from torch.utils.data import DataLoader
+from torch.utils.data import RandomSampler
+from torch.utils.data import SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
@@ -26,7 +29,8 @@ from pytorch_lightning.core import LightningModule
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
+from pytorch_lightning.utilities.data import has_iterable_dataset
+from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -120,7 +124,7 @@ class TrainerDataLoadingMixin(ABC):
             batch_sampler = type(batch_sampler)(
                 sampler,
                 batch_size=batch_sampler.batch_size,
-                drop_last=batch_sampler.drop_last
+                drop_last=batch_sampler.drop_last,
             )
             dl_args['batch_sampler'] = batch_sampler
             dl_args['batch_size'] = 1
@@ -131,13 +135,14 @@ class TrainerDataLoadingMixin(ABC):
             dl_args['sampler'] = sampler
             dl_args['shuffle'] = False
             dl_args['batch_sampler'] = None
+
         return dl_args
 
     def replace_sampler(self, dataloader, sampler):
         skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
         skip_signature_keys = ('args', 'kwargs', 'self')
 
-        attrs = {k:v for k, v in vars(dataloader).items() if not k.startswith("_")}
+        attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
 
         params = set(inspect.signature(dataloader.__init__).parameters)
         contains_dataset = True
@@ -146,10 +151,7 @@ class TrainerDataLoadingMixin(ABC):
             contains_dataset = "dataset" in params
             params.update(inspect.signature(DataLoader.__init__).parameters)
 
-        dl_args = {
-            name: attrs[name] for name in params
-            if name in attrs and name not in skip_keys
-        }
+        dl_args = {name: attrs[name] for name in params if name in attrs and name not in skip_keys}
 
         dl_args = self._resolve_batch_sampler(dl_args, dataloader, sampler)
 
