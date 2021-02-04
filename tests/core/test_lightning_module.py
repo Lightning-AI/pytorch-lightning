@@ -312,7 +312,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             return super().training_step(batch, batch_idx)
 
         @staticmethod
-        def combine_genetators(gen_1, gen_2):
+        def combine_generators(gen_1, gen_2):
             for p in gen_1:
                 yield p
             for p in gen_2:
@@ -320,21 +320,21 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 
         def configure_optimizers(self):
             optimizer_1 = SGD(
-                self.combine_genetators(
+                self.combine_generators(
                     self.layer_1.parameters(),
                     self.layer_2.parameters()
                 ),
                 lr=0.1
             )
             optimizer_2 = Adam(
-                self.combine_genetators(
+                self.combine_generators(
                     self.layer_2.parameters(),
                     self.layer_3.parameters()
                 ),
                 lr=0.1
             )
             optimizer_3 = SGD(
-                self.combine_genetators(
+                self.combine_generators(
                     self.layer_3.parameters(),
                     self.layer_1.parameters()
                 ),
