@@ -22,17 +22,14 @@ from copy import deepcopy
 from functools import partial
 from typing import Callable, List, Optional, Tuple, Union
 
+import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 from torch.nn.modules.container import ModuleDict, ModuleList
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if _PYTORCH_PRUNE_AVAILABLE:
-    import torch.nn.utils.prune as pytorch_prune
 
 
 _PYTORCH_PRUNING_FUNCTIONS = {
