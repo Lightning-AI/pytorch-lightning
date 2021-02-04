@@ -19,7 +19,7 @@ To setup a multi-node computing cluster you need:
 
 1) Multiple computers with PyTorch Lightning installed
 2) A network connectivity between them with firewall rules that allow traffic flow on a specified *MASTER_PORT*.
-3) Defined environment variables on each node required for the PyTorch Lightning mutli-node distributed training
+3) Defined environment variables on each node required for the PyTorch Lightning multi-node distributed training
 
 PyTorch Lightning follows the design of `PyTorch distributed communication package <https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization>`_. and requires the following environment variables to be defined on each node:
 
