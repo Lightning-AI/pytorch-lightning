@@ -1185,7 +1185,10 @@ class LightningModule(
                 for param in group['params']:
                     # If a param appears in multiple optimizers, use the `requires_grad` info already set
                     if param in param_requires_grad_state:
-                        param.requires_grad = param_requires_grad_state[param]
+                        if opt_idx == optimizer_idx:
+                            param.requires_grad = param_requires_grad_state[param]
+                        else:
+                            continue
                     else:
                         param_requires_grad_state[param] = param.requires_grad
                         param.requires_grad = False
