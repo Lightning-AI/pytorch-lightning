@@ -89,13 +89,11 @@ class StochasticWeightAveraging(Callback):
 
         """
 
-        if not isinstance(swa_epoch_start, (float, int)) \
-           or isinstance(swa_epoch_start, (float, int)) and swa_epoch_start < 0:
-            raise MisconfigurationException("swa_epoch_start should be positive integer or a float between 0 and 1.")
-
-        if isinstance(swa_epoch_start, float):
-            if swa_epoch_start > 1:
-                raise MisconfigurationException("swa_epoch_start should be a float between 0 and 1.")
+        err_msg = "swa_epoch_start should be a >0 integer or a float between 0 and 1."
+        if isinstance(swa_epoch_start, int) and swa_epoch_start < 1:
+            raise MisconfigurationException(err_msg)
+        if isinstance(swa_epoch_start, float) and not (0 <= swa_epoch_start <= 1):
+            raise MisconfigurationException(err_msg)
 
         if not isinstance(swa_lrs, (float, list)) \
            or isinstance(swa_lrs, float) and swa_lrs <= 0 \
@@ -118,7 +116,7 @@ class StochasticWeightAveraging(Callback):
 
     @property
     def swa_start(self) -> int:
-        return self._swa_epoch_start - 1  # 0-based
+        return max(self._swa_epoch_start - 1, 0)  # 0-based
 
     @property
     def swa_end(self) -> int:
@@ -164,7 +162,6 @@ class StochasticWeightAveraging(Callback):
         if len(lr_schedulers) > 1:
             raise MisconfigurationException("SWA currently not supported for more than 1 lr_scheduler.")
 
-        # convert float to integer.
         if isinstance(self._swa_epoch_start, float):
             self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
 

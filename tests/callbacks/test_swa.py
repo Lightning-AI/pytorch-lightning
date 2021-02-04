@@ -69,21 +69,40 @@ if _PYTORCH_GREATER_EQUAL_1_6_0:
                 assert self.n_averaged == self._max_epochs - self.swa_start
 
 
-def train_with_swa(tmpdir, accelerator=None, gpus=None, num_processes=None):
-    model = SwaTestModel()
-    swa_callback = SwaTestCallback(swa_epoch_start=2, swa_lrs=0.005)
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+def train_with_swa(tmpdir, accelerator=None, gpus=None, batchnorm=True):
+    model = SwaTestModel(batchnorm=batchnorm)
+    swa_start = 2
+    max_epochs = 5
+    swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
+    assert swa_callback.update_parameters_calls == 0
+    assert swa_callback.transfer_weights_calls == 0
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=4,
-        limit_train_batches=4,
+        max_epochs=max_epochs,
+        limit_train_batches=5,
+        limit_val_batches=0,
         callbacks=[swa_callback],
+        accumulate_grad_batches=2,
         accelerator=accelerator,
         gpus=gpus,
-        num_processes=num_processes
     )
     trainer.fit(model)
+
+    # check the model is the expected
     assert trainer.get_model() == model
+
+    # make sure these are correctly set again
+    assert not trainer.train_loop._skip_backward
+    assert trainer.accumulate_grad_batches == 2
+    assert trainer.num_training_batches == 5
+
+    # check backward call count. the batchnorm update epoch should not backward
+    assert trainer.dev_debugger.count_events("backward_call") == max_epochs * trainer.limit_train_batches
+
+    assert swa_callback.update_parameters_calls == max_epochs - (swa_start - 1)
+    assert swa_callback.transfer_weights_calls == 1
 
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
@@ -108,32 +127,5 @@ def test_swa_callback_1_gpu(tmpdir):
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
 @pytest.mark.parametrize("batchnorm", (True, False))
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_swa_num_calls(tmpdir, batchnorm):
-    model = SwaTestModel(batchnorm=batchnorm)
-    swa_start = 2
-    max_epochs = 5
-    swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
-    assert swa_callback.update_parameters_calls == 0
-    assert swa_callback.transfer_weights_calls == 0
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=max_epochs,
-        limit_train_batches=5,
-        limit_val_batches=0,
-        callbacks=[swa_callback],
-        accumulate_grad_batches=2
-    )
-    trainer.fit(model)
-
-    # make sure these are correctly set again
-    assert not trainer.train_loop._skip_backward
-    assert trainer.accumulate_grad_batches == 2
-    assert trainer.num_training_batches == 5
-
-    # check backward call count. the batchnorm update epoch should not backward
-    assert trainer.dev_debugger.count_events("backward_call") == max_epochs * trainer.limit_train_batches
-
-    assert swa_callback.update_parameters_calls == max_epochs - (swa_start - 1)
-    assert swa_callback.transfer_weights_calls == 1
+def test_swa_callback(tmpdir, batchnorm):
+    train_with_swa(tmpdir, batchnorm=batchnorm)
