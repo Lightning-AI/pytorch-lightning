@@ -95,8 +95,8 @@ def test_static_quantization(tmpdir):
 
     mae = torch.mean(torch.tensor([model.metric(model(x)) for x in RandomDataset(32, 64)]))
     print(mae)
-    mae = torch.mean(torch.tensor([model.metric(qcb.qmodel(x.type(torch.float32))) for x in RandomDataset(32, 64)]))
-    print(mae)
+    # mae = torch.mean(torch.tensor([model.metric(qcb.qmodel(x.type(torch.float32))) for x in RandomDataset(32, 64)]))
+    # print(mae)
 
     # todo: test that the trained model is smaller then initial
     # todo: test that the test score is almost the same as with pure training

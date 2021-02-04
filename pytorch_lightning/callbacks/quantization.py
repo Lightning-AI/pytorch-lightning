@@ -36,11 +36,12 @@ class StaticModelQuantization(Callback):
     def on_fit_start(self, trainer, pl_module):
         # specify which part to quantize and how
         pl_module.qconfig = torch.quantization.get_default_qconfig("fbgemm")
-        # todo: fuse seelcted by user or write func to fuse all
+        # todo: fuse selected by user or write func to fuse all
         # torch.quantization.fuse_modules(pl_module, modules_to_fuse=..., inplace=True)
 
-        self.qmodel = torch.quantization.prepare(pl_module, inplace=False)
-        self.qmodel.eval()
+        torch.quantization.prepare(pl_module, inplace=True)
+        # self.qmodel = torch.quantization.prepare(pl_module, inplace=False)
+        # self.qmodel.eval()
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._count_validations += 1
@@ -49,14 +50,16 @@ class StaticModelQuantization(Callback):
         # change code directly or use manipulation APIs
         # pl_module.eval()
 
-        # todo: if missing validation
-        for idx, batch in enumerate(trainer.train_dataloader):
-            if idx >= self.num_batches:
-                break
-            self.qmodel(batch)
+        # # todo: if missing validation
+        # for idx, batch in enumerate(trainer.train_dataloader):
+        #     if idx >= self.num_batches:
+        #         break
+        #     self.qmodel(batch)
+        #
+        # # convert to quantized version
+        # torch.quantization.convert(self.qmodel, inplace=True)
 
-        # convert to quantized version
-        torch.quantization.convert(self.qmodel, inplace=True)
+        pass
 
 
 class QuantizationAwareTraining(Callback):
