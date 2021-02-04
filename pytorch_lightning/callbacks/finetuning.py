@@ -182,7 +182,10 @@ class BaseFinetuning(Callback):
         initial_denom_lr: float = 10.,
         train_bn: bool = True,
     ):
-        """ Unfreezes a module and adds its parameters to an optimizer.
+        """
+
+        Unfreezes a module and adds its parameters to an optimizer.
+
         Args:
 
             modules: The module or list of modules to unfreeze and
