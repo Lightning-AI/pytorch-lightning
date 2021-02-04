@@ -1186,9 +1186,8 @@ class LightningModule(
                     # If a param already appear in param_requires_grad_state, continue
                     if param in param_requires_grad_state:
                         continue
-                    else:
-                        param_requires_grad_state[param] = param.requires_grad
-                        param.requires_grad = False
+                    param_requires_grad_state[param] = param.requires_grad
+                    param.requires_grad = False
 
         # Then iterate over the current optimizer's parameters and set its `requires_grad`
         # properties accordingly
