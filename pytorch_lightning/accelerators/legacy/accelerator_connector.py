@@ -364,8 +364,8 @@ class AcceleratorConnector:
         _ddp = (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         if (self.trainer.num_nodes > 1 and self.trainer._distrib_type not in _ddp):
             raise MisconfigurationException(
-                'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
-                'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
+                'DataParallel does not support num_nodes > 1. '
+                'To avoid this exception, set `accelerator="ddp"` or `accelerator="ddp2"`'
             )
 
         rank_zero_info(
