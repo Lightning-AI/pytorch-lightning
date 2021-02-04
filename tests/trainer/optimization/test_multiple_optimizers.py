@@ -64,7 +64,6 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     )
     trainer.fit(model)
 
-    assert model.training_step_called
     for k, v in model.actual.items():
         assert torch.equal(trainer.callback_metrics[f"loss_{k}_step"], v[-1])
         # test loss is properly reduced
@@ -145,3 +144,5 @@ def test_multiple_optimizers_manual(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model)
+
+    assert model.training_step_called
