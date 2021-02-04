@@ -17,10 +17,26 @@ Quantization
 ^^^^^^^^^^^^
 
 """
+from typing import Any, Callable
+
 import torch
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.model_helpers import is_overridden
+
+
+def wrap_quantize_forward_context(func: Callable) -> Callable:
+    """
+    This decorator is used as context manager...
+    """
+
+    def wrapper(self, batch) -> Any:
+        batch = self.quant(batch)
+        batch = self.forward(batch)
+        batch = self.dequant(batch)
+        return batch
+
+    return wrapper
 
 
 class StaticModelQuantization(Callback):
@@ -69,4 +85,24 @@ class QuantizationAwareTraining(Callback):
     ) -> None:
         pass
 
-    # todo
+    def on_fit_start(self, trainer, pl_module):
+
+        pl_module.quant = torch.quantization.QuantStub()
+        pl_module.dequant = torch.quantization.DeQuantStub()
+        pl_module.forward = wrap_quantize_forward_context(pl_module.forward)
+
+        # attach a global qconfig, which contains information about what kind
+        # of observers to attach. Use 'fbgemm' for server inference
+        pl_module.qconfig = torch.quantization.get_default_qat_qconfig('fbgemm')
+
+        # Prepare the model for QAT. This inserts observers and fake_quants in
+        # the model that will observe weight and activation tensors during calibration.
+        torch.quantization.prepare_qat(pl_module, inplace=True)
+
+    def on_fit_end(self, trainer, pl_module):
+        # Convert the observed model to a quantized model. This does several things:
+        # quantizes the weights, computes and stores the scale and bias value to be
+        # used with each activation tensor, fuses modules where appropriate,
+        # and replaces key operators with quantized implementations.
+        pl_module.eval()
+        self.qmodel = torch.quantization.convert(pl_module)

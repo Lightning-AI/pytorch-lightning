@@ -16,7 +16,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.callbacks import StaticModelQuantization
+from pytorch_lightning.callbacks import StaticModelQuantization, QuantizationAwareTraining
 from pytorch_lightning.metrics.functional import mean_absolute_error
 from tests.base import BoringModel
 from tests.base.simple_model import RandomDataset
@@ -28,8 +28,6 @@ class QuantModel(LightningModule):
     def __init__(self):
         super().__init__()
         self.layers = nn.ModuleDict()
-        # self.quant = torch.quantization.QuantStub()
-        # self.dequant = torch.quantization.DeQuantStub()
         self.layers["mlp_1"] = nn.Linear(32, 32)
         self.layers["mlp_1a"] = torch.nn.ReLU()
         self.layers["mlp_2"] = nn.Linear(32, 64)
@@ -41,10 +39,8 @@ class QuantModel(LightningModule):
         self.layers["mlp_5"] = nn.Linear(32, 2)
 
     def forward(self, x):
-        # x = self.quant(x)
         for n in sorted(self.layers):
             x = self.layers[n](x)
-        # x = self.dequant(x)
         return x
 
     def configure_optimizers(self):
@@ -76,7 +72,7 @@ class QuantModel(LightningModule):
 
 
 
-def test_static_quantization(tmpdir):
+def test_quantization(tmpdir):
 
     model = QuantModel()
     # model.validation_step = None
@@ -84,7 +80,7 @@ def test_static_quantization(tmpdir):
 
     org_size = model.model_size()
 
-    qcb = StaticModelQuantization()
+    qcb = QuantizationAwareTraining()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=10,
