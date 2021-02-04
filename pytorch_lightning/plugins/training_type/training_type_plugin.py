@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from abc import ABC, abstractmethod
+from pytorch_lightning.overrides.base import unwrap_lightning_module
 from typing import Any, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
@@ -80,7 +81,7 @@ class TrainingTypePlugin(Plugin, ABC):
     @property
     def lightning_module(self) -> Optional[LightningModule]:
         """Returns the pure LightningModule without potential wrappers"""
-        return self._model
+        return unwrap_lightning_module(self._model)
 
     @property
     def results(self) -> Any:
