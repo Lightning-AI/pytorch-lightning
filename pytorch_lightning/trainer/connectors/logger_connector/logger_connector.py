@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from typing import Any, Dict, Iterable, Union
+from typing import Dict, Iterable, Union
 
 import torch
 
