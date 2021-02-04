@@ -25,8 +25,9 @@ SHELL ["/bin/bash", "-c"]
 
 ARG CONDA_VERSION=4.7.12
 # for skipping configurations
-ENV DEBIAN_FRONTEND=noninteractive
-ENV CONDA_ENV=lightning
+ENV \
+    DEBIAN_FRONTEND=noninteractive \
+    CONDA_ENV=lightning
 
 # show system inforation
 RUN lsb_release -a && cat /etc/*-release
@@ -53,8 +54,9 @@ RUN apt-get update -qq && \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-ENV PATH="/root/miniconda3/bin:$PATH"
-ENV LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
+ENV \
+    PATH="/root/miniconda3/bin:$PATH" \
+    LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
 COPY environment.yml environment.yml
 
 RUN conda create -y --name $CONDA_ENV && \
@@ -67,10 +69,11 @@ RUN conda create -y --name $CONDA_ENV && \
     conda clean -ya && \
     rm environment.yml
 
-ENV PATH /root/miniconda3/envs/${CONDA_ENV}/bin:$PATH
-ENV LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
-# if you want this environment to be the default one, uncomment the following line:
-ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
+ENV \
+    PATH=/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
+    LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH" \
+    # if you want this environment to be the default one, uncomment the following line:
+    CONDA_DEFAULT_ENV=${CONDA_ENV}
 
 # Disable cache
 RUN pip --version && \

@@ -241,7 +241,7 @@ def main(args: Namespace) -> None:
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = GAN(args)
+    model = GAN(lr=args.lr, b1=args.b1, b2=args.b2, latent_dim=args.latent_dim)
 
     # ------------------------
     # 2 INIT TRAINER

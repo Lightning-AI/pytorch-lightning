@@ -211,7 +211,7 @@ class F1(FBeta):
 
     def __init__(
         self,
-        num_classes: int = 1,
+        num_classes: int,
         threshold: float = 0.5,
         average: str = "micro",
         multilabel: bool = False,
@@ -224,6 +224,7 @@ class F1(FBeta):
             beta=1.0,
             threshold=threshold,
             average=average,
+            multilabel=multilabel,
             compute_on_step=compute_on_step,
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
