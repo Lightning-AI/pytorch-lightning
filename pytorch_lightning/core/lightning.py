@@ -482,8 +482,11 @@ class LightningModule(
             Any of.
 
             - :class:`~torch.Tensor` - The loss tensor
-            - `dict` - A dictionary. Can include any keys, but must include the key 'loss'
-            - `None` - Training will skip to the next batch
+            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
+            - ``None`` - Training will skip to the next batch
+
+        Note:
+            Returning ``None`` is currently not supported for multi-GPU or TPU, or with 16-bit precision enabled.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -658,7 +661,7 @@ class LightningModule(
            Any of.
 
             - Any object or value
-            - `None` - Validation will skip to the next batch
+            - ``None`` - Validation will skip to the next batch
 
         .. code-block:: python
 
@@ -842,7 +845,7 @@ class LightningModule(
            Any of.
 
             - Any object or value
-            - `None` - Testing will skip to the next batch
+            - ``None`` - Testing will skip to the next batch
 
         .. code-block:: python
 
@@ -1187,17 +1190,47 @@ class LightningModule(
 
         Override for your own behavior
 
-        Args:
-            optimizer:
-            optimizer_idx:
-        """
-        # Todo: required argument `optimizer_idx` is not used
-        for param in self.parameters():
-            param.requires_grad = False
+        It works with ``untoggle_optimizer`` to make sure param_requires_grad_state is properly reset.
 
-        for group in optimizer.param_groups:
-            for param in group['params']:
-                param.requires_grad = True
+        Args:
+            optimizer: Current optimizer used in training_loop
+            optimizer_idx: Current optimizer idx in training_loop
+        """
+        param_requires_grad_state = {}
+        # make sure current optimizer is latest to be iterated over.
+        optimizers = [opt for opt in self.optimizers(use_pl_optimizer=False) if opt != optimizer] + [optimizer]
+        num_optimizers = len(optimizers) - 1
+        for opt_idx, opt in enumerate(optimizers):
+            for group in opt.param_groups:
+                for param in group['params']:
+                    if num_optimizers == opt_idx:
+                        # If a param appears in 2 optimizers, revert `requires_grad` to before toggle.
+                        if param in param_requires_grad_state:
+                            param.requires_grad = param_requires_grad_state[param]
+                    else:
+                        # save requires_grad for later restoration
+                        param_requires_grad_state[param] = param.requires_grad
+                        param.requires_grad = False
+
+        self._param_requires_grad_state = param_requires_grad_state
+
+    def untoggle_optimizer(self, optimizer_idx: int):
+        """
+        .. note:: Only called when using multiple optimizers
+
+        Override for your own behavior
+
+        Args:
+            optimizer_idx: Current optimizer idx in training_loop
+        """
+        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
+            if optimizer_idx != opt_idx:
+                for group in opt.param_groups:
+                    for param in group['params']:
+                        if param in self._param_requires_grad_state:
+                            param.requires_grad = self._param_requires_grad_state[param]
+        # save memory
+        del self._param_requires_grad_state
 
     def optimizer_step(
         self,
