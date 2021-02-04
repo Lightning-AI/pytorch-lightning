@@ -1180,15 +1180,12 @@ class LightningModule(
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
-        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
+        for opt in self.optimizers(use_pl_optimizer=False):
             for group in opt.param_groups:
                 for param in group['params']:
-                    # If a param appears in multiple optimizers, use the `requires_grad` info already set
+                    # If a param appears in multiple optimizers, continue
                     if param in param_requires_grad_state:
-                        if opt_idx == optimizer_idx:
-                            param.requires_grad = param_requires_grad_state[param]
-                        else:
-                            continue
+                        continue
                     else:
                         param_requires_grad_state[param] = param.requires_grad
                         param.requires_grad = False

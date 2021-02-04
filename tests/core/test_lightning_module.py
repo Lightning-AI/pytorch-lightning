@@ -199,15 +199,6 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
                 assert self.layer_2[3].weight.requires_grad is False
                 assert self.layer_2[5].weight.requires_grad is True
 
-            if optimizer_idx == 2:
-                assert self.layer_1[0].weight.requires_grad is True
-                assert self.layer_1[2].weight.requires_grad is False
-                assert self.layer_1[4].weight.requires_grad is False
-
-                assert self.layer_2[1].weight.requires_grad is False
-                assert self.layer_2[3].weight.requires_grad is False
-                assert self.layer_2[5].weight.requires_grad is False
-
             optimizer.step(closure=closure)
 
     model = TestModel()
