@@ -181,8 +181,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @property
     def xmp_spawn_kwargs(self):
         return {
-            "args": (self.lightning_module, trainer, self.mp_queue),
-            "nproc": len(self.parallel_devices),
+            "args": (self.lightning_module.trainer, ),
+            "nprocs": len(self.parallel_devices),
             "start_method": self.start_method
         }
 

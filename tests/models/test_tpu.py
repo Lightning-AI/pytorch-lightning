@@ -216,7 +216,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires missing TPU")
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     """Test if trainer.tpu_id is set as expected"""
-    assert Trainer(tpu_cores=tpu_cores).tpu_id == expected_tpu_id
+    assert Trainer(tpu_cores=tpu_cores).accelerator_connector.tpu_id == expected_tpu_id
 
 
 def test_tpu_misconfiguration():
@@ -279,7 +279,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
             Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
     else:
         trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
-        assert trainer.tpu_id == expected_tpu_id
+        assert trainer.accelerator_connector.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize(
