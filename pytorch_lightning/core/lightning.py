@@ -1183,7 +1183,7 @@ class LightningModule(
         for opt in self.optimizers(use_pl_optimizer=False):
             for group in opt.param_groups:
                 for param in group['params']:
-                    # If a param appears in multiple optimizers, continue
+                    # If a param already appear in param_requires_grad_state, continue
                     if param in param_requires_grad_state:
                         continue
                     else:
