@@ -274,6 +274,11 @@ class Accelerator(object):
         self.precision_plugin.pre_optimizer_step(optimizer, opt_idx)
         self.training_type_plugin.pre_optimizer_step(optimizer, opt_idx)
 
+        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+            # apex does not support passing a closure to the optimizer, call it by itself
+            lambda_closure()
+            lambda_closure = None
+
         optimizer.step(closure=lambda_closure, **kwargs)
 
         self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
