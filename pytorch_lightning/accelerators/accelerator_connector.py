@@ -239,7 +239,10 @@ class BackendConnector(object):
 
     @property
     def use_ddp(self):
-        return self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
+        return self._distrib_type in (
+            DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED,
+            DistributedType.DDP_SHARDED_SPAWN
+        )
 
     @property
     def use_ddp2(self):
@@ -329,8 +332,8 @@ class BackendConnector(object):
             use_ddp_cpu_spawn = self.use_ddp and self.on_cpu
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self.is_using_torchelastic
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
-            use_ddp_sharded = self.distributed_backend == "ddp_sharded"
-            use_ddp_sharded_spawn = self.distributed_backend == "ddp_sharded_spawn"
+            use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
+            use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
 
             # TODO: decouple from TE
             # ddp script mode uses the same flags as TE
