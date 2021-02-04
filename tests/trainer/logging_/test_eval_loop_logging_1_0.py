@@ -291,7 +291,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
-        callbacks=[ModelCheckpoint(dirpath='val_loss')],
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     trainer.fit(model)
 

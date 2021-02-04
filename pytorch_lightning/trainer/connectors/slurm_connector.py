@@ -140,7 +140,7 @@ class SLURMConnector:
         # figure out the root node addr
         root_node = os.environ.get("SLURM_NODELIST")
         if root_node:
-            root_node = root_node.split(" ")[0]
+            root_node = root_node.split(" ")[0].split(",")[0]
         else:
             root_node = "127.0.0.1"
 
