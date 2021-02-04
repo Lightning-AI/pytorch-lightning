@@ -55,15 +55,17 @@ if _PYTORCH_GREATER_EQUAL_1_6_0:
             self.transfer_weights_calls += 1
             return StochasticWeightAveraging.transfer_weights(*args, **kwargs)
 
+        def on_train_epoch_start(self, trainer, *args):
+            super().on_train_epoch_start(trainer, *args)
+            assert trainer.train_loop._skip_backward == (trainer.current_epoch > self.swa_end)
+
         def on_train_epoch_end(self, trainer, *_):
             super().on_train_epoch_end(trainer, *_)
-            swa_start = self._swa_epoch_start - 1
-            swa_end = self._max_epochs - 1
-            if swa_start <= trainer.current_epoch <= swa_end:
-                swa_epoch = trainer.current_epoch - swa_start
+            if self.swa_start <= trainer.current_epoch <= self.swa_end:
+                swa_epoch = trainer.current_epoch - self.swa_start
                 assert self.n_averaged == swa_epoch + 1
-            elif trainer.current_epoch > swa_end:
-                assert self.n_averaged == self._max_epochs - swa_start
+            elif trainer.current_epoch > self.swa_end:
+                assert self.n_averaged == self._max_epochs - self.swa_start
 
 
 def train_with_swa(tmpdir, accelerator=None, gpus=None, num_processes=None):
@@ -124,7 +126,7 @@ def test_swa_num_calls(tmpdir, batchnorm):
     trainer.fit(model)
 
     # make sure these are correctly set again
-    assert not trainer.train_loop.skip_backward
+    assert not trainer.train_loop._skip_backward
     assert trainer.accumulate_grad_batches == 2
     assert trainer.num_training_batches == 5
 

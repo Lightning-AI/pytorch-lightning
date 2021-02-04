@@ -825,7 +825,7 @@ class TrainLoop:
                 self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
                 return None
 
-            if self.trainer.train_loop.automatic_optimization:
+            if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
                 # backward pass
                 with self.trainer.profiler.profile("model_backward"):
                     self.backward(result, optimizer, opt_idx)
@@ -842,10 +842,6 @@ class TrainLoop:
         return result
 
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
-        # useful
-        if self._skip_backward:
-            return
-
         self.trainer.dev_debugger.track_event("backward_call")
 
         # backward can be called manually in the training loop
