@@ -20,36 +20,43 @@ Quantization
 import torch
 
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class StaticModelQuantization(Callback):
 
     def __init__(
         self,
+            num_batches: int = 3,
     ) -> None:
-        self.num_batches = 3
+        self.num_batches = num_batches
+        self._count_validations = 0
+        self.qmodel = None
 
-    def on_fit_end(self, trainer, pl_module):
-        # tweak model for best results
-        # change code directly or use manipulation APIs
-        pl_module.eval()
-        # pl_module = torch.quantization.fuse_modules(pl_module, [["conv1", "bn1", "relu1"]])
-
+    def on_fit_start(self, trainer, pl_module):
         # specify which part to quantize and how
         pl_module.qconfig = torch.quantization.get_default_qconfig("fbgemm")
-        # configurable!
+        # todo: fuse seelcted by user or write func to fuse all
+        # torch.quantization.fuse_modules(pl_module, modules_to_fuse=..., inplace=True)
 
-        qmodel = torch.quantization.prepare(pl_module, inplace=False)
+        self.qmodel = torch.quantization.prepare(pl_module, inplace=False)
+        self.qmodel.eval()
 
-        # collect calibration statistics
-        qmodel.eval()
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        self._count_validations += 1
+
+    def on_fit_end(self, trainer, pl_module):
+        # change code directly or use manipulation APIs
+        # pl_module.eval()
+
+        # todo: if missing validation
         for idx, batch in enumerate(trainer.train_dataloader):
             if idx >= self.num_batches:
                 break
-            pl_module.validation_step(self, batch, idx)
+            self.qmodel(batch)
 
         # convert to quantized version
-        torch.quantization.convert(qmodel, inplace=True)
+        torch.quantization.convert(self.qmodel, inplace=True)
 
 
 class QuantizationAwareTraining(Callback):
