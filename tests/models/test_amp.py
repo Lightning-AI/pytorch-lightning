@@ -205,7 +205,7 @@ def test_amp_with_apex(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
+        max_steps=10,
         precision=16,
         amp_backend='apex',
         gpus=1,

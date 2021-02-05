@@ -417,20 +417,20 @@ def test_dp_resume(tmpdir):
     trainer_options['max_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
 
-    # if model and state loaded correctly, predictions will be good even though we
-    # haven't trained with the new loaded model
-    dp_model = new_trainer.model
-    dp_model.eval()
-    dp_model.module.module.running_stage = RunningStage.EVALUATING
-
-    # set the epoch start hook so we can predict before the model does the full training
     class CustomModel(BoringModel):
         def __init__(self):
             super().__init__()
             self.on_train_start_called = False
 
+        # set the epoch start hook so we can predict before the model does the full training
         def on_train_start(self):
             assert self.trainer.current_epoch == real_global_epoch and self.trainer.current_epoch > 0
+
+            # if model and state loaded correctly, predictions will be good even though we
+            # haven't trained with the new loaded model
+            dp_model = new_trainer.model
+            dp_model.eval()
+            dp_model.module.module.running_stage = RunningStage.EVALUATING
 
             dataloader = self.train_dataloader()
             tpipes.run_prediction(self.trainer.get_model(), dataloader)
