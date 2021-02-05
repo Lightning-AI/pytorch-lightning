@@ -280,6 +280,10 @@ class TrainLoop:
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
     def _check_training_step_output(self, training_step_output):
+        from syft.core.pointer.pointer import Pointer
+
+        if isinstance(training_step_output, Pointer):
+            training_step_output = training_step_output.get(delete_obj=False)
         if isinstance(training_step_output, torch.Tensor) and not self.automatic_optimization:
             if training_step_output.grad_fn is None:
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
@@ -361,9 +365,10 @@ class TrainLoop:
         # TODO: remove checks in 1.0.0
         from syft.core.pointer.pointer import Pointer
         if isinstance(training_step_output_for_epoch_end, Pointer):
-            training_step_output_for_epoch_end = training_step_output_for_epoch_end.get()
+            _training_step_output_for_epoch_end = training_step_output_for_epoch_end.get(
+                delete_obj=False)
 
-        is_tensor = isinstance(training_step_output_for_epoch_end, torch.Tensor)
+        is_tensor = isinstance(_training_step_output_for_epoch_end, torch.Tensor)
         is_1_0_output = is_tensor or ("log" not in training_step_output and "progress_bar" not in training_step_output)
         if is_1_0_output:
             return self._process_training_step_output_1_0(training_step_output, split_batch)
@@ -396,7 +401,7 @@ class TrainLoop:
         hiddens = None
 
         if isinstance(training_step_output, Pointer):
-            training_step_output = training_step_output.get()
+            _training_step_output = training_step_output.get(delete_obj=False)
 
         # handle dict return
         if isinstance(training_step_output, dict):
@@ -405,7 +410,7 @@ class TrainLoop:
             result["extra"] = training_step_output
 
         # handle scalar return
-        elif isinstance(training_step_output, torch.Tensor):
+        elif isinstance(_training_step_output, torch.Tensor):
             loss = training_step_output
             result["extra"] = {}
 
@@ -688,7 +693,6 @@ class TrainLoop:
 
                 else:
                     if self.automatic_optimization:
-
                         def train_step_and_backward_closure():
                             result = self.training_step_and_backward(
                                 split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens

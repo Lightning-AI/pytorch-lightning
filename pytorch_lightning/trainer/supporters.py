@@ -65,7 +65,9 @@ class TensorRunningAccum(object):
     def append(self, x):
         """Add an element to the accumulator."""
         if self.memory is None:
-            self.memory = torch.zeros(self.window_length, *x.shape)
+            from syft import client_cache
+
+            self.memory = client_cache["duet"].torch.zeros(self.window_length, *x.shape)
 
         # ensure same device and type
         if self.memory.device != x.device or self.memory.type() != x.type():

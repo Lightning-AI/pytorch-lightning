@@ -467,8 +467,9 @@ class Result(Dict):
             sample = next(iter(sample.values()), 1)
             size = Result.unpack_batch_size(sample)
         elif isinstance(sample, Iterable):
-            sample = next(iter(sample), 1)
-            size = Result.unpack_batch_size(sample)
+            # sample = next(iter(sample), 1)
+            # size = Result.unpack_batch_size(sample)
+            size = 1
         else:
             size = 1
         return size
