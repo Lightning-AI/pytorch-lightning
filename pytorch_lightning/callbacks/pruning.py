@@ -159,19 +159,18 @@ class ModelPruning(Callback):
                     pruning_kwargs["n"] = pruning_norm
                 pruning_kwargs["dim"] = pruning_dim
             pruning_fn = self._create_pruning_fn(pruning_fn, **pruning_kwargs)
-
-        else:
-            if not self.is_pruning_method(pruning_fn):
-                raise MisconfigurationException(
-                    f"`pruning_fn` is expected to be a str in {list(_PYTORCH_PRUNING_FUNCTIONS.keys())}"
-                    f" or a PyTorch `BasePruningMethod`. Found: {pruning_fn}"
-                )
-
+        elif self.is_pruning_method(pruning_fn):
             if not use_global_unstructured:
                 # TODO: currently not supported
                 raise MisconfigurationException(
                     "PyTorch `BasePruningMethod` is currently only supported with `use_global_unstructured=True`."
                 )
+        else:
+            raise MisconfigurationException(
+                f"`pruning_fn` is expected to be a str in {list(_PYTORCH_PRUNING_FUNCTIONS.keys())}"
+                f" or a PyTorch `BasePruningMethod`. Found: {pruning_fn}."
+                " HINT: if passing a `BasePruningMethod`, pass the the class, not an instance"
+            )
 
         if use_global_unstructured and pruning_fn.PRUNING_TYPE != "unstructured":
             raise MisconfigurationException(
