@@ -106,7 +106,7 @@ def train_with_swa(tmpdir, accelerator=None, gpus=None, batchnorm=True):
     assert swa_callback.transfer_weights_calls == 1
 
 
-@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
@@ -114,25 +114,25 @@ def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp" , gpus=2)
 
 
-@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_spawn" , gpus=2)
 
 
-@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
 def test_swa_callback_1_gpu(tmpdir):
     train_with_swa(tmpdir, accelerator=None, gpus=1)
 
 
-@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
 @pytest.mark.parametrize("batchnorm", (True, False))
 def test_swa_callback(tmpdir, batchnorm):
     train_with_swa(tmpdir, batchnorm=batchnorm)
 
 
-@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
 def test_swa_raises():
     with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=0, swa_lrs=0.1)
