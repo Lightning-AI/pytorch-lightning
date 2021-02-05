@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+
 import pytest
 
 from pytorch_lightning import Trainer
@@ -24,3 +26,5 @@ def test_models(tmpdir, data_class, model_class):
     model = model_class()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
     trainer.fit(model, datamodule=dm)
+    model.to_torchscript()
+    model.to_onnx(os.path.join(tmpdir, 'my-model.onnx'), input_sample=dm.sample)

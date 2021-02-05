@@ -63,6 +63,10 @@ class SklearnDataModule(LightningDataModule):
     def test_dataloader(self):
         return DataLoader(SklearnDataset(self.x_test, self.y_test, self._x_type, self._y_type), batch_size=self.batch_size)
 
+    @property
+    def sample(self):
+        return torch.tensor([self._x[0]], dtype=self._x_type)
+
 
 class ClassifDataModule(SklearnDataModule):
 
@@ -83,24 +87,28 @@ class ClassificationModel(LightningModule):
 
     def __init__(self):
         super().__init__()
-        self.layers = nn.ModuleDict()
         for i in range(3):
-            self.layers[f"mlp_{i}"] = nn.Linear(64, 64)
-            self.layers[f"mlp_{i}a"] = torch.nn.ReLU()
-        self.layers["mlp_end"] = nn.Linear(64, 3)
+            setattr(self, f"layer_{i}", nn.Linear(64, 64))
+            setattr(self, f"layer_{i}a", torch.nn.ReLU())
+        setattr(self, "layer_end", nn.Linear(64, 3))
 
         self.train_acc = Accuracy()
         self.valid_acc = Accuracy()
         self.test_acc = Accuracy()
 
     def forward(self, x):
-        for n in self.layers:
-            x = self.layers[n](x)
+        x = self.layer_0(x)
+        x = self.layer_0a(x)
+        x = self.layer_1(x)
+        x = self.layer_1a(x)
+        x = self.layer_2(x)
+        x = self.layer_2a(x)
+        x = self.layer_end(x)
         logits = F.softmax(x, dim=1)
         return logits
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.layers.parameters(), lr=0.01)
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
         return [optimizer], []
 
     def measure(self, output, target):
@@ -128,23 +136,27 @@ class RegressionModel(LightningModule):
 
     def __init__(self):
         super().__init__()
-        self.layers = nn.ModuleDict()
         for i in range(3):
-            self.layers[f"mlp_{i}"] = nn.Linear(64, 64)
-            self.layers[f"mlp_{i}a"] = torch.nn.ReLU()
-        self.layers["mlp_end"] = nn.Linear(64, 1)
+            setattr(self, f"layer_{i}", nn.Linear(64, 64))
+            setattr(self, f"layer_{i}a", torch.nn.ReLU())
+        setattr(self, "layer_end", nn.Linear(64, 1))
 
         self.train_mse = MeanSquaredError()
         self.valid_mse = MeanSquaredError()
         self.test_mse = MeanSquaredError()
 
     def forward(self, x):
-        for n in self.layers:
-            x = self.layers[n](x)
+        x = self.layer_0(x)
+        x = self.layer_0a(x)
+        x = self.layer_1(x)
+        x = self.layer_1a(x)
+        x = self.layer_2(x)
+        x = self.layer_2a(x)
+        x = self.layer_end(x)
         return x
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.layers.parameters(), lr=0.01)
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
         return [optimizer], []
 
     def measure(self, output, target):
