@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""
 Quantization
 ^^^^^^^^^^^^
@@ -27,7 +26,9 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def wrap_quantize_forward_context(quant_cb, model: pl.core.LightningModule, func: Callable, trigger_func: Optional[Callable] = None) -> Callable:
+def wrap_quantize_forward_context(
+    quant_cb, model: pl.core.LightningModule, func: Callable, trigger_func: Optional[Callable] = None
+) -> Callable:
     """
     This decorator is used as context manager...
     """
@@ -76,19 +77,23 @@ class QuantizationAwareTraining(Callback):
     ) -> None:
         """
         Args:
-            qconfig: define quantization configuration see: `torch.quantization.QConfig <https://pytorch.org/docs/stable/torch.quantization.html?highlight=qconfig#torch.quantization.QConfig>_`
+            qconfig: define quantization configuration see: `torch.quantization.QConfig
+             <https://pytorch.org/docs/stable/torch.quantization.html?highlight=qconfig#torch.quantization.QConfig>_`
                 or use pre-defined: 'fbgemm' for server inference and 'qnnpack' for mobile inference
             lambda_trigger: define custom function when you shall collect quantization statistic
 
-                - with default ``None`` you call the quant for each module forward, typical use-case can be reflecting user augmentation
-                - custom lambda funtion with single trainer argument, see example when you limit call only for last epoch::
+                - with default ``None`` you call the quant for each module forward,
+                    typical use-case can be reflecting user augmentation
+                - custom lambda function with single trainer argument,
+                    see example when you limit call only for last epoch::
 
                     def custom_trigger_last(trainer):
                         return trainer.current_epoch == (trainer.max_epochs - 1)
 
                     QuantizationAwareTraining(lambda_trigger=custom_trigger_last)
 
-            modules_to_fuse: allows you fuse a few layer together as you can see in `diagram <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
+            modules_to_fuse: allows you fuse a few layer together as you can see in `diagram
+             <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
                 to find what layer types can be fue=sed check https://github.com/pytorch/pytorch/pull/43286
         """
         if not isinstance(qconfig, (str, QConfig)):
@@ -118,7 +123,9 @@ class QuantizationAwareTraining(Callback):
         pl_module.dequant = torch.quantization.DeQuantStub()
         # manually specify where tensors will be converted from quantized
         # to floating point in the quantized model
-        pl_module.forward = wrap_quantize_forward_context(quant_cb=self, model=pl_module, func=pl_module.forward, trigger_func=self._lambda_trigger)
+        pl_module.forward = wrap_quantize_forward_context(
+            quant_cb=self, model=pl_module, func=pl_module.forward, trigger_func=self._lambda_trigger
+        )
 
         # attach a global qconfig, which contains information about what kind
         # of observers to attach. Use 'fbgemm' for server inference
