@@ -196,33 +196,36 @@ class StochasticWeightAveraging(Callback):
         if self.swa_start <= trainer.current_epoch <= self.swa_end:
             self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
 
-        if trainer.current_epoch > self.swa_end:
+        # Note: No > here in case the callback is saved with the model and training continues
+        if trainer.current_epoch == self.swa_end + 1:
+
             # Transfer weights from average model to pl_module
             self.transfer_weights(self._average_model, pl_module)
 
             # Reset BatchNorm for update
             self.reset_batch_norm_and_save_state(pl_module)
 
-            # There is no need to perform either backward or optimizeras we are
-            # performing only one pass over the train dataloader to compute activation statistics
+            # There is no need to perform either backward or optimizer.step as we are
+            # performing only one pass over the train data-loader to compute activation statistics
             # Therefore, we will virtually increase `num_training_batches` by 1 and skip backward.
-            trainer.train_loop._skip_backward = True
             trainer.num_training_batches += 1
+            trainer.train_loop._skip_backward = True
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
             trainer.accumulate_grad_batches = len(trainer.train_dataloader)
 
-    def on_train_epoch_end(self, trainer, pl_module, *args):
-        # TODO: this should be done on_epoch_end but it is currently broken
-        # and the PR to fix it hasn't been merged to this branch yet
+    def on_train_epoch_end(self, trainer, *args):
         trainer.train_loop._skip_backward = False
-        if trainer.current_epoch == self.swa_end and not self._model_contains_batch_norm:
-            # Last SWA epoch. Transfer weights from average model to pl_module
-            self.transfer_weights(self._average_model, pl_module)
-        elif trainer.current_epoch > self.swa_end:
-            # BatchNorm epoch update over. reset state
+
+    def on_train_end(self, trainer, pl_module):
+        if self._model_contains_batch_norm and trainer.current_epoch == self.swa_end + 1:
+            # BatchNorm epoch update. Reset state
             trainer.accumulate_grad_batches = self._accumulate_grad_batches
             trainer.num_training_batches -= 1
+            trainer.max_epochs -= 1
             self.reset_momenta()
+        elif trainer.current_epoch == self.swa_end:
+            # Last SWA epoch. Transfer weights from average model to pl_module
+            self.transfer_weights(self._average_model, pl_module)
 
     @staticmethod
     def update_parameters(average_model, model, n_averaged, avg_fn):

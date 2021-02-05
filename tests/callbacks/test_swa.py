@@ -61,17 +61,32 @@ if _PYTORCH_GREATER_EQUAL_1_6_0:
             super().on_train_epoch_start(trainer, *args)
             assert trainer.train_loop._skip_backward == (trainer.current_epoch > self.swa_end)
 
-        def on_train_epoch_end(self, trainer, *_):
-            super().on_train_epoch_end(trainer, *_)
+        def on_train_epoch_end(self, trainer, *args):
+            super().on_train_epoch_end(trainer, *args)
             if self.swa_start <= trainer.current_epoch <= self.swa_end:
                 swa_epoch = trainer.current_epoch - self.swa_start
                 assert self.n_averaged == swa_epoch + 1
             elif trainer.current_epoch > self.swa_end:
                 assert self.n_averaged == self._max_epochs - self.swa_start
 
+        def on_train_end(self, trainer, pl_module):
+            super().on_train_end(trainer, pl_module)
+
+            # make sure these are correctly set again
+            assert not trainer.train_loop._skip_backward
+            assert trainer.accumulate_grad_batches == 2
+            assert trainer.num_training_batches == 5
+
+            # check backward call count. the batchnorm update epoch should not backward
+            assert trainer.dev_debugger.count_events("backward_call") == trainer.max_epochs * trainer.limit_train_batches
+
+            # check call counts
+            assert self.update_parameters_calls == trainer.max_epochs - (self._swa_epoch_start - 1)
+            assert self.transfer_weights_calls == 1
+
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def train_with_swa(tmpdir, accelerator=None, gpus=None, batchnorm=True):
+def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1):
     model = SwaTestModel(batchnorm=batchnorm)
     swa_start = 2
     max_epochs = 5
@@ -88,22 +103,12 @@ def train_with_swa(tmpdir, accelerator=None, gpus=None, batchnorm=True):
         accumulate_grad_batches=2,
         accelerator=accelerator,
         gpus=gpus,
+        num_processes=num_processes
     )
     trainer.fit(model)
 
     # check the model is the expected
     assert trainer.get_model() == model
-
-    # make sure these are correctly set again
-    assert not trainer.train_loop._skip_backward
-    assert trainer.accumulate_grad_batches == 2
-    assert trainer.num_training_batches == 5
-
-    # check backward call count. the batchnorm update epoch should not backward
-    assert trainer.dev_debugger.count_events("backward_call") == max_epochs * trainer.limit_train_batches
-
-    assert swa_callback.update_parameters_calls == max_epochs - (swa_start - 1)
-    assert swa_callback.transfer_weights_calls == 1
 
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
@@ -111,19 +116,24 @@ def train_with_swa(tmpdir, accelerator=None, gpus=None, batchnorm=True):
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
 def test_swa_callback_ddp(tmpdir):
-    train_with_swa(tmpdir, accelerator="ddp" , gpus=2)
+    train_with_swa(tmpdir, accelerator="ddp", gpus=2)
 
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_swa_callback_ddp_spawn(tmpdir):
-    train_with_swa(tmpdir, accelerator="ddp_spawn" , gpus=2)
+    train_with_swa(tmpdir, accelerator="ddp_spawn", gpus=2)
 
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
+def test_swa_callback_ddp_cpu(tmpdir):
+    train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
+
+
+@pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires a GPU machine")
 def test_swa_callback_1_gpu(tmpdir):
-    train_with_swa(tmpdir, accelerator=None, gpus=1)
+    train_with_swa(tmpdir, gpus=1)
 
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
