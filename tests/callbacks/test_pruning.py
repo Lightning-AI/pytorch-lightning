@@ -169,3 +169,6 @@ def test_pruning_callback_ddp_cpu(tmpdir):
 # TODO: lottery ticket tests
 # TODO: iterative pruning tests
 # TODO: saving tests
+# TODO: sparsity history and tracking
+# TODO: allow resampling
+# TODO: second chance
