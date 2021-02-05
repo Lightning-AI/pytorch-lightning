@@ -70,14 +70,14 @@ class SklearnDataModule(LightningDataModule):
 
 class ClassifDataModule(SklearnDataModule):
 
-    def __init__(self, num_features=64, length=800, num_classes=3, batch_size=10):
+    def __init__(self, num_features=32, length=800, num_classes=3, batch_size=10):
         data = make_classification(n_samples=length, n_features=num_features, n_classes=num_classes, n_clusters_per_class=1, random_state=42)
         super().__init__(data, x_type=torch.float32, y_type=torch.long, batch_size=batch_size)
 
 
 class RegressDataModule(SklearnDataModule):
 
-    def __init__(self, num_features=64, length=800, batch_size=10):
+    def __init__(self, num_features=16, length=800, batch_size=10):
         x, y = make_regression(n_samples=length, n_features=num_features, random_state=42)
         y = [[v] for v in y]
         super().__init__((x, y), x_type=torch.float32, y_type=torch.float32, batch_size=batch_size)
@@ -88,9 +88,9 @@ class ClassificationModel(LightningModule):
     def __init__(self):
         super().__init__()
         for i in range(3):
-            setattr(self, f"layer_{i}", nn.Linear(64, 64))
+            setattr(self, f"layer_{i}", nn.Linear(32, 32))
             setattr(self, f"layer_{i}a", torch.nn.ReLU())
-        setattr(self, "layer_end", nn.Linear(64, 3))
+        setattr(self, "layer_end", nn.Linear(32, 3))
 
         self.train_acc = Accuracy()
         self.valid_acc = Accuracy()
@@ -110,9 +110,6 @@ class ClassificationModel(LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
         return [optimizer], []
-
-    def measure(self, output, target):
-        return mean_absolute_error(output, target).item()
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -136,7 +133,9 @@ class RegressionModel(LightningModule):
 
     def __init__(self):
         super().__init__()
-        for i in range(3):
+        setattr(self, f"layer_0", nn.Linear(16, 64))
+        setattr(self, f"layer_0a", torch.nn.ReLU())
+        for i in range(1, 3):
             setattr(self, f"layer_{i}", nn.Linear(64, 64))
             setattr(self, f"layer_{i}a", torch.nn.ReLU())
         setattr(self, "layer_end", nn.Linear(64, 1))
@@ -159,9 +158,6 @@ class RegressionModel(LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
         return [optimizer], []
 
-    def measure(self, output, target):
-        return mean_absolute_error(output, target).item()
-
     def training_step(self, batch, batch_idx):
         x, y = batch
         out = self.forward(x)
@@ -177,4 +173,4 @@ class RegressionModel(LightningModule):
     def test_step(self, batch, batch_idx):
         x, y = batch
         out = self.forward(x)
-        self.log('test_MSE', self.test_acc(out, y), prog_bar=True)
+        self.log('test_MSE', self.test_mse(out, y), prog_bar=True)

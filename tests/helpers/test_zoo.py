@@ -24,7 +24,10 @@ def test_models(tmpdir, data_class, model_class):
     """Test simple models"""
     dm = data_class()
     model = model_class()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5)
+
     trainer.fit(model, datamodule=dm)
+    trainer.test(model, datamodule=dm)
+
     model.to_torchscript()
     model.to_onnx(os.path.join(tmpdir, 'my-model.onnx'), input_sample=dm.sample)
