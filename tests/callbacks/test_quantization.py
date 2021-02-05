@@ -132,6 +132,12 @@ def test_quantization_exceptions(tmpdir):
     with pytest.raises(MisconfigurationException, match='Unsupported observer type'):
         QuantizationAwareTraining(observer_type='abc')
 
+    with pytest.raises(MisconfigurationException, match='Unsupported `collect_quantization`'):
+        QuantizationAwareTraining(collect_quantization='abc')
+
+    with pytest.raises(MisconfigurationException, match='Unsupported `collect_quantization`'):
+        QuantizationAwareTraining(collect_quantization=1.2)
+
     fusing_layers = [(f'layers.mlp_{i}', f'layers.NONE-mlp_{i}a') for i in range(3)]
     qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
@@ -154,6 +160,7 @@ def custom_trigger_last(trainer):
 @pytest.mark.parametrize(
     "trigger_fn,expected_count", [
         (None, 9),
+        (3, 3),
         (custom_trigger_never, 0),
         (custom_trigger_even, 5),
         (custom_trigger_last, 2),
@@ -163,7 +170,7 @@ def test_quantization_triggers(tmpdir, trigger_fn, expected_count):
     """Test  how many times the quant is called"""
     dm = RandDataModule()
     qmodel = LinearModel()
-    qcb = QuantizationAwareTraining(lambda_trigger=trigger_fn)
+    qcb = QuantizationAwareTraining(collect_quantization=trigger_fn)
     Trainer(
         callbacks=[qcb],
         default_root_dir=tmpdir,

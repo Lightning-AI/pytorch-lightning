@@ -27,19 +27,19 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def wrap_qat_forward_context(
-    quant_cb, model: pl.core.LightningModule, func: Callable, trigger_func: Optional[Callable] = None
+    quant_cb, model: pl.core.LightningModule, func: Callable, trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
     """
     This decorator is used as context manager...
     """
-
     # todo: consider using registering hook before/after forward
     def wrapper(data) -> Any:
-        _quent_run = trigger_func is None or trigger_func(model.trainer)
+        _is_func_true = isinstance(trigger_condition, Callable) and trigger_condition(model.trainer)
+        _is_count_true = isinstance(trigger_condition, int) and quant_cb._forward_calls < trigger_condition
+        _quent_run = trigger_condition is None or _is_func_true or _is_count_true
         # apply custom trigger
         if _quent_run:
-            if quant_cb:
-                quant_cb.increment_forward()
+            quant_cb._forward_calls += 1
             data = model.quant(data)
         data = func(data)
         # apply custom trigger
@@ -56,7 +56,6 @@ def wrap_quantize_forward_context(
     """
     This decorator is used as context manager...
     """
-
     # todo: consider using registering hook before/after forward
     def wrapper(data) -> Any:
         data = model.quant(data)
@@ -93,7 +92,7 @@ class QuantizationAwareTraining(Callback):
         self,
         qconfig: Union[str, QConfig] = 'fbgemm',
         observer_type: Optional[str] = None,
-        lambda_trigger: Optional[Callable] = None,
+        collect_quantization: Optional[Union[int, Callable]] = None,
         modules_to_fuse: Optional[Sequence] = None,
     ) -> None:
         """
@@ -103,10 +102,11 @@ class QuantizationAwareTraining(Callback):
                 or use pre-defined: 'fbgemm' for server inference and 'qnnpack' for mobile inference
             observer_type: switching between `MovingAverageMinMaxObserver` as "average"
                 and `HistogramObserver` as "histogram" which is more computational costly
-            lambda_trigger: define custom function when you shall collect quantization statistic
+            collect_quantization: define custom count or function when you shall collect quantization statistic
 
-                - with default ``None`` you call the quant for each module forward,
+                - with default ``None`` you call the quantization observer for each module forward,
                     typical use-case can be reflecting user augmentation
+                - custom call count to limit explicit number of calls starting from beginning
                 - custom lambda function with single trainer argument,
                     see example when you limit call only for last epoch::
 
@@ -120,19 +120,23 @@ class QuantizationAwareTraining(Callback):
                 to find what layer types can be fue=sed check https://github.com/pytorch/pytorch/pull/43286
         """
         if not isinstance(qconfig, (str, QConfig)):
-            raise MisconfigurationException(f"Unsupported qconfig: f{qconfig}")
+            raise MisconfigurationException(f"Unsupported qconfig: f{qconfig}.")
         self._qconfig = qconfig
+
         if observer_type not in self.OBSERVER_TYPES:
             raise MisconfigurationException(
-                f'Unsupported observer type "{observer_type}", allowed are {self.OBSERVER_TYPES}'
+                f'Unsupported observer type "{observer_type}", allowed are {self.OBSERVER_TYPES}.'
             )
         self._observer_type = observer_type
-        self._lambda_trigger = lambda_trigger
+
+        if collect_quantization is not None and not isinstance(collect_quantization, (int, Callable)):
+            raise MisconfigurationException(
+                f'Unsupported `collect_quantization` "{observer_type}", allowed are int or callable.'
+            )
+        self._collect_quantization = collect_quantization
+
         self.modules_to_fuse = modules_to_fuse
         self._forward_calls = 0
-
-    def increment_forward(self):
-        self._forward_calls += 1
 
     def _check_feasible_fuse(self, model):
         if not self.modules_to_fuse:
@@ -153,7 +157,7 @@ class QuantizationAwareTraining(Callback):
         # to floating point in the quantized model
         self.__module_forward = pl_module.forward
         pl_module.forward = wrap_qat_forward_context(
-            quant_cb=self, model=pl_module, func=pl_module.forward, trigger_func=self._lambda_trigger
+            quant_cb=self, model=pl_module, func=pl_module.forward, trigger_condition=self._collect_quantization
         )
 
         # attach a global qconfig, which contains information about what kind
