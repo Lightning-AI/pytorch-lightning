@@ -91,10 +91,7 @@ class TrainLoop:
         return num_optimizers
 
     def should_skip_training(self):
-        return (
-            self.trainer.current_epoch >= self.trainer.max_epochs
-            or self.trainer.limit_train_batches == 0
-        )
+        return self.trainer.current_epoch >= self.trainer.max_epochs or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
         # clear cache before training
