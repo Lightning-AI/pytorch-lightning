@@ -111,9 +111,6 @@ class TrainLoop:
         self.trainer.profile_connector.on_train_start(self.trainer)
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
-        # # bind logger and other properties
-        # self.trainer.model_connector.copy_trainer_model_properties(model)
-
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
