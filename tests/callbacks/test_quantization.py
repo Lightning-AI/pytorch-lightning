@@ -94,22 +94,26 @@ def test_quantization(tmpdir):
     dm = RandDataModule()
     trainer_args = dict(
         default_root_dir=tmpdir,
-        max_epochs=10,
+        max_epochs=5,
     )
+
     model = LinearModel()
     Trainer(**trainer_args).fit(model, datamodule=dm)
     org_size = model.model_size()
     org_mae = torch.mean(torch.tensor([model.measure(model(x), y) for x, y in dm.test_dataloader()]))
 
     qmodel = LinearModel()
-    qcb = QuantizationAwareTraining()
+    fusing_layers = [(f'layers.mlp_{i}', f'layers.mlp_{i}a') for i in range(3)]
+    qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
     Trainer(callbacks=[qcb], **trainer_args).fit(qmodel, datamodule=dm)
     quant_size = qmodel.model_size()
     quant_mae = torch.mean(torch.tensor([model.measure(qmodel(x), y) for x, y in dm.test_dataloader()]))
 
     # test that the trained model is smaller then initial
     size_ratio = quant_size / org_size
-    assert size_ratio < 0.65
+    assert size_ratio < 0.55
     # test that the test score is almost the same as with pure training
     diff_mae = abs(org_mae - quant_mae)
-    assert diff_mae < 25
+    assert diff_mae < 15
+
+    print("")
