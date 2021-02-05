@@ -16,7 +16,7 @@ from typing import Optional, Sequence, Tuple
 
 import torch
 
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 from pytorch_lightning.metrics.functional.auc import auc
 from pytorch_lightning.metrics.functional.roc import roc
 from pytorch_lightning.utilities import LightningEnum
@@ -46,14 +46,14 @@ def _auroc_update(preds: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tens
 
 
 def _auroc_compute(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        mode: str,
-        num_classes: Optional[int] = None,
-        pos_label: Optional[int] = None,
-        average: Optional[str] = 'macro',
-        max_fpr: Optional[float] = None,
-        sample_weights: Optional[Sequence] = None,
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    mode: str,
+    num_classes: Optional[int] = None,
+    pos_label: Optional[int] = None,
+    average: Optional[str] = 'macro',
+    max_fpr: Optional[float] = None,
+    sample_weights: Optional[Sequence] = None,
 ) -> torch.Tensor:
     # binary mode override num_classes
     if mode == 'binary':
@@ -65,20 +65,26 @@ def _auroc_compute(
             raise ValueError(f"`max_fpr` should be a float in range (0, 1], got: {max_fpr}")
 
         if LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
-            raise RuntimeError("`max_fpr` argument requires `torch.bucketize` which"
-                               " is not available below PyTorch version 1.6")
+            raise RuntimeError(
+                "`max_fpr` argument requires `torch.bucketize` which"
+                " is not available below PyTorch version 1.6"
+            )
 
         # max_fpr parameter is only support for binary
         if mode != 'binary':
-            raise ValueError(f"Partial AUC computation not available in "
-                             f"multilabel/multiclass setting, 'max_fpr' must be"
-                             f" set to `None`, received `{max_fpr}`.")
+            raise ValueError(
+                f"Partial AUC computation not available in"
+                f" multilabel/multiclass setting, 'max_fpr' must be"
+                f" set to `None`, received `{max_fpr}`."
+            )
 
     # calculate fpr, tpr
     if mode == 'multi-label':
         # for multilabel we iteratively evaluate roc in a binary fashion
-        output = [roc(preds[:, i], target[:, i], num_classes=1, pos_label=1, sample_weights=sample_weights)
-                  for i in range(num_classes)]
+        output = [
+            roc(preds[:, i], target[:, i], num_classes=1, pos_label=1, sample_weights=sample_weights)
+            for i in range(num_classes)
+        ]
         fpr = [o[0] for o in output]
         tpr = [o[1] for o in output]
     else:
@@ -96,15 +102,17 @@ def _auroc_compute(
             elif average == AverageMethods.MACRO:
                 return torch.mean(torch.stack(auc_scores))
             elif average == AverageMethods.WEIGHTED:
-                if mode == 'multi-label':
+                if mode == DataType.MULTILABEL:
                     support = torch.sum(target, dim=0)
                 else:
                     support = torch.bincount(target.flatten(), minlength=num_classes)
                 return torch.sum(torch.stack(auc_scores) * support / support.sum())
 
             allowed_average = [e.value for e in AverageMethods]
-            raise ValueError(f"Argument `average` expected to be one of the following:"
-                             f" {allowed_average} but got {average}")
+            raise ValueError(
+                f"Argument `average` expected to be one of the following:"
+                f" {allowed_average} but got {average}"
+            )
 
         return auc(fpr, tpr)
 
@@ -121,19 +129,19 @@ def _auroc_compute(
 
     # McClish correction: standardize result to be 0.5 if non-discriminant
     # and 1 if maximal
-    min_area = 0.5 * max_fpr ** 2
+    min_area = 0.5 * max_fpr**2
     max_area = max_fpr
     return 0.5 * (1 + (partial_auc - min_area) / (max_area - min_area))
 
 
 def auroc(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        pos_label: Optional[int] = None,
-        average: Optional[str] = 'macro',
-        max_fpr: Optional[float] = None,
-        sample_weights: Optional[Sequence] = None,
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    pos_label: Optional[int] = None,
+    average: Optional[str] = 'macro',
+    max_fpr: Optional[float] = None,
+    sample_weights: Optional[Sequence] = None,
 ) -> torch.Tensor:
     """ Compute `Area Under the Receiver Operating Characteristic Curve (ROC AUC)
     <https://en.wikipedia.org/wiki/Receiver_operating_characteristic#Further_interpretations>`_

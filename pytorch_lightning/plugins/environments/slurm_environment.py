@@ -16,7 +16,7 @@ import os
 import re
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 
 
 class SLURMEnvironment(ClusterEnvironment):
@@ -28,7 +28,7 @@ class SLURMEnvironment(ClusterEnvironment):
         # figure out the root node addr
         slurm_nodelist = os.environ.get("SLURM_NODELIST")
         if slurm_nodelist:
-            root_node = slurm_nodelist.split(" ")[0]
+            root_node = slurm_nodelist.split(" ")[0].split(",")[0]
         else:
             root_node = "127.0.0.1"
 

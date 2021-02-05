@@ -9,25 +9,28 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Add support for summarized model total params size in megabytes ([#5590](https://github.com/PyTorchLightning/pytorch-lightning/pull/5590))
+- Added `DataType`, `AverageMethod` and `MDMCAverageMethod` enum in metrics ([#5657](https://github.com/PyTorchLightning/pytorch-lightning/pull/5689)
 
 
-- Add Support for multiple train loaders ([#1959](https://github.com/PyTorchLightning/pytorch-lightning/pull/1959))
+- Added support for summarized model total params size in megabytes ([#5590](https://github.com/PyTorchLightning/pytorch-lightning/pull/5590))
 
 
-- `Accuracy` metric now generalizes to Top-k accuracy for (multi-dimensional) multi-class inputs using the `top_k` parameter ([#4838](https://github.com/PyTorchLightning/pytorch-lightning/pull/4838))
+- Added support for multiple train loaders ([#1959](https://github.com/PyTorchLightning/pytorch-lightning/pull/1959))
 
 
-- `Accuracy` metric now enables the computation of subset accuracy for multi-label or multi-dimensional multi-class inputs with the `subset_accuracy` parameter ([#4838](https://github.com/PyTorchLightning/pytorch-lightning/pull/4838))
+- Added `Accuracy` metric now generalizes to Top-k accuracy for (multi-dimensional) multi-class inputs using the `top_k` parameter ([#4838](https://github.com/PyTorchLightning/pytorch-lightning/pull/4838))
 
 
-- `HammingDistance` metric to compute the hamming distance (loss) ([#4838](https://github.com/PyTorchLightning/pytorch-lightning/pull/4838))
+- Added `Accuracy` metric now enables the computation of subset accuracy for multi-label or multi-dimensional multi-class inputs with the `subset_accuracy` parameter ([#4838](https://github.com/PyTorchLightning/pytorch-lightning/pull/4838))
+
+
+- Added `HammingDistance` metric to compute the hamming distance (loss) ([#4838](https://github.com/PyTorchLightning/pytorch-lightning/pull/4838))
 
 
 - Added `max_fpr` parameter to `auroc` metric for computing partial auroc metric ([#3790](https://github.com/PyTorchLightning/pytorch-lightning/pull/3790))
 
 
-- `StatScores` metric to compute the number of true positives, false positives, true negatives and false negatives ([#4839](https://github.com/PyTorchLightning/pytorch-lightning/pull/4839))
+- Added `StatScores` metric to compute the number of true positives, false positives, true negatives and false negatives ([#4839](https://github.com/PyTorchLightning/pytorch-lightning/pull/4839))
 
 
 - Added `R2Score` metric ([#5241](https://github.com/PyTorchLightning/pytorch-lightning/pull/5241))
@@ -110,12 +113,33 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed the default value for the `progress_bar_refresh_rate` Trainer argument in Google COLAB notebooks to 20 ([#5516](https://github.com/PyTorchLightning/pytorch-lightning/pull/5516))
 
 
+- Made `LightningModule.global_rank`, `LightningModule.local_rank` and `LightningModule.logger` read-only properties ([#5730](https://github.com/PyTorchLightning/pytorch-lightning/pull/5730))
+
+
+- Forced `ModelCheckpoint` callbacks to run after all others to guarantee all states are saved to the checkpoint ([#5731](https://github.com/PyTorchLightning/pytorch-lightning/pull/5731))
+
+
+- Refactored Accelerators and Plugins
+    * Added base classes for plugins ([#5715](https://github.com/PyTorchLightning/pytorch-lightning/pull/5715))
+    * Added parallel plugins for DP, DDP, DDPSpawn, DDP2 and Horovod ([#5714](https://github.com/PyTorchLightning/pytorch-lightning/pull/5714))
+    * Added new Accelerators for CPU, GPU and TPU ([#5719](https://github.com/PyTorchLightning/pytorch-lightning/pull/5719))
+    * Added Plugins for TPU training ([#5719](https://github.com/PyTorchLightning/pytorch-lightning/pull/5719))
+    * Added RPC and Sharded plugins ([#5732](https://github.com/PyTorchLightning/pytorch-lightning/pull/5732))
+    * Added missing `LightningModule`-wrapper logic to new plugins and accelerator ([#5734](https://github.com/PyTorchLightning/pytorch-lightning/pull/5734))
+
+
 ### Deprecated
 
-- `stat_scores_multiple_classes` is deprecated in favor of `stat_scores` ([#4839](https://github.com/PyTorchLightning/pytorch-lightning/pull/4839))
+- Function `stat_scores_multiple_classes` is deprecated in favor of `stat_scores` ([#4839](https://github.com/PyTorchLightning/pytorch-lightning/pull/4839))
 
 
 - Moved accelerators and plugins to its `legacy` pkg ([#5645](https://github.com/PyTorchLightning/pytorch-lightning/pull/5645))
+
+
+- Deprecated `LightningDistributedDataParallel` in favor of new wrapper module `LightningDistributedModule` ([#5185](https://github.com/PyTorchLightning/pytorch-lightning/pull/5185))
+
+
+- Deprecated `LightningDataParallel` in favor of new wrapper module `LightningParallelModule` ([#5670](https://github.com/PyTorchLightning/pytorch-lightning/pull/5670))
 
 
 ### Removed
@@ -130,6 +154,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed deprecated `EvalResult` ([#5633](https://github.com/PyTorchLightning/pytorch-lightning/pull/5633))
+
+
+- Removed `LoggerStages` ([#5673](https://github.com/PyTorchLightning/pytorch-lightning/pull/5673))
 
 
 ### Fixed
@@ -148,7 +175,39 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed loading yaml ([#5619](https://github.com/PyTorchLightning/pytorch-lightning/pull/5619))
 
-## [1.1.4] - YYYY-MM-DD
+
+
+## [1.1.6] - 2021-01-26
+
+### Changed
+
+- Increased TPU check timeout from 20s to 100s ([#5598](https://github.com/PyTorchLightning/pytorch-lightning/pull/5598))
+- Ignored `step` param in Neptune logger's log_metric method ([#5510](https://github.com/PyTorchLightning/pytorch-lightning/pull/5510))
+- Pass batch outputs to `on_train_batch_end` instead of `epoch_end` outputs ([#4369](https://github.com/PyTorchLightning/pytorch-lightning/pull/4369))
+
+### Fixed
+
+- Fixed `toggle_optimizer` to reset `requires_grad` state  ([#5574](https://github.com/PyTorchLightning/pytorch-lightning/pull/5574))
+- Fixed FileNotFoundError for best checkpoint when using DDP with Hydra ([#5629](https://github.com/PyTorchLightning/pytorch-lightning/pull/5629))
+- Fixed an error when logging a progress bar metric with a reserved name ([#5620](https://github.com/PyTorchLightning/pytorch-lightning/pull/5620))
+- Fixed `Metric`'s `state_dict` not included when child modules ([#5614](https://github.com/PyTorchLightning/pytorch-lightning/pull/5614))
+- Fixed Neptune logger creating multiple experiments when GPUs > 1 ([#3256](https://github.com/PyTorchLightning/pytorch-lightning/pull/3256)) 
+- Fixed duplicate logs appearing in console when using the python logging module ([#5509](https://github.com/PyTorchLightning/pytorch-lightning/pull/5509))
+- Fixed tensor printing in `trainer.test()` ([#5138](https://github.com/PyTorchLightning/pytorch-lightning/pull/5138))
+- Fixed not using dataloader when `hparams` present ([#4559](https://github.com/PyTorchLightning/pytorch-lightning/pull/4559))
+
+
+## [1.1.5] - 2021-01-19
+
+### Fixed
+
+- Fixed a visual bug in the progress bar display initialization ([#4579](https://github.com/PyTorchLightning/pytorch-lightning/pull/4579))
+- Fixed logging `on_train_batch_end` in a callback with multiple optimizers ([#5521](https://github.com/PyTorchLightning/pytorch-lightning/pull/5521))
+- Fixed `reinit_scheduler_properties` with correct optimizer ([#5519](https://github.com/PyTorchLightning/pytorch-lightning/pull/5519))
+- Fixed `val_check_interval` with `fast_dev_run` ([#5540](https://github.com/PyTorchLightning/pytorch-lightning/pull/5540))
+
+
+## [1.1.4] - 2021-01-12
 
 ### Added
 
@@ -164,7 +223,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Logging only on `not should_accumulate()` during training ([#5417](https://github.com/PyTorchLightning/pytorch-lightning/pull/5417))
 - Resolve interpolation bug with Hydra ([#5406](https://github.com/PyTorchLightning/pytorch-lightning/pull/5406))
 - Check environ before selecting a seed to prevent warning message ([#4743](https://github.com/PyTorchLightning/pytorch-lightning/pull/4743))
-
+- Fixed signature mismatch in `model_to_device` of `DDPCPUHPCAccelerator` ([#5505](https://github.com/PyTorchLightning/pytorch-lightning/pull/5505))
 
 ## [1.1.3] - 2021-01-05
 

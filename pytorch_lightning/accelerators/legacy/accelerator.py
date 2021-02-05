@@ -17,8 +17,8 @@ from typing import Any, Optional, Union
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.legacy.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -51,6 +51,10 @@ class Accelerator(object):
     def setup(self, model):
         pass
 
+    def train(self):
+        self.trainer.setup_trainer(self.trainer.model)
+        return self.train_or_test()
+
     def teardown(self):
         # Ensure if necessary all processes are finished
         self.barrier()
@@ -65,6 +69,7 @@ class Accelerator(object):
         if self.trainer.testing:
             results = self.trainer.run_test()
         else:
+            self.trainer.train_loop.setup_training()
             results = self.trainer.train()
         return results
 

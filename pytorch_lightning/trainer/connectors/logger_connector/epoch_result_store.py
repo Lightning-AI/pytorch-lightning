@@ -12,33 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import torch
 
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DistributedType, LightningEnum
-
-
-class LoggerStages(LightningEnum):
-    """ Train/validation/test phase in each training step.
-    >>> # you can math the type with string
-    >>> LoggerStages.TRAIN == 'train'
-    True
-    """
-    TRAIN = "train"
-    VAL = "validation"
-    TEST = "test"
-
-    @staticmethod
-    def determine_stage(stage_or_testing: Union[str, bool]) -> 'LoggerStages':
-        if isinstance(stage_or_testing, str) and stage_or_testing in list(LoggerStages):
-            return LoggerStages(stage_or_testing)
-        if isinstance(stage_or_testing, (bool, int)):
-            # stage_or_testing is trainer.testing
-            return LoggerStages.TEST if bool(stage_or_testing) else LoggerStages.VAL
-        raise RuntimeError(f"Invalid stage {stage_or_testing} of type {type(stage_or_testing)} given")
 
 
 class ResultStoreType(LightningEnum):
@@ -205,13 +185,7 @@ class HookResultStore:
             epoch_metrics = self._internals[dl_idx]
 
             if self._internal_type == ResultStoreType.INSIDE_BATCH_TRAIN_LOOP:
-
-                num_opt_idx = len(self._internals[dl_idx]) - 1
-
-                # Make sure we didn't create key
-                assert num_opt_idx >= 0
-
-                for opt_idx in range(num_opt_idx + 1):
+                for opt_idx in list(epoch_metrics):
                     # TODO: Figure out to reduce memory
                     # TODO: How to start training in middle of epoch
                     opt_outputs = epoch_metrics[opt_idx]

@@ -586,12 +586,12 @@ def test_log_works_in_train_callback(tmpdir):
             # with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
-        def on_epoch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False],
+        def on_train_epoch_end(self, trainer, pl_module, outputs):
+            self.make_logging(pl_module, 'on_train_epoch_end', 8, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
 
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
-            self.make_logging(pl_module, 'on_train_epoch_end', 9, on_steps=[False],
+        def on_epoch_end(self, trainer, pl_module):
+            self.make_logging(pl_module, 'on_epoch_end', 9, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
 
     class TestModel(BoringModel):
@@ -788,13 +788,14 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
             self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
             return super().training_step(*args)
 
-        def on_epoch_end(self):
+        def on_train_epoch_end(self, *_):
+            self.on_train_epoch_end_called = True
             self.epoch_end_called = True
             self.log('foo_2', torch.tensor(self.current_epoch), prog_bar=True,
                      on_epoch=True, sync_dist=True, sync_dist_op='sum')
 
-        def on_train_epoch_end(self, *_):
-            self.on_train_epoch_end_called = True
+        def on_epoch_end(self):
+            self.epoch_end_called = True
             assert self.trainer.progress_bar_dict["foo"] == self.current_epoch
             assert self.trainer.progress_bar_dict["foo_2"] == self.current_epoch
 
@@ -825,11 +826,11 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_train_epoch_start(self, trainer, pl_module):
             self.log("on_train_epoch_start", 2)
 
-        def on_batch_end(self, trainer, pl_module):
-            self.log("on_batch_end", 3)
-
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            self.log("on_train_batch_end", 4)
+            self.log("on_train_batch_end", 3)
+
+        def on_batch_end(self, trainer, pl_module):
+            self.log("on_batch_end", 4)
 
         def on_epoch_end(self, trainer, pl_module):
             self.log("on_epoch_end", 5)
@@ -852,8 +853,8 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     expected = {
         'on_train_start': 1,
         'on_train_epoch_start': 2,
-        'on_batch_end': 3,
-        'on_train_batch_end': 4,
+        'on_train_batch_end': 3,
+        'on_batch_end': 4,
         'on_epoch_end': 5,
         'on_train_epoch_end': 6}
     assert trainer.callback_metrics == expected

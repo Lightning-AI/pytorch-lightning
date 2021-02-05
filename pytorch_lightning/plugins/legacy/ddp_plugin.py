@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.data_parallel import LightningDistributedModule, prepare_for_backward
+from pytorch_lightning.overrides.distributed import LightningDistributedModule, prepare_for_backward
 from pytorch_lightning.plugins.legacy.plugin import LightningPlugin
 from pytorch_lightning.utilities import DeviceType
 

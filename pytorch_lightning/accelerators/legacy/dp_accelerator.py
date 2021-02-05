@@ -14,14 +14,13 @@
 from typing import Optional
 
 import torch
-from torch import optim
 
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
-from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed import LightningDistributed
-from pytorch_lightning.overrides.data_parallel import LightningDataParallel
+from pytorch_lightning.overrides.data_parallel import LightningParallelModule
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -74,7 +73,7 @@ class DataParallelAccelerator(Accelerator):
 
         # set dp device
         torch.cuda.set_device(self.trainer.root_gpu)
-        model = LightningDataParallel(model, device_ids=device_ids)
+        model = torch.nn.DataParallel(LightningParallelModule(model), device_ids=device_ids)
         return model
 
     def __init_half_precision(self, model):
@@ -99,16 +98,6 @@ class DataParallelAccelerator(Accelerator):
             model = self.trainer.precision_connector.connect(model)
 
         return model
-
-    def train(self):
-        model = self.trainer.model
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
-
-        # train or test
-        results = self.train_or_test()
-
-        return results
 
     def teardown(self):
         # replace the original fwd function
@@ -156,33 +145,11 @@ class DataParallelAccelerator(Accelerator):
             output = output.mean()
         return output
 
-    def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
-        """
-        Reinitialize optimizer.step properties added by schedulers
-        """
-        for scheduler in schedulers:
-            scheduler = scheduler['scheduler']
-
-            for optimizer in optimizers:
-                # check that we dont mix users optimizers and schedulers
-                if scheduler.optimizer == optimizer:
-                    # Find the mro belonging to the base lr scheduler class
-                    for i, mro in enumerate(scheduler.__class__.__mro__):
-                        is_regular_scheduler = optim.lr_scheduler._LRScheduler
-                        is_lr_reduce_on_plateau = optim.lr_scheduler.ReduceLROnPlateau
-                        if is_regular_scheduler or is_lr_reduce_on_plateau:
-                            idx = i
-                            state = scheduler.state_dict()
-                        else:
-                            state = None
-
-                scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
-                if state is not None:
-                    scheduler.load_state_dict(state)
-
     def get_reference_model(self, model) -> LightningModule:
-        if isinstance(model, LightningDataParallel):
-            return model.module
+        if isinstance(model, torch.nn.DataParallel):
+            model = model.module
+        if isinstance(model, LightningParallelModule):
+            model = model.module
         return model
 
     @property

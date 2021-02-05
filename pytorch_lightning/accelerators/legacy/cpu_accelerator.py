@@ -16,7 +16,7 @@ from typing import Any, Callable, Optional, Union
 import torch
 
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -49,16 +49,6 @@ class CPUAccelerator(Accelerator):
         self.setup_optimizers(model)
 
         self.trainer.model = model
-
-    def train(self):
-        model = self.trainer.model
-
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
-
-        # train or test
-        results = self.train_or_test()
-        return results
 
     def _step(self, model_step: Callable, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
