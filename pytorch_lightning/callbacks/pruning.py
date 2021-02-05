@@ -20,7 +20,7 @@ ModelPruning
 import inspect
 from copy import deepcopy
 from functools import partial
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch.nn.utils.prune as pytorch_prune
 from torch import nn
@@ -44,6 +44,8 @@ _PYTORCH_PRUNING_METHOD = {
     "random_unstructured": pytorch_prune.RandomUnstructured,
 }
 
+_PARAM_LIST = List[Tuple[nn.Module, str]]
+
 
 class ModelPruning(Callback):
     PARAMETER_NAMES = ("weight", "bias")
@@ -51,12 +53,12 @@ class ModelPruning(Callback):
     def __init__(
         self,
         pruning_fn: Optional[Union[Callable, str]] = None,
-        parameters_to_prune: Optional[List[Tuple[nn.Module, str]]] = None,
+        parameters_to_prune: Optional[_PARAM_LIST] = None,
         parameter_names: Optional[List[str]] = None,
         use_global_unstructured: bool = True,
-        amount: Union[int, float, Callable] = 0.5,
+        amount: Union[int, float, Callable[[int], Union[int, float]]] = 0.5,
         make_pruning_permanent: bool = True,
-        use_lottery_ticket_hypothesis: bool = True,
+        use_lottery_ticket_hypothesis: Union[bool, Callable[[int], bool]] = True,
         pruning_dim: Optional[int] = None,
         pruning_norm: Optional[int] = None,
     ) -> None:
@@ -85,41 +87,38 @@ class ModelPruning(Callback):
                 )
             ])
 
-        When `parameters_to_prune` is None, `parameters_to_prune` will contains all parameters from the model.
-        The user can override `filter_parameters_to_prune` to filter any nn.Module to be pruned.
+        When ``parameters_to_prune`` is ``None``, ``parameters_to_prune`` will contain all parameters from the model.
+        The user can override ``filter_parameters_to_prune`` to filter any ``nn.Module`` to be pruned.
 
         Args:
 
-            pruning_fn: function from torch.nn.utils.prune module
-                or your based own subclasses from PyTorch ``BasePruningMethod``.
-                Can be string e.g. `"l1_unstructured"`.
-                See pytorch docs for more details.
+            pruning_fn: Function from torch.nn.utils.prune module or your own PyTorch ``BasePruningMethod`` subclass.
+                Can also be string e.g. `"l1_unstructured"`. See pytorch docs for more details.
 
-            parameters_to_prune: list of strings or list of tuple with
-                nn.Module and its associated string name parameters.
+            parameters_to_prune: List of strings or list of tuples ``(nn.Module, "parameter_name_string")``.
 
-            parameter_names: List of parameter names to be used from nn.Module.
-                Can either be `weight` or `bias`.
+            parameter_names: List of parameter names to be pruned from the nn.Module.
+                Can either be ``"weight"`` or ``"bias"``.
 
             use_global_unstructured: Whether to apply pruning globally on the model.
-                If parameters_to_prune is provided, global_unstructured will be restricted on them.
+                If ``parameters_to_prune`` is provided, global unstructured will be restricted on them.
 
-            amount: quantity of parameters to prune:
+            amount: Quantity of parameters to prune:
 
-                - float, between 0.0 and 1.0. represents the fraction of parameters to prune.
-                - int, represents the absolute number of parameters to prune.
-                - Callable, for dynamic values. will be called every epoch.
+                - ``float``. Between 0.0 and 1.0. Represents the fraction of parameters to prune.
+                - ``int``. Represents the absolute number of parameters to prune.
+                - ``Callable``. For dynamic values. Will be called every epoch. Should return a value.
 
-            make_pruning_permanent: if True then all reparametrization pre-hooks and tensors
-                with mask will be removed on fit end.
+            make_pruning_permanent: Whether to remove all reparametrization pre-hooks and apply masks on fit end.
 
-            use_lottery_ticket_hypothesis: Whether to use algorithm describes in
-                "The lottery ticket hypothesis" (https://arxiv.org/pdf/1803.03635.pdf)
+            use_lottery_ticket_hypothesis: See "The lottery ticket hypothesis" (https://arxiv.org/pdf/1803.03635.pdf):
 
-            pruning_dim: if you are using structured pruning method you need
-                to specify dimension.
+                - ``bool``. Whether to apply it or not.
+                - ``Callable``. For dynamic values. Will be called every epoch. Should return a bool
 
-            pruning_norm: if you are using ln_structured you need to specify norm.
+            pruning_dim: If you are using a structured pruning method you need to specify the dimension.
+
+            pruning_norm: If you are using ``ln_structured`` you need to specify the norm.
 
         """
 
@@ -186,13 +185,13 @@ class ModelPruning(Callback):
 
         self.amount = amount
 
-    def filter_parameters_to_prune(self, parameters_to_prune: Optional[List[Tuple[nn.Module, str]]] = None):
+    def filter_parameters_to_prune(self, parameters_to_prune: Optional[_PARAM_LIST] = None) -> Optional[_PARAM_LIST]:
         """
         This function can be overridden to control which module to prune.
         """
         return parameters_to_prune
 
-    def _create_pruning_fn(self, pruning_fn: str, **kwargs):
+    def _create_pruning_fn(self, pruning_fn: str, **kwargs) -> Union[Callable, pytorch_prune.BasePruningMethod]:
         """
         This function takes `pruning_fn`, a function name.
 
@@ -214,20 +213,7 @@ class ModelPruning(Callback):
         for module, param_name in self._parameters_to_prune:
             pytorch_prune.remove(module, param_name)
 
-    def _resolve_amount(self, current_epoch: int) -> float:
-        return self.amount(current_epoch) if isinstance(self.amount, Callable) else self.amount
-
     def _restore_original_weights(self, module: nn.Module, orig_module: nn.Module, tensor_name: str):
-        """
-        "The lottery ticket hypothesis" (https://arxiv.org/pdf/1803.03635.pdf) algorithm:
-
-            1. Randomly initialize a neural network f(x;θ0)(where θ0 ∼Dθ).
-            2. Train the network for j iterations, arriving at parameters θj .
-            3. Prune p% of the parameters in θj , creating a mask m.
-            4. Reset the remaining parameters to their values in θ0, creating the winning ticket f(x; m⊙θ0).
-
-        This function is responsible of step 4.
-        """
         trained = getattr(module, tensor_name)
         orig = getattr(orig_module, tensor_name)
         if trained is None or orig is None:
@@ -235,8 +221,23 @@ class ModelPruning(Callback):
         trained.data = orig.data.to(trained.device)
 
     def apply_lottery_ticket_hypothesis(self):
-        for (mod, tensor_name), (initial_mod, _) in zip(self._parameters_to_prune, self._initial_parameters_to_prune):
-            self._restore_original_weights(mod, initial_mod, tensor_name)
+        """
+        Lottery ticket hypothesis algorithm (see page 2 of the paper):
+
+            1. Randomly initialize a neural network f(x; θ_0) (where θ_0 ∼ D_θ).
+            2. Train the network for j iterations, arriving at parameters θ_j .
+            3. Prune p% of the parameters in θ_j, creating a mask m.
+            4. Reset the remaining parameters to their values in θ_0, creating the winning ticket f(x; m⊙θ_0).
+
+        This function implements the step 4.
+        """
+        for (new, new_name), (old, old_name) in zip(self._parameters_to_prune, self._initial_parameters_to_prune):
+            trained = getattr(new, new_name)
+            orig = getattr(old, new_name)
+            assert new_name == old_name
+            if trained is None or orig is None:
+                return
+            trained.data = orig.data.to(trained.device)
 
     def _apply_local_pruning(self, amount: float):
         for module, param in self._parameters_to_prune:
@@ -254,8 +255,7 @@ class ModelPruning(Callback):
         )
 
     def apply_pruning(self, current_epoch: int):
-        amount = self._resolve_amount(current_epoch)
-
+        amount = self.amount(current_epoch) if isinstance(self.amount, Callable) else self.amount
         # the user could control the pruning frequency with amount_fn
         if not amount:
             return
@@ -265,7 +265,11 @@ class ModelPruning(Callback):
         else:
             self._apply_local_pruning(amount)
 
-        if self._use_lottery_ticket_hypothesis:
+        if (
+            self._use_lottery_ticket_hypothesis(current_epoch)
+            if isinstance(self._use_lottery_ticket_hypothesis, Callable)
+            else self._use_lottery_ticket_hypothesis
+        ):
             self.apply_lottery_ticket_hypothesis()
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
@@ -288,9 +292,9 @@ class ModelPruning(Callback):
     @staticmethod
     def sanitize_parameters_to_prune(
         pl_module: LightningModule,
-        parameters_to_prune: Optional[List[Tuple[nn.Module, str]]] = None,
+        parameters_to_prune: Optional[_PARAM_LIST] = None,
         parameters: Optional[List[str]] = None,
-    ) -> List[Tuple[nn.Module, str]]:
+    ) -> _PARAM_LIST:
         """
         This function is responsible to check provided ``parameters_to_prune` and `parameters`.
         If parameters_to_prune is None, parameters_to_prune will be generated from all parameters of the model.
@@ -331,7 +335,7 @@ class ModelPruning(Callback):
         return parameters_to_prune
 
     @staticmethod
-    def is_pruning_method(method) -> bool:
+    def is_pruning_method(method: Any) -> bool:
         if not inspect.isclass(method):
             return False
         return issubclass(method, pytorch_prune.BasePruningMethod)

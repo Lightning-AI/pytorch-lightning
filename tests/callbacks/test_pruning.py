@@ -59,6 +59,7 @@ def train_with_pruning_callback(
     parameters_to_prune=False,
     use_global_unstructured=False,
     pruning_fn="l1_unstructured",
+    use_lottery_ticket_hypothesis=False,
     accelerator=None,
     gpus=None,
     num_processes=1,
@@ -68,7 +69,7 @@ def train_with_pruning_callback(
     # Weights are random. None is 0
     assert torch.all(model.layer.mlp_2.weight != 0)
 
-    pruning_kwargs = {"pruning_fn": pruning_fn, "amount": 0.3, "use_global_unstructured": use_global_unstructured}
+    pruning_kwargs = {"pruning_fn": pruning_fn, "amount": 0.3, "use_global_unstructured": use_global_unstructured, "use_lottery_ticket_hypothesis": use_lottery_ticket_hypothesis}
     if parameters_to_prune:
         pruning_kwargs["parameters_to_prune"] = [(model.layer.mlp_1, "weight"), (model.layer.mlp_2, "weight")]
     else:
@@ -128,12 +129,14 @@ def test_pruning_misconfiguration():
 @pytest.mark.parametrize(
     "pruning_fn", ["l1_unstructured", "random_unstructured", "ln_structured", "random_structured", TestPruningMethod]
 )
-def test_pruning_callback(tmpdir, use_global_unstructured, parameters_to_prune, pruning_fn):
+@pytest.mark.parametrize("use_lottery_ticket_hypothesis", [False, True])
+def test_pruning_callback(tmpdir, use_global_unstructured, parameters_to_prune, pruning_fn, use_lottery_ticket_hypothesis):
     train_with_pruning_callback(
         tmpdir,
         parameters_to_prune=parameters_to_prune,
         use_global_unstructured=use_global_unstructured,
         pruning_fn=pruning_fn,
+        use_lottery_ticket_hypothesis=use_lottery_ticket_hypothesis,
     )
 
 
@@ -161,3 +164,8 @@ def test_pruning_callback_ddp_spawn(tmpdir):
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_pruning_callback_ddp_cpu(tmpdir):
     train_with_pruning_callback(tmpdir, parameters_to_prune=True, accelerator="ddp_cpu", num_processes=2)
+
+
+# TODO: lottery ticket tests
+# TODO: iterative pruning tests
+# TODO: saving tests
