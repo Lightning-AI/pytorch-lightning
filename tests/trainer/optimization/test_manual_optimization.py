@@ -1045,7 +1045,7 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
     trainer.fit(model)
 
     for param, param_copy in zip(model.parameters(), model_copy.parameters()):
-        assert not torch.equal(param, param_copy)
+        assert not torch.equal(param.cpu().data, param_copy.data)
 
     opt_a, opt_b = model.optimizers()
     assert opt_a._total_optimizer_step_calls == 4
