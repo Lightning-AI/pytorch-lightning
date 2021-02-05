@@ -55,8 +55,14 @@ class ConfigureOptimizersPool(ABC):
         optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
         optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
         return [
-            {'optimizer': optimizer1, 'frequency': 1},
-            {'optimizer': optimizer2, 'frequency': 5}
+            {
+                'optimizer': optimizer1,
+                'frequency': 1
+            },
+            {
+                'optimizer': optimizer2,
+                'frequency': 5
+            },
         ]
 
     def configure_optimizers__single_scheduler(self):
@@ -66,9 +72,7 @@ class ConfigureOptimizersPool(ABC):
 
     def configure_optimizers__onecycle_scheduler(self):
         optimizer = optim.SGD(self.parameters(), lr=self.learning_rate, momentum=0.9)
-        lr_scheduler = optim.lr_scheduler.OneCycleLR(optimizer,
-                                                     max_lr=self.learning_rate,
-                                                     total_steps=10_000)
+        lr_scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=self.learning_rate, total_steps=10_000)
         return [optimizer], [lr_scheduler]
 
     def configure_optimizers__multiple_schedulers(self):
@@ -80,10 +84,13 @@ class ConfigureOptimizersPool(ABC):
         return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
     def configure_optimizers__param_groups(self):
-        param_groups = [
-            {'params': list(self.parameters())[:2], 'lr': self.learning_rate * 0.1},
-            {'params': list(self.parameters())[2:], 'lr': self.learning_rate}
-        ]
+        param_groups = [{
+            'params': list(self.parameters())[:2],
+            'lr': self.learning_rate * 0.1
+        }, {
+            'params': list(self.parameters())[2:],
+            'lr': self.learning_rate
+        }]
 
         optimizer = optim.Adam(param_groups)
         lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)

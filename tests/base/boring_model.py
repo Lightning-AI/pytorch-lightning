@@ -20,6 +20,7 @@ from pytorch_lightning import LightningDataModule, LightningModule
 
 
 class RandomDictDataset(Dataset):
+
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -34,6 +35,7 @@ class RandomDictDataset(Dataset):
 
 
 class RandomDictStringDataset(Dataset):
+
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -46,6 +48,7 @@ class RandomDictStringDataset(Dataset):
 
 
 class RandomDataset(Dataset):
+
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -135,6 +138,7 @@ class BoringModel(LightningModule):
 
 
 class BoringDataModule(LightningDataModule):
+
     def __init__(self, data_dir: str = './'):
         super().__init__()
         self.data_dir = data_dir
