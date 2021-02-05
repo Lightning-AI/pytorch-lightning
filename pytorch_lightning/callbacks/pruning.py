@@ -26,7 +26,6 @@ import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 from torch.nn.modules.container import ModuleDict, ModuleList
 
-import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -47,18 +46,17 @@ _PYTORCH_PRUNING_METHOD = {
 
 
 class ModelPruning(Callback):
-
     PARAMETER_NAMES = ("weight", "bias")
 
     def __init__(
         self,
-        pruning_fn: Union[Callable, str] = None,
+        pruning_fn: Optional[Union[Callable, str]] = None,
         parameters_to_prune: Optional[List[Tuple[nn.Module, str]]] = None,
-        parameter_names: List[str] = ["weight"],
+        parameter_names: Optional[List[str]] = None,
         use_global_unstructured: bool = True,
-        amount: Optional[Union[int, float]] = 0.5,
-        make_pruning_permanent: Optional[bool] = True,
-        use_lottery_ticket_hypothesis: Optional[bool] = True,
+        amount: Union[int, float, Callable] = 0.5,
+        make_pruning_permanent: bool = True,
+        use_lottery_ticket_hypothesis: bool = True,
         pruning_dim: Optional[int] = None,
         pruning_norm: Optional[int] = None,
     ) -> None:
@@ -110,15 +108,14 @@ class ModelPruning(Callback):
 
             amount: quantity of parameters to prune:
 
-                - float, should be between 0.0 and 1.0 and represent the fraction of parameters to prune.
-                - int, it represents the absolute number of parameters to prune.
-                - Callable, the function will be called on every epoch.
+                - float, between 0.0 and 1.0. represents the fraction of parameters to prune.
+                - int, represents the absolute number of parameters to prune.
+                - Callable, for dynamic values. will be called every epoch.
 
-            make_pruning_permanent: if True then all
-                reparametrization pre-hooks and tensors with mask
-                will be removed on fit end.
+            make_pruning_permanent: if True then all reparametrization pre-hooks and tensors
+                with mask will be removed on fit end.
 
-            use_lottery_ticket_hypothesis: Wether to use algorithm describes in
+            use_lottery_ticket_hypothesis: Whether to use algorithm describes in
                 "The lottery ticket hypothesis" (https://arxiv.org/pdf/1803.03635.pdf)
 
             pruning_dim: if you are using structured pruning method you need
@@ -138,17 +135,18 @@ class ModelPruning(Callback):
         for param_name in self._parameter_names:
             if param_name not in self.PARAMETER_NAMES:
                 raise MisconfigurationException(
-                    f"The provided parameter_names {param_name} isn't in {self.PARAMETER_NAMES} "
+                    f"The provided `parameter_names`: {param_name} isn't in {self.PARAMETER_NAMES}"
                 )
 
         if isinstance(pruning_fn, str):
+            pruning_kwargs = {}
             pruning_fn = pruning_fn.lower()
             if pruning_fn not in _PYTORCH_PRUNING_FUNCTIONS:
                 raise MisconfigurationException(
-                    f"The provided pruning_fn {pruning_fn} isn't available with "
-                    f"PyTorch build-in {_PYTORCH_PRUNING_FUNCTIONS.keys()} "
+                    f"The provided `pruning_fn` {pruning_fn} isn't available in PyTorch's"
+                    f" built-in functions: {list(_PYTORCH_PRUNING_FUNCTIONS.keys())} "
                 )
-            if "unstructured" not in pruning_fn:
+            if pruning_fn.endswith("_structured"):
                 if pruning_dim is None:
                     raise MisconfigurationException(
                         "When requesting `structured` pruning, the `pruning_dim` should be provided."
@@ -158,33 +156,30 @@ class ModelPruning(Callback):
                         raise MisconfigurationException(
                             "When requesting `ln_structured` pruning, the `pruning_norm` should be provided."
                         )
-
-                    pruning_fn = self._create_pruning_fn(pruning_fn, dim=pruning_dim, n=pruning_norm)
-                else:
-                    pruning_fn = self._create_pruning_fn(pruning_fn, dim=pruning_dim)
-            else:
-                pruning_fn = self._create_pruning_fn(pruning_fn)
+                    pruning_kwargs["n"] = pruning_norm
+                pruning_kwargs["dim"] = pruning_dim
+            pruning_fn = self._create_pruning_fn(pruning_fn, **pruning_kwargs)
 
         else:
-            bases = getattr(pruning_fn, "__bases__", None)
-            if bases is None or bases[0] != pytorch_prune.BasePruningMethod:
+            if not isinstance(pruning_fn, pytorch_prune.BasePruningMethod):
                 raise MisconfigurationException(
-                    f'pruning_fn is expected to be the str in {_PYTORCH_PRUNING_FUNCTIONS.keys()} '
-                    f'or a `PyTorch BasePruningMethod`. Found: {pruning_fn}'
+                    f"`pruning_fn` is expected to be a str in {list(_PYTORCH_PRUNING_FUNCTIONS.keys())}"
+                    f" or a PyTorch `BasePruningMethod`. Found: {pruning_fn}"
                 )
 
             if not use_global_unstructured:
+                # TODO: currently not supported
                 raise MisconfigurationException(
-                    '`PyTorch BasePruningMethod` is currently support only for `use_global_unstructured=True`. ')
+                    "PyTorch `BasePruningMethod` is currently only supported with `use_global_unstructured=True`."
+                )
 
         if use_global_unstructured and pruning_fn.PRUNING_TYPE != "unstructured":
             raise MisconfigurationException(
-                'Only "unstructured" PRUNING_TYPE supported for '
-                f"the `pruning_method`. Found method {pruning_fn} of type {pruning_fn.PRUNING_TYPE}. "
+                'Only the "unstructured" PRUNING_TYPE is supported with `use_global_unstructured=True`.'
+                f" Found method {pruning_fn} of type {pruning_fn.PRUNING_TYPE}. "
             )
 
         self.pruning_fn = pruning_fn
-
         self.make_pruning_permanent = make_pruning_permanent
 
         if not isinstance(amount, (int, float, Callable)):
@@ -194,9 +189,9 @@ class ModelPruning(Callback):
 
         self.amount = amount
 
-    def filter_parameters_to_prune(self, parameters_to_prune: Optional[List[Tuple[nn.Module, str]]]):
+    def filter_parameters_to_prune(self, parameters_to_prune: Optional[List[Tuple[nn.Module, str]]] = None):
         """
-        This function can be overriden to control which module to prune.
+        This function can be overridden to control which module to prune.
         """
         return parameters_to_prune
 
@@ -212,24 +207,18 @@ class ModelPruning(Callback):
             pruning_fn = _PYTORCH_PRUNING_METHOD[pruning_fn]
             self._global_kwargs = kwargs
             return pruning_fn
-        else:
-            return ModelPruning._wrap_pruning_fn(_PYTORCH_PRUNING_FUNCTIONS[pruning_fn], **kwargs)
+        return ModelPruning._wrap_pruning_fn(_PYTORCH_PRUNING_FUNCTIONS[pruning_fn], *args, **kwargs)
 
     @staticmethod
     def _wrap_pruning_fn(pruning_fn, *args, **kwargs):
-        return partial(pruning_fn, **kwargs)
+        return partial(pruning_fn, *args, **kwargs)
 
     def _make_pruning_permanent(self):
         for module, param_name in self._parameters_to_prune:
             pytorch_prune.remove(module, param_name)
 
     def _resolve_amount(self, current_epoch: int) -> float:
-        if isinstance(self.amount, Callable):
-            amount_fn = self.amount
-            amount = amount_fn(current_epoch)
-        else:
-            amount = self.amount
-        return amount
+        return self.amount(current_epoch) if isinstance(self.amount, Callable) else self.amount
 
     def _restore_original_weights(self, module: nn.Module, orig_module: nn.Module, tensor_name: str):
         """
@@ -269,16 +258,14 @@ class ModelPruning(Callback):
 
     def _apply_global_pruning(self, amount: float):
         pytorch_prune.global_unstructured(
-            self._parameters_to_prune,
-            pruning_method=self.pruning_fn,
-            **self._resolve_global_kwargs(amount)
+            self._parameters_to_prune, pruning_method=self.pruning_fn, **self._resolve_global_kwargs(amount)
         )
 
-    def apply_pruning(self, trainer: 'pl.Trainer', pl_module: LightningModule):
-        amount = self._resolve_amount(trainer.current_epoch)
+    def apply_pruning(self, current_epoch: int):
+        amount = self._resolve_amount(current_epoch)
 
         # the user could control the pruning frequency with amount_fn
-        if amount == 0 or amount is None:
+        if not amount:
             return
 
         if self._use_global_unstructured:
@@ -291,96 +278,62 @@ class ModelPruning(Callback):
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         parameters_to_prune = self.sanitize_parameters_to_prune(
-            pl_module, self._parameters_to_prune, parameters=self._parameter_names)
+            pl_module, self._parameters_to_prune, parameters=self._parameter_names
+        )
 
         self._parameters_to_prune = self.filter_parameters_to_prune(parameters_to_prune)
 
         if self._use_lottery_ticket_hypothesis:
-            # make a copy of copy of orginal weights.
+            # make a copy of copy of original weights.
             self._initial_parameters_to_prune = [(deepcopy(m), n) for m, n in self._parameters_to_prune]
 
     def on_epoch_end(self, trainer, pl_module):
-        self.apply_pruning(trainer, pl_module)
+        self.apply_pruning(trainer.current_epoch)
 
         if self.make_pruning_permanent:
             self._make_pruning_permanent()
 
     @staticmethod
-    def _sanitize_parameters_to_prune(p):
-        """
-        Check the provide element is a pair with:
-            * nn.Module
-            * str
-
-        Example::
-
-            parameters_to_prune = [
-                (model.mlp_1, "weight"),
-                (model.mlp_2, "weight")
-            ]
-        """
-        return len(p) == 2 and isinstance(p[0], nn.Module) and isinstance(p[1], str)
-
-    @staticmethod
     def sanitize_parameters_to_prune(
         pl_module: LightningModule,
-        parameters_to_prune: Optional[List[Tuple[nn.Module, str]]],
-        parameters: List[str] = ["weight"]
-    ) -> List:
+        parameters_to_prune: Optional[List[Tuple[nn.Module, str]]] = None,
+        parameters: Optional[List[str]] = None,
+    ) -> List[Tuple[nn.Module, str]]:
         """
-        This function is responsible to check provided `parameters_to_prune` and `parameters`.
+        This function is responsible to check provided ``parameters_to_prune` and `parameters`.
         If parameters_to_prune is None, parameters_to_prune will be generated from all parameters of the model.
         """
+        parameters = parameters or ModelPruning.PARAMETER_NAMES
 
-        is_parameters_to_prune_none = parameters_to_prune is None
         current_modules = [
-            m for m in pl_module.modules()
-            if not isinstance(m, (LightningModule, ModuleDict, ModuleList))
+            m for m in pl_module.modules() if not isinstance(m, (LightningModule, ModuleDict, ModuleList))
         ]
 
-        if is_parameters_to_prune_none:
-            parameters_to_prune = []
-            for p in parameters:
-                for m in current_modules:
-                    param = getattr(m, p, None)
-                    if param is not None:
-                        parameters_to_prune.append((m, p))
+        if parameters_to_prune is None:
+            parameters_to_prune = [(m, p) for p in parameters for m in current_modules if hasattr(m, p)]
+        elif (
+            isinstance(parameters_to_prune, (list, tuple))
+            and len(parameters_to_prune) > 0
+            and all(len(p) == 2 for p in parameters_to_prune)
+            and all(isinstance(a, nn.Module) and isinstance(b, str) for a, b in parameters_to_prune)
+        ):
+            missing_modules, missing_parameters = [], []
+            for module, param_name in parameters_to_prune:
+                if module not in current_modules:
+                    missing_modules.append(module)
+                    continue
+                if not hasattr(module, param_name):
+                    missing_parameters.append(param_name)
 
-        if isinstance(parameters_to_prune, (tuple, list)) \
-           and len(parameters_to_prune) > 0 and not is_parameters_to_prune_none:
-
-            if all(
-                isinstance(p, (list, tuple)) and ModelPruning._sanitize_parameters_to_prune(p)
-                for p in parameters_to_prune
-            ):
-
-                missing_modules = []
-                missing_parameters = []
-
-                for module, param_name in parameters_to_prune:
-                    if module not in current_modules:
-                        missing_modules.append(module)
-                        continue
-
-                    parameter = getattr(module, param_name)
-
-                    if parameter is None:
-                        missing_parameters.append(parameter)
-
-                if len(missing_modules) > 0 or len(missing_parameters) > 0:
-                    raise MisconfigurationException(
-                        "Ths provided parameters_to_tune doesn't exist in the model."
-                        f" Found mismatching modules: {missing_modules} and missing_parameters: {missing_parameters}"
-                    )
-
-            else:
+            if len(missing_modules) > 0 or len(missing_parameters) > 0:
                 raise MisconfigurationException(
-                    "The provided parameters_to_prune should either be list of tuple "
-                    "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
+                    "Some provided `parameters_to_tune` don't exist in the model."
+                    f" Found missing modules: {missing_modules} and missing parameters: {missing_parameters}"
+                )
         else:
-            if not isinstance(parameters_to_prune, (list, tuple)):
-                raise MisconfigurationException(
-                    "The provided parameters_to_prune should either be list of tuple "
-                    "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
+            raise MisconfigurationException(
+                "The provided `parameters_to_prune` should either be list of tuple "
+                "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None"
+            )
 
         return parameters_to_prune
