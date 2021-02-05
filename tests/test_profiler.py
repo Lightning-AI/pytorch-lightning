@@ -53,7 +53,7 @@ def advanced_profiler(tmpdir):
 @pytest.mark.parametrize(["action", "expected"], [
     pytest.param("a", [3, 1]),
     pytest.param("b", [2]),
-    pytest.param("c", [1])
+    pytest.param("c", [1]),
 ])
 def test_simple_profiler_durations(simple_profiler, action, expected):
     """Ensure the reported durations are reasonably accurate."""
@@ -64,15 +64,13 @@ def test_simple_profiler_durations(simple_profiler, action, expected):
 
     # different environments have different precision when it comes to time.sleep()
     # see: https://github.com/PyTorchLightning/pytorch-lightning/issues/796
-    np.testing.assert_allclose(
-        simple_profiler.recorded_durations[action], expected, rtol=0.2
-    )
+    np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
 
 
 @pytest.mark.parametrize(["action", "expected"], [
     pytest.param("a", [3, 1]),
     pytest.param("b", [2]),
-    pytest.param("c", [1])
+    pytest.param("c", [1]),
 ])
 def test_simple_profiler_iterable_durations(simple_profiler, action, expected):
     """Ensure the reported durations are reasonably accurate."""
@@ -82,9 +80,7 @@ def test_simple_profiler_iterable_durations(simple_profiler, action, expected):
         pass
 
     # we exclude the last item in the recorded durations since that's when StopIteration is raised
-    np.testing.assert_allclose(
-        simple_profiler.recorded_durations[action][:-1], expected, rtol=0.2
-    )
+    np.testing.assert_allclose(simple_profiler.recorded_durations[action][:-1], expected, rtol=0.2)
 
 
 def test_simple_profiler_overhead(simple_profiler, n_iter=5):
@@ -122,7 +118,7 @@ def test_simple_profiler_value_errors(simple_profiler):
 @pytest.mark.parametrize(["action", "expected"], [
     pytest.param("a", [3, 1]),
     pytest.param("b", [2]),
-    pytest.param("c", [1])
+    pytest.param("c", [1]),
 ])
 def test_advanced_profiler_durations(advanced_profiler, action, expected):
 
@@ -132,19 +128,15 @@ def test_advanced_profiler_durations(advanced_profiler, action, expected):
 
     # different environments have different precision when it comes to time.sleep()
     # see: https://github.com/PyTorchLightning/pytorch-lightning/issues/796
-    recored_total_duration = _get_python_cprofile_total_duration(
-        advanced_profiler.profiled_actions[action]
-    )
+    recored_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
-    np.testing.assert_allclose(
-        recored_total_duration, expected_total_duration, rtol=0.2
-    )
+    np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
 
 
 @pytest.mark.parametrize(["action", "expected"], [
     pytest.param("a", [3, 1]),
     pytest.param("b", [2]),
-    pytest.param("c", [1])
+    pytest.param("c", [1]),
 ])
 def test_advanced_profiler_iterable_durations(advanced_profiler, action, expected):
     """Ensure the reported durations are reasonably accurate."""
@@ -153,13 +145,9 @@ def test_advanced_profiler_iterable_durations(advanced_profiler, action, expecte
     for _ in advanced_profiler.profile_iterable(iterable, action):
         pass
 
-    recored_total_duration = _get_python_cprofile_total_duration(
-        advanced_profiler.profiled_actions[action]
-    )
+    recored_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
-    np.testing.assert_allclose(
-        recored_total_duration, expected_total_duration, rtol=0.2
-    )
+    np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
 
 
 def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
