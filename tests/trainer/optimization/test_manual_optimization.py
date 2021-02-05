@@ -21,6 +21,7 @@ import pytest
 import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
+from pytorch_lightning.callbacks import Callback
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities import _APEX_AVAILABLE
@@ -935,95 +936,99 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     mock_adam_step.assert_has_calls(expected_calls)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
-def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
-    """
+class TestManualOptimizationDDPCallack(Callback):
 
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
+    def on_train_end(self, trainer, pl_module):
 
-        def loss_ones(self, batch, prediction):
-            # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-            return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
+        opt_a, opt_b = pl_module.optimizers()
+        assert opt_a._total_optimizer_step_calls == 4
+        assert opt_b._total_optimizer_step_calls == 2
 
-        def loss_zeros(self, batch, prediction):
-            # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-            return torch.nn.functional.mse_loss(prediction, torch.zeros_like(prediction))
 
-        def manual_sync_grad(self) -> bool:
-            torch_distrib.all_reduce(self.layer.weight.grad.data, async_op=False)
-            return True
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
 
-            # emulate gans training
-            opt_gen, opt_dis = self.optimizers()
+class TesManualOptimizationDDPModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
 
-            # Note: Be careful, don't log on the same key in self.log in both closure
-            # as they will be aggregated together on epoch_end
+    def loss_ones(self, batch, prediction):
+        # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
+        return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
 
-            world_size = torch_distrib.get_world_size(torch_distrib.group.WORLD)
-            assert world_size == 2
+    def loss_zeros(self, batch, prediction):
+        # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
+        return torch.nn.functional.mse_loss(prediction, torch.zeros_like(prediction))
 
-            make_gen_optimizer_step = batch_idx % 2 == 1
-            make_dis_optimizer_step = batch_idx % 4 == 0
+    def manual_sync_grad(self) -> bool:
+        torch_distrib.all_reduce(self.layer.weight.grad.data, async_op=False)
+        return True
 
-            def compute_loss():
-                x = batch[0]
-                x = F.dropout(x, 0.1)
-                predictions = self(x)
-                predictions = F.dropout(predictions, 0.1)
-                loss_ones = self.loss_ones(None, predictions)
-                loss_zeros = self.loss_zeros(None, predictions)
-                return loss_ones, loss_zeros
+    def training_step(self, batch, batch_idx, optimizer_idx):
 
-            def make_manual_backward(loss, opt, retain_graph=False, make_optimizer_step=True):
-                self.manual_backward(loss, opt, retain_graph=retain_graph)
-                if make_optimizer_step:
-                    grad_clone = self.layer.weight.grad.clone()
-                    assert self.manual_sync_grad()
-                    self.layer.weight.grad /= world_size
-                    assert torch.equal(self.layer.weight.grad, grad_clone)
+        # emulate gans training
+        opt_gen, opt_dis = self.optimizers()
 
-            def gen_closure():
-                loss_ones_gen, loss_zeros = compute_loss()
-                make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
-                make_manual_backward(loss_ones_gen, opt_gen, make_optimizer_step=make_gen_optimizer_step)
+        # Note: Be careful, don't log on the same key in self.log in both closure
+        # as they will be aggregated together on epoch_end
 
-            def dis_closure():
-                loss_ones_gen, loss_zeros = compute_loss()
-                make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
-                make_manual_backward(loss_ones_gen, opt_dis, make_optimizer_step=make_dis_optimizer_step)
+        world_size = torch_distrib.get_world_size(torch_distrib.group.WORLD)
+        assert world_size == 2
 
-            # this will accumulate gradients for 2 batches and then call opt_gen.step()
-            opt_gen.step(closure=gen_closure, make_optimizer_step=make_gen_optimizer_step)
+        make_gen_optimizer_step = batch_idx % 2 == 1
+        make_dis_optimizer_step = batch_idx % 4 == 0
 
-            # update discriminator every 4 baches
-            # therefore, no gradient accumulation for discriminator
-            if make_dis_optimizer_step:
-                # Note: Set make_optimizer_step to True or it will use by default
-                # Trainer(accumulate_grad_batches=x)
-                opt_dis.step(closure=dis_closure, make_optimizer_step=True)
+        def compute_loss():
+            x = batch[0]
+            x = F.dropout(x, 0.1)
+            predictions = self(x)
+            predictions = F.dropout(predictions, 0.1)
+            loss_ones = self.loss_ones(None, predictions)
+            loss_zeros = self.loss_zeros(None, predictions)
+            return loss_ones, loss_zeros
 
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
+        def make_manual_backward(loss, opt, retain_graph=False, make_optimizer_step=True):
+            self.manual_backward(loss, opt, retain_graph=retain_graph)
+            if make_optimizer_step:
+                grad_clone = self.layer.weight.grad.clone()
+                assert self.manual_sync_grad()
+                self.layer.weight.grad /= world_size
+                assert torch.equal(self.layer.weight.grad, grad_clone)
 
-        def configure_optimizers(self):
-            optimizer_gen = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
-            return [optimizer_gen, optimizer_dis]
+        def gen_closure():
+            loss_ones_gen, loss_zeros = compute_loss()
+            make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
+            make_manual_backward(loss_ones_gen, opt_gen, make_optimizer_step=make_gen_optimizer_step)
+
+        def dis_closure():
+            loss_ones_gen, loss_zeros = compute_loss()
+            make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
+            make_manual_backward(loss_ones_gen, opt_dis, make_optimizer_step=make_dis_optimizer_step)
+
+        # this will accumulate gradients for 2 batches and then call opt_gen.step()
+        opt_gen.step(closure=gen_closure, make_optimizer_step=make_gen_optimizer_step)
+
+        # update discriminator every 4 baches
+        # therefore, no gradient accumulation for discriminator
+        if make_dis_optimizer_step:
+            # Note: Set make_optimizer_step to True or it will use by default
+            # Trainer(accumulate_grad_batches=x)
+            opt_dis.step(closure=dis_closure, make_optimizer_step=True)
+
+    def training_epoch_end(self, outputs) -> None:
+        # outputs should be an array with an entry per optimizer
+        assert len(outputs) == 2
+
+    def configure_optimizers(self):
+        optimizer_gen = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
+        return [optimizer_gen, optimizer_dis]
+
+def train_manual_optimization(tmpdir, accelerator):
 
     seed_everything(42)
 
-    model = TestModel()
+    model = TesManualOptimizationDDPModel()
     model_copy = deepcopy(model)
     model.val_dataloader = None
     model.training_epoch_end = None
@@ -1037,14 +1042,30 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
         log_every_n_steps=1,
         accumulate_grad_batches=2,
         gpus=2,
-        accelerator="ddp",
+        accelerator=accelerator,
+        callbacks=[TestManualOptimizationDDPCallack()]
     )
 
     trainer.fit(model)
 
     for param, param_copy in zip(model.parameters(), model_copy.parameters()):
-        assert not torch.equal(param, param_copy)
+        assert not torch.equal(param.cpu().data, param_copy.data)
 
-    opt_a, opt_b = model.optimizers()
-    assert opt_a._total_optimizer_step_calls == 4
-    assert opt_b._total_optimizer_step_calls == 2
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
+    """
+    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
+    """
+
+    train_manual_optimization(tmpdir, "ddp")
+
+
+def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir):
+    """
+    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
+    """
+
+    train_manual_optimization(tmpdir, "ddp_spawn")
