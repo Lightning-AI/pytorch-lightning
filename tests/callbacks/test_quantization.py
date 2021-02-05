@@ -104,6 +104,7 @@ def test_quantization(tmpdir, observe):
 
     model = LinearModel()
     Trainer(**trainer_args).fit(model, datamodule=dm)
+
     org_size = model.model_size
     org_mae = torch.mean(torch.tensor([model.measure(model(x), y) for x, y in dm.test_dataloader()]))
 
@@ -111,6 +112,7 @@ def test_quantization(tmpdir, observe):
     fusing_layers = [(f'layers.mlp_{i}', f'layers.mlp_{i}a') for i in range(3)]
     qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers, observer_type=observe)
     Trainer(callbacks=[qcb], **trainer_args).fit(qmodel, datamodule=dm)
+
     quant_calls = qcb._forward_calls
     quant_size = qmodel.model_size
     quant_mae = torch.mean(torch.tensor([model.measure(qmodel(x), y) for x, y in dm.test_dataloader()]))

@@ -94,6 +94,7 @@ class QuantizationAwareTraining(Callback):
         observer_type: Optional[str] = None,
         collect_quantization: Optional[Union[int, Callable]] = None,
         modules_to_fuse: Optional[Sequence] = None,
+        preserve_compatible: bool = True,
     ) -> None:
         """
         Args:
@@ -118,6 +119,8 @@ class QuantizationAwareTraining(Callback):
             modules_to_fuse: allows you fuse a few layer together as you can see in `diagram
              <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
                 to find what layer types can be fue=sed check https://github.com/pytorch/pytorch/pull/43286
+            preserve_compatible: preserve quent/dequant layers whichi alows to feat any input as to the original model,
+                but break compatibility to torchscript
         """
         if not isinstance(qconfig, (str, QConfig)):
             raise MisconfigurationException(f"Unsupported qconfig: f{qconfig}.")
@@ -136,6 +139,7 @@ class QuantizationAwareTraining(Callback):
         self._collect_quantization = collect_quantization
 
         self.modules_to_fuse = modules_to_fuse
+        self._preserve_compatible = preserve_compatible
         self._forward_calls = 0
 
     def _check_feasible_fuse(self, model):
@@ -185,6 +189,10 @@ class QuantizationAwareTraining(Callback):
         # used with each activation tensor, fuses modules where appropriate,
         # and replaces key operators with quantized implementations.
         torch.quantization.convert(pl_module, inplace=True)
-        pl_module.forward = wrap_quantize_forward_context(
-            model=pl_module, func=self.__module_forward, quant=pl_module.quant, dequant=pl_module.dequant
-        )
+        # check we shall preserve wrapper
+        if self._preserve_compatible:
+            pl_module.forward = wrap_quantize_forward_context(
+                model=pl_module, func=self.__module_forward, quant=pl_module.quant, dequant=pl_module.dequant
+            )
+        else:
+            pl_module.forward = self.__module_forward
