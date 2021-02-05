@@ -17,11 +17,8 @@ from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
 
 
 def is_lightning_optimizer(optimizer):

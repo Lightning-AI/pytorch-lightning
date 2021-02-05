@@ -15,7 +15,7 @@ import pickle
 from argparse import ArgumentParser
 from typing import Any, Dict
 from unittest import mock
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import PropertyMock
 
 import pytest
 import torch
