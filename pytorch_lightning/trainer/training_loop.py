@@ -18,7 +18,6 @@ from copy import copy, deepcopy
 import numpy as np
 import torch
 
-from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -711,7 +710,10 @@ class TrainLoop:
             context manager with sync behaviour off
 
         """
-        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and (self.automatic_optimization or should_block_sync):
+        if (
+            isinstance(self.trainer.training_type_plugin, ParallelPlugin)
+            and (self.automatic_optimization or should_block_sync)
+        ):
             with self.trainer.training_type_plugin.block_backward_sync():
                 yield None
         else:

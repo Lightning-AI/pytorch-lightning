@@ -139,7 +139,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         callbacks=[checkpoint],
         logger=logger,
     )
-    result = trainer.fit(model)
+    _ = trainer.fit(model)
 
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, 'amp + ddp model failed to complete'
@@ -149,7 +149,8 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc') == 'abc'
     assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23]') == 'abc23'
     assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24]') == 'abc23'
-    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
+    generated = trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24, 45-40, 40]')
+    assert generated == 'abc23'
 
 
 def test_cpu_model_with_amp(tmpdir):

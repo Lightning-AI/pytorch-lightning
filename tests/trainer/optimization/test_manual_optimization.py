@@ -13,9 +13,9 @@
 # limitations under the License.
 import collections
 import os
+from copy import deepcopy
 from unittest import mock
 from unittest.mock import ANY, call, patch
-from copy import deepcopy
 
 import pytest
 import torch
@@ -994,12 +994,14 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
 
             def gen_closure():
                 loss_ones_gen, loss_zeros = compute_loss()
-                make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
+                make_manual_backward(
+                    loss_ones_gen, opt_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
                 make_manual_backward(loss_ones_gen, opt_gen, make_optimizer_step=make_gen_optimizer_step)
 
             def dis_closure():
                 loss_ones_gen, loss_zeros = compute_loss()
-                make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
+                make_manual_backward(
+                    loss_ones_gen, opt_dis, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
                 make_manual_backward(loss_ones_gen, opt_dis, make_optimizer_step=make_dis_optimizer_step)
 
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
