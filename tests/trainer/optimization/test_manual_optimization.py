@@ -945,8 +945,6 @@ class TestManualOptimizationDDPCallack(Callback):
         assert opt_b._total_optimizer_step_calls == 2
 
 
-
-
 class TesManualOptimizationDDPModel(BoringModel):
     def __init__(self):
         super().__init__()
@@ -1024,6 +1022,7 @@ class TesManualOptimizationDDPModel(BoringModel):
         optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
         return [optimizer_gen, optimizer_dis]
 
+
 def train_manual_optimization(tmpdir, accelerator):
 
     seed_everything(42)
@@ -1063,6 +1062,7 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
     train_manual_optimization(tmpdir, "ddp")
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
