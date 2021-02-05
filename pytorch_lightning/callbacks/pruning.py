@@ -24,7 +24,6 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch.nn.utils.prune as pytorch_prune
 from torch import nn
-from torch.nn.modules.container import ModuleDict, ModuleList
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
@@ -45,6 +44,7 @@ _PYTORCH_PRUNING_METHOD = {
 }
 
 _PARAM_LIST = List[Tuple[nn.Module, str]]
+_MODULE_CONTAINERS = (LightningModule, nn.Sequential, nn.ModuleList, nn.ModuleDict)
 
 
 class ModelPruning(Callback):
@@ -158,7 +158,6 @@ class ModelPruning(Callback):
             pruning_fn = self._create_pruning_fn(pruning_fn, **pruning_kwargs)
         elif self.is_pruning_method(pruning_fn):
             if not use_global_unstructured:
-                # TODO: currently not supported
                 raise MisconfigurationException(
                     "PyTorch `BasePruningMethod` is currently only supported with `use_global_unstructured=True`."
                 )
@@ -302,7 +301,7 @@ class ModelPruning(Callback):
         parameters = parameters or ModelPruning.PARAMETER_NAMES
 
         current_modules = [
-            m for m in pl_module.modules() if not isinstance(m, (LightningModule, ModuleDict, ModuleList))
+            m for m in pl_module.modules() if not isinstance(m, _MODULE_CONTAINERS)
         ]
 
         if parameters_to_prune is None:
