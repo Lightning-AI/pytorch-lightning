@@ -1,9 +1,18 @@
-from unittest.mock import Mock
-
 import torch
 
-from pytorch_lightning import Trainer, Callback
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, ProgressBar
+from pytorch_lightning import Callback
+import logging
+from unittest.mock import Mock
+
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import (
+    EarlyStopping,
+    GradientAccumulationScheduler,
+    LearningRateMonitor,
+    ModelCheckpoint,
+    ProgressBar,
+)
+from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from tests.base import BoringModel
 
 
@@ -11,13 +20,25 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     """ Test that checkpoint callbacks always get moved to the end of the list, with preserved order. """
     checkpoint1 = ModelCheckpoint(tmpdir)
     checkpoint2 = ModelCheckpoint(tmpdir)
+    early_stopping = EarlyStopping()
     lr_monitor = LearningRateMonitor()
     progress_bar = ProgressBar()
 
+    # no model callbacks
     model = Mock()
     model.configure_callbacks.return_value = []
     trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, checkpoint2])
+    cb_connector = CallbackConnector(trainer)
+    cb_connector._attach_model_callbacks(model)
     assert trainer.callbacks == [progress_bar, lr_monitor, checkpoint1, checkpoint2]
+
+    # with model-specific callbacks that substitute ones in Trainer
+    model = Mock()
+    model.configure_callbacks.return_value = [checkpoint1, early_stopping, checkpoint2]
+    trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmpdir)])
+    cb_connector = CallbackConnector(trainer)
+    cb_connector._attach_model_callbacks(model)
+    assert trainer.callbacks == [progress_bar, lr_monitor, early_stopping, checkpoint1, checkpoint2]
 
 
 class StatefulCallback0(Callback):
@@ -53,20 +74,6 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     assert "content0" in state0 and state0["content0"] == 0
     assert "content1" in state1 and state1["content1"] == 1
     assert type(checkpoint_callback) in ckpt["callbacks"]
-
-import logging
-from unittest.mock import Mock
-
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
-    EarlyStopping,
-    GradientAccumulationScheduler,
-    LearningRateMonitor,
-    ModelCheckpoint,
-    ProgressBar,
-)
-from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
-from tests.base import BoringModel
 
 
 def test_attach_model_callbacks():
@@ -140,28 +147,3 @@ def test_attach_model_callbacks_override_info(caplog):
         cb_connector._attach_model_callbacks(model)
 
     assert "existing callbacks passed to Trainer: EarlyStopping, LearningRateMonitor" in caplog.text
-
-
-def test_checkpoint_callbacks_are_last(tmpdir):
-    """ Test that checkpoint callbacks always get moved to the end of the list, with preserved order. """
-    checkpoint1 = ModelCheckpoint(tmpdir)
-    checkpoint2 = ModelCheckpoint(tmpdir)
-    early_stopping = EarlyStopping()
-    lr_monitor = LearningRateMonitor()
-    progress_bar = ProgressBar()
-
-    # no model callbacks
-    model = Mock()
-    model.configure_callbacks.return_value = []
-    trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, checkpoint2])
-    cb_connector = CallbackConnector(trainer)
-    cb_connector._attach_model_callbacks(model)
-    assert trainer.callbacks == [progress_bar, lr_monitor, checkpoint1, checkpoint2]
-
-    # with model-specific callbacks that substitute ones in Trainer
-    model = Mock()
-    model.configure_callbacks.return_value = [checkpoint1, early_stopping, checkpoint2]
-    trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmpdir)])
-    cb_connector = CallbackConnector(trainer)
-    cb_connector._attach_model_callbacks(model)
-    assert trainer.callbacks == [progress_bar, lr_monitor, early_stopping, checkpoint1, checkpoint2]

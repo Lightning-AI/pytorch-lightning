@@ -136,7 +136,7 @@ class CallbackConnector:
         # remove all callbacks with a type that occurs in model callbacks
         all_callbacks = [c for c in self.trainer.callbacks if type(c) not in override_types]
         all_callbacks.extend(model_callbacks)
-        all_callbacks = _tail_checkpoint_callbacks(all_callbacks)
+        all_callbacks = self._reorder_callbacks(all_callbacks)
         # TODO: connectors refactor: move callbacks list to connector and do not write Trainer state
         self.trainer.callbacks = all_callbacks
 
