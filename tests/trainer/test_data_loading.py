@@ -16,13 +16,11 @@ import os
 import pytest
 import torch
 from torch.utils.data import DataLoader
-from torch.utils.data.sampler import BatchSampler
-from torch.utils.data.sampler import SequentialSampler
+from torch.utils.data.sampler import BatchSampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel
-from tests.base import RandomDataset
+from tests.base import BoringModel, RandomDataset
 
 
 class IndexedRandomDataset(RandomDataset):
@@ -88,7 +86,7 @@ def check_replace_distrubuted_sampler(
     limit_test_batches = 2
     trainer_args = {
         "default_root_dir": tmpdir,
-        "limit_test_batches" : limit_test_batches,
+        "limit_test_batches": limit_test_batches,
         "accelerator": accelerator,
     }
 

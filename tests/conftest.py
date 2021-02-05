@@ -47,6 +47,7 @@ def tmpdir_server(tmpdir):
         import os
 
         class Handler(SimpleHTTPRequestHandler):
+
             def translate_path(self, path):
                 # get the path from cwd
                 path = super().translate_path(path)
