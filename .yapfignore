@@ -83,7 +83,3 @@ tests/trainer/*
 
 # TODO
 tests/tuner/*
-
-
-# TODO
-tests/utilities/*
