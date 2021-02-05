@@ -21,6 +21,7 @@ import torch.multiprocessing as mp
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
 
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -251,16 +252,16 @@ class DDPSpawnPlugin(ParallelPlugin):
         return output
 
     def training_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+        return self.lightning_module.training_step(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+        return self.lightning_module.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+        return self.lightning_module.test_step(*args, **kwargs)
 
     def predict(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+        return self.lightning_module.predict(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:

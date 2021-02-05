@@ -376,7 +376,7 @@ class BackendConnector(object):
             if isinstance(self.tpu_cores, list):
                 plugin = SingleTPUPlugin(self.tpu_id)
             else:
-                plugin = TPUSpawnPlugin(parallel_devices=list(range(8)))
+                plugin = TPUSpawnPlugin(parallel_devices=list(range(self.tpu_cores)))
         else:
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{self.root_gpu}" if self.on_gpu else "cpu"))
         return plugin

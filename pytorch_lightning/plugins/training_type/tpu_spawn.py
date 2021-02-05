@@ -74,7 +74,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         else:
             results = trainer.train()
 
-        self.__save_end_of_training_weights(self.lightning_module)
+        self.__save_end_of_training_weights(self.lightning_module, trainer)
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
     def __save_end_of_training_weights(self, model: LightningModule, trainer) -> None:
@@ -84,7 +84,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             self.save_spawn_weights(model)
 
     def model_to_device(self) -> None:
-        pass
+        self._model.to(xm.xla_device())
 
     def barrier(self, name: Optional[str] = None) -> None:
         rendezvous(f"pl.Trainer.{name}")
@@ -163,7 +163,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
-        self.lightning_module = model
+        self._model = model
 
         # when training completes, load the weights back in main process
         self.__load_weights_on_main_process()
@@ -173,10 +173,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         # load weights if not interrupted
         # TODO: check for trainer reference
-        if self.on_colab_kaggle and not model.trainer.testing:
+        if on_colab_kaggle() and not model.trainer.testing:
             self.load_spawn_weights(model)
 
-        self.lightning_module = model
+        self._model = model
 
     @property
     def xmp_spawn_kwargs(self):
