@@ -57,8 +57,7 @@ def auto_move_data(fn: Callable) -> Callable:
         if not isinstance(self, LightningModule):
             return fn(self, *args, **kwargs)
 
-        args = self.transfer_batch_to_device(args)
-        kwargs = self.transfer_batch_to_device(kwargs)
+        args, kwargs = self.transfer_batch_to_device((args, kwargs))
         return fn(self, *args, **kwargs)
 
     return auto_transfer_args

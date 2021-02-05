@@ -179,7 +179,7 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    def _prepare_batch_for_transfer(self, batch: Any, device: Optional[torch.device] = None):
+    def _apply_batch_transfer_handler(self, batch: Any, device: Optional[torch.device] = None):
         batch = self.on_before_batch_transfer(batch)
         batch = self.transfer_batch_to_device(batch, device)
         batch = self.on_after_batch_transfer(batch)
@@ -1703,7 +1703,7 @@ class LightningModule(
                 )
             input_sample = self.example_input_array
 
-        input_sample = self._prepare_batch_for_transfer(input_sample)
+        input_sample = self._apply_batch_transfer_handler(input_sample)
 
         if "example_outputs" not in kwargs:
             self.eval()
@@ -1779,7 +1779,7 @@ class LightningModule(
                 example_inputs = self.example_input_array
 
             # automatically send example inputs to the right device and use trace
-            example_inputs = self._prepare_batch_for_transfer(example_inputs)
+            example_inputs = self._apply_batch_transfer_handler(example_inputs)
             torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
         else:
             raise ValueError(
