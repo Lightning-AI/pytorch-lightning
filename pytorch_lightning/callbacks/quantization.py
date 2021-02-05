@@ -27,11 +27,15 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def wrap_qat_forward_context(
-    quant_cb, model: pl.core.LightningModule, func: Callable, trigger_condition: Optional[Union[Callable, int]] = None
+    quant_cb,
+    model: pl.core.LightningModule,
+    func: Callable,
+    trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
     """
     This decorator is used as context manager...
     """
+
     # todo: consider using registering hook before/after forward
     def wrapper(data) -> Any:
         _is_func_true = isinstance(trigger_condition, Callable) and trigger_condition(model.trainer)
@@ -50,12 +54,11 @@ def wrap_qat_forward_context(
     return wrapper
 
 
-def wrap_quantize_forward_context(
-    model: pl.core.LightningModule, func: Callable, quant, dequant
-) -> Callable:
+def wrap_quantize_forward_context(model: pl.core.LightningModule, func: Callable, quant, dequant) -> Callable:
     """
     This decorator is used as context manager...
     """
+
     # todo: consider using registering hook before/after forward
     def wrapper(data) -> Any:
         data = model.quant(data)

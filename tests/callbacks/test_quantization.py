@@ -16,7 +16,7 @@ import copy
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

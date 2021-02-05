@@ -16,10 +16,12 @@ import os
 import pytest
 
 from pytorch_lightning import Trainer
-from tests.helpers.zoo_data_models import ClassifDataModule, RegressDataModule, RegressionModel, ClassificationModel
+from tests.helpers.zoo_data_models import ClassifDataModule, ClassificationModel, RegressDataModule, RegressionModel
 
 
-@pytest.mark.parametrize("data_class,model_class", [(ClassifDataModule, ClassificationModel), (RegressDataModule, RegressionModel)])
+@pytest.mark.parametrize(
+    "data_class,model_class", [(ClassifDataModule, ClassificationModel), (RegressDataModule, RegressionModel)]
+)
 def test_models(tmpdir, data_class, model_class):
     """Test simple models"""
     dm = data_class()
