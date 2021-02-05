@@ -22,7 +22,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 def get_warnings(recwarn):
@@ -163,13 +163,13 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert not os.listdir(tmpdir)
 
     version = logger.version
-    model = EvalModelTemplate()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3, log_every_n_steps=1)
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=2.ckpt'}
     assert trainer.log_dir == logger.save_dir
 
 

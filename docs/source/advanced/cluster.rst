@@ -7,7 +7,7 @@ Computing cluster
 With Lightning it is easy to run your training script on a computing cluster without almost any modifications to the script.
 This guide shows how to run a training job on a general purpose cluster.
 
-Also, check :ref:`accelerators` as a new and more general approach to a cluster setup.
+Also, check :doc:`../extensions/accelerators` as a new and more general approach to a cluster setup.
 
 --------
 

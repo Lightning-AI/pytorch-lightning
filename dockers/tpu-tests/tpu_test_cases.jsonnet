@@ -22,9 +22,9 @@ local tputests = base.BaseTest {
     |||
       cd pytorch-lightning
       coverage run --source=pytorch_lightning -m pytest -v \
-        tests/models/test_tpu.py \
-        tests/backends/test_tpu_backend.py \
-        pytorch_lightning/utilities/xla_device_utils.py
+          pytorch_lightning/utilities/xla_device_utils.py \
+          tests/accelerators/legacy/test_tpu_backend.py \
+          tests/models/test_tpu.py
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
