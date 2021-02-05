@@ -86,7 +86,7 @@ def check_replace_distrubuted_sampler(
     limit_test_batches = 2
     trainer_args = {
         "default_root_dir": tmpdir,
-        "limit_test_batches" : limit_test_batches,
+        "limit_test_batches": limit_test_batches,
         "accelerator": accelerator,
     }
 
