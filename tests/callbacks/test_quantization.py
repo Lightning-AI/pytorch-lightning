@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
@@ -18,10 +19,12 @@ from torch.utils.data import DataLoader, Dataset
 from pytorch_lightning import Trainer, LightningModule, LightningDataModule
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.metrics.functional import mean_absolute_error
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class RandDataset(Dataset):
-    def __init__(self, size=32, length=64, target_val = 100.):
+
+    def __init__(self, size=32, length=64, target_val=100.):
         self.len = length
         self.data = torch.randn(length, size)
         self.target_val = torch.tensor([target_val], dtype=self.data.dtype)
@@ -90,7 +93,7 @@ class LinearModel(LightningModule):
 
 
 def test_quantization(tmpdir):
-
+    """Parity for  quant model"""
     dm = RandDataModule()
     trainer_args = dict(
         default_root_dir=tmpdir,
@@ -116,4 +119,49 @@ def test_quantization(tmpdir):
     diff_mae = abs(org_mae - quant_mae)
     assert diff_mae < 15
 
-    print("")
+
+def test_quantization_exceptions(tmpdir):
+    """Test  wrong fuse layers"""
+    dm = RandDataModule()
+    qmodel = LinearModel()
+    fusing_layers = [(f'layers.mlp_{i}', f'layers.NONE-mlp_{i}a') for i in range(3)]
+    qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
+    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
+    with pytest.raises(MisconfigurationException, match='one or more of them is not your model attributes'):
+        trainer.fit(qmodel, datamodule=dm)
+
+
+def custom_trigger_never(trainer):
+    return False
+
+
+def custom_trigger_even(trainer):
+    return trainer.current_epoch % 2 == 0
+
+
+def custom_trigger_last(trainer):
+    return trainer.current_epoch == (trainer.max_epochs - 1)
+
+
+@pytest.mark.parametrize(
+    "trigger_fn,expected_count", [
+        (None, 9),
+        (custom_trigger_never, 0),
+        (custom_trigger_even, 5),
+        (custom_trigger_last, 2),
+    ]
+)
+def test_quantization_triggers(tmpdir, trigger_fn, expected_count):
+    """Test  how many times the quant is called"""
+    dm = RandDataModule()
+    qmodel = LinearModel()
+    qcb = QuantizationAwareTraining(lambda_trigger=trigger_fn)
+    Trainer(
+        callbacks=[qcb],
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=4,
+    ).fit(qmodel, datamodule=dm)
+
+    assert qcb._forward_calls == expected_count

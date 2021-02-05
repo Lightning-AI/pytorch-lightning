@@ -20,23 +20,29 @@ Quantization
 from typing import Any, Callable, Union, Optional, Sequence
 
 import torch
-from torch.quantization import MinMaxObserver, QConfig
+from torch.quantization import QConfig
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
-def wrap_quantize_forward_context(model, func: Callable) -> Callable:
+def wrap_quantize_forward_context(quant_cb, model: pl.core.LightningModule, func: Callable, trigger_func: Optional[Callable] = None) -> Callable:
     """
     This decorator is used as context manager...
     """
 
+    # todo: consider using registering hook before/after forward
     def wrapper(data) -> Any:
-        # todo: consider using registering hook before/after forward
-        data = model.quant(data)
+        _quent_run = trigger_func is None or trigger_func(model.trainer)
+        # apply custom trigger
+        if _quent_run:
+            quant_cb.increment_forward()
+            data = model.quant(data)
         data = func(data)
-        data = model.dequant(data)
+        # apply custom trigger
+        if _quent_run:
+            data = model.dequant(data)
         return data
 
     return wrapper
@@ -58,12 +64,18 @@ class QuantizationAwareTraining(Callback):
     def __init__(
         self,
         qconfig: Union[str, QConfig] = 'fbgemm',
+        lambda_trigger: Optional[Callable] = None,
         modules_to_fuse: Optional[Sequence] = None,  # https://github.com/pytorch/pytorch/pull/43286
     ) -> None:
         if not isinstance(qconfig, (str, QConfig)):
             raise MisconfigurationException(f"Unsupported qconfig: f{self._qconfig}")
         self._qconfig = qconfig
+        self._lambda_trigger = lambda_trigger
         self.modules_to_fuse = modules_to_fuse
+        self._forward_calls = 0
+
+    def increment_forward(self):
+        self._forward_calls += 1
 
     def _check_feasible_fuse(self, model):
         if not self.modules_to_fuse:
@@ -82,7 +94,7 @@ class QuantizationAwareTraining(Callback):
         pl_module.dequant = torch.quantization.DeQuantStub()
         # manually specify where tensors will be converted from quantized
         # to floating point in the quantized model
-        pl_module.forward = wrap_quantize_forward_context(pl_module, pl_module.forward)
+        pl_module.forward = wrap_quantize_forward_context(quant_cb=self, model=pl_module, func=pl_module.forward, trigger_func=self._lambda_trigger)
 
         # attach a global qconfig, which contains information about what kind
         # of observers to attach. Use 'fbgemm' for server inference
@@ -106,18 +118,3 @@ class QuantizationAwareTraining(Callback):
         # and replaces key operators with quantized implementations.
         pl_module.eval()
         torch.quantization.convert(pl_module, inplace=True)
-
-# OP_LIST_TO_FUSER_METHOD = {
-#     (torch.nn.Conv1d, torch.nn.BatchNorm1d): fuse_conv_bn,
-#     (torch.nn.Conv1d, torch.nn.BatchNorm1d, torch.nn.ReLU): fuse_conv_bn_relu,
-#     (torch.nn.Conv2d, torch.nn.BatchNorm2d): fuse_conv_bn,
-#     (torch.nn.Conv2d, torch.nn.BatchNorm2d, torch.nn.ReLU): fuse_conv_bn_relu,
-#     (torch.nn.Conv3d, torch.nn.BatchNorm3d): fuse_conv_bn,
-#     (torch.nn.Conv3d, torch.nn.BatchNorm3d, torch.nn.ReLU): fuse_conv_bn_relu,
-#     (torch.nn.Conv1d, torch.nn.ReLU): torch.nn.intrinsic.ConvReLU1d,
-#     (torch.nn.Conv2d, torch.nn.ReLU): torch.nn.intrinsic.ConvReLU2d,
-#     (torch.nn.Conv3d, torch.nn.ReLU): torch.nn.intrinsic.ConvReLU3d,
-#     (torch.nn.Linear, torch.nn.ReLU): torch.nn.intrinsic.LinearReLU,
-#     (torch.nn.BatchNorm2d, torch.nn.ReLU): torch.nn.intrinsic.BNReLU2d,
-#     (torch.nn.BatchNorm3d, torch.nn.ReLU): torch.nn.intrinsic.BNReLU3d,
-# }
