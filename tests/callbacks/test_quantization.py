@@ -16,7 +16,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import Trainer, LightningModule, LightningDataModule
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.metrics.functional import mean_absolute_error

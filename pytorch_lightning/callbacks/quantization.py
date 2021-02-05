@@ -16,7 +16,7 @@ Quantization
 ^^^^^^^^^^^^
 
 """
-from typing import Any, Callable, Union, Optional, Sequence
+from typing import Any, Callable, Optional, Sequence, Union
 
 import torch
 from torch.quantization import QConfig
@@ -36,14 +36,14 @@ def wrap_qat_forward_context(
     def wrapper(data) -> Any:
         _is_func_true = isinstance(trigger_condition, Callable) and trigger_condition(model.trainer)
         _is_count_true = isinstance(trigger_condition, int) and quant_cb._forward_calls < trigger_condition
-        _quent_run = trigger_condition is None or _is_func_true or _is_count_true
+        _quant_run = trigger_condition is None or _is_func_true or _is_count_true
         # apply custom trigger
-        if _quent_run:
+        if _quant_run:
             quant_cb._forward_calls += 1
             data = model.quant(data)
         data = func(data)
         # apply custom trigger
-        if _quent_run:
+        if _quant_run:
             data = model.dequant(data)
         return data
 
