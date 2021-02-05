@@ -49,6 +49,7 @@ def wrap_quantize_forward_context(quant_cb, model: pl.core.LightningModule, func
 
 
 def _recursive_hasattr(obj, attribs, state=True):
+    """recursive check if model has some layers denoted with ."""
     if '.' in attribs:
         attrib, attribs = attribs.split('.', 1)
         if hasattr(obj, attrib):
@@ -60,13 +61,36 @@ def _recursive_hasattr(obj, attribs, state=True):
 
 
 class QuantizationAwareTraining(Callback):
+    """
+    Quantization allows speed-up inference and decrease model size by performing computations and storing tensors
+     at lower bitwidths than floating point precision such as INT8 or FLOAT16.
+    We use native PyTorch API so for more information see
+     `Quantization <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
+    """
 
     def __init__(
         self,
         qconfig: Union[str, QConfig] = 'fbgemm',
         lambda_trigger: Optional[Callable] = None,
-        modules_to_fuse: Optional[Sequence] = None,  # https://github.com/pytorch/pytorch/pull/43286
+        modules_to_fuse: Optional[Sequence] = None,
     ) -> None:
+        """
+        Args:
+            qconfig: define quantization configuration see: `torch.quantization.QConfig <https://pytorch.org/docs/stable/torch.quantization.html?highlight=qconfig#torch.quantization.QConfig>_`
+                or use pre-defined: 'fbgemm' for server inference and 'qnnpack' for mobile inference
+            lambda_trigger: define custom function when you shall collect quantization statistic
+
+                - with default ``None`` you call the quant for each module forward, typical use-case can be reflecting user augmentation
+                - custom lambda funtion with single trainer argument, see example when you limit call only for last epoch::
+
+                    def custom_trigger_last(trainer):
+                        return trainer.current_epoch == (trainer.max_epochs - 1)
+
+                    QuantizationAwareTraining(lambda_trigger=custom_trigger_last)
+
+            modules_to_fuse: allows you fuse a few layer together as you can see in `diagram <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
+                to find what layer types can be fue=sed check https://github.com/pytorch/pytorch/pull/43286
+        """
         if not isinstance(qconfig, (str, QConfig)):
             raise MisconfigurationException(f"Unsupported qconfig: f{self._qconfig}")
         self._qconfig = qconfig
@@ -112,9 +136,9 @@ class QuantizationAwareTraining(Callback):
         torch.quantization.prepare_qat(pl_module, inplace=True)
 
     def on_fit_end(self, trainer, pl_module):
+        pl_module.eval()
         # Convert the observed model to a quantized model. This does several things:
         # quantizes the weights, computes and stores the scale and bias value to be
         # used with each activation tensor, fuses modules where appropriate,
         # and replaces key operators with quantized implementations.
-        pl_module.eval()
         torch.quantization.convert(pl_module, inplace=True)
