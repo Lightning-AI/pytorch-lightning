@@ -103,7 +103,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
         def on_train_epoch_end(self, trainer, pl_module, outputs):
             self.len_outputs = len(outputs[0])
 
-    class OverriddenModel(EvalModelTemplate):
+    class OverriddenModel(BoringModel):
 
         def on_train_epoch_start(self):
             self.num_train_batches = 0
@@ -114,7 +114,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
         def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             self.num_train_batches += 1
 
-    class NotOverriddenModel(EvalModelTemplate):
+    class NotOverriddenModel(BoringModel):
 
         def on_train_epoch_start(self):
             self.num_train_batches = 0
@@ -124,6 +124,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 
     overridden_model = OverriddenModel()
     not_overridden_model = NotOverriddenModel()
+    not_overridden_model.training_epoch_end = None
 
     callback = LoggingCallback()
     trainer = Trainer(
