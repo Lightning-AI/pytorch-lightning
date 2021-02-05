@@ -69,9 +69,12 @@ class QuantizationAwareTraining(Callback):
      `Quantization <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
     """
 
+    OBSERVER_TYPES = (None, 'histogram', 'average')
+
     def __init__(
         self,
         qconfig: Union[str, QConfig] = 'fbgemm',
+        observer_type: Optional[str] = None,
         lambda_trigger: Optional[Callable] = None,
         modules_to_fuse: Optional[Sequence] = None,
     ) -> None:
@@ -80,6 +83,8 @@ class QuantizationAwareTraining(Callback):
             qconfig: define quantization configuration see: `torch.quantization.QConfig
              <https://pytorch.org/docs/stable/torch.quantization.html?highlight=qconfig#torch.quantization.QConfig>_`
                 or use pre-defined: 'fbgemm' for server inference and 'qnnpack' for mobile inference
+            observer_type: switching between `MovingAverageMinMaxObserver` as "average"
+                and `HistogramObserver` as "histogram" which is more computational costly
             lambda_trigger: define custom function when you shall collect quantization statistic
 
                 - with default ``None`` you call the quant for each module forward,
@@ -97,8 +102,13 @@ class QuantizationAwareTraining(Callback):
                 to find what layer types can be fue=sed check https://github.com/pytorch/pytorch/pull/43286
         """
         if not isinstance(qconfig, (str, QConfig)):
-            raise MisconfigurationException(f"Unsupported qconfig: f{self._qconfig}")
+            raise MisconfigurationException(f"Unsupported qconfig: f{qconfig}")
         self._qconfig = qconfig
+        if observer_type not in self.OBSERVER_TYPES:
+            raise MisconfigurationException(
+                f'Unsupported observer type "{observer_type}", allowed are {self.OBSERVER_TYPES}'
+            )
+        self._observer_type = observer_type
         self._lambda_trigger = lambda_trigger
         self.modules_to_fuse = modules_to_fuse
         self._forward_calls = 0
@@ -130,7 +140,10 @@ class QuantizationAwareTraining(Callback):
         # attach a global qconfig, which contains information about what kind
         # of observers to attach. Use 'fbgemm' for server inference
         if isinstance(self._qconfig, str):
-            pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
+            if self._observer_type == 'average':
+                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
+            else:
+                pl_module.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
         elif isinstance(self._qconfig, QConfig):
             pl_module.qconfig = self._qconfig
 

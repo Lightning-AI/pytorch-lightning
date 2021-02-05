@@ -92,7 +92,8 @@ class LinearModel(LightningModule):
         self.log('val_MAE', self.measure(output, y), prog_bar=True)
 
 
-def test_quantization(tmpdir):
+@pytest.mark.parametrize("observe", [None, 'histogram', 'average'])
+def test_quantization(tmpdir, observe):
     """Parity for  quant model"""
     dm = RandDataModule()
     trainer_args = dict(
@@ -107,7 +108,7 @@ def test_quantization(tmpdir):
 
     qmodel = LinearModel()
     fusing_layers = [(f'layers.mlp_{i}', f'layers.mlp_{i}a') for i in range(3)]
-    qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
+    qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers, observer_type=observe)
     Trainer(callbacks=[qcb], **trainer_args).fit(qmodel, datamodule=dm)
     quant_size = qmodel.model_size()
     quant_mae = torch.mean(torch.tensor([model.measure(qmodel(x), y) for x, y in dm.test_dataloader()]))
@@ -122,13 +123,17 @@ def test_quantization(tmpdir):
 
 def test_quantization_exceptions(tmpdir):
     """Test  wrong fuse layers"""
-    dm = RandDataModule()
-    qmodel = LinearModel()
+    with pytest.raises(MisconfigurationException, match='Unsupported qconfig'):
+        QuantizationAwareTraining(qconfig=['abc'])
+
+    with pytest.raises(MisconfigurationException, match='Unsupported observer type'):
+        QuantizationAwareTraining(observer_type='abc')
+
     fusing_layers = [(f'layers.mlp_{i}', f'layers.NONE-mlp_{i}a') for i in range(3)]
     qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     with pytest.raises(MisconfigurationException, match='one or more of them is not your model attributes'):
-        trainer.fit(qmodel, datamodule=dm)
+        trainer.fit(LinearModel(), datamodule=RandDataModule())
 
 
 def custom_trigger_never(trainer):
