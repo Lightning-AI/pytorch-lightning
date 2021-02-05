@@ -72,6 +72,10 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         # TODO: not entirely sure, why we need this
         if model is not None and isinstance(model, LightningModule):
             model.backward(closure_loss, optimizer, opt_idx)
+
+            # TODO: avoid dev_debugger and track these calls with mock
+            model.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
+
         else:
             closure_loss.backward(*args, **kwargs)
 
