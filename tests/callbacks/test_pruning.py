@@ -33,11 +33,15 @@ class TestModel(BoringModel):
 
     def __init__(self):
         super().__init__()
-        self.layer = Sequential(OrderedDict([
-            ("mlp_1", nn.Linear(32, 32)),
-            ("mlp_2", nn.Linear(32, 32)),
-            ("mlp_3", nn.Linear(32, 2)),
-        ]))
+        self.layer = Sequential(
+            OrderedDict(
+                [
+                    ("mlp_1", nn.Linear(32, 32)),
+                    ("mlp_2", nn.Linear(32, 32)),
+                    ("mlp_3", nn.Linear(32, 2)),
+                ]
+            )
+        )
 
 
 class TestPruningMethod(pytorch_prune.BasePruningMethod):
@@ -111,14 +115,14 @@ def train_with_pruning_callback(
 
 
 def test_pruning_misconfiguration():
-    with pytest.raises(MisconfigurationException, match="provided parameter_names"):
+    with pytest.raises(MisconfigurationException, match=r"chocolate isn't in \('weight', 'bias'\)"):
         ModelPruning(parameter_names=["chocolate"])
     with pytest.raises(MisconfigurationException, match=r"expected to be a str in \["):
-        ModelPruning(parameter_names=["weight"], pruning_fn={})  # noqa
+        ModelPruning(pruning_fn={})  # noqa
     with pytest.raises(MisconfigurationException, match="should be provided"):
-        ModelPruning(parameter_names=["weight"], pruning_fn="random_structured")
+        ModelPruning(pruning_fn="random_structured")
     with pytest.raises(MisconfigurationException, match="requesting `ln_structured` pruning, the `pruning_norm`"):
-        ModelPruning(parameter_names=["weight"], pruning_fn="ln_structured", pruning_dim=0)
+        ModelPruning(pruning_fn="ln_structured", pruning_dim=0)
 
 
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
