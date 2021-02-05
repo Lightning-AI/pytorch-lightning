@@ -33,15 +33,11 @@ class TestModel(BoringModel):
 
     def __init__(self):
         super().__init__()
-        self.layer = Sequential(
-            OrderedDict(
-                [
-                    ("mlp_1", nn.Linear(32, 32)),
-                    ("mlp_2", nn.Linear(32, 32)),
-                    ("mlp_3", nn.Linear(32, 2)),
-                ]
-            )
-        )
+        self.layer = Sequential(OrderedDict([
+            ("mlp_1", nn.Linear(32, 32)),
+            ("mlp_2", nn.Linear(32, 32)),
+            ("mlp_3", nn.Linear(32, 2)),
+        ]))
 
 
 class TestPruningMethod(pytorch_prune.BasePruningMethod):
@@ -75,6 +71,8 @@ def train_with_pruning_callback(
     pruning_kwargs = {"pruning_fn": pruning_fn, "amount": 0.3, "use_global_unstructured": use_global_unstructured}
     if parameters_to_prune:
         pruning_kwargs["parameters_to_prune"] = [(model.layer.mlp_1, "weight"), (model.layer.mlp_2, "weight")]
+    else:
+        pruning_kwargs["parameter_names"] = ["weight"]
     if isinstance(pruning_fn, str) and pruning_fn.endswith("_structured"):
         pruning_kwargs["pruning_dim"] = 0
     if pruning_fn == "ln_structured":
@@ -85,7 +83,7 @@ def train_with_pruning_callback(
         with pytest.raises(MisconfigurationException, match="is supported with `use_global_unstructured=True`"):
             ModelPruning(**pruning_kwargs)
         return
-    if not isinstance(pruning_fn, str) and not use_global_unstructured:
+    if ModelPruning.is_pruning_method(pruning_fn) and not use_global_unstructured:
         with pytest.raises(MisconfigurationException, match="currently only supported with"):
             ModelPruning(**pruning_kwargs)
         return
@@ -109,7 +107,7 @@ def train_with_pruning_callback(
     trainer.fit(model)
     trainer.test(model)
 
-    if accelerator not in ("ddp_cpu", "ddp_spawn"):
+    if not accelerator:
         # Check some have been pruned
         assert torch.any(model.layer.mlp_2.weight == 0)
 
@@ -128,7 +126,7 @@ def test_pruning_misconfiguration():
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
 @pytest.mark.parametrize("use_global_unstructured", [False, True])
 @pytest.mark.parametrize(
-    "pruning_fn", ["l1_unstructured", "random_unstructured", "ln_structured", "random_structured", TestPruningMethod()]
+    "pruning_fn", ["l1_unstructured", "random_unstructured", "ln_structured", "random_structured", TestPruningMethod]
 )
 def test_pruning_callback(tmpdir, use_global_unstructured, parameters_to_prune, pruning_fn):
     train_with_pruning_callback(

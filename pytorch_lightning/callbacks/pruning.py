@@ -20,7 +20,7 @@ ModelPruning
 import inspect
 from copy import deepcopy
 from functools import partial
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Type, Union
 
 import torch.nn.utils.prune as pytorch_prune
 from torch import nn
@@ -161,7 +161,7 @@ class ModelPruning(Callback):
             pruning_fn = self._create_pruning_fn(pruning_fn, **pruning_kwargs)
 
         else:
-            if not isinstance(pruning_fn, pytorch_prune.BasePruningMethod):
+            if not self.is_pruning_method(pruning_fn):
                 raise MisconfigurationException(
                     f"`pruning_fn` is expected to be a str in {list(_PYTORCH_PRUNING_FUNCTIONS.keys())}"
                     f" or a PyTorch `BasePruningMethod`. Found: {pruning_fn}"
@@ -195,7 +195,7 @@ class ModelPruning(Callback):
         """
         return parameters_to_prune
 
-    def _create_pruning_fn(self, pruning_fn: str, *args, **kwargs):
+    def _create_pruning_fn(self, pruning_fn: str, **kwargs):
         """
         This function takes `pruning_fn`, a function name.
 
@@ -207,11 +207,11 @@ class ModelPruning(Callback):
             pruning_fn = _PYTORCH_PRUNING_METHOD[pruning_fn]
             self._global_kwargs = kwargs
             return pruning_fn
-        return ModelPruning._wrap_pruning_fn(_PYTORCH_PRUNING_FUNCTIONS[pruning_fn], *args, **kwargs)
+        return ModelPruning._wrap_pruning_fn(_PYTORCH_PRUNING_FUNCTIONS[pruning_fn], **kwargs)
 
     @staticmethod
-    def _wrap_pruning_fn(pruning_fn, *args, **kwargs):
-        return partial(pruning_fn, *args, **kwargs)
+    def _wrap_pruning_fn(pruning_fn, **kwargs):
+        return partial(pruning_fn, **kwargs)
 
     def _make_pruning_permanent(self):
         for module, param_name in self._parameters_to_prune:
@@ -246,15 +246,10 @@ class ModelPruning(Callback):
             self.pruning_fn(module, name=param, amount=amount)
 
     def _resolve_global_kwargs(self, amount: float):
-        kwargs = {}
         self._global_kwargs["amount"] = amount
-        params = inspect.signature(self.pruning_fn).parameters
-        for p_name in params:
-            if p_name != "self":
-                param = self._global_kwargs.get(p_name)
-                if param is not None:
-                    kwargs[p_name] = param
-        return kwargs
+        params = set(inspect.signature(self.pruning_fn).parameters)
+        params.discard("self")
+        return {k: v for k, v in self._global_kwargs.items() if k in params}
 
     def _apply_global_pruning(self, amount: float):
         pytorch_prune.global_unstructured(
@@ -337,3 +332,9 @@ class ModelPruning(Callback):
             )
 
         return parameters_to_prune
+
+    @staticmethod
+    def is_pruning_method(method) -> bool:
+        if not inspect.isclass(method):
+            return False
+        return issubclass(method, pytorch_prune.BasePruningMethod)
