@@ -288,6 +288,8 @@ class TrainLoop:
             model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator_backend.training_step(args)
+                self.trainer.accelerator_backend.post_training_step()
+
             self.trainer.logger_connector.cache_logged_metrics()
 
             self._check_training_step_output(training_step_output)
@@ -695,7 +697,7 @@ class TrainLoop:
         return result
 
     @contextmanager
-    def block_ddp_sync_behaviour(self):
+    def block_ddp_sync_behaviour(self, should_block_sync: bool = False):
         """
         automatic_optimization = True
         Blocks ddp sync gradients behaviour on backwards pass.
@@ -709,8 +711,9 @@ class TrainLoop:
             context manager with sync behaviour off
 
         """
-        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and self.automatic_optimization:
-            yield self.trainer.training_type_plugin.block_backward_sync()
+        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and (self.automatic_optimization or should_block_sync):
+            with self.trainer.training_type_plugin.block_backward_sync():
+                yield None
         else:
             yield None
 
@@ -751,7 +754,8 @@ class TrainLoop:
             self._curr_step_result = result
 
             if result is None:
-                self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
+                if self.automatic_optimization:
+                    self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
                 return None
 
             if self.trainer.train_loop.automatic_optimization:

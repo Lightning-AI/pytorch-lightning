@@ -15,6 +15,7 @@ import collections
 import os
 from unittest import mock
 from unittest.mock import ANY, call, patch
+from copy import deepcopy
 
 import pytest
 import torch
@@ -935,12 +936,10 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@patch("torch.optim.Adam.step")
-@patch("torch.optim.SGD.step")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
-def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_step, mock_adam_step, tmpdir):
+def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
     """
@@ -973,6 +972,9 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
             world_size = torch_distrib.get_world_size(torch_distrib.group.WORLD)
             assert world_size == 2
 
+            make_gen_optimizer_step = batch_idx % 2 == 1
+            make_dis_optimizer_step = batch_idx % 4 == 0
+
             def compute_loss():
                 x = batch[0]
                 x = F.dropout(x, 0.1)
@@ -982,32 +984,33 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
                 loss_zeros = self.loss_zeros(None, predictions)
                 return loss_ones, loss_zeros
 
-            def make_manual_backward(loss, opt, retain_graph=False):
+            def make_manual_backward(loss, opt, retain_graph=False, make_optimizer_step=True):
                 self.manual_backward(loss, opt, retain_graph=retain_graph)
-                grad_clone = self.layer.weight.grad.clone()
-                assert self.manual_sync_grad()
-                self.layer.weight.grad /= world_size
-                assert torch.equal(self.layer.weight.grad, grad_clone)
+                if make_optimizer_step:
+                    grad_clone = self.layer.weight.grad.clone()
+                    assert self.manual_sync_grad()
+                    self.layer.weight.grad /= world_size
+                    assert torch.equal(self.layer.weight.grad, grad_clone)
 
             def gen_closure():
                 loss_ones_gen, loss_zeros = compute_loss()
-                make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True)
-                make_manual_backward(loss_ones_gen, opt_gen)
+                make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
+                make_manual_backward(loss_ones_gen, opt_gen, make_optimizer_step=make_gen_optimizer_step)
 
             def dis_closure():
                 loss_ones_gen, loss_zeros = compute_loss()
-                make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True)
-                make_manual_backward(loss_ones_gen, opt_dis)
+                make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
+                make_manual_backward(loss_ones_gen, opt_dis, make_optimizer_step=make_dis_optimizer_step)
 
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
-            opt_gen.step(closure=gen_closure, make_optimizer_step=batch_idx % 2 == 0, optim='sgd')
+            opt_gen.step(closure=gen_closure, make_optimizer_step=make_gen_optimizer_step)
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
-            if batch_idx % 4 == 0 :
+            if make_dis_optimizer_step:
                 # Note: Set make_optimizer_step to True or it will use by default
                 # Trainer(accumulate_grad_batches=x)
-                opt_dis.step(closure=dis_closure, make_optimizer_step=True, optim='adam')
+                opt_dis.step(closure=dis_closure, make_optimizer_step=True)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -1021,6 +1024,7 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
     seed_everything(42)
 
     model = TestModel()
+    model_copy = deepcopy(model)
     model.val_dataloader = None
     model.training_epoch_end = None
 
@@ -1037,8 +1041,10 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
     )
 
     trainer.fit(model)
-    expected_calls = [call(closure=ANY, optim='sgd')] * 4
-    mock_sgd_step.assert_has_calls(expected_calls)
 
-    expected_calls = [call(closure=ANY, optim='adam')] * 2
-    mock_adam_step.assert_has_calls(expected_calls)
+    for param, param_copy in zip(model.parameters(), model_copy.parameters()):
+        assert not torch.equal(param, param_copy)
+
+    opt_a, opt_b = model.optimizers()
+    assert opt_a._total_optimizer_step_calls == 4
+    assert opt_b._total_optimizer_step_calls == 2
