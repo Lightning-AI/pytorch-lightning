@@ -1765,7 +1765,9 @@ class LightningModule(
 
         return None
 
+    @property
     def model_size(self) -> float:
+        # todo: think about better way without need to dump model to drive
         tmp_name = f"{uuid.uuid4().hex}.pt"
         torch.save(self.state_dict(), tmp_name)
         size_mb = os.path.getsize(tmp_name) / 1e6

@@ -227,6 +227,7 @@ class ModelSummary(object):
 
     @property
     def model_size(self) -> float:
+        # todo: seems it does not work with quantized models
         return self.total_parameters * self._precision_megabytes
 
     def summarize(self) -> Dict[str, LayerSummary]:

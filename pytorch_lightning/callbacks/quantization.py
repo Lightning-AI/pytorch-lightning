@@ -26,7 +26,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def wrap_quantize_forward_context(
+def wrap_qat_forward_context(
     quant_cb, model: pl.core.LightningModule, func: Callable, trigger_func: Optional[Callable] = None
 ) -> Callable:
     """
@@ -38,12 +38,30 @@ def wrap_quantize_forward_context(
         _quent_run = trigger_func is None or trigger_func(model.trainer)
         # apply custom trigger
         if _quent_run:
-            quant_cb.increment_forward()
+            if quant_cb:
+                quant_cb.increment_forward()
             data = model.quant(data)
         data = func(data)
         # apply custom trigger
         if _quent_run:
             data = model.dequant(data)
+        return data
+
+    return wrapper
+
+
+def wrap_quantize_forward_context(
+    model: pl.core.LightningModule, func: Callable, quant, dequant
+) -> Callable:
+    """
+    This decorator is used as context manager...
+    """
+
+    # todo: consider using registering hook before/after forward
+    def wrapper(data) -> Any:
+        data = model.quant(data)
+        data = func(data)
+        data = model.dequant(data)
         return data
 
     return wrapper
@@ -133,7 +151,8 @@ class QuantizationAwareTraining(Callback):
         pl_module.dequant = torch.quantization.DeQuantStub()
         # manually specify where tensors will be converted from quantized
         # to floating point in the quantized model
-        pl_module.forward = wrap_quantize_forward_context(
+        self.__module_forward = pl_module.forward
+        pl_module.forward = wrap_qat_forward_context(
             quant_cb=self, model=pl_module, func=pl_module.forward, trigger_func=self._lambda_trigger
         )
 
@@ -162,3 +181,6 @@ class QuantizationAwareTraining(Callback):
         # used with each activation tensor, fuses modules where appropriate,
         # and replaces key operators with quantized implementations.
         torch.quantization.convert(pl_module, inplace=True)
+        pl_module.forward = wrap_quantize_forward_context(
+            model=pl_module, func=self.__module_forward, quant=pl_module.quant, dequant=pl_module.dequant
+        )
