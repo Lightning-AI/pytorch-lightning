@@ -134,11 +134,11 @@ def test_swa_callback(tmpdir, batchnorm):
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from in PyTorch 1.6.0")
 def test_swa_raises():
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=0, swa_lrs=0.1)
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=1.5, swa_lrs=0.1)
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=-1, swa_lrs=0.1)
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match="positive float or a list of positive float"):
         StochasticWeightAveraging(swa_epoch_start=5, swa_lrs=[0.2, 1])
