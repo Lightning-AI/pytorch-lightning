@@ -369,21 +369,20 @@ autosectionlabel_prefix_document = True
 # only run doctests marked with a ".. doctest::" directive
 doctest_test_doctest_blocks = ''
 doctest_global_setup = """
-
 import importlib
 import os
 import torch
 from torch import nn
-
 import pytorch_lightning as pl
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.utilities import (
     _NATIVE_AMP_AVAILABLE,
     _APEX_AVAILABLE,
     _XLA_AVAILABLE,
     _TPU_AVAILABLE,
+    _TORCHVISION_AVAILABLE,
+    _module_available,
 )
-_TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
-
+TORCHVISION_AVAILABLE = _module_available("torchvision")
 """
 coverage_skip_undoc_in_source = True

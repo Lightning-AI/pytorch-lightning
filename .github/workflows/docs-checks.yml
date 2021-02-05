@@ -40,11 +40,9 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
-        env:
-          HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-          HOROVOD_WITHOUT_MXNET: 1
-          HOROVOD_WITHOUT_TENSORFLOW: 1
         run: |
+          # remove Horovod from requirements
+          python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
           # python -m pip install --upgrade --user pip
           pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement requirements/extra.txt

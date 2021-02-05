@@ -58,21 +58,21 @@ RUN apt-get update -qq && \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-ENV PATH="/root/miniconda3/bin:$PATH"
-ENV LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
-ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
+ENV \
+    PATH="/root/miniconda3/bin:$PATH" \
+    LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH" \
+    CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
+    HOROVOD_GPU_OPERATIONS=NCCL \
+    HOROVOD_WITH_PYTORCH=1 \
+    HOROVOD_WITHOUT_TENSORFLOW=1 \
+    HOROVOD_WITHOUT_MXNET=1 \
+    HOROVOD_WITH_GLOO=1 \
+    HOROVOD_WITHOUT_MPI=1 \
+    # MAKEFLAGS="-j$(nproc)" \
+    MAKEFLAGS="-j1" \
+    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
+    CONDA_ENV=lightning
 
-ENV HOROVOD_GPU_OPERATIONS=NCCL
-ENV HOROVOD_WITH_PYTORCH=1
-ENV HOROVOD_WITHOUT_TENSORFLOW=1
-ENV HOROVOD_WITHOUT_MXNET=1
-ENV HOROVOD_WITH_GLOO=1
-ENV HOROVOD_WITHOUT_MPI=1
-#ENV MAKEFLAGS="-j$(nproc)"
-ENV MAKEFLAGS="-j1"
-ENV TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
-
-ENV CONDA_ENV=lightning
 COPY environment.yml environment.yml
 
 # conda init
@@ -89,10 +89,11 @@ RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH
     conda clean -ya && \
     rm environment.yml
 
-ENV PATH /root/miniconda3/envs/${CONDA_ENV}/bin:$PATH
-ENV LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
-# if you want this environment to be the default one, uncomment the following line:
-ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
+ENV \
+    PATH /root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
+    LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH" \
+    # if you want this environment to be the default one, uncomment the following line:
+    CONDA_DEFAULT_ENV=${CONDA_ENV}
 
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-test.txt

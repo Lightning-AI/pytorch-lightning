@@ -1196,22 +1196,24 @@ class LightningModule(
             optimizer: Current optimizer used in training_loop
             optimizer_idx: Current optimizer idx in training_loop
         """
+
+        # Iterate over all optimizer parameters to preserve their `requires_grad` information
+        # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
-        # make sure current optimizer is latest to be iterated over.
-        optimizers = [opt for opt in self.optimizers(use_pl_optimizer=False) if opt != optimizer] + [optimizer]
-        num_optimizers = len(optimizers) - 1
-        for opt_idx, opt in enumerate(optimizers):
+        for opt in self.optimizers(use_pl_optimizer=False):
             for group in opt.param_groups:
                 for param in group['params']:
-                    if num_optimizers == opt_idx:
-                        # If a param appears in 2 optimizers, revert `requires_grad` to before toggle.
-                        if param in param_requires_grad_state:
-                            param.requires_grad = param_requires_grad_state[param]
-                    else:
-                        # save requires_grad for later restoration
-                        param_requires_grad_state[param] = param.requires_grad
-                        param.requires_grad = False
+                    # If a param already appear in param_requires_grad_state, continue
+                    if param in param_requires_grad_state:
+                        continue
+                    param_requires_grad_state[param] = param.requires_grad
+                    param.requires_grad = False
 
+        # Then iterate over the current optimizer's parameters and set its `requires_grad`
+        # properties accordingly
+        for group in optimizer.param_groups:
+            for param in group['params']:
+                param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
 
     def untoggle_optimizer(self, optimizer_idx: int):
@@ -1522,7 +1524,7 @@ class LightningModule(
 
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
-             or string names or argumenst from class `__init__`
+             or string names or arguments from class `__init__`
 
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
