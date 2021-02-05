@@ -424,11 +424,11 @@ class BackendConnector(object):
         # special case with DDP on CPUs
         if self.distributed_backend == "ddp_cpu":
             self._distrib_type = DistributedType.DDP
-            self.data_parallel_device_ids = None
             if self.num_gpus > 0:
                 rank_zero_warn(
                     'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
                 )
+                self.parallel_device_ids = None
             if self.num_processes is None:
                 # define the max CPU available
                 self.num_processes = os.cpu_count()
