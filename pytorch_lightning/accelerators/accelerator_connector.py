@@ -161,6 +161,19 @@ class BackendConnector(object):
             if isinstance(plug, TrainingTypePlugin):
                 if training_type is None:
                     training_type = plug
+
+                    # necessary for RPC, when user has to provide balance
+                    if hasattr(training_type, 'parallel_devices') and not getattr(training_type, 'parallel_devices'):
+                        training_type.parallel_devices = self.parallel_devices
+                        if hasattr(training_type, 'num_processes'):
+                            training_type.num_processes = len(self.parallel_devices)
+
+                    if hasattr(training_type, 'cluster_environment') and getattr(training_type, 'cluster_environment') is None:
+                        training_type.cluster_environment = cluster_environment
+
+                    if hasattr(training_type, 'num_nodes') and getattr(training_type, 'num_nodes') is None:
+                        training_type.num_nodes = self.num_nodes
+
                 else:
                     raise MisconfigurationException(
                         'You can only specify one precision and one training type plugin. '

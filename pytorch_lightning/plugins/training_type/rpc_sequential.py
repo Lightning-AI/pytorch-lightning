@@ -13,7 +13,7 @@
 # limitations under the License
 import logging
 import os
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Sequence
 
 import torch
 import torch.distributed as torch_distrib
@@ -43,7 +43,7 @@ class RPCSequentialPlugin(RPCPlugin):
 
     def __init__(
         self,
-        balance: Optional[List[int]] = None,
+        balance : List[int],
         microbatches: int = 8,
         checkpoint: str = 'except_last',
         balance_mode: str = "balance_by_size",
@@ -90,7 +90,10 @@ class RPCSequentialPlugin(RPCPlugin):
         """
         self._check_pipe_available()
         super().__init__(
-            sync_batchnorm=sync_batchnorm,
+            parallel_devices=(),
+            num_nodes=None,
+            cluster_environment=None,
+            sync_batchnorm=False,
             rpc_timeout_sec=rpc_timeout_sec,
             **kwargs
         )
