@@ -34,28 +34,8 @@ pytorch_lightning/tuner/*
 
 
 # TODO
-tests/base/*
-
-
-# TODO
-tests/deprecated_api/*
-
-
-# TODO
 tests/metrics/*
 
 
 # TODO
-tests/overrides/*
-
-
-# TODO
 tests/trainer/*
-
-
-# TODO
-tests/tuner/*
-
-
-# TODO
-tests/utilities/*

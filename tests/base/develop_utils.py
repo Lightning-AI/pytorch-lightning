@@ -98,7 +98,7 @@ def pl_multi_process_test(func):
                 traceback.print_exc()
                 queue.put(-1)
 
-        proc = Process(target=inner_f, args=(queue,), kwargs=kwargs)
+        proc = Process(target=inner_f, args=(queue, ), kwargs=kwargs)
         proc.start()
         proc.join()
 

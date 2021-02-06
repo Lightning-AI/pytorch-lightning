@@ -24,6 +24,7 @@ from tests.base.datasets import AverageDataset, MNIST, TrialMNIST
 
 
 class Generator(nn.Module):
+
     def __init__(self, latent_dim: int, img_shape: tuple):
         super().__init__()
         self.img_shape = img_shape
@@ -41,7 +42,7 @@ class Generator(nn.Module):
             *block(256, 512),
             *block(512, 1024),
             nn.Linear(1024, int(np.prod(img_shape))),
-            nn.Tanh()
+            nn.Tanh(),
         )
 
     def forward(self, z):
@@ -51,6 +52,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
+
     def __init__(self, img_shape: tuple):
         super().__init__()
 
@@ -73,8 +75,9 @@ class Discriminator(nn.Module):
 class BasicGAN(LightningModule):
     """Implements a basic GAN for the purpose of illustrating multiple optimizers."""
 
-    def __init__(self, hidden_dim: int = 128, learning_rate: float = 0.001,
-                 b1: float = 0.5, b2: float = 0.999, **kwargs):
+    def __init__(
+        self, hidden_dim: int = 128, learning_rate: float = 0.001, b1: float = 0.5, b2: float = 0.999, **kwargs
+    ):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.learning_rate = learning_rate
@@ -122,7 +125,7 @@ class BasicGAN(LightningModule):
             output = OrderedDict({
                 'loss': g_loss,
                 'progress_bar': tqdm_dict,
-                'log': tqdm_dict
+                'log': tqdm_dict,
             })
             return output
 
@@ -148,7 +151,7 @@ class BasicGAN(LightningModule):
             output = OrderedDict({
                 'loss': d_loss,
                 'progress_bar': tqdm_dict,
-                'log': tqdm_dict
+                'log': tqdm_dict,
             })
             return output
 
@@ -166,6 +169,7 @@ class BasicGAN(LightningModule):
 
 
 class ParityModuleRNN(LightningModule):
+
     def __init__(self):
         super().__init__()
         self.rnn = nn.LSTM(10, 20, batch_first=True)
@@ -218,4 +222,7 @@ class ParityModuleMNIST(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(MNIST(train=True, download=True,), batch_size=128, num_workers=1)
+        return DataLoader(MNIST(
+            train=True,
+            download=True,
+        ), batch_size=128, num_workers=1)
