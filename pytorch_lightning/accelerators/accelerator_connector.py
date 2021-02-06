@@ -162,8 +162,6 @@ class BackendConnector(object):
                 if training_type is None:
                     training_type = plug
 
-                    
-
                 else:
                     raise MisconfigurationException(
                         'You can only specify one precision and one training type plugin. '
