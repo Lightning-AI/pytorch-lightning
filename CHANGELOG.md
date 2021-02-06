@@ -175,6 +175,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed support custom DataLoader with DDP if they can be re-instantiated ([#5745](https://github.com/PyTorchLightning/pytorch-lightning/pull/5745))
 
 
+## [1.1.8] - 2021-02-06
+
+### Fixed
+
+- Fixed `toggle_optimizers` not handling all optimizer parameters ([#5775](https://github.com/PyTorchLightning/pytorch-lightning/pull/5775))
+
+
 ## [1.1.7] - 2021-02-03
 
 ### Fixed
