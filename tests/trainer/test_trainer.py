@@ -200,11 +200,14 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
 
 @pytest.mark.parametrize(
     ["schedule", "expected"],
-    [pytest.param({
-        1: 2,
-        3: 4
-    }, [1, 2, 4]), pytest.param(3, [3, 3, 3]),
-     pytest.param(4, [4, 4, 4])],
+    [
+        pytest.param({
+            1: 2,
+            3: 4
+        }, [1, 2, 4]),
+        pytest.param(3, [3, 3, 3]),
+        pytest.param(4, [4, 4, 4]),
+    ],
 )
 def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
     """
