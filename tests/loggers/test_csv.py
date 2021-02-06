@@ -78,7 +78,7 @@ def test_file_logger_log_metrics(tmpdir, step_idx):
         "float": 0.3,
         "int": 1,
         "FloatTensor": torch.tensor(0.1),
-        "IntTensor": torch.tensor(1)
+        "IntTensor": torch.tensor(1),
     }
     logger.log_metrics(metrics, step_idx)
     logger.save()
@@ -97,7 +97,11 @@ def test_file_logger_log_hyperparams(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {'a': {'b': 'c'}},
+        "dict": {
+            'a': {
+                'b': 'c'
+            }
+        },
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar='buzz')),
         "layer": torch.nn.BatchNorm1d

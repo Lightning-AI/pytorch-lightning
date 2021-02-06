@@ -88,7 +88,10 @@ def test_comet_logger_experiment_name(comet):
 
     # Test api_key given
     with patch('pytorch_lightning.loggers.comet.CometExperiment') as comet_experiment:
-        logger = CometLogger(api_key=api_key, experiment_name=experiment_name,)
+        logger = CometLogger(
+            api_key=api_key,
+            experiment_name=experiment_name,
+        )
         assert logger._experiment is None
 
         _ = logger.experiment
