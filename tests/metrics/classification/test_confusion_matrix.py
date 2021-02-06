@@ -7,71 +7,68 @@ from sklearn.metrics import confusion_matrix as sk_confusion_matrix
 
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
-from tests.metrics.classification.inputs import (
-    _binary_inputs,
-    _binary_prob_inputs,
-    _mclass_inputs,
-    _mclass_prob_inputs,
-    _mdim_mclass_inputs,
-    _mdim_mclass_prob_inputs,
-    _mlabel_inputs,
-    _mlabel_prob_inputs,
-)
+from tests.metrics.classification.inputs import _input_binary, _input_binary_prob
+from tests.metrics.classification.inputs import _input_multiclass as _input_mcls
+from tests.metrics.classification.inputs import _input_multiclass_prob as _input_mcls_prob
+from tests.metrics.classification.inputs import _input_multidim_multiclass as _input_mdmc
+from tests.metrics.classification.inputs import _input_multidim_multiclass_prob as _input_mdmc_prob
+from tests.metrics.classification.inputs import _input_multilabel as _input_mlb
+from tests.metrics.classification.inputs import _input_multilabel_prob as _input_mlb_prob
 from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 torch.manual_seed(42)
 
 
-def _binary_prob_sk_metric(preds, target, normalize=None):
+def _sk_cm_binary_prob(preds, target, normalize=None):
     sk_preds = (preds.view(-1).numpy() >= THRESHOLD).astype(np.uint8)
     sk_target = target.view(-1).numpy()
 
     return sk_confusion_matrix(y_true=sk_target, y_pred=sk_preds, normalize=normalize)
 
 
-def _binary_sk_metric(preds, target, normalize=None):
+def _sk_cm_binary(preds, target, normalize=None):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_confusion_matrix(y_true=sk_target, y_pred=sk_preds, normalize=normalize)
 
 
-def _mlabel_prob_sk_metric(preds, target, normalize=None):
+def _sk_cm_multilabel_prob(preds, target, normalize=None):
     sk_preds = (preds.view(-1).numpy() >= THRESHOLD).astype(np.uint8)
     sk_target = target.view(-1).numpy()
 
     return sk_confusion_matrix(y_true=sk_target, y_pred=sk_preds, normalize=normalize)
 
 
-def _mlabel_sk_metric(preds, target, normalize=None):
+def _sk_cm_multilabel(preds, target, normalize=None):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_confusion_matrix(y_true=sk_target, y_pred=sk_preds, normalize=normalize)
 
 
-def _mclass_prob_sk_metric(preds, target, normalize=None):
+def _sk_cm_multiclass_prob(preds, target, normalize=None):
     sk_preds = torch.argmax(preds, dim=len(preds.shape) - 1).view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_confusion_matrix(y_true=sk_target, y_pred=sk_preds, normalize=normalize)
 
 
-def _mclass_sk_metric(preds, target, normalize=None):
+def _sk_cm_multiclass(preds, target, normalize=None):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_confusion_matrix(y_true=sk_target, y_pred=sk_preds, normalize=normalize)
 
 
-def _mdim_mclass_prob_sk_metric(preds, target, normalize=None):
+def _sk_cm_multidim_multiclass_prob(preds, target, normalize=None):
     sk_preds = torch.argmax(preds, dim=len(preds.shape) - 2).view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_confusion_matrix(y_true=sk_target, y_pred=sk_preds, normalize=normalize)
 
 
-def _mdim_mclass_sk_metric(preds, target, normalize=None):
+def _sk_cm_multidim_multiclass(preds, target, normalize=None):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
@@ -81,14 +78,14 @@ def _mdim_mclass_sk_metric(preds, target, normalize=None):
 @pytest.mark.parametrize("normalize", ['true', 'pred', 'all', None])
 @pytest.mark.parametrize(
     "preds, target, sk_metric, num_classes",
-    [(_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 2),
-     (_binary_inputs.preds, _binary_inputs.target, _binary_sk_metric, 2),
-     (_mlabel_prob_inputs.preds, _mlabel_prob_inputs.target, _mlabel_prob_sk_metric, 2),
-     (_mlabel_inputs.preds, _mlabel_inputs.target, _mlabel_sk_metric, 2),
-     (_mclass_prob_inputs.preds, _mclass_prob_inputs.target, _mclass_prob_sk_metric, NUM_CLASSES),
-     (_mclass_inputs.preds, _mclass_inputs.target, _mclass_sk_metric, NUM_CLASSES),
-     (_mdim_mclass_prob_inputs.preds, _mdim_mclass_prob_inputs.target, _mdim_mclass_prob_sk_metric, NUM_CLASSES),
-     (_mdim_mclass_inputs.preds, _mdim_mclass_inputs.target, _mdim_mclass_sk_metric, NUM_CLASSES)]
+    [(_input_binary_prob.preds, _input_binary_prob.target, _sk_cm_binary_prob, 2),
+     (_input_binary.preds, _input_binary.target, _sk_cm_binary, 2),
+     (_input_mlb_prob.preds, _input_mlb_prob.target, _sk_cm_multilabel_prob, 2),
+     (_input_mlb.preds, _input_mlb.target, _sk_cm_multilabel, 2),
+     (_input_mcls_prob.preds, _input_mcls_prob.target, _sk_cm_multiclass_prob, NUM_CLASSES),
+     (_input_mcls.preds, _input_mcls.target, _sk_cm_multiclass, NUM_CLASSES),
+     (_input_mdmc_prob.preds, _input_mdmc_prob.target, _sk_cm_multidim_multiclass_prob, NUM_CLASSES),
+     (_input_mdmc.preds, _input_mdmc.target, _sk_cm_multidim_multiclass, NUM_CLASSES)]
 )
 class TestConfusionMatrix(MetricTester):
 

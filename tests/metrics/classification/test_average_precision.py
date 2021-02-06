@@ -3,56 +3,55 @@ from functools import partial
 import numpy as np
 import pytest
 import torch
-from sklearn.metrics import average_precision_score as _sk_average_precision_score
+from sklearn.metrics import average_precision_score as sk_average_precision_score
 
 from pytorch_lightning.metrics.classification.average_precision import AveragePrecision
 from pytorch_lightning.metrics.functional.average_precision import average_precision
-from tests.metrics.classification.inputs import _binary_prob_inputs, _mclass_prob_inputs, _mdim_mclass_prob_inputs
+from tests.metrics.classification.inputs import _input_binary_prob
+from tests.metrics.classification.inputs import _input_multiclass_prob as _input_mcls_prob
+from tests.metrics.classification.inputs import _input_multidim_multiclass_prob as _input_mdmc_prob
 from tests.metrics.utils import MetricTester, NUM_CLASSES
 
 torch.manual_seed(42)
 
 
-def sk_average_precision_score(y_true, probas_pred, num_classes=1):
+def _sk_average_precision_score(y_true, probas_pred, num_classes=1):
     if num_classes == 1:
-        return _sk_average_precision_score(y_true, probas_pred)
+        return sk_average_precision_score(y_true, probas_pred)
 
     res = []
     for i in range(num_classes):
         y_true_temp = np.zeros_like(y_true)
         y_true_temp[y_true == i] = 1
-        res.append(_sk_average_precision_score(y_true_temp, probas_pred[:, i]))
+        res.append(sk_average_precision_score(y_true_temp, probas_pred[:, i]))
     return res
 
 
-def _binary_prob_sk_metric(preds, target, num_classes=1):
+def _sk_avg_prec_binary_prob(preds, target, num_classes=1):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
-    return sk_average_precision_score(y_true=sk_target, probas_pred=sk_preds, num_classes=num_classes)
+    return _sk_average_precision_score(y_true=sk_target, probas_pred=sk_preds, num_classes=num_classes)
 
 
-def _multiclass_prob_sk_metric(preds, target, num_classes=1):
+def _sk_avg_prec_multiclass_prob(preds, target, num_classes=1):
     sk_preds = preds.reshape(-1, num_classes).numpy()
     sk_target = target.view(-1).numpy()
 
-    return sk_average_precision_score(y_true=sk_target, probas_pred=sk_preds, num_classes=num_classes)
+    return _sk_average_precision_score(y_true=sk_target, probas_pred=sk_preds, num_classes=num_classes)
 
 
-def _multidim_multiclass_prob_sk_metric(preds, target, num_classes=1):
+def _sk_avg_prec_multidim_multiclass_prob(preds, target, num_classes=1):
     sk_preds = preds.transpose(0, 1).reshape(num_classes, -1).transpose(0, 1).numpy()
     sk_target = target.view(-1).numpy()
-    return sk_average_precision_score(y_true=sk_target, probas_pred=sk_preds, num_classes=num_classes)
+    return _sk_average_precision_score(y_true=sk_target, probas_pred=sk_preds, num_classes=num_classes)
 
 
 @pytest.mark.parametrize(
     "preds, target, sk_metric, num_classes", [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 1),
-        (_mclass_prob_inputs.preds, _mclass_prob_inputs.target, _multiclass_prob_sk_metric, NUM_CLASSES),
-        (
-            _mdim_mclass_prob_inputs.preds, _mdim_mclass_prob_inputs.target, _multidim_multiclass_prob_sk_metric,
-            NUM_CLASSES
-        ),
+        (_input_binary_prob.preds, _input_binary_prob.target, _sk_avg_prec_binary_prob, 1),
+        (_input_mcls_prob.preds, _input_mcls_prob.target, _sk_avg_prec_multiclass_prob, NUM_CLASSES),
+        (_input_mdmc_prob.preds, _input_mdmc_prob.target, _sk_avg_prec_multidim_multiclass_prob, NUM_CLASSES),
     ]
 )
 class TestAveragePrecision(MetricTester):

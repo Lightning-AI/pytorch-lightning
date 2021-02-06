@@ -4,16 +4,16 @@ from torch import rand, randint
 
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 from pytorch_lightning.metrics.utils import select_topk, to_onehot
-from tests.metrics.classification.inputs import _binary_inputs as _bin
-from tests.metrics.classification.inputs import _binary_prob_inputs as _bin_prob
-from tests.metrics.classification.inputs import _mclass_inputs as _mc
-from tests.metrics.classification.inputs import _mclass_prob_inputs as _mc_prob
-from tests.metrics.classification.inputs import _mdim_mclass_inputs as _mdmc
-from tests.metrics.classification.inputs import _mdim_mclass_prob_inputs as _mdmc_prob
-from tests.metrics.classification.inputs import _mlabel_inputs as _ml
-from tests.metrics.classification.inputs import _mlabel_mdim_prob_inputs as _mlmd_prob
-from tests.metrics.classification.inputs import _mlabel_prob_inputs as _ml_prob
-from tests.metrics.classification.inputs import _multilabel_multidim_inputs as _mlmd
+from tests.metrics.classification.inputs import _input_binary as _bin
+from tests.metrics.classification.inputs import _input_binary_prob as _bin_prob
+from tests.metrics.classification.inputs import _input_multiclass as _mc
+from tests.metrics.classification.inputs import _input_multiclass_prob as _mc_prob
+from tests.metrics.classification.inputs import _input_multidim_multiclass as _mdmc
+from tests.metrics.classification.inputs import _input_multidim_multiclass_prob as _mdmc_prob
+from tests.metrics.classification.inputs import _input_multilabel as _ml
+from tests.metrics.classification.inputs import _input_multilabel_multidim as _mlmd
+from tests.metrics.classification.inputs import _input_multilabel_multidim_prob as _mlmd_prob
+from tests.metrics.classification.inputs import _input_multilabel_prob as _ml_prob
 from tests.metrics.classification.inputs import Input
 from tests.metrics.utils import BATCH_SIZE, EXTRA_DIM, NUM_BATCHES, NUM_CLASSES, THRESHOLD
 

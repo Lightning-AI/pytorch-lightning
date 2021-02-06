@@ -7,16 +7,13 @@ from sklearn.metrics import jaccard_score as sk_jaccard_score
 
 from pytorch_lightning.metrics.classification.iou import IoU
 from pytorch_lightning.metrics.functional.iou import iou
-from tests.metrics.classification.inputs import (
-    _binary_inputs,
-    _binary_prob_inputs,
-    _mclass_inputs,
-    _mclass_prob_inputs,
-    _mdim_mclass_inputs,
-    _mdim_mclass_prob_inputs,
-    _mlabel_inputs,
-    _mlabel_prob_inputs,
-)
+from tests.metrics.classification.inputs import _input_binary, _input_binary_prob
+from tests.metrics.classification.inputs import _input_multiclass as _input_mcls
+from tests.metrics.classification.inputs import _input_multiclass_prob as _input_mcls_prob
+from tests.metrics.classification.inputs import _input_multidim_multiclass as _input_mdmc
+from tests.metrics.classification.inputs import _input_multidim_multiclass_prob as _input_mdmc_prob
+from tests.metrics.classification.inputs import _input_multilabel as _input_mlb
+from tests.metrics.classification.inputs import _input_multilabel_prob as _input_mlb_prob
 from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 
@@ -34,42 +31,42 @@ def _sk_iou_binary(preds, target, average=None):
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _sk_iou_mlabel_prob(preds, target, average=None):
+def _sk_iou_multilabel_prob(preds, target, average=None):
     sk_preds = (preds.view(-1).numpy() >= THRESHOLD).astype(np.uint8)
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _sk_iou_mlabel(preds, target, average=None):
+def _sk_iou_multilabel(preds, target, average=None):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _sk_iou_mclass_prob(preds, target, average=None):
+def _sk_iou_multiclass_prob(preds, target, average=None):
     sk_preds = torch.argmax(preds, dim=len(preds.shape) - 1).view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _sk_iou_mclass(preds, target, average=None):
+def _sk_iou_multiclass(preds, target, average=None):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _sk_iou_mdim_mclass_prob(preds, target, average=None):
+def _sk_iou_multidim_multiclass_prob(preds, target, average=None):
     sk_preds = torch.argmax(preds, dim=len(preds.shape) - 2).view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return sk_jaccard_score(y_true=sk_target, y_pred=sk_preds, average=average)
 
 
-def _sk_iou_mdim_mclass(preds, target, average=None):
+def _sk_iou_multidim_multiclass(preds, target, average=None):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
@@ -79,14 +76,14 @@ def _sk_iou_mdim_mclass(preds, target, average=None):
 @pytest.mark.parametrize("reduction", ['elementwise_mean', 'none'])
 @pytest.mark.parametrize(
     "preds, target, sk_metric, num_classes",
-    [(_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_iou_binary_prob, 2),
-     (_binary_inputs.preds, _binary_inputs.target, _sk_iou_binary, 2),
-     (_mlabel_prob_inputs.preds, _mlabel_prob_inputs.target, _sk_iou_mlabel_prob, 2),
-     (_mlabel_inputs.preds, _mlabel_inputs.target, _sk_iou_mlabel, 2),
-     (_mclass_prob_inputs.preds, _mclass_prob_inputs.target, _sk_iou_mclass_prob, NUM_CLASSES),
-     (_mclass_inputs.preds, _mclass_inputs.target, _sk_iou_mclass, NUM_CLASSES),
-     (_mdim_mclass_prob_inputs.preds, _mdim_mclass_prob_inputs.target, _sk_iou_mdim_mclass_prob, NUM_CLASSES),
-     (_mdim_mclass_inputs.preds, _mdim_mclass_inputs.target, _sk_iou_mdim_mclass, NUM_CLASSES)]
+    [(_input_binary_prob.preds, _input_binary_prob.target, _sk_iou_binary_prob, 2),
+     (_input_binary.preds, _input_binary.target, _sk_iou_binary, 2),
+     (_input_mlb_prob.preds, _input_mlb_prob.target, _sk_iou_multilabel_prob, 2),
+     (_input_mlb.preds, _input_mlb.target, _sk_iou_multilabel, 2),
+     (_input_mcls_prob.preds, _input_mcls_prob.target, _sk_iou_multiclass_prob, NUM_CLASSES),
+     (_input_mcls.preds, _input_mcls.target, _sk_iou_multiclass, NUM_CLASSES),
+     (_input_mdmc_prob.preds, _input_mdmc_prob.target, _sk_iou_multidim_multiclass_prob, NUM_CLASSES),
+     (_input_mdmc.preds, _input_mdmc.target, _sk_iou_multidim_multiclass, NUM_CLASSES)]
 )
 class TestIoU(MetricTester):
 

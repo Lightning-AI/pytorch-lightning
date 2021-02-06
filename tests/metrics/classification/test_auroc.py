@@ -7,25 +7,23 @@ from sklearn.metrics import roc_auc_score as sk_roc_auc_score
 
 from pytorch_lightning.metrics.classification.auroc import AUROC
 from pytorch_lightning.metrics.functional.auroc import auroc
-from tests.metrics.classification.inputs import (
-    _binary_prob_inputs,
-    _mclass_prob_inputs,
-    _mdim_mclass_prob_inputs,
-    _mlabel_mdim_prob_inputs,
-    _mlabel_prob_inputs,
-)
+from tests.metrics.classification.inputs import _input_binary_prob
+from tests.metrics.classification.inputs import _input_multiclass_prob as _input_mcls_prob
+from tests.metrics.classification.inputs import _input_multidim_multiclass_prob as _input_mdmc_prob
+from tests.metrics.classification.inputs import _input_multilabel_multidim_prob as _input_mlmd_prob
+from tests.metrics.classification.inputs import _input_multilabel_prob as _input_mlb_prob
 from tests.metrics.utils import MetricTester, NUM_CLASSES
 
 torch.manual_seed(42)
 
 
-def _binary_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
+def _sk_auroc_binary_prob(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
     return sk_roc_auc_score(y_true=sk_target, y_score=sk_preds, average=average, max_fpr=max_fpr)
 
 
-def _mclass_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
+def _sk_auroc_multiclass_prob(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
     sk_preds = preds.reshape(-1, num_classes).numpy()
     sk_target = target.view(-1).numpy()
     return sk_roc_auc_score(
@@ -37,7 +35,7 @@ def _mclass_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=
     )
 
 
-def _mdim_mclass_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
+def _sk_auroc_multidim_multiclass_prob(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
     sk_preds = preds.transpose(0, 1).reshape(num_classes, -1).transpose(0, 1).numpy()
     sk_target = target.view(-1).numpy()
     return sk_roc_auc_score(
@@ -49,7 +47,7 @@ def _mdim_mclass_prob_sk_metric(preds, target, num_classes, average='macro', max
     )
 
 
-def _mlabel_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
+def _sk_auroc_multilabel_prob(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
     sk_preds = preds.reshape(-1, num_classes).numpy()
     sk_target = target.reshape(-1, num_classes).numpy()
     return sk_roc_auc_score(
@@ -61,7 +59,7 @@ def _mlabel_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=
     )
 
 
-def _mlabel_mdim_prob_sk_metric(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
+def _sk_auroc_multilabel_multidim_prob(preds, target, num_classes, average='macro', max_fpr=None, multi_class='ovr'):
     sk_preds = preds.transpose(0, 1).reshape(num_classes, -1).transpose(0, 1).numpy()
     sk_target = target.transpose(0, 1).reshape(num_classes, -1).transpose(0, 1).numpy()
     return sk_roc_auc_score(
@@ -75,11 +73,11 @@ def _mlabel_mdim_prob_sk_metric(preds, target, num_classes, average='macro', max
 
 @pytest.mark.parametrize(
     "preds, target, sk_metric, num_classes",
-    [(_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 1),
-     (_mclass_prob_inputs.preds, _mclass_prob_inputs.target, _mclass_prob_sk_metric, NUM_CLASSES),
-     (_mdim_mclass_prob_inputs.preds, _mdim_mclass_prob_inputs.target, _mdim_mclass_prob_sk_metric, NUM_CLASSES),
-     (_mlabel_prob_inputs.preds, _mlabel_prob_inputs.target, _mlabel_prob_sk_metric, NUM_CLASSES),
-     (_mlabel_mdim_prob_inputs.preds, _mlabel_mdim_prob_inputs.target, _mlabel_mdim_prob_sk_metric, NUM_CLASSES)]
+    [(_input_binary_prob.preds, _input_binary_prob.target, _sk_auroc_binary_prob, 1),
+     (_input_mcls_prob.preds, _input_mcls_prob.target, _sk_auroc_multiclass_prob, NUM_CLASSES),
+     (_input_mdmc_prob.preds, _input_mdmc_prob.target, _sk_auroc_multidim_multiclass_prob, NUM_CLASSES),
+     (_input_mlb_prob.preds, _input_mlb_prob.target, _sk_auroc_multilabel_prob, NUM_CLASSES),
+     (_input_mlmd_prob.preds, _input_mlmd_prob.target, _sk_auroc_multilabel_multidim_prob, NUM_CLASSES)]
 )
 @pytest.mark.parametrize("average", ['macro', 'weighted'])
 @pytest.mark.parametrize("max_fpr", [None, 0.8, 0.5])
