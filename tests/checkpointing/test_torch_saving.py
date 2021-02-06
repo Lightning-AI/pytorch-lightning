@@ -66,7 +66,7 @@ def test_model_torch_save_ddp_cuda(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=num_epochs,
         accelerator="ddp_spawn",
-        gpus=2
+        gpus=2,
     )
     temp_path = os.path.join(tmpdir, 'temp.pt')
     trainer.fit(model)

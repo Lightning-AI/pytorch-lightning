@@ -76,7 +76,11 @@ def test_wandb_logger_init(wandb, recwarn):
     # log hyper parameters
     logger.log_hyperparams({'test': None, 'nested': {'a': 1}, 'b': [2, 3, 4]})
     wandb.init().config.update.assert_called_once_with(
-        {'test': 'None', 'nested/a': 1, 'b': [2, 3, 4]},
+        {
+            'test': 'None',
+            'nested/a': 1,
+            'b': [2, 3, 4]
+        },
         allow_val_change=True,
     )
 
@@ -105,6 +109,7 @@ def test_wandb_pickle(wandb, tmpdir):
     Verify that pickling trainer with wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here.
     """
+
     class Experiment:
         """ """
         id = 'the_id'
@@ -185,6 +190,7 @@ def test_wandb_sanitize_callable_params(tmpdir):
 
     def return_something():
         return "something"
+
     params.something = return_something
 
     def wrapper_something():
