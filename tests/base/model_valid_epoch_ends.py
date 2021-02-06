@@ -20,6 +20,7 @@ class ValidationEpochEndVariations(ABC):
     """
     Houses all variations of validation_epoch_end steps
     """
+
     def validation_epoch_end_no_monitor(self, outputs):
         """
         Called at the end of validation to aggregate outputs
@@ -27,6 +28,7 @@ class ValidationEpochEndVariations(ABC):
         Args:
             outputs: list of individual outputs of each validation step
         """
+
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
         def _mean(res, key):
@@ -50,6 +52,7 @@ class ValidationEpochEndVariations(ABC):
         Args:
             outputs: list of individual outputs of each validation step
         """
+
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
         def _mean(res, key):
@@ -75,6 +78,7 @@ class ValidationEpochEndVariations(ABC):
         Args:
             outputs: list of individual outputs of each validation step
         """
+
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
         def _mean(res, key):

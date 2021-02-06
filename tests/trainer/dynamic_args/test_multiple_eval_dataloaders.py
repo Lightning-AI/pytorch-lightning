@@ -19,6 +19,7 @@ from tests.base.boring_model import BoringModel
 
 
 class RandomDatasetA(Dataset):
+
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -31,6 +32,7 @@ class RandomDatasetA(Dataset):
 
 
 class RandomDatasetB(Dataset):
+
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -43,6 +45,7 @@ class RandomDatasetB(Dataset):
 
 
 def test_multiple_eval_dataloaders_tuple(tmpdir):
+
     class TestModel(BoringModel):
 
         def validation_step(self, batch, batch_idx, dataloader_idx):
@@ -78,6 +81,7 @@ def test_multiple_eval_dataloaders_tuple(tmpdir):
 
 
 def test_multiple_eval_dataloaders_list(tmpdir):
+
     class TestModel(BoringModel):
 
         def validation_step(self, batch, batch_idx, dataloader_idx):
@@ -112,7 +116,9 @@ def test_multiple_optimizers_multiple_dataloaders(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def on_train_epoch_start(self) -> None:
             self.opt_0_seen = False
             self.opt_1_seen = False

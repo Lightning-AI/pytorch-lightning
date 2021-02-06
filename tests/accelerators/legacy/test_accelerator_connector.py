@@ -26,7 +26,9 @@ from tests.base.boring_model import BoringModel
 
 
 def test_accelerator_choice_cpu(tmpdir):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend, accelerators.CPUAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
@@ -35,13 +37,15 @@ def test_accelerator_choice_cpu(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
     trainer.fit(model)
 
 
 def test_accelerator_choice_ddp_cpu(tmpdir):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSpawnAccelerator)
@@ -63,7 +67,9 @@ def test_accelerator_choice_ddp_cpu(tmpdir):
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp(tmpdir):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPAccelerator)
@@ -85,7 +91,9 @@ def test_accelerator_choice_ddp(tmpdir):
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp_spawn(tmpdir):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPSpawnAccelerator)
@@ -104,16 +112,20 @@ def test_accelerator_choice_ddp_spawn(tmpdir):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "CUDA_VISIBLE_DEVICES": "0,1",
-    "SLURM_NTASKS": "2",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "SLURM_LOCALID": "10"
-})
+@mock.patch.dict(
+    os.environ, {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "SLURM_LOCALID": "10"
+    }
+)
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp_slurm(tmpdir):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPHPCAccelerator)
@@ -134,17 +146,21 @@ def test_accelerator_choice_ddp_slurm(tmpdir):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "CUDA_VISIBLE_DEVICES": "0,1",
-    "SLURM_NTASKS": "2",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "10"
-})
+@mock.patch.dict(
+    os.environ, {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "10"
+    }
+)
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp2_slurm(tmpdir):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert trainer._distrib_type == DistributedType.DDP2
             assert isinstance(trainer.accelerator_backend, accelerators.DDP2Accelerator)
@@ -166,15 +182,19 @@ def test_accelerator_choice_ddp2_slurm(tmpdir):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "CUDA_VISIBLE_DEVICES": "0,1",
-    "WORLD_SIZE": "2",
-    "LOCAL_RANK": "10",
-    "NODE_RANK": "0"
-})
+@mock.patch.dict(
+    os.environ, {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "WORLD_SIZE": "2",
+        "LOCAL_RANK": "10",
+        "NODE_RANK": "0",
+    }
+)
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp_te(tmpdir):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPHPCAccelerator)
@@ -195,15 +215,19 @@ def test_accelerator_choice_ddp_te(tmpdir):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "CUDA_VISIBLE_DEVICES": "0,1",
-    "WORLD_SIZE": "2",
-    "LOCAL_RANK": "10",
-    "NODE_RANK": "0"
-})
+@mock.patch.dict(
+    os.environ, {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "WORLD_SIZE": "2",
+        "LOCAL_RANK": "10",
+        "NODE_RANK": "0",
+    }
+)
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp2_te(tmpdir):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert trainer._distrib_type == DistributedType.DDP2
             assert isinstance(trainer.accelerator_backend, accelerators.DDP2Accelerator)
@@ -227,11 +251,13 @@ def test_accelerator_choice_ddp2_te(tmpdir):
 @mock.patch.dict(os.environ, {
     "WORLD_SIZE": "1",
     "LOCAL_RANK": "10",
-    "NODE_RANK": "0"
+    "NODE_RANK": "0",
 })
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_accelerator_choice_ddp_cpu_te(tmpdir):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUHPCAccelerator)
@@ -253,16 +279,20 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "2",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ, {
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "0"
+    }
+)
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUHPCAccelerator)
@@ -281,13 +311,15 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "2",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ, {
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "0"
+    }
+)
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
     """
@@ -295,10 +327,12 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
     """
 
     class CustomCluster(ClusterEnvironment):
+
         def master_address(self):
             return 'asdf'
 
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUHPCAccelerator)
@@ -318,24 +352,25 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "2",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ, {
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "0"
+    }
+)
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_custom_accelerator(tmpdir):
+
     class Accel(Accelerator):
-        def init_ddp_connection(
-                self,
-                global_rank: int,
-                world_size: int,
-                is_slurm_managing_tasks: bool = True) -> None:
+
+        def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
             pass
 
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend, Accel)
             raise SystemExit()
@@ -345,23 +380,27 @@ def test_custom_accelerator(tmpdir):
         fast_dev_run=True,
         accelerator=Accel(),
         num_processes=2,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "2",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ, {
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "0"
+    }
+)
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_dist_backend_accelerator_mapping(tmpdir):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUHPCAccelerator)
             raise SystemExit()

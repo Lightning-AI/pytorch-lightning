@@ -36,10 +36,7 @@ class DeterministicModel(LightningModule):
 
         self.l1 = nn.Linear(2, 3, bias=False)
         if weights is None:
-            weights = torch.tensor([
-                [4, 3, 5],
-                [10, 11, 13]
-            ]).float()
+            weights = torch.tensor([[4, 3, 5], [10, 11, 13]]).float()
             p = torch.nn.Parameter(weights, requires_grad=True)
             self.l1.weight = p
 

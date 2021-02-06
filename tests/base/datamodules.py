@@ -21,6 +21,7 @@ from tests.base.datasets import MNIST, TrialMNIST
 
 
 class TrialMNISTDataModule(LightningDataModule):
+
     def __init__(self, data_dir: str = "./"):
         super().__init__()
         self.data_dir = data_dir
@@ -34,19 +35,15 @@ class TrialMNISTDataModule(LightningDataModule):
     def setup(self, stage: Optional[str] = None):
 
         if stage == "fit" or stage is None:
-            mnist_full = TrialMNIST(
-                root=self.data_dir, train=True, num_samples=64, download=True
-            )
+            mnist_full = TrialMNIST(root=self.data_dir, train=True, num_samples=64, download=True)
             self.mnist_train, self.mnist_val = random_split(mnist_full, [128, 64])
             self.dims = self.mnist_train[0][0].shape
 
         if stage == "test" or stage is None:
-            self.mnist_test = TrialMNIST(
-                root=self.data_dir, train=False, num_samples=64, download=True
-            )
+            self.mnist_test = TrialMNIST(root=self.data_dir, train=False, num_samples=64, download=True)
             self.dims = getattr(self, "dims", self.mnist_test[0][0].shape)
 
-        self.non_picklable = lambda x: x ** 2
+        self.non_picklable = lambda x: x**2
 
     def train_dataloader(self):
         return DataLoader(self.mnist_train, batch_size=32)
@@ -65,9 +62,8 @@ class TrialMNISTDataModule(LightningDataModule):
 
 
 class MNISTDataModule(LightningDataModule):
-    def __init__(
-        self, data_dir: str = "./", batch_size: int = 32, dist_sampler: bool = False
-    ) -> None:
+
+    def __init__(self, data_dir: str = "./", batch_size: int = 32, dist_sampler: bool = False) -> None:
         super().__init__()
 
         self.dist_sampler = dist_sampler
@@ -89,15 +85,11 @@ class MNISTDataModule(LightningDataModule):
         # Assign train/val datasets for use in dataloaders
         # TODO: need to split using random_split once updated to torch >= 1.6
         if stage == "fit" or stage is None:
-            self.mnist_train = MNIST(
-                self.data_dir, train=True, normalize=(0.1307, 0.3081)
-            )
+            self.mnist_train = MNIST(self.data_dir, train=True, normalize=(0.1307, 0.3081))
 
         # Assign test dataset for use in dataloader(s)
         if stage == "test" or stage is None:
-            self.mnist_test = MNIST(
-                self.data_dir, train=False, normalize=(0.1307, 0.3081)
-            )
+            self.mnist_test = MNIST(self.data_dir, train=False, normalize=(0.1307, 0.3081))
 
     def train_dataloader(self):
         dist_sampler = None

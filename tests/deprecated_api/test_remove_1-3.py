@@ -40,10 +40,13 @@ def test_v1_3_0_deprecated_arguments(tmpdir):
         EarlyStopping(mode='auto')
 
     with pytest.deprecated_call(match="The setter for self.hparams in LightningModule is deprecated"):
+
         class DeprecatedHparamsModel(LightningModule):
+
             def __init__(self, hparams):
                 super().__init__()
                 self.hparams = hparams
+
         DeprecatedHparamsModel({})
 
 
@@ -71,10 +74,12 @@ def test_v1_3_0_deprecated_metrics():
     with pytest.deprecated_call(match='will be removed in v1.3'):
         _roc(pred=x_binary, target=y_binary)
 
-    x_multy = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-                            [0.05, 0.85, 0.05, 0.05],
-                            [0.05, 0.05, 0.85, 0.05],
-                            [0.05, 0.05, 0.05, 0.85]])
+    x_multy = torch.tensor([
+        [0.85, 0.05, 0.05, 0.05],
+        [0.05, 0.85, 0.05, 0.05],
+        [0.05, 0.05, 0.85, 0.05],
+        [0.05, 0.05, 0.05, 0.85],
+    ])
     y_multy = torch.tensor([0, 1, 3, 2])
 
     from pytorch_lightning.metrics.functional.classification import multiclass_roc
@@ -99,9 +104,11 @@ def test_v1_3_0_deprecated_metrics():
 
     from pytorch_lightning.metrics.functional.reduction import class_reduce
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        class_reduce(torch.randint(1, 10, (50,)).float(),
-                     torch.randint(10, 20, (50,)).float(),
-                     torch.randint(1, 100, (50,)).float())
+        class_reduce(
+            torch.randint(1, 10, (50, )).float(),
+            torch.randint(10, 20, (50, )).float(),
+            torch.randint(1, 100, (50, )).float()
+        )
 
 
 # TODO: remove bool from Trainer.profiler param in v1.3.0, update profiler_connector.py

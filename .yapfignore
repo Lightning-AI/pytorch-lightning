@@ -31,39 +31,3 @@ pytorch_lightning/profiler/*
 
 # TODO
 pytorch_lightning/tuner/*
-
-
-# TODO
-tests/accelerators/*
-
-
-# TODO
-tests/base/*
-
-
-# TODO
-tests/callbacks/*
-
-
-# TODO
-tests/deprecated_api/*
-
-
-# TODO
-tests/overrides/*
-
-
-# TODO
-tests/plugins/*
-
-
-# TODO
-tests/trainer/*
-
-
-# TODO
-tests/tuner/*
-
-
-# TODO
-tests/utilities/*

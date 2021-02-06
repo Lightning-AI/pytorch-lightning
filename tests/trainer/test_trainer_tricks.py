@@ -191,13 +191,15 @@ def test_trainer_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    changed_attributes = ['max_steps',
-                          'weights_summary',
-                          'logger',
-                          'callbacks',
-                          'checkpoint_callback',
-                          'limit_train_batches',
-                          'current_epoch']
+    changed_attributes = [
+        'max_steps',
+        'weights_summary',
+        'logger',
+        'callbacks',
+        'checkpoint_callback',
+        'limit_train_batches',
+        'current_epoch',
+    ]
 
     attributes_before = {}
     for ca in changed_attributes:
@@ -222,10 +224,12 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
     before_batch_size = hparams.get('batch_size')
-    trainer = Trainer(default_root_dir=tmpdir,
-                      max_epochs=1,
-                      auto_scale_batch_size=scale_arg,
-                      gpus=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        auto_scale_batch_size=scale_arg,
+        gpus=1,
+    )
     trainer.tune(model)
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, \
@@ -260,10 +264,12 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     model = model_class(**hparams)
     model.datamodule = datamodule_model  # unused when another module gets passed to .tune() / .fit()
 
-    trainer = Trainer(default_root_dir=tmpdir,
-                      max_epochs=1,
-                      auto_scale_batch_size=True,
-                      gpus=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        auto_scale_batch_size=True,
+        gpus=1,
+    )
     trainer.tune(model, datamodule_fit)
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
     assert trainer.datamodule == datamodule_fit
@@ -338,7 +344,7 @@ def test_auto_scale_batch_size_with_amp(tmpdir):
         max_steps=1,
         auto_scale_batch_size=True,
         gpus=1,
-        precision=16
+        precision=16,
     )
     trainer.tune(model)
     batch_size_after = model.batch_size
