@@ -43,6 +43,7 @@ RUN apt-get update -qq && \
         curl \
         unzip \
         ca-certificates \
+        libgomp1 \
     && \
 
 # Install conda and python.
@@ -71,20 +72,9 @@ ENV \
     # MAKEFLAGS="-j$(nproc)" \
     MAKEFLAGS="-j1" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
-    CONDA_ENV=lightning \
-    USE_KINETO=0
+    CONDA_ENV=lightning
 
 COPY environment.yml environment.yml
-
-RUN \
-    # Check out repo and sub modules
-    git clone --recursive https://github.com/pytorch/kineto.git && \
-    # Build libkineto with cmake
-    cd kineto/libkineto && \
-    mkdir build && cd build && \
-    cmake .. && \
-    make && \
-    make install
 
 # conda init
 RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} && \
