@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from contextlib import suppress
-from typing import Optional
+from typing import Optional, Sequence
 
 import torch
 
@@ -41,15 +41,19 @@ class RPCPlugin(DDPPlugin):
     def __init__(
         self,
         rpc_timeout_sec: float = DEFAULT_RPC_TIMEOUT_SEC,
+        parallel_devices : Sequence[int] = (),
+        num_nodes: Optional[int] = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        sync_batchnorm: Optional[bool] = None,
         **kwargs
     ):
         self.rpc_timeout_sec = rpc_timeout_sec
         self._is_rpc_initialized = False
         super().__init__(
-            parallel_devices=(),
-            num_nodes=None,
-            cluster_environment=None,
-            sync_batchnorm=False,
+            parallel_devices=parallel_devices,
+            num_nodes=num_nodes,
+            cluster_environment=cluster_environment,
+            sync_batchnorm=sync_batchnorm,
             **kwargs
         )
 
