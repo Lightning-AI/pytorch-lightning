@@ -71,7 +71,8 @@ ENV \
     # MAKEFLAGS="-j$(nproc)" \
     MAKEFLAGS="-j1" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
-    CONDA_ENV=lightning
+    CONDA_ENV=lightning \
+    USE_KINETO=0
 
 COPY environment.yml environment.yml
 
