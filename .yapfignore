@@ -51,10 +51,6 @@ tests/core/*
 
 
 # TODO
-tests/deprecated_api/*
-
-
-# TODO
 tests/loggers/*
 
 
