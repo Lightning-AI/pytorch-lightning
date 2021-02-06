@@ -34,20 +34,7 @@ pytorch_lightning/tuner/*
 
 
 # TODO
-tests/accelerators/*
-
-
-
-# TODO
-tests/callbacks/*
-
-
-# TODO
 tests/metrics/*
-
-
-# TODO
-tests/plugins/*
 
 
 # TODO
