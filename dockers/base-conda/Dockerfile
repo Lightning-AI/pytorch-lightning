@@ -76,6 +76,16 @@ ENV \
 
 COPY environment.yml environment.yml
 
+RUN \
+    # Check out repo and sub modules
+    git clone --recursive https://github.com/pytorch/kineto.git && \
+    # Build libkineto with cmake
+    cd kineto/libkineto && \
+    mkdir build && cd build && \
+    cmake .. && \
+    make && \
+    make install
+
 # conda init
 RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} && \
     conda init bash && \
