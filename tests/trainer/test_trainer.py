@@ -26,6 +26,7 @@ import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf
+from torch.utils.data import DataLoader
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
@@ -1628,3 +1629,58 @@ def test_pytorch_profiler_nested(tmpdir):
 
         expected_c = ['add']
         assert [e.name for e in pa['c']] == expected_c
+
+
+@pytest.mark.parametrize(
+    ["limit_train_batches", "global_step", "num_training_batches", "current_epoch", "should_train"],
+    [(0.2, 0, 0, 0, False), (0.5, 10, 2, 4, True)],
+)
+def test_disabled_training_for_insufficient_limit_train_batches(tmpdir, limit_train_batches, global_step,
+                                                                num_training_batches, current_epoch, should_train):
+    """
+    Verify when `limit_train_batches` is float & between [0.0, 1.0] and
+    `int(self.num_training_batches * self.limit_train_batches) == 0`, the training loop is disabled.
+    """
+    class CurrentModel(BoringModel):
+
+        training_step_invoked = False
+        training_epoch_end_invoked = False
+
+        def training_step(self, *args, **kwargs):
+            self.training_step_invoked = True
+            return super().training_step(*args, **kwargs)
+
+        def training_epoch_end(self, *args, **kwargs):
+            self.training_epoch_end_invoked = True
+            return super().training_epoch_end(*args, **kwargs)
+
+    dataset_len = 100
+    batch_size = 25
+
+    train = RandomDataset(32, length=dataset_len)
+    train_loader = DataLoader(train, batch_size=batch_size)
+
+    model = CurrentModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=5,
+        limit_train_batches=limit_train_batches,
+    )
+    result = trainer.fit(model, train_loader)
+
+    params_string = f"""`limit_train_batches={limit_train_batches}`, `dataset_len={dataset_len}`
+                        & `batch_size={batch_size}` as
+                        `num_training_batches={num_training_batches}`"""
+    if should_train:
+        error_string = f"should run with {params_string}"
+    else:
+        error_string = f"should not run with {params_string}"
+
+    assert result == 1, "training failed to complete"
+    assert trainer.state == TrainerState.FINISHED
+    assert trainer.global_step == global_step
+    assert trainer.num_training_batches == num_training_batches
+    assert trainer.current_epoch == current_epoch
+    assert model.training_step_invoked == should_train, f"`training_step` {error_string}"
+    assert model.training_epoch_end_invoked == should_train, f"`training_epoch_end` {error_string}"

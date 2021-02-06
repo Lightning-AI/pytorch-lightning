@@ -59,43 +59,31 @@ def test_result_reduce_ddp(result_cls):
 
 
 @pytest.mark.parametrize(
-    "test_option,do_train,gpus",
-    [
-        pytest.param(
-            0, True, 0, id='full_loop'
-        ),
-        pytest.param(
-            0, False, 0, id='test_only'
-        ),
+    "test_option,do_train,gpus", [
+        pytest.param(0, True, 0, id='full_loop'),
+        pytest.param(0, False, 0, id='test_only'),
         pytest.param(
             1, False, 0, id='test_only_mismatching_tensor', marks=pytest.mark.xfail(raises=ValueError, match="Mism.*")
         ),
+        pytest.param(2, False, 0, id='mix_of_tensor_dims'),
+        pytest.param(3, False, 0, id='string_list_predictions'),
+        pytest.param(4, False, 0, id='int_list_predictions'),
+        pytest.param(5, False, 0, id='nested_list_predictions'),
+        pytest.param(6, False, 0, id='dict_list_predictions'),
+        pytest.param(7, True, 0, id='write_dict_predictions'),
         pytest.param(
-            2, False, 0, id='mix_of_tensor_dims'
-        ),
-        pytest.param(
-            3, False, 0, id='string_list_predictions'
-        ),
-        pytest.param(
-            4, False, 0, id='int_list_predictions'
-        ),
-        pytest.param(
-            5, False, 0, id='nested_list_predictions'
-        ),
-        pytest.param(
-            6, False, 0, id='dict_list_predictions'
-        ),
-        pytest.param(
-            7, True, 0, id='write_dict_predictions'
-        ),
-        pytest.param(
-            0, True, 1, id='full_loop_single_gpu',
+            0,
+            True,
+            1,
+            id='full_loop_single_gpu',
             marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires single-GPU machine")
         )
     ]
 )
 def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
+
     class CustomBoringModel(BoringModel):
+
         def test_step(self, batch, batch_idx, optimizer_idx=None):
             output = self(batch)
             test_loss = self.loss(batch, output)
@@ -153,6 +141,7 @@ def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
                 self.write_prediction_dict({'idxs': lazy_ids, 'preds': output}, prediction_file)
 
     class CustomBoringDataModule(BoringDataModule):
+
         def train_dataloader(self):
             return DataLoader(self.random_train, batch_size=4)
 
@@ -182,7 +171,7 @@ def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
         max_epochs=3,
         weights_summary=None,
         deterministic=True,
-        gpus=gpus
+        gpus=gpus,
     )
 
     # Prediction file shouldn't exist yet because we haven't done anything
@@ -207,9 +196,15 @@ def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
 def test_result_gather_stack():
     """ Test that tensors get concatenated when they all have the same shape. """
     outputs = [
-        {"foo": torch.zeros(4, 5)},
-        {"foo": torch.zeros(4, 5)},
-        {"foo": torch.zeros(4, 5)},
+        {
+            "foo": torch.zeros(4, 5)
+        },
+        {
+            "foo": torch.zeros(4, 5)
+        },
+        {
+            "foo": torch.zeros(4, 5)
+        },
     ]
     result = Result.gather(outputs)
     assert isinstance(result["foo"], torch.Tensor)
@@ -219,9 +214,15 @@ def test_result_gather_stack():
 def test_result_gather_concatenate():
     """ Test that tensors get concatenated when they have varying size in first dimension. """
     outputs = [
-        {"foo": torch.zeros(4, 5)},
-        {"foo": torch.zeros(8, 5)},
-        {"foo": torch.zeros(3, 5)},
+        {
+            "foo": torch.zeros(4, 5)
+        },
+        {
+            "foo": torch.zeros(8, 5)
+        },
+        {
+            "foo": torch.zeros(3, 5)
+        },
     ]
     result = Result.gather(outputs)
     assert isinstance(result["foo"], torch.Tensor)
@@ -231,9 +232,15 @@ def test_result_gather_concatenate():
 def test_result_gather_scalar():
     """ Test that 0-dim tensors get gathered and stacked correctly. """
     outputs = [
-        {"foo": torch.tensor(1)},
-        {"foo": torch.tensor(2)},
-        {"foo": torch.tensor(3)},
+        {
+            "foo": torch.tensor(1)
+        },
+        {
+            "foo": torch.tensor(2)
+        },
+        {
+            "foo": torch.tensor(3)
+        },
     ]
     result = Result.gather(outputs)
     assert isinstance(result["foo"], torch.Tensor)
@@ -243,9 +250,15 @@ def test_result_gather_scalar():
 def test_result_gather_different_shapes():
     """ Test that tensors of varying shape get gathered into a list. """
     outputs = [
-        {"foo": torch.tensor(1)},
-        {"foo": torch.zeros(2, 3)},
-        {"foo": torch.zeros(1, 2, 3)},
+        {
+            "foo": torch.tensor(1)
+        },
+        {
+            "foo": torch.zeros(2, 3)
+        },
+        {
+            "foo": torch.zeros(1, 2, 3)
+        },
     ]
     result = Result.gather(outputs)
     expected = [torch.tensor(1), torch.zeros(2, 3), torch.zeros(1, 2, 3)]
@@ -256,9 +269,15 @@ def test_result_gather_different_shapes():
 def test_result_gather_mixed_types():
     """ Test that a collection of mixed types gets gathered into a list. """
     outputs = [
-        {"foo": 1.2},
-        {"foo": ["bar", None]},
-        {"foo": torch.tensor(1)},
+        {
+            "foo": 1.2
+        },
+        {
+            "foo": ["bar", None]
+        },
+        {
+            "foo": torch.tensor(1)
+        },
     ]
     result = Result.gather(outputs)
     expected = [1.2, ["bar", None], torch.tensor(1)]

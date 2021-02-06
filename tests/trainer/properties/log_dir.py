@@ -14,109 +14,128 @@
 import os
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base.boring_model import BoringModel
+
+
+class TestModel(BoringModel):
+    def __init__(self, expected_log_dir):
+        super().__init__()
+        self.expected_log_dir = expected_log_dir
+
+    def training_step(self, *args, **kwargs):
+        assert self.trainer.log_dir == self.expected_log_dir
+        return super().training_step(*args, **kwargs)
 
 
 def test_logdir(tmpdir):
     """
     Tests that the path is correct when checkpoint and loggers are used
     """
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+    expected = os.path.join(tmpdir, 'lightning_logs', 'version_0')
 
-            expected = os.path.join(self.trainer.default_root_dir, 'lightning_logs', 'version_0')
-            assert self.trainer.log_dir == expected
-            return {"loss": loss}
+    model = TestModel(expected)
 
-    model = TestModel()
-
-    limit_train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
+        max_steps=2,
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
 
+    assert trainer.log_dir == expected
     trainer.fit(model)
+    assert trainer.log_dir == expected
 
 
 def test_logdir_no_checkpoint_cb(tmpdir):
     """
     Tests that the path is correct with no checkpoint
     """
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            expected = os.path.join(self.trainer.default_root_dir, 'lightning_logs', 'version_0')
-            assert self.trainer.log_dir == expected
-            return {"loss": loss}
+    expected = os.path.join(tmpdir, 'lightning_logs', 'version_0')
+    model = TestModel(expected)
 
-    model = TestModel()
-
-    limit_train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
+        max_steps=2,
         checkpoint_callback=False
     )
 
+    assert trainer.log_dir == expected
     trainer.fit(model)
+    assert trainer.log_dir == expected
 
 
 def test_logdir_no_logger(tmpdir):
     """
     Tests that the path is correct even when there is no logger
     """
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            expected = os.path.join(self.trainer.default_root_dir)
-            assert self.trainer.log_dir == expected
-            return {"loss": loss}
+    expected = os.path.join(tmpdir)
+    model = TestModel(expected)
 
-    model = TestModel()
-
-    limit_train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
+        max_steps=2,
         logger=False,
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
 
+    assert trainer.log_dir == expected
     trainer.fit(model)
+    assert trainer.log_dir == expected
 
 
 def test_logdir_no_logger_no_checkpoint(tmpdir):
     """
     Tests that the path is correct even when there is no logger
     """
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            expected = os.path.join(self.trainer.default_root_dir)
-            assert self.trainer.log_dir == expected
-            return {"loss": loss}
+    expected = os.path.join(tmpdir)
+    model = TestModel(expected)
 
-    model = TestModel()
-
-    limit_train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
+        max_steps=2,
         logger=False,
         checkpoint_callback=False
     )
 
+    assert trainer.log_dir == expected
     trainer.fit(model)
+    assert trainer.log_dir == expected
+
+
+def test_logdir_custom_callback(tmpdir):
+    """
+    Tests that the path is correct even when there is a custom callback
+    """
+    expected = os.path.join(tmpdir, 'lightning_logs', 'version_0')
+    model = TestModel(expected)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=2,
+        callbacks=[ModelCheckpoint(dirpath=os.path.join(tmpdir, 'ckpts'))],
+    )
+
+    assert trainer.log_dir == expected
+    trainer.fit(model)
+    assert trainer.log_dir == expected
+
+
+def test_logdir_custom_logger(tmpdir):
+    """
+    Tests that the path is correct even when there is a custom logger
+    """
+    expected = os.path.join(tmpdir, 'custom_logs', 'version_0')
+    model = TestModel(expected)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=2,
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
+        logger=TensorBoardLogger(save_dir=tmpdir, name='custom_logs')
+    )
+
+    assert trainer.log_dir == expected
+    trainer.fit(model)
+    assert trainer.log_dir == expected

@@ -55,3 +55,4 @@ _GROUP_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.d
 _FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
 _PYTORCH_PRUNE_AVAILABLE = _module_available('torch.nn.utils.prune')
+_TORCHVISION_AVAILABLE = _module_available('torchvision')

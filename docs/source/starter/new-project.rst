@@ -268,7 +268,7 @@ Now you own the train loop!
 
 .. code-block:: python
 
-    def training_step(self, batch, batch_idx, opt_idx):
+    def training_step(self, batch, batch_idx, optimizer_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
         (opt_a, opt_b, opt_c) = self.optimizers(use_pl_optimizer=True)
 
