@@ -307,10 +307,9 @@ class ModelHooks:
                 if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
                     params = self.state_dict()
                     for k, v in params.items():
-                        grads = v
-                        name = k
-                        self.logger.experiment.add_histogram(tag=name, values=grads,
-                                                             global_step=self.trainer.global_step)
+                        self.logger.experiment.add_histogram(
+                            tag=k, values=v.grad, global_step=self.trainer.global_step
+                        )
 
         """
 

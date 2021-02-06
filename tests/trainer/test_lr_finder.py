@@ -19,7 +19,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel, EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 
 
@@ -265,3 +265,12 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
     assert before_lr == after_lr, \
         'Learning rate was altered because of non-finite loss values'
+
+
+def test_lr_finder_fails_fast_on_bad_config(tmpdir):
+    """ Test that tune fails if the model does not have a lr BEFORE running lr find """
+    # note: this did not raise an exception before #5638 because lr_find is skipped
+    # during fast_dev_run and the lr attribute check was done after lr_find
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, auto_lr_find=True)
+    with pytest.raises(MisconfigurationException, match='should have one of these fields'):
+        trainer.tune(BoringModel())

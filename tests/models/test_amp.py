@@ -16,6 +16,7 @@ from unittest import mock
 
 import pytest
 import torch
+from torch import optim
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
@@ -108,13 +109,15 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ, {
+        "SLURM_NTASKS": "1",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "0"
+    }
+)
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     # simulate setting slurm flags
@@ -138,7 +141,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         callbacks=[checkpoint],
         logger=logger,
     )
-    result = trainer.fit(model)
+    _ = trainer.fit(model)
 
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, 'amp + ddp model failed to complete'
@@ -148,7 +151,8 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc') == 'abc'
     assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23]') == 'abc23'
     assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24]') == 'abc23'
-    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
+    generated = trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24, 45-40, 40]')
+    assert generated == 'abc23'
 
 
 def test_cpu_model_with_amp(tmpdir):
@@ -164,7 +168,7 @@ def test_cpu_model_with_amp(tmpdir):
 
     model = EvalModelTemplate()
 
-    with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
+    with pytest.raises(MisconfigurationException, match="AMP is only available on GPU"):
         tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
@@ -196,8 +200,16 @@ def test_amp_without_apex(tmpdir):
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
 
-    model = EvalModelTemplate()
+    class CustomModel(EvalModelTemplate):
 
+        def configure_optimizers(self):
+            optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
+            optimizer2 = optim.SGD(self.parameters(), lr=self.learning_rate)
+            lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
+            lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
+            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
+
+    model = CustomModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -208,4 +220,7 @@ def test_amp_with_apex(tmpdir):
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert trainer.dev_debugger.count_events('AMP') == 10
+    assert trainer.dev_debugger.count_events('AMP') == 20
+
+    assert isinstance(trainer.lr_schedulers[0]['scheduler'].optimizer, optim.Adam)
+    assert isinstance(trainer.lr_schedulers[1]['scheduler'].optimizer, optim.SGD)

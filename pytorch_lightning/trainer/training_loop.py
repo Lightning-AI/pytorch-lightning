@@ -18,9 +18,7 @@ from copy import copy, deepcopy
 import numpy as np
 import torch
 
-from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
@@ -96,13 +94,7 @@ class TrainLoop:
         return num_optimizers
 
     def should_skip_training(self):
-        if self.trainer.current_epoch >= self.trainer.max_epochs:
-            return True
-
-        if self.trainer.limit_train_batches == 0:
-            return True
-
-        return False
+        return self.trainer.current_epoch >= self.trainer.max_epochs or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
         # hook
@@ -112,9 +104,6 @@ class TrainLoop:
         self.trainer.profile_connector.on_train_start(self.trainer)
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
-        # # bind logger and other properties
-        # self.trainer.model_connector.copy_trainer_model_properties(model)
-
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -127,37 +116,6 @@ class TrainLoop:
 
         # attach model log function to callback
         self.trainer.callback_connector.attach_model_logging_functions(model)
-
-    def setup_training(self, model: LightningModule):
-        """Sanity check a few things before starting actual training.
-
-        Args:
-            model: The model to run sanity test on.
-        """
-        # --------------------------
-        # Setup??
-        # --------------------------
-        ref_model = model
-
-        # give model convenience properties
-        ref_model.trainer = self.trainer
-
-        # set local properties on the model
-        self.trainer.model_connector.copy_trainer_model_properties(ref_model)
-
-        # init amp. Must be done here instead of __init__ to allow ddp to work
-        if (
-            self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16
-            and self.trainer._device_type != DeviceType.TPU
-        ):
-            self.trainer.scaler = self.trainer.precision_connector.backend.scaler
-
-        # log hyper-parameters
-        if self.trainer.logger is not None:
-            # save exp to get started (this is where the first experiment logs are written)
-            self.trainer.logger.log_hyperparams(ref_model.hparams_initial)
-            self.trainer.logger.log_graph(ref_model)
-            self.trainer.logger.save()
 
     def on_train_end(self):
         if self._teardown_already_run:
@@ -212,7 +170,7 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # reset train dataloader
-        if self.trainer.reload_dataloaders_every_epoch:
+        if epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
         # todo: specify the possible exception
@@ -234,30 +192,45 @@ class TrainLoop:
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
 
-    def on_train_batch_end(self, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
         # hook
+        self.trainer.call_hook('on_train_batch_end', batch_end_outputs, batch, batch_idx, dataloader_idx)
         self.trainer.call_hook('on_batch_end')
-        self.trainer.call_hook('on_train_batch_end', epoch_end_outputs, batch, batch_idx, dataloader_idx)
 
         # figure out what to track for epoch end
-        self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
+        self.track_epoch_end_reduce_metrics(epoch_output, batch_end_outputs)
 
         # reset batch logger internals
         self.trainer.logger_connector.on_train_batch_end()
 
     def reset_train_val_dataloaders(self, model):
-        if not self.trainer.reload_dataloaders_every_epoch:
+        if self.trainer.train_dataloader is None or not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
         if self.trainer.val_dataloaders is None and not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_val_dataloader(model)
 
-    def track_epoch_end_reduce_metrics(self, epoch_output, epoch_end_outputs):
+    def track_epoch_end_reduce_metrics(self, epoch_output, batch_end_outputs):
+
         # track the outputs to reduce at the end of the epoch
-        for opt_idx, opt_outputs in enumerate(epoch_end_outputs):
+        for opt_idx, opt_outputs in enumerate(batch_end_outputs):
+            sample_output = opt_outputs[-1]
+
+            # decide if we need to reduce at the end of the epoch automatically
+            auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
+            hook_overridden = (
+                is_overridden("training_epoch_end", model=self.trainer.get_model())
+                or is_overridden("on_train_epoch_end", model=self.trainer.get_model())
+            )
+
+            # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
+            if not (hook_overridden or auto_reduce_tng_result):
+                continue
+
             # with 1 step (no tbptt) don't use a sequence at epoch end
             if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
                 opt_outputs = opt_outputs[0]
+
             epoch_output[opt_idx].append(opt_outputs)
 
     def get_optimizers_iterable(self):
@@ -308,6 +281,8 @@ class TrainLoop:
             model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator_backend.training_step(args)
+                self.trainer.accelerator_backend.post_training_step()
+
             self.trainer.logger_connector.cache_logged_metrics()
 
             self._check_training_step_output(training_step_output)
@@ -464,7 +439,7 @@ class TrainLoop:
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli'
             )
 
-        # wraps into LightingOptimizer only for running step
+        # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
         # model hook
@@ -544,17 +519,14 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
-            # only track outputs when user implements training_epoch_end
-            # otherwise we will build up unnecessary memory
-            epoch_end_outputs = self.process_train_step_outputs(
+            batch_end_outputs = self.process_train_step_outputs(
                 batch_output.training_step_output_for_epoch_end,
                 self.early_stopping_accumulator,
                 self.checkpoint_accumulator,
             )
-
             # hook
             # TODO: add outputs to batches
-            self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
+            self.on_train_batch_end(epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx)
 
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
@@ -566,7 +538,7 @@ class TrainLoop:
             # -----------------------------------------
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
-                self.trainer.run_evaluation(test_mode=False)
+                self.trainer.run_evaluation()
 
                 # reset stage to train
                 self.trainer._set_wide_running_stage(RunningStage.TRAINING)
@@ -718,7 +690,7 @@ class TrainLoop:
         return result
 
     @contextmanager
-    def block_ddp_sync_behaviour(self):
+    def block_ddp_sync_behaviour(self, should_block_sync: bool = False):
         """
         automatic_optimization = True
         Blocks ddp sync gradients behaviour on backwards pass.
@@ -732,8 +704,12 @@ class TrainLoop:
             context manager with sync behaviour off
 
         """
-        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and self.automatic_optimization:
-            yield self.trainer.training_type_plugin.block_backward_sync()
+        if (
+            isinstance(self.trainer.training_type_plugin, ParallelPlugin)
+            and (self.automatic_optimization or should_block_sync)
+        ):
+            with self.trainer.training_type_plugin.block_backward_sync():
+                yield None
         else:
             yield None
 
@@ -774,7 +750,8 @@ class TrainLoop:
             self._curr_step_result = result
 
             if result is None:
-                self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
+                if self.automatic_optimization:
+                    self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
                 return None
 
             if self.trainer.train_loop.automatic_optimization:
@@ -790,6 +767,10 @@ class TrainLoop:
                 # check if loss or model weights are nan
                 if self.trainer.terminate_on_nan:
                     self.trainer.detect_nan_tensors(result.loss)
+
+                if len(self.trainer.optimizers) > 1:
+                    # revert back to previous state
+                    self.trainer.get_model().untoggle_optimizer(opt_idx)
 
         return result
 
@@ -822,8 +803,8 @@ class TrainLoop:
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 
-        self.trainer.call_hook('on_epoch_end')
         self.trainer.call_hook('on_train_epoch_end', epoch_output)
+        self.trainer.call_hook('on_epoch_end')
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = self._accumulated_batches_reached()
@@ -890,7 +871,7 @@ class TrainLoop:
         # the training step outputs a list per optimizer. The list contains the outputs at each time step
         # when no TBPTT is used, then the list has 1 item per batch
         # when TBPTT IS used, then the list has n items (1 per time step)
-        epoch_end_outputs = []
+        batch_end_outputs = []
         for optimizer_idx_outputs in all_train_step_outputs:
             # extract one representative sample from each time step (1 if no tbptt) and 0th optimizer
             if len(optimizer_idx_outputs) == 0:
@@ -905,14 +886,9 @@ class TrainLoop:
             if isinstance(sample_output, dict) and "checkpoint_on" in sample_output:
                 checkpoint_accumulator.accumulate(sample_output["checkpoint_on"])
 
-            # decide if we need to reduce at the end of the epoch automatically
-            auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
+            batch_end_outputs.append(optimizer_idx_outputs)
 
-            # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
-            if is_overridden("training_epoch_end", model=self.trainer.get_model()) or auto_reduce_tng_result:
-                epoch_end_outputs.append(optimizer_idx_outputs)
-
-        return epoch_end_outputs
+        return batch_end_outputs
 
     def prepare_optimizers(self):
         # in manual optimization we loop over all optimizers at once

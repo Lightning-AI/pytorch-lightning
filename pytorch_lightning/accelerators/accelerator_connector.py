@@ -40,10 +40,8 @@ from pytorch_lightning.plugins import (
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
-    DDPShardedPlugin,
-    DDPSpawnShardedPlugin,
 )
-from pytorch_lightning.plugins.environments import SLURMEnvironment, TorchElasticEnvironment, ClusterEnvironment
+from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
@@ -296,6 +294,10 @@ class BackendConnector(object):
                         " We will attempt to use NVIDIA Apex for this session."
                     )
                     self.amp_type = "apex"
+                elif self.on_cpu:
+                    raise MisconfigurationException(
+                        "You have asked for native AMP on CPU, but AMP is only available on GPU."
+                    )
                 else:
                     log.info("Using native 16bit precision.")
                     if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
@@ -429,11 +431,11 @@ class BackendConnector(object):
         # special case with DDP on CPUs
         if self.distributed_backend == "ddp_cpu":
             self._distrib_type = DistributedType.DDP
-            self.data_parallel_device_ids = None
             if self.num_gpus > 0:
                 rank_zero_warn(
                     'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
                 )
+                self.parallel_device_ids = None
             if self.num_processes is None:
                 # define the max CPU available
                 self.num_processes = os.cpu_count()

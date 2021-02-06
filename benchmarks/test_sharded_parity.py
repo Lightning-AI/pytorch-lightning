@@ -15,7 +15,7 @@
 import os
 import platform
 import time
-from typing import Type
+from typing import Type, Union
 
 import pytest
 import torch

@@ -188,7 +188,6 @@ class EarlyStopping(Callback):
             return  # short circuit if metric not present
 
         current = logs.get(self.monitor)
-        should_stop = False
 
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)

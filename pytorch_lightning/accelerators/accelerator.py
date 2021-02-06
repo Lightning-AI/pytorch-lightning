@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Iterable, Optional, Union, TYPE_CHECKING
+from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
@@ -145,6 +145,9 @@ class Accelerator(object):
             with self.training_type_plugin.train_step_context():
                 return self.training_type_plugin.training_step(*args)
 
+    def post_training_step(self):
+        self.training_type_plugin.post_training_step()
+
     def validation_step(self, args):
         """The actual validation step.
 
@@ -251,13 +254,13 @@ class Accelerator(object):
             opt_idx: the index of the optimizer
             should_accumulate: whether to accumulate gradients
         """
+        self.training_type_plugin.pre_backward(closure_loss, optimizer, opt_idx)
+
         output = self.precision_plugin.backward(
             self.lightning_module, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
         )
 
-        # TODO: this is a hack, find a better solution for this (hook?)
-        if isinstance(self.training_type_plugin, HorovodPlugin):
-            optimizer.synchronize()
+        self.training_type_plugin.post_backward(closure_loss, optimizer, opt_idx)
 
         return output
 
@@ -273,6 +276,11 @@ class Accelerator(object):
 
         self.precision_plugin.pre_optimizer_step(optimizer, opt_idx)
         self.training_type_plugin.pre_optimizer_step(optimizer, opt_idx)
+
+        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+            # apex does not support passing a closure to the optimizer, call it by itself
+            lambda_closure()
+            lambda_closure = None
 
         optimizer.step(closure=lambda_closure, **kwargs)
 

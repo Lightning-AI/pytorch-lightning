@@ -1232,7 +1232,6 @@ def test_replace_sampler_with_multiprocessing_context(tmpdir):
     train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
 
     class ExtendedBoringModel(BoringModel):
-
         def train_dataloader(self):
             return train
 

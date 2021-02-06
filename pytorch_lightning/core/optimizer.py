@@ -17,11 +17,8 @@ from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
 
 
 def is_lightning_optimizer(optimizer):
@@ -62,6 +59,7 @@ class LightningOptimizer:
         self._trainer = None
         self._accumulate_grad_batches = accumulate_grad_batches
         self._optimizer_idx = None
+        self._total_optimizer_step_calls = 0
 
     @property
     def optimizer(self):
@@ -265,10 +263,11 @@ class LightningOptimizer:
 
         if make_optimizer_step:
             self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
+            self._total_optimizer_step_calls += 1
         else:
             # make sure to call optimizer_closure when accumulating
             with self._trainer.profiler.profile(f"closure_{self._optimizer_idx}"):
-                with self._trainer.train_loop.block_ddp_sync_behaviour():
+                with self._trainer.train_loop.block_ddp_sync_behaviour(True):
                     closure()
 
     def __repr__(self):

@@ -111,9 +111,11 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
         limit_train_batches=1,
         limit_val_batches=3,
     )
+    assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
     assert trainer.checkpoint_callback.dirpath == (tmpdir / "exp-id" / "run-id" / 'checkpoints')
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=0.ckpt'}
+    assert trainer.log_dir == logger.save_dir
 
 
 def test_mlflow_logger_dirs_creation(tmpdir):
@@ -135,6 +137,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
 
     class CustomModel(BoringModel):
+
         def training_epoch_end(self, *args, **kwargs):
             super().training_epoch_end(*args, **kwargs)
             self.log('epoch', self.current_epoch)
