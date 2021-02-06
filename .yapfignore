@@ -46,23 +46,7 @@ tests/callbacks/*
 
 
 # TODO
-tests/checkpointing/*
-
-
-# TODO
-tests/core/*
-
-
-# TODO
 tests/deprecated_api/*
-
-
-# TODO
-tests/loggers/*
-
-
-# TODO
-tests/models/*
 
 
 # TODO

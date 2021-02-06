@@ -65,6 +65,7 @@ def test_single_gpu_model(tmpdir, gpus):
 
 @pytest.fixture
 def mocked_device_count(monkeypatch):
+
     def device_count():
         return PRETEND_N_OF_GPUS
 
@@ -73,6 +74,7 @@ def mocked_device_count(monkeypatch):
 
 @pytest.fixture
 def mocked_device_count_0(monkeypatch):
+
     def device_count():
         return 0
 
@@ -242,8 +244,7 @@ def test_single_gpu_batch_parse():
     assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
 
     # tuple of tensor list and list of tensor dict
-    batch = ([torch.rand(2, 3) for _ in range(2)],
-             [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
+    batch = ([torch.rand(2, 3) for _ in range(2)], [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
     batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
 
@@ -262,6 +263,7 @@ def test_single_gpu_batch_parse():
 
     # non-Tensor that has `.to()` defined
     class CustomBatchType:
+
         def __init__(self):
             self.a = torch.rand(2, 2)
 
@@ -273,23 +275,20 @@ def test_single_gpu_batch_parse():
     assert batch.a.type() == 'torch.cuda.FloatTensor'
 
     # torchtext.data.Batch
-    samples = [
-        {'text': 'PyTorch Lightning is awesome!', 'label': 0},
-        {'text': 'Please make it work with torchtext', 'label': 1}
-    ]
+    samples = [{
+        'text': 'PyTorch Lightning is awesome!',
+        'label': 0
+    }, {
+        'text': 'Please make it work with torchtext',
+        'label': 1
+    }]
 
     text_field = Field()
     label_field = LabelField()
-    fields = {
-        'text': ('text', text_field),
-        'label': ('label', label_field)
-    }
+    fields = {'text': ('text', text_field), 'label': ('label', label_field)}
 
     examples = [Example.fromdict(sample, fields) for sample in samples]
-    dataset = Dataset(
-        examples=examples,
-        fields=fields.values()
-    )
+    dataset = Dataset(examples=examples, fields=fields.values())
 
     # Batch runs field.process() that numericalizes tokens, but it requires to build dictionary first
     text_field.build_vocab(dataset)
