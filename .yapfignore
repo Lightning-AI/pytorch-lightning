@@ -67,10 +67,6 @@ tests/models/*
 
 
 # TODO
-tests/overrides/*
-
-
-# TODO
 tests/plugins/*
 
 
