@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
-
+from torch.optim import Optimizer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
@@ -69,6 +69,12 @@ class TrainingTypePlugin(Plugin, ABC):
         """Reduce the early stopping decision across all possibly spawned processes"""
         return should_stop
 
+    def pre_backward(self, closure_loss: torch.Tensor, optimizer: Optimizer, opt_idx: int):
+        """Run before precision plugin executes backward"""
+
+    def post_backward(self, closure_loss: torch.Tensor, optimizer: Optimizer, opt_idx: int):
+        """Run after precision plugin executes backward"""
+
     @property
     def model(self) -> torch.nn.Module:
         """Returns the potentially wrapped LightningModule"""
@@ -106,6 +112,9 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def training_step(self, *args, **kwargs):
         return self.lightning_module.training_step(*args, **kwargs)
+
+    def post_training_step(self):
+        pass
 
     def validation_step(self, *args, **kwargs):
         return self.lightning_module.validation_step(*args, **kwargs)

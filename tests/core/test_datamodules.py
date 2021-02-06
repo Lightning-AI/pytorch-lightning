@@ -15,7 +15,7 @@ import pickle
 from argparse import ArgumentParser
 from typing import Any, Dict
 from unittest import mock
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import PropertyMock
 
 import pytest
 import torch
@@ -404,6 +404,7 @@ def test_full_loop_dp(tmpdir):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_dm_transfer_batch_to_device(get_module_mock):
+
     class CustomBatch:
 
         def __init__(self, data):

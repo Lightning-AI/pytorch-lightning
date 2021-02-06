@@ -14,7 +14,7 @@
 import inspect
 import os
 from unittest import mock
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import PropertyMock
 
 import pytest
 import torch
@@ -55,6 +55,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     num_epochs = 3
 
     class CurrentModel(EvalModelTemplate):
+
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
             output['progress_bar'].update({'step_metric': torch.tensor(-1)})
@@ -144,7 +145,9 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_transfer_batch_hook(model_getter_mock):
+
     class CustomBatch:
+
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]

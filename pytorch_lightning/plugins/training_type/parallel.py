@@ -100,8 +100,9 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """
-        if isinstance(self.model, (LightningDistributedDataParallel, DistributedDataParallel)):
-            yield self.model.no_sync()
+        if isinstance(self.model, DistributedDataParallel):
+            with self.model.no_sync():
+                yield None
         else:
             yield None
 
