@@ -1726,3 +1726,17 @@ def test_disabled_training_for_insufficient_limit_train_batches(
     assert trainer.current_epoch == current_epoch
     assert model.training_step_invoked == should_train, f"`training_step` {error_string}"
     assert model.training_epoch_end_invoked == should_train, f"`training_epoch_end` {error_string}"
+
+
+def test_trainer_access_in_configure_optimizers(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            assert self.trainer is not None, "Expect to have access to the trainer within `configure_optimizers`"
+
+    train_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
+    trainer.fit(model, train_data)
