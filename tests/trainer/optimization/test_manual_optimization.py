@@ -538,7 +538,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             if self.should_update:
 
                 self.manual_backward(loss, opt)
-                opt.step()
+                opt.step(make_optimizer_step=self.should_have_updated)
 
             return loss.detach() if self.detach else loss
 
@@ -557,7 +557,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
                         assert torch.sum(self.layer.weight.grad) != 0
             self.count += 1
 
-        def on_train_end(self):
+        def on_train_epoch_end(self, *_, **__):
             assert self.called["training_step"] == 20
             assert self.called["on_train_batch_start"] == 20
             assert self.called["on_train_batch_end"] == 20
@@ -828,7 +828,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                     retain_graph = num_backward != backward_idx # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
-            opt.step(closure=optimizer_closure)
+            opt.step(closure=optimizer_closure, make_optimizer_step=True)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
