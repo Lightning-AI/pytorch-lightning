@@ -355,7 +355,7 @@ class BackendConnector(object):
             plugin = ddp_plugin_cls(
                 parallel_devices=self.parallel_devices,
                 num_nodes=self.num_nodes,
-                cluster_environment=self._cluster_environment,
+                cluster_environment=self.select_cluster_environment(),
                 sync_batchnorm=self.sync_batchnorm,
             )
         elif self.use_dp:
