@@ -109,13 +109,15 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ, {
+        "SLURM_NTASKS": "1",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "0"
+    }
+)
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     # simulate setting slurm flags
@@ -166,7 +168,7 @@ def test_cpu_model_with_amp(tmpdir):
 
     model = EvalModelTemplate()
 
-    with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
+    with pytest.raises(MisconfigurationException, match="AMP is only available on GPU"):
         tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
@@ -197,7 +199,9 @@ def test_amp_without_apex(tmpdir):
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
+
     class CustomModel(EvalModelTemplate):
+
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
             optimizer2 = optim.SGD(self.parameters(), lr=self.learning_rate)

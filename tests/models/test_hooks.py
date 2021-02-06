@@ -55,6 +55,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     num_epochs = 3
 
     class CurrentModel(EvalModelTemplate):
+
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
             output['progress_bar'].update({'step_metric': torch.tensor(-1)})
@@ -144,7 +145,9 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_transfer_batch_hook(model_getter_mock):
+
     class CustomBatch:
+
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
@@ -175,8 +178,9 @@ def test_transfer_batch_hook(model_getter_mock):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_transfer_batch_hook_ddp(tmpdir):
     """
     Test custom data are properly moved to the right device using ddp
@@ -195,6 +199,7 @@ def test_transfer_batch_hook_ddp(tmpdir):
         return CustomBatch(batch)
 
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             assert batch.samples.device == self.device
             assert isinstance(batch_idx, int)
@@ -217,12 +222,11 @@ def test_transfer_batch_hook_ddp(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize(
-    'max_epochs,batch_idx_',
-    [(2, 5), (3, 8), (4, 12)]
-)
+@pytest.mark.parametrize('max_epochs,batch_idx_', [(2, 5), (3, 8), (4, 12)])
 def test_on_train_batch_start_hook(max_epochs, batch_idx_):
+
     class CurrentModel(EvalModelTemplate):
+
         def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
             if batch_idx == batch_idx_:
                 return -1
@@ -242,6 +246,7 @@ def test_trainer_model_hook_system(tmpdir):
     """Test the hooks system."""
 
     class HookedModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.called = []
