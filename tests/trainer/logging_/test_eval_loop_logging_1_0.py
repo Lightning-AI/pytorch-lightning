@@ -39,6 +39,7 @@ def test__validation_step__log(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -99,6 +100,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -179,6 +181,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     """
 
     class TestModel(BoringModel):
+
         def validation_epoch_end(self, outputs):
             self.log('c', torch.tensor(2), on_epoch=True, prog_bar=True, logger=True)
             self.log('d/e/f', 2)
@@ -263,6 +266,7 @@ def test_eval_logging_auto_reduce(tmpdir):
     seed_everything(1234)
 
     class TestModel(BoringModel):
+
         def on_pretrain_routine_end(self) -> None:
             self.seen_vals = []
             self.manual_epoch_end_mean = None
@@ -326,6 +330,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
     """
 
     class TestModel(BoringModel):
+
         def test_epoch_end(self, outputs):
             self.log('c', torch.tensor(2), on_epoch=True, prog_bar=True, logger=True)
             self.log('d/e/f', 2)
@@ -364,6 +369,7 @@ def test_monitor_val_epoch_end(tmpdir):
 
 
 def test_multi_dataloaders_add_suffix_properly(tmpdir):
+
     class TestModel(BoringModel):
 
         def test_step(self, batch, batch_idx, dataloader_idx):
@@ -373,8 +379,10 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir):
             return {"y": loss}
 
         def test_dataloader(self):
-            return [torch.utils.data.DataLoader(RandomDataset(32, 64)),
-                    torch.utils.data.DataLoader(RandomDataset(32, 64))]
+            return [
+                torch.utils.data.DataLoader(RandomDataset(32, 64)),
+                torch.utils.data.DataLoader(RandomDataset(32, 64))
+            ]
 
     model = TestModel()
     model.test_epoch_end = None
@@ -394,6 +402,7 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir):
 
 
 def test_single_dataloader_no_suffix_added(tmpdir):
+
     class TestModel(BoringModel):
 
         def test_step(self, batch, batch_idx):
@@ -439,15 +448,15 @@ def test_log_works_in_val_callback(tmpdir):
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
-        def make_logging(self, pl_module, func_name,
-                         func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
+        def make_logging(self, pl_module, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
             self.funcs_called_count[func_name] += 1
             product = [on_steps, on_epochs, prob_bars]
             for idx, (on_step, on_epoch, prog_bar) in enumerate(list(itertools.product(*product))):
                 # run logging
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
-                pl_module.log(custom_func_name, self.count * func_idx,
-                              on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
+                pl_module.log(
+                    custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar
+                )
                 # catch information for verification
                 self.callback_funcs_called[func_name].append([self.count * func_idx])
                 self.funcs_attr[custom_func_name] = {
@@ -455,7 +464,8 @@ def test_log_works_in_val_callback(tmpdir):
                     "on_epoch": on_epoch,
                     "prog_bar": prog_bar,
                     "forked": on_step and on_epoch,
-                    "func_name": func_name}
+                    "func_name": func_name
+                }
 
                 if on_step and on_epoch:
                     self.funcs_attr[f"{custom_func_name}_step"] = {
@@ -463,26 +473,41 @@ def test_log_works_in_val_callback(tmpdir):
                         "on_epoch": False,
                         "prog_bar": prog_bar,
                         "forked": False,
-                        "func_name": func_name}
+                        "func_name": func_name
+                    }
 
                     self.funcs_attr[f"{custom_func_name}_epoch"] = {
                         "on_step": False,
                         "on_epoch": True,
                         "prog_bar": prog_bar,
                         "forked": False,
-                        "func_name": func_name}
+                        "func_name": func_name
+                    }
 
         def on_validation_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_validation_start', 1, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module,
+                'on_validation_start',
+                1,
+                on_steps=self.choices,
+                on_epochs=self.choices,
+                prob_bars=self.choices
+            )
 
         def on_epoch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_start', 2, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_epoch_start', 2, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
 
         def on_validation_epoch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_validation_epoch_start', 3, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module,
+                'on_validation_epoch_start',
+                3,
+                on_steps=self.choices,
+                on_epochs=self.choices,
+                prob_bars=self.choices
+            )
 
         """
         def on_batch_start(self, trainer, pl_module):
@@ -495,24 +520,38 @@ def test_log_works_in_val_callback(tmpdir):
         """
 
         def on_batch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_batch_end', 6, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_batch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
 
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_validation_batch_end', 7, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module,
+                'on_validation_batch_end',
+                7,
+                on_steps=self.choices,
+                on_epochs=self.choices,
+                prob_bars=self.choices
+            )
             # used to make sure aggregation works fine.
             # we should obtain func[value * c for c in range(1, max_epochs * limit_validation_batches)])
             # with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False],
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
+            )
 
         def on_validation_epoch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_validation_epoch_end', 9, on_steps=[False],
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module,
+                'on_validation_epoch_end',
+                9,
+                on_steps=[False],
+                on_epochs=self.choices,
+                prob_bars=self.choices
+            )
 
     class TestModel(BoringModel):
 
@@ -615,8 +654,7 @@ def test_log_works_in_test_callback(tmpdir):
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
-        def make_logging(self, pl_module, func_name,
-                         func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
+        def make_logging(self, pl_module, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
             original_func_name = func_name[:]
             self.funcs_called_count[original_func_name] += 1
             product = [on_steps, on_epochs, prob_bars]
@@ -626,8 +664,9 @@ def test_log_works_in_test_callback(tmpdir):
                 on_step, on_epoch, prog_bar = t
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
 
-                pl_module.log(custom_func_name, self.count * func_idx,
-                              on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
+                pl_module.log(
+                    custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar
+                )
 
                 num_dl_ext = ''
                 if pl_module._current_dataloader_idx is not None:
@@ -642,37 +681,54 @@ def test_log_works_in_test_callback(tmpdir):
                     "on_epoch": on_epoch,
                     "prog_bar": prog_bar,
                     "forked": on_step and on_epoch,
-                    "func_name": func_name}
+                    "func_name": func_name
+                }
                 if on_step and on_epoch:
                     self.funcs_attr[f"{custom_func_name}_step" + num_dl_ext] = {
                         "on_step": True,
                         "on_epoch": False,
                         "prog_bar": prog_bar,
                         "forked": False,
-                        "func_name": func_name}
+                        "func_name": func_name
+                    }
 
                     self.funcs_attr[f"{custom_func_name}_epoch" + num_dl_ext] = {
                         "on_step": False,
                         "on_epoch": True,
                         "prog_bar": prog_bar,
                         "forked": False,
-                        "func_name": func_name}
+                        "func_name": func_name
+                    }
 
         def on_test_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_test_start', 1, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_test_start', 1, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
 
         def on_epoch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_start', 2, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_epoch_start', 2, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
 
         def on_test_epoch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_test_epoch_start', 3, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module,
+                'on_test_epoch_start',
+                3,
+                on_steps=self.choices,
+                on_epochs=self.choices,
+                prob_bars=self.choices
+            )
 
         def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_test_batch_end', 5, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module,
+                'on_test_batch_end',
+                5,
+                on_steps=self.choices,
+                on_epochs=self.choices,
+                prob_bars=self.choices
+            )
 
             # used to make sure aggregation works fine.
             # we should obtain func[value * c for c in range(1, max_epochs * limit_test_batches)])
@@ -680,12 +736,14 @@ def test_log_works_in_test_callback(tmpdir):
             self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_end', 6, on_steps=[False],
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_epoch_end', 6, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
+            )
 
         def on_test_epoch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_test_epoch_end', 7, on_steps=[False],
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_test_epoch_end', 7, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
+            )
 
     max_epochs = 2
     num_dataloaders = 2
@@ -884,7 +942,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         'debug_epoch',
         'valid_loss_1',
         'test_loss',
-        'val_loss'
+        'val_loss',
     }
     assert set(trainer.callback_metrics) == expected_callback_metrics
     assert set(results[0]) == {'test_loss', 'debug_epoch'}

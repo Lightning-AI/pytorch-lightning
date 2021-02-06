@@ -35,7 +35,3 @@ pytorch_lightning/tuner/*
 
 # TODO
 tests/metrics/*
-
-
-# TODO
-tests/trainer/*

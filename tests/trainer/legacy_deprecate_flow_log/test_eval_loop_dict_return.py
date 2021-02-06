@@ -25,8 +25,10 @@ def test_validation_step_no_return(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+
     model = TestModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_no_return
@@ -67,7 +69,7 @@ def test_validation_step_scalar_return(tmpdir):
         weights_summary=None,
         limit_train_batches=2,
         limit_val_batches=2,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 
@@ -99,7 +101,7 @@ def test_validation_step_arbitrary_dict_return(tmpdir):
         weights_summary=None,
         limit_train_batches=2,
         limit_val_batches=2,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 
@@ -137,7 +139,7 @@ def test_validation_step_dict_return(tmpdir):
         weights_summary=None,
         limit_train_batches=2,
         limit_val_batches=2,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 
@@ -179,7 +181,7 @@ def test_val_step_step_end_no_return(tmpdir):
         weights_summary=None,
         limit_train_batches=2,
         limit_val_batches=2,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 
@@ -211,7 +213,7 @@ def test_val_step_step_end(tmpdir):
         weights_summary=None,
         limit_train_batches=2,
         limit_val_batches=2,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 

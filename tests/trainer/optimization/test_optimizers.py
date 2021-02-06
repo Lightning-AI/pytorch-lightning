@@ -258,8 +258,16 @@ def test_optimizer_return_options():
 
     # opt multiple dictionaries with frequencies
     model.configure_optimizers = lambda: (
-        {"optimizer": opt_a, "lr_scheduler": scheduler_a, "frequency": 1},
-        {"optimizer": opt_b, "lr_scheduler": scheduler_b, "frequency": 5},
+        {
+            "optimizer": opt_a,
+            "lr_scheduler": scheduler_a,
+            "frequency": 1
+        },
+        {
+            "optimizer": opt_b,
+            "lr_scheduler": scheduler_b,
+            "frequency": 5
+        },
     )
     optim, lr_sched, freq = trainer.init_optimizers(model)
     assert len(optim) == len(lr_sched) == len(freq) == 2
@@ -310,10 +318,9 @@ def test_configure_optimizer_from_dict(tmpdir):
     """Tests if `configure_optimizer` method could return a dictionary with `optimizer` field only."""
 
     class CurrentModel(EvalModelTemplate):
+
         def configure_optimizers(self):
-            config = {
-                'optimizer': torch.optim.SGD(params=self.parameters(), lr=1e-03)
-            }
+            config = {'optimizer': torch.optim.SGD(params=self.parameters(), lr=1e-03)}
             return config
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -335,10 +342,7 @@ def test_configure_optimizers_with_frequency(tmpdir):
     model = EvalModelTemplate()
     model.configure_optimizers = model.configure_optimizers__multiple_optimizers_frequency
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
@@ -350,10 +354,7 @@ def test_init_optimizers_during_testing(tmpdir):
     model = EvalModelTemplate()
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_test_batches=10
-    )
+    trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=10)
     trainer.test(model, ckpt_path=None)
 
     assert len(trainer.lr_schedulers) == 0
@@ -365,6 +366,7 @@ def test_multiple_optimizers_callbacks(tmpdir):
     """
     Tests that multiple optimizers can be used with callbacks
     """
+
     class CB(Callback):
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -374,6 +376,7 @@ def test_multiple_optimizers_callbacks(tmpdir):
             pass
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.layer_1 = torch.nn.Linear(32, 2)
@@ -419,7 +422,11 @@ def test_lr_scheduler_strict(tmpdir):
 
     model.configure_optimizers = lambda: {
         'optimizer': optimizer,
-        'lr_scheduler': {'scheduler': scheduler, 'monitor': 'giraffe', 'strict': True},
+        'lr_scheduler': {
+            'scheduler': scheduler,
+            'monitor': 'giraffe',
+            'strict': True
+        },
     }
     with pytest.raises(
         MisconfigurationException,
@@ -489,7 +496,9 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
     """
     Test exception when optimizer attatched to lr_schedulers wasn't returned
     """
+
     class InvalidOptimizerModel(BoringModel):
+
         def configure_optimizers(self):
             opt1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             opt2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
