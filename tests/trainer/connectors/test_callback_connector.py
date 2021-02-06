@@ -1,14 +1,9 @@
-import torch
-
-from pytorch_lightning import Callback
 import logging
 from unittest.mock import Mock
 
 import torch
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, ProgressBar
-from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     GradientAccumulationScheduler,
