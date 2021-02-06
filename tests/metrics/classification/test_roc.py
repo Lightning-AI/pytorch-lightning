@@ -54,8 +54,8 @@ def _sk_roc_multidim_multiclass_prob(preds, target, num_classes=1):
 @pytest.mark.parametrize(
     "preds, target, sk_metric, num_classes", [
         (_input_binary_prob.preds, _input_binary_prob.target, _sk_roc_binary_prob, 1),
-        (_input_mdmc_prob.preds, _input_mdmc_prob.target, _sk_roc_multiclass_prob, NUM_CLASSES),
-        (_input_mcls_prob.preds, _input_mcls_prob.target, _sk_roc_multidim_multiclass_prob, NUM_CLASSES),
+        (_input_mcls_prob.preds, _input_mcls_prob.target, _sk_roc_multiclass_prob, NUM_CLASSES),
+        (_input_mdmc_prob.preds, _input_mdmc_prob.target, _sk_roc_multidim_multiclass_prob, NUM_CLASSES),
     ]
 )
 class TestROC(MetricTester):
