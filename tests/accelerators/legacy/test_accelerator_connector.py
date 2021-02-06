@@ -49,7 +49,8 @@ def test_accelerator_choice_ddp_cpu(tmpdir):
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @mock.patch('torch.cuda.device_count', return_value=2)
-def test_accelerator_choice_ddp(tmpdir):
+@mock.patch('torch.cuda.is_available', return_value=True)
+def test_accelerator_choice_ddp(cuda_available_mock, device_count_mock):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator='ddp',
@@ -62,7 +63,8 @@ def test_accelerator_choice_ddp(tmpdir):
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @mock.patch('torch.cuda.device_count', return_value=2)
-def test_accelerator_choice_ddp_spawn(tmpdir):
+@mock.patch('torch.cuda.is_available', return_value=True)
+def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     trainer = Trainer(
         fast_dev_run=True,
         accelerator='ddp_spawn',
@@ -73,6 +75,7 @@ def test_accelerator_choice_ddp_spawn(tmpdir):
     assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "SLURM_NTASKS": "2",
@@ -80,8 +83,7 @@ def test_accelerator_choice_ddp_spawn(tmpdir):
     "SLURM_NODEID": "0",
     "SLURM_LOCALID": "10"
 })
-@mock.patch('torch.cuda.device_count', return_value=2)
-def test_accelerator_choice_ddp_slurm(tmpdir):
+def test_accelerator_choice_ddp_slurm():
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
@@ -105,6 +107,7 @@ def test_accelerator_choice_ddp_slurm(tmpdir):
         trainer.fit(model)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "SLURM_NTASKS": "2",
@@ -114,7 +117,7 @@ def test_accelerator_choice_ddp_slurm(tmpdir):
     "SLURM_LOCALID": "10"
 })
 @mock.patch('torch.cuda.device_count', return_value=2)
-def test_accelerator_choice_ddp2_slurm(tmpdir):
+def test_accelerator_choice_ddp2_slurm(device_count_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp2
@@ -139,6 +142,7 @@ def test_accelerator_choice_ddp2_slurm(tmpdir):
         trainer.fit(model)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "WORLD_SIZE": "2",
@@ -146,7 +150,7 @@ def test_accelerator_choice_ddp2_slurm(tmpdir):
     "NODE_RANK": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=2)
-def test_accelerator_choice_ddp_te(tmpdir):
+def test_accelerator_choice_ddp_te(device_count_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
@@ -169,6 +173,7 @@ def test_accelerator_choice_ddp_te(tmpdir):
         trainer.fit(model)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "WORLD_SIZE": "2",
@@ -176,7 +181,7 @@ def test_accelerator_choice_ddp_te(tmpdir):
     "NODE_RANK": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=2)
-def test_accelerator_choice_ddp2_te(tmpdir):
+def test_accelerator_choice_ddp2_te(device_count_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp2
@@ -205,7 +210,7 @@ def test_accelerator_choice_ddp2_te(tmpdir):
     "NODE_RANK": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=0)
-def test_accelerator_choice_ddp_cpu_te(tmpdir):
+def test_accelerator_choice_ddp_cpu_te(device_count_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
@@ -236,7 +241,7 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
     "SLURM_LOCALID": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=0)
-def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
+def test_accelerator_choice_ddp_cpu_slurm(device_count_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
@@ -266,7 +271,7 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
     "SLURM_LOCALID": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=0)
-def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
+def test_accelerator_choice_ddp_cpu_custom_cluster(device_count_mock):
     """
     Test that we choose the custom cluster even when SLURM or TE flags are around
     """
@@ -304,7 +309,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
     "SLURM_LOCALID": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=0)
-def test_custom_accelerator(tmpdir):
+def test_custom_accelerator(device_count_mock):
     class Accel(Accelerator):
         pass
 
@@ -336,7 +341,7 @@ def test_custom_accelerator(tmpdir):
     "SLURM_LOCALID": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=0)
-def test_dist_backend_accelerator_mapping(tmpdir):
+def test_dist_backend_accelerator_mapping(device_count_mock):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
