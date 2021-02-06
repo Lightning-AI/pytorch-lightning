@@ -613,7 +613,7 @@ def test_multiple_optimizers_step(tmpdir):
                 assert torch.all(self.layer.weight.grad == 0)
 
             self.manual_backward(loss_1, opt_a)
-            opt_a.step(make_optimizer_step=True)
+            opt_a.step()
 
             # fake discriminator
             loss_2 = self(x)
@@ -625,7 +625,7 @@ def test_multiple_optimizers_step(tmpdir):
             self.manual_backward(loss_2, opt_a, retain_graph=True)
 
             assert self.layer.weight.grad is not None
-            opt_b.step(make_optimizer_step=True)
+            opt_b.step()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -707,7 +707,7 @@ def test_step_with_optimizer_closure(tmpdir):
 
             weight_before = self.layer.weight.clone()
 
-            opt.step(closure=optimizer_closure, make_optimizer_step=True)
+            opt.step(closure=optimizer_closure)
 
             weight_after = self.layer.weight.clone()
             assert not torch.equal(weight_before, weight_after)
@@ -767,7 +767,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
 
             weight_before = self.layer.weight.clone()
 
-            opt.step(closure=optimizer_closure, make_optimizer_step=True)
+            opt.step(closure=optimizer_closure)
 
             weight_after = self.layer.weight.clone()
             if not self.trainer.train_loop.should_accumulate():
