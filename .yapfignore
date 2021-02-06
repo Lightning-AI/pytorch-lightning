@@ -66,10 +66,6 @@ tests/overrides/*
 
 
 # TODO
-tests/plugins/*
-
-
-# TODO
 tests/trainer/*
 
 
