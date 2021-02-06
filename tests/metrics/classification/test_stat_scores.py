@@ -9,12 +9,12 @@ from sklearn.metrics import multilabel_confusion_matrix
 from pytorch_lightning.metrics import StatScores
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics.functional import stat_scores
-from tests.metrics.classification.inputs import _binary_inputs, _binary_prob_inputs, _multiclass_inputs
-from tests.metrics.classification.inputs import _multiclass_prob_inputs as _mc_prob
-from tests.metrics.classification.inputs import _multidim_multiclass_inputs as _mdmc
-from tests.metrics.classification.inputs import _multidim_multiclass_prob_inputs as _mdmc_prob
-from tests.metrics.classification.inputs import _multilabel_inputs
-from tests.metrics.classification.inputs import _multilabel_prob_inputs as _ml_prob
+from tests.metrics.classification.inputs import _input_binary, _input_binary_prob, _input_multiclass
+from tests.metrics.classification.inputs import _input_multiclass_prob as _input_mccls_prob
+from tests.metrics.classification.inputs import _input_multidim_multiclass as _input_mdmc
+from tests.metrics.classification.inputs import _input_multidim_multiclass_prob as _input_mdmc_prob
+from tests.metrics.classification.inputs import _input_multilabel as _input_mcls
+from tests.metrics.classification.inputs import _input_multilabel_prob as _input_mlb_prob
 from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 torch.manual_seed(42)
@@ -57,7 +57,7 @@ def _sk_stat_scores(preds, target, reduce, num_classes, is_multiclass, ignore_in
     return sk_stats
 
 
-def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_multiclass, ignore_index, top_k):
+def _sk_stat_scores_mdim_mcls(preds, target, reduce, mdmc_reduce, num_classes, is_multiclass, ignore_index, top_k):
     preds, target, _ = _input_format_classification(
         preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass, top_k=top_k
     )
@@ -83,13 +83,13 @@ def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_mul
 @pytest.mark.parametrize(
     "reduce, mdmc_reduce, num_classes, inputs, ignore_index",
     [
-        ["unknown", None, None, _binary_inputs, None],
-        ["micro", "unknown", None, _binary_inputs, None],
-        ["macro", None, None, _binary_inputs, None],
-        ["micro", None, None, _mdmc_prob, None],
-        ["micro", None, None, _binary_prob_inputs, 0],
-        ["micro", None, None, _mc_prob, NUM_CLASSES],
-        ["micro", None, NUM_CLASSES, _mc_prob, NUM_CLASSES],
+        ["unknown", None, None, _input_binary, None],
+        ["micro", "unknown", None, _input_binary, None],
+        ["macro", None, None, _input_binary, None],
+        ["micro", None, None, _input_mdmc_prob, None],
+        ["micro", None, None, _input_binary_prob, 0],
+        ["micro", None, None, _input_mccls_prob, NUM_CLASSES],
+        ["micro", None, NUM_CLASSES, _input_mccls_prob, NUM_CLASSES],
     ],
 )
 def test_wrong_params(reduce, mdmc_reduce, num_classes, inputs, ignore_index):
@@ -120,18 +120,21 @@ def test_wrong_threshold():
 @pytest.mark.parametrize(
     "preds, target, sk_fn, mdmc_reduce, num_classes, is_multiclass, top_k",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_stat_scores, None, 1, None, None),
-        (_binary_inputs.preds, _binary_inputs.target, _sk_stat_scores, None, 1, False, None),
-        (_ml_prob.preds, _ml_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
-        (_ml_prob.preds, _ml_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, 2),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_stat_scores, None, NUM_CLASSES, False, None),
-        (_mc_prob.preds, _mc_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
-        (_mc_prob.preds, _mc_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, 2),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
-        (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, None, None),
-        (_mdmc_prob.preds, _mdmc_prob.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, None, None),
-        (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "global", NUM_CLASSES, None, None),
-        (_mdmc_prob.preds, _mdmc_prob.target, _sk_stat_scores_mdmc, "global", NUM_CLASSES, None, None),
+        (_input_binary_prob.preds, _input_binary_prob.target, _sk_stat_scores, None, 1, None, None),
+        (_input_binary.preds, _input_binary.target, _sk_stat_scores, None, 1, False, None),
+        (_input_mlb_prob.preds, _input_mlb_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
+        (_input_mlb_prob.preds, _input_mlb_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, 2),
+        (_input_mcls.preds, _input_mcls.target, _sk_stat_scores, None, NUM_CLASSES, False, None),
+        (_input_mccls_prob.preds, _input_mccls_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
+        (_input_mccls_prob.preds, _input_mccls_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, 2),
+        (_input_multiclass.preds, _input_multiclass.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
+        (_input_mdmc.preds, _input_mdmc.target, _sk_stat_scores_mdim_mcls, "samplewise", NUM_CLASSES, None, None),
+        (
+            _input_mdmc_prob.preds, _input_mdmc_prob.target, _sk_stat_scores_mdim_mcls, "samplewise", NUM_CLASSES, None,
+            None
+        ),
+        (_input_mdmc.preds, _input_mdmc.target, _sk_stat_scores_mdim_mcls, "global", NUM_CLASSES, None, None),
+        (_input_mdmc_prob.preds, _input_mdmc_prob.target, _sk_stat_scores_mdim_mcls, "global", NUM_CLASSES, None, None),
     ],
 )
 class TestStatScores(MetricTester):

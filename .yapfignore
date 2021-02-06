@@ -31,7 +31,3 @@ pytorch_lightning/profiler/*
 
 # TODO
 pytorch_lightning/tuner/*
-
-
-# TODO
-tests/metrics/*

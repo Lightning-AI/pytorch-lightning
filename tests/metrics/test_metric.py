@@ -55,7 +55,7 @@ def test_add_state():
     assert np.allclose(a._reductions["b"](torch.tensor([1.0, 2.0])).numpy(), 1.5)
 
     a.add_state("c", torch.tensor(0), "cat")
-    assert a._reductions["c"]([torch.tensor([1]), torch.tensor([1])]).shape == (2,)
+    assert a._reductions["c"]([torch.tensor([1]), torch.tensor([1])]).shape == (2, )
 
     with pytest.raises(ValueError):
         a.add_state("d1", torch.tensor(0), 'xyz')
@@ -89,6 +89,7 @@ def test_add_state_persistent():
 
 
 def test_reset():
+
     class A(Dummy):
         pass
 
@@ -109,7 +110,9 @@ def test_reset():
 
 
 def test_update():
+
     class A(Dummy):
+
         def update(self, x):
             self.x += x
 
@@ -125,7 +128,9 @@ def test_update():
 
 
 def test_compute():
+
     class A(Dummy):
+
         def update(self, x):
             self.x += x
 
@@ -150,7 +155,9 @@ def test_compute():
 
 
 def test_forward():
+
     class A(Dummy):
+
         def update(self, x):
             self.x += x
 
@@ -168,6 +175,7 @@ def test_forward():
 
 
 class DummyMetric1(Dummy):
+
     def update(self, x):
         self.x += x
 
@@ -176,6 +184,7 @@ class DummyMetric1(Dummy):
 
 
 class DummyMetric2(Dummy):
+
     def update(self, y):
         self.x -= y
 
@@ -214,7 +223,9 @@ def test_state_dict(tmpdir):
 
 def test_child_metric_state_dict():
     """ test that child metric states will be added to parent state dict """
+
     class TestModule(nn.Module):
+
         def __init__(self):
             super().__init__()
             self.metric = Dummy()
@@ -226,7 +237,7 @@ def test_child_metric_state_dict():
     expected_state_dict = {
         'metric.a': torch.tensor(0),
         'metric.b': [],
-        'metric.c': torch.tensor(0)
+        'metric.c': torch.tensor(0),
     }
     assert module.state_dict() == expected_state_dict
 
@@ -317,8 +328,7 @@ def test_metric_collection_wrong_input(tmpdir):
 
     # Not all input are metrics (dict)
     with pytest.raises(ValueError):
-        _ = MetricCollection({'metric1': m1,
-                              'metric2': 5})
+        _ = MetricCollection({'metric1': m1, 'metric2': 5})
 
     # Same metric passed in multiple times
     with pytest.raises(ValueError, match='Encountered two metrics both named *.'):
