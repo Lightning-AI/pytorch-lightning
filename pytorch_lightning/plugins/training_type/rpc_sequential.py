@@ -90,10 +90,6 @@ class RPCSequentialPlugin(RPCPlugin):
         """
         self._check_pipe_available()
         super().__init__(
-            parallel_devices=(),
-            num_nodes=None,
-            cluster_environment=None,
-            sync_batchnorm=False,
             rpc_timeout_sec=rpc_timeout_sec,
             **kwargs
         )
