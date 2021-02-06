@@ -20,6 +20,7 @@ pytorch_lightning/core/*
 # TODO
 pytorch_lightning/loggers/*
 
+
 # TODO
 pytorch_lightning/plugins/legacy/*
 
@@ -33,4 +34,40 @@ pytorch_lightning/tuner/*
 
 
 # TODO
-tests/*
+tests/accelerators/*
+
+
+# TODO
+tests/base/*
+
+
+# TODO
+tests/callbacks/*
+
+
+# TODO
+tests/deprecated_api/*
+
+
+# TODO
+tests/metrics/*
+
+
+# TODO
+tests/overrides/*
+
+
+# TODO
+tests/plugins/*
+
+
+# TODO
+tests/trainer/*
+
+
+# TODO
+tests/tuner/*
+
+
+# TODO
+tests/utilities/*

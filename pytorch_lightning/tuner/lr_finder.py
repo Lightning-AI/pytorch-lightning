@@ -40,34 +40,38 @@ else:
     from tqdm import tqdm
 
 
+def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
+    if isinstance(trainer.auto_lr_find, str):
+        if not lightning_hasattr(model, trainer.auto_lr_find):
+            raise MisconfigurationException(
+                f'`auto_lr_find` was set to {trainer.auto_lr_find}, however'
+                ' could not find this as a field in `model` or `model.hparams`.'
+            )
+        return trainer.auto_lr_find
+
+    attr_options = ('lr', 'learning_rate')
+    for attr in attr_options:
+        if lightning_hasattr(model, attr):
+            return attr
+
+    raise MisconfigurationException(
+        'When `auto_lr_find=True`, either `model` or `model.hparams` should'
+        f' have one of these fields: {attr_options} overridden.'
+    )
+
+
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
+    lr_attr_name = _determine_lr_attr_name(trainer, model)
     lr_finder = lr_find(trainer, model)
-
     if lr_finder is None:
         return
 
     lr = lr_finder.suggestion()
 
     # TODO: log lr.results to self.logger
-    if isinstance(trainer.auto_lr_find, str):
-        # Try to find requested field, may be nested
-        if lightning_hasattr(model, trainer.auto_lr_find):
-            lightning_setattr(model, trainer.auto_lr_find, lr)
-        else:
-            raise MisconfigurationException(
-                f'`auto_lr_find` was set to {trainer.auto_lr_find}, however'
-                ' could not find this as a field in `model` or `model.hparams`.')
-    else:
-        if lightning_hasattr(model, 'lr'):
-            lightning_setattr(model, 'lr', lr)
-        elif lightning_hasattr(model, 'learning_rate'):
-            lightning_setattr(model, 'learning_rate', lr)
-        else:
-            raise MisconfigurationException(
-                'When auto_lr_find is set to True, expects that `model` or'
-                ' `model.hparams` either has field `lr` or `learning_rate`'
-                ' that can overridden')
+    lightning_setattr(model, lr_attr_name, lr)
+
     log.info(f'Learning rate set to {lr}')
 
 

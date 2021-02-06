@@ -38,6 +38,7 @@ from tests.base import BoringModel
 
 
 class LogInTwoMethods(BoringModel):
+
     def training_step(self, batch, batch_idx):
         out = super().training_step(batch, batch_idx)
         self.log('early_stop_on', out['loss'])
@@ -87,9 +88,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
         max_epochs=max_epochs,
     )
     trainer.fit(model)
-    assert (
-        checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints"
-    )
+    assert (checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints")
 
     if save_top_k == -1:
         ckpt_files = os.listdir(checkpoint.dirpath)
@@ -127,7 +126,10 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, overfit_batches=0.2, max_epochs=2, logger=logger
+        default_root_dir=tmpdir,
+        overfit_batches=0.2,
+        max_epochs=2,
+        logger=logger,
     )
     trainer.fit(model)
 
@@ -170,7 +172,8 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         assert self.best_model_score
         assert self.on_save_checkpoint_count == self.expected_count
         if trainer.is_global_zero:
-            assert torch.save.call_count == self.expected_count
+            # twice the calls expected because ddp broadcast also uses torch.save
+            assert torch.save.call_count == self.expected_count * 2
         else:
             assert torch.save.call_count == 0
 
@@ -229,15 +232,13 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     assert ckpt_name == str(Path('.').resolve() / 'epoch=3-step=4.ckpt')
 
     # with version
-    ckpt_name = ModelCheckpoint(
-        monitor='early_stop_on', dirpath=tmpdir, filename='name', prefix='test'
-    ).format_checkpoint_name(3, 2, {}, ver=3)
+    ckpt = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, filename='name', prefix='test')
+    ckpt_name = ckpt.format_checkpoint_name(3, 2, {}, ver=3)
     assert ckpt_name == tmpdir / 'test-name-v3.ckpt'
 
     # using slashes
-    ckpt_name = ModelCheckpoint(
-        monitor='early_stop_on', dirpath=None, filename='{epoch}_{val/loss:.5f}'
-    ).format_checkpoint_name(4, 3, {'val/loss': 0.03})
+    ckpt = ModelCheckpoint(monitor='early_stop_on', dirpath=None, filename='{epoch}_{val/loss:.5f}')
+    ckpt_name = ckpt.format_checkpoint_name(4, 3, {'val/loss': 0.03})
     assert ckpt_name == 'epoch=4_val/loss=0.03000.ckpt'
 
 
@@ -290,9 +291,8 @@ def test_model_checkpoint_save_last(tmpdir):
     )
     last_filename = last_filename + '.ckpt'
     assert str(tmpdir / last_filename) == model_checkpoint.last_model_path
-    assert set(os.listdir(tmpdir)) == set(
-        [f"epoch={i}-step={j}.ckpt" for i, j in zip(range(epochs), [9, 19, 29])] + [last_filename]
-    )
+    assert set(os.listdir(tmpdir)) == set([f"epoch={i}-step={j}.ckpt"
+                                           for i, j in zip(range(epochs), [9, 19, 29])] + [last_filename])
 
     ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last'
 
@@ -317,9 +317,7 @@ def test_none_monitor_top_k(tmpdir):
 
 def test_none_monitor_save_last(tmpdir):
     """ Test that a warning appears for save_last=True with monitor=None. """
-    with pytest.warns(
-        UserWarning, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is a redundant.*'
-    ):
+    with pytest.warns(UserWarning, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is a redundant.*'):
         ModelCheckpoint(dirpath=tmpdir, save_last=True)
     # These should not fail
     ModelCheckpoint(dirpath=tmpdir, save_last=None)
@@ -403,6 +401,7 @@ def test_model_checkpoint_topk_all(tmpdir):
     epochs = 3
 
     class CustomModel(LogInTwoMethods):
+
         def validation_epoch_end(self, outputs):
             return {'epoch': self.current_epoch}
 
@@ -491,8 +490,7 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
         model.validation_step = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir,
-                                   save_top_k=0, save_last=save_last)],
+        callbacks=[ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=0, save_last=save_last)],
         max_epochs=max_epochs,
     )
     trainer.fit(model)
@@ -528,9 +526,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
     model_last_epoch = LogInTwoMethods.load_from_checkpoint(path_last_epoch)
-    model_last = LogInTwoMethods.load_from_checkpoint(
-        model_checkpoint.last_model_path
-    )
+    model_last = LogInTwoMethods.load_from_checkpoint(model_checkpoint.last_model_path)
     for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
         assert w0.eq(w1).all()
 
@@ -542,6 +538,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
     monitor += [5, 7, 8] if mode == 'max' else [8, 7, 5]
 
     class CurrentModel(LogInTwoMethods):
+
         def validation_epoch_end(self, outputs):
             val_loss = monitor[self.current_epoch]
             self.log('abc', val_loss)
@@ -568,6 +565,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
     checkpoint_callback = ModelCheckpoint(monitor='val_loss', dirpath=tmpdir, filename="{epoch:02d}")
 
     class ExtendedBoringModel(BoringModel):
+
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
@@ -614,6 +612,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
     """
 
     class ExtendedBoringModel(BoringModel):
+
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
@@ -756,7 +755,9 @@ def test_val_check_interval_checkpoint_files(tmpdir):
 
 def test_current_score(tmpdir):
     """ Check that the current_score value is correct and was saved """
+
     class TestModel(BoringModel):
+
         def training_step(self, *args):
             self.log("foo", (self.current_epoch + 1) / 10)
             return super().training_step(*args)
@@ -787,7 +788,9 @@ def test_current_score(tmpdir):
 @pytest.mark.parametrize("mode", ["min", "max"])
 def test_current_score_when_nan(tmpdir, mode):
     """ Check that ModelCheckpoint handles NaN values correctly """
+
     class TestModel(BoringModel):
+
         def training_step(self, *args):
             self.log("foo", float("nan"))
             return super().training_step(*args)
@@ -815,7 +818,9 @@ def test_current_score_when_nan(tmpdir, mode):
 
 @pytest.mark.parametrize("hparams_type", [dict, Container])
 def test_hparams_type(tmpdir, hparams_type):
+
     class TestModel(BoringModel):
+
         def __init__(self, hparams):
             super().__init__()
             self.save_hyperparameters(hparams)

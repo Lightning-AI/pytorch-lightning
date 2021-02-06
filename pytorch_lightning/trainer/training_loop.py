@@ -95,13 +95,7 @@ class TrainLoop:
         return num_optimizers
 
     def should_skip_training(self):
-        if self.trainer.current_epoch >= self.trainer.max_epochs:
-            return True
-
-        if self.trainer.limit_train_batches == 0:
-            return True
-
-        return False
+        return self.trainer.current_epoch >= self.trainer.max_epochs or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
         # hook
@@ -177,7 +171,7 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # reset train dataloader
-        if self.trainer.reload_dataloaders_every_epoch:
+        if epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
         # todo: specify the possible exception
@@ -211,7 +205,7 @@ class TrainLoop:
         self.trainer.logger_connector.on_train_batch_end()
 
     def reset_train_val_dataloaders(self, model):
-        if not self.trainer.reload_dataloaders_every_epoch:
+        if self.trainer.train_dataloader is None or not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
         if self.trainer.val_dataloaders is None and not self.trainer.reload_dataloaders_every_epoch:
@@ -444,7 +438,7 @@ class TrainLoop:
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli'
             )
 
-        # wraps into LightingOptimizer only for running step
+        # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
         # model hook

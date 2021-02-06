@@ -135,7 +135,7 @@ def train_with_pruning_callback(
     pruning_fn = pruning_list[rand_idx]
 
     model_pruning_args = {
-        "pruning_fn": custom_pruning_fn if use_custom_pruning_fn else pruning_fn ,
+        "pruning_fn": custom_pruning_fn if use_custom_pruning_fn else pruning_fn,
         "parameters_to_prune": parameters_to_prune,
         "amount": 0.3,
         "use_global_unstructured": use_global_unstructured,

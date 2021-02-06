@@ -29,6 +29,7 @@ def test_auto_move_data(src_device, dest_device):
     """ Test that the decorator moves the data to the device the model is on. """
 
     class CurrentModel(BoringModel):
+
         @auto_move_data
         def forward(self, *args, **kwargs):
             return super().forward(*args, **kwargs)

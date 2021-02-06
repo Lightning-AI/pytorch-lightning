@@ -899,7 +899,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
-            if batch_idx % 4 == 0 :
+            if batch_idx % 4 == 0:
                 # Note: Set make_optimizer_step to True or it will use by default
                 # Trainer(accumulate_grad_batches=x)
                 opt_dis.step(closure=dis_closure, make_optimizer_step=True)
@@ -1004,7 +1004,7 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
-            if batch_idx % 4 == 0 :
+            if batch_idx % 4 == 0:
                 # Note: Set make_optimizer_step to True or it will use by default
                 # Trainer(accumulate_grad_batches=x)
                 opt_dis.step(closure=dis_closure, make_optimizer_step=True, optim='adam')
