@@ -101,6 +101,7 @@ COPY ./requirements/test.txt requirements-test.txt
 
 RUN \
     pip list | grep torch && \
+    python -c "import torch; print(torch.__version__)" && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \
     pip install -r requirements-test.txt --no-cache-dir && \
