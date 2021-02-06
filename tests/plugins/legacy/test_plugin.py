@@ -53,19 +53,23 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
         """
 
     class CustomPlugin(DDPPlugin):
+
         def required_plugins(self, amp_backend: AMPType, trainer: Trainer) -> list:
             return [RequiredPlugin(trainer=trainer)]
 
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, CustomPlugin)
             assert isinstance(trainer.precision_connector.backend, RequiredPlugin)
             raise RuntimeError('finished plugin check')
 
     model = BoringModel()
-    with pytest.warns(UserWarning,
-                      match=f'plugin {type(CustomPlugin())} has added additional '
-                            f'required plugins as default: {[type(RequiredPlugin())]}*'):
+    with pytest.warns(
+        UserWarning,
+        match=f'plugin {type(CustomPlugin())} has added additional '
+        f'required plugins as default: {[type(RequiredPlugin())]}*'
+    ):
         trainer = Trainer(
             fast_dev_run=True,
             gpus=gpus,
@@ -109,6 +113,7 @@ def test_invalid_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processe
         """
 
     class CustomPlugin(DDPPlugin):
+
         def required_plugins(self, amp_backend: AMPType, trainer: Trainer) -> list:
             return [RequiredPlugin(trainer=trainer)]
 

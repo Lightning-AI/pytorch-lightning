@@ -25,6 +25,7 @@ from tests.base.develop_utils import set_random_master_port
 
 
 class SyncBNModule(LightningModule):
+
     def __init__(self, gpu_count=1, **kwargs):
         super().__init__()
 

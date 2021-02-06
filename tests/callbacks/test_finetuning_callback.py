@@ -28,6 +28,7 @@ def test_finetuning_callback(tmpdir):
     seed_everything(42)
 
     class FinetuningBoringModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.backbone = nn.Sequential(nn.Linear(32, 32, bias=False), nn.BatchNorm1d(32), nn.ReLU())
@@ -85,6 +86,7 @@ def test_finetuning_callback_warning(tmpdir):
     seed_everything(42)
 
     class FinetuningBoringModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.backbone = nn.Linear(32, 2, bias=False)
@@ -115,11 +117,7 @@ def test_finetuning_callback_warning(tmpdir):
 
             if epoch == 0:
                 self.unfreeze_and_add_param_group(
-                    pl_module.backbone,
-                    optimizer,
-                    0.1,
-                    train_bn=self.train_bn,
-                    initial_denom_lr=self.initial_denom_lr
+                    pl_module.backbone, optimizer, 0.1, train_bn=self.train_bn, initial_denom_lr=self.initial_denom_lr
                 )
 
     model = FinetuningBoringModel()
@@ -144,6 +142,7 @@ def test_freeze_unfreeze_function(tmpdir):
     seed_everything(42)
 
     class FreezeModel(LightningModule):
+
         def __init__(self):
             super().__init__()
             self.backbone = nn.Sequential(nn.Linear(32, 32), nn.BatchNorm1d(32), nn.ReLU(), nn.Linear(32, 2))
@@ -178,6 +177,7 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
     seed_everything(42)
 
     class FreezeModel(LightningModule):
+
         def __init__(self):
             super().__init__()
             self.backbone = nn.Sequential(
@@ -186,7 +186,7 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
                 nn.Linear(32, 32, bias=False),
                 nn.Linear(32, 32, bias=False),
                 nn.Linear(32, 32, bias=False),
-                nn.BatchNorm1d(32)
+                nn.BatchNorm1d(32),
             )
 
     model = FreezeModel()
