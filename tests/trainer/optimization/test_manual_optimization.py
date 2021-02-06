@@ -538,7 +538,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             if self.should_update:
 
                 self.manual_backward(loss, opt)
-                opt.step()
+                opt.step(make_optimizer_step=self.should_have_updated)
 
             return loss.detach() if self.detach else loss
 
@@ -557,7 +557,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
                         assert torch.sum(self.layer.weight.grad) != 0
             self.count += 1
 
-        def on_train_end(self):
+        def on_train_epoch_end(self, *_, **__):
             assert self.called["training_step"] == 20
             assert self.called["on_train_batch_start"] == 20
             assert self.called["on_train_batch_end"] == 20
@@ -613,7 +613,7 @@ def test_multiple_optimizers_step(tmpdir):
                 assert torch.all(self.layer.weight.grad == 0)
 
             self.manual_backward(loss_1, opt_a)
-            opt_a.step()
+            opt_a.step(make_optimizer_step=True)
 
             # fake discriminator
             loss_2 = self(x)
@@ -625,7 +625,7 @@ def test_multiple_optimizers_step(tmpdir):
             self.manual_backward(loss_2, opt_a, retain_graph=True)
 
             assert self.layer.weight.grad is not None
-            opt_b.step()
+            opt_b.step(make_optimizer_step=True)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -707,7 +707,7 @@ def test_step_with_optimizer_closure(tmpdir):
 
             weight_before = self.layer.weight.clone()
 
-            opt.step(closure=optimizer_closure)
+            opt.step(closure=optimizer_closure, make_optimizer_step=True)
 
             weight_after = self.layer.weight.clone()
             assert not torch.equal(weight_before, weight_after)
@@ -767,7 +767,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
 
             weight_before = self.layer.weight.clone()
 
-            opt.step(closure=optimizer_closure)
+            opt.step(closure=optimizer_closure, make_optimizer_step=True)
 
             weight_after = self.layer.weight.clone()
             if not self.trainer.train_loop.should_accumulate():
@@ -828,7 +828,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                     retain_graph = num_backward != backward_idx # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
-            opt.step(closure=optimizer_closure)
+            opt.step(closure=optimizer_closure, make_optimizer_step=True)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer

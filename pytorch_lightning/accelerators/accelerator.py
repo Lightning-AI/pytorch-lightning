@@ -15,6 +15,7 @@ from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import (
@@ -228,8 +229,8 @@ class Accelerator(object):
         return self.training_type_plugin.predict(*args)
 
     def process_dataloader(
-        self, dataloader: Union[Iterable, torch.utils.data.DataLoader]
-    ) -> Union[Iterable, torch.utils.data.DataLoader]:
+        self, dataloader: Union[Iterable, DataLoader]
+    ) -> Union[Iterable, DataLoader]:
         """Wraps the dataloader if necessary
 
         Args:
@@ -240,7 +241,7 @@ class Accelerator(object):
     def backward(
         self,
         closure_loss: torch.Tensor,
-        optimizer: torch.optim.Optimizer,
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args,
@@ -254,17 +255,17 @@ class Accelerator(object):
             opt_idx: the index of the optimizer
             should_accumulate: whether to accumulate gradients
         """
-        self.training_type_plugin.pre_backward(closure_loss, optimizer, opt_idx)
+        self.training_type_plugin.pre_backward(closure_loss, should_accumulate, optimizer, opt_idx)
 
         output = self.precision_plugin.backward(
             self.lightning_module, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
         )
 
-        self.training_type_plugin.post_backward(closure_loss, optimizer, opt_idx)
+        self.training_type_plugin.post_backward(closure_loss, should_accumulate, optimizer, opt_idx)
 
         return output
 
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs):
+    def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs):
         """performs the actual optimizer step.
 
         Args:
@@ -273,33 +274,23 @@ class Accelerator(object):
             lambda_closure: closure calculating the loss value
 
         """
+        make_optimizer_step = self.precision_plugin.pre_optimizer_step(
+            self.lightning_module, optimizer, opt_idx, lambda_closure, **kwargs)
+        if make_optimizer_step:
+            self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
+        self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
 
-        self.precision_plugin.pre_optimizer_step(optimizer, opt_idx)
-        self.training_type_plugin.pre_optimizer_step(optimizer, opt_idx)
-
-        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
-            # apex does not support passing a closure to the optimizer, call it by itself
-            lambda_closure()
-            lambda_closure = None
-
+    def run_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs):
         optimizer.step(closure=lambda_closure, **kwargs)
 
-        self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
-        self.training_type_plugin.post_optimizer_step(optimizer, opt_idx)
-
-        if self.rpc_enabled and self.training_type_plugin.is_main_rpc_process:
-
-            # Initialize optimizer step on main process
-            self.training_type_plugin.worker_optimizer_step(model=self.lightning_module, opt_idx=opt_idx, **kwargs)
-
     def optimizer_zero_grad(
-        self, current_epoch: int, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int
+        self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int
     ) -> None:
         """Zeros all model parameter's gradients"""
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
-    def clip_gradients(self, optimizer: torch.optim.Optimizer, clip_val: Union[int, float]) -> None:
+    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """clips all the optimizer parameters to the given value"""
 
         self.precision_plugin.clip_gradients(optimizer, clip_val)

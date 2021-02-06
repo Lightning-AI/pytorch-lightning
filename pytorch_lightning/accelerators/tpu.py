@@ -1,7 +1,7 @@
 from typing import Callable
 
 import torch
-
+from torch.optim import Optimizer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
@@ -26,20 +26,5 @@ class TPUAccelerator(Accelerator):
             raise MisconfigurationException("TPUs only support a single tpu core or tpu spawn training.")
         return super().setup(trainer, model)
 
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs):
-        """performs the actual optimizer step.
-
-        Args:
-            optimizer: the optimizer performing the step
-            opt_idx: index of the current optimizer
-            lambda_closure: closure calculating the loss value
-
-        """
-
-        self.precision_plugin.pre_optimizer_step(optimizer, opt_idx)
-        self.training_type_plugin.pre_optimizer_step(optimizer, opt_idx)
-
+    def run_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs):
         xm.optimizer_step(optimizer, optimizer_args={'closure': lambda_closure, **kwargs})
-
-        self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
-        self.training_type_plugin.post_optimizer_step(optimizer, opt_idx)
