@@ -11,14 +11,14 @@ from pytorch_lightning.metrics.functional import accuracy
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
-    _multiclass_inputs,
-    _multiclass_prob_inputs,
-    _multidim_multiclass_inputs,
-    _multidim_multiclass_prob_inputs,
-    _multilabel_inputs,
+    _mclass_inputs,
+    _mclass_prob_inputs,
+    _mdim_mclass_inputs,
+    _mdim_mclass_prob_inputs,
+    _mlabel_inputs,
+    _mlabel_mdim_prob_inputs,
+    _mlabel_prob_inputs,
     _multilabel_multidim_inputs,
-    _multilabel_multidim_prob_inputs,
-    _multilabel_prob_inputs,
 )
 from tests.metrics.utils import MetricTester, THRESHOLD
 
@@ -45,18 +45,18 @@ def _sk_accuracy(preds, target, subset_accuracy):
     [
         (_binary_prob_inputs.preds, _binary_prob_inputs.target, False),
         (_binary_inputs.preds, _binary_inputs.target, False),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, True),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, False),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, True),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, False),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, False),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, False),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, False),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, True),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, False),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, True),
-        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target, True),
-        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target, False),
+        (_mlabel_prob_inputs.preds, _mlabel_prob_inputs.target, True),
+        (_mlabel_prob_inputs.preds, _mlabel_prob_inputs.target, False),
+        (_mlabel_inputs.preds, _mlabel_inputs.target, True),
+        (_mlabel_inputs.preds, _mlabel_inputs.target, False),
+        (_mclass_prob_inputs.preds, _mclass_prob_inputs.target, False),
+        (_mclass_inputs.preds, _mclass_inputs.target, False),
+        (_mdim_mclass_prob_inputs.preds, _mdim_mclass_prob_inputs.target, False),
+        (_mdim_mclass_prob_inputs.preds, _mdim_mclass_prob_inputs.target, True),
+        (_mdim_mclass_inputs.preds, _mdim_mclass_inputs.target, False),
+        (_mdim_mclass_inputs.preds, _mdim_mclass_inputs.target, True),
+        (_mlabel_mdim_prob_inputs.preds, _mlabel_mdim_prob_inputs.target, True),
+        (_mlabel_mdim_prob_inputs.preds, _mlabel_mdim_prob_inputs.target, False),
         (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target, True),
         (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target, False),
     ],
@@ -147,11 +147,11 @@ def test_topk_accuracy(preds, target, exp_result, k, subset_accuracy):
     [
         (_binary_prob_inputs.preds, _binary_prob_inputs.target),
         (_binary_inputs.preds, _binary_inputs.target),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target),
-        (_multilabel_inputs.preds, _multilabel_inputs.target),
-        (_multiclass_inputs.preds, _multiclass_inputs.target),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target),
-        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target),
+        (_mlabel_prob_inputs.preds, _mlabel_prob_inputs.target),
+        (_mlabel_inputs.preds, _mlabel_inputs.target),
+        (_mclass_inputs.preds, _mclass_inputs.target),
+        (_mdim_mclass_inputs.preds, _mdim_mclass_inputs.target),
+        (_mlabel_mdim_prob_inputs.preds, _mlabel_mdim_prob_inputs.target),
         (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target),
     ],
 )
@@ -167,7 +167,7 @@ def test_topk_accuracy_wrong_input_types(preds, target):
 
 @pytest.mark.parametrize("top_k, threshold", [(0, 0.5), (None, 1.5)])
 def test_wrong_params(top_k, threshold):
-    preds, target = _multiclass_prob_inputs.preds, _multiclass_prob_inputs.target
+    preds, target = _mclass_prob_inputs.preds, _mclass_prob_inputs.target
 
     with pytest.raises(ValueError):
         acc = Accuracy(threshold=threshold, top_k=top_k)

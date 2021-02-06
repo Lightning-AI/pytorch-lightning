@@ -8,14 +8,14 @@ from pytorch_lightning.metrics.functional import hamming_distance
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
-    _multiclass_inputs,
-    _multiclass_prob_inputs,
-    _multidim_multiclass_inputs,
-    _multidim_multiclass_prob_inputs,
-    _multilabel_inputs,
+    _mclass_inputs,
+    _mclass_prob_inputs,
+    _mdim_mclass_inputs,
+    _mdim_mclass_prob_inputs,
+    _mlabel_inputs,
+    _mlabel_mdim_prob_inputs,
+    _mlabel_prob_inputs,
     _multilabel_multidim_inputs,
-    _multilabel_multidim_prob_inputs,
-    _multilabel_prob_inputs,
 )
 from tests.metrics.utils import MetricTester, THRESHOLD
 
@@ -35,13 +35,13 @@ def _sk_hamming_loss(preds, target):
     [
         (_binary_prob_inputs.preds, _binary_prob_inputs.target),
         (_binary_inputs.preds, _binary_inputs.target),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target),
-        (_multilabel_inputs.preds, _multilabel_inputs.target),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target),
-        (_multiclass_inputs.preds, _multiclass_inputs.target),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target),
-        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target),
+        (_mlabel_prob_inputs.preds, _mlabel_prob_inputs.target),
+        (_mlabel_inputs.preds, _mlabel_inputs.target),
+        (_mclass_prob_inputs.preds, _mclass_prob_inputs.target),
+        (_mclass_inputs.preds, _mclass_inputs.target),
+        (_mdim_mclass_prob_inputs.preds, _mdim_mclass_prob_inputs.target),
+        (_mdim_mclass_inputs.preds, _mdim_mclass_inputs.target),
+        (_mlabel_mdim_prob_inputs.preds, _mlabel_mdim_prob_inputs.target),
         (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target),
     ],
 )
@@ -72,7 +72,7 @@ class TestHammingDistance(MetricTester):
 
 @pytest.mark.parametrize("threshold", [1.5])
 def test_wrong_params(threshold):
-    preds, target = _multiclass_prob_inputs.preds, _multiclass_prob_inputs.target
+    preds, target = _mclass_prob_inputs.preds, _mclass_prob_inputs.target
 
     with pytest.raises(ValueError):
         ham_dist = HammingDistance(threshold=threshold)

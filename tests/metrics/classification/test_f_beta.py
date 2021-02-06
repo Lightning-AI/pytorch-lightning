@@ -10,13 +10,13 @@ from pytorch_lightning.metrics.functional import f1, fbeta
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
-    _multiclass_inputs,
-    _multiclass_prob_inputs,
-    _multidim_multiclass_inputs,
-    _multidim_multiclass_prob_inputs,
-    _multilabel_inputs,
+    _mclass_inputs,
+    _mclass_prob_inputs,
+    _mdim_mclass_inputs,
+    _mdim_mclass_prob_inputs,
+    _mlabel_inputs,
+    _mlabel_prob_inputs,
     _multilabel_inputs_no_match,
-    _multilabel_prob_inputs,
 )
 from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
@@ -84,22 +84,19 @@ def _sk_fbeta_multidim_multiclass(preds, target, average='micro', beta=1.0):
     [
         (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_fbeta_binary_prob, 1, False),
         (_binary_inputs.preds, _binary_inputs.target, _sk_fbeta_binary, 1, False),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _sk_fbeta_multilabel_prob, NUM_CLASSES, True),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_fbeta_multilabel, NUM_CLASSES, True),
+        (_mlabel_prob_inputs.preds, _mlabel_prob_inputs.target, _sk_fbeta_multilabel_prob, NUM_CLASSES, True),
+        (_mlabel_inputs.preds, _mlabel_inputs.target, _sk_fbeta_multilabel, NUM_CLASSES, True),
         (
             _multilabel_inputs_no_match.preds, _multilabel_inputs_no_match.target, _sk_fbeta_multilabel, NUM_CLASSES,
             True
         ),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _sk_fbeta_multiclass_prob, NUM_CLASSES, False),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_fbeta_multiclass, NUM_CLASSES, False),
+        (_mclass_prob_inputs.preds, _mclass_prob_inputs.target, _sk_fbeta_multiclass_prob, NUM_CLASSES, False),
+        (_mclass_inputs.preds, _mclass_inputs.target, _sk_fbeta_multiclass, NUM_CLASSES, False),
         (
-            _multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target,
-            _sk_fbeta_multidim_multiclass_prob, NUM_CLASSES, False
-        ),
-        (
-            _multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, _sk_fbeta_multidim_multiclass,
+            _mdim_mclass_prob_inputs.preds, _mdim_mclass_prob_inputs.target, _sk_fbeta_multidim_multiclass_prob,
             NUM_CLASSES, False
         ),
+        (_mdim_mclass_inputs.preds, _mdim_mclass_inputs.target, _sk_fbeta_multidim_multiclass, NUM_CLASSES, False),
     ],
 )
 @pytest.mark.parametrize("average", ['micro', 'macro', 'weighted', None])

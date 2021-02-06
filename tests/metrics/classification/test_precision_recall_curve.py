@@ -7,11 +7,7 @@ from sklearn.metrics import precision_recall_curve as _sk_precision_recall_curve
 
 from pytorch_lightning.metrics.classification.precision_recall_curve import PrecisionRecallCurve
 from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve
-from tests.metrics.classification.inputs import (
-    _binary_prob_inputs,
-    _multiclass_prob_inputs,
-    _multidim_multiclass_prob_inputs,
-)
+from tests.metrics.classification.inputs import _binary_prob_inputs, _mclass_prob_inputs, _mdim_mclass_prob_inputs
 from tests.metrics.utils import MetricTester, NUM_CLASSES
 
 torch.manual_seed(42)
@@ -56,10 +52,10 @@ def _multidim_multiclass_prob_sk_metric(preds, target, num_classes=1):
 @pytest.mark.parametrize(
     "preds, target, sk_metric, num_classes", [
         (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 1),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _multiclass_prob_sk_metric, NUM_CLASSES),
+        (_mclass_prob_inputs.preds, _mclass_prob_inputs.target, _multiclass_prob_sk_metric, NUM_CLASSES),
         (
-            _multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target,
-            _multidim_multiclass_prob_sk_metric, NUM_CLASSES
+            _mdim_mclass_prob_inputs.preds, _mdim_mclass_prob_inputs.target, _multidim_multiclass_prob_sk_metric,
+            NUM_CLASSES
         ),
     ]
 )

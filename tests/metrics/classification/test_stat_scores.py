@@ -9,12 +9,12 @@ from sklearn.metrics import multilabel_confusion_matrix
 from pytorch_lightning.metrics import StatScores
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics.functional import stat_scores
-from tests.metrics.classification.inputs import _binary_inputs, _binary_prob_inputs, _multiclass_inputs
-from tests.metrics.classification.inputs import _multiclass_prob_inputs as _mc_prob
-from tests.metrics.classification.inputs import _multidim_multiclass_inputs as _mdmc
-from tests.metrics.classification.inputs import _multidim_multiclass_prob_inputs as _mdmc_prob
-from tests.metrics.classification.inputs import _multilabel_inputs
-from tests.metrics.classification.inputs import _multilabel_prob_inputs as _ml_prob
+from tests.metrics.classification.inputs import _binary_inputs, _binary_prob_inputs, _mclass_inputs
+from tests.metrics.classification.inputs import _mclass_prob_inputs as _mc_prob
+from tests.metrics.classification.inputs import _mdim_mclass_inputs as _mdmc
+from tests.metrics.classification.inputs import _mdim_mclass_prob_inputs as _mdmc_prob
+from tests.metrics.classification.inputs import _mlabel_inputs
+from tests.metrics.classification.inputs import _mlabel_prob_inputs as _ml_prob
 from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 torch.manual_seed(42)
@@ -124,10 +124,10 @@ def test_wrong_threshold():
         (_binary_inputs.preds, _binary_inputs.target, _sk_stat_scores, None, 1, False, None),
         (_ml_prob.preds, _ml_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
         (_ml_prob.preds, _ml_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, 2),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_stat_scores, None, NUM_CLASSES, False, None),
+        (_mlabel_inputs.preds, _mlabel_inputs.target, _sk_stat_scores, None, NUM_CLASSES, False, None),
         (_mc_prob.preds, _mc_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
         (_mc_prob.preds, _mc_prob.target, _sk_stat_scores, None, NUM_CLASSES, None, 2),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
+        (_mclass_inputs.preds, _mclass_inputs.target, _sk_stat_scores, None, NUM_CLASSES, None, None),
         (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, None, None),
         (_mdmc_prob.preds, _mdmc_prob.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, None, None),
         (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "global", NUM_CLASSES, None, None),

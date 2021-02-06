@@ -9,12 +9,12 @@ from sklearn.metrics import precision_score, recall_score
 from pytorch_lightning.metrics import Metric, Precision, Recall
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics.functional import precision, precision_recall, recall
-from tests.metrics.classification.inputs import _binary_inputs, _binary_prob_inputs, _multiclass_inputs
-from tests.metrics.classification.inputs import _multiclass_prob_inputs as _mc_prob
-from tests.metrics.classification.inputs import _multidim_multiclass_inputs as _mdmc
-from tests.metrics.classification.inputs import _multidim_multiclass_prob_inputs as _mdmc_prob
-from tests.metrics.classification.inputs import _multilabel_inputs as _ml
-from tests.metrics.classification.inputs import _multilabel_prob_inputs as _ml_prob
+from tests.metrics.classification.inputs import _binary_inputs, _binary_prob_inputs, _mclass_inputs
+from tests.metrics.classification.inputs import _mclass_prob_inputs as _mc_prob
+from tests.metrics.classification.inputs import _mdim_mclass_inputs as _mdmc
+from tests.metrics.classification.inputs import _mdim_mclass_prob_inputs as _mdmc_prob
+from tests.metrics.classification.inputs import _mlabel_inputs as _ml
+from tests.metrics.classification.inputs import _mlabel_prob_inputs as _ml_prob
 from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 torch.manual_seed(42)
@@ -161,7 +161,7 @@ def test_no_support(metric_class, metric_fn):
         (_ml_prob.preds, _ml_prob.target, NUM_CLASSES, None, None, _sk_prec_recall),
         (_ml.preds, _ml.target, NUM_CLASSES, False, None, _sk_prec_recall),
         (_mc_prob.preds, _mc_prob.target, NUM_CLASSES, None, None, _sk_prec_recall),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, NUM_CLASSES, None, None, _sk_prec_recall),
+        (_mclass_inputs.preds, _mclass_inputs.target, NUM_CLASSES, None, None, _sk_prec_recall),
         (_mdmc.preds, _mdmc.target, NUM_CLASSES, None, "global", _sk_prec_recall_mdmc),
         (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, None, "global", _sk_prec_recall_mdmc),
         (_mdmc.preds, _mdmc.target, NUM_CLASSES, None, "samplewise", _sk_prec_recall_mdmc),
