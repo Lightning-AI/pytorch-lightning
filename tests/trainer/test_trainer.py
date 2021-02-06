@@ -1738,5 +1738,5 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
     train_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model, train_data)
