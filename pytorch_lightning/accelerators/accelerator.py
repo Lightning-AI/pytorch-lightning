@@ -228,9 +228,7 @@ class Accelerator(object):
         args[0] = batch
         return self.training_type_plugin.predict(*args)
 
-    def process_dataloader(
-        self, dataloader: Union[Iterable, DataLoader]
-    ) -> Union[Iterable, DataLoader]:
+    def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Wraps the dataloader if necessary
 
         Args:
@@ -275,7 +273,8 @@ class Accelerator(object):
 
         """
         make_optimizer_step = self.precision_plugin.pre_optimizer_step(
-            self.lightning_module, optimizer, opt_idx, lambda_closure, **kwargs)
+            self.lightning_module, optimizer, opt_idx, lambda_closure, **kwargs
+        )
         if make_optimizer_step:
             self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
         self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
@@ -283,9 +282,7 @@ class Accelerator(object):
     def run_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs):
         optimizer.step(closure=lambda_closure, **kwargs)
 
-    def optimizer_zero_grad(
-        self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int
-    ) -> None:
+    def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients"""
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)

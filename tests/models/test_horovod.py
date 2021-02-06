@@ -308,10 +308,12 @@ def test_accuracy_metric_horovod():
         assert isinstance(trainer.accelerator_backend, CPUAccelerator)
         # TODO: test that we selected the correct training_type_plugin based on horovod flags
 
-        metric = Accuracy(compute_on_step=True,
-                          dist_sync_on_step=True,
-                          dist_sync_fn=trainer.training_type_plugin.gather_all_tensors,
-                          threshold=threshold)
+        metric = Accuracy(
+            compute_on_step=True,
+            dist_sync_on_step=True,
+            dist_sync_fn=trainer.training_type_plugin.gather_all_tensors,
+            threshold=threshold
+        )
 
         for i in range(hvd.rank(), num_batches, hvd.size()):
             batch_result = metric(preds[i], target[i])

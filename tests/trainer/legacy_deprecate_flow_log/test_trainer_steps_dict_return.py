@@ -64,7 +64,8 @@ def test_training_step_dict(tmpdir):
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
-        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+    )
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 

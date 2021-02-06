@@ -16,6 +16,7 @@ from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_has
 
 
 def _get_test_cases():
+
     class TestHparamsNamespace:
         learning_rate = 1
 

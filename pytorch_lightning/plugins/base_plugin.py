@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from torch.nn import Module
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Generator, Optional, overload, Sequence, Tuple
 
 import torch
+from torch.nn import Module
 
 
 class Plugin(ABC):

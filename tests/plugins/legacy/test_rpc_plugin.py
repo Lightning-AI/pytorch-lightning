@@ -30,7 +30,9 @@ from tests.base.boring_model import BoringModel
 )
 @pytest.mark.skipif(not _RPC_AVAILABLE, reason="RPC is not available")
 def test_rpc_choice(tmpdir, ddp_backend, gpus, num_processes):
+
     class CB(Callback):
+
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, RPCPlugin)
             raise RuntimeError('finished plugin check')
@@ -89,8 +91,9 @@ class CustomRPCPlugin(RPCPlugin):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not _RPC_AVAILABLE, reason="RPC is not available")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_rpc_function_calls_ddp(tmpdir):
     model = BoringModel()
     plugin = CustomRPCPlugin()

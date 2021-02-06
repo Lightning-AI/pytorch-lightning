@@ -6,6 +6,7 @@ from tests.base import BoringModel
 
 def test_logging_to_progress_bar_with_reserved_key(tmpdir):
     """ Test that logging a metric with a reserved name to the progress bar raises a warning. """
+
     class TestModel(BoringModel):
 
         def training_step(self, *args, **kwargs):

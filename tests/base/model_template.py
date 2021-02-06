@@ -52,17 +52,17 @@ class EvalModelTemplate(
     """
 
     def __init__(
-            self,
-            drop_prob: float = 0.2,
-            batch_size: int = 32,
-            in_features: int = 28 * 28,
-            learning_rate: float = 0.001 * 8,
-            optimizer_name: str = 'adam',
-            data_root: str = PATH_DATASETS,
-            out_features: int = 10,
-            hidden_dim: int = 1000,
-            b1: float = 0.5,
-            b2: float = 0.999,
+        self,
+        drop_prob: float = 0.2,
+        batch_size: int = 32,
+        in_features: int = 28 * 28,
+        learning_rate: float = 0.001 * 8,
+        optimizer_name: str = 'adam',
+        data_root: str = PATH_DATASETS,
+        out_features: int = 10,
+        hidden_dim: int = 1000,
+        b1: float = 0.5,
+        b2: float = 0.999,
     ):
         # init superclass
         super().__init__()
@@ -139,7 +139,8 @@ class EvalModelTemplate(
 
         if continue_training:
             args.update(
-                test_tube_do_checkpoint_load=True, hpc_exp_number=hpc_exp_number,
+                test_tube_do_checkpoint_load=True,
+                hpc_exp_number=hpc_exp_number,
             )
 
         return args
@@ -149,6 +150,7 @@ T = TypeVar('T')
 
 
 class GenericParentEvalModelTemplate(Generic[T], EvalModelTemplate):
+
     def __init__(
         self,
         drop_prob: float,

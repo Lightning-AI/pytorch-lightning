@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from pytorch_lightning.overrides.distributed import prepare_for_backward
 import subprocess
 import sys
 from time import sleep
@@ -23,14 +22,14 @@ import torch
 import torch.distributed as torch_distrib
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_THAN_1_7_0
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities import _HYDRA_AVAILABLE
+from pytorch_lightning.utilities import _HYDRA_AVAILABLE, _PYTORCH_GREATER_EQUAL_THAN_1_7_0, rank_zero_warn
 from pytorch_lightning.utilities.distributed import (
     find_free_network_port,
     rank_zero_only,
@@ -187,7 +186,7 @@ class DDPPlugin(ParallelPlugin):
                 "From PyTorch 1.7.0, Lightning ``manual_optimization`` needs to set ``find_unused_parameters=True`` "
                 "to properly work with DDP."
             )
-            self._ddp_kwargs["find_unused_parameters"] = True        
+            self._ddp_kwargs["find_unused_parameters"] = True
 
     def configure_ddp(self):
 

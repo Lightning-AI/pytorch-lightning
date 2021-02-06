@@ -31,6 +31,7 @@ def test__training_step__flow_dict(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -66,6 +67,7 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -108,6 +110,7 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -156,6 +159,7 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx

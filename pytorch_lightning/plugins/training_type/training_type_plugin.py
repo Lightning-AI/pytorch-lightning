@@ -18,6 +18,7 @@ from typing import Any, Optional, TYPE_CHECKING, Union
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin

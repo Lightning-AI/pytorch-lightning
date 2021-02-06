@@ -20,6 +20,7 @@ from pytorch_lightning import LightningModule
 
 
 class RandomDataset(Dataset):
+
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -32,6 +33,7 @@ class RandomDataset(Dataset):
 
 
 class SimpleModule(LightningModule):
+
     def __init__(self, epoch_min_loss_override: Optional[int] = None):
         """LightningModule for testing purposes
         Args:
@@ -69,9 +71,7 @@ class SimpleModule(LightningModule):
         self.log("avg_loss", avg_loss)
 
     def validation_epoch_end(self, outputs) -> None:
-        avg_val_loss = torch.stack(
-            [torch.randn(1, requires_grad=True) for _ in outputs]
-        ).mean()
+        avg_val_loss = torch.stack([torch.randn(1, requires_grad=True) for _ in outputs]).mean()
         # For testing purposes allow a nominated epoch to have a low loss
         if self.current_epoch == self.epoch_min_loss_override:
             avg_val_loss -= 1e10
@@ -80,9 +80,7 @@ class SimpleModule(LightningModule):
         self.log("checkpoint_on", avg_val_loss)
 
     def test_epoch_end(self, outputs) -> None:
-        avg_loss = torch.stack(
-            [torch.randn(1, requires_grad=True) for _ in outputs]
-        ).mean()
+        avg_loss = torch.stack([torch.randn(1, requires_grad=True) for _ in outputs]).mean()
         self.log("test_loss", avg_loss)
 
     def configure_optimizers(self):

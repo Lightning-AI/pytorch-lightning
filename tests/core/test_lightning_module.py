@@ -173,8 +173,17 @@ def test_params_groups_and_state_are_accessible(tmpdir):
             optimizer_2 = Adam(self.layer.parameters(), lr=0.1)
             return [optimizer, optimizer_2]
 
-        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure,
-                           on_tpu=False, using_native_amp=False, using_lbfgs=False):
+        def optimizer_step(
+            self,
+            epoch,
+            batch_idx,
+            optimizer,
+            optimizer_idx,
+            optimizer_closure,
+            on_tpu=False,
+            using_native_amp=False,
+            using_lbfgs=False
+        ):
             # warm up lr
             if self.trainer.global_step < 500:
                 lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)

@@ -60,7 +60,7 @@ def test_gpu_stats_monitor(tmpdir):
         'utilization.gpu',
         'memory.used',
         'memory.free',
-        'utilization.memory'
+        'utilization.memory',
     ]
 
     for f in fields:
@@ -89,7 +89,7 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
         callbacks=[gpu_stats],
         max_epochs=1,
         gpus=1,
-        logger=False
+        logger=False,
     )
 
     with pytest.raises(MisconfigurationException, match='Trainer that has no logger.'):
@@ -108,7 +108,7 @@ def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
         default_root_dir=tmpdir,
         callbacks=[gpu_stats],
         max_steps=1,
-        gpus=None
+        gpus=None,
     )
 
     with pytest.raises(MisconfigurationException, match='not running on GPU'):
