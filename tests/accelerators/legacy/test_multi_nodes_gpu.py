@@ -36,6 +36,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     fake_result = 1
 
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True)
@@ -74,6 +75,7 @@ def test__validation_step__log(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch)
             acc = acc + batch_idx
