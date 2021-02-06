@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Any, Generator, Sequence, Tuple, Union, Callable
+from typing import Any, Callable, Generator, Sequence, Tuple, Union
 
 import torch
 from torch.nn import Module
@@ -76,7 +76,9 @@ class PrecisionPlugin(Plugin):
 
         return closure_loss
 
-    def pre_optimizer_step(self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, closure: Callable, **kwargs) -> bool:
+    def pre_optimizer_step(
+        self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, closure: Callable, **kwargs
+    ) -> bool:
         """Hook to do something before each optimizer step."""
         return True
 

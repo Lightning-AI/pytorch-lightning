@@ -15,7 +15,8 @@ from contextlib import contextmanager
 from typing import Callable, Generator
 
 import torch
-from torch.optim import Optimizer, LBFGS
+from torch.optim import LBFGS, Optimizer
+
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
@@ -63,7 +64,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         return closure_loss
 
-    def pre_optimizer_step(self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs) -> bool:
+    def pre_optimizer_step(
+        self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs
+    ) -> bool:
         """always called before the optimizer step.
         Checks that the optimizer is not LBFGS, as this one is not supported by native amp
         """
@@ -76,7 +79,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         if not pl_module.automatic_optimization:
             self.scaler.unscale_(optimizer)
-            
+
             pl_module.trainer.call_hook("on_after_backward")
 
         return False

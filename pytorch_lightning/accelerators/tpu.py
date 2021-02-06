@@ -1,7 +1,7 @@
 from typing import Callable
 
-import torch
 from torch.optim import Optimizer
+
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
