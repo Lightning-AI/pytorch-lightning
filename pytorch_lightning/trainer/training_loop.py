@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from contextlib import contextmanager
-from contextlib import suppress
-from copy import copy
-from copy import deepcopy
+from contextlib import contextmanager, suppress
+from copy import copy, deepcopy
 
 import numpy as np
 import torch
@@ -24,16 +22,10 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.trainer.supporters import Accumulator
-from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import _TPU_AVAILABLE
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities import DeviceType
-from pytorch_lightning.utilities import parsing
-from pytorch_lightning.utilities.distributed import rank_zero_info
-from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
+from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -101,13 +93,7 @@ class TrainLoop:
         return num_optimizers
 
     def should_skip_training(self):
-        if self.trainer.current_epoch >= self.trainer.max_epochs:
-            return True
-
-        if self.trainer.limit_train_batches == 0:
-            return True
-
-        return False
+        return self.trainer.current_epoch >= self.trainer.max_epochs or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
         # clear cache before training
@@ -219,7 +205,7 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # reset train dataloader
-        if self.trainer.reload_dataloaders_every_epoch:
+        if epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
         # todo: specify the possible exception
@@ -253,7 +239,7 @@ class TrainLoop:
         self.trainer.logger_connector.on_train_batch_end()
 
     def reset_train_val_dataloaders(self, model):
-        if not self.trainer.reload_dataloaders_every_epoch:
+        if self.trainer.train_dataloader is None or not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
         if self.trainer.val_dataloaders is None and not self.trainer.reload_dataloaders_every_epoch:
@@ -486,7 +472,7 @@ class TrainLoop:
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli'
             )
 
-        # wraps into LightingOptimizer only for running step
+        # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
         # model hook

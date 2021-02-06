@@ -40,9 +40,6 @@ jobs:
     - name: Pull checkpoints from S3
       # todo: consider adding coma caching, but ATM all models have less then 100KB
       run: |
-        # todo: remove unzip install after new nigtly docker is created
-        apt-get update -qq
-        apt-get install -y --no-install-recommends unzip
         # enter legacy and update checkpoints from S3
         cd legacy
         curl https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip --output checkpoints.zip
