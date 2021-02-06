@@ -100,6 +100,7 @@ COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-test.txt
 
 RUN \
+    pip list | grep torch && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \
     pip install -r requirements-test.txt --no-cache-dir && \
