@@ -66,10 +66,6 @@ tests/metrics/*
 
 
 # TODO
-tests/models/*
-
-
-# TODO
 tests/overrides/*
 
 
