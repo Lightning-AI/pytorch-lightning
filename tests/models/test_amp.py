@@ -165,7 +165,7 @@ def test_cpu_model_with_amp(tmpdir):
 
     model = EvalModelTemplate()
 
-    with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
+    with pytest.raises(MisconfigurationException, match="AMP is only available on GPU"):
         tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 

@@ -294,6 +294,10 @@ class BackendConnector(object):
                         " We will attempt to use NVIDIA Apex for this session."
                     )
                     self.amp_type = "apex"
+                elif self.on_cpu:
+                    raise MisconfigurationException(
+                        "You have asked for native AMP on CPU, but AMP is only available on GPU."
+                    )
                 else:
                     log.info("Using native 16bit precision.")
                     if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
