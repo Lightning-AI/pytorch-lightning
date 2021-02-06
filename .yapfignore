@@ -62,10 +62,6 @@ tests/loggers/*
 
 
 # TODO
-tests/metrics/*
-
-
-# TODO
 tests/models/*
 
 

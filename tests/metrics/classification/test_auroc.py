@@ -33,7 +33,7 @@ def _multiclass_prob_sk_metric(preds, target, num_classes, average='macro', max_
         y_score=sk_preds,
         average=average,
         max_fpr=max_fpr,
-        multi_class=multi_class
+        multi_class=multi_class,
     )
 
 
@@ -45,7 +45,7 @@ def _multidim_multiclass_prob_sk_metric(preds, target, num_classes, average='mac
         y_score=sk_preds,
         average=average,
         max_fpr=max_fpr,
-        multi_class=multi_class
+        multi_class=multi_class,
     )
 
 
@@ -57,7 +57,7 @@ def _multilabel_prob_sk_metric(preds, target, num_classes, average='macro', max_
         y_score=sk_preds,
         average=average,
         max_fpr=max_fpr,
-        multi_class=multi_class
+        multi_class=multi_class,
     )
 
 
@@ -69,40 +69,27 @@ def _multilabel_multidim_prob_sk_metric(preds, target, num_classes, average='mac
         y_score=sk_preds,
         average=average,
         max_fpr=max_fpr,
-        multi_class=multi_class
+        multi_class=multi_class,
     )
 
 
-@pytest.mark.parametrize("preds, target, sk_metric, num_classes", [
-    (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 1),
-    (
-        _multiclass_prob_inputs.preds,
-        _multiclass_prob_inputs.target,
-        _multiclass_prob_sk_metric,
-        NUM_CLASSES
-    ),
-    (
-        _multidim_multiclass_prob_inputs.preds,
-        _multidim_multiclass_prob_inputs.target,
-        _multidim_multiclass_prob_sk_metric,
-        NUM_CLASSES
-    ),
-    (
-        _multilabel_prob_inputs.preds,
-        _multilabel_prob_inputs.target,
-        _multilabel_prob_sk_metric,
-        NUM_CLASSES
-    ),
-    (
-        _multilabel_multidim_prob_inputs.preds,
-        _multilabel_multidim_prob_inputs.target,
-        _multilabel_multidim_prob_sk_metric,
-        NUM_CLASSES
-    )
-])
+@pytest.mark.parametrize(
+    "preds, target, sk_metric, num_classes",
+    [(_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 1),
+     (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _multiclass_prob_sk_metric, NUM_CLASSES),
+     (
+         _multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target,
+         _multidim_multiclass_prob_sk_metric, NUM_CLASSES
+     ), (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _multilabel_prob_sk_metric, NUM_CLASSES),
+     (
+         _multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target,
+         _multilabel_multidim_prob_sk_metric, NUM_CLASSES
+     )]
+)
 @pytest.mark.parametrize("average", ['macro', 'weighted'])
 @pytest.mark.parametrize("max_fpr", [None, 0.8, 0.5])
 class TestAUROC(MetricTester):
+
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_auroc(self, preds, target, sk_metric, num_classes, average, max_fpr, ddp, dist_sync_on_step):
@@ -121,9 +108,11 @@ class TestAUROC(MetricTester):
             metric_class=AUROC,
             sk_metric=partial(sk_metric, num_classes=num_classes, average=average, max_fpr=max_fpr),
             dist_sync_on_step=dist_sync_on_step,
-            metric_args={"num_classes": num_classes,
-                         "average": average,
-                         "max_fpr": max_fpr},
+            metric_args={
+                "num_classes": num_classes,
+                "average": average,
+                "max_fpr": max_fpr
+            },
         )
 
     def test_auroc_functional(self, preds, target, sk_metric, num_classes, average, max_fpr):
@@ -140,9 +129,11 @@ class TestAUROC(MetricTester):
             target,
             metric_functional=auroc,
             sk_metric=partial(sk_metric, num_classes=num_classes, average=average, max_fpr=max_fpr),
-            metric_args={"num_classes": num_classes,
-                         "average": average,
-                         "max_fpr": max_fpr},
+            metric_args={
+                "num_classes": num_classes,
+                "average": average,
+                "max_fpr": max_fpr
+            },
         )
 
 
@@ -152,10 +143,7 @@ def test_error_on_different_mode():
     """
     metric = AUROC()
     # pass in multi-class data
-    metric.update(torch.randn(10, 5).softmax(dim=-1), torch.randint(0, 5, (10,)))
-    with pytest.raises(
-            ValueError,
-            match=r"The mode of data.* should be constant.*"
-    ):
+    metric.update(torch.randn(10, 5).softmax(dim=-1), torch.randint(0, 5, (10, )))
+    with pytest.raises(ValueError, match=r"The mode of data.* should be constant.*"):
         # pass in multi-label data
-        metric.update(torch.rand(10, 5), torch.randint(0, 2, (10,5)))
+        metric.update(torch.rand(10, 5), torch.randint(0, 2, (10, 5)))

@@ -86,24 +86,29 @@ def _sk_fbeta_multidim_multiclass(preds, target, average='micro', beta=1.0):
         (_binary_inputs.preds, _binary_inputs.target, _sk_fbeta_binary, 1, False),
         (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _sk_fbeta_multilabel_prob, NUM_CLASSES, True),
         (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_fbeta_multilabel, NUM_CLASSES, True),
-        (_multilabel_inputs_no_match.preds, _multilabel_inputs_no_match.target,
-         _sk_fbeta_multilabel, NUM_CLASSES, True),
+        (
+            _multilabel_inputs_no_match.preds, _multilabel_inputs_no_match.target, _sk_fbeta_multilabel, NUM_CLASSES,
+            True
+        ),
         (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _sk_fbeta_multiclass_prob, NUM_CLASSES, False),
         (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_fbeta_multiclass, NUM_CLASSES, False),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target,
-         _sk_fbeta_multidim_multiclass_prob, NUM_CLASSES, False),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target,
-         _sk_fbeta_multidim_multiclass, NUM_CLASSES, False),
+        (
+            _multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target,
+            _sk_fbeta_multidim_multiclass_prob, NUM_CLASSES, False
+        ),
+        (
+            _multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, _sk_fbeta_multidim_multiclass,
+            NUM_CLASSES, False
+        ),
     ],
 )
 @pytest.mark.parametrize("average", ['micro', 'macro', 'weighted', None])
 @pytest.mark.parametrize("beta", [0.5, 1.0, 2.0])
 class TestFBeta(MetricTester):
+
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-    def test_fbeta(
-        self, preds, target, sk_metric, num_classes, multilabel, average, beta, ddp, dist_sync_on_step
-    ):
+    def test_fbeta(self, preds, target, sk_metric, num_classes, multilabel, average, beta, ddp, dist_sync_on_step):
         metric_class = F1 if beta == 1.0 else partial(FBeta, beta=beta)
 
         self.run_class_metric_test(
@@ -123,21 +128,21 @@ class TestFBeta(MetricTester):
             check_batch=False,
         )
 
-    def test_fbeta_functional(
-        self, preds, target, sk_metric, num_classes, multilabel, average, beta
-    ):
+    def test_fbeta_functional(self, preds, target, sk_metric, num_classes, multilabel, average, beta):
         metric_functional = f1 if beta == 1.0 else partial(fbeta, beta=beta)
 
-        self.run_functional_metric_test(preds=preds,
-                                        target=target,
-                                        metric_functional=metric_functional,
-                                        sk_metric=partial(sk_metric, average=average, beta=beta),
-                                        metric_args={
-                                            "num_classes": num_classes,
-                                            "average": average,
-                                            "multilabel": multilabel,
-                                            "threshold": THRESHOLD}
-                                        )
+        self.run_functional_metric_test(
+            preds=preds,
+            target=target,
+            metric_functional=metric_functional,
+            sk_metric=partial(sk_metric, average=average, beta=beta),
+            metric_args={
+                "num_classes": num_classes,
+                "average": average,
+                "multilabel": multilabel,
+                "threshold": THRESHOLD
+            }
+        )
 
 
 @pytest.mark.parametrize(['pred', 'target', 'beta', 'exp_score'], [

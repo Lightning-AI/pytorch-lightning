@@ -79,55 +79,59 @@ def _multidim_multiclass_sk_metric(preds, target, normalize=None):
 
 
 @pytest.mark.parametrize("normalize", ['true', 'pred', 'all', None])
-@pytest.mark.parametrize("preds, target, sk_metric, num_classes", [
-    (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 2),
-    (_binary_inputs.preds, _binary_inputs.target, _binary_sk_metric, 2),
-    (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _multilabel_prob_sk_metric, 2),
-    (_multilabel_inputs.preds, _multilabel_inputs.target, _multilabel_sk_metric, 2),
-    (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _multiclass_prob_sk_metric, NUM_CLASSES),
-    (_multiclass_inputs.preds, _multiclass_inputs.target, _multiclass_sk_metric, NUM_CLASSES),
-    (
-        _multidim_multiclass_prob_inputs.preds,
-        _multidim_multiclass_prob_inputs.target,
-        _multidim_multiclass_prob_sk_metric,
-        NUM_CLASSES
-    ),
-    (
-        _multidim_multiclass_inputs.preds,
-        _multidim_multiclass_inputs.target,
-        _multidim_multiclass_sk_metric,
-        NUM_CLASSES
-    )
-])
+@pytest.mark.parametrize(
+    "preds, target, sk_metric, num_classes",
+    [(_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 2),
+     (_binary_inputs.preds, _binary_inputs.target, _binary_sk_metric, 2),
+     (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _multilabel_prob_sk_metric, 2),
+     (_multilabel_inputs.preds, _multilabel_inputs.target, _multilabel_sk_metric, 2),
+     (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _multiclass_prob_sk_metric, NUM_CLASSES),
+     (_multiclass_inputs.preds, _multiclass_inputs.target, _multiclass_sk_metric, NUM_CLASSES),
+     (
+         _multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target,
+         _multidim_multiclass_prob_sk_metric, NUM_CLASSES
+     ),
+     (
+         _multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, _multidim_multiclass_sk_metric,
+         NUM_CLASSES
+     )]
+)
 class TestConfusionMatrix(MetricTester):
+
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_confusion_matrix(self, normalize, preds, target, sk_metric, num_classes, ddp, dist_sync_on_step):
-        self.run_class_metric_test(ddp=ddp,
-                                   preds=preds,
-                                   target=target,
-                                   metric_class=ConfusionMatrix,
-                                   sk_metric=partial(sk_metric, normalize=normalize),
-                                   dist_sync_on_step=dist_sync_on_step,
-                                   metric_args={"num_classes": num_classes,
-                                                "threshold": THRESHOLD,
-                                                "normalize": normalize}
-                                   )
+        self.run_class_metric_test(
+            ddp=ddp,
+            preds=preds,
+            target=target,
+            metric_class=ConfusionMatrix,
+            sk_metric=partial(sk_metric, normalize=normalize),
+            dist_sync_on_step=dist_sync_on_step,
+            metric_args={
+                "num_classes": num_classes,
+                "threshold": THRESHOLD,
+                "normalize": normalize
+            }
+        )
 
     def test_confusion_matrix_functional(self, normalize, preds, target, sk_metric, num_classes):
-        self.run_functional_metric_test(preds,
-                                        target,
-                                        metric_functional=confusion_matrix,
-                                        sk_metric=partial(sk_metric, normalize=normalize),
-                                        metric_args={"num_classes": num_classes,
-                                                     "threshold": THRESHOLD,
-                                                     "normalize": normalize}
-                                        )
+        self.run_functional_metric_test(
+            preds,
+            target,
+            metric_functional=confusion_matrix,
+            sk_metric=partial(sk_metric, normalize=normalize),
+            metric_args={
+                "num_classes": num_classes,
+                "threshold": THRESHOLD,
+                "normalize": normalize
+            }
+        )
 
 
 def test_warning_on_nan(tmpdir):
-    preds = torch.randint(3, size=(20,))
-    target = torch.randint(3, size=(20,))
+    preds = torch.randint(3, size=(20, ))
+    target = torch.randint(3, size=(20, ))
 
     with pytest.warns(UserWarning, match='.* nan values found in confusion matrix have been replaced with zeros.'):
         confusion_matrix(preds, target, num_classes=5, normalize='true')

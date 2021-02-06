@@ -53,21 +53,18 @@ def _multidim_multiclass_prob_sk_metric(preds, target, num_classes=1):
     return sk_precision_recall_curve(y_true=sk_target, probas_pred=sk_preds, num_classes=num_classes)
 
 
-@pytest.mark.parametrize("preds, target, sk_metric, num_classes", [
-    (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 1),
-    (
-        _multiclass_prob_inputs.preds,
-        _multiclass_prob_inputs.target,
-        _multiclass_prob_sk_metric,
-        NUM_CLASSES),
-    (
-        _multidim_multiclass_prob_inputs.preds,
-        _multidim_multiclass_prob_inputs.target,
-        _multidim_multiclass_prob_sk_metric,
-        NUM_CLASSES
-    ),
-])
+@pytest.mark.parametrize(
+    "preds, target, sk_metric, num_classes", [
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 1),
+        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _multiclass_prob_sk_metric, NUM_CLASSES),
+        (
+            _multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target,
+            _multidim_multiclass_prob_sk_metric, NUM_CLASSES
+        ),
+    ]
+)
 class TestPrecisionRecallCurve(MetricTester):
+
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_precision_recall_curve(self, preds, target, sk_metric, num_classes, ddp, dist_sync_on_step):
@@ -91,9 +88,10 @@ class TestPrecisionRecallCurve(MetricTester):
         )
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_p', 'expected_r', 'expected_t'], [
-    pytest.param([1, 2, 3, 4], [1, 0, 0, 1], [0.5, 1 / 3, 0.5, 1., 1.], [1, 0.5, 0.5, 0.5, 0.], [1, 2, 3, 4])
-])
+@pytest.mark.parametrize(
+    ['pred', 'target', 'expected_p', 'expected_r', 'expected_t'],
+    [pytest.param([1, 2, 3, 4], [1, 0, 0, 1], [0.5, 1 / 3, 0.5, 1., 1.], [1, 0.5, 0.5, 0.5, 0.], [1, 2, 3, 4])]
+)
 def test_pr_curve(pred, target, expected_p, expected_r, expected_t):
     p, r, t = precision_recall_curve(torch.tensor(pred), torch.tensor(target))
     assert p.size() == r.size()

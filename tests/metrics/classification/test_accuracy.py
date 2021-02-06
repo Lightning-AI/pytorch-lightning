@@ -62,6 +62,7 @@ def _sk_accuracy(preds, target, subset_accuracy):
     ],
 )
 class TestAccuracies(MetricTester):
+
     @pytest.mark.parametrize("ddp", [False, True])
     @pytest.mark.parametrize("dist_sync_on_step", [False, True])
     def test_accuracy_class(self, ddp, dist_sync_on_step, preds, target, subset_accuracy):
@@ -72,7 +73,10 @@ class TestAccuracies(MetricTester):
             metric_class=Accuracy,
             sk_metric=partial(_sk_accuracy, subset_accuracy=subset_accuracy),
             dist_sync_on_step=dist_sync_on_step,
-            metric_args={"threshold": THRESHOLD, "subset_accuracy": subset_accuracy},
+            metric_args={
+                "threshold": THRESHOLD,
+                "subset_accuracy": subset_accuracy
+            },
         )
 
     def test_accuracy_fn(self, preds, target, subset_accuracy):
@@ -81,7 +85,10 @@ class TestAccuracies(MetricTester):
             target,
             metric_functional=accuracy,
             sk_metric=partial(_sk_accuracy, subset_accuracy=subset_accuracy),
-            metric_args={"threshold": THRESHOLD, "subset_accuracy": subset_accuracy},
+            metric_args={
+                "threshold": THRESHOLD,
+                "subset_accuracy": subset_accuracy
+            },
         )
 
 

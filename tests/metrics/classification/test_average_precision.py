@@ -49,21 +49,18 @@ def _multidim_multiclass_prob_sk_metric(preds, target, num_classes=1):
     return sk_average_precision_score(y_true=sk_target, probas_pred=sk_preds, num_classes=num_classes)
 
 
-@pytest.mark.parametrize("preds, target, sk_metric, num_classes", [
-    (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 1),
-    (
-        _multiclass_prob_inputs.preds,
-        _multiclass_prob_inputs.target,
-        _multiclass_prob_sk_metric,
-        NUM_CLASSES),
-    (
-        _multidim_multiclass_prob_inputs.preds,
-        _multidim_multiclass_prob_inputs.target,
-        _multidim_multiclass_prob_sk_metric,
-        NUM_CLASSES
-    ),
-])
+@pytest.mark.parametrize(
+    "preds, target, sk_metric, num_classes", [
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 1),
+        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _multiclass_prob_sk_metric, NUM_CLASSES),
+        (
+            _multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target,
+            _multidim_multiclass_prob_sk_metric, NUM_CLASSES
+        ),
+    ]
+)
 class TestAveragePrecision(MetricTester):
+
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_average_precision(self, preds, target, sk_metric, num_classes, ddp, dist_sync_on_step):
@@ -87,16 +84,19 @@ class TestAveragePrecision(MetricTester):
         )
 
 
-@pytest.mark.parametrize(['scores', 'target', 'expected_score'], [
-    # Check the average_precision_score of a constant predictor is
-    # the TPR
-    # Generate a dataset with 25% of positives
-    # And a constant score
-    # The precision is then the fraction of positive whatever the recall
-    # is, as there is only one threshold:
-    pytest.param(torch.tensor([1, 1, 1, 1]), torch.tensor([0, 0, 0, 1]), .25),
-    # With threshold 0.8 : 1 TP and 2 TN and one FN
-    pytest.param(torch.tensor([.6, .7, .8, 9]), torch.tensor([1, 0, 0, 1]), .75),
-])
+@pytest.mark.parametrize(
+    ['scores', 'target', 'expected_score'],
+    [
+        # Check the average_precision_score of a constant predictor is
+        # the TPR
+        # Generate a dataset with 25% of positives
+        # And a constant score
+        # The precision is then the fraction of positive whatever the recall
+        # is, as there is only one threshold:
+        pytest.param(torch.tensor([1, 1, 1, 1]), torch.tensor([0, 0, 0, 1]), .25),
+        # With threshold 0.8 : 1 TP and 2 TN and one FN
+        pytest.param(torch.tensor([.6, .7, .8, 9]), torch.tensor([1, 0, 0, 1]), .75),
+    ]
+)
 def test_average_precision(scores, target, expected_score):
     assert average_precision(scores, target) == expected_score
