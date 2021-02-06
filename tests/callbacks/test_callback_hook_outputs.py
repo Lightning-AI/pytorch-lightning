@@ -22,6 +22,7 @@ def test_train_step_no_return(tmpdir, single_cb):
     """
     Tests that only training_step can be used
     """
+
     class CB(Callback):
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -39,6 +40,7 @@ def test_train_step_no_return(tmpdir, single_cb):
             assert len(d) == trainer.num_training_batches
 
     class TestModel(BoringModel):
+
         def on_train_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
             d = outputs[0][0]
             assert 'minimize' in d
