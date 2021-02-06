@@ -50,10 +50,6 @@ tests/deprecated_api/*
 
 
 # TODO
-tests/loggers/*
-
-
-# TODO
 tests/metrics/*
 
 
