@@ -271,7 +271,12 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
         Test to ensure that resuming from checkpoint works when going from GPUs- > CPU
     """
     model = BoringModel()
-    trainer = Trainer(accelerator='ddp_spawn', plugins=[DDPShardedPlugin()], gpus=1, fast_dev_run=True,)
+    trainer = Trainer(
+        accelerator='ddp_spawn',
+        plugins=[DDPShardedPlugin()],
+        gpus=1,
+        fast_dev_run=True,
+    )
 
     trainer.fit(model)
 
