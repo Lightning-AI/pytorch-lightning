@@ -73,7 +73,7 @@ class DDPPlugin(ParallelPlugin):
         self._has_spawned_children = False
         self.task_idx = None
         self.node_rank = 0
-        self.num_processes = len(parallel_devices)
+        self.num_processes = len(parallel_devices) if parallel_devices is not None else parallel_devices
 
     @property
     def root_device(self):

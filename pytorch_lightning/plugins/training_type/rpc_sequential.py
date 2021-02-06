@@ -21,6 +21,7 @@ from torch import nn
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
+from torch.optim import Optimizer
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.rpc import DEFAULT_RPC_TIMEOUT_SEC, RPCPlugin
@@ -42,10 +43,6 @@ class RPCSequentialPlugin(RPCPlugin):
 
     def __init__(
         self,
-        parallel_devices,
-        num_nodes: int = 1,
-        cluster_environment: ClusterEnvironment = None,
-        sync_batchnorm=False,
         balance: Optional[List[int]] = None,
         microbatches: int = 8,
         checkpoint: str = 'except_last',
@@ -93,9 +90,6 @@ class RPCSequentialPlugin(RPCPlugin):
         """
         self._check_pipe_available()
         super().__init__(
-            parallel_devices=parallel_devices,
-            num_nodes=num_nodes,
-            cluster_environment=cluster_environment,
             sync_batchnorm=sync_batchnorm,
             rpc_timeout_sec=rpc_timeout_sec,
             **kwargs
@@ -324,6 +318,12 @@ class RPCSequentialPlugin(RPCPlugin):
                 'PipeRPCPlugin requires FairScale and currently is only supported on PyTorch 1.6.'
             )
 
+    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, **kwargs) -> None:
+        """Hook to do something after each optimizer step."""
+        if self.rpc_enabled and self.is_main_rpc_process:
+
+            # Initialize optimizer step on main process
+            self.worker_optimizer_step(model=self.lightning_module, opt_idx=optimizer_idx, **kwargs)
 
 class LightningPipeModule(nn.Module):
     """

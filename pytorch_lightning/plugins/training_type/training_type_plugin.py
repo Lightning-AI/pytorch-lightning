@@ -75,6 +75,9 @@ class TrainingTypePlugin(Plugin, ABC):
     def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run after precision plugin executes backward"""
 
+    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, **kwargs) -> None:
+        """Hook to do something after each optimizer step."""
+
     @property
     def model(self) -> Module:
         """Returns the potentially wrapped LightningModule"""

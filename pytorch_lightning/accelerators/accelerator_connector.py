@@ -191,20 +191,20 @@ class BackendConnector(object):
 
         self._training_type_plugin = training_type
         self._precision_plugin = precision
-        self._cluster_environment = cluster_environment
+        self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
         if self._precision_plugin is None:
             self._precision_plugin = self.select_precision_plugin()
-
         return self._precision_plugin
 
     @property
     def training_type_plugin(self) -> TrainingTypePlugin:
         if self._training_type_plugin is None:
             self._training_type_plugin = self.select_training_type_plugin()
-
+        else:
+            self.resolve_training_type_plugin()
         return self._training_type_plugin
 
     @property
@@ -283,9 +283,6 @@ class BackendConnector(object):
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 
-            if isinstance(self.training_type_plugin, RPCPlugin):
-                raise MisconfigurationException
-
             if self.amp_type == "native":
                 if not _NATIVE_AMP_AVAILABLE:
                     rank_zero_warn(
@@ -324,9 +321,8 @@ class BackendConnector(object):
             raise NotImplementedError("We only support precisions 32 and 16!")
 
     def select_training_type_plugin(self):
-        cluster_environment = self.select_cluster_environment()
         if self.use_ddp2:
-            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=cluster_environment)
+            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self._cluster_environment)
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
@@ -358,7 +354,7 @@ class BackendConnector(object):
             plugin = ddp_plugin_cls(
                 parallel_devices=self.parallel_devices,
                 num_nodes=self.num_nodes,
-                cluster_environment=cluster_environment,
+                cluster_environment=self._cluster_environment,
                 sync_batchnorm=self.sync_batchnorm,
             )
         elif self.use_dp:
@@ -370,6 +366,14 @@ class BackendConnector(object):
         else:
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{self.root_gpu}" if self.on_gpu else "cpu"))
         return plugin
+
+    def resolve_training_type_plugin(self):
+        if self._training_type_plugin.num_processes is None:
+            self._training_type_plugin.num_processes = len(self.parallel_devices)
+            self._training_type_plugin.parallel_devices = self.parallel_devices
+        
+        if self._training_type_plugin.cluster_environment is None:
+            self._training_type_plugin.cluster_environment = self._cluster_environment
 
     def select_accelerator(self):
         if isinstance(self.distributed_backend, Accelerator):
