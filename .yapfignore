@@ -43,23 +43,7 @@ tests/callbacks/*
 
 
 # TODO
-tests/checkpointing/*
-
-
-# TODO
-tests/core/*
-
-
-# TODO
-tests/loggers/*
-
-
-# TODO
 tests/metrics/*
-
-
-# TODO
-tests/models/*
 
 
 # TODO

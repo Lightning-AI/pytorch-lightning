@@ -25,6 +25,7 @@ from tests.base.develop_utils import reset_seed
 
 
 class ModelWithManualGradTracker(EvalModelTemplate):
+
     def __init__(self, norm_type, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.stored_grad_norms, self.norm_type = [], float(norm_type)
