@@ -42,10 +42,6 @@ tests/base/*
 
 
 # TODO
-tests/callbacks/*
-
-
-# TODO
 tests/checkpointing/*
 
 
