@@ -83,6 +83,7 @@ RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH
     python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- python[>=]+[\d\.]+', '# - python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '# - pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- horovod[>=]+[\d\.]+', '# - horovod', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if 'horovod' not in ln])" && \
     cat environment.yml && \
     conda env update --name $CONDA_ENV --file environment.yml && \
