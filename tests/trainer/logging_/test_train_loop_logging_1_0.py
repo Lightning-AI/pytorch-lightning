@@ -40,6 +40,7 @@ def test__training_step__log(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -136,6 +137,7 @@ def test__training_step__epoch_end__log(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             self.training_step_called = True
             acc = self.step(batch, batch_idx)
@@ -199,6 +201,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     """
 
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             self.training_step_called = True
             loss = self.step(batch[0])
@@ -235,13 +238,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
 
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
-    expected_logged_metrics = {
-        'a_step', 'a_epoch',
-        'b_step', 'b_epoch',
-        'c',
-        'd/e/f',
-        'epoch'
-    }
+    expected_logged_metrics = {'a_step', 'a_epoch', 'b_step', 'b_epoch', 'c', 'd/e/f', 'epoch'}
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
@@ -266,7 +263,9 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     """
     Tests that log works correctly with different tensor types
     """
+
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log('foo', torch.tensor(batch_idx).long(), on_step=False, on_epoch=True, reduce_fx=fx)
@@ -305,6 +304,7 @@ def test_tbptt_log(tmpdir):
     y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
 
     class MockSeq2SeqDataset(torch.utils.data.Dataset):
+
         def __getitem__(self, i):
             return x_seq, y_seq_list
 
@@ -312,6 +312,7 @@ def test_tbptt_log(tmpdir):
             return 1
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.test_hidden = None
@@ -333,8 +334,7 @@ def test_tbptt_log(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss = torch.nn.functional.mse_loss(
-                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+            loss = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
 
             self.log('a', loss, on_epoch=True)
 
@@ -374,6 +374,7 @@ def test_tbptt_log(tmpdir):
 def test_different_batch_types_for_sizing(tmpdir):
 
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             assert isinstance(batch, dict)
             a = batch['a']
@@ -406,19 +407,15 @@ def test_different_batch_types_for_sizing(tmpdir):
     trainer.fit(model)
 
     generated = set(trainer.logger_connector.logged_metrics)
-    expected = {
-        'a_step',
-        'a_epoch',
-        'n_step/epoch_0',
-        'n_epoch',
-        'epoch'
-    }
+    expected = {'a_step', 'a_epoch', 'n_step/epoch_0', 'n_epoch', 'epoch'}
 
     assert generated == expected
 
 
 def test_validation_step_with_string_data_logging():
+
     class TestModel(BoringModel):
+
         def on_train_epoch_start(self) -> None:
             print("override any method to prove your bug")
 
@@ -452,6 +449,7 @@ def test_validation_step_with_string_data_logging():
 def test_nested_datasouce_batch(tmpdir):
 
     class NestedDictStringDataset(Dataset):
+
         def __init__(self, size, length):
             self.len = length
             self.data = torch.randn(length, size)
@@ -472,6 +470,7 @@ def test_nested_datasouce_batch(tmpdir):
             return self.len
 
     class TestModel(BoringModel):
+
         def on_train_epoch_start(self) -> None:
             print("override any method to prove your bug")
 
@@ -518,15 +517,17 @@ def test_log_works_in_train_callback(tmpdir):
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
-        def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx,
-                         on_steps=[], on_epochs=[], prob_bars=[]):
+        def make_logging(
+            self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]
+        ):
             self.funcs_called_count[func_name] += 1
             iterate = list(itertools.product(*[on_steps, on_epochs, prob_bars]))
             for idx, (on_step, on_epoch, prog_bar) in enumerate(iterate):
                 # run logging
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
-                pl_module.log(custom_func_name, self.count * func_idx, on_step=on_step,
-                              on_epoch=on_epoch, prog_bar=prog_bar)
+                pl_module.log(
+                    custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar
+                )
 
                 # catch information for verification
 
@@ -545,7 +546,8 @@ def test_log_works_in_train_callback(tmpdir):
                     "on_epoch": on_epoch,
                     "prog_bar": prog_bar,
                     "forked": forked,
-                    "func_name": func_name}
+                    "func_name": func_name
+                }
 
                 if on_step and on_epoch:
                     self.funcs_attr[f"{custom_func_name}_step"] = {
@@ -553,46 +555,65 @@ def test_log_works_in_train_callback(tmpdir):
                         "on_epoch": False,
                         "prog_bar": prog_bar,
                         "forked": False,
-                        "func_name": func_name}
+                        "func_name": func_name
+                    }
 
                     self.funcs_attr[f"{custom_func_name}_epoch"] = {
                         "on_step": False,
                         "on_epoch": True,
                         "prog_bar": prog_bar,
                         "forked": False,
-                        "func_name": func_name}
+                        "func_name": func_name
+                    }
 
         def on_train_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_train_start', 1, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_train_start', 1, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
 
         def on_epoch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_start', 2, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_epoch_start', 2, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
 
         def on_train_epoch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_train_epoch_start', 3, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module,
+                'on_train_epoch_start',
+                3,
+                on_steps=self.choices,
+                on_epochs=self.choices,
+                prob_bars=self.choices
+            )
 
         def on_batch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_batch_end', 6, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_batch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_train_batch_end', 7, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module,
+                'on_train_batch_end',
+                7,
+                on_steps=self.choices,
+                on_epochs=self.choices,
+                prob_bars=self.choices
+            )
             # used to make sure aggregation works fine.
             # we should obtain func[value * c for c in range(1, max_epochs * limit_train_batches)])
             # with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
-            self.make_logging(pl_module, 'on_train_epoch_end', 8, on_steps=[False],
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_train_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
+            )
 
         def on_epoch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_end', 9, on_steps=[False],
-                              on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(
+                pl_module, 'on_epoch_end', 9, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
+            )
 
     class TestModel(BoringModel):
 
@@ -684,6 +705,7 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     fake_result = 1
 
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
@@ -712,13 +734,16 @@ def test_logging_sync_dist_true_cpu(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with ddp
     """
+
     class TestLoggingSyncDistModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log('foo', 1, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='SUM')
@@ -756,6 +781,7 @@ def test_logging_sync_dist_true_gpu(tmpdir):
     fake_result = 1
 
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
@@ -783,7 +809,9 @@ def test_logging_sync_dist_true_gpu(tmpdir):
 
 
 def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
+
     class TestModel(BoringModel):
+
         def training_step(self, *args):
             self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
             return super().training_step(*args)
@@ -791,8 +819,14 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
         def on_train_epoch_end(self, *_):
             self.on_train_epoch_end_called = True
             self.epoch_end_called = True
-            self.log('foo_2', torch.tensor(self.current_epoch), prog_bar=True,
-                     on_epoch=True, sync_dist=True, sync_dist_op='sum')
+            self.log(
+                'foo_2',
+                torch.tensor(self.current_epoch),
+                prog_bar=True,
+                on_epoch=True,
+                sync_dist=True,
+                sync_dist_op='sum'
+            )
 
         def on_epoch_end(self):
             self.epoch_end_called = True
@@ -819,7 +853,9 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     """
     Tests ensure self.log can be used directly in callbacks.
     """
+
     class LoggingCallback(callbacks.Callback):
+
         def on_train_start(self, trainer, pl_module):
             self.log("on_train_start", 1)
 
@@ -856,13 +892,16 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         'on_train_batch_end': 3,
         'on_batch_end': 4,
         'on_epoch_end': 5,
-        'on_train_epoch_end': 6}
+        'on_train_epoch_end': 6
+    }
     assert trainer.callback_metrics == expected
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 def test_metric_are_properly_reduced(tmpdir):
+
     class TestingModel(BoringModel):
+
         def __init__(self, *args, **kwargs):
             super().__init__()
             self.val_acc = pl.metrics.Accuracy()
@@ -897,7 +936,8 @@ def test_metric_are_properly_reduced(tmpdir):
         max_epochs=2,
         limit_train_batches=5,
         limit_val_batches=32,
-        callbacks=[early_stop, checkpoint])
+        callbacks=[early_stop, checkpoint]
+    )
     trainer.fit(model)
 
     assert trainer.callback_metrics["val_acc"] == 8 / 32.

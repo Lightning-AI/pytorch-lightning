@@ -20,6 +20,7 @@ from tests.base.boring_model import BoringModel
 
 
 class TestModel(BoringModel):
+
     def training_step(self, batch, batch_idx):
         acc = self.step(batch[0])
         return acc

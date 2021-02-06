@@ -21,6 +21,7 @@ from tests.base import SimpleModule
 def test_val_check_interval_1(tmpdir, max_epochs):
 
     class TestModel(SimpleModule):
+
         def __init__(self):
             super().__init__()
             self.train_epoch_calls = 0
@@ -48,6 +49,7 @@ def test_val_check_interval_1(tmpdir, max_epochs):
 def test_val_check_interval_quarter(tmpdir, max_epochs):
 
     class TestModel(SimpleModule):
+
         def __init__(self):
             super().__init__()
             self.train_epoch_calls = 0
@@ -75,6 +77,7 @@ def test_val_check_interval_quarter(tmpdir, max_epochs):
 def test_val_check_interval_third(tmpdir, max_epochs):
 
     class TestModel(SimpleModule):
+
         def __init__(self):
             super().__init__()
             self.train_epoch_calls = 0

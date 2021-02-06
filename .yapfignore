@@ -78,10 +78,6 @@ tests/plugins/*
 
 
 # TODO
-tests/trainer/*
-
-
-# TODO
 tests/tuner/*
 
 
