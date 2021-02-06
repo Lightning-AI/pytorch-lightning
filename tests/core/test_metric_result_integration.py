@@ -24,6 +24,7 @@ from pytorch_lightning.metrics import Metric
 
 
 class DummyMetric(Metric):
+
     def __init__(self):
         super().__init__()
         self.add_state("x", torch.tensor(0), dist_reduce_fx="sum")
@@ -82,10 +83,7 @@ def _ddp_test_fn(rank, worldsize):
         assert metric_b.x == metric_b._defaults['x']
         assert metric_c.x == metric_c._defaults['x']
 
-        epoch_expected = {
-            "b": cumulative_sum * worldsize,
-            "a_epoch": cumulative_sum * worldsize
-        }
+        epoch_expected = {"b": cumulative_sum * worldsize, "a_epoch": cumulative_sum * worldsize}
 
         assert set(epoch_log.keys()) == set(epoch_expected.keys())
         for k in epoch_expected.keys():
@@ -99,7 +97,7 @@ def test_result_reduce_ddp():
     tutils.set_random_master_port()
 
     worldsize = 2
-    mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
+    mp.spawn(_ddp_test_fn, args=(worldsize, ), nprocs=worldsize)
 
 
 def test_result_metric_integration():

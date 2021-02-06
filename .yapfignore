@@ -46,10 +46,6 @@ tests/callbacks/*
 
 
 # TODO
-tests/core/*
-
-
-# TODO
 tests/deprecated_api/*
 
 
