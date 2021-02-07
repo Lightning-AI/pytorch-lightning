@@ -103,8 +103,6 @@ class BackendConnector(object):
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
 
-        self.handle_given_plugins(plugins)
-
         # init the default rank if exists
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
         # this way we only show it on rank 0
@@ -117,6 +115,8 @@ class BackendConnector(object):
 
         self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
         self.root_gpu = device_parser.determine_root_gpu_device(self.parallel_device_ids)
+
+        self.handle_given_plugins(plugins)
 
         self.set_distributed_mode()
         self.configure_slurm_ddp()
@@ -481,7 +481,7 @@ class BackendConnector(object):
         # for DDP overwrite nb processes by requested GPUs
         if (
             self._device_type == DeviceType.GPU
-            and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
+            and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         ):
             self.num_processes = self.num_gpus
 
