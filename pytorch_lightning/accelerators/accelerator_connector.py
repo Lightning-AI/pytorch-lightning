@@ -293,6 +293,10 @@ class BackendConnector(object):
                         " Consider upgrading with `pip install torch>=1.6`."
                         " We will attempt to use NVIDIA Apex for this session."
                     )
+                    if not _APEX_AVAILABLE and self.on_cpu:
+                        raise MisconfigurationException(
+                            "You have asked for native AMP on CPU, but AMP is only available on GPU."
+                        )                        
                     self.amp_type = "apex"
                 elif self.on_cpu:
                     raise MisconfigurationException(
