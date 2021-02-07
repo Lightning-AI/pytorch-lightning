@@ -57,21 +57,18 @@ def test_training_epoch_end_metrics_collection(tmpdir):
 
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
-            self.log_dict(
-                {'step_metric': torch.tensor(-1), 'shared_metric': 100},
-                logger=False,
-                prog_bar=True
-            )
+            self.log_dict({'step_metric': torch.tensor(-1), 'shared_metric': 100}, logger=False, prog_bar=True)
             return output
 
         def training_epoch_end(self, outputs):
             epoch = self.current_epoch
             # both scalar tensors and Python numbers are accepted
-            self.log_dict(
-                {f'epoch_metric_{epoch}': torch.tensor(epoch), 'shared_metric': 111},
-                logger=False,
-                prog_bar=True
-            )
+            self.log_dict({
+                f'epoch_metric_{epoch}': torch.tensor(epoch),
+                'shared_metric': 111
+            },
+                          logger=False,
+                          prog_bar=True)
 
     model = CurrentModel()
     trainer = Trainer(

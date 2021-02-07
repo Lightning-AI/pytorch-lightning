@@ -189,7 +189,9 @@ def test_amp_without_apex(tmpdir):
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
+
     class CustomModel(BoringModel):
+
         def training_step(self, batch, batch_idx, optimizer_idx):
             return super().training_step(batch, batch_idx)
 

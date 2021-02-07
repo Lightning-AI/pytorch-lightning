@@ -53,6 +53,7 @@ class ModelTrainerPropertyParity(Callback):
 
 
 class ValTestLossBoringModel(BoringModel):
+
     def __init__(self, batch_size=4):
         super().__init__()
         self.save_hyperparameters()
@@ -72,6 +73,7 @@ T = TypeVar('T')
 
 
 class GenericParentValTestLossBoringModel(Generic[T], ValTestLossBoringModel):
+
     def __init__(self, batch_size: int = 4):
         super().__init__(batch_size=batch_size)
 
@@ -418,6 +420,7 @@ def test_dp_resume(tmpdir):
     new_trainer = Trainer(**trainer_options)
 
     class CustomModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.on_train_start_called = False
@@ -487,7 +490,10 @@ def test_model_saving_loading(tmpdir):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
-    model_2 = BoringModel.load_from_checkpoint(checkpoint_path=new_weights_path, hparams_file=hparams_path,)
+    model_2 = BoringModel.load_from_checkpoint(
+        checkpoint_path=new_weights_path,
+        hparams_file=hparams_path,
+    )
     model_2.eval()
 
     # make prediction
@@ -533,12 +539,16 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
     ckpt_path = hparams_url if url_ckpt else new_weights_path
 
     BoringModel.load_from_checkpoint(
-        checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=False,
+        checkpoint_path=ckpt_path,
+        hparams_file=hparams_path,
+        strict=False,
     )
 
     with pytest.raises(RuntimeError, match=r'Unexpected key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
         BoringModel.load_from_checkpoint(
-            checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=True,
+            checkpoint_path=ckpt_path,
+            hparams_file=hparams_path,
+            strict=True,
         )
 
 
@@ -557,11 +567,8 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-<<<<<<< HEAD
-=======
         limit_train_batches=2,
         limit_val_batches=2,
->>>>>>> ref
         logger=logger,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )

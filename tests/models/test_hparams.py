@@ -269,6 +269,7 @@ def test_class_nesting():
 
 
 class CustomBoringModel(BoringModel):
+
     def __init__(self, batch_size=64):
         super().__init__()
         self.save_hyperparameters()
@@ -317,7 +318,8 @@ class DictConfSubClassBoringModel(SubClassBoringModel):
         AggSubClassBoringModel,
         UnconventionalArgsBoringModel,
         DictConfSubClassBoringModel,
-])
+    ]
+)
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
     extra_args = {}
@@ -441,6 +443,7 @@ class AnotherArgModel(BoringModel):
 
 
 class OtherArgsModel(BoringModel):
+
     def __init__(self, arg1, arg2):
 
         super().__init__()

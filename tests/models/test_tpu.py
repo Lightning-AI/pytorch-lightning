@@ -43,6 +43,7 @@ def _serial_train_loader():
 
 
 class SerialLoaderBoringModel(BoringModel):
+
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 2000), batch_size=32)
 
@@ -173,7 +174,9 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 @pl_multi_process_test
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
+
     class CustomBoringModel(BoringModel):
+
         def validation_step(self, *args, **kwargs):
             out = super().validation_step(*args, **kwargs)
             self.log('val_loss', out['x'])

@@ -199,6 +199,7 @@ def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
 
     class ModelTrainValTest(BoringModel):
+
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args, **kwargs)
             self.log('val_loss', output['x'])
@@ -301,11 +302,7 @@ def test_simple_cpu(tmpdir):
 def test_cpu_model(tmpdir):
     """Make sure model trains on CPU."""
     trainer_options = dict(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        max_epochs=1,
-        limit_train_batches=4,
-        limit_val_batches=4
+        default_root_dir=tmpdir, progress_bar_refresh_rate=0, max_epochs=1, limit_train_batches=4, limit_val_batches=4
     )
 
     model = BoringModel()
