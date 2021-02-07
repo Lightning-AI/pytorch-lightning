@@ -34,7 +34,7 @@ def test_rpc_choice(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.ddp_plugin, RPCPlugin)
+            assert isinstance(trainer.training_type_plugin, RPCPlugin)
             raise RuntimeError('finished plugin check')
 
     model = BoringModel()
