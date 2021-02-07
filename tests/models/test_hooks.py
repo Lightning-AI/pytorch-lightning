@@ -149,6 +149,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     expected_device = torch.device('cuda', 0)
 
     class CustomBatch:
+
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
