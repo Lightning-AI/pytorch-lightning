@@ -405,12 +405,6 @@ class Trainer(
         Args:
             model: The model to run sanity test on.
         """
-        # --------------------------
-        # Setup??
-        # --------------------------
-
-        # set local properties on the model
-        self.model_connector.copy_trainer_model_properties(model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
         if self.amp_backend == AMPType.NATIVE and self.precision == 16 and self._device_type != DeviceType.TPU:
@@ -448,6 +442,9 @@ class Trainer(
         # bookkeeping
         self._state = TrainerState.RUNNING
         self._set_wide_running_stage(RunningStage.TRAINING)
+
+        # set local properties on the model
+        self.model_connector.copy_trainer_model_properties(model)
 
         # ----------------------------
         # LINK DATA
