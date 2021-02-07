@@ -16,7 +16,6 @@ class GPUAccelerator(Accelerator):
             raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
         self.set_nvidia_flags()
         torch.cuda.set_device(self.root_device)
-        # model.to(self.root_device)
         return super().setup(trainer, model)
 
     def on_train_start(self):
