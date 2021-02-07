@@ -20,7 +20,7 @@ import torch.distributed as torch_distrib
 from torch import nn
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins.legacy.ddp_sequential_plugin import DDPSequentialPlugin
+from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequentialPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import RandomDataset
@@ -48,7 +48,7 @@ def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
         limit_test_batches=2,
         gpus=2,
         distributed_backend="ddp",
-        plugins=[DDPSequentialPlugin(balance=[2, 1], rpc_timeout_sec=5 * 60)],
+        plugins=[RPCSequentialPlugin(balance=[2, 1], rpc_timeout_sec=5 * 60)],
         enable_pl_optimizer=True,
     )
 
@@ -79,7 +79,7 @@ def test_ddp_sequential_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
         precision=16,
         amp_backend="native",
         distributed_backend="ddp",
-        plugins=[DDPSequentialPlugin(balance=[2, 1])],
+        plugins=[RPCSequentialPlugin(balance=[2, 1])],
     )
     try:
         trainer.fit(model)
@@ -87,7 +87,7 @@ def test_ddp_sequential_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
         assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
     except MisconfigurationException as e:
-        assert str(e) == 'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision'
+        assert str(e) == 'RPCSequentialPlugin is currently not supported in Automatic Mixed Precision'
 
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
@@ -105,7 +105,7 @@ def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
         limit_test_batches=2,
         gpus=2,
         distributed_backend="ddp",
-        plugins=[DDPSequentialPlugin(balance=[2, 1])],
+        plugins=[RPCSequentialPlugin(balance=[2, 1])],
     )
 
     trainer.fit(model)
@@ -134,7 +134,7 @@ def test_ddp_sequential_plugin_ddp_rpc_with_wrong_balance(tmpdir, args=None):
         limit_test_batches=2,
         gpus=2,
         distributed_backend="ddp",
-        plugins=[DDPSequentialPlugin(balance=[2, 2])],
+        plugins=[RPCSequentialPlugin(balance=[2, 2])],
     )
 
     try:
