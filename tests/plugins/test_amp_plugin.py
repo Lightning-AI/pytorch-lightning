@@ -9,6 +9,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import NativeMixedPrecisionPlugin
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from tests.base.boring_model import BoringModel
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
@@ -35,19 +36,25 @@ def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
             assert isinstance(trainer.precision_plugin, NativeMixedPrecisionPlugin)
             raise SystemExit()
 
-    model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        precision=16,
-        amp_backend='native',
-        gpus=gpus,
-        num_processes=num_processes,
-        accelerator=ddp_backend,
-        callbacks=[CB()],
-    )
-
-    with pytest.raises(SystemExit):
+    def train():
+        model = BoringModel()
+        trainer = Trainer(
+            fast_dev_run=True,
+            precision=16,
+            amp_backend='native',
+            gpus=gpus,
+            num_processes=num_processes,
+            accelerator=ddp_backend,
+            callbacks=[CB()],
+        )
         trainer.fit(model)
+
+    if ddp_backend == "ddp_cpu":
+        with pytest.raises(MisconfigurationException, match="MP is only available on GPU"):
+            train()
+    else:
+        with pytest.raises(SystemExit):
+            train()
 
 
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
