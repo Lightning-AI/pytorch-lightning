@@ -23,7 +23,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.zoo_data_models import RegressDataModule, RegressionModel
 
 
-@pytest.mark.parametrize("observe,fuse", [(None, True), ('histogram', False), ('average', True)])
+@pytest.mark.parametrize("observe", ['histogram', 'average'])
+@pytest.mark.parametrize("fuse", [True, False])
 def test_quantization(tmpdir, observe, fuse):
     """Parity for  quant model"""
     seed_everything(42)
