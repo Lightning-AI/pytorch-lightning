@@ -1742,6 +1742,9 @@ def test_disabled_training_for_insufficient_limit_train_batches(
 
 
 def test_trainer_access_in_configure_optimizers(tmpdir):
+    """
+    Verify that the configure optimizer function can reference the trainer.
+    """
 
     class TestModel(BoringModel):
 
@@ -1752,4 +1755,31 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer.fit(model, train_data)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_setup_hook_move_to_device_correctly(tmpdir):
+    """
+    Verify that if a user defines a layer in the setup hook function, this is moved to the correct device.
+    """
+
+    class TestModel(BoringModel):
+
+        def setup(self, stage: str) -> None:
+            self.new_layer = torch.nn.Linear(2, 2)
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            # will crash if not moved to correct device
+            output = self.new_layer(output)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
+    # fake data
+    train_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    # model
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
     trainer.fit(model, train_data)
