@@ -16,21 +16,32 @@ import os
 import pytest
 
 from pytorch_lightning import Trainer
+from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule, RegressDataModule
+from tests.helpers.deterministic_model import DeterministicModel
+from tests.helpers.models import BasicGAN, ParityModuleRNN, ParityModuleMNIST
 from tests.helpers.simple_models import ClassificationModel, RegressionModel
 
 
 @pytest.mark.parametrize(
-    "data_class,model_class", [(ClassifDataModule, ClassificationModel), (RegressDataModule, RegressionModel)]
+    "data_class,model_class", [
+        (None, BoringModel),
+        (None, BasicGAN),
+        (None, ParityModuleRNN),
+        (None, ParityModuleMNIST),
+        (ClassifDataModule, ClassificationModel),
+        (RegressDataModule, RegressionModel),
+    ]
 )
 def test_models(tmpdir, data_class, model_class):
     """Test simple models"""
-    dm = data_class()
+    dm = data_class() if data_class else data_class
     model = model_class()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     trainer.fit(model, datamodule=dm)
     trainer.test(model, datamodule=dm)
 
     model.to_torchscript()
-    model.to_onnx(os.path.join(tmpdir, 'my-model.onnx'), input_sample=dm.sample)
+    if data_class:
+        model.to_onnx(os.path.join(tmpdir, 'my-model.onnx'), input_sample=dm.sample)
