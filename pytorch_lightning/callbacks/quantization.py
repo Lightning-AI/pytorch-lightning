@@ -89,12 +89,12 @@ class QuantizationAwareTraining(Callback):
      `Quantization <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
     """
 
-    OBSERVER_TYPES = (None, 'histogram', 'average')
+    OBSERVER_TYPES = ('histogram', 'average')
 
     def __init__(
         self,
         qconfig: Union[str, QConfig] = 'fbgemm',
-        observer_type: Optional[str] = None,
+        observer_type: str = "average",
         collect_quantization: Optional[Union[int, Callable]] = None,
         modules_to_fuse: Optional[Sequence] = None,
         input_compatible: bool = True,
@@ -104,7 +104,7 @@ class QuantizationAwareTraining(Callback):
             qconfig: define quantization configuration see: `torch.quantization.QConfig
              <https://pytorch.org/docs/stable/torch.quantization.html?highlight=qconfig#torch.quantization.QConfig>_`
                 or use pre-defined: 'fbgemm' for server inference and 'qnnpack' for mobile inference
-            observer_type: switching between `MovingAverageMinMaxObserver` as "average"
+            observer_type: switching between `MovingAverageMinMaxObserver` as "average" (default)
                 and `HistogramObserver` as "histogram" which is more computational costly
             collect_quantization: define custom count or function when you shall collect quantization statistic
 
@@ -170,10 +170,10 @@ class QuantizationAwareTraining(Callback):
         # attach a global qconfig, which contains information about what kind
         # of observers to attach. Use 'fbgemm' for server inference
         if isinstance(self._qconfig, str):
-            if self._observer_type == 'average':
-                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
-            else:
+            if self._observer_type == 'histogram':
                 pl_module.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
+            elif self._observer_type == 'average':
+                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
         elif isinstance(self._qconfig, QConfig):
             pl_module.qconfig = self._qconfig
 
