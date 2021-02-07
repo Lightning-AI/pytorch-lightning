@@ -16,8 +16,8 @@ import os
 import pytest
 
 from pytorch_lightning import Trainer
-from tests.helpers.simple_models import ClassificationModel, RegressionModel
 from tests.helpers.datamodules import ClassifDataModule, RegressDataModule
+from tests.helpers.simple_models import ClassificationModel, RegressionModel
 
 
 @pytest.mark.parametrize(

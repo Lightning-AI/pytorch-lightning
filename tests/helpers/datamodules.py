@@ -16,13 +16,12 @@ from typing import Any, Dict, Optional
 import torch
 from sklearn.datasets import make_classification, make_regression
 from sklearn.model_selection import train_test_split
-
 from torch.utils.data import DataLoader, random_split
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.core.datamodule import LightningDataModule
-from tests.helpers.datasets import MNIST, TrialMNIST, SklearnDataset
+from tests.helpers.datasets import MNIST, SklearnDataset, TrialMNIST
 
 
 class TrialMNISTDataModule(LightningDataModule):
