@@ -169,7 +169,7 @@ class DDPSpawnPlugin(ParallelPlugin):
                 "From PyTorch 1.7.0, Lightning ``manual_optimization`` needs to set ``find_unused_parameters=True`` "
                 "to properly work with DDP."
             )
-            self._ddp_kwargs["find_unused_parameters"] = True        
+            self._ddp_kwargs["find_unused_parameters"] = True
 
     def configure_ddp(self):
 
@@ -250,16 +250,16 @@ class DDPSpawnPlugin(ParallelPlugin):
         return output
 
     def training_step(self, *args, **kwargs):
-        return self.lightning_module.training_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
-        return self.lightning_module.validation_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        return self.lightning_module.test_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def predict(self, *args, **kwargs):
-        return self.lightning_module.predict(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
