@@ -7,7 +7,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.legacy.apex import ApexPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")

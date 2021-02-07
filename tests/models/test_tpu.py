@@ -26,7 +26,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.base.datasets import TrialMNIST
+from tests.helpers.datasets import TrialMNIST
 from tests.base.develop_utils import pl_multi_process_test
 
 if _TPU_AVAILABLE:

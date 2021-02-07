@@ -20,7 +20,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
-from tests.base.datamodules import TrialMNISTDataModule
+from tests.helpers.datamodules import TrialMNISTDataModule
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):

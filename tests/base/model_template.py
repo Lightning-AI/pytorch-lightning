@@ -18,7 +18,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.datasets import PATH_DATASETS, TrialMNIST
+from tests.helpers.datasets import PATH_DATASETS, TrialMNIST
 from tests.base.model_optimizers import ConfigureOptimizersPool
 from tests.base.model_test_dataloaders import TestDataloaderVariations
 from tests.base.model_test_epoch_ends import TestEpochEndVariations

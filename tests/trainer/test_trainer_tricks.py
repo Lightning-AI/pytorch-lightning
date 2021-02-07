@@ -23,7 +23,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.base.datamodules import MNISTDataModule
+from tests.helpers.datamodules import MNISTDataModule
 
 
 def test_num_training_batches(tmpdir):
