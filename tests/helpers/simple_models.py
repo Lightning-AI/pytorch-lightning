@@ -69,8 +69,8 @@ class RegressionModel(LightningModule):
 
     def __init__(self):
         super().__init__()
-        setattr(self, f"layer_0", nn.Linear(16, 64))
-        setattr(self, f"layer_0a", torch.nn.ReLU())
+        setattr(self, "layer_0", nn.Linear(16, 64))
+        setattr(self, "layer_0a", torch.nn.ReLU())
         for i in range(1, 3):
             setattr(self, f"layer_{i}", nn.Linear(64, 64))
             setattr(self, f"layer_{i}a", torch.nn.ReLU())

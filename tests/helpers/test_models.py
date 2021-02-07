@@ -18,8 +18,7 @@ import pytest
 from pytorch_lightning import Trainer
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule, RegressDataModule
-from tests.helpers.deterministic_model import DeterministicModel
-from tests.helpers.models import BasicGAN, ParityModuleRNN, ParityModuleMNIST
+from tests.helpers.models import BasicGAN, ParityModuleMNIST, ParityModuleRNN
 from tests.helpers.simple_models import ClassificationModel, RegressionModel
 
 
