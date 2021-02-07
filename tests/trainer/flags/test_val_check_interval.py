@@ -14,13 +14,13 @@
 import pytest
 
 from pytorch_lightning.trainer import Trainer
-from tests.base import SimpleModule
+from tests.base import BoringModel
 
 
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])
 def test_val_check_interval_1(tmpdir, max_epochs):
 
-    class TestModel(SimpleModule):
+    class TestModel(BoringModel):
 
         def __init__(self):
             super().__init__()
@@ -48,7 +48,7 @@ def test_val_check_interval_1(tmpdir, max_epochs):
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])
 def test_val_check_interval_quarter(tmpdir, max_epochs):
 
-    class TestModel(SimpleModule):
+    class TestModel(BoringModel):
 
         def __init__(self):
             super().__init__()
@@ -76,7 +76,7 @@ def test_val_check_interval_quarter(tmpdir, max_epochs):
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])
 def test_val_check_interval_third(tmpdir, max_epochs):
 
-    class TestModel(SimpleModule):
+    class TestModel(BoringModel):
 
         def __init__(self):
             super().__init__()
