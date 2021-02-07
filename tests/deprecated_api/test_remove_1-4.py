@@ -163,7 +163,7 @@ class CustomDDPPlugin(DDPSpawnPlugin):
             assert isinstance(self.model.module, LightningDistributedModule)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
     model = BoringModel()

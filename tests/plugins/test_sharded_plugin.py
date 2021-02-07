@@ -21,7 +21,7 @@ def test_sharded_ddp_choice(tmpdir, accelerator):
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             if accelerator == 'ddp_sharded':
                 assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPShardedPlugin)
             elif accelerator == 'ddp_sharded_spawn':
@@ -68,7 +68,7 @@ def test_ddp_choice_sharded_amp(tmpdir, accelerator):
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.precision_plugin, ShardedNativeMixedPrecisionPlugin)
             raise SystemExit()
 

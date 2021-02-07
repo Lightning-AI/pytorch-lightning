@@ -116,10 +116,10 @@ class BackendConnector(object):
         self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
         self.root_gpu = device_parser.determine_root_gpu_device(self.parallel_device_ids)
 
-        self.handle_given_plugins(plugins)
-
         self.set_distributed_mode()
         self.configure_slurm_ddp()
+
+        self.handle_given_plugins(plugins)
 
         self.accelerator = self.select_accelerator()
 
@@ -148,6 +148,7 @@ class BackendConnector(object):
 
     def handle_given_plugins(self, plugins: Optional[Sequence]):
         if plugins is None:
+            self._cluster_environment = self.select_cluster_environment()
             return
 
         if not isinstance(plugins, Sequence):
