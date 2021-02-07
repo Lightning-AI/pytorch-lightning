@@ -302,8 +302,8 @@ class ModelCheckpoint(Callback):
                 " Default value for mode with be 'min' in v1.3.", DeprecationWarning
             )
 
-            mode_dict['auto'] = ((-torch_inf, "max") if monitor is not None and
-                                 ("acc" in monitor or monitor.startswith("fmeasure")) else (torch_inf, "min"))
+            _condition = monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
+            mode_dict['auto'] = ((-torch_inf, "max") if _condition else (torch_inf, "min"))
 
         self.kth_value, self.mode = mode_dict[mode]
 
