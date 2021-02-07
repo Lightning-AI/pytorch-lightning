@@ -18,8 +18,8 @@ import pytest
 import torch
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.utilities import device_parser

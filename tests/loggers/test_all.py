@@ -21,7 +21,7 @@ from unittest.mock import ANY
 import pytest
 import torch
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import (
     CometLogger,

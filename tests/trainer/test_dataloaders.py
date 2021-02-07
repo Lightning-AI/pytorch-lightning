@@ -24,7 +24,7 @@ from torch.utils.data.dataset import IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
-import tests.base.develop_pipelines as tpipes
+import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len

@@ -23,16 +23,16 @@ import pytest
 import torch
 from sklearn.metrics import accuracy_score
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.legacy.horovod_accelerator import HorovodAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from tests.base import EvalModelTemplate
-from tests.base.models import BasicGAN
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.models import BasicGAN
 
 if _HOROVOD_AVAILABLE:
     import horovod

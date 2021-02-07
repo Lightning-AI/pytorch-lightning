@@ -18,7 +18,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
