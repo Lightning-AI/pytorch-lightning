@@ -75,7 +75,7 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @mock.patch.dict(
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",
@@ -89,13 +89,12 @@ def test_accelerator_choice_ddp_slurm():
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert trainer.use_ddp
             assert trainer.accelerator_connector.is_slurm_managing_tasks
             assert isinstance(trainer.accelerator_backend, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.task_idx == 10
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
             raise SystemExit()
 
@@ -127,13 +126,12 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock):
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert trainer.use_ddp2
             assert trainer.accelerator_connector.is_slurm_managing_tasks
             assert isinstance(trainer.accelerator_backend, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDP2Plugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.task_idx == 10
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
 
             raise SystemExit()
@@ -157,12 +155,11 @@ def test_accelerator_choice_ddp_te(device_count_mock):
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert trainer.use_ddp
             assert isinstance(trainer.accelerator_backend, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.task_idx == 10
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
             raise SystemExit()
 
@@ -185,12 +182,11 @@ def test_accelerator_choice_ddp2_te(device_count_mock):
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert trainer.use_ddp2
             assert isinstance(trainer.accelerator_backend, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDP2Plugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.task_idx == 10
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
             raise SystemExit()
 
@@ -216,12 +212,11 @@ def test_accelerator_choice_ddp_cpu_te(device_count_mock):
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert trainer.use_ddp
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.task_idx == 10
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
             raise SystemExit()
 
@@ -251,7 +246,7 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock):
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert trainer.use_ddp
             assert trainer.accelerator_connector.is_slurm_managing_tasks
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
@@ -293,7 +288,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(device_count_mock):
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert trainer.use_ddp
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
@@ -362,7 +357,7 @@ def test_dist_backend_accelerator_mapping(device_count_mock):
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             raise SystemExit()

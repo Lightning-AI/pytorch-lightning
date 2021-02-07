@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 
 import torch
 from torch.optim import Optimizer
@@ -89,6 +89,16 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
         return closure_loss
+
+    def pre_optimizer_step(
+        self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, closure: Callable, **kwargs
+    ) -> bool:
+        """Hook to do something before each optimizer step."""
+        # Apex: Amp does not support closure use with optimizers
+        closure()
+        optimizer.step()
+        return False
+
 
     def configure_apex(
         self,

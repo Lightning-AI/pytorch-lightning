@@ -33,7 +33,7 @@ def test_rpc_choice(tmpdir, ddp_backend, gpus, num_processes):
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert isinstance(trainer.training_type_plugin, RPCPlugin)
             raise RuntimeError('finished plugin check')
 
