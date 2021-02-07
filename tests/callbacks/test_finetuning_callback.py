@@ -220,8 +220,8 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
 
 def test_on_before_accelerator_backend_setup(tmpdir):
     """
-    `on_before_accelerator_backend_setup` hook is used make sure the finetuning freeze call is made
-    before configure_optimizers call.
+    `on_before_accelerator_backend_setup` hook is used by finetuning callbacks to freeze the model before
+    before configure_optimizers function call.
     """
 
     class TestCallback(Callback):
