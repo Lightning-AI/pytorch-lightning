@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""
 Early Stopping
 ^^^^^^^^^^^^^^
@@ -98,16 +97,13 @@ class EarlyStopping(Callback):
 
     def __init_monitor_mode(self):
         if self.mode not in self.mode_dict and self.mode != 'auto':
-            raise MisconfigurationException(
-                f"`mode` can be auto, {', '.join(self.mode_dict.keys())}, got {self.mode}"
-            )
+            raise MisconfigurationException(f"`mode` can be auto, {', '.join(self.mode_dict.keys())}, got {self.mode}")
 
         # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
         if self.mode == 'auto':
             rank_zero_warn(
                 "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
-                " Default value for mode with be 'min' in v1.3.",
-                DeprecationWarning
+                " Default value for mode with be 'min' in v1.3.", DeprecationWarning
             )
 
             if "acc" in self.monitor or self.monitor.startswith("fmeasure"):
@@ -121,9 +117,11 @@ class EarlyStopping(Callback):
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
 
-        error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
-                     f' which is not available. Pass in or modify your `EarlyStopping` callback to use any of the'
-                     f' following: `{"`, `".join(list(logs.keys()))}`')
+        error_msg = (
+            f'Early stopping conditioned on metric `{self.monitor}` which is not available.'
+            ' Pass in or modify your `EarlyStopping` callback to use any of the following:'
+            f' `{"`, `".join(list(logs.keys()))}`'
+        )
 
         if monitor_val is None:
             if self.strict:
