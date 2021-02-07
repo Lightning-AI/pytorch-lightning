@@ -14,8 +14,4 @@ pytorch_lightning/plugins/legacy/*
 
 
 # TODO
-pytorch_lightning/profiler/*
-
-
-# TODO
 pytorch_lightning/tuner/*
