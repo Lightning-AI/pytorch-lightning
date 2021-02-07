@@ -111,7 +111,7 @@ def test_full_training_loop_dict(tmpdir):
     Checks train_step + training_step_end + training_epoch_end
     """
     model = DeterministicModel()
-    model.training_step = model.training_step__dict_return
+    model.training_step = model.training_step__for_step_end_dict
     model.training_step_end = model.training_step_end__dict
     model.training_epoch_end = model.training_epoch_end__dict
     model.val_dataloader = None
@@ -155,7 +155,7 @@ def test_result_obj_lr_scheduler_epoch(tmpdir):
     test that the LR scheduler was called at the correct time with the correct metrics
     """
     model = DeterministicModel()
-    model.training_step = model.training_step__dict_return
+    model.training_step = model.training_step__for_step_end_dict
     model.training_step_end = model.training_step_end__dict
     model.training_epoch_end = model.training_epoch_end__dict
     model.val_dataloader = None
@@ -177,7 +177,7 @@ def test_result_obj_lr_scheduler_step(tmpdir):
     test that the LR scheduler was called at the correct time with the correct metrics
     """
     model = DeterministicModel()
-    model.training_step = model.training_step__dict_return
+    model.training_step = model.training_step__for_step_end_dict
     model.training_step_end = model.training_step_end__dict
     model.training_epoch_end = model.training_epoch_end__dict
     model.val_dataloader = None
