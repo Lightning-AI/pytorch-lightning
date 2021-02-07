@@ -346,7 +346,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             # ensure we forward the correct params to the optimizer
             # without retain_graph we can't do multiple backward passes
             self.manual_backward(loss_2, opt_b, retain_graph=True)
-            self.manual_backward(loss_2, opt_a, retain_graph=True)
+            self.manual_backward(loss_2, opt_a)
 
             assert self.layer.weight.grad is not None
             opt_b.step()
