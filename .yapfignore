@@ -11,7 +11,3 @@ pytorch_lightning/core/*
 
 # TODO
 pytorch_lightning/plugins/legacy/*
-
-
-# TODO
-pytorch_lightning/tuner/*
