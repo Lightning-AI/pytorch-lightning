@@ -12,7 +12,7 @@ env:
   GKE_CLUSTER: lightning-cluster
   GKE_ZONE: us-central1-a
   IMAGE: gcr.io/${{ secrets.GKE_PROJECT }}/tpu-testing-image
-  MAX_CHECKS: 300
+  MAX_CHECKS: 450
   CHECK_SPEEP: 10
 
 jobs:
