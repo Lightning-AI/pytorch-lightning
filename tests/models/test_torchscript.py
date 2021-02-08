@@ -18,7 +18,7 @@ import torch
 
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import TrialMNISTDataModule
-from tests.helpers.models import BasicGAN, ParityModuleRNN
+from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
 
 
 @pytest.mark.parametrize("modelclass", [
