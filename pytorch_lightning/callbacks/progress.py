@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 Progress Bars
 =============
@@ -61,6 +60,7 @@ class ProgressBarBase(Callback):
         trainer = Trainer(callbacks=[bar])
 
     """
+
     def __init__(self):
 
         self._trainer = None
@@ -216,6 +216,7 @@ class ProgressBar(ProgressBarBase):
             :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 
     """
+
     def __init__(self, refresh_rate: int = 1, process_position: int = 0):
         super().__init__()
         self._refresh_rate = refresh_rate
