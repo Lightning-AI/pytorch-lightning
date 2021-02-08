@@ -38,7 +38,6 @@ def pytest_pyfunc_call(pyfuncitem):
 
 @pytest.fixture
 def tmpdir_server(tmpdir):
-    import os
     if sys.version_info >= (3, 7):
         Handler = partial(SimpleHTTPRequestHandler, directory=str(tmpdir))
         from http.server import ThreadingHTTPServer
