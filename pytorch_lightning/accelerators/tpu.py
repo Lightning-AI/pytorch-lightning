@@ -1,6 +1,6 @@
 from typing import Any, Callable, Optional, Union
-import torch
 
+import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators.accelerator import Accelerator

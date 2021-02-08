@@ -19,9 +19,9 @@ import torch
 import torch.distributed as torch_distrib
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel
+from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
-from torch.optim import Optimizer
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.rpc import DEFAULT_RPC_TIMEOUT_SEC, RPCPlugin
@@ -43,7 +43,7 @@ class RPCSequentialPlugin(RPCPlugin):
 
     def __init__(
         self,
-        balance : List[int],
+        balance: List[int],
         microbatches: int = 8,
         checkpoint: str = 'except_last',
         balance_mode: str = "balance_by_size",
@@ -89,10 +89,7 @@ class RPCSequentialPlugin(RPCPlugin):
             `get_model_parallel_world_size() > 1`
         """
         self._check_pipe_available()
-        super().__init__(
-            rpc_timeout_sec=rpc_timeout_sec,
-            **kwargs
-        )
+        super().__init__(rpc_timeout_sec=rpc_timeout_sec, **kwargs)
 
         self.balance = balance
 
@@ -329,6 +326,7 @@ class RPCSequentialPlugin(RPCPlugin):
 
             # Initialize optimizer step on main process
             self.worker_optimizer_step(model=self.lightning_module, opt_idx=optimizer_idx, **kwargs)
+
 
 class LightningPipeModule(nn.Module):
     """

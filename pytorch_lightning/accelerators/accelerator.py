@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
@@ -28,6 +27,7 @@ from pytorch_lightning.plugins.precision import (
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
 if TYPE_CHECKING:

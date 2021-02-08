@@ -13,9 +13,9 @@
 # limitations under the License.
 import os
 import sys
+from unittest import mock
 
 import pytest
-from unittest import mock
 import torch
 
 ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
