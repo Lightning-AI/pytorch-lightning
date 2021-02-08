@@ -20,17 +20,20 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests import _SKIPIF_NO_GPU
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.simple_models import RegressionModel
 
 
 @pytest.mark.parametrize("observe", ['histogram', 'average'])
 @pytest.mark.parametrize("fuse", [True, False])
-def test_quantization(tmpdir, observe, fuse):
+@pytest.mark.parametrize("device", [pytest.param('cpu'), pytest.param('gpu', marks=_SKIPIF_NO_GPU)])
+def test_quantization(tmpdir, observe, fuse, device):
     """Parity for  quant model"""
     seed_everything(42)
     dm = RegressDataModule()
     trainer_args = dict(
+        accelerator=device,
         default_root_dir=tmpdir,
         max_epochs=10,
     )
@@ -54,8 +57,7 @@ def test_quantization(tmpdir, observe, fuse):
     size_ratio = quant_size / org_size
     assert size_ratio < 0.65
     # test that the test score is almost the same as with pure training
-    diff_score = abs(org_score - quant_score)
-    assert diff_score < 0.35
+    assert torch.allclose(org_score, quant_score, atol=0.35)
 
 
 def test_quantize_torchscript(tmpdir):

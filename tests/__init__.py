@@ -14,6 +14,8 @@
 import os
 
 import numpy as np
+import pytest
+import torch
 
 _TEST_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_TEST_ROOT)
@@ -31,3 +33,7 @@ RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
 
 if not os.path.isdir(_TEMP_PATH):
     os.mkdir(_TEMP_PATH)
+
+_SKIPIF_NO_GPU = pytest.mark.skipif(torch.cuda.is_available(), reason="test requires single-GPU machine")
+_SKIPIF_NO_GPUS = pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+

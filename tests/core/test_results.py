@@ -25,6 +25,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerState
+from tests import _SKIPIF_NO_GPU
 from tests.helpers import BoringDataModule, BoringModel
 
 
@@ -76,7 +77,7 @@ def test_result_reduce_ddp(result_cls):
             True,
             1,
             id='full_loop_single_gpu',
-            marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires single-GPU machine")
+            marks=_SKIPIF_NO_GPU
         )
     ]
 )
