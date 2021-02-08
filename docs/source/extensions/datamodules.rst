@@ -75,7 +75,7 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
 
     class MNISTDataModule(pl.LightningDataModule):
 
-        def __init__(self, data_dir: str = path, batch_size: int = batch_size):
+        def __init__(self, data_dir: str = "path/to/dir", batch_size: int = 32):
             super().__init__()
             self.data_dir = data_dir
             self.batch_size = batch_size
