@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 TensorBoard Logger
 ------------------
@@ -215,10 +214,11 @@ class TensorBoardLogger(LightningLoggerBase):
                 input_array = model.transfer_batch_to_device(input_array, model.device)
                 self.experiment.add_graph(model, input_array)
             else:
-                rank_zero_warn('Could not log computational graph since the'
-                               ' `model.example_input_array` attribute is not set'
-                               ' or `input_array` was not given',
-                               UserWarning)
+                rank_zero_warn(
+                    'Could not log computational graph since the'
+                    ' `model.example_input_array` attribute is not set'
+                    ' or `input_array` was not given', UserWarning
+                )
 
     @rank_zero_only
     def save(self) -> None:
