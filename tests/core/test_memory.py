@@ -20,7 +20,7 @@ from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
-from tests.base.models import ParityModuleRNN
+from tests.helpers.models import ParityModuleRNN
 
 
 class EmptyModule(LightningModule):

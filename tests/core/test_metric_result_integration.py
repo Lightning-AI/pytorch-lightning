@@ -18,7 +18,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.metrics import Metric
 

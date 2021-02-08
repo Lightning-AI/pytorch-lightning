@@ -13,7 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 
-from tests.base.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
+from tests.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 
 
 class TrainDataloaderVariations(ABC):
@@ -43,9 +43,3 @@ class TrainDataloaderVariations(ABC):
             'a': self.dataloader(train=True, num_samples=100),
             'b': self.dataloader(train=True, num_samples=50),
         }
-
-    def train_dataloader__multiple_sequence(self):
-        return [
-            self.dataloader(train=True, num_samples=100),
-            self.dataloader(train=True, num_samples=50),
-        ]

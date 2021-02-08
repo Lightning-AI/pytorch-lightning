@@ -13,11 +13,14 @@
 # limitations under the License.
 from typing import Any, Dict, Optional
 
+import torch
+from sklearn.datasets import make_classification, make_regression
+from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, random_split
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core.datamodule import LightningDataModule
-from tests.base.datasets import MNIST, TrialMNIST
+from tests.helpers.datasets import MNIST, SklearnDataset, TrialMNIST
 
 
 class TrialMNISTDataModule(LightningDataModule):
@@ -105,3 +108,56 @@ class MNISTDataModule(LightningDataModule):
 
     def test_dataloader(self):
         return DataLoader(self.mnist_test, batch_size=self.batch_size, shuffle=False)
+
+
+class SklearnDataModule(LightningDataModule):
+
+    def __init__(self, sklearn_dataset, x_type, y_type, batch_size: int = 10):
+        super().__init__()
+        self.batch_size = batch_size
+        self._x, self._y = sklearn_dataset
+        self._split_data()
+        self._x_type = x_type
+        self._y_type = y_type
+
+    def _split_data(self):
+        self.x_train, self.x_test, self.y_train, self.y_test = \
+            train_test_split(self._x, self._y, test_size=0.20, random_state=42)
+        self.x_train, self.x_valid, self.y_train, self.y_valid = \
+            train_test_split(self.x_train, self.y_train, test_size=0.40, random_state=42)
+
+    def train_dataloader(self):
+        return DataLoader(
+            SklearnDataset(self.x_train, self.y_train, self._x_type, self._y_type), batch_size=self.batch_size
+        )
+
+    def val_dataloader(self):
+        return DataLoader(
+            SklearnDataset(self.x_valid, self.y_valid, self._x_type, self._y_type), batch_size=self.batch_size
+        )
+
+    def test_dataloader(self):
+        return DataLoader(
+            SklearnDataset(self.x_test, self.y_test, self._x_type, self._y_type), batch_size=self.batch_size
+        )
+
+    @property
+    def sample(self):
+        return torch.tensor([self._x[0]], dtype=self._x_type)
+
+
+class ClassifDataModule(SklearnDataModule):
+
+    def __init__(self, num_features=32, length=800, num_classes=3, batch_size=10):
+        data = make_classification(
+            n_samples=length, n_features=num_features, n_classes=num_classes, n_clusters_per_class=1, random_state=42
+        )
+        super().__init__(data, x_type=torch.float32, y_type=torch.long, batch_size=batch_size)
+
+
+class RegressDataModule(SklearnDataModule):
+
+    def __init__(self, num_features=16, length=800, batch_size=10):
+        x, y = make_regression(n_samples=length, n_features=num_features, random_state=42)
+        y = [[v] for v in y]
+        super().__init__((x, y), x_type=torch.float32, y_type=torch.float32, batch_size=batch_size)

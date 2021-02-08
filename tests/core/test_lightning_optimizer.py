@@ -19,7 +19,7 @@ from torch.optim import Adam, Optimizer
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 def test_lightning_optimizer(tmpdir):

@@ -25,7 +25,7 @@ from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPSpawnPlugin, PrecisionPlugin, SingleDevicePlugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 def test_accelerator_choice_cpu(tmpdir):

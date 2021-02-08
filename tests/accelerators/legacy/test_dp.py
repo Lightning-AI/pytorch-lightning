@@ -15,8 +15,8 @@ import pytest
 import torch
 
 import pytorch_lightning as pl
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from tests.base import EvalModelTemplate

@@ -28,8 +28,8 @@ from pytorch_lightning import callbacks, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import BoringModel, RandomDataset, SimpleModule
-from tests.base.deterministic_model import DeterministicModel
+from tests.base import BoringModel, RandomDataset
+from tests.helpers.deterministic_model import DeterministicModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -358,7 +358,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
 
 def test_monitor_val_epoch_end(tmpdir):
     epoch_min_loss_override = 0
-    model = SimpleModule()
+    model = BoringModel()
     checkpoint_callback = callbacks.ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="avg_val_loss")
     trainer = Trainer(
         max_epochs=epoch_min_loss_override + 2,
