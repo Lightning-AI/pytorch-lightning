@@ -166,7 +166,7 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
-        self.last_global_step_saved = -1
+        self._last_global_step_saved = -1
         self.prefix = prefix
         self.current_score = None
         self.best_k_models = {}
@@ -231,7 +231,7 @@ class ModelCheckpoint(Callback):
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
-            or self.last_global_step_saved == global_step  # already saved at the last step
+            or self._last_global_step_saved == global_step  # already saved at the last step
         ):
             return
 
@@ -239,7 +239,7 @@ class ModelCheckpoint(Callback):
         self._validate_monitor_key(trainer)
 
         # track epoch when ckpt was last checked
-        self.last_global_step_saved = global_step
+        self._last_global_step_saved = global_step
 
         # what can be monitored
         monitor_candidates = self._monitor_candidates(trainer)
