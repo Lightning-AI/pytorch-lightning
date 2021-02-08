@@ -1549,9 +1549,8 @@ def test_trainer_predict_dp(tmpdir, num_gpus):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-@pytest.mark.parametrize('plugins', [None, "ddp_sharded"])
-def test_trainer_predict_ddp(tmpdir, plugins):
-    predict(tmpdir, "ddp", 2, None, plugins=plugins)
+def test_trainer_predict_ddp(tmpdir):
+    predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
