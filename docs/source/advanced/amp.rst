@@ -31,7 +31,7 @@ Native torch
 When using PyTorch 1.6+ Lightning uses the native amp implementation to support 16-bit.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE and torch.cuda.device_count() < 1
 
     # turn on 16-bit
     trainer = Trainer(precision=16)
@@ -73,7 +73,7 @@ Enable 16-bit
 ^^^^^^^^^^^^^
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE torch.cuda.device_count() < 1
 
     # turn on 16-bit
     trainer = Trainer(amp_level='O2', precision=16)
