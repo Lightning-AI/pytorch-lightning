@@ -16,12 +16,10 @@ import torch
 
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
-from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from tests.base import EvalModelTemplate
-
 """
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):

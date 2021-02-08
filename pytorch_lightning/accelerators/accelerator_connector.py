@@ -39,9 +39,8 @@ from pytorch_lightning.plugins import (
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
-    RPCPlugin
 )
-from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment, cluster_environment
+from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
