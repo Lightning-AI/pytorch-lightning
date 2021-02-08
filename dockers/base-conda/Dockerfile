@@ -13,10 +13,10 @@
 # limitations under the License.
 
 # Existing images:
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.8 --build-arg PYTORCH_CHANNEL=pytorch-nightly
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6 --build-arg PYTORCH_CHANNEL=pytorch
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.5 --build-arg PYTORCH_CHANNEL=pytorch
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4 --build-arg PYTORCH_CHANNEL=pytorch
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.8
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.5
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4
 
 ARG CUDNN_VERSION=8
 ARG CUDA_VERSION=10.2
@@ -27,7 +27,6 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
-ARG PYTORCH_CHANNEL=pytorch
 ARG CONDA_VERSION=4.7.12
 
 SHELL ["/bin/bash", "-c"]
@@ -80,7 +79,6 @@ RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installed later
-    python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- python[>=]+[\d\.]+', '# - python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '# - pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- horovod[>=]+[\d\.]+', '# - horovod', open(fname).read()) ; open(fname, 'w').write(req)" && \
