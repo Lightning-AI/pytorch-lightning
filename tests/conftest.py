@@ -69,7 +69,6 @@ def tmpdir_server(tmpdir):
 
     # reset tests
     os.environ = _ENVIRON
-    torch.cuda.empty_cache()
 
     with ThreadingHTTPServer(('localhost', 0), Handler) as server:
         server_thread = threading.Thread(target=server.serve_forever)
