@@ -20,7 +20,7 @@ import torch.multiprocessing as mp
 
 import tests.helpers.utils as tutils
 from pytorch_lightning.core.step_result import Result
-from torchmetrics import Metric
+from pytorch-lightning.metrics import Metric
 
 
 class DummyMetric(Metric):

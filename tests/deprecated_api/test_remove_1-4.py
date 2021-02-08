@@ -95,53 +95,53 @@ def test_v1_4_0_deprecated_trainer_device_distrib():
 
 
 def test_v1_4_0_deprecated_metrics():
-    from torchmetrics.functional.classification import stat_scores_multiple_classes
+    from pytorch-lightning.metrics.functional.classification import stat_scores_multiple_classes
     with pytest.deprecated_call(match='will be removed in v1.4'):
         stat_scores_multiple_classes(pred=torch.tensor([0, 1]), target=torch.tensor([0, 1]))
 
-    from torchmetrics.functional.classification import iou
+    from pytorch-lightning.metrics.functional.classification import iou
     with pytest.deprecated_call(match='will be removed in v1.4'):
         iou(torch.randint(0, 2, (10, 3, 3)), torch.randint(0, 2, (10, 3, 3)))
 
-    from torchmetrics.functional.classification import recall
+    from pytorch-lightning.metrics.functional.classification import recall
     with pytest.deprecated_call(match='will be removed in v1.4'):
         recall(torch.randint(0, 2, (10, 3, 3)), torch.randint(0, 2, (10, 3, 3)))
 
-    from torchmetrics.functional.classification import precision
+    from pytorch-lightning.metrics.functional.classification import precision
     with pytest.deprecated_call(match='will be removed in v1.4'):
         precision(torch.randint(0, 2, (10, 3, 3)), torch.randint(0, 2, (10, 3, 3)))
 
-    from torchmetrics.functional.classification import precision_recall
+    from pytorch-lightning.metrics.functional.classification import precision_recall
     with pytest.deprecated_call(match='will be removed in v1.4'):
         precision_recall(torch.randint(0, 2, (10, 3, 3)), torch.randint(0, 2, (10, 3, 3)))
 
     # Testing deprecation of class_reduction arg in the *new* precision
-    from torchmetrics.functional import precision
+    from pytorch-lightning.metrics.functional import precision
     with pytest.deprecated_call(match='will be removed in v1.4'):
         precision(torch.randint(0, 2, (10, )), torch.randint(0, 2, (10, )), class_reduction='micro')
 
     # Testing deprecation of class_reduction arg in the *new* recall
-    from torchmetrics.functional import recall
+    from pytorch-lightning.metrics.functional import recall
     with pytest.deprecated_call(match='will be removed in v1.4'):
         recall(torch.randint(0, 2, (10, )), torch.randint(0, 2, (10, )), class_reduction='micro')
 
-    from torchmetrics.functional.classification import auc
+    from pytorch-lightning.metrics.functional.classification import auc
     with pytest.deprecated_call(match='will be removed in v1.4'):
         auc(torch.rand(10, ).sort().values, torch.rand(10, ))
 
-    from torchmetrics.functional.classification import auroc
+    from pytorch-lightning.metrics.functional.classification import auroc
     with pytest.deprecated_call(match='will be removed in v1.4'):
         auroc(torch.rand(10, ), torch.randint(0, 2, (10, )))
 
-    from torchmetrics.functional.classification import multiclass_auroc
+    from pytorch-lightning.metrics.functional.classification import multiclass_auroc
     with pytest.deprecated_call(match='will be removed in v1.4'):
         multiclass_auroc(torch.rand(20, 5).softmax(dim=-1), torch.randint(0, 5, (20, )), num_classes=5)
 
-    from torchmetrics.functional.classification import auc_decorator
+    from pytorch-lightning.metrics.functional.classification import auc_decorator
     with pytest.deprecated_call(match='will be removed in v1.4'):
         auc_decorator()
 
-    from torchmetrics.functional.classification import multiclass_auc_decorator
+    from pytorch-lightning.metrics.functional.classification import multiclass_auc_decorator
     with pytest.deprecated_call(match='will be removed in v1.4'):
         multiclass_auc_decorator()
 

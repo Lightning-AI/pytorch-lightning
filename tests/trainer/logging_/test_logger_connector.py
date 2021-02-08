@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.step_result import Result
-from torchmetrics import Accuracy
+from pytorch-lightning.metrics import Accuracy
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder

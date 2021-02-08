@@ -16,7 +16,7 @@ from typing import Any
 
 import torch
 
-from torchmetrics.metric import Metric
+from pytorch-lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 
 

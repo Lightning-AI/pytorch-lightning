@@ -22,7 +22,7 @@ from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional
 import torch
 from torch import Tensor
 
-from torchmetrics import Metric
+from pytorch-lightning.metrics import Metric
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 
 
