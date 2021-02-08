@@ -15,10 +15,14 @@ num_targets = 5
 
 Input = namedtuple('Input', ["preds", "target"])
 
-_single_target_inputs = Input(preds=torch.rand(NUM_BATCHES, BATCH_SIZE), target=torch.rand(NUM_BATCHES, BATCH_SIZE),)
+_single_target_inputs = Input(
+    preds=torch.rand(NUM_BATCHES, BATCH_SIZE),
+    target=torch.rand(NUM_BATCHES, BATCH_SIZE),
+)
 
 _multi_target_inputs = Input(
-    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets), target=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
+    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
+    target=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
 )
 
 
@@ -50,6 +54,7 @@ def _multi_target_sk_metric(preds, target, adjusted, multioutput):
     ],
 )
 class TestR2Score(MetricTester):
+
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_r2(self, adjusted, multioutput, preds, target, sk_metric, num_outputs, ddp, dist_sync_on_step):
@@ -60,9 +65,7 @@ class TestR2Score(MetricTester):
             R2Score,
             partial(sk_metric, adjusted=adjusted, multioutput=multioutput),
             dist_sync_on_step,
-            metric_args=dict(adjusted=adjusted,
-                             multioutput=multioutput,
-                             num_outputs=num_outputs),
+            metric_args=dict(adjusted=adjusted, multioutput=multioutput, num_outputs=num_outputs),
         )
 
     def test_r2_functional(self, adjusted, multioutput, preds, target, sk_metric, num_outputs):
@@ -71,39 +74,41 @@ class TestR2Score(MetricTester):
             target,
             r2score,
             partial(sk_metric, adjusted=adjusted, multioutput=multioutput),
-            metric_args=dict(adjusted=adjusted,
-                             multioutput=multioutput),
+            metric_args=dict(adjusted=adjusted, multioutput=multioutput),
         )
 
 
 def test_error_on_different_shape(metric_class=R2Score):
     metric = metric_class()
     with pytest.raises(RuntimeError, match='Predictions and targets are expected to have the same shape'):
-        metric(torch.randn(100,), torch.randn(50,))
+        metric(torch.randn(100, ), torch.randn(50, ))
 
 
 def test_error_on_multidim_tensors(metric_class=R2Score):
     metric = metric_class()
-    with pytest.raises(ValueError, match=r'Expected both prediction and target to be 1D or 2D tensors,'
-                                         r' but recevied tensors with dimension .'):
+    with pytest.raises(
+        ValueError,
+        match=r'Expected both prediction and target to be 1D or 2D tensors,'
+        r' but recevied tensors with dimension .'
+    ):
         metric(torch.randn(10, 20, 5), torch.randn(10, 20, 5))
 
 
 def test_error_on_too_few_samples(metric_class=R2Score):
     metric = metric_class()
     with pytest.raises(ValueError, match='Needs atleast two samples to calculate r2 score.'):
-        metric(torch.randn(1,), torch.randn(1,))
+        metric(torch.randn(1, ), torch.randn(1, ))
 
 
 def test_warning_on_too_large_adjusted(metric_class=R2Score):
     metric = metric_class(adjusted=10)
 
-    with pytest.warns(UserWarning,
-                      match="More independent regressions than datapoints in"
-                            " adjusted r2 score. Falls back to standard r2 score."):
-        metric(torch.randn(10,), torch.randn(10,))
+    with pytest.warns(
+        UserWarning,
+        match="More independent regressions than datapoints in"
+        " adjusted r2 score. Falls back to standard r2 score."
+    ):
+        metric(torch.randn(10, ), torch.randn(10, ))
 
-    with pytest.warns(UserWarning,
-                      match="Division by zero in adjusted r2 score. Falls back to"
-                            " standard r2 score."):
-        metric(torch.randn(11,), torch.randn(11,))
+    with pytest.warns(UserWarning, match="Division by zero in adjusted r2 score. Falls back to" " standard r2 score."):
+        metric(torch.randn(11, ), torch.randn(11, ))

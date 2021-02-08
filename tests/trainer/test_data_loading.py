@@ -48,8 +48,7 @@ class CustomBatchSampler(BatchSampler):
 
 class TestModel(BoringModel):
 
-    def __init__(self, numbers_test_dataloaders,
-                 save_preds_on_dl_idx, mode):
+    def __init__(self, numbers_test_dataloaders, save_preds_on_dl_idx, mode):
         super().__init__()
         self._numbers_test_dataloaders = numbers_test_dataloaders
         self._save_preds_on_dl_idx = save_preds_on_dl_idx
@@ -74,14 +73,7 @@ class TestModel(BoringModel):
         return [self.create_dataset()] * self._numbers_test_dataloaders
 
 
-def check_replace_distrubuted_sampler(
-    tmpdir,
-    save_preds_on_dl_idx,
-    accelerator,
-    gpus,
-    num_dl_idx,
-    mode
-):
+def check_replace_distrubuted_sampler(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx, mode):
     num_processes = 2
     limit_test_batches = 2
     trainer_args = {
@@ -107,8 +99,9 @@ def check_replace_distrubuted_sampler(
         trainer.test(model)
 
 
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize("mode", [1, 2])
 def test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler(tmpdir, mode):

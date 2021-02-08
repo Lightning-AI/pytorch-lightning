@@ -23,14 +23,16 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
 
 
-@pytest.mark.parametrize('callbacks,refresh_rate', [
-    ([], None),
-    ([], 1),
-    ([], 2),
-    ([ProgressBar(refresh_rate=1)], 0),
-    ([ProgressBar(refresh_rate=2)], 0),
-    ([ProgressBar(refresh_rate=2)], 1),
-])
+@pytest.mark.parametrize(
+    'callbacks,refresh_rate', [
+        ([], None),
+        ([], 1),
+        ([], 2),
+        ([ProgressBar(refresh_rate=1)], 0),
+        ([ProgressBar(refresh_rate=2)], 0),
+        ([ProgressBar(refresh_rate=2)], 1),
+    ]
+)
 def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned on."""
 
@@ -48,11 +50,13 @@ def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
     assert progress_bars[0] is trainer.progress_bar_callback
 
 
-@pytest.mark.parametrize('callbacks,refresh_rate', [
-    ([], 0),
-    ([], False),
-    ([ModelCheckpoint(dirpath='../trainer')], 0),
-])
+@pytest.mark.parametrize(
+    'callbacks,refresh_rate', [
+        ([], 0),
+        ([], False),
+        ([ModelCheckpoint(dirpath='../trainer')], 0),
+    ]
+)
 def test_progress_bar_off(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned off."""
 
@@ -221,7 +225,9 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
     """
     Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument.
     """
+
     class CurrentProgressBar(ProgressBar):
+
         def __init__(self):
             super().__init__()
             self.val_progress_bar_total = 0
@@ -288,15 +294,17 @@ class MockedUpdateProgressBars(ProgressBar):
         return self._mock_bar_update(bar)
 
 
-@pytest.mark.parametrize("train_batches,val_batches,refresh_rate,train_deltas,val_deltas", [
-    [2, 3, 1, [1, 1, 1, 1, 1], [1, 1, 1]],
-    [0, 0, 3, [], []],
-    [1, 0, 3, [1], []],
-    [1, 1, 3, [2], [1]],
-    [5, 0, 3, [3, 2], []],
-    [5, 2, 3, [3, 3, 1], [2]],
-    [5, 2, 6, [6, 1], [2]],
-])
+@pytest.mark.parametrize(
+    "train_batches,val_batches,refresh_rate,train_deltas,val_deltas", [
+        [2, 3, 1, [1, 1, 1, 1, 1], [1, 1, 1]],
+        [0, 0, 3, [], []],
+        [1, 0, 3, [1], []],
+        [1, 1, 3, [2], [1]],
+        [5, 0, 3, [3, 2], []],
+        [5, 2, 3, [3, 3, 1], [2]],
+        [5, 2, 6, [6, 1], [2]],
+    ]
+)
 def test_main_progress_bar_update_amount(tmpdir, train_batches, val_batches, refresh_rate, train_deltas, val_deltas):
     """
     Test that the main progress updates with the correct amount together with the val progress. At the end of

@@ -16,10 +16,11 @@ import os
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 class TestModel(BoringModel):
+
     def __init__(self, expected_log_dir):
         super().__init__()
         self.expected_log_dir = expected_log_dir
@@ -58,7 +59,7 @@ def test_logdir_no_checkpoint_cb(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=2,
-        checkpoint_callback=False
+        checkpoint_callback=False,
     )
 
     assert trainer.log_dir == expected
@@ -96,7 +97,7 @@ def test_logdir_no_logger_no_checkpoint(tmpdir):
         default_root_dir=tmpdir,
         max_steps=2,
         logger=False,
-        checkpoint_callback=False
+        checkpoint_callback=False,
     )
 
     assert trainer.log_dir == expected

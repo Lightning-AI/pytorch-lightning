@@ -22,7 +22,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from tests.base import BoringModel
-from tests.base.deterministic_model import DeterministicModel
+from tests.helpers.deterministic_model import DeterministicModel
 
 
 def test_training_step_scalar(tmpdir):
@@ -30,7 +30,7 @@ def test_training_step_scalar(tmpdir):
     Tests that only training_step that returns a single scalar can be used
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_scalar_return
+    model.training_step = model.training_step__scalar_return
     model.val_dataloader = None
 
     trainer = Trainer(
@@ -61,7 +61,8 @@ def test_training_step_scalar(tmpdir):
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
-        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+    )
     assert opt_closure_result['loss'].item() == 171
 
 
@@ -70,8 +71,8 @@ def training_step_scalar_with_step_end(tmpdir):
     Checks train_step with scalar only + training_step_end
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_scalar_return
-    model.training_step_end = model.training_step_end_scalar
+    model.training_step = model.training_step__scalar_return
+    model.training_step_end = model.training_step_end__scalar
     model.val_dataloader = None
 
     trainer = Trainer(fast_dev_run=True, weights_summary=None)
@@ -98,7 +99,8 @@ def training_step_scalar_with_step_end(tmpdir):
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
-        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+    )
     assert opt_closure_result['loss'].item() == 171
 
 
@@ -109,9 +111,9 @@ def test_full_training_loop_scalar(tmpdir):
     """
 
     model = DeterministicModel()
-    model.training_step = model.training_step_scalar_return
-    model.training_step_end = model.training_step_end_scalar
-    model.training_epoch_end = model.training_epoch_end_scalar
+    model.training_step = model.training_step__scalar_return
+    model.training_step_end = model.training_step_end__scalar
+    model.training_epoch_end = model.training_epoch_end__scalar
     model.val_dataloader = None
 
     trainer = Trainer(
@@ -146,7 +148,8 @@ def test_full_training_loop_scalar(tmpdir):
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
-        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+    )
     assert opt_closure_result['loss'].item() == 171
 
 
@@ -157,9 +160,9 @@ def test_train_step_epoch_end_scalar(tmpdir):
     """
 
     model = DeterministicModel()
-    model.training_step = model.training_step_scalar_return
+    model.training_step = model.training_step__scalar_return
     model.training_step_end = None
-    model.training_epoch_end = model.training_epoch_end_scalar
+    model.training_epoch_end = model.training_epoch_end__scalar
     model.val_dataloader = None
 
     trainer = Trainer(max_epochs=1, weights_summary=None)
@@ -190,7 +193,8 @@ def test_train_step_epoch_end_scalar(tmpdir):
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
-        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+    )
     assert opt_closure_result['loss'].item() == 171
 
 
@@ -203,7 +207,7 @@ class DPPReduceMeanPbarModel(BoringModel):
         loss = self.loss(batch, output)
         loss /= loss.clone().detach()
         self.log('self_log', loss, prog_bar=True, sync_dist=True)
-        return {"loss": loss, "progress_bar":{"loss_2": loss}}
+        return {"loss": loss, "progress_bar": {"loss_2": loss}}
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -224,7 +228,8 @@ def test_dpp_reduce_mean_pbar(tmpdir):
         limit_val_batches=2,
         accelerator=distributed_backend,
         gpus=2,
-        precision=32)
+        precision=32
+    )
 
     trainer.fit(model)
 

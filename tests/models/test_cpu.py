@@ -18,8 +18,8 @@ from distutils.version import LooseVersion
 import pytest
 import torch
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
@@ -95,7 +95,9 @@ def test_cpu_slurm_save_load(tmpdir):
 
 
 def test_early_stopping_cpu_model(tmpdir):
+
     class ModelTrainVal(BoringModel):
+
         def validation_epoch_end(self, outputs) -> None:
             val_loss = torch.stack([x["x"] for x in outputs]).mean()
             self.log('val_loss', val_loss)
@@ -140,12 +142,14 @@ def test_multi_cpu_model_ddp(tmpdir):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, min_acc=0.05)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_lbfgs_cpu_model(tmpdir):
     """Test each of the trainer options. Testing LBFGS optimizer"""
+
     class ModelSpecifiedOptimizer(BoringModel):
+
         def __init__(self, optimizer_name, learning_rate):
             super().__init__()
             self.optimizer_name = optimizer_name
@@ -187,6 +191,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
+
     class ModelTrainValTest(BoringModel):
 
         def validation_epoch_end(self, outputs) -> None:
@@ -229,6 +234,7 @@ def test_running_test_after_fitting(tmpdir):
 def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_dataloader`. It performs
     train and test only"""
+
     class ModelTrainTest(BoringModel):
 
         def val_dataloader(self):
@@ -328,6 +334,7 @@ def test_tbptt_cpu_model(tmpdir):
     y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
 
     class MockSeq2SeqDataset(torch.utils.data.Dataset):
+
         def __getitem__(self, i):
             return x_seq, y_seq_list
 
@@ -335,6 +342,7 @@ def test_tbptt_cpu_model(tmpdir):
             return 1
 
     class BpttTestModel(BoringModel):
+
         def __init__(self, batch_size, in_features, out_features, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.test_hidden = None
@@ -372,8 +380,7 @@ def test_tbptt_cpu_model(tmpdir):
                 sampler=None,
             )
 
-    model = BpttTestModel(batch_size=batch_size,
-                          in_features=truncated_bptt_steps, out_features=truncated_bptt_steps)
+    model = BpttTestModel(batch_size=batch_size, in_features=truncated_bptt_steps, out_features=truncated_bptt_steps)
     model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
     # fit model

@@ -18,7 +18,7 @@ import pytest
 
 import pytorch_lightning.utilities.xla_device_utils as xla_utils
 from pytorch_lightning.utilities import _TPU_AVAILABLE, _XLA_AVAILABLE
-from tests.base.develop_utils import pl_multi_process_test
+from tests.helpers.utils import pl_multi_process_test
 
 
 @pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")

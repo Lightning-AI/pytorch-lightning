@@ -15,10 +15,14 @@ num_targets = 5
 
 Input = namedtuple('Input', ["preds", "target"])
 
-_single_target_inputs = Input(preds=torch.rand(NUM_BATCHES, BATCH_SIZE), target=torch.rand(NUM_BATCHES, BATCH_SIZE),)
+_single_target_inputs = Input(
+    preds=torch.rand(NUM_BATCHES, BATCH_SIZE),
+    target=torch.rand(NUM_BATCHES, BATCH_SIZE),
+)
 
 _multi_target_inputs = Input(
-    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets), target=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
+    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
+    target=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
 )
 
 
@@ -43,6 +47,7 @@ def _multi_target_sk_metric(preds, target, sk_fn=explained_variance_score):
     ],
 )
 class TestExplainedVariance(MetricTester):
+
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_explained_variance(self, multioutput, preds, target, sk_metric, ddp, dist_sync_on_step):
@@ -69,4 +74,4 @@ class TestExplainedVariance(MetricTester):
 def test_error_on_different_shape(metric_class=ExplainedVariance):
     metric = metric_class()
     with pytest.raises(RuntimeError, match='Predictions and targets are expected to have the same shape'):
-        metric(torch.randn(100,), torch.randn(50,))
+        metric(torch.randn(100, ), torch.randn(50, ))

@@ -7,13 +7,16 @@ import torch
 from pytorch_lightning.metrics.compositional import CompositionalMetric
 from pytorch_lightning.metrics.metric import Metric
 
-_MARK_TORCH_LOWER_1_4 = dict(condition=LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
-                             reason='required PT >= 1.5')
-_MARK_TORCH_LOWER_1_5 = dict(condition=LooseVersion(torch.__version__) < LooseVersion("1.6.0"),
-                             reason='required PT >= 1.6')
+_MARK_TORCH_LOWER_1_4 = dict(
+    condition=LooseVersion(torch.__version__) < LooseVersion("1.5.0"), reason='required PT >= 1.5'
+)
+_MARK_TORCH_LOWER_1_5 = dict(
+    condition=LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason='required PT >= 1.6'
+)
 
 
 class DummyMetric(Metric):
+
     def __init__(self, val_to_return):
         super().__init__()
         self._num_updates = 0
@@ -295,7 +298,7 @@ def test_metrics_or(second_operand, expected_result):
 def test_metrics_pow(second_operand, expected_result):
     first_metric = DummyMetric(2)
 
-    final_pow = first_metric ** second_operand
+    final_pow = first_metric**second_operand
 
     assert isinstance(final_pow, CompositionalMetric)
 
@@ -349,7 +352,7 @@ def test_metrics_rmod(first_operand, expected_result):
 def test_metrics_rpow(first_operand, expected_result):
     second_operand = DummyMetric(2)
 
-    final_rpow = first_operand ** second_operand
+    final_rpow = first_operand**second_operand
 
     assert isinstance(final_rpow, CompositionalMetric)
 

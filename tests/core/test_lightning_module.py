@@ -75,7 +75,9 @@ def test_property_logger(tmpdir):
 
 
 def test_automatic_optimization(tmpdir):
+
     class TestModel(BoringModel):
+
         def optimizer_step(self, *_, **__):
             pass
 
@@ -88,8 +90,7 @@ def test_automatic_optimization(tmpdir):
     )
 
     with pytest.raises(
-        MisconfigurationException,
-        match='overriding .* optimizer_step .* `accumulate_grad_batches` .* should be 1'
+        MisconfigurationException, match='overriding .* optimizer_step .* `accumulate_grad_batches` .* should be 1'
     ):
         trainer.fit(model)
 
@@ -113,8 +114,17 @@ def test_automatic_optimization_num_calls(tmpdir):
                 optimizer_2 = Adam(self.layer.parameters(), lr=0.1)
                 return [optimizer, optimizer_2]
 
-            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+            def optimizer_step(
+                self,
+                epoch,
+                batch_idx,
+                optimizer,
+                optimizer_idx,
+                optimizer_closure,
+                on_tpu,
+                using_native_amp,
+                using_lbfgs,
+            ):
 
                 assert optimizer_closure.__name__ == "train_step_and_backward_closure"
 
@@ -163,8 +173,17 @@ def test_params_groups_and_state_are_accessible(tmpdir):
             optimizer_2 = Adam(self.layer.parameters(), lr=0.1)
             return [optimizer, optimizer_2]
 
-        def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure,
-                           on_tpu=False, using_native_amp=False, using_lbfgs=False):
+        def optimizer_step(
+            self,
+            current_epoch,
+            batch_nb,
+            optimizer,
+            optimizer_idx,
+            closure,
+            on_tpu=False,
+            using_native_amp=False,
+            using_lbfgs=False
+        ):
             # warm up lr
             if self.trainer.global_step < 500:
                 lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -210,7 +229,7 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
                 nn.ReLU(),
                 nn.Linear(32, 32),
                 nn.ReLU(),
-                nn.Linear(32, 2)
+                nn.Linear(32, 2),
             )
 
             # set some weights to False to check untoggle works as expected.
@@ -291,7 +310,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
                 nn.ReLU(),
                 nn.Linear(32, 32),
                 nn.ReLU(),
-                nn.Linear(32, 2)
+                nn.Linear(32, 2),
             )
 
             self.layer_3 = nn.Sequential(
@@ -300,7 +319,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
                 nn.ReLU(),
                 nn.Linear(32, 32),
                 nn.ReLU(),
-                nn.Linear(32, 2)
+                nn.Linear(32, 2),
             )
 
             # set some weights to False to check untoggle works as expected.
@@ -376,27 +395,18 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
                 yield p
 
         def configure_optimizers(self):
-            optimizer_1 = SGD(
-                self.combine_generators(
-                    self.layer_1.parameters(),
-                    self.layer_2.parameters()
-                ),
-                lr=0.1
-            )
-            optimizer_2 = Adam(
-                self.combine_generators(
-                    self.layer_2.parameters(),
-                    self.layer_3.parameters()
-                ),
-                lr=0.1
-            )
-            optimizer_3 = SGD(
-                self.combine_generators(
-                    self.layer_3.parameters(),
-                    self.layer_1.parameters()
-                ),
-                lr=0.1
-            )
+            optimizer_1 = SGD(self.combine_generators(
+                self.layer_1.parameters(),
+                self.layer_2.parameters(),
+            ), lr=0.1)
+            optimizer_2 = Adam(self.combine_generators(
+                self.layer_2.parameters(),
+                self.layer_3.parameters(),
+            ), lr=0.1)
+            optimizer_3 = SGD(self.combine_generators(
+                self.layer_3.parameters(),
+                self.layer_1.parameters(),
+            ), lr=0.1)
             return [optimizer_1, optimizer_2, optimizer_3]
 
     model = TestModel()

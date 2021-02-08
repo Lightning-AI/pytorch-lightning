@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 MLflow Logger
 -------------
@@ -26,7 +25,6 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
 
 LOCAL_FILE_URI_PREFIX = "file:"
-
 
 _MLFLOW_AVAILABLE = _module_available("mlflow")
 try:
@@ -94,8 +92,10 @@ class MLFlowLogger(LightningLoggerBase):
         prefix: str = '',
     ):
         if mlflow is None:
-            raise ImportError('You want to use `mlflow` logger which is not installed yet,'
-                              ' install it with `pip install mlflow`.')
+            raise ImportError(
+                'You want to use `mlflow` logger which is not installed yet,'
+                ' install it with `pip install mlflow`.'
+            )
         super().__init__()
         if not tracking_uri:
             tracking_uri = f'{LOCAL_FILE_URI_PREFIX}{save_dir}'
