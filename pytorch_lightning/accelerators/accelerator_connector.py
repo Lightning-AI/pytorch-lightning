@@ -294,7 +294,7 @@ class BackendConnector(object):
                     if not _APEX_AVAILABLE and self.on_cpu:
                         raise MisconfigurationException(
                             "You have asked for native AMP on CPU, but AMP is only available on GPU."
-                        )                        
+                        )
                     self.amp_type = "apex"
                 elif self.on_cpu:
                     raise MisconfigurationException(
@@ -371,7 +371,6 @@ class BackendConnector(object):
         else:
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{self.root_gpu}" if self.on_gpu else "cpu"))
         return plugin
-
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
         # necessary for RPC, when user has to provide balance
@@ -481,7 +480,7 @@ class BackendConnector(object):
         # for DDP overwrite nb processes by requested GPUs
         if (
             self._device_type == DeviceType.GPU
-            and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
+            and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
         ):
             self.num_processes = self.num_gpus
 
