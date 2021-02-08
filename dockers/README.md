@@ -28,7 +28,6 @@ docker image build \
     -f dockers/base-conda/Dockerfile \
     --build-arg PYTHON_VERSION=3.7 \
     --build-arg PYTORCH_VERSION=1.8 \
-    --build-arg PYTORCH_CHANNEL="pytorch-nightly" \
     .
 ```
 
