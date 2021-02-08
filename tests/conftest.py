@@ -22,8 +22,6 @@ from http.server import SimpleHTTPRequestHandler
 import pytest
 import torch.multiprocessing as mp
 
-_ENVIRON = deepcopy(os.environ)
-
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "spawn: spawn test in a separate process using torch.multiprocessing.spawn")
@@ -66,9 +64,6 @@ def tmpdir_server(tmpdir):
 
         class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
             daemon_threads = True
-
-    # reset tests
-    os.environ = _ENVIRON
 
     with ThreadingHTTPServer(('localhost', 0), Handler) as server:
         server_thread = threading.Thread(target=server.serve_forever)

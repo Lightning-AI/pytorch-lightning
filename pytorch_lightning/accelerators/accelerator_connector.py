@@ -40,7 +40,7 @@ from pytorch_lightning.plugins import (
     TPUSpawnPlugin,
     TrainingTypePlugin,
 )
-from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment, cluster_environment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
@@ -194,13 +194,6 @@ class BackendConnector(object):
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
-    def local_rank(self):
-        try:
-            return self._cluster_environment.local_rank()
-        except KeyError:
-            return None
-
-    @property
     def precision_plugin(self) -> PrecisionPlugin:
         if self._precision_plugin is None:
             self._precision_plugin = self.select_precision_plugin()
@@ -212,8 +205,6 @@ class BackendConnector(object):
             self._training_type_plugin = self.select_training_type_plugin()
         else:
             self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
-        # attach local_rank
-        self._training_type_plugin.task_idx = self.local_rank
         return self._training_type_plugin
 
     @property
@@ -335,7 +326,7 @@ class BackendConnector(object):
 
     def select_training_type_plugin(self):
         if self.use_ddp2:
-            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self._cluster_environment)
+            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
@@ -367,7 +358,7 @@ class BackendConnector(object):
             plugin = ddp_plugin_cls(
                 parallel_devices=self.parallel_devices,
                 num_nodes=self.num_nodes,
-                cluster_environment=self.select_cluster_environment(),
+                cluster_environment=self.cluster_environment,
                 sync_batchnorm=self.sync_batchnorm,
             )
         elif self.use_dp:

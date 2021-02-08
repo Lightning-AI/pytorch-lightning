@@ -49,7 +49,7 @@ steps:
     # testing...
     - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/plugins/test_sharded_plugin.py --ignore tests/trainer/test_dataloaders.py -v --durations=25 # --flake8
     # Todo: Find why those tests are failing when run in the main pytest.
-    - python -m coverage run -a --source pytorch_lightning -m pytest pytorch_lightning tests/plugins/test_sharded_plugin.py tests/trainer/test_dataloaders.py -v --durations=25 # --flake8
+    - python -m coverage run -a --source pytorch_lightning -m pytest tests/plugins/test_sharded_plugin.py tests/trainer/test_dataloaders.py -v --durations=25 # --flake8
     # Running special tests
     - sh tests/special_tests.sh
     - coverage report
