@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 import math
 import os
 import pickle
@@ -56,12 +55,8 @@ class LogInTwoMethods(BoringModel):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(
     "validation_step,val_dataloaders,monitor",
-    [
-        ('base', "base", 'val_log'),
-        ('base', "base", 'train_log_epoch'),
-        (None, "base", 'train_log_epoch'),
-        ("base", None, 'train_log_epoch')
-    ],
+    [('base', "base", 'val_log'), ('base', "base", 'train_log_epoch'), (None, "base", 'train_log_epoch'),
+     ("base", None, 'train_log_epoch')],
 )
 def test_model_checkpoint_correct_score_and_checkpoint(tmpdir, validation_step, val_dataloaders, monitor):
     """
@@ -73,6 +68,7 @@ def test_model_checkpoint_correct_score_and_checkpoint(tmpdir, validation_step, 
     limit_val_batches = 7
 
     class CustomBoringModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.train_log_epochs = torch.randn(max_epochs, limit_train_batches)
@@ -138,7 +134,7 @@ def test_model_checkpoint_correct_score_and_checkpoint(tmpdir, validation_step, 
         lr_scheduler_specific_data = chk['lr_schedulers'][0]
         assert lr_scheduler_specific_data['_step_count'] == epoch + 2
         if LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
-            assert lr_scheduler_specific_data['_last_lr'][0], 4 == 0.2 * (0.1 ** (epoch + 1))
+            assert lr_scheduler_specific_data['_last_lr'][0], 4 == 0.2 * (0.1**(epoch + 1))
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])

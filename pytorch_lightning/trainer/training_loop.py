@@ -530,9 +530,6 @@ class TrainLoop:
         return splits
 
     def run_training_epoch(self):
-        # get model
-        model = self.trainer.get_model()
-
         # modify dataloader if needed (ddp, etc...)
         train_dataloader = self.trainer.accelerator_backend.process_dataloader(self.trainer.train_dataloader)
 
@@ -593,8 +590,7 @@ class TrainLoop:
 
             # max steps reached, end training
             if (
-                self.trainer.max_steps is not None
-                and self.trainer.max_steps == self.trainer.global_step + 1
+                self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1
                 and self._accumulated_batches_reached()
             ):
                 break
@@ -625,8 +621,9 @@ class TrainLoop:
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         if should_check_val:
             self.trainer.run_evaluation(on_epoch=True)
+
             # reset stage to train
-            self.trainer.logger_connector.set_stage("train")
+            self.trainer._set_wide_running_stage(RunningStage.TRAINING)
 
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
@@ -878,14 +875,9 @@ class TrainLoop:
         is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
         epoch_end_val_check = self.trainer.val_check_batch == self.trainer.num_training_batches
 
-        should_check_val = (
-            (is_val_check_batch and epoch_end_val_check)
-            or self.trainer.should_stop
-            or is_last_batch_for_infinite_dataset
-        ) if on_epoch else (
-            is_val_check_batch
-            and not epoch_end_val_check
-        )
+        should_check_val = ((is_val_check_batch and epoch_end_val_check) or self.trainer.should_stop
+                            or is_last_batch_for_infinite_dataset
+                            ) if on_epoch else (is_val_check_batch and not epoch_end_val_check)
 
         return should_check_val and can_check_val
 
