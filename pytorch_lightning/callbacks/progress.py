@@ -22,7 +22,6 @@ import importlib
 import io
 import os
 import sys
-from typing import Optional
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -162,12 +161,6 @@ class ProgressBarBase(Callback):
         The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this in e.g. pre-training
         routines like the :ref:`learning rate finder <advanced/lr_finder:Learning Rate Finder>`
         to temporarily enable and disable the main progress bar.
-        """
-        raise NotImplementedError
-
-    def print(self, *args):
-        """
-        You should provide a way to print without breaking the progress bar.
         """
         raise NotImplementedError
 
