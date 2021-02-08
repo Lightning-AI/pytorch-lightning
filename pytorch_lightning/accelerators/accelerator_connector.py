@@ -213,8 +213,6 @@ class BackendConnector(object):
         else:
             self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
 
-        if isinstance(self._training_type_plugin, RPCPlugin):
-            raise MisconfigurationException('RPC is currently not working. We (the Lightning Team) are aware of that and are actively working on that.')
         return self._training_type_plugin
 
     @property
