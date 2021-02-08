@@ -143,7 +143,7 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
     class MultipleTestDataloaderModel(EvalModelTemplate):
 
         def test_dataloader(self):
-            return model_template.test_dataloader__multiple()
+            return [self.dataloader(train=False), self.dataloader(train=False)]
 
         def test_step(self, batch, batch_idx, *args, **kwargs):
             return model_template.test_step__multiple_dataloaders(batch, batch_idx, *args, **kwargs)

@@ -41,16 +41,6 @@ class ConfigureOptimizersPool(ABC):
         optimizer = optim.Adagrad(self.parameters(), lr=self.learning_rate)
         return optimizer
 
-    def configure_optimizers__multiple_optimizers(self):
-        """
-        return whatever optimizers we want here.
-        :return: list of optimizers
-        """
-        # try no scheduler for this model (testing purposes)
-        optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
-        optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
-        return optimizer1, optimizer2
-
     def configure_optimizers__multiple_optimizers_frequency(self):
         optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
         optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -68,11 +58,6 @@ class ConfigureOptimizersPool(ABC):
     def configure_optimizers__single_scheduler(self):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
         lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
-        return [optimizer], [lr_scheduler]
-
-    def configure_optimizers__onecycle_scheduler(self):
-        optimizer = optim.SGD(self.parameters(), lr=self.learning_rate, momentum=0.9)
-        lr_scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=self.learning_rate, total_steps=10_000)
         return [optimizer], [lr_scheduler]
 
     def configure_optimizers__multiple_schedulers(self):

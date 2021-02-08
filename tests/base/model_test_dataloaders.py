@@ -35,9 +35,3 @@ class TestDataloaderVariations(ABC):
         lengths = [50, 30, 40]
         dataloaders = [self.dataloader(train=False, num_samples=n) for n in lengths]
         return dataloaders
-
-    def test_dataloader__empty(self):
-        return None
-
-    def test_dataloader__multiple(self):
-        return [self.dataloader(train=False), self.dataloader(train=False)]
