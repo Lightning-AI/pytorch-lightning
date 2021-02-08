@@ -43,7 +43,6 @@ RUN apt-get update -qq && \
         curl \
         unzip \
         ca-certificates \
-        libgomp1 \
     && \
 
 # Install conda and python.
