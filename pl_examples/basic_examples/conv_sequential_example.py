@@ -31,7 +31,7 @@ import torchvision
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import Trainer
-from pytorch_lightning.metrics.functional import accuracy
+from torchmetrics.functional import accuracy
 from pytorch_lightning.plugins.legacy.ddp_sequential_plugin import DDPSequentialPlugin
 from pytorch_lightning.utilities import _BOLTS_AVAILABLE, _FAIRSCALE_PIPE_AVAILABLE
 
