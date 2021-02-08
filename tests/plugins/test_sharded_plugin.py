@@ -131,7 +131,7 @@ def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
 
     # Assert model parameters are identical after loading
     for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(ddp_param, shard_param)
+        assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")

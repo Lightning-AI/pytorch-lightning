@@ -96,6 +96,7 @@ def test_accelerator_choice_ddp_slurm():
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
+            assert trainer.training_type_plugin.task_idx == 10
             raise SystemExit()
 
     model = BoringModel()
@@ -133,7 +134,7 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock):
             assert isinstance(trainer.training_type_plugin, DDP2Plugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
-
+            assert trainer.training_type_plugin.task_idx == 10
             raise SystemExit()
 
     model = BoringModel()
@@ -161,6 +162,7 @@ def test_accelerator_choice_ddp_te(device_count_mock):
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
+            assert trainer.training_type_plugin.task_idx == 10
             raise SystemExit()
 
     model = BoringModel()
@@ -188,6 +190,7 @@ def test_accelerator_choice_ddp2_te(device_count_mock):
             assert isinstance(trainer.training_type_plugin, DDP2Plugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
+            assert trainer.training_type_plugin.task_idx == 10
             raise SystemExit()
 
     model = BoringModel()
@@ -218,6 +221,7 @@ def test_accelerator_choice_ddp_cpu_te(device_count_mock):
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
+            assert trainer.training_type_plugin.task_idx == 10
             raise SystemExit()
 
     model = BoringModel()
@@ -252,6 +256,7 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock):
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
+            assert trainer.training_type_plugin.task_idx == 0
             raise SystemExit()
 
     model = BoringModel()
@@ -293,6 +298,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(device_count_mock):
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, CustomCluster)
+            assert trainer.training_type_plugin.task_idx == None
             raise SystemExit()
 
     model = BoringModel()
@@ -360,6 +366,7 @@ def test_dist_backend_accelerator_mapping(device_count_mock):
         def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
+            assert trainer.training_type_plugin.task_idx == 0
             raise SystemExit()
 
     model = BoringModel()
