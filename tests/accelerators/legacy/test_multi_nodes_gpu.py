@@ -23,7 +23,7 @@ DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 from pytorch_lightning import LightningModule  # noqa: E402
 from pytorch_lightning import Trainer  # noqa: E402
-from tests.base.boring_model import BoringModel  # noqa: E402
+from tests.helpers.boring_model import BoringModel  # noqa: E402
 
 
 @pytest.mark.skipif(

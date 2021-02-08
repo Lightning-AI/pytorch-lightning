@@ -2,7 +2,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.metrics import Metric, MetricCollection
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 class SumMetric(Metric):

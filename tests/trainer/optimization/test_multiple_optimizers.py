@@ -17,7 +17,7 @@ Tests to ensure that the behaviours related to multiple optimizers works
 import torch
 
 import pytorch_lightning as pl
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 def test_unbalanced_logging_with_multiple_optimizers(tmpdir):

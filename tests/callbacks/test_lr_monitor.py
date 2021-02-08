@@ -14,7 +14,7 @@
 import pytest
 from torch import optim
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.trainer.states import TrainerState

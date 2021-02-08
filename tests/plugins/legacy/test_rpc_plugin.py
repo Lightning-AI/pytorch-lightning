@@ -9,7 +9,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.legacy.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import _RPC_AVAILABLE
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 @mock.patch.dict(
