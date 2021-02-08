@@ -81,11 +81,7 @@ def test_attach_model_callbacks():
     def assert_composition(trainer_callbacks, model_callbacks, expected):
         model = Mock()
         model.configure_callbacks.return_value = model_callbacks
-        trainer = Trainer(
-            checkpoint_callback=False,
-            progress_bar_refresh_rate=0,
-            callbacks=trainer_callbacks
-        )
+        trainer = Trainer(checkpoint_callback=False, progress_bar_refresh_rate=0, callbacks=trainer_callbacks)
         cb_connector = CallbackConnector(trainer)
         cb_connector._attach_model_callbacks(model)
         assert trainer.callbacks == expected
@@ -96,17 +92,11 @@ def test_attach_model_callbacks():
     grad_accumulation = GradientAccumulationScheduler({1: 1})
 
     # no callbacks
-    assert_composition(
-        trainer_callbacks=[],
-        model_callbacks=[],
-        expected=[]
-    )
+    assert_composition(trainer_callbacks=[], model_callbacks=[], expected=[])
 
     # callbacks of different types
     assert_composition(
-        trainer_callbacks=[early_stopping],
-        model_callbacks=[progress_bar],
-        expected=[early_stopping, progress_bar]
+        trainer_callbacks=[early_stopping], model_callbacks=[progress_bar], expected=[early_stopping, progress_bar]
     )
 
     # same callback type twice, different instance
@@ -118,7 +108,10 @@ def test_attach_model_callbacks():
 
     # multiple callbacks of the same type in trainer
     assert_composition(
-        trainer_callbacks=[LearningRateMonitor(), EarlyStopping(), LearningRateMonitor(), EarlyStopping()],
+        trainer_callbacks=[LearningRateMonitor(),
+                           EarlyStopping(),
+                           LearningRateMonitor(),
+                           EarlyStopping()],
         model_callbacks=[early_stopping, lr_monitor],
         expected=[early_stopping, lr_monitor]
     )
@@ -126,7 +119,10 @@ def test_attach_model_callbacks():
     # multiple callbacks of the same type, in both trainer and model
     assert_composition(
         trainer_callbacks=[
-            LearningRateMonitor(), progress_bar, EarlyStopping(), LearningRateMonitor(), EarlyStopping()
+            LearningRateMonitor(), progress_bar,
+            EarlyStopping(),
+            LearningRateMonitor(),
+            EarlyStopping()
         ],
         model_callbacks=[early_stopping, lr_monitor, grad_accumulation, early_stopping],
         expected=[progress_bar, early_stopping, lr_monitor, grad_accumulation, early_stopping]
@@ -137,10 +133,7 @@ def test_attach_model_callbacks_override_info(caplog):
     """ Test that the logs contain the info about overriding callbacks returned by configure_callbacks. """
     model = Mock()
     model.configure_callbacks.return_value = [LearningRateMonitor(), EarlyStopping()]
-    trainer = Trainer(
-        checkpoint_callback=False,
-        callbacks=[EarlyStopping(), LearningRateMonitor(), ProgressBar()]
-    )
+    trainer = Trainer(checkpoint_callback=False, callbacks=[EarlyStopping(), LearningRateMonitor(), ProgressBar()])
     cb_connector = CallbackConnector(trainer)
     with caplog.at_level(logging.INFO):
         cb_connector._attach_model_callbacks(model)
