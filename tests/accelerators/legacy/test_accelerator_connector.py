@@ -298,7 +298,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(device_count_mock):
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, CustomCluster)
-            assert trainer.training_type_plugin.task_idx == None
+            assert trainer.training_type_plugin.task_idx is None
             raise SystemExit()
 
     model = BoringModel()
