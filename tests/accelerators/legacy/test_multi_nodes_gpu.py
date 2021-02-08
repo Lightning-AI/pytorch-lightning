@@ -15,6 +15,7 @@ import os
 import sys
 
 import pytest
+from unittest import mock
 import torch
 
 ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
@@ -68,11 +69,11 @@ def test_logging_sync_dist_true_ddp(tmpdir):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__validation_step__log(tmpdir):
     """
     Tests that validation_step can log
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
 

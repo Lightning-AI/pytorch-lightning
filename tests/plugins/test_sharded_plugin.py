@@ -6,7 +6,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin, ShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -65,24 +65,13 @@ def test_ddp_choice_sharded_amp(tmpdir, accelerator):
     """
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded
     """
-
-    class CB(Callback):
-
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.precision_plugin, ShardedNativeMixedPrecisionPlugin)
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        gpus=1,
-        precision=16,
-        accelerator=accelerator,
-        callbacks=[CB()],
-    )
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    with pytest.raises(MisconfigurationException, match="AMP is only available on GPU"):
+        _ = Trainer(
+            fast_dev_run=True,
+            gpus=1,
+            precision=16,
+            accelerator=accelerator,
+        )
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
@@ -106,7 +95,7 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
 
     # Assert model parameters are identical after loading
     for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(ddp_param, shard_param)
+        assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -131,7 +120,7 @@ def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
 
     # Assert model parameters are identical after loading
     for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(ddp_param, shard_param)
+        assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -244,6 +233,9 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_ddp_sharded_plugin_test(tmpdir):
     """
         Test to ensure we can use test without fit

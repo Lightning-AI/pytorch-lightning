@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import sys
 import threading
 from functools import partial, wraps
@@ -38,13 +37,13 @@ def pytest_pyfunc_call(pyfuncitem):
 
 @pytest.fixture
 def tmpdir_server(tmpdir):
+    import os
     if sys.version_info >= (3, 7):
         Handler = partial(SimpleHTTPRequestHandler, directory=str(tmpdir))
         from http.server import ThreadingHTTPServer
     else:
         # unfortunately SimpleHTTPRequestHandler doesn't accept the directory arg in python3.6
         # so we have to hack it like this
-        import os
 
         class Handler(SimpleHTTPRequestHandler):
 
