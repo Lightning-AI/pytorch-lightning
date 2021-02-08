@@ -61,8 +61,8 @@ Here's a simple PyTorch example:
 .. code-block:: python
 
     # regular PyTorch
-    test_data = MNIST(path, train=False, download=True)
-    train_data = MNIST(path, train=True, download=True)
+    test_data = MNIST(my_path, train=False, download=True)
+    train_data = MNIST(my_path, train=True, download=True)
     train_data, val_data = random_split(train_data, [55000, 5000])
 
     train_loader = DataLoader(train_data, batch_size=32)
@@ -100,7 +100,7 @@ colleagues or use in different projects.
 
 .. code-block:: python
 
-    mnist = MNISTDataModule(path)
+    mnist = MNISTDataModule(my_path)
     model = LitClassifier()
 
     trainer = Trainer()
