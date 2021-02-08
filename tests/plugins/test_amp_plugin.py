@@ -28,7 +28,7 @@ from tests.helpers.boring_model import BoringModel
     ['ddp_backend', 'gpus', 'num_processes'],
     [('ddp_cpu', None, 2), ('ddp', 2, 0), ('ddp2', 2, 0), ('ddp_spawn', 2, 0)],
 )
-def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
+def on_fit_start(tmpdir, ddp_backend, gpus, num_processes):
 
     class CB(Callback):
 
