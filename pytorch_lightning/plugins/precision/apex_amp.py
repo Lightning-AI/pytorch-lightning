@@ -38,6 +38,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         """Connects the precision plugin to the training process,
         configures apex and reinits the schedulers
         """
+        if model.device.type != "cuda":
+            return model, optimizers, lr_schedulers
         model, optimizers = self.configure_apex(amp, model, optimizers, self.amp_level)
         self.reinit_scheduler_properties(optimizers, lr_schedulers)
         return model, optimizers, lr_schedulers
