@@ -157,3 +157,18 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
                 if state is not None:
                     break
+
+    def pre_optimizer_step(
+        self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs
+    ) -> bool:
+        """
+        always called before the optimizer step.
+        """
+        # apex amp does not support closures.
+        lambda_closure()
+
+        if not pl_module.automatic_optimization:
+            optimizer.step()
+            pl_module.trainer.call_hook("on_after_backward")
+
+        return False

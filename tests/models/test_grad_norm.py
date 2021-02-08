@@ -21,7 +21,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from tests.base import EvalModelTemplate
-from tests.base.develop_utils import reset_seed
+from tests.helpers.utils import reset_seed
 
 
 class ModelWithManualGradTracker(EvalModelTemplate):

@@ -194,6 +194,13 @@ class BackendConnector(object):
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
+    def local_rank(self):
+        try:
+            return self._cluster_environment.local_rank()
+        except KeyError:
+            return None
+
+    @property
     def precision_plugin(self) -> PrecisionPlugin:
         if self._precision_plugin is None:
             self._precision_plugin = self.select_precision_plugin()
@@ -205,6 +212,8 @@ class BackendConnector(object):
             self._training_type_plugin = self.select_training_type_plugin()
         else:
             self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
+        # attach local_rank
+        self._training_type_plugin.task_idx = self.local_rank
         return self._training_type_plugin
 
     @property

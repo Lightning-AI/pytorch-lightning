@@ -21,7 +21,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.deterministic_model import DeterministicModel
+from tests.helpers.deterministic_model import DeterministicModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})

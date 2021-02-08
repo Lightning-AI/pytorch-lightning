@@ -25,7 +25,7 @@ from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPSpawnPlugin, PrecisionPlugin, SingleDevicePlugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 def test_accelerator_choice_cpu(tmpdir):
@@ -89,7 +89,7 @@ def test_accelerator_choice_ddp_slurm():
 
     class CB(Callback):
 
-        def on_fit_start(self, trainer, pl_module):
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
             assert trainer.use_ddp
             assert trainer.accelerator_connector.is_slurm_managing_tasks
             assert isinstance(trainer.accelerator_backend, GPUAccelerator)

@@ -15,7 +15,7 @@ import torch
 from torch.utils.data import Dataset
 
 from pytorch_lightning import Trainer
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 class RandomDatasetA(Dataset):

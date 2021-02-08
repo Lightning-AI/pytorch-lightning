@@ -27,7 +27,7 @@ import yaml
 from omegaconf import Container, OmegaConf
 
 import pytorch_lightning as pl
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger

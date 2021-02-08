@@ -23,7 +23,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequentialPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import RandomDataset
+from tests.helpers.boring_model import RandomDataset
 
 
 def cleanup(ctx, model):

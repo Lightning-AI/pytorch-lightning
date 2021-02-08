@@ -22,7 +22,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from tests.base import BoringModel
-from tests.base.deterministic_model import DeterministicModel
+from tests.helpers.deterministic_model import DeterministicModel
 
 
 def test_training_step_scalar(tmpdir):
@@ -30,7 +30,7 @@ def test_training_step_scalar(tmpdir):
     Tests that only training_step that returns a single scalar can be used
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_scalar_return
+    model.training_step = model.training_step__scalar_return
     model.val_dataloader = None
 
     trainer = Trainer(
@@ -71,8 +71,8 @@ def training_step_scalar_with_step_end(tmpdir):
     Checks train_step with scalar only + training_step_end
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_scalar_return
-    model.training_step_end = model.training_step_end_scalar
+    model.training_step = model.training_step__scalar_return
+    model.training_step_end = model.training_step_end__scalar
     model.val_dataloader = None
 
     trainer = Trainer(fast_dev_run=True, weights_summary=None)
@@ -111,9 +111,9 @@ def test_full_training_loop_scalar(tmpdir):
     """
 
     model = DeterministicModel()
-    model.training_step = model.training_step_scalar_return
-    model.training_step_end = model.training_step_end_scalar
-    model.training_epoch_end = model.training_epoch_end_scalar
+    model.training_step = model.training_step__scalar_return
+    model.training_step_end = model.training_step_end__scalar
+    model.training_epoch_end = model.training_epoch_end__scalar
     model.val_dataloader = None
 
     trainer = Trainer(
@@ -160,9 +160,9 @@ def test_train_step_epoch_end_scalar(tmpdir):
     """
 
     model = DeterministicModel()
-    model.training_step = model.training_step_scalar_return
+    model.training_step = model.training_step__scalar_return
     model.training_step_end = None
-    model.training_epoch_end = model.training_epoch_end_scalar
+    model.training_epoch_end = model.training_epoch_end__scalar
     model.val_dataloader = None
 
     trainer = Trainer(max_epochs=1, weights_summary=None)

@@ -23,8 +23,8 @@ from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import FLOAT16_EPSILON
-from tests.base.datamodules import MNISTDataModule
-from tests.base.develop_utils import set_random_master_port
+from tests.helpers.datamodules import MNISTDataModule
+from tests.helpers.utils import set_random_master_port
 
 
 class SyncBNModule(LightningModule):

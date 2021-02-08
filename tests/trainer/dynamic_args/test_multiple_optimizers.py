@@ -14,7 +14,7 @@
 import torch
 
 from pytorch_lightning import Trainer
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 def test_multiple_optimizers(tmpdir):

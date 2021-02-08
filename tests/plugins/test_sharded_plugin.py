@@ -9,7 +9,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin, ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 @pytest.mark.parametrize(["accelerator"], [("ddp_sharded", ), ("ddp_sharded_spawn", )])

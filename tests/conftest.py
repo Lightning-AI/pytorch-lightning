@@ -67,6 +67,10 @@ def tmpdir_server(tmpdir):
         class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
             daemon_threads = True
 
+<<<<<<< HEAD
+=======
+    # reset tests
+>>>>>>> 77b5e87ac8cc5a2702a8b314f78aa3dd95c96a44
     os.environ = _ENVIRON
 
     with ThreadingHTTPServer(('localhost', 0), Handler) as server:

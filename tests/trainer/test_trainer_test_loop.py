@@ -15,7 +15,7 @@ import pytest
 import torch
 
 import pytorch_lightning as pl
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from tests.base import EvalModelTemplate
 
 
