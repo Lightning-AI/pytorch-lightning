@@ -408,8 +408,8 @@ def test_progress_bar_print(tqdm_write, tmpdir):
     assert tqdm_write.call_count == 3
     assert tqdm_write.call_args_list == [
         call("training_step", end="", file=None, nolock=False),
-        call("validation_step", end="\n", file=sys.stderr, nolock=False),
-        call("test_step", end="\n", file=None, nolock=False),
+        call("validation_step", end=os.linesep, file=sys.stderr, nolock=False),
+        call("test_step", end=os.linesep, file=None, nolock=False),
     ]
 
 
