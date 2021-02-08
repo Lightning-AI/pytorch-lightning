@@ -151,3 +151,6 @@ wandb
 
 # dataset generated from bolts in examples.
 cifar-10-batches-py
+
+# ctags
+tags
