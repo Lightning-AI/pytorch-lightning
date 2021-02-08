@@ -76,11 +76,13 @@ def test_lightning_wrapper_module_warn_none_output(wrapper_class):
         assert not record
 
 
-@pytest.mark.parametrize("inp,expected", [
-    [torch.tensor(1.0), torch.tensor([1.0])],
-    [torch.tensor([2.0]), torch.tensor([2.0])],
-    [torch.ones(3, 4, 5), torch.ones(3, 4, 5)],
-])
+@pytest.mark.parametrize(
+    "inp,expected", [
+        [torch.tensor(1.0), torch.tensor([1.0])],
+        [torch.tensor([2.0]), torch.tensor([2.0])],
+        [torch.ones(3, 4, 5), torch.ones(3, 4, 5)],
+    ]
+)
 def test_unsqueeze_scalar_tensor(inp, expected):
     """ Test that the utility function unsqueezes only scalar tensors. """
     assert torch.all(unsqueeze_scalar_tensor(inp).eq(expected))
@@ -118,19 +120,18 @@ def test_lightning_parallel_module_unsqueeze_scalar():
     assert not record
 
 
-@pytest.mark.parametrize("inp,expected", [
-    [1.0, torch.tensor([1.0])],
-    [2, torch.tensor([2.0])],
-    [True, torch.tensor([True])],
-])
+@pytest.mark.parametrize(
+    "inp,expected", [
+        [1.0, torch.tensor([1.0])],
+        [2, torch.tensor([2.0])],
+        [True, torch.tensor([True])],
+    ]
+)
 def test_python_scalar_to_tensor(inp, expected):
     assert torch.all(python_scalar_to_tensor(inp).eq(expected))
 
 
-@pytest.mark.parametrize("device", [
-    torch.device("cpu"),
-    torch.device("cuda", 0)
-])
+@pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_lightning_parallel_module_python_scalar_conversion(device):
     """ Test that LightningParallelModule can convert Python scalars to tensors. """

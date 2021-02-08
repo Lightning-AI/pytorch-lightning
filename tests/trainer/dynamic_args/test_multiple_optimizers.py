@@ -14,14 +14,16 @@
 import torch
 
 from pytorch_lightning import Trainer
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 def test_multiple_optimizers(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def on_train_epoch_start(self) -> None:
             self.opt_0_seen = False
             self.opt_1_seen = False
@@ -68,7 +70,9 @@ def test_multiple_optimizers_manual(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False

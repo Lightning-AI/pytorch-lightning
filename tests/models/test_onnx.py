@@ -18,8 +18,8 @@ import onnxruntime
 import pytest
 import torch
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import BoringModel, EvalModelTemplate
 
@@ -116,8 +116,11 @@ def test_error_if_no_input(tmpdir):
     model = BoringModel()
     model.example_input_array = None
     file_path = os.path.join(tmpdir, "model.onnx")
-    with pytest.raises(ValueError, match=r'Could not export to ONNX since neither `input_sample` nor'
-                                         r' `model.example_input_array` attribute is set.'):
+    with pytest.raises(
+        ValueError,
+        match=r'Could not export to ONNX since neither `input_sample` nor'
+        r' `model.example_input_array` attribute is set.'
+    ):
         model.to_onnx(file_path)
 
 

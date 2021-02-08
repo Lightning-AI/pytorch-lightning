@@ -20,7 +20,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
-from tests.base.datamodules import TrialMNISTDataModule
+from tests.helpers.datamodules import TrialMNISTDataModule
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -74,8 +74,9 @@ def test_trainer_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
-                          'accumulate_grad_batches', 'checkpoint_callback']
+    changed_attributes = [
+        'callbacks', 'logger', 'max_steps', 'auto_lr_find', 'accumulate_grad_batches', 'checkpoint_callback'
+    ]
     attributes_before = {}
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
