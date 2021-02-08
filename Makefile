@@ -3,7 +3,7 @@
 # to imitate SLURM set only single node
 export SLURM_LOCALID=0
 # assume you have installed need packages
-export SPHINX_MOCK_REQUIREMENTS=1
+export SPHINX_MOCK_REQUIREMENTS=0
 
 clean:
 	# clean all temp runs

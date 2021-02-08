@@ -40,7 +40,7 @@ def mean_relative_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tens
         target: ground truth labels
 
     Return:
-        Tensor with MAE
+        Tensor with mean relative error
 
     Example:
 
