@@ -91,6 +91,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def set_world_ranks(self, process_idx):
         self.local_rank = process_idx
         self.node_rank = self.cluster_environment.node_rank()
+        self.task_idx = self.cluster_local_rank
         self.global_rank = self.node_rank * self.num_processes + self.local_rank
         self.world_size = self.num_nodes * self.num_processes
 

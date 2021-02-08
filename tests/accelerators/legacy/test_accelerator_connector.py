@@ -89,7 +89,7 @@ def test_accelerator_choice_ddp_slurm():
 
     class CB(Callback):
 
-        def on_before_accelerator_backend_setup(self, trainer, pl_module):
+        def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
             assert trainer.accelerator_connector.is_slurm_managing_tasks
             assert isinstance(trainer.accelerator_backend, GPUAccelerator)

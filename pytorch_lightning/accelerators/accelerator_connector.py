@@ -146,9 +146,7 @@ class BackendConnector(object):
         self.replace_sampler_ddp = replace_sampler_ddp
 
     def handle_given_plugins(self, plugins: Optional[Sequence]):
-        if plugins is None:
-            self._cluster_environment = self.select_cluster_environment()
-            return
+        plugins = plugins if plugins is not None else []
 
         if not isinstance(plugins, Sequence):
             plugins = [plugins]
@@ -191,15 +189,9 @@ class BackendConnector(object):
                 )
 
         self._training_type_plugin = training_type
+        self._training_type_plugin = self.training_type_plugin
         self._precision_plugin = precision
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
-
-    @property
-    def local_rank(self):
-        try:
-            return self._cluster_environment.local_rank()
-        except KeyError:
-            return None
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -213,8 +205,6 @@ class BackendConnector(object):
             self._training_type_plugin = self.select_training_type_plugin()
         else:
             self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
-        # attach local_rank
-        self._training_type_plugin.task_idx = self.local_rank
         return self._training_type_plugin
 
     @property
