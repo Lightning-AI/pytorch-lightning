@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import math
 import os
 import pickle
 import platform
 import re
 from argparse import Namespace
+from distutils.version import LooseVersion
 from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
@@ -50,26 +52,91 @@ class LogInTwoMethods(BoringModel):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.parametrize('save_top_k', [-1])
-def test_model_checkpoint_correct_score(tmpdir, save_top_k):
-    """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path"""
-    tutils.reset_seed()
+@pytest.mark.parametrize(
+    "validation_step,val_dataloaders,monitor",
+    [
+        ('base', "base", 'val_log'),
+        ('base', "base", 'train_log_epoch'),
+        (None, "base", 'train_log_epoch'),
+        ("base", None, 'train_log_epoch')
+    ],
+)
+def test_model_checkpoint_correct_score_and_checkpoint(tmpdir, validation_step, val_dataloaders, monitor):
+    """
+    Test that when a model checkpoint is saved, it saves with
+    the correct score appended to ckpt_path and checkpoint data
+    """
+    max_epochs = 3
+    limit_train_batches = 5
+    limit_val_batches = 7
 
-    model = LogInTwoMethods()
+    class CustomBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.train_log_epochs = torch.randn(max_epochs, limit_train_batches)
+            self.val_logs = torch.randn(max_epochs, limit_val_batches)
 
-    filename = "{val_acc:.4f}-{epoch}"
+        def training_step(self, batch, batch_idx):
+            out = super().training_step(batch, batch_idx)
+            log_value = self.train_log_epochs[self.current_epoch, batch_idx]
+            self.log('train_log', log_value, on_epoch=True)
+            return out
 
-    checkpoint = ModelCheckpoint(dirpath=tmpdir, filename=filename, monitor='val_acc', save_top_k=save_top_k)
+        def validation_step(self, batch, batch_idx):
+            out = super().validation_step(batch, batch_idx)
+            log_value = self.val_logs[self.current_epoch, batch_idx]
+            self.log('val_log', log_value)
+            self.log('epoch', self.current_epoch, on_epoch=True)
+            return out
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=2)
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.2)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+    filename = '{' + f'{monitor}' + ':.4f}-{epoch}'
+    checkpoint = ModelCheckpoint(dirpath=tmpdir, filename=filename, monitor=monitor, save_top_k=-1)
+
+    model = CustomBoringModel()
+
+    if validation_step is None:
+        model.validation_step = None
+    if val_dataloaders is None:
+        model.val_dataloaders = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint],
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=limit_val_batches,
+        max_epochs=max_epochs,
+        progress_bar_refresh_rate=0,
+    )
     trainer.fit(model)
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
+    scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
+    assert len(ckpt_files) == len(scores) == max_epochs
 
-    metrics = trainer.dev_debugger.logged_metrics
-    expected_filenames = {f'val_acc={metric["val_acc"]:.4f}-epoch={metric["epoch"]}.ckpt' for metric in metrics}
-    for ckpt_file in ckpt_files:
-        assert os.path.basename(ckpt_file) in expected_filenames
+    for epoch in range(max_epochs):
+        score = scores[epoch]
+        expected_score = getattr(model, f'{monitor}s')[epoch].mean().item()
+        expected_filename = f'{monitor}={score:.4f}-epoch={epoch}.ckpt'
+        assert math.isclose(score, expected_score, rel_tol=1e-4)
+
+        chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
+        assert chk['epoch'] == epoch + 1
+        assert chk['global_step'] == limit_train_batches * (epoch + 1)
+
+        mc_specific_data = chk['callbacks'][type(checkpoint)]
+        assert mc_specific_data['dirpath'] == checkpoint.dirpath
+        assert mc_specific_data['monitor'] == monitor
+        assert mc_specific_data['current_score'] == score
+
+        lr_scheduler_specific_data = chk['lr_schedulers'][0]
+        assert lr_scheduler_specific_data['_step_count'] == epoch + 2
+        if LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
+            assert lr_scheduler_specific_data['_last_lr'][0], 4 == 0.2 * (0.1 ** (epoch + 1))
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])

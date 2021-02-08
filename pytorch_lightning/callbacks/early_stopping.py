@@ -88,9 +88,6 @@ class EarlyStopping(Callback):
         self.stopped_epoch = 0
         self.mode = mode
         self.warned_result_obj = False
-        # Indicates, if eval results are used as basis for early stopping
-        # It is set to False initially and overwritten, if eval results have been validated
-        self.based_on_eval_results = False
 
         self.__init_monitor_mode()
 
@@ -160,21 +157,6 @@ class EarlyStopping(Callback):
 
     def on_validation_end(self, trainer, pl_module):
         if trainer.running_sanity_check:
-            return
-
-        self._run_early_stopping_check(trainer, pl_module)
-
-    def on_validation_epoch_end(self, trainer, pl_module):
-        if trainer.fast_dev_run or trainer.running_sanity_check:
-            return
-
-        if self._validate_condition_metric(trainer.callback_metrics):
-            # turn off early stopping in on_train_epoch_end
-            self.based_on_eval_results = True
-
-    def on_train_epoch_end(self, trainer, pl_module, outputs):
-        # disable early stopping in train loop when there's a val loop
-        if self.based_on_eval_results:
             return
 
         self._run_early_stopping_check(trainer, pl_module)

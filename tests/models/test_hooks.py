@@ -425,6 +425,8 @@ def test_trainer_model_hook_system(tmpdir):
         'on_after_backward',
         'on_before_zero_grad',
         'on_train_batch_end',
+        'on_epoch_end',
+        'on_train_epoch_end',
         'on_validation_model_eval',
         'on_validation_epoch_start',
         'on_validation_batch_start',
@@ -432,8 +434,6 @@ def test_trainer_model_hook_system(tmpdir):
         'on_validation_epoch_end',
         'on_save_checkpoint',
         'on_validation_model_train',
-        'on_epoch_end',
-        'on_train_epoch_end',
         'on_train_end',
         'on_fit_end',
     ]
