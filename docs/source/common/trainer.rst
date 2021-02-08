@@ -1184,7 +1184,7 @@ will still show torch.float32.
     trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16)
+    trainer = Trainer(precision=16, gpus=1)
 
 Example::
 
