@@ -130,7 +130,7 @@ jobs:
       - run: |
           cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) > 1.4 else 10.1)" 2>&1)
           echo "::set-output name=CUDA::$cuda"
-          channel=$(python -c "print('pytorch-nightly' if float(${{matrix.pytorch_version}}) > 1.7 else 'pytorch')" 2>&1)
+          channel=$(python -c "print('pytorch-test' if float(${{matrix.pytorch_version}}) >= 1.8 else 'pytorch')" 2>&1)
           echo "::set-output name=CHANNEL::$channel"
         id: extend
 
