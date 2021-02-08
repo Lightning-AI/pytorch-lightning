@@ -16,6 +16,7 @@ Quantization
 ^^^^^^^^^^^^
 
 """
+import functools
 from typing import Any, Callable, Optional, Sequence, Union
 
 import torch
@@ -33,10 +34,11 @@ def wrap_qat_forward_context(
     trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
     """
-    This decorator is used as context manager...
+    Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
+    Moreover this version has the (de)quantization conditional as it may not be needed for the training all the time
     """
-
     # todo: consider using registering hook before/after forward
+    @functools.wraps(func)
     def wrapper(data) -> Any:
         _is_func_true = isinstance(trigger_condition, Callable) and trigger_condition(model.trainer)
         _is_count_true = isinstance(trigger_condition, int) and quant_cb._forward_calls < trigger_condition
@@ -54,12 +56,12 @@ def wrap_qat_forward_context(
     return wrapper
 
 
-def wrap_quantize_forward_context(model: pl.core.LightningModule, func: Callable, quant, dequant) -> Callable:
+def wrap_quantize_forward_context(model: pl.core.LightningModule, func: Callable) -> Callable:
     """
-    This decorator is used as context manager...
+    Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
     """
-
     # todo: consider using registering hook before/after forward
+    @functools.wraps(func)
     def wrapper(data) -> Any:
         data = model.quant(data)
         data = func(data)
@@ -69,8 +71,8 @@ def wrap_quantize_forward_context(model: pl.core.LightningModule, func: Callable
     return wrapper
 
 
-def _recursive_hasattr(obj, attribs, state=True):
-    """recursive check if model has some layers denoted with ."""
+def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
+    """recursive check if model has some layers denoted with `.`"""
     if '.' in attribs:
         attrib, attribs = attribs.split('.', 1)
         if hasattr(obj, attrib):
@@ -107,7 +109,7 @@ class QuantizationAwareTraining(Callback):
             collect_quantization: count or custom function to collect quantization statistics
 
                 - with default ``None`` the quantization observer is called each module forward,
-                    typical use-case can be reflecting user augmentation
+                    typical use-case can be collecting extended statistic when user uses image/data augmentation
                 - custom call count to set a fixed number of calls, starting from the beginning
                 - custom ``Callable`` function with single trainer argument,
                     see example when you limit call only for last epoch::
@@ -140,7 +142,7 @@ class QuantizationAwareTraining(Callback):
         self._collect_quantization = collect_quantization
 
         self.modules_to_fuse = modules_to_fuse
-        self._preserve_compatible = input_compatible
+        self._input_compatible = input_compatible
         self._forward_calls = 0
 
     def _check_feasible_fuse(self, model):
@@ -175,7 +177,7 @@ class QuantizationAwareTraining(Callback):
         elif isinstance(self._qconfig, QConfig):
             pl_module.qconfig = self._qconfig
 
-        if self._check_feasible_fuse(pl_module)
+        if self._check_feasible_fuse(pl_module):
             torch.quantization.fuse_modules(pl_module, self.modules_to_fuse, inplace=True)
 
         # Prepare the model for QAT. This inserts observers and fake_quants in
@@ -190,7 +192,7 @@ class QuantizationAwareTraining(Callback):
         # and replaces key operators with quantized implementations.
         torch.quantization.convert(pl_module, inplace=True)
         # check we shall preserve wrapper
-        if self._preserve_compatible:
+        if self._input_compatible:
             pl_module.forward = wrap_quantize_forward_context(
                 model=pl_module, func=self.__module_forward, quant=pl_module.quant, dequant=pl_module.dequant
             )
