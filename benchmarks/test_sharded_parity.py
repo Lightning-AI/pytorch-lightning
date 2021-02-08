@@ -15,15 +15,13 @@
 import os
 import platform
 import time
-from typing import Type, Union
+from typing import Type
 
 import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.plugins import DDPSpawnShardedPlugin
-from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.legacy.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from tests.accelerators.legacy import DDPLauncher
 from tests.helpers.boring_model import BoringModel, RandomDataset
