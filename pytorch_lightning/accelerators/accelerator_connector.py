@@ -39,6 +39,7 @@ from pytorch_lightning.plugins import (
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
+    RPCPlugin
 )
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment, cluster_environment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
@@ -148,6 +149,9 @@ class BackendConnector(object):
     def handle_given_plugins(self, plugins: Optional[Sequence]):
         plugins = plugins if plugins is not None else []
 
+        if isinstance(plugins, str):
+            plugins = [plugins]
+
         if not isinstance(plugins, Sequence):
             plugins = [plugins]
 
@@ -156,7 +160,10 @@ class BackendConnector(object):
         cluster_environment = None
 
         for plug in plugins:
-            if isinstance(plug, TrainingTypePlugin):
+            if isinstance(plug, str):
+                self.set_distributed_mode(plug)
+
+            elif isinstance(plug, TrainingTypePlugin):
                 if training_type is None:
                     training_type = plug
 
@@ -205,6 +212,9 @@ class BackendConnector(object):
             self._training_type_plugin = self.select_training_type_plugin()
         else:
             self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
+
+        if isinstance(self._training_type_plugin, RPCPlugin):
+            raise MisconfigurationException('RPC is currently not working. We (the Lightning Team) are aware of that and are actively working on that.')
         return self._training_type_plugin
 
     @property
@@ -424,7 +434,11 @@ class BackendConnector(object):
             env = TorchElasticEnvironment()
         return env
 
-    def set_distributed_mode(self):
+    def set_distributed_mode(self, distributed_backend: Optional[str] = None):
+
+        if distributed_backend is not None:
+            self.distributed_backend = distributed_backend
+
         if isinstance(self.distributed_backend, Accelerator):
             return
 
