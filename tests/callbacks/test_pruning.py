@@ -22,7 +22,7 @@ from torch import nn
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 if _PYTORCH_PRUNE_AVAILABLE:
     import torch.nn.utils.prune as pytorch_prune

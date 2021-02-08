@@ -8,7 +8,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 @pytest.mark.parametrize('tuner_alg', ['batch size scaler', 'learning rate finder'])

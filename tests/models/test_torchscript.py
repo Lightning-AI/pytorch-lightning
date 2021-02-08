@@ -16,7 +16,7 @@ from distutils.version import LooseVersion
 import pytest
 import torch
 
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 from tests.helpers.datamodules import TrialMNISTDataModule
 from tests.helpers.models import BasicGAN, ParityModuleRNN
 

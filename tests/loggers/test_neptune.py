@@ -17,7 +17,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
