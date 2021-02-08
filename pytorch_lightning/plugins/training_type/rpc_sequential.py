@@ -190,6 +190,8 @@ class RPCSequentialPlugin(RPCPlugin):
             model.sequential_module.module.model.trainer = model.trainer
             model.sequential_module.module.model.configure_optimizers = model.configure_optimizers
 
+            self.model = model
+
         else:
             raise MisconfigurationException(
                 'Could not find a PipeLightningModule within the model. '
@@ -261,11 +263,14 @@ class RPCSequentialPlugin(RPCPlugin):
                 'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision'
             )
 
-    def configure_ddp(self, model: LightningModule, device_ids: List[int]) -> DistributedDataParallel:
-        ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
+    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+        """Run before precision plugin executes backward"""
+
+    def configure_ddp(self) -> None:
+        # process_group=mpu.get_data_parallel_group()
+        super().configure_ddp()
         # Plugin handle backwards across processes. Currently not supported for DDP + pipe parallel
-        ddp_plugin.PREPARE_FOR_BACKWARDS = False
-        return ddp_plugin
+        self._model.require_backward_grad_sync = False
 
     @rank_zero_only
     def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
@@ -289,7 +294,8 @@ class RPCSequentialPlugin(RPCPlugin):
             }, include_self=False
         )
 
-    def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
+    @property
+    def distributed_sampler_kwargs(self):
         return dict(
             num_replicas=mpu.get_data_parallel_world_size(),
             rank=mpu.get_data_parallel_rank(),
