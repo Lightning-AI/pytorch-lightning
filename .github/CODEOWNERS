@@ -7,10 +7,6 @@
 # review when someone opens a pull request.
 * @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock
 
-/.github/CODEOWNERS     @williamfalcon
-/README.md              @williamfalcon @edenlightning @borda
-/setup.py               @williamfalcon @borda
-
 # CI/CD and configs
 /.github/       @borda @tchaton
 /dockers/       @borda @tchaton
@@ -51,3 +47,7 @@
 
 # Testing
 /tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
+
+/.github/CODEOWNERS     @williamfalcon
+/README.md              @williamfalcon @edenlightning @borda
+/setup.py               @williamfalcon @borda
