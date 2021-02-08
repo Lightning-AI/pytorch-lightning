@@ -13,11 +13,12 @@
 # limitations under the License.
 
 from distutils.version import LooseVersion
+from typing import Union
+
 import torch
 from torch.utils.data import DataLoader, IterableDataset
 
 from pytorch_lightning.utilities import rank_zero_warn
-from typing import Union
 
 
 def has_iterable_dataset(dataloader: DataLoader):
@@ -31,8 +32,9 @@ def has_len(dataloader: DataLoader) -> bool:
     try:
         # try getting the length
         if len(dataloader) == 0:
-            raise ValueError('`Dataloader` returned 0 length.'
-                             ' Please make sure that your Dataloader at least returns 1 batch')
+            raise ValueError(
+                '`Dataloader` returned 0 length. Please make sure that your Dataloader at least returns 1 batch'
+            )
         has_len = True
     except TypeError:
         has_len = False

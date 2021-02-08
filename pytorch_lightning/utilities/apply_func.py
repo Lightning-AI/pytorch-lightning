@@ -30,19 +30,15 @@ else:
     Batch = type(None)
 
 
-def to_dtype_tensor(value, dtype:torch.dtype = None, device: torch.device = None):
+def to_dtype_tensor(value, dtype: torch.dtype = None, device: torch.device = None):
     if device is None:
-        raise MisconfigurationException(
-            "device (torch.device) should be provided."
-        )
+        raise MisconfigurationException("device (torch.device) should be provided.")
     return torch.tensor(value, dtype=dtype, device=device)
 
 
 def from_numpy(value, device: torch.device = None):
     if device is None:
-        raise MisconfigurationException(
-            "device (torch.device) should be provided."
-        )
+        raise MisconfigurationException("device (torch.device) should be provided.")
     return torch.from_numpy(value).to(device)
 
 
@@ -55,10 +51,17 @@ CONVERSION_DTYPES = [
 ]
 
 
-def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args,
-                        wrong_dtype: Optional[Union[type, tuple]] = None, **kwargs) -> Any:
+def apply_to_collection(
+    data: Any,
+    dtype: Union[type, tuple],
+    function: Callable,
+    *args,
+    wrong_dtype: Optional[Union[type, tuple]] = None,
+    **kwargs
+) -> Any:
     """
     Recursively applies a function to all elements of a certain dtype.
+
     Args:
         data: the collection to apply the function to
         dtype: the given function will be applied to all elements of this dtype
@@ -67,6 +70,7 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
         wrong_dtype: the given function won't be applied if this type is specified and the given collections is of
             the :attr:`wrong_type` even if it is of type :attr`dtype`
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
+
     Returns:
         the resulting collection
     """
@@ -77,12 +81,13 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
         return function(data, *args, **kwargs)
 
     # Recursively apply to collection items
-    elif isinstance(data, Mapping):
-        return elem_type({k: apply_to_collection(v, dtype, function, *args, **kwargs)
-                          for k, v in data.items()})
-    elif isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
+    if isinstance(data, Mapping):
+        return elem_type({k: apply_to_collection(v, dtype, function, *args, **kwargs) for k, v in data.items()})
+
+    if isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
         return elem_type(*(apply_to_collection(d, dtype, function, *args, **kwargs) for d in data))
-    elif isinstance(data, Sequence) and not isinstance(data, str):
+
+    if isinstance(data, Sequence) and not isinstance(data, str):
         return elem_type([apply_to_collection(d, dtype, function, *args, **kwargs) for d in data])
 
     # data is neither of dtype, nor a collection
@@ -119,12 +124,15 @@ def move_data_to_device(batch: Any, device: torch.device):
     """
     Transfers a collection of data to the given device. Any object that defines a method
     ``to(device)`` will be moved and all other objects in the collection will be left untouched.
+
     Args:
         batch: A tensor or collection of tensors or anything that has a method `.to(...)`.
             See :func:`apply_to_collection` for a list of supported collection types.
         device: The device to which the data should be moved
+
     Return:
         the same collection but with all contained tensors residing on the new device.
+
     See Also:
         - :meth:`torch.Tensor.to`
         - :class:`torch.device`
@@ -152,9 +160,7 @@ def move_data_to_device(batch: Any, device: torch.device):
 
 def convert_to_tensors(data, device: torch.device = None):
     if device is None:
-        raise MisconfigurationException(
-            "device (torch.device) should be provided."
-        )
+        raise MisconfigurationException("device (torch.device) should be provided.")
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
     return data

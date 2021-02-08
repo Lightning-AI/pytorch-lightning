@@ -32,16 +32,20 @@ from tests.base import BoringModel
     reason="Minimal PT version is set to 1.5",
 )
 def test_tensorboard_hparams_reload(tmpdir):
+
     class CustomModel(BoringModel):
+
         def __init__(self, b1=0.5, b2=0.999):
             super().__init__()
             self.save_hyperparameters()
 
-    model = CustomModel()
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    model = CustomModel()
+    assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
 
-    folder_path = trainer.logger.log_dir
+    assert trainer.log_dir == trainer.logger.log_dir
+    folder_path = trainer.log_dir
 
     # make sure yaml is there
     with open(os.path.join(folder_path, "hparams.yaml")) as file:
@@ -136,7 +140,11 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -151,7 +159,11 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -167,7 +179,11 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         # "namespace": Namespace(foo=Namespace(bar="buzz")),
         # "layer": torch.nn.BatchNorm1d,
@@ -199,7 +215,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     with pytest.warns(
         UserWarning,
         match='Could not log computational graph since the `model.example_input_array`'
-            ' attribute is not set or `input_array` was not given'
+        ' attribute is not set or `input_array` was not given'
     ):
         logger.log_graph(model)
 
@@ -212,9 +228,13 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
     """
     Tests to ensure that tensorboard log properly when accumulated_gradients > 1
     """
+
     class TestModel(BoringModel):
-        _count = 0
-        _indexes = []
+
+        def __init__(self):
+            super().__init__()
+            self._count = 0
+            self._indexes = []
 
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -222,10 +242,10 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
             self.log('count', self._count, on_step=True, on_epoch=True)
             self.log('loss', loss, on_step=True, on_epoch=True)
 
-            if self.trainer.logger_connector.should_update_logs:
-                self._indexes.append(self._count)
+            if not self.trainer.train_loop.should_accumulate():
+                if self.trainer.logger_connector.should_update_logs:
+                    self._indexes.append(self.trainer.global_step)
 
-            self._count += 1
             return loss
 
         def validation_step(self, batch, batch_idx):
@@ -245,14 +265,13 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
 
     logger_0 = TensorBoardLogger(tmpdir, default_hp_metric=False)
 
-    accumulate_grad_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=12,
-        limit_val_batches=12,
+        limit_val_batches=0,
         max_epochs=3,
         gpus=0,
-        accumulate_grad_batches=accumulate_grad_batches,
+        accumulate_grad_batches=2,
         logger=[logger_0],
         log_every_n_steps=3,
     )
@@ -260,5 +279,15 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
 
     mock_count_epochs = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_epoch" in m[2]["metrics"]]
     assert mock_count_epochs == expected
+
     mock_count_steps = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_step" in m[2]["metrics"]]
     assert model._indexes == mock_count_steps
+
+
+@mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter')
+def test_tensorboard_finalize(summary_writer, tmpdir):
+    """ Test that the SummaryWriter closes in finalize. """
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger.finalize("any")
+    summary_writer().flush.assert_called()
+    summary_writer().close.assert_called()

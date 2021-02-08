@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Optional, Union
+
+from torch.utils.data import DataLoader
+
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from typing import List, Optional, Union
-from torch.utils.data import DataLoader
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
@@ -34,8 +36,7 @@ class DataConnector(object):
 
     def get_profiled_train_dataloader(self, train_dataloader):
         profiled_dl = self.trainer.profiler.profile_iterable(
-            enumerate(self._with_is_last(train_dataloader)),
-            "get_train_batch"
+            enumerate(self._with_is_last(train_dataloader)), "get_train_batch"
         )
         return profiled_dl
 

@@ -16,13 +16,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pytorch_lightning import Trainer, seed_everything, LightningModule
+from pytorch_lightning import LightningModule, seed_everything, Trainer
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import FLOAT16_EPSILON
-from tests.base.datamodules import MNISTDataModule
-from tests.base.develop_utils import set_random_master_port
+from tests.helpers.datamodules import MNISTDataModule
+from tests.helpers.utils import set_random_master_port
 
 
 class SyncBNModule(LightningModule):
+
     def __init__(self, gpu_count=1, **kwargs):
         super().__init__()
 
@@ -107,7 +110,8 @@ def test_sync_batchnorm_ddp(tmpdir):
         sync_batchnorm=True,
         num_sanity_val_steps=0,
         replace_sampler_ddp=False,
+        plugins=[DDPPlugin(find_unused_parameters=True)]
     )
 
-    result = trainer.fit(model, dm)
-    assert result == 1, "Sync batchnorm failing with DDP"
+    trainer.fit(model, dm)
+    assert trainer.state == TrainerState.FINISHED, "Sync batchnorm failing with DDP"

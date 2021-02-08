@@ -13,8 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 
-from tests.base.dataloaders import CustomInfDataloader
-from tests.base.dataloaders import CustomNotImplementedErrorDataloader
+from tests.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 
 
 class TrainDataloaderVariations(ABC):
@@ -40,9 +39,7 @@ class TrainDataloaderVariations(ABC):
 
     def train_dataloader__multiple_mapping(self):
         """Return a mapping loaders with different lengths"""
-        return {'a': self.dataloader(train=True, num_samples=100),
-                'b': self.dataloader(train=True, num_samples=50)}
-
-    def train_dataloader__multiple_sequence(self):
-        return [self.dataloader(train=True, num_samples=100),
-                self.dataloader(train=True, num_samples=50)]
+        return {
+            'a': self.dataloader(train=True, num_samples=100),
+            'b': self.dataloader(train=True, num_samples=50),
+        }

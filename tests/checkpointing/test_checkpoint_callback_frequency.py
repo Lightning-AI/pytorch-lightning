@@ -47,8 +47,10 @@ def test_mc_called(tmpdir):
 
 
 @mock.patch('torch.save')
-@pytest.mark.parametrize(['epochs', 'val_check_interval', 'expected'],
-                         [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 7)])
+@pytest.mark.parametrize(
+    ['epochs', 'val_check_interval', 'expected'],
+    [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 7)],
+)
 def test_default_checkpoint_freq(save_mock, tmpdir, epochs, val_check_interval, expected):
 
     model = BoringModel()
@@ -56,7 +58,7 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs, val_check_interval, 
         default_root_dir=tmpdir,
         max_epochs=epochs,
         weights_summary=None,
-        val_check_interval=val_check_interval
+        val_check_interval=val_check_interval,
     )
     trainer.fit(model)
 
@@ -65,11 +67,12 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs, val_check_interval, 
 
 
 @mock.patch('torch.save')
-@pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'],
-                         [(1, 1, 1.0, 1), (2, 2, 1.0, 2), (2, 1, 0.25, 4), (2, 2, 0.3, 7)])
+@pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1), (2, 2, 1.0, 2),
+                                                                             (2, 1, 0.25, 4), (2, 2, 0.3, 7)])
 def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.last_coeff = 10.0

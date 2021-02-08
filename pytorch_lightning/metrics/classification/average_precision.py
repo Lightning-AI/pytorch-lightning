@@ -11,15 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Union, List
+from typing import Any, List, Optional, Union
 
 import torch
 
-from pytorch_lightning.metrics import Metric
-from pytorch_lightning.metrics.functional.average_precision import (
-    _average_precision_update,
-    _average_precision_compute
-)
+from pytorch_lightning.metrics.functional.average_precision import _average_precision_compute, _average_precision_update
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -71,6 +68,7 @@ class AveragePrecision(Metric):
         [tensor(1.), tensor(1.), tensor(0.2500), tensor(0.2500), tensor(nan)]
 
     """
+
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -105,10 +103,7 @@ class AveragePrecision(Metric):
             target: Ground truth values
         """
         preds, target, num_classes, pos_label = _average_precision_update(
-            preds,
-            target,
-            self.num_classes,
-            self.pos_label
+            preds, target, self.num_classes, self.pos_label
         )
         self.preds.append(preds)
         self.target.append(target)

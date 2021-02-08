@@ -13,8 +13,8 @@
 # limitations under the License.
 import importlib
 import os
-from typing import List, Optional, Sequence, Union, Callable
 from functools import wraps
+from typing import Callable, List, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -27,10 +27,10 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -40,34 +40,38 @@ else:
     from tqdm import tqdm
 
 
+def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
+    if isinstance(trainer.auto_lr_find, str):
+        if not lightning_hasattr(model, trainer.auto_lr_find):
+            raise MisconfigurationException(
+                f'`auto_lr_find` was set to {trainer.auto_lr_find}, however'
+                ' could not find this as a field in `model` or `model.hparams`.'
+            )
+        return trainer.auto_lr_find
+
+    attr_options = ('lr', 'learning_rate')
+    for attr in attr_options:
+        if lightning_hasattr(model, attr):
+            return attr
+
+    raise MisconfigurationException(
+        'When `auto_lr_find=True`, either `model` or `model.hparams` should'
+        f' have one of these fields: {attr_options} overridden.'
+    )
+
+
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
+    lr_attr_name = _determine_lr_attr_name(trainer, model)
     lr_finder = lr_find(trainer, model)
-
     if lr_finder is None:
         return
 
     lr = lr_finder.suggestion()
 
     # TODO: log lr.results to self.logger
-    if isinstance(trainer.auto_lr_find, str):
-        # Try to find requested field, may be nested
-        if lightning_hasattr(model, trainer.auto_lr_find):
-            lightning_setattr(model, trainer.auto_lr_find, lr)
-        else:
-            raise MisconfigurationException(
-                f'`auto_lr_find` was set to {trainer.auto_lr_find}, however'
-                ' could not find this as a field in `model` or `model.hparams`.')
-    else:
-        if lightning_hasattr(model, 'lr'):
-            lightning_setattr(model, 'lr', lr)
-        elif lightning_hasattr(model, 'learning_rate'):
-            lightning_setattr(model, 'learning_rate', lr)
-        else:
-            raise MisconfigurationException(
-                'When auto_lr_find is set to True, expects that `model` or'
-                ' `model.hparams` either has field `lr` or `learning_rate`'
-                ' that can overridden')
+    lightning_setattr(model, lr_attr_name, lr)
+
     log.info(f'Learning rate set to {lr}')
 
 
@@ -192,7 +196,7 @@ def lr_find(
 
     # Reset model state
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer._device_type == DeviceType.GPU)
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)

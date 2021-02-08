@@ -11,31 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Sequence, Tuple, Union, List
+from typing import List, Optional, Sequence, Tuple, Union
 
 import torch
 
 from pytorch_lightning.metrics.functional.precision_recall_curve import (
+    _precision_recall_curve_compute,
     _precision_recall_curve_update,
-    _precision_recall_curve_compute
 )
 
 
 def _average_precision_update(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        pos_label: Optional[int] = None,
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    pos_label: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, int, int]:
     return _precision_recall_curve_update(preds, target, num_classes, pos_label)
 
 
 def _average_precision_compute(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        pos_label: int,
-        sample_weights: Optional[Sequence] = None
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: int,
+    pos_label: int,
+    sample_weights: Optional[Sequence] = None
 ) -> Union[List[torch.Tensor], torch.Tensor]:
     precision, recall, _ = _precision_recall_curve_compute(preds, target, num_classes, pos_label)
     # Return the step function integral
@@ -51,11 +51,11 @@ def _average_precision_compute(
 
 
 def average_precision(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        pos_label: Optional[int] = None,
-        sample_weights: Optional[Sequence] = None,
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    pos_label: Optional[int] = None,
+    sample_weights: Optional[Sequence] = None,
 ) -> Union[List[torch.Tensor], torch.Tensor]:
     """
     Computes the average precision score.

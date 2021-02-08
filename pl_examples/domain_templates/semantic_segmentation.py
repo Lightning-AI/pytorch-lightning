@@ -178,15 +178,16 @@ class SegModel(pl.LightningModule):
       )
     )
     """
+
     def __init__(
-            self,
-            data_path: str,
-            batch_size: int = 4,
-            lr: float = 1e-3,
-            num_layers: int = 3,
-            features_start: int = 64,
-            bilinear: bool = False,
-            **kwargs,
+        self,
+        data_path: str,
+        batch_size: int = 4,
+        lr: float = 1e-3,
+        num_layers: int = 3,
+        features_start: int = 64,
+        bilinear: bool = False,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.data_path = data_path
@@ -196,12 +197,12 @@ class SegModel(pl.LightningModule):
         self.features_start = features_start
         self.bilinear = bilinear
 
-        self.net = UNet(num_classes=19, num_layers=self.num_layers,
-                        features_start=self.features_start, bilinear=self.bilinear)
+        self.net = UNet(
+            num_classes=19, num_layers=self.num_layers, features_start=self.features_start, bilinear=self.bilinear
+        )
         self.transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753],
-                                 std=[0.32064945, 0.32098866, 0.32325324])
+            transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753], std=[0.32064945, 0.32098866, 0.32325324])
         ])
         self.trainset = KITTI(self.data_path, split='train', transform=self.transform)
         self.validset = KITTI(self.data_path, split='valid', transform=self.transform)
@@ -250,8 +251,12 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
         parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
         parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
-        parser.add_argument("--bilinear", action='store_true', default=False,
-                            help="whether to use bilinear interpolation or transposed")
+        parser.add_argument(
+            "--bilinear",
+            action='store_true',
+            default=False,
+            help="whether to use bilinear interpolation or transposed"
+        )
         return parser
 
 
@@ -284,7 +289,7 @@ def main(hparams: Namespace):
 
 if __name__ == '__main__':
     cli_lightning_logo()
-    parser = ArgumentParser()
+    parser = ArgumentParser(add_help=False)
     parser = SegModel.add_model_specific_args(parser)
     hparams = parser.parse_args()
 

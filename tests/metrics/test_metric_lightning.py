@@ -2,10 +2,11 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.metrics import Metric, MetricCollection
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 class SumMetric(Metric):
+
     def __init__(self):
         super().__init__()
         self.add_state("x", torch.tensor(0.0), dist_reduce_fx="sum")
@@ -18,6 +19,7 @@ class SumMetric(Metric):
 
 
 class DiffMetric(Metric):
+
     def __init__(self):
         super().__init__()
         self.add_state("x", torch.tensor(0.0), dist_reduce_fx="sum")
@@ -30,7 +32,9 @@ class DiffMetric(Metric):
 
 
 def test_metric_lightning(tmpdir):
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.metric = SumMetric()
@@ -46,6 +50,7 @@ def test_metric_lightning(tmpdir):
         def training_epoch_end(self, outs):
             assert torch.allclose(self.sum, self.metric.compute())
             self.sum = 0.0
+            self.metric.reset()
 
     model = TestModel()
     model.val_dataloader = None
@@ -63,7 +68,9 @@ def test_metric_lightning(tmpdir):
 
 def test_metric_lightning_log(tmpdir):
     """ Test logging a metric object and that the metric state gets reset after each epoch."""
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.metric_step = SumMetric()
@@ -102,7 +109,9 @@ def test_metric_lightning_log(tmpdir):
 
 
 def test_scriptable(tmpdir):
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             # the metric is not used in the module's `forward`
@@ -140,7 +149,9 @@ def test_scriptable(tmpdir):
 
 
 def test_metric_collection_lightning_log(tmpdir):
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.metric = MetricCollection([SumMetric(), DiffMetric()])

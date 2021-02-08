@@ -14,9 +14,10 @@
 import pytest
 from torch import optim
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
 
@@ -36,8 +37,8 @@ def test_lr_monitor_single_lr(tmpdir):
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert all(v is None for v in lr_monitor.last_momentum_values.values()), \
@@ -53,7 +54,9 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
     """
     Test that learning rates and momentum are extracted and logged for single lr scheduler.
     """
+
     class LogMomentumModel(BoringModel):
+
         def __init__(self, opt):
             super().__init__()
             self.opt = opt
@@ -78,8 +81,8 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
         log_every_n_steps=1,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert all(v is not None for v in lr_monitor.last_momentum_values.values()), \
         'Expected momentum to be logged'
@@ -93,7 +96,9 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
     """
     Test that if optimizer doesn't have momentum then a warning is raised with log_momentum=True.
     """
+
     class LogMomentumModel(BoringModel):
+
         def configure_optimizers(self):
             optimizer = optim.ASGD(self.parameters(), lr=1e-2)
             lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -110,8 +115,8 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         callbacks=[lr_monitor],
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
-        result = trainer.fit(model)
-        assert result
+        trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert all(v == 0 for v in lr_monitor.last_momentum_values.values()), \
         'Expected momentum to be logged'
@@ -136,8 +141,8 @@ def test_lr_monitor_no_lr_scheduler(tmpdir):
     )
 
     with pytest.warns(RuntimeWarning, match='have no learning rate schedulers'):
-        result = trainer.fit(model)
-        assert result
+        trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_lr_monitor_no_logger(tmpdir):
@@ -150,7 +155,7 @@ def test_lr_monitor_no_logger(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         callbacks=[lr_monitor],
-        logger=False
+        logger=False,
     )
 
     with pytest.raises(MisconfigurationException, match='`Trainer` that has no logger'):
@@ -176,8 +181,8 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
         limit_val_batches=0.1,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert len(lr_monitor.lrs) == len(trainer.lr_schedulers), \
@@ -209,8 +214,8 @@ def test_lr_monitor_param_groups(tmpdir):
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert len(lr_monitor.lrs) == 2 * len(trainer.lr_schedulers), \
@@ -221,7 +226,9 @@ def test_lr_monitor_param_groups(tmpdir):
 
 
 def test_lr_monitor_custom_name(tmpdir):
+
     class TestModel(BoringModel):
+
         def configure_optimizers(self):
             optimizer, [scheduler] = super().configure_optimizers()
             lr_scheduler = {'scheduler': scheduler, 'name': 'my_logging_name'}

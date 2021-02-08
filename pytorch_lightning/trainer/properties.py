@@ -17,19 +17,21 @@ from abc import ABC
 from argparse import ArgumentParser, Namespace
 from typing import cast, List, Optional, Type, TypeVar, Union
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
-    from_argparse_args, parse_argparser, parse_env_variables, add_argparse_args
+    add_argparse_args,
+    from_argparse_args,
+    parse_argparser,
+    parse_env_variables,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -48,9 +50,8 @@ class TrainerProperties(ABC):
     _state: TrainerState
     global_rank: int
     fast_dev_run: Union[int, bool]
-    use_dp: bool
-    use_ddp: bool
-    use_ddp2: bool
+    _device_type: DeviceType
+    _distrib_type: DistributedType
     model: LightningModule
     data_parallel_device_ids: Optional[List[int]]
     _progress_bar_callback: ProgressBarBase
@@ -62,19 +63,16 @@ class TrainerProperties(ABC):
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
     callbacks: List[Callback]
+    num_nodes: int
+    num_processes: int
+    _lightning_optimizers = None
 
     @property
     def log_dir(self):
-        if self.checkpoint_callback is not None:
-            dirpath = self.checkpoint_callback.dirpath
-            dirpath = os.path.split(dirpath)[0]
-        elif self.logger is not None:
-            if isinstance(self.logger, TensorBoardLogger):
-                dirpath = self.logger.log_dir
-            else:
-                dirpath = self.logger.save_dir
+        if self.logger is None:
+            dirpath = self.default_root_dir
         else:
-            dirpath = self._default_root_dir
+            dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
 
         if self.accelerator_backend is not None:
             dirpath = self.accelerator_backend.broadcast(dirpath)
@@ -176,7 +174,9 @@ class TrainerProperties(ABC):
 
     @property
     def data_parallel(self) -> bool:
-        return self.use_dp or self.use_ddp or self.use_ddp2
+        return self._distrib_type in (
+            DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2
+        )
 
     @property
     def progress_bar_callback(self):
@@ -185,9 +185,22 @@ class TrainerProperties(ABC):
     @property
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
-        ref_model = self.model if not self.data_parallel else self.model.module
+        ref_model = self.get_model()
         ref_model = cast(LightningModule, ref_model)
-        return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
+
+        standard_metrics = ref_model.get_progress_bar_dict()
+        logged_metrics = self.progress_bar_metrics
+        duplicates = list(standard_metrics.keys() & logged_metrics.keys())
+        if duplicates:
+            rank_zero_warn(
+                f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
+                f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
+                f" If this is undesired, change the name or override `get_progress_bar_dict()`"
+                f" in `LightingModule`.", UserWarning
+            )
+        all_metrics = dict(**standard_metrics)
+        all_metrics.update(**logged_metrics)
+        return all_metrics
 
     @property
     def disable_validation(self) -> bool:
@@ -261,31 +274,34 @@ class TrainerProperties(ABC):
     def get_model(self):
         return self.model_connector.get_model()
 
-    def __getstate__(self):
-        # unwrap optimizer
-        self.optimizers = [opt._optimizer if is_lightning_optimizer(opt) else opt for opt in self.optimizers]
-        return self.__dict__
+    @property
+    def lightning_optimizers(self):
+        if self._lightning_optimizers is None:
+            self.convert_to_lightning_optimizers()
+        return self._lightning_optimizers
 
-    def __setstate__(self, d):
-        self.__dict__ = d
-        # wrap optimizers in enable_pl_optimzer is True
-        self.convert_to_lightning_optimizers()
+    def __getstate__(self):
+        # remove lightning_optimizers
+        self._lightning_optimizers = None
+        return self.__dict__
 
     @property
     def require_distributed_sampler(self):
         if self.accelerator_backend is not None:
             return self.accelerator_backend.require_distributed_sampler
-        return self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
+        return self._distrib_type in (
+            DistributedType.HOROVOD, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2
+        ) or self._device_type == DeviceType.TPU
 
     @property
     def distributed_sampler_kwargs(self):
         if self.accelerator_backend is not None:
             return self.accelerator_backend.distributed_sampler_kwargs
 
-        if self.use_tpu:
+        if self._device_type == DeviceType.TPU:
             kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
-        elif self.use_horovod:
+        elif self._distrib_type == DistributedType.HOROVOD:
             kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
 
         else:

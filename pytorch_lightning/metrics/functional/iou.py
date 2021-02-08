@@ -14,17 +14,18 @@
 from typing import Optional
 
 import torch
+
 from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_update
 from pytorch_lightning.metrics.functional.reduction import reduce
 from pytorch_lightning.metrics.utils import get_num_classes
 
 
 def _iou_from_confmat(
-        confmat: torch.Tensor,
-        num_classes: int,
-        ignore_index: Optional[int] = None,
-        absent_score: float = 0.0,
-        reduction: str = 'elementwise_mean',
+    confmat: torch.Tensor,
+    num_classes: int,
+    ignore_index: Optional[int] = None,
+    absent_score: float = 0.0,
+    reduction: str = 'elementwise_mean',
 ):
     intersection = torch.diag(confmat)
     union = confmat.sum(0) + confmat.sum(1) - intersection
@@ -43,13 +44,13 @@ def _iou_from_confmat(
 
 
 def iou(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        ignore_index: Optional[int] = None,
-        absent_score: float = 0.0,
-        threshold: float = 0.5,
-        num_classes: Optional[int] = None,
-        reduction: str = 'elementwise_mean',
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    ignore_index: Optional[int] = None,
+    absent_score: float = 0.0,
+    threshold: float = 0.5,
+    num_classes: Optional[int] = None,
+    reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
     r"""
     Computes `Intersection over union, or Jaccard index calculation <https://en.wikipedia.org/wiki/Jaccard_index>`_:

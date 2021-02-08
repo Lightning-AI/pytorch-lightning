@@ -25,7 +25,7 @@ if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
     from torchvision.datasets.mnist import MNIST
 else:
-    from tests.base.datasets import MNIST
+    from tests.helpers.datasets import MNIST
 
 
 class Backbone(torch.nn.Module):
@@ -36,6 +36,7 @@ class Backbone(torch.nn.Module):
       (l2): Linear(...)
     )
     """
+
     def __init__(self, hidden_dim=128):
         super().__init__()
         self.l1 = torch.nn.Linear(28 * 28, hidden_dim)
@@ -55,6 +56,7 @@ class LitClassifier(pl.LightningModule):
       (backbone): ...
     )
     """
+
     def __init__(self, backbone, learning_rate=1e-3):
         super().__init__()
         self.save_hyperparameters()

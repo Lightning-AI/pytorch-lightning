@@ -21,11 +21,11 @@ import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
+from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.legacy.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
-from tests.backends import DDPLauncher
-from tests.base.boring_model import BoringModel, RandomDataset
+from tests.accelerators.legacy import DDPLauncher
+from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
@@ -100,8 +100,9 @@ def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
 
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 @DDPLauncher.run("--accelerator ddp --gpus 2 --precision 32")
 def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir, args=None):
     plugin_parity_test(
@@ -115,8 +116,9 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir, args=None):
 
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 @DDPLauncher.run("--accelerator ddp --gpus 2  --precision 16")
 def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
     plugin_parity_test(
@@ -173,9 +175,11 @@ class SeedTrainLoaderModel(BoringModel):
 
 
 class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
+
     def training_step(self, batch, batch_idx, optimizer_idx):
         # manual
-        (opt_a, opt_b) = self.optimizers()
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
         loss_1 = self.step(batch)
 
         self.manual_backward(loss_1, opt_a)
@@ -208,6 +212,7 @@ class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
 
 
 class SeedTrainLoaderMultipleOptimizersModel(SeedTrainLoaderModel):
+
     def training_step(self, batch, batch_idx, optimizer_idx):
         output = self.layer(batch)
         loss = self.loss(batch, output)
@@ -246,7 +251,7 @@ def record_ddp_fit_model_stats(trainer, model, use_cuda):
 
     if use_cuda:
         torch.cuda.synchronize()
-        max_memory = torch.cuda.max_memory_allocated() / 2 ** 20
+        max_memory = torch.cuda.max_memory_allocated() / 2**20
 
     total_time = time.perf_counter() - time_start
 
@@ -254,13 +259,13 @@ def record_ddp_fit_model_stats(trainer, model, use_cuda):
 
 
 def plugin_parity_test(
-        model_cls: Type[SeedTrainLoaderModel],
-        plugin: Union[str, DDPPlugin],
-        seed: int = 42,
-        accelerator: str = 'ddp_spawn',
-        gpus: int = 0,
-        precision: int = 32,
-        max_percent_speed_diff: float = 0.1,
+    model_cls: Type[SeedTrainLoaderModel],
+    plugin: Union[str, DDPPlugin],
+    seed: int = 42,
+    accelerator: str = 'ddp_spawn',
+    gpus: int = 0,
+    precision: int = 32,
+    max_percent_speed_diff: float = 0.1,
 ):
     """
     Ensures that the trained model is identical to the standard DDP implementation.
@@ -291,11 +296,7 @@ def plugin_parity_test(
         accelerator=accelerator,
     )
 
-    max_memory_ddp, ddp_time = record_ddp_fit_model_stats(
-        trainer=trainer,
-        model=ddp_model,
-        use_cuda=use_cuda
-    )
+    max_memory_ddp, ddp_time = record_ddp_fit_model_stats(trainer=trainer, model=ddp_model, use_cuda=use_cuda)
 
     # Reset and train Custom DDP
     seed_everything(seed)
@@ -311,9 +312,7 @@ def plugin_parity_test(
     )
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(
-        trainer=trainer,
-        model=custom_plugin_model,
-        use_cuda=use_cuda
+        trainer=trainer, model=custom_plugin_model, use_cuda=use_cuda
     )
 
     # Assert model parameters are identical after fit

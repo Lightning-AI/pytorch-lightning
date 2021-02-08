@@ -13,13 +13,14 @@
 # limitations under the License.
 import os
 from copy import deepcopy
+
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
-from tests.base.datamodules import TrialMNISTDataModule
+from tests.base import BoringModel, EvalModelTemplate
+from tests.helpers.datamodules import TrialMNISTDataModule
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -73,8 +74,9 @@ def test_trainer_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
-                          'accumulate_grad_batches', 'checkpoint_callback']
+    changed_attributes = [
+        'callbacks', 'logger', 'max_steps', 'auto_lr_find', 'accumulate_grad_batches', 'checkpoint_callback'
+    ]
     attributes_before = {}
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
@@ -88,6 +90,8 @@ def test_trainer_reset_correctly(tmpdir):
     for key in changed_attributes:
         assert attributes_before[key] == attributes_after[key], \
             f'Attribute {key} was not reset correctly after learning rate finder'
+
+    assert model.trainer == trainer
 
 
 @pytest.mark.parametrize('use_hparams', [False, True])
@@ -262,3 +266,12 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
     assert before_lr == after_lr, \
         'Learning rate was altered because of non-finite loss values'
+
+
+def test_lr_finder_fails_fast_on_bad_config(tmpdir):
+    """ Test that tune fails if the model does not have a lr BEFORE running lr find """
+    # note: this did not raise an exception before #5638 because lr_find is skipped
+    # during fast_dev_run and the lr attribute check was done after lr_find
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, auto_lr_find=True)
+    with pytest.raises(MisconfigurationException, match='should have one of these fields'):
+        trainer.tune(BoringModel())

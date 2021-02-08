@@ -15,11 +15,8 @@ from typing import Any, Callable, Optional
 
 import torch
 
+from pytorch_lightning.metrics.functional.r2score import _r2score_compute, _r2score_update
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.r2score import (
-    _r2score_update,
-    _r2score_compute
-)
 
 
 class R2Score(Metric):
@@ -84,6 +81,7 @@ class R2Score(Metric):
         >>> r2score(preds, target)
         tensor([0.9654, 0.9082])
     """
+
     def __init__(
         self,
         num_outputs: int = 1,
@@ -104,8 +102,7 @@ class R2Score(Metric):
         self.num_outputs = num_outputs
 
         if adjusted < 0 or not isinstance(adjusted, int):
-            raise ValueError('`adjusted` parameter should be an integer larger or'
-                             ' equal to 0.')
+            raise ValueError('`adjusted` parameter should be an integer larger or' ' equal to 0.')
         self.adjusted = adjusted
 
         allowed_multioutput = ('raw_values', 'uniform_average', 'variance_weighted')
@@ -139,5 +136,6 @@ class R2Score(Metric):
         """
         Computes r2 score over the metric states.
         """
-        return _r2score_compute(self.sum_squared_error, self.sum_error, self.residual,
-                                self.total, self.adjusted, self.multioutput)
+        return _r2score_compute(
+            self.sum_squared_error, self.sum_error, self.residual, self.total, self.adjusted, self.multioutput
+        )

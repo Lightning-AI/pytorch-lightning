@@ -2,10 +2,13 @@ import os
 import re
 import signal
 from subprocess import call
-from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities.distributed import rank_zero_info
-import torch.distributed as torch_distrib
+
 import torch
+import torch.distributed as torch_distrib
+
+from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities import DeviceType, DistributedType
+from pytorch_lightning.utilities.distributed import rank_zero_info
 
 
 class SLURMConnector:
@@ -22,7 +25,7 @@ class SLURMConnector:
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
-        if self.trainer.use_ddp or self.trainer.use_ddp2:
+        if self.trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2):
             self.trainer.num_requested_gpus = self.trainer.num_gpus * num_gpu_nodes
             self.trainer.num_slurm_tasks = 0
             try:
@@ -137,7 +140,7 @@ class SLURMConnector:
         # figure out the root node addr
         root_node = os.environ.get("SLURM_NODELIST")
         if root_node:
-            root_node = root_node.split(" ")[0]
+            root_node = root_node.split(" ")[0].split(",")[0]
         else:
             root_node = "127.0.0.1"
 
@@ -145,12 +148,8 @@ class SLURMConnector:
         os.environ["MASTER_ADDR"] = root_node
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
 
-        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
+        torch_backend = "nccl" if self.trainer._device_type == DeviceType.GPU else "gloo"
 
         if not torch.distributed.is_initialized():
-            log.info(
-                f"initializing ddp (SLURM): GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
-            )
-            torch_distrib.init_process_group(
-                torch_backend, rank=global_rank, world_size=world_size
-            )
+            log.info(f"initializing ddp (SLURM): GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+            torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)

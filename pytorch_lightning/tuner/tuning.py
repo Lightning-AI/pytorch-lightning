@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List, Union
+from typing import List, Optional, Union
 
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
+from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
+from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
 
 
 class Tuner:
@@ -50,12 +50,10 @@ class Tuner:
                 val_dataloaders=val_dataloaders,
                 datamodule=datamodule,
             )
-            model.logger = self.trainer.logger  # reset logger binding
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
             self.internal_find_lr(model)
-            model.logger = self.trainer.logger  # reset logger binding
 
     def scale_batch_size(
             self,

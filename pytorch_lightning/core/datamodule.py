@@ -22,9 +22,10 @@ from argparse import ArgumentParser, Namespace
 from typing import Any, List, Optional, Tuple, Union, Dict
 
 import torch
+from torch.utils.data import DataLoader, Dataset
+
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import parsing, rank_zero_only
-from torch.utils.data import DataLoader, Dataset
 
 
 class _DataModuleWrapper(type):
@@ -345,6 +346,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
     @classmethod
     def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         r"""Scans the DataModule signature and returns argument names, types and default values.
+
         Returns:
             List with tuples of 3 values:
             (argument name, set with argument types, argument default value).

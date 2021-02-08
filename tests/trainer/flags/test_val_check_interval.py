@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-from tests.base import SimpleModule
+
 from pytorch_lightning.trainer import Trainer
+from tests.base import BoringModel
 
 
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])
 def test_val_check_interval_1(tmpdir, max_epochs):
 
-    class TestModel(SimpleModule):
+    class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.train_epoch_calls = 0
@@ -46,7 +48,8 @@ def test_val_check_interval_1(tmpdir, max_epochs):
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])
 def test_val_check_interval_quarter(tmpdir, max_epochs):
 
-    class TestModel(SimpleModule):
+    class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.train_epoch_calls = 0
@@ -73,7 +76,8 @@ def test_val_check_interval_quarter(tmpdir, max_epochs):
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])
 def test_val_check_interval_third(tmpdir, max_epochs):
 
-    class TestModel(SimpleModule):
+    class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.train_epoch_calls = 0

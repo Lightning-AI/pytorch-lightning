@@ -26,7 +26,7 @@ if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
     from torchvision.datasets.mnist import MNIST
 else:
-    from tests.base.datasets import MNIST
+    from tests.helpers.datasets import MNIST
 
 
 class LitAutoEncoder(pl.LightningModule):
@@ -43,12 +43,12 @@ class LitAutoEncoder(pl.LightningModule):
         self.encoder = nn.Sequential(
             nn.Linear(28 * 28, 64),
             nn.ReLU(),
-            nn.Linear(64, 3)
+            nn.Linear(64, 3),
         )
         self.decoder = nn.Sequential(
             nn.Linear(3, 64),
             nn.ReLU(),
-            nn.Linear(64, 28 * 28)
+            nn.Linear(64, 28 * 28),
         )
 
     def forward(self, x):
