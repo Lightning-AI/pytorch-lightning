@@ -493,7 +493,10 @@ class BackendConnector(object):
         ):
             self.num_processes = self.num_gpus
 
-        if (self._device_type == DeviceType.GPU and self._distrib_type == DistributedType.DDP2):
+        if (
+            self._device_type == DeviceType.GPU
+            and self._distrib_type == DistributedType.DDP2
+        ):
             self.num_processes = self.num_nodes
 
         # Horovod is an extra case...
