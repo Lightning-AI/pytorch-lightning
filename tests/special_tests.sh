@@ -21,7 +21,7 @@ python ${DEFAULTS} tests/models/test_sync_batchnorm.py::test_sync_batchnorm_ddp
 # python ${DEFAULTS} tests/plugins/legacy/test_rpc_plugin.py::test_rpc_function_calls_ddp
 python ${DEFAULTS} tests/plugins/legacy/test_ddp_sequential_plugin.py::test_ddp_sequential_plugin_ddp_rpc_manual
 python ${DEFAULTS} tests/plugins/legacy/test_ddp_sequential_plugin.py::test_ddp_sequential_plugin_ddp_rpc_manual_amp
-python ${DEFAULTS} tests/plugins/legacy/test_ddp_sequential_plugin.py::test_ddp_sequential_plugin_ddp_rpc_automatic
+# python ${DEFAULTS} tests/plugins/legacy/test_ddp_sequential_plugin.py::test_ddp_sequential_plugin_ddp_rpc_automatic
 python ${DEFAULTS} tests/plugins/legacy/test_ddp_sequential_plugin.py::test_ddp_sequential_plugin_ddp_rpc_with_wrong_balance
 python ${DEFAULTS} tests/utilities/test_all_gather_grad.py::test_all_gather_collection
 python ${DEFAULTS} tests/trainer/test_trainer.py::test_trainer_predict_ddp
