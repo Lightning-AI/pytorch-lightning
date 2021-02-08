@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import sys
 import threading
 from functools import partial, wraps
@@ -18,6 +19,18 @@ from http.server import SimpleHTTPRequestHandler
 
 import pytest
 import torch.multiprocessing as mp
+
+
+@pytest.fixture(scope="function", autouse=True)
+def clear_lightning_env_variables():
+    blacklist = [key for key in os.environ.keys() if key.startswith("PL_")]
+    blacklist += [
+        "LOCAL_RANK",
+        "GLOBAL_RANK",
+        "WORLD_SIZE",
+    ]
+    for key in blacklist:
+        os.environ.pop(key, None)
 
 
 def pytest_configure(config):
