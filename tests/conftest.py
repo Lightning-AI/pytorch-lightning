@@ -67,9 +67,6 @@ def tmpdir_server(tmpdir):
         class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
             daemon_threads = True
 
-    # reset tests
-    os.environ = _ENVIRON
-
     with ThreadingHTTPServer(('localhost', 0), Handler) as server:
         server_thread = threading.Thread(target=server.serve_forever)
         # Exit the server thread when the main thread terminates
