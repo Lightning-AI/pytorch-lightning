@@ -59,6 +59,7 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs, val_check_interval, 
         max_epochs=epochs,
         weights_summary=None,
         val_check_interval=val_check_interval,
+        progress_bar_refresh_rate=0,
     )
     trainer.fit(model)
 
