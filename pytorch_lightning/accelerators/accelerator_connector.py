@@ -33,7 +33,6 @@ from pytorch_lightning.plugins import (
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
-    RPCPlugin,
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
     SingleTPUPlugin,
@@ -103,8 +102,6 @@ class BackendConnector(object):
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
 
-        self.handle_given_plugins(plugins)
-
         # init the default rank if exists
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
         # this way we only show it on rank 0
@@ -120,6 +117,8 @@ class BackendConnector(object):
 
         self.set_distributed_mode()
         self.configure_slurm_ddp()
+
+        self.handle_given_plugins(plugins)
 
         self.accelerator = self.select_accelerator()
 
@@ -147,8 +146,10 @@ class BackendConnector(object):
         self.replace_sampler_ddp = replace_sampler_ddp
 
     def handle_given_plugins(self, plugins: Optional[Sequence]):
-        if plugins is None:
-            return
+        plugins = plugins if plugins is not None else []
+
+        if isinstance(plugins, str):
+            plugins = [plugins]
 
         if not isinstance(plugins, Sequence):
             plugins = [plugins]
@@ -158,9 +159,13 @@ class BackendConnector(object):
         cluster_environment = None
 
         for plug in plugins:
-            if isinstance(plug, TrainingTypePlugin):
+            if isinstance(plug, str):
+                self.set_distributed_mode(plug)
+
+            elif isinstance(plug, TrainingTypePlugin):
                 if training_type is None:
                     training_type = plug
+
                 else:
                     raise MisconfigurationException(
                         'You can only specify one precision and one training type plugin. '
@@ -190,20 +195,22 @@ class BackendConnector(object):
                 )
 
         self._training_type_plugin = training_type
+        self._training_type_plugin = self.training_type_plugin
         self._precision_plugin = precision
-        self._cluster_environment = cluster_environment
+        self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
         if self._precision_plugin is None:
             self._precision_plugin = self.select_precision_plugin()
-
         return self._precision_plugin
 
     @property
     def training_type_plugin(self) -> TrainingTypePlugin:
         if self._training_type_plugin is None:
             self._training_type_plugin = self.select_training_type_plugin()
+        else:
+            self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
 
         return self._training_type_plugin
 
@@ -283,9 +290,6 @@ class BackendConnector(object):
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 
-            if isinstance(self.training_type_plugin, RPCPlugin):
-                raise MisconfigurationException
-
             if self.amp_type == "native":
                 if not _NATIVE_AMP_AVAILABLE:
                     rank_zero_warn(
@@ -293,6 +297,10 @@ class BackendConnector(object):
                         " Consider upgrading with `pip install torch>=1.6`."
                         " We will attempt to use NVIDIA Apex for this session."
                     )
+                    if not _APEX_AVAILABLE and self.on_cpu:
+                        raise MisconfigurationException(
+                            "You have asked for native AMP on CPU, but AMP is only available on GPU."
+                        )
                     self.amp_type = "apex"
                 elif self.on_cpu:
                     raise MisconfigurationException(
@@ -324,9 +332,8 @@ class BackendConnector(object):
             raise NotImplementedError("We only support precisions 32 and 16!")
 
     def select_training_type_plugin(self):
-        cluster_environment = self.select_cluster_environment()
         if self.use_ddp2:
-            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=cluster_environment)
+            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
@@ -358,7 +365,7 @@ class BackendConnector(object):
             plugin = ddp_plugin_cls(
                 parallel_devices=self.parallel_devices,
                 num_nodes=self.num_nodes,
-                cluster_environment=cluster_environment,
+                cluster_environment=self.cluster_environment,
                 sync_batchnorm=self.sync_batchnorm,
             )
         elif self.use_dp:
@@ -373,6 +380,21 @@ class BackendConnector(object):
         else:
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{self.root_gpu}" if self.on_gpu else "cpu"))
         return plugin
+
+    def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
+        # necessary for RPC, when user has to provide balance
+        if hasattr(training_type, 'parallel_devices') and not getattr(training_type, 'parallel_devices'):
+            training_type.parallel_devices = self.parallel_devices
+            if hasattr(training_type, 'num_processes'):
+                training_type.num_processes = len(self.parallel_devices)
+
+        if hasattr(training_type, 'cluster_environment') and getattr(training_type, 'cluster_environment') is None:
+            training_type.cluster_environment = self.select_cluster_environment()
+
+        if hasattr(training_type, 'num_nodes') and getattr(training_type, 'num_nodes') is None:
+            training_type.num_nodes = self.num_nodes
+
+        return training_type
 
     def select_accelerator(self):
         if isinstance(self.distributed_backend, Accelerator):
@@ -412,7 +434,11 @@ class BackendConnector(object):
             env = TorchElasticEnvironment()
         return env
 
-    def set_distributed_mode(self):
+    def set_distributed_mode(self, distributed_backend: Optional[str] = None):
+
+        if distributed_backend is not None:
+            self.distributed_backend = distributed_backend
+
         if isinstance(self.distributed_backend, Accelerator):
             return
 
@@ -470,6 +496,9 @@ class BackendConnector(object):
             and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
         ):
             self.num_processes = self.num_gpus
+
+        if (self._device_type == DeviceType.GPU and self._distrib_type == DistributedType.DDP2):
+            self.num_processes = self.num_nodes
 
         # Horovod is an extra case...
         if self.distributed_backend == "horovod":

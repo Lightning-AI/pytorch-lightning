@@ -13,11 +13,12 @@
 # limitations under the License.
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Optional, TYPE_CHECKING, Union
 
 import torch
+from torch.nn import Module
 from torch.optim import Optimizer
-from pytorch_lightning import _logger as log
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
@@ -69,19 +70,22 @@ class TrainingTypePlugin(Plugin, ABC):
         """Reduce the early stopping decision across all possibly spawned processes"""
         return should_stop
 
-    def pre_backward(self, closure_loss: torch.Tensor, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run before precision plugin executes backward"""
 
-    def post_backward(self, closure_loss: torch.Tensor, optimizer: Optimizer, opt_idx: int):
+    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run after precision plugin executes backward"""
 
+    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, **kwargs) -> None:
+        """Hook to do something after each optimizer step."""
+
     @property
-    def model(self) -> torch.nn.Module:
+    def model(self) -> Module:
         """Returns the potentially wrapped LightningModule"""
         return self._model
 
     @model.setter
-    def model(self, new_model: torch.nn.Module) -> None:
+    def model(self, new_model: Module) -> None:
         self._model = new_model
 
     @property

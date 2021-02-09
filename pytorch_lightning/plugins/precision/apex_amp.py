@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
 import torch
 from torch.optim import Optimizer
@@ -38,6 +38,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         """Connects the precision plugin to the training process,
         configures apex and reinits the schedulers
         """
+        if model.device.type != "cuda":
+            return model, optimizers, lr_schedulers
         model, optimizers = self.configure_apex(amp, model, optimizers, self.amp_level)
         self.reinit_scheduler_properties(optimizers, lr_schedulers)
         return model, optimizers, lr_schedulers
@@ -71,7 +73,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         # do backward pass
         # TODO: not entirely sure, why we need this
         if model is not None and isinstance(model, LightningModule):
-            model.backward(closure_loss, optimizer, opt_idx)
+            model.backward(closure_loss, optimizer, opt_idx, **kwargs)
 
             # TODO: avoid dev_debugger and track these calls with mock
             model.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
@@ -89,6 +91,15 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
         return closure_loss
+
+    def pre_optimizer_step(
+        self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, closure: Callable, **kwargs
+    ) -> bool:
+        """Hook to do something before each optimizer step."""
+        # Apex: Amp does not support closure use with optimizers
+        closure()
+        optimizer.step()
+        return False
 
     def configure_apex(
         self,
@@ -145,3 +156,18 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
                 if state is not None:
                     break
+
+    def pre_optimizer_step(
+        self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs
+    ) -> bool:
+        """
+        always called before the optimizer step.
+        """
+        # apex amp does not support closures.
+        lambda_closure()
+
+        if not pl_module.automatic_optimization:
+            optimizer.step()
+            pl_module.trainer.call_hook("on_after_backward")
+
+        return False

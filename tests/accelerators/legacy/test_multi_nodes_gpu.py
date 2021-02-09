@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import sys
+from unittest import mock
 
 import pytest
 import torch
@@ -23,7 +24,7 @@ DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 from pytorch_lightning import LightningModule  # noqa: E402
 from pytorch_lightning import Trainer  # noqa: E402
-from tests.base.boring_model import BoringModel  # noqa: E402
+from tests.helpers.boring_model import BoringModel  # noqa: E402
 
 
 @pytest.mark.skipif(
@@ -36,6 +37,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     fake_result = 1
 
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True)
@@ -67,13 +69,14 @@ def test_logging_sync_dist_true_ddp(tmpdir):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__validation_step__log(tmpdir):
     """
     Tests that validation_step can log
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch)
             acc = acc + batch_idx

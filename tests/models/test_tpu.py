@@ -18,7 +18,7 @@ from unittest import mock
 import pytest
 from torch.utils.data import DataLoader
 
-import tests.base.develop_pipelines as tpipes
+import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
@@ -26,8 +26,8 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.base.datasets import TrialMNIST
-from tests.base.develop_utils import pl_multi_process_test
+from tests.helpers.datasets import TrialMNIST
+from tests.helpers.utils import pl_multi_process_test
 
 if _TPU_AVAILABLE:
     import torch_xla

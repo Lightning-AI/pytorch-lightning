@@ -405,12 +405,6 @@ class Trainer(
         Args:
             model: The model to run sanity test on.
         """
-        # --------------------------
-        # Setup??
-        # --------------------------
-
-        # set local properties on the model
-        self.model_connector.copy_trainer_model_properties(model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
         if self.amp_backend == AMPType.NATIVE and self.precision == 16 and self._device_type != DeviceType.TPU:
@@ -449,6 +443,9 @@ class Trainer(
         self._state = TrainerState.RUNNING
         self._set_wide_running_stage(RunningStage.TRAINING)
 
+        # set local properties on the model
+        self.model_connector.copy_trainer_model_properties(model)
+
         # ----------------------------
         # LINK DATA
         # ----------------------------
@@ -461,6 +458,7 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
+        self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator_backend.setup(self, model)
         self.setup_trainer(model)
 
@@ -472,7 +470,6 @@ class Trainer(
 
         # plugin will setup training (e.g. ddp will launch child processes)
         # TODO: the old setup is now called "pre_training", where should this hook be called now?
-        self.call_hook("on_before_accelerator_backend_setup", model)
         self.training_type_plugin.pre_training()
         self.precision_plugin.pre_training()
 
@@ -604,9 +601,6 @@ class Trainer(
                 if self.max_steps and self.max_steps <= self.global_step:
                     return
 
-                # update LR schedulers
-                self.optimizer_connector.update_learning_rates(interval='epoch')
-
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
@@ -636,7 +630,7 @@ class Trainer(
             # hook
             self.train_loop.on_train_end()
 
-    def run_evaluation(self, max_batches=None):
+    def run_evaluation(self, max_batches=None, on_epoch=False):
 
         # used to know if we are logging for val, test + reset cached results
         self._set_wide_running_stage(RunningStage.TESTING if self.testing else RunningStage.EVALUATING)
@@ -649,7 +643,7 @@ class Trainer(
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
 
         # check if we want to skip this evaluation
-        if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
+        if self.evaluation_loop.should_skip_evaluation(max_batches):
             return [], []
 
         # ref model
@@ -714,6 +708,10 @@ class Trainer(
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
+
+        # update epoch-level lr_schedulers
+        if on_epoch:
+            self.optimizer_connector.update_learning_rates(interval='epoch')
 
         # hook
         self.evaluation_loop.on_evaluation_end()

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """LightningDataModule for loading DataLoaders with ease."""
 
 import functools
@@ -28,6 +27,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_only
 
 
 class _DataModuleWrapper(type):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__has_added_checks = False
@@ -279,9 +279,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
-            at
-            for at in cls.get_init_arguments_and_types()
-            if at[0] not in depr_arg_names
+            at for at in cls.get_init_arguments_and_types() if at[0] not in depr_arg_names
         ):
             arg_types = [at for at in allowed_types if at in arg_types]
             if not arg_types:
@@ -340,9 +338,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
 
         # we only want to pass in valid DataModule args, the rest may be user specific
         valid_kwargs = inspect.signature(cls.__init__).parameters
-        datamodule_kwargs = dict(
-            (name, params[name]) for name in valid_kwargs if name in params
-        )
+        datamodule_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
         datamodule_kwargs.update(**kwargs)
 
         return cls(**datamodule_kwargs)
@@ -363,7 +359,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
             try:
                 arg_types = tuple(arg_type.__args__)
             except AttributeError:
-                arg_types = (arg_type,)
+                arg_types = (arg_type, )
 
             name_type_default.append((arg, arg_types, arg_default))
 

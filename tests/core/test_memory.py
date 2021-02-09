@@ -20,7 +20,7 @@ from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
-from tests.base.models import ParityModuleRNN
+from tests.helpers.models import ParityModuleRNN
 
 
 class EmptyModule(LightningModule):
@@ -293,10 +293,12 @@ def test_empty_model_size(mode):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
-@pytest.mark.parametrize('precision', [
-    pytest.param(16, marks=pytest.mark.skip(reason="no longer valid, because 16 can mean mixed precision")),
-    pytest.param(32),
-])
+@pytest.mark.parametrize(
+    'precision', [
+        pytest.param(16, marks=pytest.mark.skip(reason="no longer valid, because 16 can mean mixed precision")),
+        pytest.param(32),
+    ]
+)
 def test_model_size_precision(monkeypatch, tmpdir, precision):
     """ Test model size for half and full precision. """
     model = PreCalculatedModel(precision)

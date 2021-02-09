@@ -116,7 +116,7 @@ class HorovodPlugin(ParallelPlugin):
         obj = hvd.broadcast_object(obj, src)
         return obj
 
-    def post_backward(self, closure_loss: torch.Tensor, optimizer: Optimizer, opt_idx: int):
+    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         optimizer.synchronize()
 
     def model_to_device(self):

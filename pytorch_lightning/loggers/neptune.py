@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 Neptune Logger
 --------------
@@ -188,8 +187,10 @@ class NeptuneLogger(LightningLoggerBase):
         **kwargs
     ):
         if neptune is None:
-            raise ImportError('You want to use `neptune` logger which is not installed yet,'
-                              ' install it with `pip install neptune-client`.')
+            raise ImportError(
+                'You want to use `neptune` logger which is not installed yet,'
+                ' install it with `pip install neptune-client`.'
+            )
         super().__init__()
         self.api_key = api_key
         self.project_name = project_name
@@ -241,11 +242,7 @@ class NeptuneLogger(LightningLoggerBase):
             self.experiment.set_property(f'param__{key}', val)
 
     @rank_zero_only
-    def log_metrics(
-            self,
-            metrics: Dict[str, Union[torch.Tensor, float]],
-            step: Optional[int] = None
-    ) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
         """
         Log metrics (numeric values) in Neptune experiments.
 
@@ -288,10 +285,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metric(
-            self,
-            metric_name: str,
-            metric_value: Union[torch.Tensor, float, str],
-            step: Optional[int] = None
+        self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None
     ) -> None:
         """
         Log metrics (numeric values) in Neptune experiments.
@@ -322,10 +316,7 @@ class NeptuneLogger(LightningLoggerBase):
         self.experiment.log_text(log_name, text, step=step)
 
     @rank_zero_only
-    def log_image(self,
-                  log_name: str,
-                  image: Union[str, Any],
-                  step: Optional[int] = None) -> None:
+    def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None) -> None:
         """
         Log image data in Neptune experiment
 

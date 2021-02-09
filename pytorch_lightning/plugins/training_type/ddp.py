@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from pytorch_lightning.overrides.distributed import prepare_for_backward
 import subprocess
 import sys
 from time import sleep
@@ -23,14 +22,14 @@ import torch
 import torch.distributed as torch_distrib
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_THAN_1_7_0
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities import _HYDRA_AVAILABLE
+from pytorch_lightning.utilities import _HYDRA_AVAILABLE, _PYTORCH_GREATER_EQUAL_1_7_0, rank_zero_warn
 from pytorch_lightning.utilities.distributed import (
     find_free_network_port,
     rank_zero_only,
@@ -73,7 +72,7 @@ class DDPPlugin(ParallelPlugin):
         self._has_spawned_children = False
         self.task_idx = None
         self.node_rank = 0
-        self.num_processes = len(parallel_devices)
+        self.num_processes = len(parallel_devices) if parallel_devices is not None else parallel_devices
 
     @property
     def root_device(self):
@@ -182,12 +181,12 @@ class DDPPlugin(ParallelPlugin):
 
     def pre_configure_ddp(self):
         # todo: PyTorch 1.7.0 DDP introduces ``self.reducer._rebuild_buckets()``` breaking manual_optimization
-        if _PYTORCH_GREATER_EQUAL_THAN_1_7_0 and not self.lightning_module.automatic_optimization:
+        if _PYTORCH_GREATER_EQUAL_1_7_0 and not self.lightning_module.automatic_optimization:
             rank_zero_warn(
                 "From PyTorch 1.7.0, Lightning ``manual_optimization`` needs to set ``find_unused_parameters=True`` "
                 "to properly work with DDP."
             )
-            self._ddp_kwargs["find_unused_parameters"] = True        
+            self._ddp_kwargs["find_unused_parameters"] = True
 
     def configure_ddp(self):
 
@@ -268,7 +267,7 @@ class DDPPlugin(ParallelPlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)
 
-    def pre_backward(self, closure_loss: torch.Tensor, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run before precision plugin executes backward"""
         if not self.lightning_module.automatic_optimization and self.model.require_backward_grad_sync:
             prepare_for_backward(self.model, closure_loss)

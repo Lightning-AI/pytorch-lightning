@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import re
-from pytorch_lightning.overrides.distributed import prepare_for_backward
 from typing import Any, Dict, Optional, Union
 
 import torch
@@ -25,11 +24,12 @@ from torch.optim import Optimizer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_7_0
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_THAN_1_7_0
 from pytorch_lightning.utilities.distributed import (
     find_free_network_port,
     rank_zero_only,
@@ -91,6 +91,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def set_world_ranks(self, process_idx):
         self.local_rank = process_idx
         self.node_rank = self.cluster_environment.node_rank()
+        self.task_idx = self.cluster_local_rank
         self.global_rank = self.node_rank * self.num_processes + self.local_rank
         self.world_size = self.num_nodes * self.num_processes
 
@@ -164,7 +165,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def pre_configure_ddp(self):
         # todo: PyTorch 1.7.0 DDP introduces ``self.reducer._rebuild_buckets()``` breaking manual_optimization
-        if _PYTORCH_GREATER_EQUAL_THAN_1_7_0 and not self.lightning_module.automatic_optimization:
+        if _PYTORCH_GREATER_EQUAL_1_7_0 and not self.lightning_module.automatic_optimization:
             rank_zero_warn(
                 "From PyTorch 1.7.0, Lightning ``manual_optimization`` needs to set ``find_unused_parameters=True`` "
                 "to properly work with DDP."
@@ -239,7 +240,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def pre_backward(self, closure_loss: torch.Tensor, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run before precision plugin executes backward"""
         if not self.lightning_module.automatic_optimization and self.model.require_backward_grad_sync:
             prepare_for_backward(self.model, closure_loss)

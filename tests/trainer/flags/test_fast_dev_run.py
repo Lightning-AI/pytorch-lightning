@@ -35,7 +35,9 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     """
     Test that ModelCheckpoint, EarlyStopping and Logger are turned off with fast_dev_run
     """
+
     class FastDevRunModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.training_step_call_count = 0

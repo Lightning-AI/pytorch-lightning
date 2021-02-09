@@ -25,7 +25,7 @@ import torch.nn.functional as F
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import _APEX_AVAILABLE
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -33,6 +33,7 @@ def test_multiple_optimizers_manual(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
 
         def __init__(self):
@@ -99,7 +100,9 @@ def test_multiple_optimizers_manual_return(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -166,7 +169,9 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -239,7 +244,9 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -308,7 +315,9 @@ def test_multiple_optimizers_manual_apex(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -337,7 +346,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             # ensure we forward the correct params to the optimizer
             # without retain_graph we can't do multiple backward passes
             self.manual_backward(loss_2, opt_b, retain_graph=True)
-            self.manual_backward(loss_2, opt_a, retain_graph=True)
+            self.manual_backward(loss_2, opt_a)
 
             assert self.layer.weight.grad is not None
             opt_b.step()
@@ -538,7 +547,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             if self.should_update:
 
                 self.manual_backward(loss, opt)
-                opt.step()
+                opt.step(make_optimizer_step=self.should_have_updated)
 
             return loss.detach() if self.detach else loss
 
@@ -557,7 +566,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
                         assert torch.sum(self.layer.weight.grad) != 0
             self.count += 1
 
-        def on_train_end(self):
+        def on_train_epoch_end(self, *_, **__):
             assert self.called["training_step"] == 20
             assert self.called["on_train_batch_start"] == 20
             assert self.called["on_train_batch_end"] == 20
@@ -586,6 +595,7 @@ def test_multiple_optimizers_step(tmpdir):
     """
     Tests that `step` works with several optimizers
     """
+
     class TestModel(BoringModel):
 
         called = False
@@ -746,6 +756,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     """
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -762,7 +773,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx # noqa E225
+                    retain_graph = num_backward != backward_idx  # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
             weight_before = self.layer.weight.clone()
@@ -809,6 +820,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     """
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -825,10 +837,10 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx # noqa E225
+                    retain_graph = num_backward != backward_idx  # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
-            opt.step(closure=optimizer_closure)
+            opt.step(closure=optimizer_closure, make_optimizer_step=True)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -866,6 +878,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     """
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -946,6 +959,7 @@ class TestManualOptimizationDDPCallack(Callback):
 
 
 class TesManualOptimizationDDPModel(BoringModel):
+
     def __init__(self):
         super().__init__()
         self.automatic_optimization = False
@@ -1052,8 +1066,9 @@ def train_manual_optimization(tmpdir, accelerator):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency

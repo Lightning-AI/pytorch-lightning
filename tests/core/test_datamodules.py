@@ -25,7 +25,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.base import BoringDataModule, BoringModel
-from tests.base.develop_utils import reset_seed
+from tests.helpers.utils import reset_seed
 
 
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
