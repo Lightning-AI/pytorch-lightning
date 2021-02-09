@@ -29,6 +29,9 @@ container:
     #endpoint: azureContainerRegistryConnection
     options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all"
 
+variables:
+    MKL_THREADING_LAYER: GNU
+
 steps:
 - bash: |
     lspci | egrep 'VGA|3D'
