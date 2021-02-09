@@ -31,11 +31,14 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _GROUP_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HYDRA_AVAILABLE,
+    _HYDRA_EXPERIMENTAL_AVAILABLE,
     _module_available,
     _NATIVE_AMP_AVAILABLE,
     _OMEGACONF_AVAILABLE,
+    _PYTORCH_PRUNE_AVAILABLE,
     _RPC_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
+    _TORCHVISION_AVAILABLE,
     _XLA_AVAILABLE,
 )
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401

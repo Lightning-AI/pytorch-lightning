@@ -21,7 +21,6 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE
 
 
 class MetricsHolder:
-
     """
     This class acts as a dictonary holder.
     It holds metrics and implements conversion functions.

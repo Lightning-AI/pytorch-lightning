@@ -11,9 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.classification import (Accuracy, AveragePrecision, ConfusionMatrix, F1,  # noqa: F401
-                                                      FBeta, HammingDistance, IoU, Precision, PrecisionRecallCurve,
-                                                      Recall, ROC, StatScores)
+from pytorch_lightning.metrics.classification import (  # noqa: F401
+    Accuracy,
+    AUC,
+    AUROC,
+    AveragePrecision,
+    ConfusionMatrix,
+    F1,
+    FBeta,
+    HammingDistance,
+    IoU,
+    Precision,
+    PrecisionRecallCurve,
+    Recall,
+    ROC,
+    StatScores,
+)
 from pytorch_lightning.metrics.metric import Metric, MetricCollection  # noqa: F401
 from pytorch_lightning.metrics.regression import (ExplainedVariance, MeanAbsoluteError, MeanSquaredError,  # noqa: F401
                                                   MeanSquaredLogError, PSNR, R2Score, SSIM)

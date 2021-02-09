@@ -33,6 +33,7 @@ class RandomDataset(Dataset):
     >>> RandomDataset(size=10, length=20)  # doctest: +ELLIPSIS
     <...bug_report_model.RandomDataset object at ...>
     """
+
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -124,9 +125,11 @@ class BoringModel(LightningModule):
 #  parser = ArgumentParser()
 #  args = parser.parse_args(opt)
 
+
 def test_run():
 
     class TestModel(BoringModel):
+
         def on_train_epoch_start(self) -> None:
             print('override any method to prove your bug')
 

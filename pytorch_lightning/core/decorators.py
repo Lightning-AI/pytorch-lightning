@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Decorator for LightningModule methods."""
 
 from functools import wraps
@@ -32,28 +31,27 @@ def auto_move_data(fn: Callable) -> Callable:
         fn: A LightningModule method for which the arguments should be moved to the device
             the parameters are on.
 
-    Example:
+    Example::
 
-        .. code-block:: python
+        # directly in the source code
+        class LitModel(LightningModule):
 
-            # directly in the source code
-            class LitModel(LightningModule):
+            @auto_move_data
+            def forward(self, x):
+                return x
 
-                @auto_move_data
-                def forward(self, x):
-                    return x
+        # or outside
+        LitModel.forward = auto_move_data(LitModel.forward)
 
-            # or outside
-            LitModel.forward = auto_move_data(LitModel.forward)
+        model = LitModel()
+        model = model.to('cuda')
+        model(torch.zeros(1, 3))
 
-            model = LitModel()
-            model = model.to('cuda')
-            model(torch.zeros(1, 3))
-
-            # input gets moved to device
-            # tensor([[0., 0., 0.]], device='cuda:0')
+        # input gets moved to device
+        # tensor([[0., 0., 0.]], device='cuda:0')
 
     """
+
     @wraps(fn)
     def auto_transfer_args(self, *args, **kwargs):
         if not isinstance(self, LightningModule):

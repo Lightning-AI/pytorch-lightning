@@ -46,6 +46,7 @@ class RunningStage(LightningEnum):
     TRAINING = 'train'
     EVALUATING = 'eval'
     TESTING = 'test'
+    PREDICTING = 'predict'
     TUNING = 'tune'
 
 
@@ -58,6 +59,7 @@ def trainer_state(*, entering: Optional[TrainerState] = None, exiting: Optional[
     """
 
     def wrapper(fn) -> Callable:
+
         @wraps(fn)
         def wrapped_fn(self, *args, **kwargs):
             if not isinstance(self, pytorch_lightning.Trainer):

@@ -21,10 +21,11 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from tests.base import EvalModelTemplate
-from tests.base.develop_utils import reset_seed
+from tests.helpers.utils import reset_seed
 
 
 class ModelWithManualGradTracker(EvalModelTemplate):
+
     def __init__(self, norm_type, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.stored_grad_norms, self.norm_type = [], float(norm_type)

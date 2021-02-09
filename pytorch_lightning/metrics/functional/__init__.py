@@ -11,12 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# TODO: unify metrics between class and functional, add below
 from pytorch_lightning.metrics.functional.accuracy import accuracy  # noqa: F401
+from pytorch_lightning.metrics.functional.auc import auc  # noqa: F401
+from pytorch_lightning.metrics.functional.auroc import auroc  # noqa: F401
 from pytorch_lightning.metrics.functional.average_precision import average_precision  # noqa: F401
-from pytorch_lightning.metrics.functional.classification import (auc, auroc, dice_score, get_num_classes,  # noqa: F401
-                                                                 multiclass_auroc, stat_scores_multiple_classes,
-                                                                 to_categorical, to_onehot)
+from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
+    dice_score,
+    get_num_classes,
+    multiclass_auroc,
+    stat_scores_multiple_classes,
+    to_categorical,
+    to_onehot,
+)
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix  # noqa: F401
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance  # noqa: F401
 from pytorch_lightning.metrics.functional.f_beta import f1, fbeta  # noqa: F401

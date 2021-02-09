@@ -40,48 +40,52 @@ else:
     from tqdm import tqdm
 
 
+def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
+    if isinstance(trainer.auto_lr_find, str):
+        if not lightning_hasattr(model, trainer.auto_lr_find):
+            raise MisconfigurationException(
+                f'`auto_lr_find` was set to {trainer.auto_lr_find}, however'
+                ' could not find this as a field in `model` or `model.hparams`.'
+            )
+        return trainer.auto_lr_find
+
+    attr_options = ('lr', 'learning_rate')
+    for attr in attr_options:
+        if lightning_hasattr(model, attr):
+            return attr
+
+    raise MisconfigurationException(
+        'When `auto_lr_find=True`, either `model` or `model.hparams` should'
+        f' have one of these fields: {attr_options} overridden.'
+    )
+
+
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
+    lr_attr_name = _determine_lr_attr_name(trainer, model)
     lr_finder = lr_find(trainer, model)
-
     if lr_finder is None:
         return
 
     lr = lr_finder.suggestion()
 
     # TODO: log lr.results to self.logger
-    if isinstance(trainer.auto_lr_find, str):
-        # Try to find requested field, may be nested
-        if lightning_hasattr(model, trainer.auto_lr_find):
-            lightning_setattr(model, trainer.auto_lr_find, lr)
-        else:
-            raise MisconfigurationException(
-                f'`auto_lr_find` was set to {trainer.auto_lr_find}, however'
-                ' could not find this as a field in `model` or `model.hparams`.')
-    else:
-        if lightning_hasattr(model, 'lr'):
-            lightning_setattr(model, 'lr', lr)
-        elif lightning_hasattr(model, 'learning_rate'):
-            lightning_setattr(model, 'learning_rate', lr)
-        else:
-            raise MisconfigurationException(
-                'When auto_lr_find is set to True, expects that `model` or'
-                ' `model.hparams` either has field `lr` or `learning_rate`'
-                ' that can overridden')
+    lightning_setattr(model, lr_attr_name, lr)
+
     log.info(f'Learning rate set to {lr}')
 
 
 def lr_find(
-        trainer,
-        model: LightningModule,
-        train_dataloader: Optional[DataLoader] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        min_lr: float = 1e-8,
-        max_lr: float = 1,
-        num_training: int = 100,
-        mode: str = 'exponential',
-        early_stop_threshold: float = 4.0,
-        datamodule: Optional[LightningDataModule] = None,
+    trainer,
+    model: LightningModule,
+    train_dataloader: Optional[DataLoader] = None,
+    val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+    min_lr: float = 1e-8,
+    max_lr: float = 1,
+    num_training: int = 100,
+    mode: str = 'exponential',
+    early_stop_threshold: float = 4.0,
+    datamodule: Optional[LightningDataModule] = None,
 ):
     r"""
     `lr_find` enables the user to do a range test of good initial learning rates,
@@ -151,9 +155,7 @@ def lr_find(
     lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
     # Use special lr logger callback
-    trainer.callbacks = [_LRCallback(num_training,
-                                     early_stop_threshold,
-                                     progress_bar_refresh_rate=1)]
+    trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
 
     # No logging
     trainer.logger = DummyLogger()
@@ -176,18 +178,14 @@ def lr_find(
     model.configure_optimizers = lr_finder._exchange_scheduler(model.configure_optimizers)
 
     # Fit, lr & loss logged in callback
-    trainer.fit(model,
-                train_dataloader=train_dataloader,
-                val_dataloaders=val_dataloaders,
-                datamodule=datamodule)
+    trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule)
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:
         log.info('LR finder stopped early due to diverging loss.')
 
     # Transfer results from callback to lr finder object
-    lr_finder.results.update({'lr': trainer.callbacks[0].lrs,
-                              'loss': trainer.callbacks[0].losses})
+    lr_finder.results.update({'lr': trainer.callbacks[0].lrs, 'loss': trainer.callbacks[0].losses})
     lr_finder._total_batch_idx = trainer.total_batch_idx  # for debug purpose
 
     # Reset model state
@@ -251,6 +249,7 @@ class _LRFinder(object):
         # Get suggestion
         lr = lr_finder.suggestion()
     """
+
     def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
         assert mode in ('linear', 'exponential'), \
             'mode should be either `linear` or `exponential`'
@@ -268,6 +267,7 @@ class _LRFinder(object):
             originally specified optimizer together with a new scheduler that
             that takes care of the learning rate search.
         """
+
         @wraps(configure_optimizers)
         def func():
             # Decide the structure of the output from configure_optimizers
@@ -288,7 +288,8 @@ class _LRFinder(object):
             if len(optimizers) != 1:
                 raise MisconfigurationException(
                     f'`model.configure_optimizers()` returned {len(optimizers)}, but'
-                    ' learning rate finder only works with single optimizer')
+                    ' learning rate finder only works with single optimizer'
+                )
 
             optimizer = optimizers[0]
 
@@ -300,8 +301,7 @@ class _LRFinder(object):
             args = (optimizer, self.lr_max, self.num_training)
             scheduler = _LinearLR(*args) if self.mode == 'linear' else _ExponentialLR(*args)
 
-            return [optimizer], [{'scheduler': scheduler,
-                                  'interval': 'step'}]
+            return [optimizer], [{'scheduler': scheduler, 'interval': 'step'}]
 
         return func
 
@@ -329,8 +329,7 @@ class _LRFinder(object):
         if suggest:
             _ = self.suggestion()
             if self._optimal_idx:
-                ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx],
-                        markersize=10, marker='o', color='red')
+                ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx], markersize=10, marker='o', color='red')
 
         if show:
             plt.show()
@@ -376,10 +375,14 @@ class _LRCallback(Callback):
             if ``beta=0`` all past information is ignored.
 
     """
-    def __init__(self, num_training: int,
-                 early_stop_threshold: float = 4.0,
-                 progress_bar_refresh_rate: int = 0,
-                 beta: float = 0.98):
+
+    def __init__(
+        self,
+        num_training: int,
+        early_stop_threshold: float = 4.0,
+        progress_bar_refresh_rate: int = 0,
+        beta: float = 0.98
+    ):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
@@ -445,11 +448,7 @@ class _LinearLR(_LRScheduler):
     last_epoch: int
     base_lrs: Sequence
 
-    def __init__(self,
-                 optimizer: torch.optim.Optimizer,
-                 end_lr: float,
-                 num_iter: int,
-                 last_epoch: int = -1):
+    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_LinearLR, self).__init__(optimizer, last_epoch)
@@ -487,11 +486,7 @@ class _ExponentialLR(_LRScheduler):
     last_epoch: int
     base_lrs: Sequence
 
-    def __init__(self,
-                 optimizer: torch.optim.Optimizer,
-                 end_lr: float,
-                 num_iter: int,
-                 last_epoch: int = -1):
+    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)
@@ -501,7 +496,7 @@ class _ExponentialLR(_LRScheduler):
         r = curr_iter / self.num_iter
 
         if self.last_epoch > 0:
-            val = [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
+            val = [base_lr * (self.end_lr / base_lr)**r for base_lr in self.base_lrs]
         else:
             val = [base_lr for base_lr in self.base_lrs]
         self._lr = val

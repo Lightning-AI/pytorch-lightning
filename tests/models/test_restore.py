@@ -21,12 +21,13 @@ import cloudpickle
 import pytest
 import torch
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
-from tests.base import BoringModel, EvalModelTemplate, GenericEvalModelTemplate
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from tests.base import EvalModelTemplate, GenericEvalModelTemplate
+from tests.helpers import BoringModel
 
 
 class ModelTrainerPropertyParity(Callback):
@@ -51,8 +52,7 @@ class ModelTrainerPropertyParity(Callback):
         self._check_properties(trainer, pl_module)
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_model_properties_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
+def test_model_properties_resume_from_checkpoint(tmpdir):
     """ Test that properties like `current_epoch` and `global_step`
     in model and trainer are always the same. """
     model = EvalModelTemplate()
@@ -61,7 +61,6 @@ def test_model_properties_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=False,
-        enable_pl_optimizer=enable_pl_optimizer,
         callbacks=[checkpoint_callback, ModelTrainerPropertyParity()],  # this performs the assertions
     )
     trainer = Trainer(**trainer_args)
@@ -98,8 +97,7 @@ class CaptureCallbacksBeforeTraining(Callback):
         self.callbacks = deepcopy(trainer.callbacks)
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_callbacks_state_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
+def test_callbacks_state_resume_from_checkpoint(tmpdir):
     """ Test that resuming from a checkpoint restores callbacks that persist state. """
     model = EvalModelTemplate()
     callback_capture = CaptureCallbacksBeforeTraining()
@@ -107,11 +105,7 @@ def test_callbacks_state_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
         trainer_args = dict(
-            default_root_dir=tmpdir,
-            max_steps=1,
-            logger=False,
-            enable_pl_optimizer=enable_pl_optimizer,
-            callbacks=[
+            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[
                 checkpoint,
                 callback_capture,
             ]
@@ -137,16 +131,15 @@ def test_callbacks_state_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
             assert before.best_model_score == after.best_model_score
 
 
-@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
-def test_callbacks_references_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
+def test_callbacks_references_resume_from_checkpoint(tmpdir):
     """ Test that resuming from a checkpoint sets references as expected. """
     model = EvalModelTemplate()
-    args = {'default_root_dir': tmpdir, 'max_steps': 1, 'logger': False, "enable_pl_optimizer": enable_pl_optimizer}
+    args = {'default_root_dir': tmpdir, 'max_steps': 1, 'logger': False}
 
     # initial training
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
     trainer = Trainer(**args, callbacks=[checkpoint])
-    assert checkpoint is trainer.callbacks[0] is trainer.checkpoint_callback
+    assert checkpoint is trainer.callbacks[-1] is trainer.checkpoint_callback
     trainer.fit(model)
 
     # resumed training
@@ -155,7 +148,7 @@ def test_callbacks_references_resume_from_checkpoint(enable_pl_optimizer, tmpdir
     # precedence over the one in the last.ckpt file
     trainer = Trainer(**args, callbacks=[new_checkpoint], resume_from_checkpoint=str(tmpdir / "last.ckpt"))
     assert checkpoint is not new_checkpoint
-    assert new_checkpoint is trainer.callbacks[0] is trainer.checkpoint_callback
+    assert new_checkpoint is trainer.callbacks[-1] is trainer.checkpoint_callback
     trainer.fit(model)
 
 
@@ -398,6 +391,7 @@ def test_dp_resume(tmpdir):
         # haven't trained with the new loaded model
         dp_model = new_trainer.model
         dp_model.eval()
+        dp_model.module.module.running_stage = RunningStage.EVALUATING
 
         dataloader = trainer.train_dataloader
         tpipes.run_prediction(dp_model, dataloader, dp=True)
@@ -456,7 +450,10 @@ def test_model_saving_loading(tmpdir):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
-    model_2 = EvalModelTemplate.load_from_checkpoint(checkpoint_path=new_weights_path, hparams_file=hparams_path,)
+    model_2 = EvalModelTemplate.load_from_checkpoint(
+        checkpoint_path=new_weights_path,
+        hparams_file=hparams_path,
+    )
     model_2.eval()
 
     # make prediction
@@ -480,7 +477,9 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, logger=logger,
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=logger,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     trainer.fit(model)
@@ -498,12 +497,16 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
     ckpt_path = hparams_url if url_ckpt else new_weights_path
 
     EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=False,
+        checkpoint_path=ckpt_path,
+        hparams_file=hparams_path,
+        strict=False,
     )
 
     with pytest.raises(RuntimeError, match=r'Unexpected key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
         EvalModelTemplate.load_from_checkpoint(
-            checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=True,
+            checkpoint_path=ckpt_path,
+            hparams_file=hparams_path,
+            strict=True,
         )
 
 
@@ -520,7 +523,9 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, logger=logger,
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=logger,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     trainer.fit(model)
@@ -538,17 +543,22 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
     ckpt_path = hparams_url if url_ckpt else new_weights_path
 
     class CurrentModel(EvalModelTemplate):
+
         def __init__(self):
             super().__init__()
             self.c_d3 = torch.nn.Linear(7, 7)
 
     CurrentModel.load_from_checkpoint(
-        checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=False,
+        checkpoint_path=ckpt_path,
+        hparams_file=hparams_path,
+        strict=False,
     )
 
     with pytest.raises(RuntimeError, match=r'Missing key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
         CurrentModel.load_from_checkpoint(
-            checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=True,
+            checkpoint_path=ckpt_path,
+            hparams_file=hparams_path,
+            strict=True,
         )
 
 
