@@ -15,12 +15,9 @@ pool: dsvm-spot-pool
 
 strategy:
   matrix:
-    Python36:
-      python.version: '3.6'
-    Python37:
+    PT16:
+      torch.version: '1.6'
       python.version: '3.7'
-    Python38:
-      python.version: '3.8'
 
 # ToDo: this need to have installed docker in the base image...
 # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04
