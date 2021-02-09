@@ -20,6 +20,9 @@ import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
 
 PRETEND_N_OF_GPUS = 16
 
@@ -39,8 +42,9 @@ def test_multi_gpu_early_stop_dp(tmpdir):
         accelerator='dp',
     )
 
-    model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model)
+    dm = ClassifDataModule()
+    model = ClassificationModel()
+    tpipes.run_model_test(trainer_options, model, dm)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -57,7 +61,7 @@ def test_multi_gpu_model_dp(tmpdir):
         progress_bar_refresh_rate=0,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
 

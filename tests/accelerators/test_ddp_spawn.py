@@ -21,6 +21,9 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -37,8 +40,9 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
         accelerator='ddp_spawn',
     )
 
-    model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model)
+    dm = ClassifDataModule()
+    model = ClassificationModel()
+    tpipes.run_model_test(trainer_options, model, dm)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -55,7 +59,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
         progress_bar_refresh_rate=0,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
 

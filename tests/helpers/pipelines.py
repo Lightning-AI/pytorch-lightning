@@ -49,7 +49,7 @@ def run_model_test_without_loggers(
 
 def run_model_test(
     trainer_options,
-    model,
+    model: LightningModule,
     data: LightningDataModule = None,
     on_gpu: bool = True,
     version=None,
