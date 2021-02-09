@@ -56,7 +56,7 @@ class StochasticWeightAveraging(Callback):
         This documentation is highly inspired by PyTorch's work on SWA.
         The callback arguments follow the scheme defined in PyTorch's ``swa_utils`` package.
 
-        Find ``swa_utils` source code here: https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py
+        Find ``swa_utils`` source code here: https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py
         Find a SWA explanation here: https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging
 
         .. warning:: ``StochasticWeightAveraging`` is currently not supported for multiple optimizers/schedulers.
