@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning
-from tests.base import BoringModel, RandomDataset
+from tests.helpers import BoringModel, RandomDataset
 
 
 def test_finetuning_callback(tmpdir):
