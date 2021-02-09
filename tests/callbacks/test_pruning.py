@@ -255,9 +255,6 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
     filepath = str(tmpdir / "foo.ckpt")
     trainer.save_checkpoint(filepath)
 
-    if not make_pruning_permanent:
-        # can't reload checkpoints where pruning wasn't made permanent
-        with pytest.raises(RuntimeError, match=r'Unexpected key\(s\) in state_dict'):
-            model.load_from_checkpoint(filepath)
-        return
-    assert not hasattr(model.layer.mlp_1, "weight_orig")
+    model.load_from_checkpoint(filepath, strict=False)
+    has_pruning = hasattr(model.layer.mlp_1, "weight_orig")
+    assert not has_pruning if make_pruning_permanent else has_pruning
