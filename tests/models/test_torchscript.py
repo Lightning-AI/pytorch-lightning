@@ -17,8 +17,8 @@ import pytest
 import torch
 
 from tests.base import BoringModel
-from tests.base.datamodules import TrialMNISTDataModule
-from tests.base.models import BasicGAN, ParityModuleRNN
+from tests.helpers.datamodules import TrialMNISTDataModule
+from tests.helpers.models import BasicGAN, ParityModuleRNN
 
 
 @pytest.mark.parametrize("modelclass", [
@@ -82,10 +82,7 @@ def test_torchscript_input_output_trace():
     assert torch.allclose(script_output, model_output)
 
 
-@pytest.mark.parametrize("device", [
-    torch.device("cpu"),
-    torch.device("cuda", 0)
-])
+@pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 def test_torchscript_device(device):
     """ Test that scripted module is on the correct device. """

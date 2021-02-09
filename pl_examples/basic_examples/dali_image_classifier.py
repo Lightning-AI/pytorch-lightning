@@ -29,7 +29,7 @@ if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
     from torchvision.datasets.mnist import MNIST
 else:
-    from tests.base.datasets import MNIST
+    from tests.helpers.datasets import MNIST
 
 if _DALI_AVAILABLE:
     from nvidia.dali import __version__ as dali_version

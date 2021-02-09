@@ -23,7 +23,7 @@ import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities import _APEX_AVAILABLE
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -31,6 +31,7 @@ def test_multiple_optimizers_manual(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
 
         def __init__(self):
@@ -97,7 +98,9 @@ def test_multiple_optimizers_manual_return(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -164,7 +167,9 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -237,7 +242,9 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -306,7 +313,9 @@ def test_multiple_optimizers_manual_apex(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -584,6 +593,7 @@ def test_multiple_optimizers_step(tmpdir):
     """
     Tests that `step` works with several optimizers
     """
+
     class TestModel(BoringModel):
 
         called = False
@@ -744,6 +754,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     """
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -760,7 +771,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx # noqa E225
+                    retain_graph = num_backward != backward_idx  # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
             weight_before = self.layer.weight.clone()
@@ -807,6 +818,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     """
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -823,7 +835,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx # noqa E225
+                    retain_graph = num_backward != backward_idx  # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
             opt.step(closure=optimizer_closure)
@@ -864,6 +876,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     """
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -899,7 +912,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
-            if batch_idx % 4 == 0 :
+            if batch_idx % 4 == 0:
                 # Note: Set make_optimizer_step to True or it will use by default
                 # Trainer(accumulate_grad_batches=x)
                 opt_dis.step(closure=dis_closure, make_optimizer_step=True)
@@ -938,14 +951,16 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_step, mock_adam_step, tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
     """
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -1004,7 +1019,7 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
-            if batch_idx % 4 == 0 :
+            if batch_idx % 4 == 0:
                 # Note: Set make_optimizer_step to True or it will use by default
                 # Trainer(accumulate_grad_batches=x)
                 opt_dis.step(closure=dis_closure, make_optimizer_step=True, optim='adam')

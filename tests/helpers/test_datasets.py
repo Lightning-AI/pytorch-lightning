@@ -16,7 +16,7 @@ import pickle
 import cloudpickle
 import pytest
 
-from tests.base.datasets import AverageDataset, MNIST, TrialMNIST
+from tests.helpers.datasets import AverageDataset, MNIST, TrialMNIST
 
 
 @pytest.mark.parametrize('dataset_cls', [MNIST, TrialMNIST, AverageDataset])

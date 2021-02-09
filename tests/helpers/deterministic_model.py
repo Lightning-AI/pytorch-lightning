@@ -36,10 +36,7 @@ class DeterministicModel(LightningModule):
 
         self.l1 = nn.Linear(2, 3, bias=False)
         if weights is None:
-            weights = torch.tensor([
-                [4, 3, 5],
-                [10, 11, 13]
-            ]).float()
+            weights = torch.tensor([[4, 3, 5], [10, 11, 13]]).float()
             p = torch.nn.Parameter(weights, requires_grad=True)
             self.l1.weight = p
 
@@ -59,10 +56,6 @@ class DeterministicModel(LightningModule):
 
         return out
 
-    def assert_graph_count(self, result, count=1):
-        counts = self.count_num_graphs(result)
-        assert counts == count
-
     def count_num_graphs(self, result, num_graphs=0):
         for k, v in result.items():
             if isinstance(v, torch.Tensor) and v.grad_fn is not None:
@@ -75,12 +68,12 @@ class DeterministicModel(LightningModule):
     # ---------------------------
     # scalar return
     # ---------------------------
-    def training_step_scalar_return(self, batch, batch_idx):
+    def training_step__scalar_return(self, batch, batch_idx):
         acc = self.step(batch, batch_idx)
         self.training_step_called = True
         return acc
 
-    def training_step_end_scalar(self, output):
+    def training_step_end__scalar(self, output):
         self.training_step_end_called = True
 
         # make sure loss has the grad
@@ -94,7 +87,7 @@ class DeterministicModel(LightningModule):
 
         return output
 
-    def training_epoch_end_scalar(self, outputs):
+    def training_epoch_end__scalar(self, outputs):
         """
         There should be an array of scalars without graphs that are all 171 (4 of them)
         """
@@ -114,7 +107,7 @@ class DeterministicModel(LightningModule):
     # --------------------------
     # dictionary returns
     # --------------------------
-    def training_step_dict_return(self, batch, batch_idx):
+    def training_step__dict_return(self, batch, batch_idx):
         acc = self.step(batch, batch_idx)
 
         logs = {'log_acc1': torch.tensor(12).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
@@ -123,7 +116,7 @@ class DeterministicModel(LightningModule):
         self.training_step_called = True
         return {'loss': acc, 'log': logs, 'progress_bar': pbar, 'train_step_test': torch.tensor(549).type_as(acc)}
 
-    def training_step_for_step_end_dict(self, batch, batch_idx):
+    def training_step__for_step_end_dict(self, batch, batch_idx):
         """sends outputs to training_batch_end"""
         acc = self.step(batch, batch_idx)
 
@@ -136,7 +129,7 @@ class DeterministicModel(LightningModule):
         result.update(pbar)
         return result
 
-    def training_step_end_dict(self, output):
+    def training_step_end__dict(self, output):
         self.training_step_end_called = True
 
         # make sure loss has the grad
@@ -158,7 +151,7 @@ class DeterministicModel(LightningModule):
         acc = output['loss']
         return {'loss': acc, 'log': logs, 'progress_bar': pbar, 'train_step_end': acc}
 
-    def training_epoch_end_dict(self, outputs):
+    def training_epoch_end__dict(self, outputs):
         self.training_epoch_end_called = True
 
         if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
@@ -180,21 +173,21 @@ class DeterministicModel(LightningModule):
 
         return {'log': logs, 'progress_bar': pbar}
 
-    def validation_step_no_return(self, batch, batch_idx):
+    def validation_step__no_return(self, batch, batch_idx):
         self.validation_step_called = True
         self.step(batch, batch_idx)
 
-    def validation_step_scalar_return(self, batch, batch_idx):
+    def validation_step__scalar_return(self, batch, batch_idx):
         self.validation_step_called = True
         acc = self.step(batch, batch_idx)
         return acc
 
-    def validation_step_arbitary_dict_return(self, batch, batch_idx):
+    def validation_step__dummy_dict_return(self, batch, batch_idx):
         self.validation_step_called = True
         acc = self.step(batch, batch_idx)
         return {'some': acc, 'value': 'a'}
 
-    def validation_step_dict_return(self, batch, batch_idx):
+    def validation_step__dict_return(self, batch, batch_idx):
         self.validation_step_called = True
         acc = self.step(batch, batch_idx)
 
@@ -202,7 +195,7 @@ class DeterministicModel(LightningModule):
         pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
         return {'val_loss': acc, 'log': logs, 'progress_bar': pbar}
 
-    def validation_step_end_no_return(self, val_step_output):
+    def validation_step_end__no_return(self, val_step_output):
         assert len(val_step_output) == 3
         assert val_step_output['val_loss'] == 171
         assert val_step_output['log']['log_acc1'] >= 12

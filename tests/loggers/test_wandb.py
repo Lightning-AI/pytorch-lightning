@@ -17,8 +17,11 @@ import types
 from argparse import ArgumentParser
 from unittest import mock
 
+import pytest
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
 
 
@@ -73,7 +76,11 @@ def test_wandb_logger_init(wandb, recwarn):
     # log hyper parameters
     logger.log_hyperparams({'test': None, 'nested': {'a': 1}, 'b': [2, 3, 4]})
     wandb.init().config.update.assert_called_once_with(
-        {'test': 'None', 'nested/a': 1, 'b': [2, 3, 4]},
+        {
+            'test': 'None',
+            'nested/a': 1,
+            'b': [2, 3, 4]
+        },
         allow_val_change=True,
     )
 
@@ -102,10 +109,12 @@ def test_wandb_pickle(wandb, tmpdir):
     Verify that pickling trainer with wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here.
     """
+
     class Experiment:
         """ """
         id = 'the_id'
         step = 0
+        dir = 'wandb'
 
         def project_name(self):
             return 'the_project_name'
@@ -121,6 +130,7 @@ def test_wandb_pickle(wandb, tmpdir):
     )
     # Access the experiment to ensure it's created
     assert trainer.logger.experiment, 'missing experiment'
+    assert trainer.log_dir == logger.save_dir
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
 
@@ -159,18 +169,13 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
 
     version = logger.version
     model = BoringModel()
-    limit_batches = 5
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        logger=logger,
-        max_epochs=1,
-        limit_train_batches=limit_batches,
-        limit_val_batches=limit_batches,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
+    assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
-    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f'epoch=0-step={limit_batches - 1}.ckpt']
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=2.ckpt'}
+    assert trainer.log_dir == logger.save_dir
 
 
 def test_wandb_sanitize_callable_params(tmpdir):
@@ -185,6 +190,7 @@ def test_wandb_sanitize_callable_params(tmpdir):
 
     def return_something():
         return "something"
+
     params.something = return_something
 
     def wrapper_something():
@@ -201,3 +207,10 @@ def test_wandb_sanitize_callable_params(tmpdir):
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"
+
+
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+def test_wandb_logger_offline_log_model(wandb, tmpdir):
+    """ Test that log_model=True raises an error in offline mode """
+    with pytest.raises(MisconfigurationException, match='checkpoints cannot be uploaded in offline mode'):
+        _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)

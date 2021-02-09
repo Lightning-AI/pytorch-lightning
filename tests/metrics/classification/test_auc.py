@@ -35,6 +35,7 @@ for i in range(4):
 
 @pytest.mark.parametrize("x, y", _examples)
 class TestAUC(MetricTester):
+
     @pytest.mark.parametrize("ddp", [False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_auc(self, x, y, ddp, dist_sync_on_step):
@@ -48,13 +49,7 @@ class TestAUC(MetricTester):
         )
 
     def test_auc_functional(self, x, y):
-        self.run_functional_metric_test(
-            x,
-            y,
-            metric_functional=auc,
-            sk_metric=sk_auc,
-            metric_args={"reorder": False}
-        )
+        self.run_functional_metric_test(x, y, metric_functional=auc, sk_metric=sk_auc, metric_args={"reorder": False})
 
 
 @pytest.mark.parametrize(['x', 'y', 'expected'], [
