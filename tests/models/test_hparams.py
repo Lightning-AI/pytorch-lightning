@@ -21,7 +21,6 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 from omegaconf import Container, OmegaConf
-from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
@@ -535,34 +534,8 @@ class NoArgsSubClassBoringModel(CustomBoringModel):
         super().__init__()
 
 
-class SimpleNoArgsModel(LightningModule):
-
-    def __init__(self):
-        super().__init__()
-        self.layer = torch.nn.Linear(32, 2)
-
-    def forward(self, x):
-        return self.layer(x)
-
-    def loss(self, batch, prediction):
-        return F.mse_loss(prediction, torch.ones_like(prediction))
-
-    def training_step(self, batch, batch_idx):
-        output = self.layer(batch)
-        loss = self.loss(batch, output)
-        return {"loss": loss}
-
-    def test_step(self, batch, batch_idx):
-        output = self.layer(batch)
-        loss = self.loss(batch, output)
-        return {"y": loss}
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.02)
-
-
 @pytest.mark.parametrize("cls", [
-    SimpleNoArgsModel,
+    BoringModel,
     NoArgsSubClassBoringModel,
 ])
 def test_model_nohparams_train_test(tmpdir, cls):
