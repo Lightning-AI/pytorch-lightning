@@ -19,7 +19,7 @@ import inspect
 import os
 from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
-from typing import Any, List, Optional, Tuple, Union, Dict
+from typing import Any, List, Optional, Tuple, Union, Dict, Sequence, Mapping
 
 import torch
 from torch.utils.data import DataLoader, Dataset
@@ -396,19 +396,19 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
             )
 
         def train_dataloader():
-            if isinstance(train_dataset, list):
-                return [dataloader(ds, shuffle=True)  for ds in train_dataset]
-            if isinstance(train_dataset, dict):
+            if isinstance(train_dataset, Mapping):
                 return {key: dataloader(ds, shuffle=True) for key, ds in train_dataset.items()}
+            if isinstance(train_dataset, Sequence):
+                return [dataloader(ds, shuffle=True)  for ds in train_dataset]
             return dataloader(train_dataset, shuffle=True)
 
         def val_dataloader():
-            if isinstance(val_dataset, list):
+            if isinstance(val_dataset, Sequence):
                 return [dataloader(ds) for ds in val_dataset]
             return dataloader(val_dataset)
 
         def test_dataloader():
-            if isinstance(test_dataset, list):
+            if isinstance(test_dataset, Sequence):
                 return [dataloader(ds) for ds in test_dataset]
             return dataloader(test_dataset)
 
