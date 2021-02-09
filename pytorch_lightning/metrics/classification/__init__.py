@@ -16,5 +16,6 @@ from pytorch_lightning.metrics.classification.average_precision import AveragePr
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
 from pytorch_lightning.metrics.classification.f_beta import FBeta, Fbeta, F1
 from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall
+from pytorch_lightning.metrics.classification.sensitivity_specificity import Sensitivity, Specificity
 from pytorch_lightning.metrics.classification.precision_recall_curve import PrecisionRecallCurve
 from pytorch_lightning.metrics.classification.roc import ROC
