@@ -32,7 +32,7 @@ from tests.helpers.boring_model import RandomDataset
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
+def test_rpc_sequential_plugin_manual(tmpdir, args=None):
     model = SequentialModelRPCManual()
     trainer = Trainer(
         max_epochs=2,
@@ -61,7 +61,7 @@ def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_ddp_sequential_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
+def test_rpc_sequential_plugin_manual_amp(tmpdir, args=None):
     model = SequentialModelRPCManual()
     trainer = Trainer(
         max_epochs=2,
@@ -86,7 +86,7 @@ def test_ddp_sequential_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
+def test_rpc_sequential_plugin_automatic(tmpdir, args=None):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(
         max_epochs=2,
@@ -114,7 +114,7 @@ def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_ddp_sequential_plugin_ddp_rpc_with_wrong_balance(tmpdir, args=None):
+def test_rpc_sequential_plugin_with_wrong_balance(tmpdir, args=None):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(
         max_epochs=2,
