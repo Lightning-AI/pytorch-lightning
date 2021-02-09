@@ -31,14 +31,14 @@ class TrainerLoggingMixin(ABC):
     current_epoch: int
     _device_type: DeviceType
     _distrib_type: DistributedType
-    log_gpu_memory: ...
+    log_gpu_memory:...
     logger: Union[LightningLoggerBase, bool]
     global_step: int
     global_rank: int
     default_root_dir: str
     slurm_job_id: int
     num_gpus: int
-    logged_metrics: ...
+    logged_metrics:...
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
@@ -66,13 +66,12 @@ class TrainerLoggingMixin(ABC):
             for k, v in output.items():
                 if k in ['log', 'progress_bar']:
                     m = inspect.cleandoc(
-                        f"""The {{{k}:dict keyword}} was deprecated in 0.9.1 and will be removed in 1.0.0
-                        Please use self.log(...) inside the lightningModule instead.
-
-                        # log on a step or aggregate epoch metric to the logger and/or progress bar
-                        # (inside LightningModule)
-                        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
-                    """)
+                        f"The {{{k}:dict keyword}} was deprecated in 0.9.1 and will be removed in 1.0.0\n"
+                        " Please use self.log(...) inside the lightningModule instead.\n"
+                        " # log on a step or aggregate epoch metric to the logger and/or progress bar"
+                        " (inside LightningModule)\n"
+                        " self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)"
+                    )
                     rank_zero_warn(m)
 
         # --------------------------

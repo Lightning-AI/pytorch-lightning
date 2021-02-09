@@ -22,8 +22,8 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.boring_model import BoringModel
-from tests.base.deterministic_model import DeterministicModel
+from tests.helpers.boring_model import BoringModel
+from tests.helpers.deterministic_model import DeterministicModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -33,6 +33,7 @@ def test__training_step__flow_scalar(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -68,6 +69,7 @@ def test__training_step__tr_step_end__flow_scalar(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -110,6 +112,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -158,6 +161,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -209,7 +213,9 @@ def test_train_step_no_return(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             self.training_step_called = True
             loss = self.step(batch[0])
@@ -244,7 +250,9 @@ def test_training_step_no_return_when_even(tmpdir):
     """
     Tests correctness when some training steps have been skipped
     """
+
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             self.training_step_called = True
             loss = self.step(batch[0])

@@ -49,7 +49,7 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
 
-    def restore_weights(self, model: LightningModule) -> None:
+    def restore_weights(self) -> None:
         """
         Attempt to restore a checkpoint (e.g. weights) in this priority:
         1. from HPC weights
@@ -69,7 +69,7 @@ class CheckpointConnector:
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
         # 2. Attempt to restore states from `resume_from_checkpoint` file
-        elif self.trainer.resume_from_checkpoint is not None and not self.trainer.testing:
+        elif self.trainer.resume_from_checkpoint is not None:
             self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer._device_type == DeviceType.GPU)
 
         # wait for all to catch up
@@ -230,7 +230,8 @@ class CheckpointConnector:
             if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
             rank_zero_warn(
-                'warning, `hyper_parameters` dropped from checkpoint.' f' An attribute is not picklable {err}'
+                'warning, `hyper_parameters` dropped from checkpoint.'
+                f' An attribute is not picklable {err}'
             )
             atomic_save(checkpoint, filepath)
 
@@ -297,9 +298,10 @@ class CheckpointConnector:
             checkpoint['lr_schedulers'] = lr_schedulers
 
             # dump amp scaling
-            if (self.trainer.amp_backend == AMPType.NATIVE
-                    and self.trainer._device_type != DeviceType.TPU
-                    and self.trainer.scaler is not None):
+            if (
+                self.trainer.amp_backend == AMPType.NATIVE and self.trainer._device_type != DeviceType.TPU
+                and self.trainer.scaler is not None
+            ):
                 checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
             elif self.trainer.amp_backend == AMPType.APEX:
                 checkpoint['amp_scaling_state'] = amp.state_dict()
@@ -409,6 +411,7 @@ class CheckpointConnector:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
                 rank_zero_warn(
-                    'Warning, `hyper_parameters` dropped from checkpoint.' f' An attribute is not picklable {err}'
+                    'Warning, `hyper_parameters` dropped from checkpoint.'
+                    f' An attribute is not picklable {err}'
                 )
                 atomic_save(checkpoint, filepath)

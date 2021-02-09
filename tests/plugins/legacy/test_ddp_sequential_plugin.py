@@ -23,7 +23,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.plugins.legacy.ddp_sequential_plugin import DDPSequentialPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import RandomDataset
+from tests.helpers.boring_model import RandomDataset
 
 
 def cleanup(ctx, model):
@@ -36,8 +36,9 @@ def cleanup(ctx, model):
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
     model = SequentialModelRPCManual()
     trainer = Trainer(
@@ -64,8 +65,9 @@ def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_ddp_sequential_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
     model = SequentialModelRPCManual()
     trainer = Trainer(
@@ -91,8 +93,9 @@ def test_ddp_sequential_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(
@@ -119,8 +122,9 @@ def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_ddp_sequential_plugin_ddp_rpc_with_wrong_balance(tmpdir, args=None):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(
@@ -149,6 +153,7 @@ class SequentialModelRPCManual(LightningModule):
     def __init__(self):
         super().__init__()
         self.sequential_module = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
+        self.automatic_optimization = False
 
     def forward(self, x):
         return self.sequential_module(x)
@@ -195,19 +200,15 @@ class SequentialModelRPCManual(LightningModule):
     def test_dataloader(self):
         return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
-    @property
-    def automatic_optimization(self) -> bool:
-        return False
-
 
 class SequentialModelRPCAutomatic(SequentialModelRPCManual):
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = True
 
     def training_step(self, batch, batch_idx):
         output = self.sequential_module(batch)
         loss = self.loss(output)
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
         return loss
-
-    @property
-    def automatic_optimization(self) -> bool:
-        return True

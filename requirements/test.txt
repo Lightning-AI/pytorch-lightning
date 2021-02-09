@@ -4,13 +4,11 @@ pytest>=5.0
 # pytest-cov
 # pytest-flake8
 flake8>=3.6
-flake8-black
 check-manifest
 twine==3.2
 # scipy>=0.13.3
 scikit-learn>=0.22.2
 scikit-image>=0.17.2
-black>=20.8b1
 isort>=5.6.4
 mypy>=0.720, <0.800
 pre-commit>=1.0

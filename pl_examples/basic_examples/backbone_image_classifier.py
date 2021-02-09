@@ -25,7 +25,7 @@ if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
     from torchvision.datasets.mnist import MNIST
 else:
-    from tests.base.datasets import MNIST
+    from tests.helpers.datasets import MNIST
 
 
 class Backbone(torch.nn.Module):

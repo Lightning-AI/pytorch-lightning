@@ -21,6 +21,7 @@ class ValidationStepVariations(ABC):
     """
     Houses all variations of validation steps
     """
+
     def validation_step(self, batch, batch_idx, *args, **kwargs):
         """
         Lightning calls this inside the validation loop
@@ -42,7 +43,9 @@ class ValidationStepVariations(ABC):
         output = OrderedDict({
             'val_loss': loss_val,
             'val_acc': val_acc,
-            'test_dic': {'val_loss_a': loss_val}
+            'test_dic': {
+                'val_loss_a': loss_val
+            },
         })
         return output
 

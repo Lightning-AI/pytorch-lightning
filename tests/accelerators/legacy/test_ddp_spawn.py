@@ -14,8 +14,8 @@
 import pytest
 import torch
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
@@ -70,8 +70,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     tutils.set_random_master_port()
 
     model = EvalModelTemplate()
-    fit_options = dict(train_dataloader=model.train_dataloader(),
-                       val_dataloaders=model.val_dataloader())
+    fit_options = dict(train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
     trainer = Trainer(
         default_root_dir=tmpdir,
