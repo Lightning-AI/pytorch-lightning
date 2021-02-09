@@ -26,7 +26,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel, RandomDataset
+from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.utils import pl_multi_process_test
 
 if _TPU_AVAILABLE:

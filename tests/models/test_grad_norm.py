@@ -20,7 +20,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 from tests.helpers.utils import reset_seed
 
 
