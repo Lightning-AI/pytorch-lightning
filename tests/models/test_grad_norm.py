@@ -36,7 +36,7 @@ class ModelWithManualGradTracker(BoringModel):
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
         # just return a loss, no log or progress bar meta
-        output = self.layer(batch)
+        output = self(batch)
         loss = self.loss(batch, output)
         return {'loss': loss}
 
