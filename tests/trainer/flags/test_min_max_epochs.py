@@ -4,10 +4,6 @@ from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 
 
-# @pytest.mark.parametrize("min_epochs", [None, 2])
-# @pytest.mark.parametrize("max_epochs", [None, 3])
-# @pytest.mark.parametrize("min_steps", [None, 20])
-# @pytest.mark.parametrize("max_steps", [None, 100])
 @pytest.mark.parametrize(
     ["min_epochs", "max_epochs", "min_steps", "max_steps"],
     [

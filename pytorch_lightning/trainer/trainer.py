@@ -603,7 +603,7 @@ class Trainer(
                     return
 
                 # early stopping
-                met_min_epochs = epoch >= self.min_epochs - 1 if self.min_epochs else True
+                met_min_epochs = (epoch >= self.min_epochs - 1) if self.min_epochs else True
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
