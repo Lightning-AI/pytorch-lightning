@@ -259,7 +259,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(pretrained_model, dataloader)
+        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -307,7 +307,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(pretrained_model, dataloader, min_acc=0.1)
+        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader, min_acc=0.1)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -456,7 +456,7 @@ def test_dp_resume(tmpdir):
             dp_model.module.module.running_stage = RunningStage.EVALUATING
 
             dataloader = self.train_dataloader()
-            tpipes.run_prediction(self.trainer.lightning_module, dataloader)
+            tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader, dp=True)
             self.on_train_start_called = True
 
     # new model

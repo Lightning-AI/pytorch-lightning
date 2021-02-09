@@ -37,7 +37,7 @@ else:
     print('You requested to import Horovod which is missing or not supported for your OS.')
 
 from tests.helpers import BoringModel  # noqa: E402
-from tests.helpers.pipelines import run_prediction  # noqa: E402
+from tests.helpers.pipelines import run_prediction_eval_model_template  # noqa: E402
 from tests.helpers.utils import reset_seed, set_random_master_port  # noqa: E402
 
 parser = argparse.ArgumentParser()
@@ -74,7 +74,7 @@ def run_test_from_config(trainer_options):
         test_loaders = [test_loaders]
 
     for dataloader in test_loaders:
-        run_prediction(pretrained_model, dataloader)
+        run_prediction_eval_model_template(pretrained_model, dataloader)
 
     # test HPC saving
     trainer.checkpoint_connector.hpc_save(ckpt_path, trainer.logger)
