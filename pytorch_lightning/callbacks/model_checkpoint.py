@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 Model Checkpointing
 ===================
@@ -167,7 +166,7 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
-        self.last_global_step_saved = -1
+        self._last_global_step_saved = -1
         self.prefix = prefix
         self.current_score = None
         self.best_k_models = {}
@@ -232,7 +231,7 @@ class ModelCheckpoint(Callback):
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
-            or self.last_global_step_saved == global_step  # already saved at the last step
+            or self._last_global_step_saved == global_step  # already saved at the last step
         ):
             return
 
@@ -240,7 +239,7 @@ class ModelCheckpoint(Callback):
         self._validate_monitor_key(trainer)
 
         # track epoch when ckpt was last checked
-        self.last_global_step_saved = global_step
+        self._last_global_step_saved = global_step
 
         # what can be monitored
         monitor_candidates = self._monitor_candidates(trainer)
@@ -256,9 +255,7 @@ class ModelCheckpoint(Callback):
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
-            raise MisconfigurationException(
-                f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1'
-            )
+            raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
             if self.save_top_k not in [None, -1, 0]:
@@ -277,15 +274,10 @@ class ModelCheckpoint(Callback):
         self._fs = get_filesystem(str(dirpath) if dirpath else '')
 
         if (
-            save_top_k is not None
-            and save_top_k > 0
-            and dirpath is not None
-            and self._fs.isdir(dirpath)
+            save_top_k is not None and save_top_k > 0 and dirpath is not None and self._fs.isdir(dirpath)
             and len(self._fs.ls(dirpath)) > 0
         ):
-            rank_zero_warn(
-                f"Checkpoint directory {dirpath} exists and is not empty."
-            )
+            rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
 
         if dirpath and self._fs.protocol == 'file':
             dirpath = os.path.realpath(dirpath)
@@ -301,23 +293,17 @@ class ModelCheckpoint(Callback):
         }
 
         if mode not in mode_dict and mode != 'auto':
-            raise MisconfigurationException(
-                f"`mode` can be auto, {', '.join(mode_dict.keys())}, got {mode}"
-            )
+            raise MisconfigurationException(f"`mode` can be auto, {', '.join(mode_dict.keys())}, got {mode}")
 
         # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
         if mode == 'auto':
             rank_zero_warn(
                 "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
-                " Default value for mode with be 'min' in v1.3.",
-                DeprecationWarning
+                " Default value for mode with be 'min' in v1.3.", DeprecationWarning
             )
 
-            mode_dict['auto'] = (
-                (-torch_inf, "max")
-                if monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
-                else (torch_inf, "min")
-            )
+            _condition = monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
+            mode_dict['auto'] = ((-torch_inf, "max") if _condition else (torch_inf, "min"))
 
         self.kth_value, self.mode = mode_dict[mode]
 
@@ -393,9 +379,7 @@ class ModelCheckpoint(Callback):
 
         return filename
 
-    def format_checkpoint_name(
-        self, epoch: int, step: int, metrics: Dict[str, Any], ver: Optional[int] = None
-    ) -> str:
+    def format_checkpoint_name(self, epoch: int, step: int, metrics: Dict[str, Any], ver: Optional[int] = None) -> str:
         """Generate a filename according to the defined template.
 
         Example::
@@ -418,9 +402,7 @@ class ModelCheckpoint(Callback):
             'step=0.ckpt'
 
         """
-        filename = self._format_checkpoint_name(
-            self.filename, epoch, step, metrics, prefix=self.prefix
-        )
+        filename = self._format_checkpoint_name(self.filename, epoch, step, metrics, prefix=self.prefix)
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
 
@@ -454,15 +436,12 @@ class ModelCheckpoint(Callback):
 
             version = (
                 trainer.logger.version
-                if isinstance(trainer.logger.version, str)
-                else f"version_{trainer.logger.version}"
+                if isinstance(trainer.logger.version, str) else f"version_{trainer.logger.version}"
             )
 
             version, name = trainer.accelerator_backend.broadcast((version, trainer.logger.name))
 
-            ckpt_path = os.path.join(
-                save_dir, str(name), version, "checkpoints"
-            )
+            ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
@@ -535,7 +514,10 @@ class ModelCheckpoint(Callback):
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
         else:
             last_filepath = self._get_metric_interpolated_filepath_name(
-                ckpt_name_metrics, trainer.current_epoch, trainer.global_step, trainer,
+                ckpt_name_metrics,
+                trainer.current_epoch,
+                trainer.global_step,
+                trainer,
             )
 
         accelerator_backend = trainer.accelerator_backend
@@ -546,10 +528,8 @@ class ModelCheckpoint(Callback):
         else:
             self._save_model(last_filepath, trainer, pl_module)
         if (
-                self.last_model_path
-                and self.last_model_path != last_filepath
-                and (self.save_top_k != -1 or self.save_last)
-                and trainer.is_global_zero
+            self.last_model_path and self.last_model_path != last_filepath
+            and (self.save_top_k != -1 or self.save_last) and trainer.is_global_zero
         ):
             self._del_model(self.last_model_path)
         self.last_model_path = last_filepath
@@ -565,21 +545,13 @@ class ModelCheckpoint(Callback):
         if self.check_monitor_top_k(current):
             self._update_best_and_save(current, epoch, step, trainer, pl_module, metrics)
         elif self.verbose:
-            rank_zero_info(
-                f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}"
-            )
+            rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
     def _is_valid_monitor_key(self, metrics):
         return self.monitor in metrics or len(metrics) == 0
 
     def _update_best_and_save(
-        self,
-        current: torch.Tensor,
-        epoch: int,
-        step: int,
-        trainer,
-        pl_module,
-        ckpt_name_metrics
+        self, current: torch.Tensor, epoch: int, step: int, trainer, pl_module, ckpt_name_metrics
     ):
         k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
 
@@ -601,9 +573,7 @@ class ModelCheckpoint(Callback):
         if len(self.best_k_models) == k:
             # monitor dict has reached k elements
             _op = max if self.mode == "min" else min
-            self.kth_best_model_path = _op(
-                self.best_k_models, key=self.best_k_models.get
-            )
+            self.kth_best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
             self.kth_value = self.best_k_models[self.kth_best_model_path]
 
         _op = min if self.mode == "min" else max

@@ -241,3 +241,18 @@ class AverageDataset(Dataset):
 
     def __getitem__(self, item):
         return self.input_seq[item], self.output_seq[item]
+
+
+class SklearnDataset(Dataset):
+
+    def __init__(self, x, y, x_type, y_type):
+        self.x = x
+        self.y = y
+        self._x_type = x_type
+        self._y_type = y_type
+
+    def __getitem__(self, idx):
+        return torch.tensor(self.x[idx], dtype=self._x_type), torch.tensor(self.y[idx], dtype=self._y_type)
+
+    def __len__(self):
+        return len(self.y)

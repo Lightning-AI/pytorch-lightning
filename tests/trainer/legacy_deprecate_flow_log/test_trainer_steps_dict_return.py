@@ -18,7 +18,7 @@ import os
 from unittest import mock
 
 from pytorch_lightning import Trainer
-from tests.base.deterministic_model import DeterministicModel
+from tests.helpers.deterministic_model import DeterministicModel
 
 
 def test_training_step_dict(tmpdir):
@@ -26,7 +26,7 @@ def test_training_step_dict(tmpdir):
     Tests that only training_step can be used
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_dict_return
+    model.training_step = model.training_step__dict_return
     model.val_dataloader = None
 
     trainer = Trainer(
@@ -74,8 +74,8 @@ def training_step_with_step_end(tmpdir):
     Checks train_step + training_step_end
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_for_step_end_dict
-    model.training_step_end = model.training_step_end_dict
+    model.training_step = model.training_step__dict_return
+    model.training_step_end = model.training_step_end__dict
     model.val_dataloader = None
 
     trainer = Trainer(
@@ -111,9 +111,9 @@ def test_full_training_loop_dict(tmpdir):
     Checks train_step + training_step_end + training_epoch_end
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_for_step_end_dict
-    model.training_step_end = model.training_step_end_dict
-    model.training_epoch_end = model.training_epoch_end_dict
+    model.training_step = model.training_step__for_step_end_dict
+    model.training_step_end = model.training_step_end__dict
+    model.training_epoch_end = model.training_epoch_end__dict
     model.val_dataloader = None
 
     trainer = Trainer(
@@ -155,9 +155,9 @@ def test_result_obj_lr_scheduler_epoch(tmpdir):
     test that the LR scheduler was called at the correct time with the correct metrics
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_for_step_end_dict
-    model.training_step_end = model.training_step_end_dict
-    model.training_epoch_end = model.training_epoch_end_dict
+    model.training_step = model.training_step__for_step_end_dict
+    model.training_step_end = model.training_step_end__dict
+    model.training_epoch_end = model.training_epoch_end__dict
     model.val_dataloader = None
     model.configure_optimizers = model.configure_optimizers__lr_on_plateau_epoch
 
@@ -177,9 +177,9 @@ def test_result_obj_lr_scheduler_step(tmpdir):
     test that the LR scheduler was called at the correct time with the correct metrics
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_for_step_end_dict
-    model.training_step_end = model.training_step_end_dict
-    model.training_epoch_end = model.training_epoch_end_dict
+    model.training_step = model.training_step__for_step_end_dict
+    model.training_step_end = model.training_step_end__dict
+    model.training_epoch_end = model.training_epoch_end__dict
     model.val_dataloader = None
     model.configure_optimizers = model.configure_optimizers__lr_on_plateau_step
 
@@ -198,9 +198,9 @@ def test_train_step_epoch_end(tmpdir):
     Checks train_step + training_epoch_end (NO training_step_end)
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_dict_return
+    model.training_step = model.training_step__dict_return
     model.training_step_end = None
-    model.training_epoch_end = model.training_epoch_end_dict
+    model.training_epoch_end = model.training_epoch_end__dict
     model.val_dataloader = None
 
     trainer = Trainer(

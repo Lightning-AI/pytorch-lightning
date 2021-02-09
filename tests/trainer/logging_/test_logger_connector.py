@@ -28,7 +28,7 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
 def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Callable:

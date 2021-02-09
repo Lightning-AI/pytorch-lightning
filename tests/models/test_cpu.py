@@ -18,8 +18,8 @@ from distutils.version import LooseVersion
 import pytest
 import torch
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
@@ -142,7 +142,7 @@ def test_multi_cpu_model_ddp(tmpdir):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, min_acc=0.3)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_lbfgs_cpu_model(tmpdir):

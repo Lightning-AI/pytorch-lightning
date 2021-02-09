@@ -18,8 +18,8 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils
-from tests.base.boring_model import BoringModel
-from tests.base.develop_utils import pl_multi_process_test
+from tests.helpers.boring_model import BoringModel
+from tests.helpers.utils import pl_multi_process_test
 
 
 @pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")

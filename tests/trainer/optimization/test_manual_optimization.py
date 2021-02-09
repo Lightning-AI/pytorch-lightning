@@ -23,7 +23,7 @@ import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities import _APEX_AVAILABLE
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})

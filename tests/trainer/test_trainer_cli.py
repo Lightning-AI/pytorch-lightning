@@ -20,7 +20,7 @@ from unittest import mock
 import pytest
 import torch
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import argparse
 

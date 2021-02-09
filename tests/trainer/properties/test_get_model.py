@@ -18,7 +18,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from tests.accelerators.legacy import DDPLauncher
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 class TrainerGetModel(BoringModel):

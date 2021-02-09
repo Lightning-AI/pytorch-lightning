@@ -11,7 +11,7 @@ from pytorch_lightning.plugins.legacy.sharded_native_amp_plugin import ShardedNa
 from pytorch_lightning.plugins.legacy.sharded_plugin import _FAIRSCALE_AVAILABLE, DDPShardedPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 @mock.patch.dict(

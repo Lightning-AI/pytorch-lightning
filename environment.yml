@@ -21,6 +21,8 @@ name:
 channels:
     - conda-forge
     - pytorch
+    - pytorch-test
+    - pytorch-nightly
 
 dependencies:
     - python>=3.6

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Various hooks to be used in the Lightning code."""
 
 from typing import Any, Dict, List, Optional, Union
@@ -25,6 +24,7 @@ from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 
 class ModelHooks:
     """Hooks to be used in LightningModule."""
+
     def setup(self, stage: str) -> None:
         """
         Called at the beginning of fit and test.
@@ -316,6 +316,7 @@ class ModelHooks:
 
 class DataHooks:
     """Hooks to be used with LightningDataModule."""
+
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
@@ -405,9 +406,7 @@ class DataHooks:
                 return loader
 
         """
-        rank_zero_warn(
-            "`train_dataloader` must be implemented to be used with the Lightning Trainer"
-        )
+        rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
         r"""
@@ -573,6 +572,7 @@ class DataHooks:
 
 class CheckpointHooks:
     """Hooks to be used with Checkpointing."""
+
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         r"""
         Called by Lightning to restore your model.

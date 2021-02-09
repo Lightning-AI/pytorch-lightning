@@ -24,13 +24,13 @@ from torch.utils.data.dataset import IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
-import tests.base.develop_pipelines as tpipes
+import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.base.boring_model import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
 def test_fit_train_loader_only(tmpdir):
@@ -143,7 +143,7 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
     class MultipleTestDataloaderModel(EvalModelTemplate):
 
         def test_dataloader(self):
-            return model_template.test_dataloader__multiple()
+            return [self.dataloader(train=False), self.dataloader(train=False)]
 
         def test_step(self, batch, batch_idx, *args, **kwargs):
             return model_template.test_step__multiple_dataloaders(batch, batch_idx, *args, **kwargs)

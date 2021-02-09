@@ -25,7 +25,7 @@ from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.legacy.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from tests.accelerators.legacy import DDPLauncher
-from tests.base.boring_model import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
