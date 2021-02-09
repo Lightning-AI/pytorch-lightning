@@ -88,10 +88,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         else:
             results = trainer.train()
 
-        self.__save_end_of_training_weights(self.lightning_module, trainer)
+        self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
-    def __save_end_of_training_weights(self, model: LightningModule, trainer) -> None:
+    def __save_end_of_training_weights(self, model: LightningModule) -> None:
         # when training ends on these platforms dump weights to get out of the main process
         if on_colab_kaggle():
             rank_zero_warn("cleaning up... please do not interrupt")
