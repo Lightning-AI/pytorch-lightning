@@ -37,17 +37,11 @@ def test_against_sklearn(sklearn_metric: Callable, torch_class_metric: Metric) -
                 if behaviour == 'skip':
                     pass
                 elif behaviour == 'pos':
-                    sk_results.append(
-                        torch.tensor(1.0, **kwargs)
-                    )
+                    sk_results.append(torch.tensor(1.0, **kwargs))
                 else:
-                    sk_results.append(
-                        torch.tensor(0.0, **kwargs)
-                    )
+                    sk_results.append(torch.tensor(0.0, **kwargs))
             else:
-                sk_results.append(
-                    torch.tensor(res, **kwargs)
-                )
+                sk_results.append(torch.tensor(res, **kwargs))
         if len(sk_results) > 0:
             sk_results = torch.stack(sk_results).mean()
         else:
@@ -59,22 +53,16 @@ def test_against_sklearn(sklearn_metric: Callable, torch_class_metric: Metric) -
         """ For each possible behaviour of the metric, check results are correct. """
         for behaviour in query_without_relevant_docs_options:
             metric = torch_class_metric(query_without_relevant_docs=behaviour)
-            shape = (size,)
+            shape = (size, )
 
             indexes = []
             preds = []
             target = []
 
             for i in range(batch_size):
-                indexes.append(
-                    np.ones(shape, dtype=int) * i
-                )
-                preds.append(
-                    np.random.randn(*shape)
-                )
-                target.append(
-                    np.random.randn(*shape) > 0
-                )
+                indexes.append(np.ones(shape, dtype=int) * i)
+                preds.append(np.random.randn(*shape))
+                target.append(np.random.randn(*shape) > 0)
 
             sk_results = compute_sklearn_metric(target, preds, behaviour)
 
@@ -114,7 +102,7 @@ def test_input_data(torch_class_metric: Metric) -> None:
 
         # check error when `query_without_relevant_docs='error'` is raised correctly
         indexes = torch.tensor([0] * length, device=device, dtype=torch.int64)
-        preds = torch.rand(size=(length,), device=device, dtype=torch.float32)
+        preds = torch.rand(size=(length, ), device=device, dtype=torch.float32)
         target = torch.tensor([False] * length, device=device, dtype=torch.bool)
 
         metric = torch_class_metric(query_without_relevant_docs='error')
