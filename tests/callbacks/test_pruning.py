@@ -24,13 +24,12 @@ from torch import nn
 from torch.nn import Sequential
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelPruning
+from pytorch_lightning.callbacks import ModelCheckpoint, ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
 
 
 class TestModel(BoringModel):
-    validation_step = None
     test_step = None
 
     def __init__(self):
@@ -216,14 +215,15 @@ def test_pruning_lth_callable(tmpdir, resample_parameters):
     assert pruning.lth_calls == trainer.max_epochs // 2
 
 
+@pytest.mark.parametrize("make_pruning_permanent", (False, True))
 @mock.patch.dict(os.environ, {}, clear=True)
-def test_multiple_pruning_callbacks(tmpdir, caplog):
+def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
     seed_everything(0)
     model = TestModel()
     pruning_kwargs = {
         'parameters_to_prune': [(model.layer.mlp_1, "weight")],
-        'make_pruning_permanent': False,
-        'verbose': True
+        'verbose': True,
+        "make_pruning_permanent": make_pruning_permanent
     }
     p1 = ModelPruning("l1_unstructured", amount=0.5, apply_pruning=lambda e: not e % 2, **pruning_kwargs)
     p2 = ModelPruning("random_unstructured", amount=0.25, apply_pruning=lambda e: e % 2, **pruning_kwargs)
@@ -238,17 +238,26 @@ def test_multiple_pruning_callbacks(tmpdir, caplog):
         max_epochs=5,
         callbacks=[p1, p2],
     )
-
     with caplog.at_level(INFO):
         trainer.fit(model)
 
     actual = [m.strip() for m in caplog.messages[-5:]]
     layer = "Linear(in_features=32, out_features=32, bias=True)"
     expected = [
-        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned 0.00% -> 50.00%",
-        f"Applied `RandomUnstructured` to `{layer}.weight` with amount=0.25. Pruned 50.00% -> 62.50%",
-        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned 62.50% -> 81.25%",
-        f"Applied `RandomUnstructured` to `{layer}.weight` with amount=0.25. Pruned 81.25% -> 85.94%",
-        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned 85.94% -> 92.97%"
+        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned: 0 (0.00%) -> 512 (50.00%)",
+        f"Applied `RandomUnstructured` to `{layer}.weight` with amount=0.25. Pruned: 512 (50.00%) -> 640 (62.50%)",
+        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned: 640 (62.50%) -> 832 (81.25%)",
+        f"Applied `RandomUnstructured` to `{layer}.weight` with amount=0.25. Pruned: 832 (81.25%) -> 880 (85.94%)",
+        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned: 880 (85.94%) -> 952 (92.97%)"
     ]
     assert actual == expected
+
+    filepath = str(tmpdir / "foo.ckpt")
+    trainer.save_checkpoint(filepath)
+
+    if not make_pruning_permanent:
+        # can't reload checkpoints where pruning wasn't made permanent
+        with pytest.raises(RuntimeError, match=r'Unexpected key\(s\) in state_dict'):
+            model.load_from_checkpoint(filepath)
+        return
+    assert not hasattr(model.layer.mlp_1, "weight_orig")

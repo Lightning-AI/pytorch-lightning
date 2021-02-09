@@ -115,7 +115,8 @@ class ModelPruning(Callback):
                 - ``bool``. Always apply it or not.
                 - ``Callable[[epoch], bool]``. For dynamic values. Will be called every epoch.
 
-            make_pruning_permanent: Whether to remove all reparametrization pre-hooks and apply masks on fit end.
+            make_pruning_permanent: Whether to remove all reparametrization pre-hooks and apply masks
+                when training ends or the model is saved.
 
             use_lottery_ticket_hypothesis: See "The lottery ticket hypothesis" (https://arxiv.org/pdf/1803.03635.pdf):
 
@@ -224,7 +225,11 @@ class ModelPruning(Callback):
 
     def make_pruning_permanent(self):
         for module, param_name in self._parameters_to_prune:
-            pytorch_prune.remove(module, param_name)
+            try:
+                pytorch_prune.remove(module, param_name)
+            except ValueError:
+                # pruning already made permanent
+                pass
 
     def _restore_original_weights(self, module: nn.Module, orig_module: nn.Module, tensor_name: str):
         trained = getattr(module, tensor_name)
@@ -278,16 +283,16 @@ class ModelPruning(Callback):
             self._parameters_to_prune, pruning_method=self.pruning_fn, **self._resolve_global_kwargs(amount)
         )
 
-    def _get_pruned_percentage(self, module: nn.Module, name: str) -> float:
+    def _get_pruned_stats(self, module: nn.Module, name: str) -> Tuple[int, int]:
         attr = f"{name}_mask"
         if not hasattr(module, attr):
-            return 0.0
+            return 0, 1
         mask = getattr(module, attr)
-        return (torch.sum(mask == 0) / mask.numel()).item()
+        return (mask == 0).sum().item(), mask.numel()
 
     def apply_pruning(self, amount: Union[int, float]):
         if self._verbose:
-            stats = [self._get_pruned_percentage(m, n) for m, n in self._parameters_to_prune]
+            stats = [self._get_pruned_stats(m, n) for m, n in self._parameters_to_prune]
 
         if self._use_global_unstructured:
             self._apply_global_pruning(amount)
@@ -296,9 +301,12 @@ class ModelPruning(Callback):
 
         if self._verbose:
             for i, (module, name) in enumerate(self._parameters_to_prune):
+                prev_mask_zeroes, prev_mask_size = stats[i]
+                curr_mask_zeroes, curr_mask_size = self._get_pruned_stats(module, name)
                 rank_zero_info(
-                    f"Applied `{self.pruning_fn.__name__}` to `{module!r}.{name}` with amount={amount}."
-                    f" Pruned {stats[i]:.2%} -> {self._get_pruned_percentage(module, name):.2%}"
+                    f"Applied `{self.pruning_fn.__name__}` to `{module!r}.{name}` with amount={amount}. Pruned:"
+                    f" {prev_mask_zeroes} ({prev_mask_zeroes / prev_mask_size:.2%}) ->"
+                    f" {curr_mask_zeroes} ({curr_mask_zeroes / curr_mask_size:.2%})"
                 )
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
@@ -331,6 +339,11 @@ class ModelPruning(Callback):
         ):
             self.apply_lottery_ticket_hypothesis()
 
+    def on_train_end(self, *args):
+        if self._make_pruning_permanent:
+            self.make_pruning_permanent()
+
+    def on_save_checkpoint(self, *args):
         if self._make_pruning_permanent:
             self.make_pruning_permanent()
 
