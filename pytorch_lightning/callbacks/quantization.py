@@ -147,7 +147,7 @@ class QuantizationAwareTraining(Callback):
 
     def _check_feasible_fuse(self, model):
         if not self.modules_to_fuse:
-            return True
+            return False
         for group in self.modules_to_fuse:
             if not all(_recursive_hasattr(model, m) for m in group):
                 raise MisconfigurationException(
