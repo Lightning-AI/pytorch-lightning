@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""
 ModelPruning
 ^^^^^^^^^^^^
@@ -28,6 +27,7 @@ from torch import nn
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 
 _PYTORCH_PRUNING_FUNCTIONS = {
     "ln_structured": pytorch_prune.ln_structured,
@@ -320,7 +320,7 @@ class ModelPruning(Callback):
                 if not hasattr(module, param_name):
                     missing_parameters.append(param_name)
 
-            if len(missing_modules) > 0 or len(missing_parameters) > 0:
+            if missing_modules or missing_parameters:
                 raise MisconfigurationException(
                     "Some provided `parameters_to_tune` don't exist in the model."
                     f" Found missing modules: {missing_modules} and missing parameters: {missing_parameters}"

@@ -64,11 +64,11 @@ class MNIST(Dataset):
     cache_folder_name = 'complete'
 
     def __init__(
-            self,
-            root: str = PATH_DATASETS,
-            train: bool = True,
-            normalize: tuple = (0.5, 1.0),
-            download: bool = True,
+        self,
+        root: str = PATH_DATASETS,
+        train: bool = True,
+        normalize: tuple = (0.5, 1.0),
+        download: bool = True,
     ):
         super().__init__()
         self.root = root
@@ -178,13 +178,13 @@ class TrialMNIST(MNIST):
     """
 
     def __init__(
-            self,
-            root: str = PATH_DATASETS,
-            train: bool = True,
-            normalize: tuple = (0.5, 1.0),
-            download: bool = False,
-            num_samples: int = 100,
-            digits: Optional[Sequence] = (0, 1, 2),
+        self,
+        root: str = PATH_DATASETS,
+        train: bool = True,
+        normalize: tuple = (0.5, 1.0),
+        download: bool = False,
+        num_samples: int = 100,
+        digits: Optional[Sequence] = (0, 1, 2),
     ):
 
         # number of examples per class
@@ -195,16 +195,10 @@ class TrialMNIST(MNIST):
         self.cache_folder_name = 'digits-' + '-'.join(str(d) for d in sorted(self.digits)) \
                                  + f'_nb-{self.num_samples}'
 
-        super().__init__(
-            root,
-            train=train,
-            normalize=normalize,
-            download=download
-        )
+        super().__init__(root, train=train, normalize=normalize, download=download)
 
     @staticmethod
-    def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor,
-                        num_samples: int, digits: Sequence):
+    def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor, num_samples: int, digits: Sequence):
         classes = {d: 0 for d in digits}
         indexes = []
         for idx, target in enumerate(full_targets):
@@ -247,3 +241,18 @@ class AverageDataset(Dataset):
 
     def __getitem__(self, item):
         return self.input_seq[item], self.output_seq[item]
+
+
+class SklearnDataset(Dataset):
+
+    def __init__(self, x, y, x_type, y_type):
+        self.x = x
+        self.y = y
+        self._x_type = x_type
+        self._y_type = y_type
+
+    def __getitem__(self, idx):
+        return torch.tensor(self.x[idx], dtype=self._x_type), torch.tensor(self.y[idx], dtype=self._y_type)
+
+    def __len__(self):
+        return len(self.y)

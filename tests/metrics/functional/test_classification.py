@@ -63,7 +63,7 @@ def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
     #  if you fix the array inside the function, you'd also have fix the shape,
     #  because when the array changes, you also have to fix the shape
     seed_everything(0)
-    pred = torch.randint(low=51, high=99, size=(100,), dtype=torch.float) / 100
+    pred = torch.randint(low=51, high=99, size=(100, ), dtype=torch.float) / 100
     target = torch.tensor([0, 1] * 50, dtype=torch.int)
     if sample_weight is not None:
         sample_weight = torch.ones_like(pred) * sample_weight
@@ -73,9 +73,9 @@ def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
     assert isinstance(tps, torch.Tensor)
     assert isinstance(fps, torch.Tensor)
     assert isinstance(thresh, torch.Tensor)
-    assert tps.shape == (exp_shape,)
-    assert fps.shape == (exp_shape,)
-    assert thresh.shape == (exp_shape,)
+    assert tps.shape == (exp_shape, )
+    assert fps.shape == (exp_shape, )
+    assert thresh.shape == (exp_shape, )
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [

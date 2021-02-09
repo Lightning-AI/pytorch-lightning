@@ -32,16 +32,20 @@ from tests.base import BoringModel
     reason="Minimal PT version is set to 1.5",
 )
 def test_tensorboard_hparams_reload(tmpdir):
+
     class CustomModel(BoringModel):
+
         def __init__(self, b1=0.5, b2=0.999):
             super().__init__()
             self.save_hyperparameters()
 
-    model = CustomModel()
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    model = CustomModel()
+    assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
 
-    folder_path = trainer.logger.log_dir
+    assert trainer.log_dir == trainer.logger.log_dir
+    folder_path = trainer.log_dir
 
     # make sure yaml is there
     with open(os.path.join(folder_path, "hparams.yaml")) as file:
@@ -136,7 +140,11 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -151,7 +159,11 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -167,7 +179,11 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         # "namespace": Namespace(foo=Namespace(bar="buzz")),
         # "layer": torch.nn.BatchNorm1d,
@@ -199,7 +215,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     with pytest.warns(
         UserWarning,
         match='Could not log computational graph since the `model.example_input_array`'
-            ' attribute is not set or `input_array` was not given'
+        ' attribute is not set or `input_array` was not given'
     ):
         logger.log_graph(model)
 
@@ -212,6 +228,7 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
     """
     Tests to ensure that tensorboard log properly when accumulated_gradients > 1
     """
+
     class TestModel(BoringModel):
 
         def __init__(self):
@@ -265,3 +282,12 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
 
     mock_count_steps = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_step" in m[2]["metrics"]]
     assert model._indexes == mock_count_steps
+
+
+@mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter')
+def test_tensorboard_finalize(summary_writer, tmpdir):
+    """ Test that the SummaryWriter closes in finalize. """
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger.finalize("any")
+    summary_writer().flush.assert_called()
+    summary_writer().close.assert_called()

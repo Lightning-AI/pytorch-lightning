@@ -17,7 +17,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType
 from tests.base import BoringModel
-from tests.base.develop_utils import get_default_logger, load_model_from_checkpoint, reset_seed
+from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
 
 def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50):
@@ -31,9 +31,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     pretrained_model = load_model_from_checkpoint(
-        trainer.logger,
-        trainer.checkpoint_callback.best_model_path,
-        type(model)
+        trainer.logger, trainer.checkpoint_callback.best_model_path, type(model)
     )
 
     # test new model accuracy
@@ -50,8 +48,9 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
 
-def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
-                   with_hpc: bool = True, min_acc: float = 0.25):
+def run_model_test(
+    trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True, min_acc: float = 0.25
+):
 
     reset_seed()
     save_dir = trainer_options['default_root_dir']
