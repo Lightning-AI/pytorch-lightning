@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel, RandomDataset
+from tests.helpers import BoringModel, RandomDataset
 
 if _PYTORCH_GREATER_EQUAL_1_6_0:
     from pytorch_lightning.callbacks import StochasticWeightAveraging
@@ -78,7 +78,9 @@ if _PYTORCH_GREATER_EQUAL_1_6_0:
             assert trainer.num_training_batches == 5
 
             # check backward call count. the batchnorm update epoch should not backward
-            assert trainer.dev_debugger.count_events("backward_call") == trainer.max_epochs * trainer.limit_train_batches
+            assert trainer.dev_debugger.count_events(
+                "backward_call"
+            ) == trainer.max_epochs * trainer.limit_train_batches
 
             # check call counts
             assert self.update_parameters_calls == trainer.max_epochs - (self._swa_epoch_start - 1)
@@ -113,8 +115,9 @@ def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_proc
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp", gpus=2)
 

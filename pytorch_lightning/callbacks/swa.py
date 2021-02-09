@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 Stochastic Weight Averaging Callback
 ====================================
@@ -30,7 +29,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _PYTORCH_GREATER_EQUAL_1_6_0:
     from torch.optim.swa_utils import SWALR
-
 
 _AVG_FN = Callable[[torch.Tensor, torch.Tensor, torch.LongTensor], torch.FloatTensor]
 
@@ -96,9 +94,10 @@ class StochasticWeightAveraging(Callback):
         if isinstance(swa_epoch_start, float) and not (0 <= swa_epoch_start <= 1):
             raise MisconfigurationException(err_msg)
 
-        if (not isinstance(swa_lrs, (float, list))
-           or isinstance(swa_lrs, float) and swa_lrs <= 0
-           or isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)):
+        if (
+            not isinstance(swa_lrs, (float, list)) or isinstance(swa_lrs, float) and swa_lrs <= 0
+            or isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)
+        ):
             raise MisconfigurationException("The `swa_lrs` should be a positive float or a list of positive float.")
 
         if avg_fn is not None and not isinstance(avg_fn, Callable):
@@ -138,9 +137,11 @@ class StochasticWeightAveraging(Callback):
             if not isinstance(module, nn.modules.batchnorm._BatchNorm):
                 continue
             module.running_mean = torch.zeros_like(
-                module.running_mean, device=pl_module.device, dtype=module.running_mean.dtype)
+                module.running_mean, device=pl_module.device, dtype=module.running_mean.dtype
+            )
             module.running_var = torch.ones_like(
-                module.running_var, device=pl_module.device, dtype=module.running_var.dtype)
+                module.running_var, device=pl_module.device, dtype=module.running_var.dtype
+            )
             self.momenta[module] = module.momentum
             module.momentum = None
             module.num_batches_tracked *= 0
@@ -231,7 +232,9 @@ class StochasticWeightAveraging(Callback):
             self.transfer_weights(self._average_model, pl_module)
 
     @staticmethod
-    def update_parameters(average_model: 'pl.LightningModule', model: 'pl.LightningModule', n_averaged: torch.LongTensor, avg_fn: _AVG_FN):
+    def update_parameters(
+        average_model: 'pl.LightningModule', model: 'pl.LightningModule', n_averaged: torch.LongTensor, avg_fn: _AVG_FN
+    ):
         """
         Credit to PyTorch Team.
         Taken from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L103
@@ -250,7 +253,9 @@ class StochasticWeightAveraging(Callback):
             dst_param.detach().copy_(src_param.to(dst_param.device))
 
     @staticmethod
-    def avg_fn(averaged_model_parameter: torch.Tensor, model_parameter: torch.Tensor, num_averaged: torch.LongTensor) -> torch.FloatTensor:
+    def avg_fn(
+        averaged_model_parameter: torch.Tensor, model_parameter: torch.Tensor, num_averaged: torch.LongTensor
+    ) -> torch.FloatTensor:
         """
         Credit to PyTorch Team.
         Taken from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95
