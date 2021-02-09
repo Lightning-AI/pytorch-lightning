@@ -37,7 +37,7 @@ steps:
     python --version
     pip --version
     pip list
-  displayName: 'Info & NVIDIA'
+  displayName: 'Image info & NVIDIA'
 
 - bash: |
     #sudo apt-get install -y cmake
@@ -63,7 +63,12 @@ steps:
 - bash: |
     python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
     sh tests/special_tests.sh
-  displayName: 'Full Testing'
+  displayName: 'Testing: standard'
+
+- bash: |
+    python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
+    sh tests/special_tests.sh
+  displayName: 'Testing: special'
 
 - bash: |
     python -m coverage report
@@ -73,5 +78,4 @@ steps:
 
 - bash: |
     python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
-  displayName: 'Extended Testing'
-
+  displayName: 'Testing: extended'
