@@ -39,7 +39,8 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel, EvalModelTemplate, RandomDataset
+from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel, RandomDataset
 
 
 @pytest.fixture

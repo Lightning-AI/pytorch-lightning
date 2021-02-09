@@ -24,7 +24,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 @pytest.mark.skipif(

@@ -12,7 +12,7 @@ from pytorch_lightning.overrides.data_parallel import (
     unsqueeze_scalar_tensor,
 )
 from pytorch_lightning.trainer.states import RunningStage
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 @pytest.mark.parametrize("wrapper_class", [

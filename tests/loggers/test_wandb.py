@@ -22,7 +22,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 def get_warnings(recwarn):

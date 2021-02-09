@@ -25,8 +25,8 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
-from tests.base import BoringModel
 from tests.deprecated_api import _soft_unimport_module
+from tests.helpers import BoringModel
 
 
 def test_v1_4_0_deprecated_imports():

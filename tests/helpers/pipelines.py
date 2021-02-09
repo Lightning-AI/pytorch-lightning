@@ -16,7 +16,7 @@ import torch
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
 

@@ -21,7 +21,8 @@ import torch
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import BoringModel, EvalModelTemplate, RandomDataset
+from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel, RandomDataset
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
