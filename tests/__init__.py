@@ -36,4 +36,3 @@ if not os.path.isdir(_TEMP_PATH):
 
 _SKIPIF_NO_GPU = pytest.mark.skipif(torch.cuda.is_available(), reason="test requires single-GPU machine")
 _SKIPIF_NO_GPUS = pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-
