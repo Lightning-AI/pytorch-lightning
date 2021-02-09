@@ -195,7 +195,7 @@ class StochasticWeightAveraging(Callback):
             rank_zero_warn(f"Swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
             trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
 
-            self.n_averaged = torch.LongTensor(0, device=pl_module.device)
+            self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
 
         if self.swa_start <= trainer.current_epoch <= self.swa_end:
             self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
