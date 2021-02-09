@@ -1,7 +1,7 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from tests.base.boring_model import BoringModel
+from tests.helpers import BoringModel
 
 
 # @pytest.mark.parametrize("min_epochs", [None, 2])
