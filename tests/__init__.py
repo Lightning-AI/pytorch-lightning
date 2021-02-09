@@ -16,7 +16,7 @@ import os
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.imports import _TORCH_LOWER_EQUAL_1_4
+from pytorch_lightning.utilities.imports import _TORCH_LOWER_EQUAL_1_4, _TORCH_PRUNE_AVAILABLE
 
 _TEST_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_TEST_ROOT)
@@ -36,5 +36,6 @@ if not os.path.isdir(_TEMP_PATH):
     os.mkdir(_TEMP_PATH)
 
 _SKIPIF_ARGS_PT_LE_1_4 = dict(condition=_TORCH_LOWER_EQUAL_1_4, reason="test pytorch > 1.4")
-_SKIPIF_ARGS_NO_GPU = dict(condition=torch.cuda.is_available(), reason="test requires single-GPU machine")
+_SKIPIF_ARGS_NO_GPU = dict(condition=not torch.cuda.is_available(), reason="test requires single-GPU machine")
 _SKIPIF_ARGS_NO_GPUS = dict(condition=torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+_SKIPIF_ARGS_NO_PT_PRUNE = dict(condition=not _TORCH_PRUNE_AVAILABLE, reason="PyTorch pruning is needed for this test")

@@ -84,8 +84,8 @@ def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
 
 class QuantizationAwareTraining(Callback):
     """
-    Quantization allows speeding up inference and decreasing memory requirements by performing computations and storing tensors
-     at lower bitwidths (such as INT8 or FLOAT16) than floating point precision.
+    Quantization allows speeding up inference and decreasing memory requirements by performing computations
+     and storing tensors at lower bitwidths (such as INT8 or FLOAT16) than floating point precision.
     We use native PyTorch API so for more information see
      `Quantization <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
     """
