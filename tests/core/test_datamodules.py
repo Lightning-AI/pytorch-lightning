@@ -212,7 +212,7 @@ def test_train_loop_only(tmpdir):
     result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
-    assert trainer.callback_metrics['train_loss'] < 0.6
+    assert trainer.callback_metrics['train_loss'] < 1.0
 
 
 def test_train_val_loop_only(tmpdir):
@@ -235,7 +235,7 @@ def test_train_val_loop_only(tmpdir):
     result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
-    assert trainer.callback_metrics['train_loss'] < 0.6
+    assert trainer.callback_metrics['train_loss'] < 1.0
 
 
 def test_dm_checkpoint_save(tmpdir):
@@ -311,7 +311,7 @@ def test_full_loop(tmpdir):
 
     # test
     result = trainer.test(datamodule=dm)
-    assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 def test_trainer_attached_to_dm(tmpdir):
@@ -363,7 +363,7 @@ def test_full_loop_single_gpu(tmpdir):
 
     # test
     result = trainer.test(datamodule=dm)
-    assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -389,7 +389,7 @@ def test_full_loop_dp(tmpdir):
 
     # test
     result = trainer.test(datamodule=dm)
-    assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
