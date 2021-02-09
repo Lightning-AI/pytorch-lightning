@@ -629,9 +629,7 @@ class TrainLoop:
             # reset stage to train
             self.trainer._set_wide_running_stage(RunningStage.TRAINING)
 
-        should_
-        
-        _eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
+        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
 
         if should_train_only:
