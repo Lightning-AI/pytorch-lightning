@@ -32,11 +32,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.start_method = None
 
     def connect(self, model: torch.nn.Module) -> torch.nn.Module:
+        self.create_mp_queue()
         self._model = model
+        return self._model
+
+    def create_mp_queue(self):
         self.start_method = 'fork'
         smp = mp.get_context(self.start_method)
-        self.mp_queue = smp.SimpleQueue()
-        return self._model
+        self.mp_queue = smp.SimpleQueue()        
 
     @property
     def distributed_sampler_kwargs(self) -> dict:
@@ -83,6 +86,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             results = trainer.run_test()
         else:
             results = trainer.train()
+
+        print(results)
 
         self.__save_end_of_training_weights(self.lightning_module, trainer)
         self.transfer_distrib_spawn_state_on_fit_end(results)

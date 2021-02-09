@@ -95,13 +95,20 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.global_rank = self.node_rank * self.num_processes + self.local_rank
         self.world_size = self.num_nodes * self.num_processes
 
+    @property
+    def mp_spawn_kwargs(self):
+        return {
+            "args": (self.lightning_module.trainer, self.mp_queue),
+            "nprocs": self.num_processes,
+        }
+
     def start_training(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, self.mp_queue))
+        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_testing(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, self.mp_queue, ))
+        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
 
     def new_process(self, process_idx, trainer, mp_queue):
         self.mp_queue = mp_queue
@@ -173,7 +180,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             self._ddp_kwargs["find_unused_parameters"] = True
 
     def configure_ddp(self):
-
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model),
