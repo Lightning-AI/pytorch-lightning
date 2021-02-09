@@ -70,7 +70,7 @@ class ModelPruning(Callback):
         Model pruning Callback, using PyTorch's prune utilities.
         This callback is responsible of pruning networks parameters during training.
 
-        Find here the PyTorch (Pruning Tutorial)[https://pytorch.org/tutorials/intermediate/pruning_tutorial.html]
+        Learn more with the PyTorch pruning tutorial (https://pytorch.org/tutorials/intermediate/pruning_tutorial.html)
 
         .. code-block:: python
 
@@ -169,7 +169,7 @@ class ModelPruning(Callback):
                     pruning_kwargs["n"] = pruning_norm
                 pruning_kwargs["dim"] = pruning_dim
             pruning_fn = self._create_pruning_fn(pruning_fn, **pruning_kwargs)
-        elif self.is_pruning_method(pruning_fn):
+        elif self._is_pruning_method(pruning_fn):
             if not use_global_unstructured:
                 raise MisconfigurationException(
                     "PyTorch `BasePruningMethod` is currently only supported with `use_global_unstructured=True`."
@@ -224,6 +224,7 @@ class ModelPruning(Callback):
         return partial(pruning_fn, **kwargs)
 
     def make_pruning_permanent(self):
+        """ Makes ``parameters_to_prune`` current pruning permanent. """
         for module, param_name in self._parameters_to_prune:
             try:
                 pytorch_prune.remove(module, param_name)
@@ -249,7 +250,7 @@ class ModelPruning(Callback):
 
         This function implements the step 4.
 
-        The ``resample_parameters`` argument can be used to reset the parameters with a new θ ∼ D_θ
+        The ``resample_parameters`` argument can be used to reset the parameters with a new θ_j ∼ D_θ
         """
 
         def copy_param(new, old, name: str) -> None:
@@ -283,7 +284,8 @@ class ModelPruning(Callback):
             self._parameters_to_prune, pruning_method=self.pruning_fn, **self._resolve_global_kwargs(amount)
         )
 
-    def _get_pruned_stats(self, module: nn.Module, name: str) -> Tuple[int, int]:
+    @staticmethod
+    def _get_pruned_stats(module: nn.Module, name: str) -> Tuple[int, int]:
         attr = f"{name}_mask"
         if not hasattr(module, attr):
             return 0, 1
@@ -291,6 +293,7 @@ class ModelPruning(Callback):
         return (mask == 0).sum().item(), mask.numel()
 
     def apply_pruning(self, amount: Union[int, float]):
+        """ Applies pruning to ``parameters_to_prune``. """
         if self._verbose:
             stats = [self._get_pruned_stats(m, n) for m, n in self._parameters_to_prune]
 
@@ -354,8 +357,8 @@ class ModelPruning(Callback):
         parameter_names: Optional[List[str]] = None,
     ) -> _PARAM_LIST:
         """
-        This function is responsible of sanitizing `parameters_to_prune` and `parameter_names`.
-        If `parameters_to_prune=None`, it will be generated with all parameters of the model.
+        This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``.
+        If ``parameters_to_prune == None``, it will be generated with all parameters of the model.
         """
         parameters = parameter_names or ModelPruning.PARAMETER_NAMES
 
@@ -390,7 +393,7 @@ class ModelPruning(Callback):
         return parameters_to_prune
 
     @staticmethod
-    def is_pruning_method(method: Any) -> bool:
+    def _is_pruning_method(method: Any) -> bool:
         if not inspect.isclass(method):
             return False
         return issubclass(method, pytorch_prune.BasePruningMethod)

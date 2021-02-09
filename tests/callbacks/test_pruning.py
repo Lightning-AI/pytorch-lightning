@@ -24,7 +24,7 @@ from torch import nn
 from torch.nn import Sequential
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, ModelPruning
+from pytorch_lightning.callbacks import ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
 
@@ -92,7 +92,7 @@ def train_with_pruning_callback(
         with pytest.raises(MisconfigurationException, match="is supported with `use_global_unstructured=True`"):
             ModelPruning(**pruning_kwargs)
         return
-    if ModelPruning.is_pruning_method(pruning_fn) and not use_global_unstructured:
+    if ModelPruning._is_pruning_method(pruning_fn) and not use_global_unstructured:
         with pytest.raises(MisconfigurationException, match="currently only supported with"):
             ModelPruning(**pruning_kwargs)
         return
