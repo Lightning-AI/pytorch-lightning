@@ -171,9 +171,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def on_save(self, checkpoint: dict) -> dict:
-        return checkpoint
-
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         # TODO: is there a better way than accessing callback through model -> trainer -> callback?
         best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
@@ -186,7 +183,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             # TODO: is there a better way than accessing trainer through model -> trainer?
             if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                atomic_save(self.on_save(self.lightning_module.state_dict()), last_path)
+                atomic_save(self.lightning_module.state_dict(), last_path)
 
             # todo, pass complete checkpoint as state dictionary
             self.mp_queue.put(best_model_path)

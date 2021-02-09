@@ -544,8 +544,6 @@ class TrainLoop:
 
             self.trainer.batch_idx = batch_idx
 
-            print("batch_idx")
-
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------

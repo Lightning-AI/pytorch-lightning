@@ -95,7 +95,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         Recommended on XLA Guide:
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
-        print("on_save")
         return move_data_to_device(checkpoint, torch.device("cpu"))
 
     def broadcast(self, obj: object, src: int = 0) -> object:
