@@ -20,12 +20,14 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests import _SKIPIF_NO_GPU
+from tests import _SKIPIF_ARGS_PT_LE_1_4
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.simple_models import RegressionModel
 
 
-@pytest.mark.parametrize("observe", ['histogram', 'average'])
+@pytest.mark.parametrize(
+    "observe", ['average', pytest.param('histogram', marks=pytest.mark.skipif(**_SKIPIF_ARGS_PT_LE_1_4))]
+)
 @pytest.mark.parametrize("fuse", [True, False])
 # todo: add GPU testing
 # @pytest.mark.parametrize("device", [pytest.param('cpu'), pytest.param('gpu', marks=_SKIPIF_NO_GPU)])

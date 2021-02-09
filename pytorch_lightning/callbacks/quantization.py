@@ -25,6 +25,7 @@ from torch.quantization import QConfig
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_LOWER_EQUAL_1_4
 
 
 def wrap_qat_forward_context(
@@ -133,6 +134,8 @@ class QuantizationAwareTraining(Callback):
             raise MisconfigurationException(
                 f'Unsupported observer type "{observer_type}", allowed are {self.OBSERVER_TYPES}.'
             )
+        elif observer_type == 'histogram' and _TORCH_LOWER_EQUAL_1_4:
+            raise MisconfigurationException(f'For using {observer_type} you need to be using pytorch>=1.5.')
         self._observer_type = observer_type
 
         if collect_quantization is not None and not isinstance(collect_quantization, (int, Callable)):
