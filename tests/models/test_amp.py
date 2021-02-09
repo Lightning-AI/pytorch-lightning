@@ -203,6 +203,7 @@ def test_amp_with_apex(tmpdir):
             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
     model = CustomModel()
+    model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,

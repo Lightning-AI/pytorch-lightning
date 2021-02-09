@@ -54,10 +54,27 @@ class ModelTrainerPropertyParity(Callback):
         self._check_properties(trainer, pl_module)
 
 
+class ValTestLossBoringModel(BoringModel):
+
+    def __init__(self, batch_size=4):
+        super().__init__()
+        self.save_hyperparameters()
+
+    def validation_step(self, batch, batch_idx):
+        out = super().validation_step(batch, batch_idx)
+        self.log('val_loss', out['x'])
+        return out
+
+    def test_step(self, batch, batch_idx):
+        out = super().test_step(batch, batch_idx)
+        self.log('test_loss', out['y'])
+        return out
+
+
 T = TypeVar('T')
 
 
-class GenericParentValTestLossBoringModel(Generic[T], ClassificationModel):
+class GenericParentValTestLossBoringModel(Generic[T], ValTestLossBoringModel):
 
     def __init__(self, batch_size: int = 4):
         super().__init__(batch_size=batch_size)
@@ -72,8 +89,7 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
     Test that properties like `current_epoch` and `global_step`
     in model and trainer are always the same.
     """
-    dm = ClassifDataModule()
-    model = ClassificationModel()
+    model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     trainer_args = dict(
         default_root_dir=tmpdir,
@@ -84,11 +100,11 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
         callbacks=[checkpoint_callback, ModelTrainerPropertyParity()],  # this performs the assertions
     )
     trainer = Trainer(**trainer_args)
-    trainer.fit(model, datamodule=dm)
+    trainer.fit(model)
 
     trainer_args.update(max_epochs=2)
     trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
-    trainer.fit(model, datamodule=dm)
+    trainer.fit(model)
 
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
@@ -211,12 +227,8 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 
     # run test set
     new_trainer = Trainer(**trainer_options)
-    results = new_trainer.test(pretrained_model)
+    new_trainer.test(pretrained_model)
     pretrained_model.cpu()
-
-    # test we have good test accuracy
-    acc = results[0]['test_acc']
-    assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
 
     dataloaders = model.test_dataloader()
     if not isinstance(dataloaders, list):
@@ -263,18 +275,15 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
 
     # run test set
     new_trainer = Trainer(**trainer_options)
-    results = new_trainer.test(pretrained_model)
+    new_trainer.test(pretrained_model)
     pretrained_model.cpu()
-
-    acc = results[0]['test_acc']
-    assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
 
     dataloaders = dm.test_dataloader()
     if not isinstance(dataloaders, list):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(pretrained_model, dataloader, min_acc=0.05)
+        tpipes.run_prediction(pretrained_model, dataloader, min_acc=0.45)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -291,9 +300,10 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
-        max_epochs=3,
+        max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=2,
+        limit_test_batches=2,
         callbacks=[checkpoint],
         logger=logger,
         default_root_dir=tmpdir,
@@ -308,17 +318,16 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    new_trainer.test(pretrained_model, datamodule=dm)
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(new_trainer, key='test_loss')
+    tutils.assert_ok_model_acc(new_trainer, key='test_acc', thr=0.45)
 
 
-@pytest.mark.parametrize('model_template', [ClassificationModel, GenericValTestLossBoringModel])
+@pytest.mark.parametrize('model_template', [ValTestLossBoringModel, GenericValTestLossBoringModel])
 def test_load_model_from_checkpoint(tmpdir, model_template):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
-    dm = ClassifDataModule()
     model = model_template()
 
     trainer_options = dict(
@@ -326,13 +335,14 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
         max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=2,
+        limit_test_batches=2,
         callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='val_loss', save_top_k=-1)],
         default_root_dir=tmpdir,
     )
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer.fit(model, datamodule=dm)
+    trainer.fit(model)
     trainer.test(ckpt_path=None)
 
     # correct result and ok accuracy
@@ -359,9 +369,6 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     # Check `test` on pretrained model:
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
-
-    # test we have good test accuracy
-    tutils.assert_ok_model_acc(new_trainer, key='test_loss')
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
