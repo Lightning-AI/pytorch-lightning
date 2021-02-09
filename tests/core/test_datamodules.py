@@ -212,7 +212,7 @@ def test_train_loop_only(tmpdir):
     result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
-    assert trainer.callback_metrics['loss'] < 0.6
+    assert trainer.callback_metrics['train_loss'] < 0.6
 
 
 def test_train_val_loop_only(tmpdir):
