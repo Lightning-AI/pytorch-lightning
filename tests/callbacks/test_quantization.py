@@ -20,7 +20,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests import _SKIPIF_ARGS_PT_LE_1_4
+from tests import _SKIPIF_ARGS_NO_PT_QUANT, _SKIPIF_ARGS_PT_LE_1_4
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.simple_models import RegressionModel
 
@@ -29,8 +29,7 @@ from tests.helpers.simple_models import RegressionModel
     "observe", ['average', pytest.param('histogram', marks=pytest.mark.skipif(**_SKIPIF_ARGS_PT_LE_1_4))]
 )
 @pytest.mark.parametrize("fuse", [True, False])
-# todo: add GPU testing
-# @pytest.mark.parametrize("device", [pytest.param('cpu'), pytest.param('gpu', marks=_SKIPIF_NO_GPU)])
+@pytest.mark.skipif(**_SKIPIF_ARGS_NO_PT_QUANT)
 def test_quantization(tmpdir, observe, fuse):
     """Parity for  quant model"""
     seed_everything(42)
@@ -60,9 +59,10 @@ def test_quantization(tmpdir, observe, fuse):
     size_ratio = quant_size / org_size
     assert size_ratio < 0.65
     # test that the test score is almost the same as with pure training
-    assert torch.allclose(org_score, quant_score, atol=0.35)
+    assert torch.allclose(org_score, quant_score, atol=0.45)
 
 
+@pytest.mark.skipif(**_SKIPIF_ARGS_NO_PT_QUANT)
 def test_quantize_torchscript(tmpdir):
     """Test converting to torchscipt """
     dm = RegressDataModule()
@@ -115,6 +115,7 @@ def custom_trigger_last(trainer):
         (custom_trigger_last, 2),
     ]
 )
+@pytest.mark.skipif(**_SKIPIF_ARGS_NO_PT_QUANT)
 def test_quantization_triggers(tmpdir, trigger_fn, expected_count):
     """Test  how many times the quant is called"""
     dm = RegressDataModule()
