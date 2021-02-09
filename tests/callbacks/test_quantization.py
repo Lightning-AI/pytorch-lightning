@@ -27,13 +27,13 @@ from tests.helpers.simple_models import RegressionModel
 
 @pytest.mark.parametrize("observe", ['histogram', 'average'])
 @pytest.mark.parametrize("fuse", [True, False])
-@pytest.mark.parametrize("device", [pytest.param('cpu'), pytest.param('gpu', marks=_SKIPIF_NO_GPU)])
-def test_quantization(tmpdir, observe, fuse, device):
+# todo: add GPU testing
+# @pytest.mark.parametrize("device", [pytest.param('cpu'), pytest.param('gpu', marks=_SKIPIF_NO_GPU)])
+def test_quantization(tmpdir, observe, fuse):
     """Parity for  quant model"""
     seed_everything(42)
     dm = RegressDataModule()
     trainer_args = dict(
-        accelerator=device,
         default_root_dir=tmpdir,
         max_epochs=10,
     )
