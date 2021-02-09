@@ -46,8 +46,7 @@ steps:
     python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
     python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
     pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed
-    # todo
-    # pip install git+https://${AUTH_TOKEN}@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.2 --no-cache-dir
+    pip install git+https://$(AUTH_TOKEN)@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.2 --no-cache-dir
     pip list
   displayName: 'Install dependencies'
 
@@ -69,7 +68,7 @@ steps:
 - bash: |
     python -m coverage report
     python -m coverage xml
-    codecov --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
+    codecov --token $CODECOV_TOKEN --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
   displayName: 'Statistics'
 
 - bash: |
