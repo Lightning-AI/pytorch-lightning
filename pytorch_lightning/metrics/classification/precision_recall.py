@@ -78,6 +78,7 @@ class Precision(Metric):
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
+        pos_labels: Optional[List[int]] = None
     ):
         super().__init__(
             compute_on_step=compute_on_step,
@@ -89,6 +90,7 @@ class Precision(Metric):
         self.threshold = threshold
         self.average = average
         self.multilabel = multilabel
+        self.pos_labels = torch.tensor(pos_labels) if pos_labels is not None else pos_labels
 
         assert self.average in ('micro', 'macro'), \
             "average passed to the function must be either `micro` or `macro`"

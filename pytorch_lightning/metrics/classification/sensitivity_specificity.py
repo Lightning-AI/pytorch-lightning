@@ -16,8 +16,7 @@ from typing import Any, Optional
 import torch
 
 from .precision_recall import Recall
-# from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.utils import METRIC_EPS, _input_format_classification_one_hot
+from pytorch_lightning.metrics.utils import _input_format_classification_one_hot
 
 __all__ = [
     "Sensitivity",
@@ -45,14 +44,13 @@ class Sensitivity(Recall):
     This is the case for binary and multi-label logits.
 
     Args:
-        num_classes: Number of classes in the dataset.
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
-
         average:
             * `'micro'` computes metric globally
             * `'macro'` computes metric for each class and then takes the mean
-
+        pos_label:
+            labels that shall be treated as positives, either 0 or 1. default: 1.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -63,25 +61,24 @@ class Sensitivity(Recall):
 
     Example:
 
-        >>> from pytorch_lightning.metrics import Precision
-        >>> target = torch.tensor([0, 1, 2, 0, 1, 2])
-        >>> preds = torch.tensor([0, 2, 1, 0, 0, 1])
-        >>> precision = Sensitivity(num_classes=3)
-        >>> precision(preds, target)
-        tensor(0.3333)
+        >>> target = torch.tensor([0, 1, 0, 0, 1, 1])
+        >>> preds = torch.tensor([0, 0, 1, 0, 0, 1])
+        >>> sen = Sensitivity(num_classes=3)
+        >>> sen(preds, target)
 
     """
     def __init__(
         self,
-        num_classes: int = 1,
         threshold: float = 0.5,
         average: str = 'micro',
+        pos_label: int = 1,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None
     ):
         super().__init__(
-            num_classes=num_classes,
+            # num_classes is set to 1 for binary only.
+            num_classes=1,
             threshold=threshold,
             average=average,
             # multilabel is set to True due to the exact same logic applied to binary and multi-label calculations.
@@ -92,6 +89,31 @@ class Sensitivity(Recall):
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
         )
+        self.pos_label = pos_label
+        assert pos_label in [0, 1], f"pos_label must be either 0 or 1. Got {pos_label}."
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        """
+        Update state with predictions and targets.
+
+        Args:
+            preds: Predictions from model
+            target: Ground truth values
+        """
+        assert target.unique() in torch.tensor([0, 1]), f"Binary target expected. Got {target}."
+
+        preds, target = _input_format_classification_one_hot(
+            self.num_classes, preds, target, self.threshold, self.multilabel
+        )
+
+        # To reverse the label positive and negatives.
+        if self.pos_label == 0:
+            preds = 1 - preds
+            target = 1 - target
+
+        # multiply because we are counting (1, 1) pair for true positives
+        self.true_positives += torch.sum(preds * target, dim=1)
+        self.actual_positives += torch.sum(target, dim=1)
 
 
 class Specificity(Recall):
@@ -112,13 +134,13 @@ class Specificity(Recall):
     This is the case for binary and multi-label logits.
 
     Args:
-        num_classes: Number of classes in the dataset.
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
         average:
             * `'micro'` computes metric globally
             * `'macro'` computes metric for each class and then takes the mean
-        multilabel: If predictions are from multilabel classification.
+        pos_label:
+            labels that shall be treated as positives, either 0 or 1. default: 1.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -129,25 +151,24 @@ class Specificity(Recall):
 
     Example:
         >>> from pytorch_lightning.metrics import Specificity
-        >>> target = torch.tensor([0, 1, 2, 0, 1, 2])
-        >>> preds = torch.tensor([0, 2, 1, 0, 0, 1])
-        >>> specificity = Specificity(num_classes=3)
+        >>> target = torch.tensor([0, 1, 1, 0, 1, 1])
+        >>> preds = torch.tensor([0, 0, 1, 0, 0, 1])
+        >>> specificity = Specificity()
         >>> specificity(preds, target)
-        tensor(0.6667)
     """
     def __init__(
         self,
-        num_classes: int = 1,
         threshold: float = 0.5,
         average: str = 'micro',
-        pos_labels: Optional[List[int]] = None,
+        pos_label: int = 1,
         multilabel: bool = False,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
     ):
         super().__init__(
-            num_classes=num_classes,
+            # num_classes is set to 1 for binary only.
+            num_classes=1,
             threshold=threshold,
             average=average,
             # multilabel is set to True due to the exact same logic applied to binary and multi-label calculations.
@@ -158,6 +179,8 @@ class Specificity(Recall):
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
         )
+        self.pos_label = pos_label
+        assert pos_label in [0, 1], f"pos_label must be either 0 or 1. Got {pos_label}."
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -166,14 +189,15 @@ class Specificity(Recall):
             preds: Predictions from model
             target: Ground truth values
         """
-
+        assert target.unique() in torch.tensor([0, 1]), f"Binary target expected. Got {target}."
         preds, target = _input_format_classification_one_hot(
             self.num_classes, preds, target, self.threshold, multilabel=True
         )
 
         # To reverse the label positive and negatives.
-        preds = 1 - preds
-        target = 1 - target
+        if self.pos_label == 1:
+            preds = 1 - preds
+            target = 1 - target
 
         # multiply because we are counting (1, 1) pair for true positives
         self.true_positives += torch.sum(preds * target, dim=1)  # calc true negatives actually
