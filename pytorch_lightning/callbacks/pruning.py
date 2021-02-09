@@ -354,8 +354,8 @@ class ModelPruning(Callback):
         parameter_names: Optional[List[str]] = None,
     ) -> _PARAM_LIST:
         """
-        This function is responsible to check provided ``parameters_to_prune` and `parameters`.
-        If parameters_to_prune is None, parameters_to_prune will be generated from all parameters of the model.
+        This function is responsible of sanitizing `parameters_to_prune` and `parameter_names`.
+        If `parameters_to_prune=None`, it will be generated with all parameters of the model.
         """
         parameters = parameter_names or ModelPruning.PARAMETER_NAMES
 
