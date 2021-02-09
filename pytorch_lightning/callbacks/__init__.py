@@ -22,7 +22,6 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.callbacks.progress import ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.pruning import ModelPruning
 from pytorch_lightning.callbacks.swa import StochasticWeightAveraging
-from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0
 
 __all__ = [
     'BackboneFinetuning',
@@ -34,10 +33,8 @@ __all__ = [
     'LambdaCallback',
     'LearningRateMonitor',
     'ModelCheckpoint',
+    'ModelPruning',
     'ProgressBar',
     'ProgressBarBase',
-    'ModelPruning',
+    'StochasticWeightAveraging',
 ]
-
-if _PYTORCH_GREATER_EQUAL_1_6_0:
-    __all__ += ['StochasticWeightAveraging']
