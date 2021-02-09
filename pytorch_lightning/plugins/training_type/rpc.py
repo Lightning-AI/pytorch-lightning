@@ -25,6 +25,7 @@ from pytorch_lightning.utilities import _RPC_AVAILABLE
 DEFAULT_RPC_TIMEOUT_SEC = 60.
 if _RPC_AVAILABLE:
     from torch.distributed import rpc
+
     with suppress(ModuleNotFoundError, ImportError):
         from torch.distributed.rpc.constants import DEFAULT_RPC_TIMEOUT_SEC
 
@@ -76,60 +77,11 @@ class RPCPlugin(DDPPlugin):
         """
         raise NotImplementedError
 
-    def on_main_rpc_connection(self, trainer) -> None:
-        """
-        Called when main rpc connection has been established.
-
-        Args:
-            trainer: The trainer object.
-        """
-        raise NotImplementedError
-
-    def on_accelerator_exit_rpc_process(self) -> None:
-        """
-        Called to exit RPC process within the accelerator, that is being managed by main process.
-
-        Args:
-            trainer: The trainer object.
-        """
-        self.exit_rpc_process()
-
     def exit_rpc_process(self):
         if self._is_rpc_initialized:
             torch.distributed.rpc.shutdown()
             self._is_rpc_initialized = False
 
     @property
-    def return_after_exit_rpc_process(self) -> bool:
-        """
-        Override to decide whether to skip train/test function after shutdown completed.
-        Usually RPC shutdown is a join/exit function, afterwards we want to exit the process.
-
-        Returns:
-            Whether to return after RPC exit.
-        """
-        raise NotImplementedError
-
-    def worker_optimizer_step(self, model: LightningModule, opt_idx: int, *args, **kwargs) -> None:
-        """
-        Called when optimizer step is run on the main process. Used to signal any RPC workers to run optimizer step.
-
-        Args:
-            model: The LightningModule.
-            opt_idx: The idx of the optimizer to carry out step on.
-        """
-        raise NotImplementedError
-
-    @property
-    def is_main_rpc_process(self) -> bool:
-        """
-        Override to add logic to determine current process is main RPC process.
-        """
-        raise NotImplementedError
-
-    def barrier(self, name: Optional[str] = None) -> None:
-        """
-        Override to define distributed sync communication. This needs to be handled differently due to
-        the RPC connection managing certain processes at the same time.
-        """
-        raise NotImplementedError
+    def rpc_enabled(self) -> bool:
+        return True

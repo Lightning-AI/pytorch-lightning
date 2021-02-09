@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.training_type.rpc_sequential import RPCPlugin
 from pytorch_lightning.utilities import _RPC_AVAILABLE
@@ -56,39 +56,15 @@ class CustomRPCPlugin(RPCPlugin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.rpc_save_model_count = 0
-        self.on_main_rpc_connect_count = 0
         self.worker_optimizer_step_count = 0
-        self.is_main_rpc_process_count = 0
-        self.on_exit_rpc_process_count = 0
-        self.return_after_exit_rpc_process_count = 0
-
-    def on_accelerator_exit_rpc_process(self) -> None:
-        self.on_exit_rpc_process_count += 1
 
     def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
         self.rpc_save_model_count += 1
-
-    def on_main_rpc_connection(self) -> None:
-        self.on_main_rpc_connect_count += 1
-
-    def worker_optimizer_step(self, model: LightningModule, opt_idx: int, *args, **kwargs) -> None:
-        self.worker_optimizer_step_count += 1
-
-    @property
-    def is_main_rpc_process(self) -> bool:
-        self.is_main_rpc_process_count += 1
-        return torch.distributed.get_rank() == 0
-
-    @property
-    def return_after_exit_rpc_process(self) -> bool:
-        self.return_after_exit_rpc_process_count += 1
-        return False
 
     def barrier(self, name: Optional[str] = None) -> None:
         return
 
 
-@pytest.mark.skipif(True, reason="This test is currently broken")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not _RPC_AVAILABLE, reason="RPC is not available")
@@ -112,17 +88,5 @@ def test_rpc_function_calls_ddp(tmpdir):
     trainer.fit(model)
     if trainer.global_rank == 0:  # Main process
         assert plugin.rpc_save_model_count == max_epochs
-        assert plugin.on_main_rpc_connect_count == 1
-        assert plugin.worker_optimizer_step_count == max_epochs * limit_train_batches
-        # Call once at init, and at optim step
-        assert plugin.is_main_rpc_process_count == 1 + plugin.worker_optimizer_step_count
-        assert plugin.on_exit_rpc_process_count == 0
     else:  # Worker process
-        assert plugin.rpc_save_model_count == 0
-        assert plugin.on_main_rpc_connect_count == 0
-        # Never signaled by worker, only by main process
-        assert plugin.worker_optimizer_step_count == 0
-        # Call once at init, and at optim step
-        assert plugin.is_main_rpc_process_count == 1 + (max_epochs * limit_train_batches)
-        # Called at init
-        assert plugin.on_exit_rpc_process_count == 1
+        assert plugin.rpc_save_model_count == max_epochs
