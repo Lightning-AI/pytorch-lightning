@@ -15,6 +15,9 @@ r"""
 Quantization
 ^^^^^^^^^^^^
 
+.. warning::
+
+    Quantization is in beta and subject to change.
 """
 import functools
 from typing import Any, Callable, Optional, Sequence, Union
@@ -88,6 +91,10 @@ class QuantizationAwareTraining(Callback):
      and storing tensors at lower bitwidths (such as INT8 or FLOAT16) than floating point precision.
     We use native PyTorch API so for more information see
      `Quantization <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
+
+    .. warning::
+
+        Quantization is in beta and subject to change.
     """
 
     OBSERVER_TYPES = ('histogram', 'average')
