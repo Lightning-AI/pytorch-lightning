@@ -197,7 +197,6 @@ class ModelCheckpoint(Callback):
         self.__resolve_ckpt_dir(trainer)
         self.save_function = trainer.save_checkpoint
 
-    @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         """
         checkpoints can be saved at the end of the val loop
