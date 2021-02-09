@@ -43,7 +43,6 @@ class StochasticWeightAveraging(Callback):
         avg_fn: Optional[Callable] = None,
         device: Optional[Union[torch.device, str]] = torch.device("cpu"),
     ):
-
         r"""
 
         Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
@@ -59,7 +58,7 @@ class StochasticWeightAveraging(Callback):
         Find ``swa_utils` source code there: https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py
         Find ``SWA explanation`` there: https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/
 
-        .. note:: `StochasticWeightAveraging` is currently not supported for multiple optimizers / schedulers.
+        .. warning:: `StochasticWeightAveraging` is currently not supported for multiple optimizers/schedulers.
 
         Arguments:
 
@@ -95,13 +94,13 @@ class StochasticWeightAveraging(Callback):
         if isinstance(swa_epoch_start, float) and not (0 <= swa_epoch_start <= 1):
             raise MisconfigurationException(err_msg)
 
-        if not isinstance(swa_lrs, (float, list)) \
-           or isinstance(swa_lrs, float) and swa_lrs <= 0 \
-           or isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs):
-            raise MisconfigurationException("swa_lrs should be a positive float or a list of positive float.")
+        if (not isinstance(swa_lrs, (float, list))
+           or isinstance(swa_lrs, float) and swa_lrs <= 0
+           or isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)):
+            raise MisconfigurationException("The `swa_lrs` should be a positive float or a list of positive float.")
 
         if avg_fn is not None and not isinstance(avg_fn, Callable):
-            raise MisconfigurationException("avg_fn should be callable.")
+            raise MisconfigurationException("The `avg_fn` should be callable.")
 
         if device is not None and not isinstance(device, (torch.device, str)):
             raise MisconfigurationException(f"device is expected to be a torch.device or a str. Found {device}")
@@ -133,14 +132,15 @@ class StochasticWeightAveraging(Callback):
         """
         self.momenta = {}
         for module in average_model.modules():
-            if isinstance(module, nn.modules.batchnorm._BatchNorm):
-                module.running_mean = torch.zeros_like(
-                    module.running_mean, device=average_model.device, dtype=module.running_mean.dtype)
-                module.running_var = torch.ones_like(
-                    module.running_var, device=average_model.device, dtype=module.running_var.dtype)
-                self.momenta[module] = module.momentum
-                module.momentum = None
-                module.num_batches_tracked *= 0
+            if not isinstance(module, nn.modules.batchnorm._BatchNorm):
+                continue
+            module.running_mean = torch.zeros_like(
+                module.running_mean, device=average_model.device, dtype=module.running_mean.dtype)
+            module.running_var = torch.ones_like(
+                module.running_var, device=average_model.device, dtype=module.running_var.dtype)
+            self.momenta[module] = module.momentum
+            module.momentum = None
+            module.num_batches_tracked *= 0
 
     def reset_momenta(self):
         """
