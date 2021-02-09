@@ -193,7 +193,7 @@ class Accelerator(object):
         Args:
             output: the output of the training step
         """
-        return output
+        return self.training_type_plugin.training_step_end(output)
 
     def test_step_end(self, output):
         """A hook to do something at the end of the test step
@@ -201,7 +201,7 @@ class Accelerator(object):
         Args:
             output: the output of the test step
         """
-        return output
+        return self.training_type_plugin.test_step_end(output)
 
     def validation_step_end(self, output):
         """A hook to do something at the end of the validation step
@@ -209,7 +209,7 @@ class Accelerator(object):
         Args:
             output: the output of the validation step
         """
-        return output
+        return self.training_type_plugin.validation_step_end(output)
 
     def predict(self, args):
         """The prediction step.

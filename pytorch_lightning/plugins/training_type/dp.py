@@ -68,3 +68,13 @@ class DataParallelPlugin(ParallelPlugin):
 
     def predict(self, *args, **kwargs):
         return self.model(*args, **kwargs)
+
+    def training_step_end(self, output):
+        return self.reduce(output)
+
+    def validation_step_end(self, output):
+        return self.reduce(output)
+
+    def test_step_end(self, output):
+        return self.reduce(output)
+

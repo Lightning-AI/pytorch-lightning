@@ -206,6 +206,7 @@ class BackendConnector(object):
             self._training_type_plugin = self.select_training_type_plugin()
         else:
             self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
+
         return self._training_type_plugin
 
     @property
