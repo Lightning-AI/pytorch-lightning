@@ -518,6 +518,3 @@ def test_dm_init_from_datasets(tmpdir):
     assert torch.all(next(iter(dm.val_dataloader()[1])) == torch.ones(4))
     assert torch.all(next(iter(dm.test_dataloader()[0])) == torch.ones(4))
     assert torch.all(next(iter(dm.test_dataloader()[1])) == torch.ones(4))
-
-    results = trainer.fit(model, dm)
-    assert results
