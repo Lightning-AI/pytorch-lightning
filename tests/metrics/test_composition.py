@@ -222,8 +222,8 @@ def test_metrics_mod(second_operand, expected_result):
     final_mod = first_metric % second_operand
 
     assert isinstance(final_mod, CompositionalMetric)
-
-    assert torch.allclose(expected_result, final_mod.compute())
+    # prevent Runtime error for PT 1.8 - Long did not match Float
+    assert torch.allclose(expected_result.to(float), final_mod.compute().to(float))
 
 
 @pytest.mark.parametrize(

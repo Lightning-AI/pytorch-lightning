@@ -312,7 +312,7 @@ class PyTorchProfiler(BaseProfiler):
         group_by_input_shapes: bool = False,
         with_stack: bool = False,
         use_kineto: bool = False,
-        use_cpu: bool = False,
+        use_cpu: bool = True,
         emit_nvtx: bool = False,
         export_to_chrome: bool = False,
         path_to_export_trace: str = None,
