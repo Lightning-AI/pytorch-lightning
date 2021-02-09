@@ -28,6 +28,8 @@ from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from tests.helpers import BoringModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
 
 
 class ModelTrainerPropertyParity(Callback):
@@ -52,27 +54,10 @@ class ModelTrainerPropertyParity(Callback):
         self._check_properties(trainer, pl_module)
 
 
-class ValTestLossBoringModel(BoringModel):
-
-    def __init__(self, batch_size=4):
-        super().__init__()
-        self.save_hyperparameters()
-
-    def validation_step(self, batch, batch_idx):
-        out = super().validation_step(batch, batch_idx)
-        self.log('val_loss', out['x'])
-        return out
-
-    def test_step(self, batch, batch_idx):
-        out = super().test_step(batch, batch_idx)
-        self.log('test_loss', out['y'])
-        return out
-
-
 T = TypeVar('T')
 
 
-class GenericParentValTestLossBoringModel(Generic[T], ValTestLossBoringModel):
+class GenericParentValTestLossBoringModel(Generic[T], ClassificationModel):
 
     def __init__(self, batch_size: int = 4):
         super().__init__(batch_size=batch_size)
@@ -87,7 +72,8 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
     Test that properties like `current_epoch` and `global_step`
     in model and trainer are always the same.
     """
-    model = ValTestLossBoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     trainer_args = dict(
         default_root_dir=tmpdir,
@@ -98,16 +84,17 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
         callbacks=[checkpoint_callback, ModelTrainerPropertyParity()],  # this performs the assertions
     )
     trainer = Trainer(**trainer_args)
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
     trainer_args.update(max_epochs=2)
     trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
     """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
-    model = ValTestLossBoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
     checkpoint_cb = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -118,7 +105,7 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
         limit_val_batches=2,
     )
     # Generate checkpoint `last.ckpt` with BoringModel
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
     # `True` if resume/restore successfully else `False`
     assert trainer.checkpoint_connector.restore(str(tmpdir / "last.ckpt"), trainer.on_gpu)
     assert not trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
@@ -133,7 +120,8 @@ class CaptureCallbacksBeforeTraining(Callback):
 
 def test_callbacks_state_resume_from_checkpoint(tmpdir):
     """ Test that resuming from a checkpoint restores callbacks that persist state. """
-    model = ValTestLossBoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
     callback_capture = CaptureCallbacksBeforeTraining()
 
     def get_trainer_args():
@@ -150,12 +138,12 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
 
     # initial training
     trainer = Trainer(**get_trainer_args())
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
     callbacks_before_resume = deepcopy(trainer.callbacks)
 
     # resumed training
     trainer = Trainer(**get_trainer_args(), resume_from_checkpoint=str(tmpdir / "last.ckpt"))
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
     assert len(callbacks_before_resume) == len(callback_capture.callbacks)
 
@@ -167,14 +155,15 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
 
 def test_callbacks_references_resume_from_checkpoint(tmpdir):
     """ Test that resuming from a checkpoint sets references as expected. """
-    model = ValTestLossBoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
     args = {'default_root_dir': tmpdir, 'max_steps': 1, 'logger': False}
 
     # initial training
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     trainer = Trainer(**args, callbacks=[checkpoint])
     assert checkpoint is trainer.callbacks[-1] is trainer.checkpoint_callback
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
     # resumed training
     new_checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
@@ -183,7 +172,7 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
     trainer = Trainer(**args, callbacks=[new_checkpoint], resume_from_checkpoint=str(tmpdir / "last.ckpt"))
     assert checkpoint is not new_checkpoint
     assert new_checkpoint is trainer.callbacks[-1] is trainer.checkpoint_callback
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -191,8 +180,8 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
 
     tutils.set_random_master_port()
-
-    model = ValTestLossBoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -214,21 +203,20 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    pretrained_model = ValTestLossBoringModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    results = new_trainer.test(pretrained_model)
     pretrained_model.cpu()
 
     # test we have good test accuracy
-    # TODO: add end-to-end test
-    # acc = results[0]['test_acc']
-    # assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
+    acc = results[0]['test_acc']
+    assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
 
     dataloaders = model.test_dataloader()
     if not isinstance(dataloaders, list):
@@ -242,8 +230,8 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     """Verify `test()` on pretrained model."""
     tutils.set_random_master_port()
-
-    model = ValTestLossBoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -265,24 +253,23 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
     log.info(os.listdir(tutils.get_data_path(logger, path_dir=tmpdir)))
 
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    pretrained_model = ValTestLossBoringModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    results = new_trainer.test(pretrained_model)
     pretrained_model.cpu()
 
-    # TODO: add end-to-end test
-    # acc = results[0]['test_acc']
-    # assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
+    acc = results[0]['test_acc']
+    assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
 
-    dataloaders = model.test_dataloader()
+    dataloaders = dm.test_dataloader()
     if not isinstance(dataloaders, list):
         dataloaders = [dataloaders]
 
@@ -293,7 +280,8 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
 def test_running_test_pretrained_model_cpu(tmpdir):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
-    model = ValTestLossBoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -313,11 +301,11 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    pretrained_model = ValTestLossBoringModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -326,10 +314,11 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     tutils.assert_ok_model_acc(new_trainer, key='test_loss')
 
 
-@pytest.mark.parametrize('model_template', [ValTestLossBoringModel, GenericValTestLossBoringModel])
+@pytest.mark.parametrize('model_template', [ClassificationModel, GenericValTestLossBoringModel])
 def test_load_model_from_checkpoint(tmpdir, model_template):
     """Verify test() on pretrained model."""
     tutils.reset_seed()
+    dm = ClassifDataModule()
     model = model_template()
 
     trainer_options = dict(
@@ -343,7 +332,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
     trainer.test(ckpt_path=None)
 
     # correct result and ok accuracy

@@ -24,6 +24,8 @@ from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.utils import reset_seed
 
 
@@ -190,8 +192,8 @@ def test_dm_pickle_after_init(tmpdir):
 def test_train_loop_only(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     model.validation_step = None
     model.validation_step_end = None
@@ -207,18 +209,17 @@ def test_train_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
-    # TODO: add end-to-end test
-    # assert trainer.callback_metrics['loss'] < 0.6
+    assert trainer.callback_metrics['loss'] < 0.6
 
 
 def test_train_val_loop_only(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     model.validation_step = None
     model.validation_step_end = None
@@ -231,11 +232,10 @@ def test_train_val_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
-    # TODO: add end-to-end test
-    # assert trainer.callback_metrics['train_loss'] < 0.6
+    assert trainer.callback_metrics['train_loss'] < 0.6
 
 
 def test_dm_checkpoint_save(tmpdir):
@@ -294,8 +294,8 @@ def test_test_loop_only(tmpdir):
 def test_full_loop(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -311,8 +311,7 @@ def test_full_loop(tmpdir):
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.8
 
 
 def test_trainer_attached_to_dm(tmpdir):
@@ -346,8 +345,8 @@ def test_trainer_attached_to_dm(tmpdir):
 def test_full_loop_single_gpu(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -364,16 +363,15 @@ def test_full_loop_single_gpu(tmpdir):
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.8
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_full_loop_dp(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -385,14 +383,13 @@ def test_full_loop_dp(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.8
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
