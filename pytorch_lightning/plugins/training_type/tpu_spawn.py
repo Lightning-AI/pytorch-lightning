@@ -67,6 +67,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             trainer.progress_bar_callback.disable()
 
         self.model_to_device()
+        trainer.accelerator.setup_optimizers(trainer, self._model)
         self.barrier()
 
         if trainer.testing:

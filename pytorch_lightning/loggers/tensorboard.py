@@ -198,7 +198,9 @@ class TensorBoardLogger(LightningLoggerBase):
                 self.experiment.add_scalars(k, v, step)
             else:
                 try:
-                    self.experiment.add_scalar(k, v, step)
+                    # TODO: must enable again
+                    # self.experiment.add_scalar(k, v, step)
+                    pass
                 # todo: specify the possible exception
                 except Exception as ex:
                     m = f'\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
