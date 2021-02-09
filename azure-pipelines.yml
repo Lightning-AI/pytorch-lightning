@@ -62,18 +62,17 @@ steps:
   displayName: 'Get legacy checkpoints'
 
 - bash: |
-    python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v --durations=50
+    python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
     sh tests/special_tests.sh
   displayName: 'Full Testing'
 
 - bash: |
-    python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
-  displayName: 'Testing'
-
-- bash: |
     python -m coverage report
     python -m coverage xml
-    # todo: send coverage stats
-    codecov --flags=gpu,pytest --name="GPU-coverage" --env=linux
+    codecov --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
   displayName: 'Statistics'
+
+- bash: |
+    python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
+  displayName: 'Extended Testing'
 
