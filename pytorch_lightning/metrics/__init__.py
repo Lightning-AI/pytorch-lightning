@@ -28,6 +28,13 @@ from pytorch_lightning.metrics.classification import (  # noqa: F401
     StatScores,
 )
 from pytorch_lightning.metrics.metric import Metric, MetricCollection  # noqa: F401
-from pytorch_lightning.metrics.regression import (ExplainedVariance, MeanAbsoluteError, MeanSquaredError,  # noqa: F401
-                                                  MeanSquaredLogError, PSNR, R2Score, SSIM)
+from pytorch_lightning.metrics.regression import (  # noqa: F401
+    ExplainedVariance,
+    MeanAbsoluteError,
+    MeanSquaredError,
+    MeanSquaredLogError,
+    PSNR,
+    R2Score,
+    SSIM,
+)
 from pytorch_lightning.metrics.retrieval import RetrievalMAP  # noqa: F401
