@@ -41,6 +41,3 @@ def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_ste
     # check training stopped at max_epochs or max_steps
     if trainer.max_steps and not trainer.max_epochs:
         assert trainer.global_step == trainer.max_steps
-
-    if trainer.max_steps and not trainer.max_epochs:
-        assert trainer.global_step == trainer.max_steps
