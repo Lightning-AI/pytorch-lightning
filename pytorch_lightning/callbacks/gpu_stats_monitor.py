@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 GPU Stats Monitor
 =================
@@ -100,9 +99,7 @@ class GPUStatsMonitor(Callback):
 
     def on_train_start(self, trainer, *args, **kwargs):
         if not trainer.logger:
-            raise MisconfigurationException(
-                'Cannot use GPUStatsMonitor callback with Trainer that has no logger.'
-            )
+            raise MisconfigurationException('Cannot use GPUStatsMonitor callback with Trainer that has no logger.')
 
         if trainer._device_type != DeviceType.GPU:
             raise MisconfigurationException(
@@ -208,9 +205,6 @@ class GPUStatsMonitor(Callback):
 
     @staticmethod
     def _should_log(trainer) -> bool:
-        should_log = (
-            (trainer.global_step + 1) % trainer.log_every_n_steps == 0
-            or trainer.should_stop
-        )
+        should_log = ((trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop)
 
         return should_log

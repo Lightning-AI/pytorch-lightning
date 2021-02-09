@@ -37,17 +37,21 @@ steps:
     - pip install -r ./requirements/devel.txt --upgrade-strategy only-if-needed --no-cache-dir
     - pip install git+https://${AUTH_TOKEN}@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.2 --no-cache-dir
     # when Image has defined CUDa version we can switch to this package spec "nvidia-dali-cuda${CUDA_VERSION%%.*}0"
-    - pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100 --upgrade-strategy only-if-needed
+    #- pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100 --upgrade-strategy only-if-needed
     - pip list
-    # todo: remove unzip install after new nigtly docker is created
-    - apt-get update -qq
-    - apt-get install -y --no-install-recommends unzip
+    # todo: remove unzip install after new nightly docker is created
+    #- apt-get update -qq
+    #- apt-get install -y --no-install-recommends unzip
     # get legacy checkpoints
     - wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
     - unzip -o legacy/checkpoints.zip -d legacy/
     - ls -l legacy/checkpoints/
     # testing...
-    - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
+    #- python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
+    - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/plugins/test_sharded_plugin.py --ignore tests/trainer/test_dataloaders.py --ignore tests/metrics -v --durations=25 # --flake8
+    # Todo: Find why those tests are failing when run in the main pytest.
+    - python -m coverage run -a --source pytorch_lightning -m pytest tests/metrics -v --durations=25 # --flake8
+    - python -m coverage run -a --source pytorch_lightning -m pytest tests/plugins/test_sharded_plugin.py tests/trainer/test_dataloaders.py -v --durations=25 # --flake8
     # Running special tests
     - sh tests/special_tests.sh
     - coverage report

@@ -6,28 +6,4 @@ pytorch_lightning/accelerators/legacy/*
 
 
 # TODO
-pytorch_lightning/callbacks/*
-
-
-# TODO
-pytorch_lightning/cluster_environments/*
-
-
-# TODO
-pytorch_lightning/core/*
-
-
-# TODO
-pytorch_lightning/loggers/*
-
-
-# TODO
 pytorch_lightning/plugins/legacy/*
-
-
-# TODO
-pytorch_lightning/profiler/*
-
-
-# TODO
-pytorch_lightning/tuner/*

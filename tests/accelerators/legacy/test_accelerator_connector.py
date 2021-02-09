@@ -75,7 +75,7 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @mock.patch.dict(
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",
@@ -95,8 +95,8 @@ def test_accelerator_choice_ddp_slurm():
             assert isinstance(trainer.accelerator_backend, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.task_idx == 10
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
+            assert trainer.training_type_plugin.task_idx == 10
             raise SystemExit()
 
     model = BoringModel()
@@ -133,9 +133,8 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock):
             assert isinstance(trainer.accelerator_backend, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDP2Plugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.task_idx == 10
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
-
+            assert trainer.training_type_plugin.task_idx == 10
             raise SystemExit()
 
     model = BoringModel()
@@ -162,8 +161,8 @@ def test_accelerator_choice_ddp_te(device_count_mock):
             assert isinstance(trainer.accelerator_backend, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.task_idx == 10
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
+            assert trainer.training_type_plugin.task_idx == 10
             raise SystemExit()
 
     model = BoringModel()
@@ -190,8 +189,8 @@ def test_accelerator_choice_ddp2_te(device_count_mock):
             assert isinstance(trainer.accelerator_backend, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDP2Plugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.task_idx == 10
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
+            assert trainer.training_type_plugin.task_idx == 10
             raise SystemExit()
 
     model = BoringModel()
@@ -221,8 +220,8 @@ def test_accelerator_choice_ddp_cpu_te(device_count_mock):
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.task_idx == 10
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
+            assert trainer.training_type_plugin.task_idx == 10
             raise SystemExit()
 
     model = BoringModel()
@@ -257,6 +256,7 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock):
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
+            assert trainer.training_type_plugin.task_idx == 0
             raise SystemExit()
 
     model = BoringModel()
@@ -365,6 +365,7 @@ def test_dist_backend_accelerator_mapping(device_count_mock):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
+            assert trainer.training_type_plugin.task_idx == 0
             raise SystemExit()
 
     model = BoringModel()

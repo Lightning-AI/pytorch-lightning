@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """[Train, Eval]Result for easier logging, checkpointing, early stopping, epoch-wise reduction."""
 
 import numbers
@@ -27,6 +26,7 @@ from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 
 
 class Result(Dict):
+
     def __init__(
         self,
         minimize: Optional[Tensor] = None,
@@ -224,7 +224,7 @@ class Result(Dict):
         tbptt_pad_token: int,
         tbptt_reduce_fx: Callable,
         forked: bool,
-        dataloader_idx: Union[int, None]
+        dataloader_idx: Union[int, None],
     ):
         # set the meta for the item
         meta_value = value

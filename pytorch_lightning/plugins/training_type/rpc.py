@@ -41,7 +41,7 @@ class RPCPlugin(DDPPlugin):
     def __init__(
         self,
         rpc_timeout_sec: float = DEFAULT_RPC_TIMEOUT_SEC,
-        parallel_devices : Sequence[int] = (),
+        parallel_devices: Sequence[int] = (),
         num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         sync_batchnorm: Optional[bool] = None,

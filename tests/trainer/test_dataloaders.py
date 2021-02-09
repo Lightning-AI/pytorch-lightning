@@ -735,6 +735,8 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
 def test_dataloader_reinit_for_subclass(tmpdir):
 
+    del os.environ["PL_TRAINER_GPUS"]
+
     class CustomDataLoader(torch.utils.data.DataLoader):
 
         def __init__(

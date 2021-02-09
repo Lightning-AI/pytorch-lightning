@@ -33,7 +33,6 @@ from pytorch_lightning.plugins import (
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
-    RPCPlugin,
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
     SingleTPUPlugin,
@@ -116,10 +115,10 @@ class BackendConnector(object):
         self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
         self.root_gpu = device_parser.determine_root_gpu_device(self.parallel_device_ids)
 
-        self.handle_given_plugins(plugins)
-
         self.set_distributed_mode()
         self.configure_slurm_ddp()
+
+        self.handle_given_plugins(plugins)
 
         self.accelerator = self.select_accelerator()
 
@@ -147,8 +146,10 @@ class BackendConnector(object):
         self.replace_sampler_ddp = replace_sampler_ddp
 
     def handle_given_plugins(self, plugins: Optional[Sequence]):
-        if plugins is None:
-            return
+        plugins = plugins if plugins is not None else []
+
+        if isinstance(plugins, str):
+            plugins = [plugins]
 
         if not isinstance(plugins, Sequence):
             plugins = [plugins]
@@ -158,7 +159,10 @@ class BackendConnector(object):
         cluster_environment = None
 
         for plug in plugins:
-            if isinstance(plug, TrainingTypePlugin):
+            if isinstance(plug, str):
+                self.set_distributed_mode(plug)
+
+            elif isinstance(plug, TrainingTypePlugin):
                 if training_type is None:
                     training_type = plug
 
@@ -191,6 +195,7 @@ class BackendConnector(object):
                 )
 
         self._training_type_plugin = training_type
+        self._training_type_plugin = self.training_type_plugin
         self._precision_plugin = precision
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
@@ -328,7 +333,7 @@ class BackendConnector(object):
 
     def select_training_type_plugin(self):
         if self.use_ddp2:
-            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self._cluster_environment)
+            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
@@ -360,7 +365,7 @@ class BackendConnector(object):
             plugin = ddp_plugin_cls(
                 parallel_devices=self.parallel_devices,
                 num_nodes=self.num_nodes,
-                cluster_environment=self.select_cluster_environment(),
+                cluster_environment=self.cluster_environment,
                 sync_batchnorm=self.sync_batchnorm,
             )
         elif self.use_dp:
@@ -426,7 +431,11 @@ class BackendConnector(object):
             env = TorchElasticEnvironment()
         return env
 
-    def set_distributed_mode(self):
+    def set_distributed_mode(self, distributed_backend: Optional[str] = None):
+
+        if distributed_backend is not None:
+            self.distributed_backend = distributed_backend
+
         if isinstance(self.distributed_backend, Accelerator):
             return
 
@@ -484,6 +493,9 @@ class BackendConnector(object):
             and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
         ):
             self.num_processes = self.num_gpus
+
+        if (self._device_type == DeviceType.GPU and self._distrib_type == DistributedType.DDP2):
+            self.num_processes = self.num_nodes
 
         # Horovod is an extra case...
         if self.distributed_backend == "horovod":
