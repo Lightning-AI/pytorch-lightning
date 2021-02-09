@@ -700,17 +700,11 @@ class Trainer(
             # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
 
-            print("dl_outputs")
-
         if self._predicting:
             return self.evaluation_loop.on_predict_epoch_end()
 
         # lightning module method
         deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
-
-        print(self.current_epoch)
-
-        print("evaluation_epoch_end")
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
@@ -722,12 +716,8 @@ class Trainer(
         # hook
         self.evaluation_loop.on_evaluation_end()
 
-        print("on_evaluation_end")
-
         # log epoch metrics
         eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
-
-        print("log_epoch_metrics_on_evaluation_end")
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
@@ -735,8 +725,6 @@ class Trainer(
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
         torch.set_grad_enabled(True)
-
-        print("on_evaluation_model_train")
 
         return eval_loop_results, deprecated_eval_results
 

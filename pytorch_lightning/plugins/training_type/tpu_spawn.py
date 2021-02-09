@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterable, Optional, Sequence, Union
 
 import torch
 import torch.multiprocessing as mp
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
@@ -39,7 +40,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def create_mp_queue(self):
         self.start_method = 'fork'
         smp = mp.get_context(self.start_method)
-        self.mp_queue = smp.SimpleQueue()        
+        self.mp_queue = smp.SimpleQueue()
 
     @property
     def distributed_sampler_kwargs(self) -> dict:
@@ -65,7 +66,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def new_process(self, process_idx: int, trainer, mp_queue) -> None:
         self.mp_queue = mp_queue
-        
+
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
             seed_everything(int(seed))
@@ -86,8 +87,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             results = trainer.run_test()
         else:
             results = trainer.train()
-
-        print(results)
 
         self.__save_end_of_training_weights(self.lightning_module, trainer)
         self.transfer_distrib_spawn_state_on_fit_end(results)

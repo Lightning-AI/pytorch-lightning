@@ -25,7 +25,6 @@ class TPUAccelerator(Accelerator):
 
         if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
             raise MisconfigurationException("TPUs only support a single tpu core or tpu spawn training.")
-        
         return super().setup(trainer, model)
 
     def run_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs):
