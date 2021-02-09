@@ -44,7 +44,8 @@ _PYTORCH_PRUNING_METHOD = {
     "random_unstructured": pytorch_prune.RandomUnstructured,
 }
 
-_PARAM_LIST = List[Tuple[nn.Module, str]]
+_PARAM_TUPLE = Tuple[nn.Module, str]
+_PARAM_LIST = Union[List[_PARAM_TUPLE], Tuple[_PARAM_TUPLE]]
 _MODULE_CONTAINERS = (LightningModule, nn.Sequential, nn.ModuleList, nn.ModuleDict)
 
 
