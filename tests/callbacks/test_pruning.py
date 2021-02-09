@@ -22,7 +22,7 @@ from torch import nn
 from torch.nn import Sequential
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import Callback, ModelPruning
+from pytorch_lightning.callbacks import ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
 
@@ -175,7 +175,8 @@ def test_pruning_callback_ddp_cpu(tmpdir):
     train_with_pruning_callback(tmpdir, parameters_to_prune=True, accelerator="ddp_cpu", num_processes=2)
 
 
-def test_pruning_lth_callable(tmpdir):
+@pytest.mark.parametrize("resample_parameters", (False, True))
+def test_pruning_lth_callable(tmpdir, resample_parameters):
     model = TestModel()
 
     class ModelPruningTestCallback(ModelPruning):
@@ -185,7 +186,18 @@ def test_pruning_lth_callable(tmpdir):
             super().apply_lottery_ticket_hypothesis()
             self.lth_calls += 1
 
-    pruning = ModelPruningTestCallback("l1_unstructured", use_lottery_ticket_hypothesis=lambda e: bool(e % 2))
+            for d in self._original_layers.values():
+                copy, names = d["data"], d["names"]
+                for i, name in names:
+                    cur, cur_name = self._parameters_to_prune[i]
+                    assert name == cur_name
+                    actual, expected = getattr(cur, name).data, getattr(copy, name).data
+                    allclose = torch.allclose(actual, expected)
+                    assert not allclose if self._resample_parameters else allclose
+
+    pruning = ModelPruningTestCallback(
+        "l1_unstructured", use_lottery_ticket_hypothesis=lambda e: bool(e % 2), resample_parameters=resample_parameters
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -197,6 +209,6 @@ def test_pruning_lth_callable(tmpdir):
         max_epochs=5,
         callbacks=pruning,
     )
-    assert pruning.lth_calls == 0
     trainer.fit(model)
+
     assert pruning.lth_calls == trainer.max_epochs // 2

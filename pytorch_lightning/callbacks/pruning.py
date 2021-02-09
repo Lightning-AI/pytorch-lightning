@@ -21,6 +21,7 @@ from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, List, Optional, Tuple, Union
 
+import torch
 import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 
@@ -58,6 +59,7 @@ class ModelPruning(Callback):
         amount: Union[int, float, Callable[[int], Union[int, float]]] = 0.5,
         make_pruning_permanent: bool = True,
         use_lottery_ticket_hypothesis: Union[bool, Callable[[int], bool]] = True,
+        resample_parameters: bool = False,
         pruning_dim: Optional[int] = None,
         pruning_norm: Optional[int] = None,
     ) -> None:
@@ -112,6 +114,9 @@ class ModelPruning(Callback):
                 - ``bool``. Whether to apply it or not.
                 - ``Callable[[epoch], bool]``. For dynamic values. Will be called every epoch.
 
+            resample_parameters: Used with ``use_lottery_ticket_hypothesis``. If True, the model parameters will
+                be resampled, otherwise, the exact original parameters will be used.
+
             pruning_dim: If you are using a structured pruning method you need to specify the dimension.
 
             pruning_norm: If you are using ``ln_structured`` you need to specify the norm.
@@ -121,14 +126,15 @@ class ModelPruning(Callback):
         self._use_global_unstructured = use_global_unstructured
         self._parameters_to_prune = parameters_to_prune
         self._use_lottery_ticket_hypothesis = use_lottery_ticket_hypothesis
+        self._resample_parameters = resample_parameters
         self._parameter_names = parameter_names or self.PARAMETER_NAMES
         self._global_kwargs = {}
-        self._initial_parameters_to_prune = None
+        self._original_layers = None
 
-        for param_name in self._parameter_names:
-            if param_name not in self.PARAMETER_NAMES:
+        for name in self._parameter_names:
+            if name not in self.PARAMETER_NAMES:
                 raise MisconfigurationException(
-                    f"The provided `parameter_names`: {param_name} isn't in {self.PARAMETER_NAMES}"
+                    f"The provided `parameter_names` name: {name} isn't in {self.PARAMETER_NAMES}"
                 )
 
         if isinstance(pruning_fn, str):
@@ -225,18 +231,29 @@ class ModelPruning(Callback):
             4. Reset the remaining parameters to their values in θ_0, creating the winning ticket f(x; m⊙θ_0).
 
         This function implements the step 4.
+
+        The ``resample_parameters`` argument can be used to reset the parameters with a new θ ∼ D_θ
         """
-        for (new, new_name), (old, old_name) in zip(self._parameters_to_prune, self._initial_parameters_to_prune):
-            trained = getattr(new, new_name)
-            orig = getattr(old, new_name)
-            assert new_name == old_name
-            if trained is None or orig is None:
+
+        def copy_param(new, old, name: str) -> None:
+            dst = getattr(new, name)
+            src = getattr(old, name)
+            if dst is None or src is None or not isinstance(dst, torch.Tensor) or not isinstance(src, torch.Tensor):
                 return
-            trained.data = orig.data.to(trained.device)
+            dst.data = src.data.to(dst.device)
+
+        for d in self._original_layers.values():
+            copy, names = d["data"], d["names"]
+            if self._resample_parameters and hasattr(copy, "reset_parameters"):
+                copy = deepcopy(copy)  # keep the original parameters
+                copy.reset_parameters()
+            for i, name in names:
+                new, new_name = self._parameters_to_prune[i]
+                copy_param(new, copy, name)
 
     def _apply_local_pruning(self, amount: float):
-        for module, param in self._parameters_to_prune:
-            self.pruning_fn(module, name=param, amount=amount)
+        for module, name in self._parameters_to_prune:
+            self.pruning_fn(module, name=name, amount=amount)
 
     def _resolve_global_kwargs(self, amount: float):
         self._global_kwargs["amount"] = amount
@@ -267,14 +284,19 @@ class ModelPruning(Callback):
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         parameters_to_prune = self.sanitize_parameters_to_prune(
-            pl_module, self._parameters_to_prune, parameters=self._parameter_names
+            pl_module, self._parameters_to_prune, parameter_names=self._parameter_names
         )
 
         self._parameters_to_prune = self.filter_parameters_to_prune(parameters_to_prune)
 
         if self._use_lottery_ticket_hypothesis:
-            # make a copy of copy of original weights.
-            self._initial_parameters_to_prune = [(deepcopy(m), n) for m, n in self._parameters_to_prune]
+            # group modules by id. Each entry has a copy of the initial data
+            # and a list of the associated parameter names to prune
+            self._original_layers = {}
+            for i, (module, name) in enumerate(self._parameters_to_prune):
+                id_ = id(module)
+                self._original_layers.setdefault(id_, {"data": deepcopy(module), "names": []})
+                self._original_layers[id_]["names"].append((i, name))
 
     def on_train_epoch_end(self, trainer, pl_module, *args):
         self.apply_pruning(trainer.current_epoch)
@@ -286,13 +308,13 @@ class ModelPruning(Callback):
     def sanitize_parameters_to_prune(
         pl_module: LightningModule,
         parameters_to_prune: Optional[_PARAM_LIST] = None,
-        parameters: Optional[List[str]] = None,
+        parameter_names: Optional[List[str]] = None,
     ) -> _PARAM_LIST:
         """
         This function is responsible to check provided ``parameters_to_prune` and `parameters`.
         If parameters_to_prune is None, parameters_to_prune will be generated from all parameters of the model.
         """
-        parameters = parameters or ModelPruning.PARAMETER_NAMES
+        parameters = parameter_names or ModelPruning.PARAMETER_NAMES
 
         current_modules = [m for m in pl_module.modules() if not isinstance(m, _MODULE_CONTAINERS)]
 
@@ -304,12 +326,12 @@ class ModelPruning(Callback):
             and all(isinstance(a, nn.Module) and isinstance(b, str) for a, b in parameters_to_prune)
         ):
             missing_modules, missing_parameters = [], []
-            for module, param_name in parameters_to_prune:
+            for module, name in parameters_to_prune:
                 if module not in current_modules:
                     missing_modules.append(module)
                     continue
-                if not hasattr(module, param_name):
-                    missing_parameters.append(param_name)
+                if not hasattr(module, name):
+                    missing_parameters.append(name)
 
             if missing_modules or missing_parameters:
                 raise MisconfigurationException(
@@ -318,8 +340,8 @@ class ModelPruning(Callback):
                 )
         else:
             raise MisconfigurationException(
-                "The provided `parameters_to_prune` should either be list of tuple "
-                "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None"
+                "The provided `parameters_to_prune` should either be list of tuple"
+                " with 2 elements: (nn.Module, parameter_name_to_prune) or None"
             )
 
         return parameters_to_prune
