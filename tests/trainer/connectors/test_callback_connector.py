@@ -12,7 +12,7 @@ from pytorch_lightning.callbacks import (
     ProgressBar,
 )
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):
