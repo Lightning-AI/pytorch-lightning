@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """nn.Module with additional great features."""
 
 import collections
@@ -265,15 +264,14 @@ class LightningModule(
 
             if self._current_hook_fx_name is not None:
                 self.trainer.logger_connector.check_logging_in_callbacks(
-                    self._current_hook_fx_name,
-                    on_step=on_step,
-                    on_epoch=on_epoch
+                    self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch
                 )
 
             # make sure user doesn't introduce logic for multi-dataloaders
             if "/dataloader_idx_" in name:
                 raise MisconfigurationException(
-                    f"Logged key: {name} should not contain information about dataloader_idx.")
+                    f"Logged key: {name} should not contain information about dataloader_idx."
+                )
 
             accelerator = self.trainer.accelerator_backend
 
@@ -361,8 +359,9 @@ class LightningModule(
         if on_step is None:
             if self._current_fx_name in {'training_step', 'training_step_end'}:
                 on_step = True
-            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
-                                           'evaluation_epoch_end', 'training_epoch_end'}:
+            elif self._current_fx_name in {
+                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
+            }:
                 on_step = False
             else:
                 on_step = False
@@ -373,8 +372,9 @@ class LightningModule(
         if on_epoch is None:
             if self._current_fx_name in {'training_step', 'training_step_end'}:
                 on_epoch = False
-            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
-                                           'evaluation_epoch_end', 'training_epoch_end'}:
+            elif self._current_fx_name in {
+                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
+            }:
                 on_epoch = True
             else:
                 on_epoch = True
@@ -529,9 +529,7 @@ class LightningModule(
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
         """
-        rank_zero_warn(
-            "`training_step` must be implemented to be used with the Lightning Trainer"
-        )
+        rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
     def training_step_end(self, *args, **kwargs):
         """
@@ -949,9 +947,7 @@ class LightningModule(
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def test_epoch_end(
-        self, outputs: List[Any]
-    ) -> None:
+    def test_epoch_end(self, outputs: List[Any]) -> None:
         """
         Called at the end of a test epoch with the output of all test steps.
 
@@ -1008,9 +1004,7 @@ class LightningModule(
         """
         return self(batch)
 
-    def configure_optimizers(
-            self,
-    ):
+    def configure_optimizers(self):
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
@@ -1126,9 +1120,7 @@ class LightningModule(
                   }
 
         """
-        rank_zero_warn(
-            "`configure_optimizers` must be implemented to be used with the Lightning Trainer"
-        )
+        rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
     def manual_backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
         """
@@ -1320,9 +1312,7 @@ class LightningModule(
             optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
         optimizer.step(closure=optimizer_closure)
 
-    def optimizer_zero_grad(
-        self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
-    ):
+    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
         optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
@@ -1367,26 +1357,20 @@ class LightningModule(
             Each returned batch split is passed separately to :meth:`training_step`.
 
         """
-        time_dims = [
-            len(x[0])
-            for x in batch
-            if isinstance(x, (torch.Tensor, collections.Sequence))
-        ]
+        time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
         assert len(time_dims) >= 1, "Unable to determine batch time dimension"
-        assert all(
-            x == time_dims[0] for x in time_dims
-        ), "Batch time dimension length is ambiguous"
+        assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
 
         splits = []
         for t in range(0, time_dims[0], split_size):
             batch_split = []
             for i, x in enumerate(batch):
                 if isinstance(x, torch.Tensor):
-                    split_x = x[:, t: t + split_size]
+                    split_x = x[:, t:t + split_size]
                 elif isinstance(x, collections.Sequence):
                     split_x = [None] * len(x)
                     for batch_idx in range(len(x)):
-                        split_x[batch_idx] = x[batch_idx][t: t + split_size]
+                        split_x[batch_idx] = x[batch_idx][t:t + split_size]
 
                 batch_split.append(split_x)
 
@@ -1401,9 +1385,7 @@ class LightningModule(
             model_summary = ModelSummary(self, mode=mode)
             log.info("\n" + str(model_summary))
         elif mode is not None:
-            raise MisconfigurationException(
-                f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}"
-            )
+            raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
 
         return model_summary
 
@@ -1724,8 +1706,10 @@ class LightningModule(
             example_inputs = self.transfer_batch_to_device(example_inputs)
             torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
         else:
-            raise ValueError("The 'method' parameter only supports 'script' or 'trace',"
-                             f" but value given was: {method}")
+            raise ValueError(
+                "The 'method' parameter only supports 'script' or 'trace',"
+                f" but value given was: {method}"
+            )
 
         self.train(mode)
 
@@ -1753,8 +1737,7 @@ class LightningModule(
         rank_zero_warn(
             "The setter for self.hparams in LightningModule is deprecated since v1.1.0 and will be"
             " removed in v1.3.0. Replace the assignment `self.hparams = hparams` with "
-            " `self.save_hyperparameters()`.",
-            DeprecationWarning
+            " `self.save_hyperparameters()`.", DeprecationWarning
         )
         hparams_assignment_name = self.__get_hparams_assignment_variable()
         self._hparams_name = hparams_assignment_name

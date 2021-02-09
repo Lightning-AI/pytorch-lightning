@@ -24,7 +24,8 @@ from pytorch_lightning import _logger, seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel, EvalModelTemplate
+from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
 
 
 class EarlyStoppingTestRestore(EarlyStopping):
@@ -115,11 +116,9 @@ def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_ep
 
     class ModelOverrideValidationReturn(EvalModelTemplate):
         validation_return_values = torch.Tensor(loss_values)
-        count = 0
 
         def validation_epoch_end(self, outputs):
-            loss = self.validation_return_values[self.count]
-            self.count += 1
+            loss = self.validation_return_values[self.current_epoch]
             return {"test_val_loss": loss}
 
     model = ModelOverrideValidationReturn()
@@ -128,6 +127,41 @@ def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_ep
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
         val_check_interval=1.0,
+        num_sanity_val_steps=0,
+        max_epochs=10,
+    )
+    trainer.fit(model)
+    assert trainer.current_epoch == expected_stop_epoch
+
+
+@pytest.mark.parametrize('validation_step', ['base', None])
+@pytest.mark.parametrize(
+    "loss_values, patience, expected_stop_epoch",
+    [
+        ([6, 5, 5, 5, 5, 5], 3, 4),
+        ([6, 5, 4, 4, 3, 3], 1, 3),
+        ([6, 5, 6, 5, 5, 5], 3, 4),
+    ],
+)
+def test_early_stopping_patience_train(tmpdir, validation_step, loss_values, patience, expected_stop_epoch):
+    """Test to ensure that early stopping is not triggered before patience is exhausted."""
+
+    class ModelOverrideTrainReturn(EvalModelTemplate):
+        train_return_values = torch.Tensor(loss_values)
+
+        def training_epoch_end(self, outputs):
+            loss = self.train_return_values[self.current_epoch]
+            self.log('train_loss', loss)
+
+    model = ModelOverrideTrainReturn()
+
+    if validation_step is None:
+        model.validation_step = None
+
+    early_stop_callback = EarlyStopping(monitor="train_loss", patience=patience, verbose=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[early_stop_callback],
         num_sanity_val_steps=0,
         max_epochs=10,
     )

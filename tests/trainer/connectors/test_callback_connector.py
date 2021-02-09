@@ -4,7 +4,7 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, ProgressBar
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):

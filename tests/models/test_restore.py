@@ -26,7 +26,8 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
-from tests.base import BoringModel, EvalModelTemplate, GenericEvalModelTemplate
+from tests.base import EvalModelTemplate, GenericEvalModelTemplate
+from tests.helpers import BoringModel
 
 
 class ModelTrainerPropertyParity(Callback):

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""
 ModelPruning
 ^^^^^^^^^^^^
@@ -33,7 +32,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _PYTORCH_PRUNE_AVAILABLE:
     import torch.nn.utils.prune as pytorch_prune
-
 
 _PYTORCH_PRUNING_FUNCTIONS = {
     "ln_structured": pytorch_prune.ln_structured,
@@ -179,7 +177,8 @@ class ModelPruning(Callback):
 
             if not use_global_unstructured:
                 raise MisconfigurationException(
-                    '`PyTorch BasePruningMethod` is currently support only for `use_global_unstructured=True`. ')
+                    '`PyTorch BasePruningMethod` is currently support only for `use_global_unstructured=True`. '
+                )
 
         if use_global_unstructured and pruning_fn.PRUNING_TYPE != "unstructured":
             raise MisconfigurationException(
@@ -273,9 +272,7 @@ class ModelPruning(Callback):
 
     def _apply_global_pruning(self, amount: float):
         pytorch_prune.global_unstructured(
-            self._parameters_to_prune,
-            pruning_method=self.pruning_fn,
-            **self._resolve_global_kwargs(amount)
+            self._parameters_to_prune, pruning_method=self.pruning_fn, **self._resolve_global_kwargs(amount)
         )
 
     def apply_pruning(self, trainer: 'pl.Trainer', pl_module: LightningModule):
@@ -295,7 +292,8 @@ class ModelPruning(Callback):
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         parameters_to_prune = self.sanitize_parameters_to_prune(
-            pl_module, self._parameters_to_prune, parameters=self._parameter_names)
+            pl_module, self._parameters_to_prune, parameters=self._parameter_names
+        )
 
         self._parameters_to_prune = self.filter_parameters_to_prune(parameters_to_prune)
 
@@ -338,8 +336,7 @@ class ModelPruning(Callback):
 
         is_parameters_to_prune_none = parameters_to_prune is None
         current_modules = [
-            m for m in pl_module.modules()
-            if not isinstance(m, (LightningModule, ModuleDict, ModuleList))
+            m for m in pl_module.modules() if not isinstance(m, (LightningModule, ModuleDict, ModuleList))
         ]
 
         if is_parameters_to_prune_none:
@@ -380,11 +377,13 @@ class ModelPruning(Callback):
             else:
                 raise MisconfigurationException(
                     "The provided parameters_to_prune should either be list of tuple "
-                    "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
+                    "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None"
+                )
         else:
             if not isinstance(parameters_to_prune, (list, tuple)):
                 raise MisconfigurationException(
                     "The provided parameters_to_prune should either be list of tuple "
-                    "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None")
+                    "with 2 elements: (nn.Module in your model, parameter_name_to_prune) or None"
+                )
 
         return parameters_to_prune

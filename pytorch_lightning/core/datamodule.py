@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """LightningDataModule for loading DataLoaders with ease."""
 
 import functools
@@ -29,6 +28,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_only
 
 
 class _DataModuleWrapper(type):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__has_added_checks = False
@@ -359,7 +359,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
             try:
                 arg_types = tuple(arg_type.__args__)
             except AttributeError:
-                arg_types = (arg_type,)
+                arg_types = (arg_type, )
 
             name_type_default.append((arg, arg_types, arg_default))
 

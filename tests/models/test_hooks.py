@@ -21,7 +21,8 @@ import torch
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import BoringModel, EvalModelTemplate, RandomDataset
+from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel, RandomDataset
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
@@ -432,6 +433,8 @@ def test_trainer_model_hook_system(tmpdir):
         'on_after_backward',
         'on_before_zero_grad',
         'on_train_batch_end',
+        'on_train_epoch_end',
+        'on_epoch_end',
         'on_validation_model_eval',
         'on_validation_start',
         'on_validation_epoch_start',
@@ -441,8 +444,6 @@ def test_trainer_model_hook_system(tmpdir):
         'on_save_checkpoint',
         'on_validation_end',
         'on_validation_model_train',
-        'on_train_epoch_end',
-        'on_epoch_end',
         'on_train_end',
         'on_fit_end',
         'teardown',

@@ -28,7 +28,8 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, AttributeDict, is_picklable
-from tests.base import BoringModel, EvalModelTemplate, TrialMNIST
+from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel, TrialMNIST
 
 if _HYDRA_EXPERIMENTAL_AVAILABLE:
     from hydra.experimental import compose, initialize
