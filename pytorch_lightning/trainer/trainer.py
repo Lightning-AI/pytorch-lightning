@@ -715,13 +715,9 @@ class Trainer(
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
-        print("on_evaluation_epoch_end")
-
         # update epoch-level lr_schedulers
         if on_epoch:
             self.optimizer_connector.update_learning_rates(interval='epoch')
-
-        print("update_learning_rates")
 
         # hook
         self.evaluation_loop.on_evaluation_end()
