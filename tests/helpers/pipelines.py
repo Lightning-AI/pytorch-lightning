@@ -104,7 +104,7 @@ def run_prediction(trained_model, dataloader, dp=False, min_acc=0.25):
     if isinstance(trained_model, BoringModel):
         return _boring_model_run_prediction(trained_model, dataloader, min_acc)
     else:
-        return _eval_model_template_run_prediction(trained_model, dataloader, dp, min_acc=0.50)
+        return _eval_model_template_run_prediction(trained_model, dataloader, dp, min_acc=min_acc)
 
 
 def _eval_model_template_run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
