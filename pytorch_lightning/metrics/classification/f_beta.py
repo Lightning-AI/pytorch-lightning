@@ -29,7 +29,7 @@ class FBeta(Metric):
         {(\beta^2 * \text{precision}) + \text{recall}}
 
     Where :math:`\beta` is some positive real factor. Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
+    Accepts probabilities from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
 
     Forward accepts
@@ -37,8 +37,8 @@ class FBeta(Metric):
     - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
     - ``target`` (long tensor): ``(N, ...)``
 
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument
+    to convert into integer labels. This is the case for binary and multi-label probabilities.
 
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
@@ -46,14 +46,14 @@ class FBeta(Metric):
         num_classes: Number of classes in the dataset.
         beta: Beta coefficient in the F measure.
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
+            Threshold value for binary or multi-label probabilities. default: 0.5
 
         average:
             - ``'micro'`` computes metric globally
             - ``'macro'`` computes metric for each class and uniformly averages them
             - ``'weighted'`` computes metric for each class and does a weighted-average,
               where each class is weighted by their support (accounts for class imbalance)
-            - ``'none'`` computes and returns the metric per class
+            - ``'none'`` or ``None`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
@@ -98,7 +98,7 @@ class FBeta(Metric):
         self.average = average
         self.multilabel = multilabel
 
-        allowed_average = ("micro", "macro", "weighted", None)
+        allowed_average = ("micro", "macro", "weighted", "none", None)
         if self.average not in allowed_average:
             raise ValueError(
                 'Argument `average` expected to be one of the following:'
@@ -163,7 +163,7 @@ class F1(FBeta):
             - ``'macro'`` computes metric for each class and uniformly averages them
             - ``'weighted'`` computes metric for each class and does a weighted-average,
               where each class is weighted by their support (accounts for class imbalance)
-            - ``'none'`` computes and returns the metric per class
+            - ``'none'`` or ``None`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
