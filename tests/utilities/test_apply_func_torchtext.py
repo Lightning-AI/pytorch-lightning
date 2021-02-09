@@ -20,9 +20,13 @@ from pytorch_lightning.utilities.apply_func import move_data_to_device
 
 
 def _get_torchtext_data_iterator(include_lengths=False):
-    text_field = torchtext.data.Field(sequential=True, pad_first=False,  # nosec
-                                      init_token="<s>", eos_token="</s>",  # nosec
-                                      include_lengths=include_lengths)  # nosec
+    text_field = torchtext.data.Field(
+        sequential=True,
+        pad_first=False,  # nosec
+        init_token="<s>",
+        eos_token="</s>",  # nosec
+        include_lengths=include_lengths
+    )  # nosec
 
     example1 = Example.fromdict({"text": "a b c a c"}, {"text": ("text", text_field)})
     example2 = Example.fromdict({"text": "b c a a"}, {"text": ("text", text_field)})
@@ -34,11 +38,18 @@ def _get_torchtext_data_iterator(include_lengths=False):
     )
     text_field.build_vocab(dataset)
 
-    iterator = torchtext.data.Iterator(dataset, batch_size=3,
-                                       sort_key=None, device=None,
-                                       batch_size_fn=None,
-                                       train=True, repeat=False, shuffle=None,
-                                       sort=None, sort_within_batch=None)
+    iterator = torchtext.data.Iterator(
+        dataset,
+        batch_size=3,
+        sort_key=None,
+        device=None,
+        batch_size_fn=None,
+        train=True,
+        repeat=False,
+        shuffle=None,
+        sort=None,
+        sort_within_batch=None
+    )
     return iterator, text_field
 
 

@@ -5,48 +5,49 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-* @williamfalcon @borda @tchaton @SeanNaren @awaelchli @justusschock
+* @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock
 
-# Metrics
-/pytorch_lightning/metrics/   @teddykoker @ananyahjha93 @justusschock
-/tests/metrics/               @teddykoker @ananyahjha93 @justusschock
-/docs/source/metrics.rst      @teddykoker @ananyahjha93 @justusschock
+/.github/CODEOWNERS @williamfalcon
+/README.md          @williamfalcon @edenlightning @borda
+/setup.py           @williamfalcon @borda
 
-# API
-/pytorch_lightning/callbacks/base.py           @williamfalcon
-/pytorch_lightning/core/datamodule.py          @williamfalcon
-/pytorch_lightning/trainer/trainer.py          @williamfalcon @tchaton
-/pytorch_lightning/core/hooks.py               @williamfalcon
-/pytorch_lightning/core/lightning.py           @williamfalcon @tchaton
-/pytorch_lightning/core/optimizer.py           @tchaton
-/pytorch_lightning/trainer/training_loop.py    @tchaton @SeanNaren
-/pytorch_lightning/trainer/evaluation_loop.py  @tchaton @SeanNaren
-
-# Connectors
-/pytorch_lightning/trainer/connectors/         @tchaton @SeanNaren
-
-# accelerators
-/pytorch_lightning/accelerators/               @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock
-
-# owners
-/.github/CODEOWNERS   @williamfalcon
-# main
-/README.md            @williamfalcon @edenlightning
-# installation
-/setup.py             @borda @williamfalcon
-
-# CI/CD
-/.github/workflows/   @borda @tchaton
-/.github/*.py         @borda @tchaton
-/dockers/             @borda @tchaton
-# configs in root
-/*.yml                @borda @tchaton
+# CI/CD and configs
+/.github/ @borda @tchaton
+/dockers/ @borda @tchaton
+*.yml     @borda @tchaton
 
 # Docs
-/docs/                          @edenlightning @tchaton @borda @awaelchli
-/.github/*.md                   @edenlightning @williamfalcon @borda
-/.github/ISSUE_TEMPLATE/*.md    @edenlightning @borda @tchaton
-/docs/source/conf.py            @borda @awaelchli
+/docs/                   @edenlightning @tchaton @borda @awaelchli
+/.github/*.md            @edenlightning @williamfalcon @borda
+/.github/ISSUE_TEMPLATE/ @edenlightning @borda @tchaton
+/docs/source/conf.py     @borda @awaelchli
+
+# Packages
+/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock
+/pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda
+/pytorch_lightning/cluster_environments @borda @tchaton @SeanNaren @carmocca
+/pytorch_lightning/core                 @tchaton @SeanNaren @borda @carmocca @justusschock
+/pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli
+/pytorch_lightning/loggers              @tchaton @awaelchli @borda
+/pytorch_lightning/overrides            @tchaton @SeanNaren @borda
+/pytorch_lightning/plugins              @tchaton @SeanNaren @awaelchli @justusschock
+/pytorch_lightning/profiler             @williamfalcon @tchaton @borda
+/pytorch_lightning/trainer              @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock
+/pytorch_lightning/trainer/connectors   @tchaton @SeanNaren @carmocca @borda
+/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
+/pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
+
+# Metrics
+/pytorch_lightning/metrics/             @teddykoker @ananyahjha93 @justusschock
+/tests/metrics/                         @teddykoker @ananyahjha93 @justusschock
+/docs/source/metrics.rst                @teddykoker @ananyahjha93 @justusschock
+
+# API
+/pytorch_lightning/callbacks/base.py  @williamfalcon
+/pytorch_lightning/core/datamodule.py @williamFalcon
+/pytorch_lightning/trainer/trainer.py @williamfalcon @tchaton
+/pytorch_lightning/core/hooks.py      @williamfalcon
+/pytorch_lightning/core/lightning.py  @williamfalcon @tchaton
 
 # Testing
-/tests/base/boring_model.py @williamfalcon
+/tests/base/boring_model.py @williamfalcon @tchaton @borda

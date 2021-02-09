@@ -77,7 +77,7 @@ def train_with_pruning_callback(
     if parameters_to_prune:
         parameters_to_prune = [
             (model.layer["mlp_1"], "weight"),
-            (model.layer["mlp_2"], "weight")
+            (model.layer["mlp_2"], "weight"),
         ]
 
     else:
@@ -110,9 +110,7 @@ def train_with_pruning_callback(
                     fraction of parameters to prune. If ``int``, it represents the
                     absolute number of parameters to prune.
             """
-            return super(TestPruningMethod, cls).apply(
-                module, name, amount=amount
-            )
+            return super(TestPruningMethod, cls).apply(module, name, amount=amount)
 
     custom_pruning_fn = TestPruningMethod
 
@@ -135,7 +133,7 @@ def train_with_pruning_callback(
     pruning_fn = pruning_list[rand_idx]
 
     model_pruning_args = {
-        "pruning_fn": custom_pruning_fn if use_custom_pruning_fn else pruning_fn ,
+        "pruning_fn": custom_pruning_fn if use_custom_pruning_fn else pruning_fn,
         "parameters_to_prune": parameters_to_prune,
         "amount": 0.3,
         "use_global_unstructured": use_global_unstructured,
@@ -174,7 +172,7 @@ def test_with_pruning_callback_misconfiguration(tmpdir):
 
     model_pruning_args = {
         "parameter_names": ["weight"],
-        "pruning_fn": model_pruning_args
+        "pruning_fn": model_pruning_args,
     }
 
     with pytest.raises(MisconfigurationException, match='pruning_fn is expected to be the str in'):
@@ -182,7 +180,7 @@ def test_with_pruning_callback_misconfiguration(tmpdir):
 
     model_pruning_args = {
         "parameter_names": ["weight"],
-        "pruning_fn": "random_structured"
+        "pruning_fn": "random_structured",
     }
 
     with pytest.raises(MisconfigurationException, match='should be provided'):
@@ -191,7 +189,7 @@ def test_with_pruning_callback_misconfiguration(tmpdir):
     model_pruning_args = {
         "parameter_names": ["weight"],
         "pruning_fn": "ln_structured",
-        "pruning_dim": 0
+        "pruning_dim": 0,
     }
 
     with pytest.raises(MisconfigurationException, match='requesting `ln_structured` pruning, the `pruning_norm`'):
@@ -204,19 +202,26 @@ def test_with_pruning_callback_misconfiguration(tmpdir):
 @pytest.mark.parametrize("use_custom_pruning_fn", [False, True])
 def test_pruning_callback(tmpdir, use_global_unstructured, parameters_to_prune, use_custom_pruning_fn):
     train_with_pruning_callback(
-        tmpdir, parameters_to_prune, use_global_unstructured,
-        accelerator=None, gpus=None, num_processes=1, use_custom_pruning_fn=use_custom_pruning_fn)
+        tmpdir,
+        parameters_to_prune,
+        use_global_unstructured,
+        accelerator=None,
+        gpus=None,
+        num_processes=1,
+        use_custom_pruning_fn=use_custom_pruning_fn
+    )
 
 
 @pytest.mark.skipif(not _PYTORCH_PRUNE_AVAILABLE, reason="PyTorch prung is needed for this test. ")
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
 @pytest.mark.parametrize("use_global_unstructured", [False, True])
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_pruning_callback_ddp(tmpdir, use_global_unstructured, parameters_to_prune):
     train_with_pruning_callback(
-        tmpdir, parameters_to_prune, use_global_unstructured,
-        accelerator="ddp", gpus=2, num_processes=0)
+        tmpdir, parameters_to_prune, use_global_unstructured, accelerator="ddp", gpus=2, num_processes=0
+    )
 
 
 @pytest.mark.skipif(not _PYTORCH_PRUNE_AVAILABLE, reason="PyTorch prung is needed for this test. ")

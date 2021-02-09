@@ -18,8 +18,8 @@ import pytest
 import torch
 from torch import optim
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE
@@ -189,7 +189,9 @@ def test_amp_without_apex(tmpdir):
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
+
     class CustomModel(EvalModelTemplate):
+
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
             optimizer2 = optim.SGD(self.parameters(), lr=self.learning_rate)

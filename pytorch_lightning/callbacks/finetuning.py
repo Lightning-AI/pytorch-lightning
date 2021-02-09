@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""
 Finetuning Callback
 ^^^^^^^^^^^^^^^^^^^^
@@ -37,7 +36,6 @@ def multiplicative(epoch):
 
 
 class BaseFinetuning(Callback):
-
     r"""
 
     This class implements the base logic for writing your own Finetuning Callback.
@@ -102,10 +100,11 @@ class BaseFinetuning(Callback):
         else:
             _modules = modules.modules()
 
-        return list(filter(
-            lambda m: not isinstance(m, (Container, Sequential, ModuleDict, ModuleList, LightningModule)),
-            _modules
-        ))
+        return list(
+            filter(
+                lambda m: not isinstance(m, (Container, Sequential, ModuleDict, ModuleList, LightningModule)), _modules
+            )
+        )
 
     @staticmethod
     def filter_params(
@@ -180,11 +179,7 @@ class BaseFinetuning(Callback):
         out_params = []
         removed_params = []
         for param in params:
-            if not any(
-                torch.equal(p, param)
-                for group in optimizer.param_groups
-                for p in group["params"]
-            ):
+            if not any(torch.equal(p, param) for group in optimizer.param_groups for p in group["params"]):
                 out_params.append(param)
             else:
                 removed_params.append(param)
@@ -194,7 +189,8 @@ class BaseFinetuning(Callback):
                 "The provided params to be freezed already exist within another group of this optimizer."
                 " Those parameters will be skipped.\n"
                 "HINT: Did you init your optimizer in `configure_optimizer` as such:\n"
-                f"{type(optimizer)}(filter(lambda p: p.requires_grad, self.parameters()), ...) ", UserWarning)
+                f" {type(optimizer)}(filter(lambda p: p.requires_grad, self.parameters()), ...) ", UserWarning
+            )
         return out_params
 
     @staticmethod
@@ -232,12 +228,10 @@ class BaseFinetuning(Callback):
         params = BaseFinetuning.filter_params(modules, train_bn=train_bn, requires_grad=True)
         params = BaseFinetuning.filter_on_optimizer(optimizer, params)
         if params:
-            optimizer.add_param_group(
-                {
-                    'params': params,
-                    'lr': params_lr / denom_lr,
-                }
-            )
+            optimizer.add_param_group({
+                'params': params,
+                'lr': params_lr / denom_lr,
+            })
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         self.freeze_before_training(pl_module)
@@ -261,7 +255,6 @@ class BaseFinetuning(Callback):
 
 
 class BackboneFinetuning(BaseFinetuning):
-
     r"""
 
     Finetune a backbone model based on a learning rate user-defined scheduling.
@@ -328,9 +321,7 @@ class BackboneFinetuning(BaseFinetuning):
         if hasattr(pl_module, "backbone") and \
            (isinstance(pl_module.backbone, Module) or isinstance(pl_module.backbone, Sequential)):
             return
-        raise MisconfigurationException(
-            "The LightningModule should have a nn.Module `backbone` attribute"
-        )
+        raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
 
     def freeze_before_training(self, pl_module: LightningModule):
         self.freeze(pl_module.backbone)
@@ -351,8 +342,10 @@ class BackboneFinetuning(BaseFinetuning):
                 initial_denom_lr=self.initial_denom_lr
             )
             if self.verbose:
-                log.info(f"Current lr: {round(current_lr, self.round)}, "
-                         f"Backbone lr: {round(initial_backbone_lr, self.round)}")
+                log.info(
+                    f"Current lr: {round(current_lr, self.round)}, "
+                    f"Backbone lr: {round(initial_backbone_lr, self.round)}"
+                )
 
         elif epoch > self.unfreeze_backbone_at_epoch:
             current_lr = optimizer.param_groups[0]['lr']
@@ -362,5 +355,7 @@ class BackboneFinetuning(BaseFinetuning):
             optimizer.param_groups[-1]["lr"] = next_current_backbone_lr
             self.previous_backbone_lr = next_current_backbone_lr
             if self.verbose:
-                log.info(f"Current lr: {round(current_lr, self.round)}, "
-                         f"Backbone lr: {round(next_current_backbone_lr, self.round)}")
+                log.info(
+                    f"Current lr: {round(current_lr, self.round)}, "
+                    f"Backbone lr: {round(next_current_backbone_lr, self.round)}"
+                )
