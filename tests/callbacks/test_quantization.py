@@ -71,7 +71,7 @@ def test_quantize_torchscript(tmpdir):
 
 
 def test_quantization_exceptions(tmpdir):
-    """Test  wrong fuse layers"""
+    """Test wrong fuse layers"""
     with pytest.raises(MisconfigurationException, match='Unsupported qconfig'):
         QuantizationAwareTraining(qconfig=['abc'])
 
