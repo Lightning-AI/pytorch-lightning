@@ -14,6 +14,8 @@
 import os
 import platform
 from collections import OrderedDict
+from logging import INFO
+from unittest import mock
 
 import pytest
 import torch
@@ -21,7 +23,7 @@ import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 from torch.nn import Sequential
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
@@ -214,10 +216,17 @@ def test_pruning_lth_callable(tmpdir, resample_parameters):
     assert pruning.lth_calls == trainer.max_epochs // 2
 
 
-def test_multiple_pruning_callbacks(tmpdir):
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_multiple_pruning_callbacks(tmpdir, caplog):
+    seed_everything(0)
     model = TestModel()
-    p1 = ModelPruning("l1_unstructured", apply_pruning=lambda e: bool(e % 2))
-    p2 = ModelPruning("random_unstructured", apply_pruning=lambda e: not bool(e % 2))
+    pruning_kwargs = {
+        'parameters_to_prune': [(model.layer.mlp_1, "weight")],
+        'make_pruning_permanent': False,
+        'verbose': True
+    }
+    p1 = ModelPruning("l1_unstructured", amount=0.5, apply_pruning=lambda e: not e % 2, **pruning_kwargs)
+    p2 = ModelPruning("random_unstructured", amount=0.25, apply_pruning=lambda e: e % 2, **pruning_kwargs)
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -229,4 +238,17 @@ def test_multiple_pruning_callbacks(tmpdir):
         max_epochs=5,
         callbacks=[p1, p2],
     )
-    trainer.fit(model)
+
+    with caplog.at_level(INFO):
+        trainer.fit(model)
+
+    actual = [m.strip() for m in caplog.messages[-5:]]
+    layer = "Linear(in_features=32, out_features=32, bias=True)"
+    expected = [
+        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned 0.00% -> 50.00%",
+        f"Applied `RandomUnstructured` to `{layer}.weight` with amount=0.25. Pruned 50.00% -> 62.50%",
+        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned 62.50% -> 81.25%",
+        f"Applied `RandomUnstructured` to `{layer}.weight` with amount=0.25. Pruned 81.25% -> 85.94%",
+        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned 85.94% -> 92.97%"
+    ]
+    assert actual == expected

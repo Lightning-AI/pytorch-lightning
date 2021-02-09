@@ -27,6 +27,7 @@ from torch import nn
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 _PYTORCH_PRUNING_FUNCTIONS = {
@@ -63,6 +64,7 @@ class ModelPruning(Callback):
         resample_parameters: bool = False,
         pruning_dim: Optional[int] = None,
         pruning_norm: Optional[int] = None,
+        verbose: bool = False,
     ) -> None:
         """
         Model pruning Callback, using PyTorch's prune utilities.
@@ -126,6 +128,8 @@ class ModelPruning(Callback):
             pruning_dim: If you are using a structured pruning method you need to specify the dimension.
 
             pruning_norm: If you are using ``ln_structured`` you need to specify the norm.
+
+            verbose: Whether to log pruning percentage changes.
 
         """
 
@@ -192,6 +196,7 @@ class ModelPruning(Callback):
             )
 
         self.amount = amount
+        self._verbose = verbose
 
     def filter_parameters_to_prune(self, parameters_to_prune: Optional[_PARAM_LIST] = None) -> Optional[_PARAM_LIST]:
         """
@@ -273,14 +278,28 @@ class ModelPruning(Callback):
             self._parameters_to_prune, pruning_method=self.pruning_fn, **self._resolve_global_kwargs(amount)
         )
 
-    def apply_pruning(self, current_epoch: int):
-        amount = self.amount(current_epoch) if isinstance(self.amount, Callable) else self.amount
-        if not amount:
-            return
+    def _get_pruned_percentage(self, module: nn.Module, name: str) -> float:
+        attr = f"{name}_mask"
+        if not hasattr(module, attr):
+            return 0.0
+        mask = getattr(module, attr)
+        return (torch.sum(mask == 0) / mask.numel()).item()
+
+    def apply_pruning(self, amount: Union[int, float]):
+        if self._verbose:
+            stats = [self._get_pruned_percentage(m, n) for m, n in self._parameters_to_prune]
+
         if self._use_global_unstructured:
             self._apply_global_pruning(amount)
         else:
             self._apply_local_pruning(amount)
+
+        if self._verbose:
+            for i, (module, name) in enumerate(self._parameters_to_prune):
+                rank_zero_info(
+                    f"Applied `{self.pruning_fn.__name__}` to `{module!r}.{name}` with amount={amount}."
+                    f" Pruned {stats[i]:.2%} -> {self._get_pruned_percentage(module, name):.2%}"
+                )
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         parameters_to_prune = self.sanitize_parameters_to_prune(
@@ -300,11 +319,11 @@ class ModelPruning(Callback):
 
     def on_train_epoch_end(self, trainer, pl_module, *args):
         current_epoch = trainer.current_epoch
-        if not (
-            self._apply_pruning(current_epoch) if isinstance(self._apply_pruning, Callable) else self._apply_pruning
-        ):
+        prune = self._apply_pruning(current_epoch) if isinstance(self._apply_pruning, Callable) else self._apply_pruning
+        amount = self.amount(current_epoch) if isinstance(self.amount, Callable) else self.amount
+        if not prune or not amount:
             return
-        self.apply_pruning(trainer.current_epoch)
+        self.apply_pruning(amount)
 
         if (
             self._use_lottery_ticket_hypothesis(current_epoch)
