@@ -28,7 +28,6 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-
 _PYTORCH_PRUNING_FUNCTIONS = {
     "ln_structured": pytorch_prune.ln_structured,
     "l1_unstructured": pytorch_prune.l1_unstructured,
@@ -52,7 +51,7 @@ class ModelPruning(Callback):
 
     def __init__(
         self,
-        pruning_fn: Optional[Union[Callable, str]] = None,
+        pruning_fn: Union[Callable, str],
         parameters_to_prune: Optional[_PARAM_LIST] = None,
         parameter_names: Optional[List[str]] = None,
         use_global_unstructured: bool = True,
@@ -63,11 +62,8 @@ class ModelPruning(Callback):
         pruning_norm: Optional[int] = None,
     ) -> None:
         """
-
-        Pruning Callback relying on PyTorch prune utils.
-
-        This callback is responsible to prune networks parameters
-        during your training.
+        Model pruning Callback, using PyTorch's prune utilities.
+        This callback is responsible of pruning networks parameters during training.
 
         Find here the PyTorch (Pruning Tutorial)[https://pytorch.org/tutorials/intermediate/pruning_tutorial.html]
 
@@ -114,7 +110,7 @@ class ModelPruning(Callback):
             use_lottery_ticket_hypothesis: See "The lottery ticket hypothesis" (https://arxiv.org/pdf/1803.03635.pdf):
 
                 - ``bool``. Whether to apply it or not.
-                - ``Callable``. For dynamic values. Will be called every epoch. Should return a bool
+                - ``Callable[[epoch], bool]``. For dynamic values. Will be called every epoch.
 
             pruning_dim: If you are using a structured pruning method you need to specify the dimension.
 
@@ -264,11 +260,9 @@ class ModelPruning(Callback):
         else:
             self._apply_local_pruning(amount)
 
-        if (
-            self._use_lottery_ticket_hypothesis(current_epoch)
-            if isinstance(self._use_lottery_ticket_hypothesis, Callable)
-            else self._use_lottery_ticket_hypothesis
-        ):
+        if self._use_lottery_ticket_hypothesis(current_epoch) if isinstance(
+            self._use_lottery_ticket_hypothesis, Callable
+        ) else self._use_lottery_ticket_hypothesis:
             self.apply_lottery_ticket_hypothesis()
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
@@ -282,7 +276,7 @@ class ModelPruning(Callback):
             # make a copy of copy of original weights.
             self._initial_parameters_to_prune = [(deepcopy(m), n) for m, n in self._parameters_to_prune]
 
-    def on_epoch_end(self, trainer, pl_module):
+    def on_train_epoch_end(self, trainer, pl_module, *args):
         self.apply_pruning(trainer.current_epoch)
 
         if self.make_pruning_permanent:
@@ -300,15 +294,12 @@ class ModelPruning(Callback):
         """
         parameters = parameters or ModelPruning.PARAMETER_NAMES
 
-        current_modules = [
-            m for m in pl_module.modules() if not isinstance(m, _MODULE_CONTAINERS)
-        ]
+        current_modules = [m for m in pl_module.modules() if not isinstance(m, _MODULE_CONTAINERS)]
 
         if parameters_to_prune is None:
             parameters_to_prune = [(m, p) for p in parameters for m in current_modules if hasattr(m, p)]
         elif (
-            isinstance(parameters_to_prune, (list, tuple))
-            and len(parameters_to_prune) > 0
+            isinstance(parameters_to_prune, (list, tuple)) and len(parameters_to_prune) > 0
             and all(len(p) == 2 for p in parameters_to_prune)
             and all(isinstance(a, nn.Module) and isinstance(b, str) for a, b in parameters_to_prune)
         ):

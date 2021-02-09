@@ -22,7 +22,7 @@ from torch import nn
 from torch.nn import Sequential
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelPruning
+from pytorch_lightning.callbacks import Callback, ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
 
@@ -33,11 +33,13 @@ class TestModel(BoringModel):
 
     def __init__(self):
         super().__init__()
-        self.layer = Sequential(OrderedDict([
-            ("mlp_1", nn.Linear(32, 32)),
-            ("mlp_2", nn.Linear(32, 32)),
-            ("mlp_3", nn.Linear(32, 2)),
-        ]))
+        self.layer = Sequential(
+            OrderedDict([
+                ("mlp_1", nn.Linear(32, 32)),
+                ("mlp_2", nn.Linear(32, 32)),
+                ("mlp_3", nn.Linear(32, 2)),
+            ])
+        )
 
 
 class TestPruningMethod(pytorch_prune.BasePruningMethod):
@@ -69,7 +71,12 @@ def train_with_pruning_callback(
     # Weights are random. None is 0
     assert torch.all(model.layer.mlp_2.weight != 0)
 
-    pruning_kwargs = {"pruning_fn": pruning_fn, "amount": 0.3, "use_global_unstructured": use_global_unstructured, "use_lottery_ticket_hypothesis": use_lottery_ticket_hypothesis}
+    pruning_kwargs = {
+        "pruning_fn": pruning_fn,
+        "amount": 0.3,
+        "use_global_unstructured": use_global_unstructured,
+        "use_lottery_ticket_hypothesis": use_lottery_ticket_hypothesis
+    }
     if parameters_to_prune:
         pruning_kwargs["parameters_to_prune"] = [(model.layer.mlp_1, "weight"), (model.layer.mlp_2, "weight")]
     else:
@@ -115,7 +122,7 @@ def train_with_pruning_callback(
 
 def test_pruning_misconfiguration():
     with pytest.raises(MisconfigurationException, match=r"chocolate isn't in \('weight', 'bias'\)"):
-        ModelPruning(parameter_names=["chocolate"])
+        ModelPruning(pruning_fn="l1_unstructured", parameter_names=["chocolate"])
     with pytest.raises(MisconfigurationException, match=r"expected to be a str in \["):
         ModelPruning(pruning_fn={})  # noqa
     with pytest.raises(MisconfigurationException, match="should be provided"):
@@ -130,7 +137,9 @@ def test_pruning_misconfiguration():
     "pruning_fn", ["l1_unstructured", "random_unstructured", "ln_structured", "random_structured", TestPruningMethod]
 )
 @pytest.mark.parametrize("use_lottery_ticket_hypothesis", [False, True])
-def test_pruning_callback(tmpdir, use_global_unstructured, parameters_to_prune, pruning_fn, use_lottery_ticket_hypothesis):
+def test_pruning_callback(
+    tmpdir, use_global_unstructured, parameters_to_prune, pruning_fn, use_lottery_ticket_hypothesis
+):
     train_with_pruning_callback(
         tmpdir,
         parameters_to_prune=parameters_to_prune,
@@ -164,3 +173,30 @@ def test_pruning_callback_ddp_spawn(tmpdir):
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_pruning_callback_ddp_cpu(tmpdir):
     train_with_pruning_callback(tmpdir, parameters_to_prune=True, accelerator="ddp_cpu", num_processes=2)
+
+
+def test_pruning_lth_callable(tmpdir):
+    model = TestModel()
+
+    class ModelPruningTestCallback(ModelPruning):
+        lth_calls = 0
+
+        def apply_lottery_ticket_hypothesis(self):
+            super().apply_lottery_ticket_hypothesis()
+            self.lth_calls += 1
+
+    pruning = ModelPruningTestCallback("l1_unstructured", use_lottery_ticket_hypothesis=lambda e: bool(e % 2))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+        checkpoint_callback=False,
+        logger=False,
+        limit_train_batches=10,
+        limit_val_batches=2,
+        max_epochs=5,
+        callbacks=pruning,
+    )
+    assert pruning.lth_calls == 0
+    trainer.fit(model)
+    assert pruning.lth_calls == trainer.max_epochs // 2
