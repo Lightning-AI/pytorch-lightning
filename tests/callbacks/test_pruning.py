@@ -189,9 +189,9 @@ def test_pruning_lth_callable(tmpdir, resample_parameters):
             for d in self._original_layers.values():
                 copy, names = d["data"], d["names"]
                 for i, name in names:
-                    cur, cur_name = self._parameters_to_prune[i]
-                    assert name == cur_name
-                    actual, expected = getattr(cur, name).data, getattr(copy, name).data
+                    curr, curr_name = self._parameters_to_prune[i]
+                    assert name == curr_name
+                    actual, expected = getattr(curr, name).data, getattr(copy, name).data
                     allclose = torch.allclose(actual, expected)
                     assert not allclose if self._resample_parameters else allclose
 
@@ -212,3 +212,21 @@ def test_pruning_lth_callable(tmpdir, resample_parameters):
     trainer.fit(model)
 
     assert pruning.lth_calls == trainer.max_epochs // 2
+
+
+def test_multiple_pruning_callbacks(tmpdir):
+    model = TestModel()
+    p1 = ModelPruning("l1_unstructured", apply_pruning=lambda e: bool(e % 2))
+    p2 = ModelPruning("random_unstructured", apply_pruning=lambda e: not bool(e % 2))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+        checkpoint_callback=False,
+        logger=False,
+        limit_train_batches=10,
+        limit_val_batches=2,
+        max_epochs=5,
+        callbacks=[p1, p2],
+    )
+    trainer.fit(model)

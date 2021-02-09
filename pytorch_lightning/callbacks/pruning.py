@@ -57,6 +57,7 @@ class ModelPruning(Callback):
         parameter_names: Optional[List[str]] = None,
         use_global_unstructured: bool = True,
         amount: Union[int, float, Callable[[int], Union[int, float]]] = 0.5,
+        apply_pruning: Union[bool, Callable[[int], bool]] = True,
         make_pruning_permanent: bool = True,
         use_lottery_ticket_hypothesis: Union[bool, Callable[[int], bool]] = True,
         resample_parameters: bool = False,
@@ -106,6 +107,11 @@ class ModelPruning(Callback):
                 - ``float``. Between 0.0 and 1.0. Represents the fraction of parameters to prune.
                 - ``int``. Represents the absolute number of parameters to prune.
                 - ``Callable``. For dynamic values. Will be called every epoch. Should return a value.
+
+            apply_pruning: Whether to apply pruning.
+
+                - ``bool``. Always apply it or not.
+                - ``Callable[[epoch], bool]``. For dynamic values. Will be called every epoch.
 
             make_pruning_permanent: Whether to remove all reparametrization pre-hooks and apply masks on fit end.
 
@@ -177,7 +183,8 @@ class ModelPruning(Callback):
             )
 
         self.pruning_fn = pruning_fn
-        self.make_pruning_permanent = make_pruning_permanent
+        self._apply_pruning = apply_pruning
+        self._make_pruning_permanent = make_pruning_permanent
 
         if not isinstance(amount, (int, float, Callable)):
             raise MisconfigurationException(
@@ -210,7 +217,7 @@ class ModelPruning(Callback):
     def _wrap_pruning_fn(pruning_fn, **kwargs):
         return partial(pruning_fn, **kwargs)
 
-    def _make_pruning_permanent(self):
+    def make_pruning_permanent(self):
         for module, param_name in self._parameters_to_prune:
             pytorch_prune.remove(module, param_name)
 
@@ -268,19 +275,12 @@ class ModelPruning(Callback):
 
     def apply_pruning(self, current_epoch: int):
         amount = self.amount(current_epoch) if isinstance(self.amount, Callable) else self.amount
-        # the user could control the pruning frequency with amount_fn
         if not amount:
             return
-
         if self._use_global_unstructured:
             self._apply_global_pruning(amount)
         else:
             self._apply_local_pruning(amount)
-
-        if self._use_lottery_ticket_hypothesis(current_epoch) if isinstance(
-            self._use_lottery_ticket_hypothesis, Callable
-        ) else self._use_lottery_ticket_hypothesis:
-            self.apply_lottery_ticket_hypothesis()
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         parameters_to_prune = self.sanitize_parameters_to_prune(
@@ -299,10 +299,21 @@ class ModelPruning(Callback):
                 self._original_layers[id_]["names"].append((i, name))
 
     def on_train_epoch_end(self, trainer, pl_module, *args):
+        current_epoch = trainer.current_epoch
+        if not (
+            self._apply_pruning(current_epoch) if isinstance(self._apply_pruning, Callable) else self._apply_pruning
+        ):
+            return
         self.apply_pruning(trainer.current_epoch)
 
-        if self.make_pruning_permanent:
-            self._make_pruning_permanent()
+        if (
+            self._use_lottery_ticket_hypothesis(current_epoch)
+            if isinstance(self._use_lottery_ticket_hypothesis, Callable) else self._use_lottery_ticket_hypothesis
+        ):
+            self.apply_lottery_ticket_hypothesis()
+
+        if self._make_pruning_permanent:
+            self.make_pruning_permanent()
 
     @staticmethod
     def sanitize_parameters_to_prune(
