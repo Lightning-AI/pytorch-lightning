@@ -64,28 +64,28 @@ def fbeta(
     Computes f_beta metric.
 
     Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
+    Accepts probabilities from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
 
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument
+    to convert into integer labels. This is the case for binary and multi-label probabilities.
 
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
     Args:
-        preds: estimated probabilities
-        target: ground-truth labels
+        preds: predictions from model (probabilities, or labels)
+        target: ground truth labels
         num_classes: Number of classes in the dataset.
         beta: Beta coefficient in the F measure.
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
+            Threshold value for binary or multi-label probabilities. default: 0.5
 
         average:
             - ``'micro'`` computes metric globally
             - ``'macro'`` computes metric for each class and uniformly averages them
             - ``'weighted'`` computes metric for each class and does a weighted-average,
               where each class is weighted by their support (accounts for class imbalance)
-            - ``'none'`` computes and returns the metric per class
+            - ``'none'`` or ``None`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
 
@@ -117,27 +117,27 @@ def f1(
     precision and recall scores.
 
     Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
+    Accepts probabilities from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
 
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument
+    to convert into integer labels. This is the case for binary and multi-label probabilities.
 
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
     Args:
-        preds: estimated probabilities
-        target: ground-truth labels
+        preds: predictions from model (probabilities, or labels)
+        target: ground truth labels
         num_classes: Number of classes in the dataset.
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
+            Threshold value for binary or multi-label probabilities. default: 0.5
 
         average:
             - ``'micro'`` computes metric globally
             - ``'macro'`` computes metric for each class and uniformly averages them
             - ``'weighted'`` computes metric for each class and does a weighted-average,
               where each class is weighted by their support (accounts for class imbalance)
-            - ``'none'`` computes and returns the metric per class
+            - ``'none'`` or ``None`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
 
