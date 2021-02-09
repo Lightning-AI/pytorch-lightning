@@ -31,11 +31,11 @@ ARG CMAKE_VERSION=3.18.4
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Europe/Prague
-
-ENV PATH="$PATH:/root/.local/bin"
-ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
+ENV \
+    DEBIAN_FRONTEND=noninteractive \
+    TZ=Europe/Prague \
+    PATH="$PATH:/root/.local/bin" \
+    CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
 
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
@@ -67,15 +67,16 @@ RUN apt-get update -qq && \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-ENV HOROVOD_GPU_OPERATIONS=NCCL
-ENV HOROVOD_WITH_PYTORCH=1
-ENV HOROVOD_WITHOUT_TENSORFLOW=1
-ENV HOROVOD_WITHOUT_MXNET=1
-ENV HOROVOD_WITH_GLOO=1
-ENV HOROVOD_WITHOUT_MPI=1
-#ENV MAKEFLAGS="-j$(nproc)"
-ENV MAKEFLAGS="-j1"
-ENV TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
+ENV \
+    HOROVOD_GPU_OPERATIONS=NCCL \
+    HOROVOD_WITH_PYTORCH=1 \
+    HOROVOD_WITHOUT_TENSORFLOW=1 \
+    HOROVOD_WITHOUT_MXNET=1 \
+    HOROVOD_WITH_GLOO=1 \
+    HOROVOD_WITHOUT_MPI=1 \
+    # MAKEFLAGS="-j$(nproc)" \
+    MAKEFLAGS="-j1" \
+    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
 
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/

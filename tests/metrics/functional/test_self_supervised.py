@@ -13,13 +13,11 @@ def test_against_sklearn(similarity, reduction):
 
     batch = torch.randn(5, 10, device=device)  # 100 samples in 10 dimensions
 
-    pl_dist = embedding_similarity(batch, similarity=similarity,
-                                   reduction=reduction, zero_diagonal=False)
+    pl_dist = embedding_similarity(batch, similarity=similarity, reduction=reduction, zero_diagonal=False)
 
     def sklearn_embedding_distance(batch, similarity, reduction):
 
-        metric_func = {'cosine': pairwise.cosine_similarity,
-                       'dot': pairwise.linear_kernel}[similarity]
+        metric_func = {'cosine': pairwise.cosine_similarity, 'dot': pairwise.linear_kernel}[similarity]
 
         dist = metric_func(batch, batch)
         if reduction == 'mean':
@@ -28,8 +26,7 @@ def test_against_sklearn(similarity, reduction):
             return dist.sum(axis=-1)
         return dist
 
-    sk_dist = sklearn_embedding_distance(batch.cpu().detach().numpy(),
-                                         similarity=similarity, reduction=reduction)
+    sk_dist = sklearn_embedding_distance(batch.cpu().detach().numpy(), similarity=similarity, reduction=reduction)
     sk_dist = torch.tensor(sk_dist, dtype=torch.float, device=device)
 
     assert torch.allclose(sk_dist, pl_dist)

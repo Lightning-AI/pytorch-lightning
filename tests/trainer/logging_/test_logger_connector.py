@@ -28,12 +28,13 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel
-from tests.base.boring_model import RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
 def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Callable:
+
     def decorator(func: Callable) -> Callable:
+
         def wrapper(self, *args, **kwargs) -> Any:
             # Set information
             self._current_fx_name = fx_name
@@ -47,6 +48,7 @@ def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Cal
             return result
 
         return wrapper
+
     return decorator
 
 
@@ -121,6 +123,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
     y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
 
     class MockSeq2SeqDataset(torch.utils.data.Dataset):
+
         def __getitem__(self, i):
             return x_seq, y_seq_list
 
@@ -352,8 +355,7 @@ def test_call_back_validator(tmpdir):
             is_stage or "batch" in func_name or "epoch" in func_name or "grad" in func_name or "backward" in func_name
         )
         allowed = (
-            allowed
-            and "pretrain" not in func_name
+            allowed and "pretrain" not in func_name
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
@@ -459,6 +461,7 @@ def test_metrics_holder(to_float, tmpdir):
 
 def test_logging_to_progress_bar_with_reserved_key(tmpdir):
     """ Test that logging a metric with a reserved name to the progress bar raises a warning. """
+
     class TestModel(BoringModel):
 
         def training_step(self, *args, **kwargs):

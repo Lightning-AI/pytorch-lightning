@@ -16,15 +16,13 @@ def test_reduce():
 
 
 def test_class_reduce():
-    num = torch.randint(1, 10, (100,)).float()
-    denom = torch.randint(10, 20, (100,)).float()
-    weights = torch.randint(1, 100, (100,)).float()
+    num = torch.randint(1, 10, (100, )).float()
+    denom = torch.randint(10, 20, (100, )).float()
+    weights = torch.randint(1, 100, (100, )).float()
 
-    assert torch.allclose(class_reduce(num, denom, weights, 'micro'),
-                          torch.sum(num) / torch.sum(denom))
-    assert torch.allclose(class_reduce(num, denom, weights, 'macro'),
-                          torch.mean(num / denom))
-    assert torch.allclose(class_reduce(num, denom, weights, 'weighted'),
-                          torch.sum(num / denom * (weights / torch.sum(weights))))
-    assert torch.allclose(class_reduce(num, denom, weights, 'none'),
-                          num / denom)
+    assert torch.allclose(class_reduce(num, denom, weights, 'micro'), torch.sum(num) / torch.sum(denom))
+    assert torch.allclose(class_reduce(num, denom, weights, 'macro'), torch.mean(num / denom))
+    assert torch.allclose(
+        class_reduce(num, denom, weights, 'weighted'), torch.sum(num / denom * (weights / torch.sum(weights)))
+    )
+    assert torch.allclose(class_reduce(num, denom, weights, 'none'), num / denom)

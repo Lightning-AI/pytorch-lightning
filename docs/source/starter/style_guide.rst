@@ -35,16 +35,16 @@ A LightningModule can define both a system and a model.
 
 Here's a LightningModule that defines a model:
 
-.. code-block:: python
+.. testcode::
 
-    class LitModel(pl.LightningModule):
-        def __init__(self, num_layers: int = 3)
+    class LitModel(LightningModule):
+        def __init__(self, num_layers: int = 3):
             super().__init__()
-            self.layer_1 = nn.Linear(...)
-            self.layer_2 = nn.Linear(...)
-            self.layer_3 = nn.Linear(...)
+            self.layer_1 = nn.Linear()
+            self.layer_2 = nn.Linear()
+            self.layer_3 = nn.Linear()
 
-Here's a lightningModule that defines a system:
+Here's a LightningModule that defines a system:
 
 .. testcode::
 

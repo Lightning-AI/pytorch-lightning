@@ -4,16 +4,16 @@ from torch import rand, randint
 
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 from pytorch_lightning.metrics.utils import select_topk, to_onehot
-from tests.metrics.classification.inputs import _binary_inputs as _bin
-from tests.metrics.classification.inputs import _binary_prob_inputs as _bin_prob
-from tests.metrics.classification.inputs import _multiclass_inputs as _mc
-from tests.metrics.classification.inputs import _multiclass_prob_inputs as _mc_prob
-from tests.metrics.classification.inputs import _multidim_multiclass_inputs as _mdmc
-from tests.metrics.classification.inputs import _multidim_multiclass_prob_inputs as _mdmc_prob
-from tests.metrics.classification.inputs import _multilabel_inputs as _ml
-from tests.metrics.classification.inputs import _multilabel_multidim_inputs as _mlmd
-from tests.metrics.classification.inputs import _multilabel_multidim_prob_inputs as _mlmd_prob
-from tests.metrics.classification.inputs import _multilabel_prob_inputs as _ml_prob
+from tests.metrics.classification.inputs import _input_binary as _bin
+from tests.metrics.classification.inputs import _input_binary_prob as _bin_prob
+from tests.metrics.classification.inputs import _input_multiclass as _mc
+from tests.metrics.classification.inputs import _input_multiclass_prob as _mc_prob
+from tests.metrics.classification.inputs import _input_multidim_multiclass as _mdmc
+from tests.metrics.classification.inputs import _input_multidim_multiclass_prob as _mdmc_prob
+from tests.metrics.classification.inputs import _input_multilabel as _ml
+from tests.metrics.classification.inputs import _input_multilabel_multidim as _mlmd
+from tests.metrics.classification.inputs import _input_multilabel_multidim_prob as _mlmd_prob
+from tests.metrics.classification.inputs import _input_multilabel_prob as _ml_prob
 from tests.metrics.classification.inputs import Input
 from tests.metrics.utils import BATCH_SIZE, EXTRA_DIM, NUM_BATCHES, NUM_CLASSES, THRESHOLD
 
@@ -155,6 +155,7 @@ def _mlmd_prob_to_mc_preds_tr(x):
     ],
 )
 def test_usual_cases(inputs, num_classes, is_multiclass, top_k, exp_mode, post_preds, post_target):
+
     def __get_data_type_enum(str_exp_mode):
         return next(DataType[n] for n in dir(DataType) if DataType[n] == str_exp_mode)
 
@@ -204,7 +205,7 @@ def test_threshold():
 
 @pytest.mark.parametrize("threshold", [-0.5, 0.0, 1.0, 1.5])
 def test_incorrect_threshold(threshold):
-    preds, target = rand(size=(7,)), randint(high=2, size=(7,))
+    preds, target = rand(size=(7, )), randint(high=2, size=(7, ))
     with pytest.raises(ValueError):
         _input_format_classification(preds, target, threshold=threshold)
 
@@ -213,21 +214,21 @@ def test_incorrect_threshold(threshold):
     "preds, target, num_classes, is_multiclass",
     [
         # Target not integer
-        (randint(high=2, size=(7,)), randint(high=2, size=(7,)).float(), None, None),
+        (randint(high=2, size=(7, )), randint(high=2, size=(7, )).float(), None, None),
         # Target negative
-        (randint(high=2, size=(7,)), -randint(high=2, size=(7,)), None, None),
+        (randint(high=2, size=(7, )), -randint(high=2, size=(7, )), None, None),
         # Preds negative integers
-        (-randint(high=2, size=(7,)), randint(high=2, size=(7,)), None, None),
+        (-randint(high=2, size=(7, )), randint(high=2, size=(7, )), None, None),
         # Negative probabilities
-        (-rand(size=(7,)), randint(high=2, size=(7,)), None, None),
+        (-rand(size=(7, )), randint(high=2, size=(7, )), None, None),
         # is_multiclass=False and target > 1
-        (rand(size=(7,)), randint(low=2, high=4, size=(7,)), None, False),
+        (rand(size=(7, )), randint(low=2, high=4, size=(7, )), None, False),
         # is_multiclass=False and preds integers with > 1
-        (randint(low=2, high=4, size=(7,)), randint(high=2, size=(7,)), None, False),
+        (randint(low=2, high=4, size=(7, )), randint(high=2, size=(7, )), None, False),
         # Wrong batch size
-        (randint(high=2, size=(8,)), randint(high=2, size=(7,)), None, None),
+        (randint(high=2, size=(8, )), randint(high=2, size=(7, )), None, None),
         # Completely wrong shape
-        (randint(high=2, size=(7,)), randint(high=2, size=(7, 4)), None, None),
+        (randint(high=2, size=(7, )), randint(high=2, size=(7, 4)), None, None),
         # Same #dims, different shape
         (randint(high=2, size=(7, 3)), randint(high=2, size=(7, 4)), None, None),
         # Same shape and preds floats, target not binary
@@ -237,11 +238,11 @@ def test_incorrect_threshold(threshold):
         # #dims in preds = 1 + #dims in target, preds not float
         (randint(high=2, size=(7, 3, 3, 4)), randint(high=4, size=(7, 3, 3)), None, None),
         # is_multiclass=False, with C dimension > 2
-        (_mc_prob.preds[0], randint(high=2, size=(BATCH_SIZE,)), None, False),
+        (_mc_prob.preds[0], randint(high=2, size=(BATCH_SIZE, )), None, False),
         # Probs of multiclass preds do not sum up to 1
         (rand(size=(7, 3, 5)), randint(high=2, size=(7, 5)), None, None),
         # Max target larger or equal to C dimension
-        (_mc_prob.preds[0], randint(low=NUM_CLASSES + 1, high=100, size=(BATCH_SIZE,)), None, None),
+        (_mc_prob.preds[0], randint(low=NUM_CLASSES + 1, high=100, size=(BATCH_SIZE, )), None, None),
         # C dimension not equal to num_classes
         (_mc_prob.preds[0], _mc_prob.target[0], NUM_CLASSES + 1, None),
         # Max target larger than num_classes (with #dim preds = 1 + #dims target)
@@ -251,7 +252,7 @@ def test_incorrect_threshold(threshold):
         # Max preds larger than num_classes (with #dim preds = #dims target)
         (randint(low=5, high=7, size=(7, 3)), randint(high=4, size=(7, 3)), 4, None),
         # Num_classes=1, but is_multiclass not false
-        (randint(high=2, size=(7,)), randint(high=2, size=(7,)), 1, None),
+        (randint(high=2, size=(7, )), randint(high=2, size=(7, )), 1, None),
         # is_multiclass=False, but implied class dimension (for multi-label, from shape) != num_classes
         (randint(high=2, size=(7, 3, 3)), randint(high=2, size=(7, 3, 3)), 4, False),
         # Multilabel input with implied class dimension != num_classes
@@ -259,12 +260,12 @@ def test_incorrect_threshold(threshold):
         # Multilabel input with is_multiclass=True, but num_classes != 2 (or None)
         (rand(size=(7, 3)), randint(high=2, size=(7, 3)), 4, True),
         # Binary input, num_classes > 2
-        (rand(size=(7,)), randint(high=2, size=(7,)), 4, None),
+        (rand(size=(7, )), randint(high=2, size=(7, )), 4, None),
         # Binary input, num_classes == 2 and is_multiclass not True
-        (rand(size=(7,)), randint(high=2, size=(7,)), 2, None),
-        (rand(size=(7,)), randint(high=2, size=(7,)), 2, False),
+        (rand(size=(7, )), randint(high=2, size=(7, )), 2, None),
+        (rand(size=(7, )), randint(high=2, size=(7, )), 2, False),
         # Binary input, num_classes == 1 and is_multiclass=True
-        (rand(size=(7,)), randint(high=2, size=(7,)), 1, True),
+        (rand(size=(7, )), randint(high=2, size=(7, )), 1, True),
     ],
 )
 def test_incorrect_inputs(preds, target, num_classes, is_multiclass):

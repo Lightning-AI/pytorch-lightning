@@ -70,17 +70,8 @@ class EvaluationLoop(object):
 
         return dataloaders, max_batches
 
-    def should_skip_evaluation(self, dataloaders, max_batches):
-        # skip when dataloaders aren't defined
-        if dataloaders is None:
-            return True
-
-        # enable disabling validation step with limit_val_batches = 0
-        should_skip = sum(max_batches) == 0
-        if should_skip:
-            return True
-
-        return False
+    def should_skip_evaluation(self, max_batches):
+        return sum(max_batches) == 0
 
     def on_evaluation_start(self, *args, **kwargs):
         if self.trainer.testing:

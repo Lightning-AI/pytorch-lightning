@@ -17,7 +17,7 @@ Tests to ensure that the behaviours related to multiple optimizers works
 import torch
 
 import pytorch_lightning as pl
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
@@ -25,6 +25,7 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     This tests ensures reduction works in unbalanced logging settings,
     even when a Callback also logs.
     """
+
     class TestModel(BoringModel):
         actual = {0: [], 1: []}
 
@@ -44,6 +45,7 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     model.training_epoch_end = None
 
     class TestCallback(pl.Callback):
+
         def on_train_batch_end(self, trainer, pl_module, output, batch, batch_idx, dl_idx):
             # when this is called, the EpochResultStore state has not been reset yet because we are still
             # "INSIDE_BATCH_TRAIN_LOOP" and the LoggerConnector runs its `on_train_batch_end` after the

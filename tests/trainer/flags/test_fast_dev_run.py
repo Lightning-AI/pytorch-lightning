@@ -8,7 +8,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 @pytest.mark.parametrize('tuner_alg', ['batch size scaler', 'learning rate finder'])
@@ -16,6 +16,7 @@ def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
     """ Test that tuner algorithms are skipped if fast dev run is enabled """
 
     model = BoringModel()
+    model.lr = 0.1  # avoid no-lr-found exception
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -34,7 +35,9 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     """
     Test that ModelCheckpoint, EarlyStopping and Logger are turned off with fast_dev_run
     """
+
     class FastDevRunModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.training_step_call_count = 0

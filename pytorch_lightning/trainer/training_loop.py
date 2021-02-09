@@ -18,7 +18,7 @@ from copy import copy, deepcopy
 import numpy as np
 import torch
 
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
@@ -94,13 +94,7 @@ class TrainLoop:
         return num_optimizers
 
     def should_skip_training(self):
-        if self.trainer.current_epoch >= self.trainer.max_epochs:
-            return True
-
-        if self.trainer.limit_train_batches == 0:
-            return True
-
-        return False
+        return self.trainer.current_epoch >= self.trainer.max_epochs or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
         # clear cache before training
@@ -168,7 +162,7 @@ class TrainLoop:
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
         # when a checkpoint was saved at the last step
         self.trainer.global_step -= 1
-        self.check_checkpoint_callback(should_save=True, is_last=True)
+        self.check_checkpoint_callback(should_update=True, is_last=True)
         self.trainer.global_step += 1
 
         # hook
@@ -191,18 +185,27 @@ class TrainLoop:
             model.cpu()
             torch.cuda.empty_cache()
 
-    def check_checkpoint_callback(self, should_save, is_last=False):
-        # TODO bake this logic into the checkpoint callback
-        if should_save and self.trainer.checkpoint_connector.has_trained:
-            checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+    def check_checkpoint_callback(self, should_update, is_last=False):
+        # TODO bake this logic into the ModelCheckpoint callback
+        if should_update and self.trainer.checkpoint_connector.has_trained:
+            callbacks = self.trainer.checkpoint_callbacks
 
-            if is_last and any(c.save_last for c in checkpoint_callbacks):
+            if is_last and any(cb.save_last for cb in callbacks):
                 rank_zero_info("Saving latest checkpoint...")
 
             model = self.trainer.get_model()
 
-            for callback in checkpoint_callbacks:
-                callback.on_validation_end(self.trainer, model)
+            for cb in callbacks:
+                cb.on_validation_end(self.trainer, model)
+
+    def check_early_stopping_callback(self, should_update):
+        # TODO bake this logic into the EarlyStopping callback
+        if should_update and self.trainer.checkpoint_connector.has_trained:
+            callbacks = [c for c in self.trainer.callbacks if isinstance(c, EarlyStopping)]
+            model = self.trainer.get_model()
+
+            for cb in callbacks:
+                cb.on_validation_end(self.trainer, model)
 
     def on_train_epoch_start(self, epoch):
 
@@ -212,7 +215,7 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # reset train dataloader
-        if self.trainer.reload_dataloaders_every_epoch:
+        if epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
         # todo: specify the possible exception
@@ -246,7 +249,7 @@ class TrainLoop:
         self.trainer.logger_connector.on_train_batch_end()
 
     def reset_train_val_dataloaders(self, model):
-        if not self.trainer.reload_dataloaders_every_epoch:
+        if self.trainer.train_dataloader is None or not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
         if self.trainer.val_dataloaders is None and not self.trainer.reload_dataloaders_every_epoch:
@@ -479,7 +482,7 @@ class TrainLoop:
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli'
             )
 
-        # wraps into LightingOptimizer only for running step
+        # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
         # model hook
@@ -528,10 +531,6 @@ class TrainLoop:
         return splits
 
     def run_training_epoch(self):
-
-        # get model
-        model = self.trainer.get_model()
-
         # modify dataloader if needed (ddp, etc...)
         train_dataloader = self.trainer.accelerator_backend.process_dataloader(self.trainer.train_dataloader)
 
@@ -591,11 +590,11 @@ class TrainLoop:
             self.trainer.checkpoint_connector.has_trained = True
 
             # max steps reached, end training
-            if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
-                accumulation_done = self._accumulated_batches_reached()
-                # Ensure accumulation across batches has completed before breaking loop
-                if accumulation_done:
-                    break
+            if (
+                self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1
+                and self._accumulated_batches_reached()
+            ):
+                break
 
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
@@ -606,7 +605,7 @@ class TrainLoop:
             self.trainer.total_batch_idx += 1
 
             # stop epoch if we limited the number of training batches
-            if (batch_idx + 1) >= self.trainer.num_training_batches:
+            if self._num_training_batches_reached(is_last_batch):
                 break
 
             # progress global step according to grads progress
@@ -620,8 +619,21 @@ class TrainLoop:
             epoch_output, self.checkpoint_accumulator, self.early_stopping_accumulator, self.num_optimizers
         )
 
-        # when no val loop is present or fast-dev-run still need to call checkpoints
-        self.check_checkpoint_callback(not (should_check_val or is_overridden('validation_step', model)))
+        should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
+        if should_check_val:
+            self.trainer.run_evaluation(on_epoch=True)
+
+            # reset stage to train
+            self.trainer._set_wide_running_stage(RunningStage.TRAINING)
+
+        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
+        should_train_only = self.trainer.disable_validation or should_skip_eval
+
+        if should_train_only:
+            # update epoch level lr_schedulers
+            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+            self.check_checkpoint_callback(True)
+            self.check_early_stopping_callback(True)
 
         # increment the global step once
         # progress global step according to grads progress
@@ -847,8 +859,8 @@ class TrainLoop:
     def _accumulated_batches_reached(self):
         return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
 
-    def _num_training_batches_reached(self):
-        return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
+    def _num_training_batches_reached(self, is_last_batch=False):
+        return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
 
     def should_accumulate(self):
         # checks if backward or backward + optimizer step (via closure)
@@ -856,16 +868,19 @@ class TrainLoop:
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
-    def should_check_val_fx(self, batch_idx, is_last_batch):
+    def should_check_val_fx(self, batch_idx, is_last_batch, on_epoch=False):
         # decide if we should run validation
         is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
         is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         can_check_val = self.trainer.enable_validation and is_val_check_epoch
-        should_check_val = is_val_check_batch or self.trainer.should_stop
         is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
-        should_check_val = can_check_val and (should_check_val or is_last_batch_for_infinite_dataset)
+        epoch_end_val_check = self.trainer.val_check_batch == self.trainer.num_training_batches
 
-        return should_check_val
+        should_check_val = ((is_val_check_batch and epoch_end_val_check) or self.trainer.should_stop
+                            or is_last_batch_for_infinite_dataset
+                            ) if on_epoch else (is_val_check_batch and not epoch_end_val_check)
+
+        return should_check_val and can_check_val
 
     def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
