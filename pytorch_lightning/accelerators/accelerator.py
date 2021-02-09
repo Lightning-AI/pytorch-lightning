@@ -76,7 +76,7 @@ class Accelerator(object):
             model: the model to train
         """
         self.connect_training_type_plugin(self.training_type_plugin, model)
-        self.setup_optimizers(trainer, model)
+        self.setup_optimizers(trainer)
         self.connect_precision_plugin(self.precision_plugin)
 
     @property
@@ -306,7 +306,7 @@ class Accelerator(object):
         """Hook to do something at the end of the training"""
         pass
 
-    def setup_optimizers(self, trainer: "Trainer", model: LightningModule):
+    def setup_optimizers(self, trainer: "Trainer"):
         """creates optimizers and schedulers
 
         Args:
@@ -315,7 +315,7 @@ class Accelerator(object):
         """
         if trainer.testing is True:
             return
-        optimizers, lr_schedulers, optimizer_frequencies = trainer.init_optimizers(model)
+        optimizers, lr_schedulers, optimizer_frequencies = trainer.init_optimizers(self.lightning_module)
         self.optimizers = optimizers
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies

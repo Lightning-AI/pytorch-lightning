@@ -101,7 +101,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         trainer.optimizers = []
 
     def start_testing(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, self.mp_queue))
+        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, self.mp_queue, ))
 
     def new_process(self, process_idx, trainer, mp_queue):
         self.mp_queue = mp_queue

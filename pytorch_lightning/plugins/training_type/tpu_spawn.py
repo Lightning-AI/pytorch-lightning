@@ -3,7 +3,7 @@ import os
 from typing import Any, Dict, Iterable, Optional, Sequence, Union
 
 import torch
-
+import torch.multiprocessing as mp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
@@ -31,6 +31,13 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.tpu_local_core_rank = 0
         self.start_method = None
 
+    def connect(self, model: torch.nn.Module) -> torch.nn.Module:
+        self._model = model
+        self.start_method = 'fork'
+        smp = mp.get_context(self.start_method)
+        self.mp_queue = smp.SimpleQueue()
+        return self._model
+
     @property
     def distributed_sampler_kwargs(self) -> dict:
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
@@ -53,7 +60,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.global_rank = self.tpu_local_core_rank
         self.world_size = self.num_nodes * self.num_processes
 
-    def new_process(self, process_idx: int, trainer) -> None:
+    def new_process(self, process_idx: int, trainer, mp_queue) -> None:
+        self.mp_queue = mp_queue
+        
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
             seed_everything(int(seed))
@@ -67,6 +76,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             trainer.progress_bar_callback.disable()
 
         self.model_to_device()
+        trainer.accelerator_backend.setup_optimizers(trainer)
         self.barrier()
 
         if trainer.testing:
@@ -181,7 +191,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @property
     def xmp_spawn_kwargs(self):
         return {
-            "args": (self.lightning_module.trainer, ),
+            "args": (self.lightning_module.trainer, self.mp_queue),
             "nprocs": len(self.parallel_devices),
             "start_method": self.start_method
         }
