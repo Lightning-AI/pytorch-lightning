@@ -14,10 +14,7 @@
 import torch
 
 
-def retrieval_average_precision(
-    preds: torch.Tensor,
-    target: torch.Tensor
-) -> torch.Tensor:
+def retrieval_average_precision(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     r"""
     Computes average precision (for information retrieval), as explained
     `here <https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Average_precision>`_.
@@ -40,14 +37,10 @@ def retrieval_average_precision(
     """
 
     if preds.shape != target.shape or preds.device != target.device:
-        raise ValueError(
-            "`preds` and `target` must have the same shape and live on the same device"
-        )
+        raise ValueError("`preds` and `target` must have the same shape and live on the same device")
 
     if target.dtype not in (torch.bool, torch.int16, torch.int32, torch.int64):
-        raise ValueError(
-            "`target` must be a tensor of booleans or integers"
-        )
+        raise ValueError("`target` must be a tensor of booleans or integers")
 
     if target.dtype is not torch.bool:
         target = target.bool()

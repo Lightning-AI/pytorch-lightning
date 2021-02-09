@@ -25,9 +25,7 @@ def test_against_sklearn(sklearn_metric, torch_metric):
             a = np.random.randn(size)
             b = np.random.randn(size) > 0
 
-            sk = torch.tensor(
-                sklearn_metric(b, a), device=device
-            )
+            sk = torch.tensor(sklearn_metric(b, a), device=device)
             pl = torch_metric(torch.tensor(a, device=device), torch.tensor(b, device=device))
 
             # `torch_metric`s return 0 when no label is True

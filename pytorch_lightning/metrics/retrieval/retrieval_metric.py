@@ -84,9 +84,7 @@ class RetrievalMetric(Metric, ABC):
 
     def update(self, idx: torch.Tensor, preds: torch.Tensor, target: torch.Tensor) -> None:
         if not (idx.shape == target.shape == preds.shape):
-            raise ValueError(
-                "`idx`, `preds` and `target` must be of the same shape"
-            )
+            raise ValueError("`idx`, `preds` and `target` must be of the same shape")
 
         idx = idx.to(dtype=torch.int64).flatten()
         preds = preds.to(dtype=torch.float32).flatten()
