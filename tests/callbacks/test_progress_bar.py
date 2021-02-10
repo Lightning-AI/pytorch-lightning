@@ -354,7 +354,9 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches, refresh_rate, tes
 
 def test_tensor_to_float_conversion(tmpdir):
     """Check tensor gets converted to float"""
+
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             self.log('foo', torch.tensor(0.123), prog_bar=True)
             self.log('bar', {"baz": torch.tensor([1])}, prog_bar=True)
