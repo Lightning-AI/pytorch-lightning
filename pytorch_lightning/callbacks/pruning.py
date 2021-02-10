@@ -253,13 +253,11 @@ class ModelPruning(Callback):
             1. Randomly initialize a neural network :math:`f(x; \theta_0)` (where :math:`\theta_0 \sim \mathcal{D}_\theta`).
             2. Train the network for :math:`j` iterations, arriving at parameters :math:`\theta_j`.
             3. Prune :math:`p\%` of the parameters in :math:`\theta_j`, creating a mask :math:`m`.
-            4. Reset the remaining parameters to their values in :math:`\theta_0`,
-                    creating the winning ticket :math:`f(x; m \odot \theta_0)`.
+            4. Reset the remaining parameters to their values in :math:`\theta_0`, creating the winning ticket :math:`f(x; m \odot \theta_0)`.
 
         This function implements the step 4.
 
-        The ``resample_parameters`` argument can be used to reset the parameters with a new
-            :math:`\theta_z \sim \mathcal{D}_\theta`
+        The ``resample_parameters`` argument can be used to reset the parameters with a new :math:`\theta_z \sim \mathcal{D}_\theta`
         """
 
         def copy_param(new, old, name: str) -> None:
