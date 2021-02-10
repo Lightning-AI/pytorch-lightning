@@ -22,7 +22,7 @@ import torch
 from torch import nn
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import _PYTORCH_GREATER_EQUAL_1_6_0, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
