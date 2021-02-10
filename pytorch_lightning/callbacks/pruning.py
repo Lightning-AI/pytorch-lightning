@@ -14,10 +14,6 @@
 r"""
 ModelPruning
 ^^^^^^^^^^^^
-
-.. warning::
-
-    ModelPruning is in beta and subject to change.
 """
 import inspect
 from copy import deepcopy
@@ -74,7 +70,10 @@ class ModelPruning(Callback):
         Model pruning Callback, using PyTorch's prune utilities.
         This callback is responsible of pruning networks parameters during training.
 
-        Learn more with the PyTorch pruning tutorial (https://pytorch.org/tutorials/intermediate/pruning_tutorial.html)
+        To learn more about pruning with PyTorch, please take a look at
+        `this tutorial <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html>`_.
+
+        .. warning:: ``ModelPruning`` is in beta and subject to change.
 
         .. code-block:: python
 
@@ -122,7 +121,7 @@ class ModelPruning(Callback):
             make_pruning_permanent: Whether to remove all reparametrization pre-hooks and apply masks
                 when training ends or the model is saved.
 
-            use_lottery_ticket_hypothesis: See "The lottery ticket hypothesis" (https://arxiv.org/pdf/1803.03635.pdf):
+            use_lottery_ticket_hypothesis: See `The lottery ticket hypothesis <https://arxiv.org/pdf/1803.03635.pdf>`_:
 
                 - ``bool``. Whether to apply it or not.
                 - ``Callable[[epoch], bool]``. For dynamic values. Will be called every epoch.
@@ -244,17 +243,17 @@ class ModelPruning(Callback):
         trained.data = orig.data.to(trained.device)
 
     def apply_lottery_ticket_hypothesis(self):
-        """
+        r"""
         Lottery ticket hypothesis algorithm (see page 2 of the paper):
 
-            1. Randomly initialize a neural network f(x; θ_0) (where θ_0 ∼ D_θ).
-            2. Train the network for j iterations, arriving at parameters θ_j .
-            3. Prune p% of the parameters in θ_j, creating a mask m.
-            4. Reset the remaining parameters to their values in θ_0, creating the winning ticket f(x; m⊙θ_0).
+            1. Randomly initialize a neural network :math:`f(x; \theta_0)` (where :math:`\theta_0 \sim \mathcal{D}_\theta`).
+            2. Train the network for :math:`j` iterations, arriving at parameters :math:`\theta_j`.
+            3. Prune :math:`p\%` of the parameters in :math:`\theta_j`, creating a mask :math:`m`.
+            4. Reset the remaining parameters to their values in :math:`\theta_0`, creating the winning ticket :math:`f(x; m \odot \theta_0)`.
 
         This function implements the step 4.
 
-        The ``resample_parameters`` argument can be used to reset the parameters with a new θ_j ∼ D_θ
+        The ``resample_parameters`` argument can be used to reset the parameters with a new :math:`\theta_z \sim \mathcal{D}_\theta`
         """
 
         def copy_param(new, old, name: str) -> None:
@@ -362,7 +361,7 @@ class ModelPruning(Callback):
     ) -> _PARAM_LIST:
         """
         This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``.
-        If ``parameters_to_prune == None``, it will be generated with all parameters of the model.
+        If ``parameters_to_prune is None``, it will be generated with all parameters of the model.
         """
         parameters = parameter_names or ModelPruning.PARAMETER_NAMES
 
