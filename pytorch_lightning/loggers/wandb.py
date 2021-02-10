@@ -165,6 +165,7 @@ class WandbLogger(LightningLoggerBase):
             
             # define default x-axis (for latest wandb versions)
             if getattr(self._experiment, "define_metric", None):
+                self._experiment.define_metric('train/step')
                 self._experiment.define_metric("*", x_axis='train/step', auto=True)
 
         return self._experiment
