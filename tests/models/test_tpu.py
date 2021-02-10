@@ -21,8 +21,8 @@ from torch.utils.data import DataLoader
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
-from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -166,15 +166,16 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 @pl_multi_process_test
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
-    model = EvalModelTemplate()
+    model = EvalModelTemplate(learning_rate=0.1)
+    # todo: Test on 8 cores - hanging.
     trainer = Trainer(
         callbacks=[EarlyStopping()],
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        max_epochs=50,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        tpu_cores=1,
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        tpu_cores=[1],
     )
     trainer.fit(model)
 
