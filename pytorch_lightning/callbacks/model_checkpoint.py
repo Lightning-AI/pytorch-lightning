@@ -166,7 +166,7 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
-        self.last_global_step_saved = -1
+        self._last_global_step_saved = -1
         self.prefix = prefix
         self.current_score = None
         self.best_k_models = {}
@@ -194,7 +194,7 @@ class ModelCheckpoint(Callback):
         """
         When pretrain routine starts we build the ckpt dir on the fly
         """
-        self.__resolve_ckpt_dir(trainer, pl_module)
+        self.__resolve_ckpt_dir(trainer)
         self.save_function = trainer.save_checkpoint
 
     def on_validation_end(self, trainer, pl_module):
@@ -231,7 +231,7 @@ class ModelCheckpoint(Callback):
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
-            or self.last_global_step_saved == global_step  # already saved at the last step
+            or self._last_global_step_saved == global_step  # already saved at the last step
         ):
             return
 
@@ -239,7 +239,7 @@ class ModelCheckpoint(Callback):
         self._validate_monitor_key(trainer)
 
         # track epoch when ckpt was last checked
-        self.last_global_step_saved = global_step
+        self._last_global_step_saved = global_step
 
         # what can be monitored
         monitor_candidates = self._monitor_candidates(trainer)
@@ -448,7 +448,7 @@ class ModelCheckpoint(Callback):
         ckpt_name = f"{filename}{self.FILE_EXTENSION}"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
-    def __resolve_ckpt_dir(self, trainer, pl_module):
+    def __resolve_ckpt_dir(self, trainer):
         """
         Determines model checkpoint save directory at runtime. References attributes from the
         trainer's logger to determine where to save checkpoints.
@@ -521,12 +521,13 @@ class ModelCheckpoint(Callback):
         ckpt_name_metrics: Dict[str, Any],
         epoch: int,
         step: int,
-        del_filepath: Optional[str] = None
+        trainer,
+        del_filepath: Optional[str] = None,
     ) -> str:
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
 
         version_cnt = 0
-        while self._fs.exists(filepath) and filepath != del_filepath:
+        while self.file_exists(filepath, trainer) and filepath != del_filepath:
             filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=version_cnt)
             version_cnt += 1
 
@@ -556,7 +557,7 @@ class ModelCheckpoint(Callback):
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
         else:
             last_filepath = self._get_metric_interpolated_filepath_name(
-                ckpt_name_metrics, trainer.current_epoch, trainer.global_step
+                ckpt_name_metrics, trainer.current_epoch, trainer.global_step, trainer,
             )
 
         accelerator_backend = trainer.accelerator_backend
@@ -619,7 +620,7 @@ class ModelCheckpoint(Callback):
         if torch.isnan(current):
             current = torch.tensor(float('inf' if self.mode == "min" else '-inf'))
 
-        filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, epoch, step, del_filepath)
+        filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, epoch, step, trainer, del_filepath)
 
         # save the current score
         self.current_score = current
@@ -657,3 +658,13 @@ class ModelCheckpoint(Callback):
             filepath = os.path.join(self.dirpath, "best_k_models.yaml")
         with self._fs.open(filepath, "w") as fp:
             yaml.dump(best_k, fp)
+
+    def file_exists(self, filepath: Union[str, Path], trainer) -> bool:
+        """
+        Checks if a file exists on rank 0 and broadcasts the result to all other ranks, preventing
+        the internal state to diverge between ranks.
+        """
+        exists = self._fs.exists(filepath)
+        if trainer.accelerator_backend is not None:
+            exists = trainer.accelerator_backend.broadcast(exists)
+        return exists

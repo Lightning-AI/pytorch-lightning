@@ -1170,16 +1170,49 @@ class LightningModule(
 
         Override for your own behavior
 
-        Args:
-            optimizer:
-            optimizer_idx:
-        """
-        for param in self.parameters():
-            param.requires_grad = False
+        It works with ``untoggle_optimizer`` to make sure param_requires_grad_state is properly reset.
 
+        Args:
+            optimizer: Current optimizer used in training_loop
+            optimizer_idx: Current optimizer idx in training_loop
+        """
+
+        # Iterate over all optimizer parameters to preserve their `requires_grad` information
+        # in case these are pre-defined during `configure_optimizers`
+        param_requires_grad_state = {}
+        for opt in self.optimizers(use_pl_optimizer=False):
+            for group in opt.param_groups:
+                for param in group['params']:
+                    # If a param already appear in param_requires_grad_state, continue
+                    if param in param_requires_grad_state:
+                        continue
+                    param_requires_grad_state[param] = param.requires_grad
+                    param.requires_grad = False
+
+        # Then iterate over the current optimizer's parameters and set its `requires_grad`
+        # properties accordingly
         for group in optimizer.param_groups:
             for param in group['params']:
-                param.requires_grad = True
+                param.requires_grad = param_requires_grad_state[param]
+        self._param_requires_grad_state = param_requires_grad_state
+
+    def untoggle_optimizer(self, optimizer_idx: int):
+        """
+        .. note:: Only called when using multiple optimizers
+
+        Override for your own behavior
+
+        Args:
+            optimizer_idx: Current optimizer idx in training_loop
+        """
+        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
+            if optimizer_idx != opt_idx:
+                for group in opt.param_groups:
+                    for param in group['params']:
+                        if param in self._param_requires_grad_state:
+                            param.requires_grad = self._param_requires_grad_state[param]
+        # save memory
+        del self._param_requires_grad_state
 
     def optimizer_step(
         self,
@@ -1470,7 +1503,7 @@ class LightningModule(
 
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
-             or string names or argumenst from class `__init__`
+             or string names or arguments from class `__init__`
 
         >>> from collections import OrderedDict
         >>> class ManuallyArgsModel(LightningModule):

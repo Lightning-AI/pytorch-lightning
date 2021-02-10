@@ -47,6 +47,8 @@ CHECKPOINT_EXTENSION = ".ckpt"
     "1.1.3",
     "1.1.4",
     "1.1.5",
+    "1.1.6",
+    "1.1.7",
 ])
 def test_resume_legacy_checkpoints(tmpdir, pl_version):
     path_dir = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)

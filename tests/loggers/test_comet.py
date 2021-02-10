@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest.mock import patch, DEFAULT
+from unittest.mock import DEFAULT, patch
 
 import pytest
 
@@ -74,7 +74,7 @@ def test_comet_logger_online(comet):
 @patch('pytorch_lightning.loggers.comet.comet_ml')
 def test_comet_logger_no_api_key_given(comet):
     """ Test that CometLogger fails to initialize if both api key and save_dir are missing. """
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match='requires either api_key or save_dir'):
         comet.config.get_api_key.return_value = None
         CometLogger(workspace='dummy-test', project_name='general')
 
@@ -89,13 +89,10 @@ def test_comet_logger_experiment_name(comet):
     # Test api_key given
     with patch('pytorch_lightning.loggers.comet.CometExperiment') as comet_experiment:
         logger = CometLogger(api_key=api_key, experiment_name=experiment_name,)
-
         assert logger._experiment is None
 
         _ = logger.experiment
-
         comet_experiment.assert_called_once_with(api_key=api_key, project_name=None)
-
         comet_experiment().set_name.assert_called_once_with(experiment_name)
 
 
@@ -118,13 +115,10 @@ def test_comet_logger_manual_experiment_key(comet):
     with patch.dict(os.environ, {"COMET_EXPERIMENT_KEY": experiment_key}):
         with patch('pytorch_lightning.loggers.comet.CometExperiment', side_effect=save_os_environ) as comet_experiment:
             logger = CometLogger(api_key=api_key)
-
             assert logger.version == experiment_key
-
             assert logger._experiment is None
 
             _ = logger.experiment
-
             comet_experiment.assert_called_once_with(api_key=api_key, project_name=None)
 
     assert instantation_environ["COMET_EXPERIMENT_KEY"] == experiment_key
@@ -156,10 +150,12 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
 
     model = EvalModelTemplate()
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3)
+    assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == (tmpdir / 'test' / "1" / 'checkpoints')
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
+    assert trainer.log_dir == logger.save_dir
 
 
 @patch('pytorch_lightning.loggers.comet.comet_ml')
@@ -170,11 +166,8 @@ def test_comet_name_default(comet):
 
     with patch('pytorch_lightning.loggers.comet.CometExperiment'):
         logger = CometLogger(api_key=api_key)
-
         assert logger._experiment is None
-
         assert logger.name == "comet-default"
-
         assert logger._experiment is None
 
 
@@ -187,11 +180,8 @@ def test_comet_name_project_name(comet):
 
     with patch('pytorch_lightning.loggers.comet.CometExperiment'):
         logger = CometLogger(api_key=api_key, project_name=project_name)
-
         assert logger._experiment is None
-
         assert logger.name == project_name
-
         assert logger._experiment is None
 
 
@@ -205,14 +195,11 @@ def test_comet_version_without_experiment(comet):
 
     with patch('pytorch_lightning.loggers.comet.CometExperiment'):
         logger = CometLogger(api_key=api_key, experiment_name=experiment_name)
-
         assert logger._experiment is None
 
         first_version = logger.version
         assert first_version is not None
-
         assert logger.version == first_version
-
         assert logger._experiment is None
 
         _ = logger.experiment

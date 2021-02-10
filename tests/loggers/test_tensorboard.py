@@ -35,9 +35,11 @@ def test_tensorboard_hparams_reload(tmpdir):
     model = EvalModelTemplate()
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
 
-    folder_path = trainer.logger.log_dir
+    assert trainer.log_dir == trainer.logger.log_dir
+    folder_path = trainer.log_dir
 
     # make sure yaml is there
     with open(os.path.join(folder_path, "hparams.yaml")) as file:
@@ -265,3 +267,12 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
 
     mock_count_steps = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_step" in m[2]["metrics"]]
     assert model._indexes == mock_count_steps
+
+
+@mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter')
+def test_tensorboard_finalize(summary_writer, tmpdir):
+    """ Test that the SummaryWriter closes in finalize. """
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger.finalize("any")
+    summary_writer().flush.assert_called()
+    summary_writer().close.assert_called()

@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABC
-from argparse import ArgumentParser, Namespace
 import inspect
 import os
+from abc import ABC
+from argparse import ArgumentParser, Namespace
 from typing import cast, List, Optional, Type, TypeVar, Union
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -63,16 +63,10 @@ class TrainerProperties(ABC):
 
     @property
     def log_dir(self):
-        if self.checkpoint_callback is not None:
-            dirpath = self.checkpoint_callback.dirpath
-            dirpath = os.path.split(dirpath)[0]
-        elif self.logger is not None:
-            if isinstance(self.logger, TensorBoardLogger):
-                dirpath = self.logger.log_dir
-            else:
-                dirpath = self.logger.save_dir
+        if self.logger is None:
+            dirpath = self.default_root_dir
         else:
-            dirpath = self._default_root_dir
+            dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
 
         if self.accelerator_backend is not None:
             dirpath = self.accelerator_backend.broadcast(dirpath)
@@ -183,9 +177,23 @@ class TrainerProperties(ABC):
     @property
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
-        ref_model = self.model if not self.data_parallel else self.model.module
+        ref_model = self.get_model()
         ref_model = cast(LightningModule, ref_model)
-        return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
+
+        standard_metrics = ref_model.get_progress_bar_dict()
+        logged_metrics = self.progress_bar_metrics
+        duplicates = list(standard_metrics.keys() & logged_metrics.keys())
+        if duplicates:
+            rank_zero_warn(
+                f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
+                f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
+                f" If this is undesired, change the name or override `get_progress_bar_dict()`"
+                f" in `LightingModule`.",
+                UserWarning
+            )
+        all_metrics = dict(**standard_metrics)
+        all_metrics.update(**logged_metrics)
+        return all_metrics
 
     @property
     def disable_validation(self) -> bool:

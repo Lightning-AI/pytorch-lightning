@@ -30,9 +30,9 @@ to manually manage the optimization process. To do so, do the following:
     def training_step(self, batch, batch_idx, optimizer_idx):
 
         # 1. ignore optimizer_idx
-        # 2. `use_pl_optimizer=True` means `opt_g` and `opt_d` will be of type `LightingOptimizer`
-        # `LightingOptimizer` simply wrapped your optimizer and behave the same way !
-        # When calling `optimizer.step`, `LightingOptimizer` will just handle TPU, AMP, accumulate_grad_batches, etc ... for you.
+        # 2. `use_pl_optimizer=True` means `opt_g` and `opt_d` will be of type `LightningOptimizer`
+        # `LightningOptimizer` simply wrapped your optimizer and behave the same way !
+        # When calling `optimizer.step`, `LightningOptimizer` will just handle TPU, AMP, accumulate_grad_batches, etc ... for you.
 
         # access your optimizers with `use_pl_optimizer=False` or `optimizer.optimizer` when using use_pl_optimizer=True
         # use_pl_optimizer=True is the default

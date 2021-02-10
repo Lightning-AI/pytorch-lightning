@@ -104,6 +104,12 @@ Most of the tests in PyTorch Lightning train a trial MNIST model under various t
 
 ## Guidelines
 
+### Developments scripts
+To build the documentation locally, simply execute the following commands from project root (only for Unix):
+- `make clean` cleans repo from temp/generated files
+- `make docs` builds documentation under _docs/build/html_
+- `make test` runs all project's tests
+
 ### Original code
 
 All added or edited code shall be the own original work of the particular contributor.
@@ -223,60 +229,44 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 ### Question & Answer
 
-1. **How can I help/contribute?**
+#### How can I help/contribute?
 
-   All help is extremely welcome - reporting bugs, fixing documentation, adding test cases, solving issues and preparing bug fixes. To solve some issues you can start with label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before you start to implement anything check that the issue description that it is clear and self-assign the task to you (if it is not possible, just comment that you take it and we assign it to you...).
+All types of contributions are welcome - reporting bugs, fixing documentation, adding test cases, solving issues, and preparing bug fixes. 
+To get started with code contributions, look for issues marked with the label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with the label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before coding, make sure that the issue description is clear and comment on the issue so that we can assign it to you (or simply self-assign if you can).
 
-2. **Is there a recommendation for branch names?**
+#### Is there a recommendation for branch names?
 
-   We do not rely on the name convention so far you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feature`, `docs`, `tests`, ...
+We recommend you follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feature`, `docs`, or `tests` (but if you are using your own fork that's optional).
 
-3. **How to rebase my PR?**
+#### How to rebase my PR?
 
-   We recommend creating a PR in separate branch other than `master`, especially if you plan submitting several changes and do not want to wait until the first one is resolved (we can work on them in parallel).
+We recommend creating a PR in a separate branch other than `master`, especially if you plan to submit several changes and do not want to wait until the first one is resolved (we can work on them in parallel).
 
-   First, make sure you have set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork) by running:
+First, make sure you have set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork) by running:
 
-   ```bash
-   git remote add upstream https://github.com/PyTorchLightning/pytorch-lightning.git
-   ```
+```bash
+git remote add upstream https://github.com/PyTorchLightning/pytorch-lightning.git
+```
 
-   You'll know its set up right if you run `git remote -v` and see something similar to this:
+You'll know its set up right if you run `git remote -v` and see something similar to this:
 
-   ```bash
-   origin  https://github.com/{YOUR_USERNAME}/pytorch-lightning.git (fetch)
-   origin  https://github.com/{YOUR_USERNAME}/pytorch-lightning.git (push)
-   upstream        https://github.com/PyTorchLightning/pytorch-lightning.git (fetch)
-   upstream        https://github.com/PyTorchLightning/pytorch-lightning.git (push)
-   ```
+```bash
+origin  https://github.com/{YOUR_USERNAME}/pytorch-lightning.git (fetch)
+origin  https://github.com/{YOUR_USERNAME}/pytorch-lightning.git (push)
+upstream        https://github.com/PyTorchLightning/pytorch-lightning.git (fetch)
+upstream        https://github.com/PyTorchLightning/pytorch-lightning.git (push)
+```
 
-   Now you can update your master with upstream's master by running:
+Checkout your feature branch and rebase it with upstream's master before pushing up your feature branch:
 
-   ```bash
-   git fetch --all --prune
-   git checkout master
-   git merge upstream/master
-   ```
+```bash
+git fetch --all --prune
+git rebase upstream/master
+# follow git instructions to resolve conflicts
+git push -f
+```
 
-   Finally, checkout your feature branch and rebase it with master before pushing up your feature branch:
-
-   ```bash
-   git checkout my-PR-branch
-   git rebase master
-   # follow git instructions to resolve conflicts
-   git push -f
-   ```
-
-   Eventually, you can perform the rebasing directly from upstream after setting it up:
-
-   ```bash
-   git fetch --all --prune
-   git rebase upstream/master
-   # follow git instructions to resolve conflicts
-   git push -f
-   ```
-
-4. **How to add new tests**
+#### How to add new tests?**
 
 We are using [pytest](https://docs.pytest.org/en/stable/) in Pytorch Lightning.
 
@@ -293,19 +283,16 @@ Here is the process to create a new test
 
 ```python
 # TEST SHOULD BE IN YOUR FILE: tests/..../...py
+# TEST CODE TEMPLATE
 
-# RUN OUR TEST WITH: pytest tests/..../...py::test_explain_what_is_being_tested --verbose --capture=no
-
-# TEST CODE TEMPLATE
-
-# pytest decorator
+# [OPTIONAL] pytest decorator
 # @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_explain_what_is_being_tested(tmpdir):
     """
     Test description about text reason to be
     """
 
-    # os.environ["PL_DEV_DEBUG"] = '1' optional. When activated, you can use internal trainer.dev_debugger
+    # os.environ["PL_DEV_DEBUG"] = '1' # [OPTIONAL] When activated, you can use internal trainer.dev_debugger
 
     class ExtendedModel(BoringModel):
         ...
@@ -320,12 +307,60 @@ def test_explain_what_is_being_tested(tmpdir):
         ...
     )
     trainer.fit(model)
-    result = trainer.test()
+    trainer.test()  # [OPTIONAL]
 
     # assert the behaviour is correct.
     assert ...
-    assert ...
 ```
+run our/your test with
+```bash
+python -m pytest tests/..../...py::test_explain_what_is_being_tested --verbose --capture=no
+```
+
+#### How to contribute bugfixes/features?
+
+Currently we have separate streams/branches for bugfixes/features and release from the default branch (`master`).
+Bugfixes should land in this `master` branch and features should land in `release/X.y-dev`.
+This means that when starting your contribution and creating a branch according to question 2) you should start this new branch from master or future release dev branch.
+Later in PR creation also pay attention to properly set the target branch, usually the starting (base) and target branch are the same.
+
+_Note, that this flow may change after the 1.2 release as we will adjust releasing strategy._
+
+#### How to fix PR with mixed base and target branches?
+
+Sometimes you start your PR as a bug-fix but it turns out to be more of a feature (or the other way around).
+Do not panic, the solution is very straightforward and quite simple.
+All you need to do are these two steps in arbitrary order:
+   - Ask someone from Core to change the base/target branch to the correct one
+   - Rebase or cherry-pick your commits onto the correct base branch...
+     
+Let's show how to deal with the git...
+the sample case is moving a PR from `master` to `release/1.2-dev` assuming my branch name is `my-branch`
+and the last true master commit is `ccc111` and your first commit is `mmm222`.
+   * **Cherry-picking** way
+     ```bash
+     git checkout my-branch
+     # create a local backup of your branch
+     git checkout -b my-branch-backup
+     # reset your branch to the correct base
+     git reset release/1.2-dev --hard
+     # ACTION: this step is much easier to do with IDE
+     #  so open one and cherry-pick your last commits from `my-branch-backup`
+     #  resolve all eventual conflict as the new base may contain different code
+     # when all done, push back to the open PR
+     git push -f 
+     ```
+   * **Rebasing way**, see more about [rebase onto usage](https://womanonrails.com/git-rebase-onto)
+     ```bash
+     git checkout my-branch
+     # rebase your commits on the correct branch
+     git rebase --onto release/1.2-dev ccc111
+     # if there is no collision you shall see just success
+     #  eventually you would need to resolve collision and in such case follow the instruction in terminal
+     # when all done, push back to the open PR
+     git push -f
+     ```
+
 
 ### Bonus Workflow Tip
 

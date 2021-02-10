@@ -32,16 +32,23 @@ jobs:
         name: pypi-packages-${{ github.sha }}
         path: dist
 
+  upload-package:
+    runs-on: ubuntu-20.04
+    needs: build-package
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/download-artifact@v2
+      with:
+        name: pypi-packages-${{ github.sha }}
+        path: dist
+    - run: ls -lh dist/
+
     - name: Upload to release
       if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
-      uses: svenstaro/upload-release-action@v2
+      uses: AButler/upload-release-assets@v2.0
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: dist/*
-        tag: ${{ github.ref }}
-        asset_name: packages
-        overwrite: false
-        file_glob: true
+        files: 'dist/*'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
 
   publish-package:
     runs-on: ubuntu-20.04
@@ -52,9 +59,7 @@ jobs:
       with:
         name: pypi-packages-${{ github.sha }}
         path: dist
-    - name: Show packages
-      run: |
-        ls -lh dist/
+    - run: ls -lh dist/
 
     - name: Delay releasing
       if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'

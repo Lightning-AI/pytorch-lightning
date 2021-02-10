@@ -145,3 +145,6 @@ pytorch\ lightning
 test-reports/
 wandb
 .forked/
+
+# ctags
+tags
