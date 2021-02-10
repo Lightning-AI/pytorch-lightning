@@ -317,22 +317,22 @@ class ModelPruning(Callback):
         self, prev: List[Tuple[int, int]], curr: List[Tuple[int, int]], amount: Union[int, float] = 0
     ):
         total_params = sum(p.numel() for layer, _ in self._parameters_to_prune for p in layer.parameters())
-        total_prev_pruned = sum(zeroes for zeroes, _ in prev)
-        total_curr_pruned = sum(zeroes for zeroes, _ in curr)
+        prev_total_zeros = sum(zeros for zeros, _ in prev)
+        curr_total_zeros = sum(zeros for zeros, _ in curr)
         pruning_fn_name = self.pruning_fn.__name__
         rank_zero_info(
             f"Applied `{pruning_fn_name}`. Pruned:"
-            f" {total_prev_pruned}/{total_params} ({total_prev_pruned / total_params:.2%}) ->"
-            f" {total_curr_pruned}/{total_params} ({total_curr_pruned / total_params:.2%})"
+            f" {prev_total_zeros}/{total_params} ({prev_total_zeros / total_params:.2%}) ->"
+            f" {curr_total_zeros}/{total_params} ({curr_total_zeros / total_params:.2%})"
         )
         if self._verbose == 2:
             for i, (module, name) in enumerate(self._parameters_to_prune):
-                prev_mask_zeroes, prev_mask_size = prev[i]
-                curr_mask_zeroes, curr_mask_size = curr[i]
+                prev_mask_zeros, prev_mask_size = prev[i]
+                curr_mask_zeros, curr_mask_size = curr[i]
                 rank_zero_info(
                     f"Applied `{pruning_fn_name}` to `{module!r}.{name}` with amount={amount}. Pruned:"
-                    f" {prev_mask_zeroes} ({prev_mask_zeroes / prev_mask_size:.2%}) ->"
-                    f" {curr_mask_zeroes} ({curr_mask_zeroes / curr_mask_size:.2%})"
+                    f" {prev_mask_zeros} ({prev_mask_zeros / prev_mask_size:.2%}) ->"
+                    f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
