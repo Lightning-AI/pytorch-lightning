@@ -48,7 +48,6 @@ _IS_WINDOWS = platform.system() == "Windows"
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available('fairscale.nn.data_parallel')
-_TORCH_GREATER_EQUAL_1_6 = _get_version("torch") >= LooseVersion("1.6.0")
 _FAIRSCALE_PIPE_AVAILABLE = (
     _FAIRSCALE_AVAILABLE and _TORCH_GREATER_EQUAL_1_6 and _get_version('fairscale') <= LooseVersion("0.1.3")
 )
@@ -60,6 +59,7 @@ _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cu
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _PYTORCH_PRUNE_AVAILABLE = _module_available('torch.nn.utils.prune')
 _RPC_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.rpc')
+_TORCH_GREATER_EQUAL_1_6 = _get_version("torch") >= LooseVersion("1.6.0")
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
 _XLA_AVAILABLE = _module_available("torch_xla")
