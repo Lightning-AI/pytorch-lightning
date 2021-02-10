@@ -134,8 +134,7 @@ class TPUAccelerator(Accelerator):
         # setup TPU training
         self.__setup_tpu_training(model, trainer)
 
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        self.trainer.setup_trainer(model)
 
         # train or test
         results = self.train_or_test()
@@ -332,6 +331,9 @@ class TPUAccelerator(Accelerator):
             mp_queue.put(last_path)
 
     def broadcast(self, obj, src=0):
+        if self.trainer.tpu_id is not None:
+            # running on a single core
+            return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())

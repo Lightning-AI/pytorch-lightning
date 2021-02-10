@@ -21,13 +21,14 @@ import json
 import os
 import sys
 
-# this is need as e.g. Conda do not uses `PYTHONPATH` env var as pip or/and virtualenv
-from pytorch_lightning.trainer.states import TrainerState
-
-sys.path = os.getenv('PYTHONPATH').split(':') + sys.path
+# this is needed because Conda does not use `PYTHONPATH` env var while pip and virtualenv do
+PYTHONPATH = os.getenv('PYTHONPATH', '')
+if ':' in PYTHONPATH:
+    sys.path = PYTHONPATH.split(':') + sys.path
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
+from pytorch_lightning.trainer.states import TrainerState  # noqa: E402
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE  # noqa: E402
 
 if _HOROVOD_AVAILABLE:
@@ -36,8 +37,8 @@ else:
     print('You requested to import Horovod which is missing or not supported for your OS.')
 
 from tests.base import EvalModelTemplate  # noqa: E402
-from tests.base.develop_pipelines import run_prediction  # noqa: E402
-from tests.base.develop_utils import reset_seed, set_random_master_port  # noqa: E402
+from tests.helpers.pipelines import run_prediction  # noqa: E402
+from tests.helpers.utils import reset_seed, set_random_master_port  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--trainer-options', required=True)

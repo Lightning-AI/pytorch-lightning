@@ -41,26 +41,14 @@ def main():
     result = {}
     if args.trainer_method == 'fit':
         trainer.fit(model)
-        result = {
-            'status': 'complete',
-            'method': args.trainer_method,
-            'result': None
-        }
+        result = {'status': 'complete', 'method': args.trainer_method, 'result': None}
     if args.trainer_method == 'test':
         result = trainer.test(model)
-        result = {
-            'status': 'complete',
-            'method': args.trainer_method,
-            'result': result
-        }
+        result = {'status': 'complete', 'method': args.trainer_method, 'result': result}
     if args.trainer_method == 'fit_test':
         trainer.fit(model)
         result = trainer.test(model)
-        result = {
-            'status': 'complete',
-            'method': args.trainer_method,
-            'result': result
-        }
+        result = {'status': 'complete', 'method': args.trainer_method, 'result': result}
 
     if len(result) > 0:
         file_path = os.path.join(args.tmpdir, 'ddp.result')

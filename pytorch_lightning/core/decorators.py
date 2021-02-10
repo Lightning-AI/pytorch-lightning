@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Decorator for LightningModule methods."""
 
 from functools import wraps
@@ -52,6 +51,7 @@ def auto_move_data(fn: Callable) -> Callable:
         # tensor([[0., 0., 0.]], device='cuda:0')
 
     """
+
     @wraps(fn)
     def auto_transfer_args(self, *args, **kwargs):
         if not isinstance(self, LightningModule):

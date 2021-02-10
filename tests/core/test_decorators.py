@@ -15,7 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning.core.decorators import auto_move_data
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -29,6 +29,7 @@ def test_auto_move_data(src_device, dest_device):
     """ Test that the decorator moves the data to the device the model is on. """
 
     class CurrentModel(BoringModel):
+
         @auto_move_data
         def forward(self, *args, **kwargs):
             return super().forward(*args, **kwargs)

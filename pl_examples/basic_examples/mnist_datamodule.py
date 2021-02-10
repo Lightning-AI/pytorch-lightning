@@ -24,7 +24,7 @@ if _TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib
     from torchvision.datasets import MNIST
 else:
-    from tests.base.datasets import MNIST
+    from tests.helpers.datasets import MNIST
 
 
 class MNISTDataModule(LightningDataModule):

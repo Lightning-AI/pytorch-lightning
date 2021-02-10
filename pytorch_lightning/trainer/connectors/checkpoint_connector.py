@@ -49,7 +49,7 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
 
-    def restore_weights(self, model: LightningModule) -> None:
+    def restore_weights(self) -> None:
         """
         Attempt to restore a checkpoint (e.g. weights) in this priority:
         1. from HPC weights
@@ -69,7 +69,7 @@ class CheckpointConnector:
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
         # 2. Attempt to restore states from `resume_from_checkpoint` file
-        elif self.trainer.resume_from_checkpoint is not None and not self.trainer.testing:
+        elif self.trainer.resume_from_checkpoint is not None:
             self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer._device_type == DeviceType.GPU)
 
         # wait for all to catch up
@@ -158,7 +158,7 @@ class CheckpointConnector:
         self.trainer.current_epoch = checkpoint['epoch']
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
-        if self.trainer.current_epoch > self.trainer.max_epochs:
+        if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
             m = f"""
             you restored a checkpoint with current_epoch={self.trainer.current_epoch}
             but the Trainer(max_epochs={self.trainer.max_epochs})

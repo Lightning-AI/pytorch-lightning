@@ -385,9 +385,7 @@ def get_gpu_memory_map() -> Dict[str, int]:
 
     # Convert lines into a dictionary
     gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {
-        f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)
-    }
+    gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
 
@@ -427,7 +425,7 @@ def get_human_readable_count(number: int) -> str:
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
-    number = number * (10 ** shift)
+    number = number * (10**shift)
     index = num_groups - 1
     if index < 1 or number >= 100:
         return f"{int(number):,d} {labels[index]}"

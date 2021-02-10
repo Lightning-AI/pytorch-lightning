@@ -20,6 +20,7 @@ from pytorch_lightning import LightningDataModule, LightningModule
 
 
 class RandomDictDataset(Dataset):
+
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -34,6 +35,7 @@ class RandomDictDataset(Dataset):
 
 
 class RandomDictStringDataset(Dataset):
+
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -46,6 +48,7 @@ class RandomDictStringDataset(Dataset):
 
 
 class RandomDataset(Dataset):
+
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -93,7 +96,7 @@ class BoringModel(LightningModule):
         return out
 
     def training_step(self, batch, batch_idx):
-        output = self.layer(batch)
+        output = self(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
 
@@ -104,7 +107,7 @@ class BoringModel(LightningModule):
         torch.stack([x["loss"] for x in outputs]).mean()
 
     def validation_step(self, batch, batch_idx):
-        output = self.layer(batch)
+        output = self(batch)
         loss = self.loss(batch, output)
         return {"x": loss}
 
@@ -112,7 +115,7 @@ class BoringModel(LightningModule):
         torch.stack([x['x'] for x in outputs]).mean()
 
     def test_step(self, batch, batch_idx):
-        output = self.layer(batch)
+        output = self(batch)
         loss = self.loss(batch, output)
         return {"y": loss}
 
@@ -135,6 +138,7 @@ class BoringModel(LightningModule):
 
 
 class BoringDataModule(LightningDataModule):
+
     def __init__(self, data_dir: str = './'):
         super().__init__()
         self.data_dir = data_dir
