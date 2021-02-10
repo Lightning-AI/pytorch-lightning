@@ -7,13 +7,13 @@ from tests.helpers import BoringModel
 @pytest.mark.parametrize(
     ["min_epochs", "max_epochs", "min_steps", "max_steps"],
     [
-        pytest.param(None, 5, None, None),
-        pytest.param(None, None, None, 100),
-        pytest.param(None, 5, None, 100),
-        pytest.param(None, None, 10, 100),
-        pytest.param(1, 5, None, None),
-        pytest.param(1, None, None, 100),
-        pytest.param(None, 5, 10, None),
+        (None, 3, None, None),
+        (None, None, None, 20),
+        (None, 3, None, 20),
+        (None, None, 10, 20),
+        (1, 3, None, None),
+        (1, None, None, 20),
+        (None, 3, 10, None),
     ],
 )
 def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_steps):
