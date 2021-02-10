@@ -16,7 +16,7 @@ import os
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities import _PYTORCH_PRUNE_AVAILABLE, _TORCH_LOWER_EQUAL_1_4, _TORCH_QUANTIZE_AVAILABLE
+from pytorch_lightning.utilities import _TORCH_LOWER_EQUAL_1_4, _TORCH_QUANTIZE_AVAILABLE
 
 _TEST_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_TEST_ROOT)

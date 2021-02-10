@@ -31,7 +31,7 @@ from tests.helpers.simple_models import RegressionModel
 @pytest.mark.parametrize("fuse", [True, False])
 @pytest.mark.skipif(**_SKIPIF_ARGS_NO_PT_QUANT)
 def test_quantization(tmpdir, observe, fuse):
-    """Parity for  quant model"""
+    """Parity test for quant model"""
     seed_everything(42)
     dm = RegressDataModule()
     trainer_args = dict(
@@ -42,19 +42,21 @@ def test_quantization(tmpdir, observe, fuse):
     model = RegressionModel()
     qmodel = copy.deepcopy(model)
 
-    Trainer(**trainer_args).fit(model, datamodule=dm)
+    trainer = Trainer(**trainer_args)
+    trainer.fit(model, datamodule=dm)
     org_size = model.model_size
     org_score = torch.mean(torch.tensor([mean_relative_error(model(x), y) for x, y in dm.test_dataloader()]))
 
     fusing_layers = [(f'layer_{i}', f'layer_{i}a') for i in range(3)] if fuse else None
     qcb = QuantizationAwareTraining(observer_type=observe, modules_to_fuse=fusing_layers)
-    Trainer(callbacks=[qcb], **trainer_args).fit(qmodel, datamodule=dm)
+    trainer = Trainer(callbacks=[qcb], **trainer_args)
+    trainer.fit(qmodel, datamodule=dm)
 
     quant_calls = qcb._forward_calls
-    quant_size = qmodel.model_size
-    quant_score = torch.mean(torch.tensor([mean_relative_error(qmodel(x), y) for x, y in dm.test_dataloader()]))
     assert quant_calls == qcb._forward_calls
 
+    quant_size = qmodel.model_size
+    quant_score = torch.mean(torch.tensor([mean_relative_error(qmodel(x), y) for x, y in dm.test_dataloader()]))
     # test that the trained model is smaller then initial
     size_ratio = quant_size / org_size
     assert size_ratio < 0.65
@@ -68,7 +70,8 @@ def test_quantize_torchscript(tmpdir):
     dm = RegressDataModule()
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(input_compatible=False)
-    Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1).fit(qmodel, datamodule=dm)
+    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(qmodel, datamodule=dm)
 
     qmodel.to_torchscript()
 

@@ -15,9 +15,6 @@ r"""
 Quantization
 ^^^^^^^^^^^^
 
-.. warning::
-
-    Quantization is in beta and subject to change.
 """
 import functools
 from typing import Any, Callable, Optional, Sequence, Union
@@ -193,7 +190,7 @@ class QuantizationAwareTraining(Callback):
         torch.quantization.prepare_qat(pl_module, inplace=True)
 
     def on_fit_end(self, trainer, pl_module):
-        # pl_module.eval()
+        pl_module.eval()
         # Convert the observed model to a quantized model. This does several things:
         # quantizes the weights, computes and stores the scale and bias value to be
         # used with each activation tensor, fuses modules where appropriate,
