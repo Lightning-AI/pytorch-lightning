@@ -150,7 +150,7 @@ class MLFlowLogger(LightningLoggerBase):
         params = self._convert_params(params)
         params = self._flatten_dict(params)
         for k, v in params.items():
-            if len(v) > 250:
+            if len(str(v)) > 250:
                 log.warning(f"Mlflow only allows parameters with up to 250 characters. Discard {k}={v}")
                 continue
 
