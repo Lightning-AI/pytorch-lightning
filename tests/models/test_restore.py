@@ -283,7 +283,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(pretrained_model, dataloader, min_acc=0.45)
+        tpipes.run_prediction(pretrained_model, dataloader, min_acc=0.1)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
