@@ -21,6 +21,7 @@ from typing import Generic, TypeVar
 import cloudpickle
 import pytest
 import torch
+import torch.nn.functional as F
 
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
@@ -196,8 +197,31 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
 
     tutils.set_random_master_port()
+
+    class CustomClassificationModelDP(ClassificationModel):
+
+        def _step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            return {'logits': logits, 'y': y}
+
+        def training_step(self, batch, batch_idx):
+            _, y = batch
+            out = self._step(batch, batch_idx)
+            out['loss'] = F.cross_entropy(out['logits'], y)
+            return out
+
+        def validation_step(self, batch, batch_idx):
+            return self._step(batch, batch_idx)
+
+        def test_step(self, batch, batch_idx):
+            return self._step(batch, batch_idx)
+
+        def validation_step_end(self, outputs):
+            self.log('val_acc', self.valid_acc(outputs['logits'], outputs['y']))
+
     dm = ClassifDataModule()
-    model = ClassificationModel()
+    model = CustomClassificationModelDP()
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)

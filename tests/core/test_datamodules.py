@@ -18,6 +18,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
+import torch.nn.functional as F
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
@@ -26,7 +27,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
-from tests.helpers.utils import reset_seed
+from tests.helpers.utils import reset_seed, set_random_master_port
 
 
 def test_can_prepare_data(tmpdir):
@@ -368,10 +369,32 @@ def test_full_loop_single_gpu(tmpdir):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_full_loop_dp(tmpdir):
-    reset_seed()
+    set_random_master_port()
+
+    class CustomClassificationModelDP(ClassificationModel):
+
+        def _step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            return {'logits': logits, 'y': y}
+
+        def training_step(self, batch, batch_idx):
+            _, y = batch
+            out = self._step(batch, batch_idx)
+            out['loss'] = F.cross_entropy(out['logits'], y)
+            return out
+
+        def validation_step(self, batch, batch_idx):
+            return self._step(batch, batch_idx)
+
+        def test_step(self, batch, batch_idx):
+            return self._step(batch, batch_idx)
+
+        def test_step_end(self, outputs):
+            self.log('test_acc', self.test_acc(outputs['logits'], outputs['y']))
 
     dm = ClassifDataModule()
-    model = ClassificationModel()
+    model = CustomClassificationModelDP()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
