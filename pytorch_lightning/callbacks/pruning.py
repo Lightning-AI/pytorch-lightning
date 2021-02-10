@@ -15,6 +15,9 @@ r"""
 ModelPruning
 ^^^^^^^^^^^^
 
+.. warning::
+
+    ModelPruning is in beta and subject to change.
 """
 import inspect
 from copy import deepcopy
