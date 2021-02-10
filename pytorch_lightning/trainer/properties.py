@@ -17,6 +17,8 @@ from abc import ABC
 from argparse import ArgumentParser, Namespace
 from typing import Any, cast, List, Optional, Type, TypeVar, Union
 
+import torch
+
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
@@ -123,6 +125,18 @@ class TrainerProperties(ABC):
     @property
     def root_gpu(self):
         return self.accelerator_connector.root_gpu
+
+    @property
+    def tpu_cores(self) -> int:
+        return self.accelerator_connector.tpu_cores
+
+    @property
+    def gpus(self) -> Union[int, List[torch.device]]:
+        return self.accelerator_connector.gpus
+
+    @property
+    def num_gpus(self) -> int:
+        return self.accelerator_connector.num_gpus
 
     @property
     def data_parallel_device_ids(self):
