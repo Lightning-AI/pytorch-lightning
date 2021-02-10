@@ -29,7 +29,6 @@ def _module_available(module_path: str) -> bool:
     >>> _module_available('bla.bla')
     False
     """
-    # todo: find a better way than try / except
     try:
         return find_spec(module_path) is not None
     except AttributeError:
