@@ -158,7 +158,7 @@ class CheckpointConnector:
         self.trainer.current_epoch = checkpoint['epoch']
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
-        if self.trainer.current_epoch > self.trainer.max_epochs:
+        if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
             m = f"""
             you restored a checkpoint with current_epoch={self.trainer.current_epoch}
             but the Trainer(max_epochs={self.trainer.max_epochs})

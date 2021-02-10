@@ -35,7 +35,8 @@ ENV \
     DEBIAN_FRONTEND=noninteractive \
     TZ=Europe/Prague \
     PATH="$PATH:/root/.local/bin" \
-    CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
+    CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
+    MKL_THREADING_LAYER=GNU
 
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
