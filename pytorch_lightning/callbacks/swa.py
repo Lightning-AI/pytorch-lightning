@@ -14,9 +14,6 @@
 r"""
 Stochastic Weight Averaging Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. warning::
-    StochasticWeightAveraging is in beta and subject to change.
 """
 from copy import deepcopy
 from typing import Callable, Optional, Union
@@ -58,8 +55,10 @@ class StochasticWeightAveraging(Callback):
         This documentation is highly inspired by PyTorch's work on SWA.
         The callback arguments follow the scheme defined in PyTorch's ``swa_utils`` package.
 
-        Find ``swa_utils`` source code here: https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py
-        Find a SWA explanation here: https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging
+        For a SWA explanation, please take a look
+        `here <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`_.
+
+        .. warning:: ``StochasticWeightAveraging`` is in beta and subject to change.
 
         .. warning:: ``StochasticWeightAveraging`` is currently not supported for multiple optimizers/schedulers.
 
@@ -128,33 +127,6 @@ class StochasticWeightAveraging(Callback):
     @staticmethod
     def pl_module_contains_batch_norm(pl_module: 'pl.LightningModule'):
         return any(isinstance(module, nn.modules.batchnorm._BatchNorm) for module in pl_module.modules())
-
-    def reset_batch_norm_and_save_state(self, pl_module: 'pl.LightningModule'):
-        """
-        Credit to PyTorch Team.
-        Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L115
-        """
-        self.momenta = {}
-        for module in pl_module.modules():
-            if not isinstance(module, nn.modules.batchnorm._BatchNorm):
-                continue
-            module.running_mean = torch.zeros_like(
-                module.running_mean, device=pl_module.device, dtype=module.running_mean.dtype
-            )
-            module.running_var = torch.ones_like(
-                module.running_var, device=pl_module.device, dtype=module.running_var.dtype
-            )
-            self.momenta[module] = module.momentum
-            module.momentum = None
-            module.num_batches_tracked *= 0
-
-    def reset_momenta(self):
-        """
-        Credit to PyTorch Team.
-        Taken from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164
-        """
-        for bn_module in self.momenta.keys():
-            bn_module.momentum = self.momenta[bn_module]
 
     def on_before_accelerator_backend_setup(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         # copy the model before moving it to accelerator device.
@@ -234,12 +206,41 @@ class StochasticWeightAveraging(Callback):
             self.transfer_weights(self._average_model, pl_module)
 
     @staticmethod
+    def transfer_weights(src_pl_module: 'pl.LightningModule', dst_pl_module: 'pl.LightningModule'):
+        for src_param, dst_param in zip(src_pl_module.parameters(), dst_pl_module.parameters()):
+            dst_param.detach().copy_(src_param.to(dst_param.device))
+
+    def reset_batch_norm_and_save_state(self, pl_module: 'pl.LightningModule'):
+        """
+        Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L140-L154
+        """
+        self.momenta = {}
+        for module in pl_module.modules():
+            if not isinstance(module, nn.modules.batchnorm._BatchNorm):
+                continue
+            module.running_mean = torch.zeros_like(
+                module.running_mean, device=pl_module.device, dtype=module.running_mean.dtype
+            )
+            module.running_var = torch.ones_like(
+                module.running_var, device=pl_module.device, dtype=module.running_var.dtype
+            )
+            self.momenta[module] = module.momentum
+            module.momentum = None
+            module.num_batches_tracked *= 0
+
+    def reset_momenta(self):
+        """
+        Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165
+        """
+        for bn_module in self.momenta.keys():
+            bn_module.momentum = self.momenta[bn_module]
+
+    @staticmethod
     def update_parameters(
         average_model: 'pl.LightningModule', model: 'pl.LightningModule', n_averaged: torch.LongTensor, avg_fn: _AVG_FN
     ):
         """
-        Credit to PyTorch Team.
-        Taken from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L103
+        Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L104-L112
         """
         for p_swa, p_model in zip(average_model.parameters(), model.parameters()):
             device = p_swa.device
@@ -250,16 +251,10 @@ class StochasticWeightAveraging(Callback):
         n_averaged += 1
 
     @staticmethod
-    def transfer_weights(src_pl_module: 'pl.LightningModule', dst_pl_module: 'pl.LightningModule'):
-        for src_param, dst_param in zip(src_pl_module.parameters(), dst_pl_module.parameters()):
-            dst_param.detach().copy_(src_param.to(dst_param.device))
-
-    @staticmethod
     def avg_fn(
         averaged_model_parameter: torch.Tensor, model_parameter: torch.Tensor, num_averaged: torch.LongTensor
     ) -> torch.FloatTensor:
         """
-        Credit to PyTorch Team.
-        Taken from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95
+        Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95-L97
         """
         return averaged_model_parameter + (model_parameter - averaged_model_parameter) / (num_averaged + 1)
