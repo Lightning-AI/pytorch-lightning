@@ -64,7 +64,7 @@ class ModelPruning(Callback):
         resample_parameters: bool = False,
         pruning_dim: Optional[int] = None,
         pruning_norm: Optional[int] = None,
-        verbose: bool = False,
+        verbose: int = 0,
     ) -> None:
         """
         Model pruning Callback, using PyTorch's prune utilities.
@@ -99,7 +99,7 @@ class ModelPruning(Callback):
             pruning_fn: Function from torch.nn.utils.prune module or your own PyTorch ``BasePruningMethod`` subclass.
                 Can also be string e.g. `"l1_unstructured"`. See pytorch docs for more details.
 
-            parameters_to_prune: List of strings or list of tuples ``(nn.Module, "parameter_name_string")``.
+            parameters_to_prune: List of tuples ``(nn.Module, "parameter_name_string")``.
 
             parameter_names: List of parameter names to be pruned from the nn.Module.
                 Can either be ``"weight"`` or ``"bias"``.
@@ -133,7 +133,7 @@ class ModelPruning(Callback):
 
             pruning_norm: If you are using ``ln_structured`` you need to specify the norm.
 
-            verbose: Whether to log pruning percentage changes.
+            verbose: Verbosity level. 0 to disable, 1 to log overall sparsity, 2 to log per-layer sparsity
 
         """
 
@@ -196,10 +196,14 @@ class ModelPruning(Callback):
 
         if not isinstance(amount, (int, float, Callable)):
             raise MisconfigurationException(
-                "amount should be provided and be either an int, a float or Callable function."
+                "`amount` should be provided and be either an int, a float or Callable function."
             )
 
         self.amount = amount
+
+        if verbose not in (0, 1, 2):
+            raise MisconfigurationException("`verbose` must be any of (0, 1, 2)")
+
         self._verbose = verbose
 
     def filter_parameters_to_prune(self, parameters_to_prune: Optional[_PARAM_LIST] = None) -> Optional[_PARAM_LIST]:
@@ -298,7 +302,7 @@ class ModelPruning(Callback):
     def apply_pruning(self, amount: Union[int, float]):
         """ Applies pruning to ``parameters_to_prune``. """
         if self._verbose:
-            stats = [self._get_pruned_stats(m, n) for m, n in self._parameters_to_prune]
+            prev_stats = [self._get_pruned_stats(m, n) for m, n in self._parameters_to_prune]
 
         if self._use_global_unstructured:
             self._apply_global_pruning(amount)
@@ -306,11 +310,27 @@ class ModelPruning(Callback):
             self._apply_local_pruning(amount)
 
         if self._verbose:
+            curr_stats = [self._get_pruned_stats(m, n) for m, n in self._parameters_to_prune]
+            self._log_sparsity_stats(prev_stats, curr_stats, amount=amount)
+
+    def _log_sparsity_stats(
+        self, prev: List[Tuple[int, int]], curr: List[Tuple[int, int]], amount: Union[int, float] = 0
+    ):
+        total_params = sum(p.numel() for layer, _ in self._parameters_to_prune for p in layer.parameters())
+        total_prev_pruned = sum(zeroes for zeroes, _ in prev)
+        total_curr_pruned = sum(zeroes for zeroes, _ in curr)
+        pruning_fn_name = self.pruning_fn.__name__
+        rank_zero_info(
+            f"Applied `{pruning_fn_name}`. Pruned:"
+            f" {total_prev_pruned}/{total_params} ({total_prev_pruned / total_params:.2%}) ->"
+            f" {total_curr_pruned}/{total_params} ({total_curr_pruned / total_params:.2%})"
+        )
+        if self._verbose == 2:
             for i, (module, name) in enumerate(self._parameters_to_prune):
-                prev_mask_zeroes, prev_mask_size = stats[i]
-                curr_mask_zeroes, curr_mask_size = self._get_pruned_stats(module, name)
+                prev_mask_zeroes, prev_mask_size = prev[i]
+                curr_mask_zeroes, curr_mask_size = curr[i]
                 rank_zero_info(
-                    f"Applied `{self.pruning_fn.__name__}` to `{module!r}.{name}` with amount={amount}. Pruned:"
+                    f"Applied `{pruning_fn_name}` to `{module!r}.{name}` with amount={amount}. Pruned:"
                     f" {prev_mask_zeroes} ({prev_mask_zeroes / prev_mask_size:.2%}) ->"
                     f" {curr_mask_zeroes} ({curr_mask_zeroes / curr_mask_size:.2%})"
                 )

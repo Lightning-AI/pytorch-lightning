@@ -128,6 +128,8 @@ def test_pruning_misconfiguration():
         ModelPruning(pruning_fn={})  # noqa
     with pytest.raises(MisconfigurationException, match="should be provided"):
         ModelPruning(pruning_fn="random_structured")
+    with pytest.raises(MisconfigurationException, match=r"must be any of \(0, 1, 2\)"):
+        ModelPruning(pruning_fn="l1_unstructured", verbose=3)
     with pytest.raises(MisconfigurationException, match="requesting `ln_structured` pruning, the `pruning_norm`"):
         ModelPruning(pruning_fn="ln_structured", pruning_dim=0)
 
@@ -221,8 +223,8 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
     seed_everything(0)
     model = TestModel()
     pruning_kwargs = {
-        'parameters_to_prune': [(model.layer.mlp_1, "weight")],
-        'verbose': True,
+        'parameters_to_prune': [(model.layer.mlp_1, "weight"), (model.layer.mlp_3, "weight")],
+        'verbose': 2,
         "make_pruning_permanent": make_pruning_permanent
     }
     p1 = ModelPruning("l1_unstructured", amount=0.5, apply_pruning=lambda e: not e % 2, **pruning_kwargs)
@@ -235,20 +237,23 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
         logger=False,
         limit_train_batches=10,
         limit_val_batches=2,
-        max_epochs=5,
+        max_epochs=3,
         callbacks=[p1, p2],
     )
     with caplog.at_level(INFO):
         trainer.fit(model)
 
-    actual = [m.strip() for m in caplog.messages[-5:]]
-    layer = "Linear(in_features=32, out_features=32, bias=True)"
+    actual = [m.strip() for m in caplog.messages[-9:]]
     expected = [
-        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned: 0 (0.00%) -> 512 (50.00%)",
-        f"Applied `RandomUnstructured` to `{layer}.weight` with amount=0.25. Pruned: 512 (50.00%) -> 640 (62.50%)",
-        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned: 640 (62.50%) -> 832 (81.25%)",
-        f"Applied `RandomUnstructured` to `{layer}.weight` with amount=0.25. Pruned: 832 (81.25%) -> 880 (85.94%)",
-        f"Applied `L1Unstructured` to `{layer}.weight` with amount=0.5. Pruned: 880 (85.94%) -> 952 (92.97%)"
+        "Applied `L1Unstructured`. Pruned: 0/1122 (0.00%) -> 544/1122 (48.48%)",
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 506 (49.41%)",  # noqa: E501
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 38 (59.38%)",  # noqa: E501
+        "Applied `RandomUnstructured`. Pruned: 544/1122 (48.48%) -> 680/1122 (60.61%)",
+        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.25. Pruned: 506 (49.41%) -> 633 (61.82%)",  # noqa: E501
+        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.25. Pruned: 38 (59.38%) -> 47 (73.44%)",  # noqa: E501
+        "Applied `L1Unstructured`. Pruned: 680/1122 (60.61%) -> 884/1122 (78.79%)",
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 633 (61.82%) -> 828 (80.86%)",  # noqa: E501
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 47 (73.44%) -> 56 (87.50%)",  # noqa: E501
     ]
     assert actual == expected
 
