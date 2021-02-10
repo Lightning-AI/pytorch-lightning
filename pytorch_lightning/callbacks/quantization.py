@@ -76,7 +76,7 @@ def wrap_quantize_forward_context(model: pl.core.LightningModule, func: Callable
 
 
 def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
-    """recursive check if model has some layers denoted with `.`"""
+    """recursive check if model has some layers denoted with '.'"""
     if '.' in attribs:
         attrib, attribs = attribs.split('.', 1)
         if hasattr(obj, attrib):
@@ -92,9 +92,7 @@ class QuantizationAwareTraining(Callback):
     We use native PyTorch API so for more information see
      `Quantization <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
 
-    .. warning::
-
-        Quantization is in beta and subject to change.
+    .. warning:: ``QuantizationAwareTraining`` is in beta and subject to change.
     """
 
     OBSERVER_TYPES = ('histogram', 'average')
@@ -112,8 +110,8 @@ class QuantizationAwareTraining(Callback):
             qconfig: define quantization configuration see: `torch.quantization.QConfig
              <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>_`
                 or use pre-defined: 'fbgemm' for server inference and 'qnnpack' for mobile inference
-            observer_type: allows switching between `MovingAverageMinMaxObserver` as "average" (default)
-                and `HistogramObserver` as "histogram" which is more computationally expensive
+            observer_type: allows switching between ``MovingAverageMinMaxObserver`` as "average" (default)
+                and ``HistogramObserver`` as "histogram" which is more computationally expensive
             collect_quantization: count or custom function to collect quantization statistics
 
                 - with default ``None`` the quantization observer is called each module forward,
