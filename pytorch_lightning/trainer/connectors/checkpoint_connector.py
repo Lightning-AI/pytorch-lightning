@@ -16,6 +16,7 @@ import os
 import re
 from pathlib import Path
 from typing import Optional, Union
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 import torch
 
@@ -400,20 +401,14 @@ class CheckpointConnector:
             weights_only: saving model weights only
         """
         # dump states as a checkpoint dictionary object
-        print(self.trainer.training_type_plugin.global_rank, "dump_checkpoint")
         checkpoint = self.dump_checkpoint(weights_only)
-
         if self.trainer.is_global_zero:
             # write the checkpoint dictionary on the file
-            #print(checkpoint)
-            #if self.trainer.training_type_plugin:
-            #    checkpoint = self.trainer.training_type_plugin.on_save(checkpoint)
-            return
+
+            if self.trainer.training_type_plugin:
+                checkpoint = self.trainer.training_type_plugin.on_save(checkpoint)
             try:
-                print("HERE 1")
-                print(checkpoint)
                 atomic_save(checkpoint, filepath)
-                print("HERE 2")
             except AttributeError as err:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]

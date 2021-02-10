@@ -7,6 +7,7 @@ import torch
 from pytorch_lightning import LightningModule
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 
 if _TPU_AVAILABLE:
@@ -56,3 +57,11 @@ class SingleTPUPlugin(SingleDevicePlugin):
         path = os.path.join(model.trainer.default_root_dir, "__temp_weight_distributed_end.ckpt")
         model.trainer.save_checkpoint(path)
         return path
+
+    def on_save(self, checkpoint: dict) -> dict:
+        """
+        Move XLA tensors to CPU before saving
+        Recommended on XLA Guide:
+        https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
+        """
+        return move_data_to_device(checkpoint, torch.device("cpu"))

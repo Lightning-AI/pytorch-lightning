@@ -1,16 +1,13 @@
 import io
 import os
 import re
-from typing import Any, Dict, Iterable, Optional, Sequence, Union
-
+from typing import Any, Dict, Iterable, Optional, Sequence, Union, Tuple
 import torch
 import torch.multiprocessing as mp
-
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
-from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.seed import seed_everything
 
@@ -47,6 +44,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def distributed_sampler_kwargs(self) -> dict:
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
+    @property
+    def should_finalize(self):
+        return self.world_size == 1
+
     def process_dataloader(self, dataloader: Union[Iterable, torch.utils.data.DataLoader]) -> ParallelLoader:
         device = xm.xla_device()
         dataloader = xla_pl.ParallelLoader(dataloader, [device])
@@ -82,6 +83,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         self.model_to_device()
         trainer.accelerator_backend.setup_optimizers(trainer)
+        trainer.precision_plugin.connect(self._model, None, None)
+
+        # replace trainer save_checkpoint to use `xm.save`
+        trainer.save_checkpoint = self.save_checkpoint
         self.barrier()
 
         if trainer.testing:
@@ -106,16 +111,27 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def barrier(self, name: Optional[str] = None) -> None:
         rendezvous(f"pl.Trainer.{name}")
 
-    def on_save(self, checkpoint: dict) -> dict:
-        """
-        Move XLA tensors to CPU before saving
-        Recommended on XLA Guide:
-        https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
-        """
-        print("Moving to cpu 1")
-        checkpoint = move_data_to_device(checkpoint, torch.device("cpu"))
-        print("Moving to cpu 2")
-        return checkpoint
+    def transfer_distrib_spawn_state_on_fit_end(self, results):
+        # TODO: is there a better way than accessing callback through model -> trainer -> callback?
+        best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
+
+        #print(self.global_rank, self.mp_queue, self.lightning_module.trainer.testing, best_model_path)
+
+        if self.mp_queue is not None:
+            rank_zero_warn("cleaning up ddp environment...")
+
+            # save the last weights
+            last_path = None
+            # TODO: is there a better way than accessing trainer through model -> trainer?
+            if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
+                xm.save(self.lightning_module.state_dict(), last_path)
+
+            if self.global_rank == 0:
+                # todo, pass complete checkpoint as state dictionary
+                self.mp_queue.put(best_model_path)
+                self.mp_queue.put(last_path)
+                self.mp_queue.put(results)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         buffer = io.BytesIO()
@@ -126,30 +142,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
         return obj
-
-    def transfer_distrib_spawn_state_on_fit_end(self, results):
-        # TODO: is there a better way than accessing callback through model -> trainer -> callback?
-        best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
-
-        #print(self.global_rank, self.mp_queue, self.lightning_module.trainer.testing, best_model_path)
-
-        if self.global_rank == 0 and self.mp_queue is not None:
-            rank_zero_warn("cleaning up ddp environment...")
-
-            # save the last weights
-            last_path = None
-            # TODO: is there a better way than accessing trainer through model -> trainer?
-            if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                print("SAVING MODEL")
-                self.lightning_module.cpu()
-                torch.save(self.lightning_module.state_dict(), last_path)
-                print("SAVED MODEL")
-
-            # todo, pass complete checkpoint as state dictionary
-            self.mp_queue.put(best_model_path)
-            self.mp_queue.put(last_path)
-            self.mp_queue.put(results)
 
     def load_spawn_weights(self, original_model: LightningModule) -> LightningModule:
         """
@@ -194,8 +186,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         # restore main state with best weights
         best_path = self.mp_queue.get()
-        results = self.mp_queue.get()
         last_path = self.mp_queue.get()
+        results = self.mp_queue.get()
 
         print(self.global_rank, "post_training")
 
@@ -207,6 +199,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # load last weights
         if last_path and not self.lightning_module.trainer.testing:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+            print(ckpt)
             model.load_state_dict(ckpt)
 
         self._model = model
@@ -233,6 +226,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         }
 
     def start_training(self, trainer) -> None:
+        # todo: precision pluging is call in accelerator setup and should be moved
+        if 'XLA_USE_BF16' in os.environ:
+            del os.environ["XLA_USE_BF16"]
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def start_testing(self, trainer) -> None:
@@ -249,3 +245,15 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def predict(self, *args, **kwargs):
         return self.lightning_module.predict(*args, **kwargs)
+
+    def save_checkpoint(self, filepath, weights_only: bool = False):
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            filepath: write-target file's path
+            weights_only: saving model weights only
+        """
+        # dump states as a checkpoint dictionary object
+        _checkpoint = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
+        # Todo: TypeError: 'mappingproxy' object does not support item assignment
+        xm.save({k:v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)
