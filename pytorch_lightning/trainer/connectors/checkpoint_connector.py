@@ -16,7 +16,6 @@ import os
 import re
 from pathlib import Path
 from typing import Optional, Union
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 import torch
 
@@ -32,7 +31,6 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
@@ -310,7 +308,7 @@ class CheckpointConnector:
 
         # add the hyper_parameters and state_dict from the model
         model = self.trainer.get_model()
-        
+
         # dump the module_arguments and state_dict from the model
         checkpoint['state_dict'] = model.state_dict()
 

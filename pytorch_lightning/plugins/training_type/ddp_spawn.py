@@ -210,8 +210,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         # TODO: is there a better way than accessing callback through model -> trainer -> callback?
         best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
 
-        #print(self.global_rank, self.mp_queue, self.lightning_module.trainer.testing, best_model_path)
-
         if self.global_rank == 0 and self.mp_queue is not None:
             rank_zero_warn("cleaning up ddp environment...")
 

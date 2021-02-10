@@ -1,9 +1,11 @@
 import io
 import os
 import re
-from typing import Any, Dict, Iterable, Optional, Sequence, Union, Tuple
+from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
+
 import torch
 import torch.multiprocessing as mp
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
@@ -115,8 +117,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # TODO: is there a better way than accessing callback through model -> trainer -> callback?
         best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
 
-        #print(self.global_rank, self.mp_queue, self.lightning_module.trainer.testing, best_model_path)
-
         if self.mp_queue is not None:
             rank_zero_warn("cleaning up ddp environment...")
 
@@ -189,8 +189,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         last_path = self.mp_queue.get()
         results = self.mp_queue.get()
 
-        print(self.global_rank, "post_training")
-
         # transfer back the best path to the trainer
         if self.lightning_module.trainer.checkpoint_callback is not None:
             self.lightning_module.trainer.checkpoint_callback.best_model_path = best_path
@@ -199,7 +197,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # load last weights
         if last_path and not self.lightning_module.trainer.testing:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            print(ckpt)
             model.load_state_dict(ckpt)
 
         self._model = model
@@ -256,4 +253,4 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # dump states as a checkpoint dictionary object
         _checkpoint = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
-        xm.save({k:v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)
+        xm.save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)

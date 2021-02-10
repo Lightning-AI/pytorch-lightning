@@ -600,18 +600,13 @@ class Trainer(
                 with self.profiler.profile("run_training_epoch"):
                     # run train epoch
                     self.train_loop.run_training_epoch()
-                    print(self.training_type_plugin.global_rank, "f")
 
                 if self.max_steps and self.max_steps <= self.global_step:
                     return
 
-                print(self.training_type_plugin.global_rank, "g")
-
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
-
-                print(self.training_type_plugin.global_rank, "h")
 
                 if self.should_stop:
                     if met_min_epochs and met_min_steps:
@@ -623,11 +618,8 @@ class Trainer(
                             ' not been met. Training will continue...'
                         )
 
-                print(self.training_type_plugin.global_rank, "i")
             # hook
             self.train_loop.on_train_end()
-
-            print(self.training_type_plugin.global_rank, "j")
 
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
@@ -714,25 +706,18 @@ class Trainer(
         if self._predicting:
             return self.evaluation_loop.on_predict_epoch_end()
 
-
         # lightning module method
         deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
-        print(self.training_type_plugin.global_rank, "update_learning_rates")
-
         # update epoch-level lr_schedulers
         if on_epoch:
             self.optimizer_connector.update_learning_rates(interval='epoch')
 
-        print(self.training_type_plugin.global_rank, "on_evaluation_end")
-
         # hook
         self.evaluation_loop.on_evaluation_end()
-
-        print(self.training_type_plugin.global_rank, "log_epoch_metrics_on_evaluation_end")
 
         # log epoch metrics
         eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
@@ -742,8 +727,6 @@ class Trainer(
 
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
-
-        print(self.training_type_plugin.global_rank, "on_evaluation_model_train")
 
         torch.set_grad_enabled(True)
 
