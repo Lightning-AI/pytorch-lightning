@@ -19,8 +19,8 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel
-from tests.helpers.models import ParityModuleRNN
+from tests.helpers import BoringModel
+from tests.helpers.advanced_models import ParityModuleRNN
 
 
 class EmptyModule(LightningModule):

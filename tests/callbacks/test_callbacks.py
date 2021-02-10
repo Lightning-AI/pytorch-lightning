@@ -15,7 +15,7 @@ from unittest import mock
 from unittest.mock import ANY, call, MagicMock
 
 from pytorch_lightning import Trainer
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 @mock.patch("torch.save")  # need to mock torch.save or we get pickle error

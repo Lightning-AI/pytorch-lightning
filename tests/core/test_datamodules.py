@@ -24,7 +24,8 @@ from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from tests.base import BoringDataModule, BoringModel
+
+from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.utils import reset_seed
 
 
