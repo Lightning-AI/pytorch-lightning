@@ -14,6 +14,9 @@ pr:
 
 pool: dsvm-spot-pool
 
+timeoutInMinutes: 45 # how long to run the job before automatically cancelling
+cancelTimeoutInMinutes: 2 # how much time to give 'run always even if cancelled tasks' before stopping them
+
 strategy:
   matrix:
     PT16:
