@@ -258,7 +258,7 @@ class ModelPruning(Callback):
         This function implements the step 4.
 
         The ``resample_parameters`` argument can be used to reset the parameters with a new :math:`\theta_z \sim \mathcal{D}_\theta`
-        """
+        """  # noqa: E501
 
         def copy_param(new, old, name: str) -> None:
             dst = getattr(new, name)
