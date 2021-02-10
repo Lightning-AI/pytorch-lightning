@@ -17,7 +17,6 @@ from typing import Any
 import torch
 
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.utilities import _TPU_AVAILABLE
 
 
 class MetricsHolder:
@@ -73,7 +72,7 @@ class MetricsHolder:
                 else:
                     current = torch.tensor(current, device=device, dtype=torch.float)
 
-        if use_tpu and _TPU_AVAILABLE:
+        if current.device.type == "xla":
             current = current.cpu()
 
         return current
