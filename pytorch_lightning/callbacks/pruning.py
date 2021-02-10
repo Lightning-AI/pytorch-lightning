@@ -71,7 +71,7 @@ class ModelPruning(Callback):
         This callback is responsible to prune networks parameters
         during your training.
 
-        Find here the PyTorch (Pruning Tutorial)[https://pytorch.org/tutorials/intermediate/pruning_tutorial.html]
+        Find here the PyTorch `Pruning Tutorial <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html>`_
 
         .. code-block:: python
 
@@ -91,7 +91,7 @@ class ModelPruning(Callback):
                 ]
             )
 
-        When `parameters_to_prune` is None, `parameters_to_prune` will contains all parameters from the model.
+        When ``parameters_to_prune`` is None, ``parameters_to_prune`` will contains all parameters from the model.
         The user can override `filter_parameters_to_prune` to filter any nn.Module to be pruned.
 
         Args:
@@ -128,6 +128,14 @@ class ModelPruning(Callback):
 
             pruning_norm: if you are using ln_structured you need to specify norm.
 
+        Raises:
+            MisconfigurationException:
+                If ``parameter_names`` is neither ``"weight"`` nor ``"bias"``,
+                if the provided ``pruning_fn`` is not supported,
+                if ``pruning_dim`` is not provided when ``"unstructured"``,
+                if ``pruning_norm`` is not provided when ``"ln_structured"``,
+                if ``pruning_fn`` is neither ``str`` nor :class:`torch.nn.utils.prune.BasePruningMethod`, or
+                if ``amount`` is none of ``int``, ``float`` and ``Callable``.
         """
 
         self._use_global_unstructured = use_global_unstructured
@@ -332,6 +340,11 @@ class ModelPruning(Callback):
         """
         This function is responsible to check provided `parameters_to_prune` and `parameters`.
         If parameters_to_prune is None, parameters_to_prune will be generated from all parameters of the model.
+
+        Raises:
+            MisconfigurationException:
+                If ``parameters_to_prune`` doesn't exist in the model, or
+                if ``parameters_to_prune`` is neither a list of tuple nor ``None``.
         """
 
         is_parameters_to_prune_none = parameters_to_prune is None
@@ -370,7 +383,7 @@ class ModelPruning(Callback):
 
                 if len(missing_modules) > 0 or len(missing_parameters) > 0:
                     raise MisconfigurationException(
-                        "Ths provided parameters_to_tune doesn't exist in the model."
+                        "The provided parameters_to_prune doesn't exist in the model."
                         f" Found mismatching modules: {missing_modules} and missing_parameters: {missing_parameters}"
                     )
 
