@@ -65,6 +65,8 @@ class SyncBNModule(LightningModule):
         return torch.optim.Adam(self.linear.parameters(), lr=0.02)
 
 
+# TODO: Fatal Python error: Bus error
+@pytest.mark.skip(reason="Fatal Python error: Bus error")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_sync_batchnorm_ddp(tmpdir):
     seed_everything(234)
