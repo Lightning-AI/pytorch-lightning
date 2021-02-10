@@ -23,6 +23,8 @@ from pytorch_lightning.metrics.classification import (
     ROC,
     FBeta,
     F1,
+    Sensitivity,
+    Specificity
 )
 
 from pytorch_lightning.metrics.regression import (

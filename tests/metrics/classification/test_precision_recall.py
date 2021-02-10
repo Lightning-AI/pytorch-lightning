@@ -106,17 +106,21 @@ def _sk_prec_recall_multidim_multiclass(preds, target, sk_fn=precision_score, av
     ],
 )
 @pytest.mark.parametrize(
-    "metric_class, sk_fn", [(Precision, precision_score), (Recall, recall_score)],
+    "metric_class, sk_fn, pos_labels", [
+        (Precision, precision_score, None),
+        (Recall, recall_score, None)
+    ],
 )
 class TestPrecisionRecall(MetricTester):
     def test_precision_recall(
-        self, ddp, dist_sync_on_step, preds, target, sk_metric, metric_class, sk_fn, num_classes, multilabel, average
+        self, ddp, dist_sync_on_step, preds, target, sk_metric, metric_class, sk_fn, num_classes, multilabel, average,
+        pos_labels
     ):
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,
-            metric_class=metric_class,
+            metric_class=partial(metric_class, pos_labels=pos_labels),
             sk_metric=partial(sk_metric, sk_fn=sk_fn, average=average),
             dist_sync_on_step=dist_sync_on_step,
             metric_args={

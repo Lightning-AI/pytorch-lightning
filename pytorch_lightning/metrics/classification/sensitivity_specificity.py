@@ -63,8 +63,12 @@ class Sensitivity(Recall):
 
         >>> target = torch.tensor([0, 1, 0, 0, 1, 1])
         >>> preds = torch.tensor([0, 0, 1, 0, 0, 1])
-        >>> sen = Sensitivity(num_classes=3)
+        >>> sen = Sensitivity()
         >>> sen(preds, target)
+        tensor(0.3333)
+        >>> sen = Sensitivity(pos_label=0)
+        >>> sen(preds, target)
+        tensor(0.6667)
 
     """
     def __init__(
@@ -155,6 +159,10 @@ class Specificity(Recall):
         >>> preds = torch.tensor([0, 0, 1, 0, 0, 1])
         >>> specificity = Specificity()
         >>> specificity(preds, target)
+        tensor(1.0000)
+        >>> specificity = Specificity(pos_label=0)
+        >>> specificity(preds, target)
+        tensor(0.5000)
     """
     def __init__(
         self,

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional
+from typing import Any, Optional, List
 
 import torch
 
@@ -42,14 +42,14 @@ class Precision(Metric):
 
     Args:
         num_classes: Number of classes in the dataset.
-        beta: Beta coefficient in the F measure.
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
 
         average:
             * `'micro'` computes metric globally
             * `'macro'` computes metric for each class and then takes the mean
-
+        pos_labels: a list of integers that represent positive labels. default: None.
+            If pos_labels is provided, the computation will be treated as binary classification.
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
@@ -68,17 +68,26 @@ class Precision(Metric):
         >>> precision(preds, target)
         tensor(0.3333)
 
+        In a binary case:
+        >>> target = torch.tensor([0, 1, 0, 1, 0])
+        >>> preds = torch.tensor([0, 1, 0, 1, 1])
+        >>> precision = Precision(num_classes=2, pos_labels=[1])
+        >>> precision(preds, target)
+        tensor(0.6667)
+        >>> precision = Precision(num_classes=2, pos_labels=[0])
+        >>> precision(preds, target)
+        tensor(1.0000)
     """
     def __init__(
         self,
         num_classes: int = 1,
         threshold: float = 0.5,
         average: str = 'micro',
+        pos_labels: Optional[List[int]] = None,
         multilabel: bool = False,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
-        pos_labels: Optional[List[int]] = None
     ):
         super().__init__(
             compute_on_step=compute_on_step,
@@ -90,7 +99,7 @@ class Precision(Metric):
         self.threshold = threshold
         self.average = average
         self.multilabel = multilabel
-        self.pos_labels = torch.tensor(pos_labels) if pos_labels is not None else pos_labels
+        self.pos_labels = pos_labels
 
         assert self.average in ('micro', 'macro'), \
             "average passed to the function must be either `micro` or `macro`"
@@ -102,6 +111,11 @@ class Precision(Metric):
         preds, target = _input_format_classification_one_hot(
             self.num_classes, preds, target, self.threshold, self.multilabel
         )
+
+        if self.pos_labels is not None:
+            zero_out_labels = list(set(range(preds.size(0))) - set(self.pos_labels))
+            preds[zero_out_labels] = 0
+            target[zero_out_labels] = 0
 
         # multiply because we are counting (1, 1) pair for true positives
         self.true_positives += torch.sum(preds * target, dim=1)
@@ -144,7 +158,8 @@ class Recall(Metric):
         average:
             * `'micro'` computes metric globally
             * `'macro'` computes metric for each class and then takes the mean
-
+        pos_labels: a list of integers that represent positive labels. default: None.
+            If pos_labels is provided, the computation will be treated as binary classification.
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
@@ -163,12 +178,23 @@ class Recall(Metric):
         >>> recall(preds, target)
         tensor(0.3333)
 
+        In a binary case:
+        >>> target = torch.tensor([0, 1, 0, 1, 0])
+        >>> preds = torch.tensor([0, 1, 0, 0, 1])
+
+        >>> recall = Recall(num_classes=2, pos_labels=[1])
+        >>> recall(preds, target)
+        tensor(0.5000)
+        >>> recall = Recall(num_classes=2, pos_labels=[0])
+        >>> recall(preds, target)
+        tensor(0.6667)
     """
     def __init__(
         self,
         num_classes: int = 1,
         threshold: float = 0.5,
         average: str = 'micro',
+        pos_labels: Optional[List[int]] = None,
         multilabel: bool = False,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
@@ -184,6 +210,7 @@ class Recall(Metric):
         self.threshold = threshold
         self.average = average
         self.multilabel = multilabel
+        self.pos_labels = pos_labels
 
         assert self.average in ('micro', 'macro'), \
             "average passed to the function must be either `micro` or `macro`"
@@ -202,6 +229,11 @@ class Recall(Metric):
         preds, target = _input_format_classification_one_hot(
             self.num_classes, preds, target, self.threshold, self.multilabel
         )
+
+        if self.pos_labels is not None:
+            zero_out_labels = list(set(range(preds.size(0))) - set(self.pos_labels))
+            preds[zero_out_labels] = 0
+            target[zero_out_labels] = 0
 
         # multiply because we are counting (1, 1) pair for true positives
         self.true_positives += torch.sum(preds * target, dim=1)
