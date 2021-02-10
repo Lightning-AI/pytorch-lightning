@@ -50,7 +50,7 @@ steps:
     pip list
   displayName: 'Install dependencies'
 
-- bash: |
+- script: |
     python tests/collect_env_details.py
   displayName: 'Env details'
 
@@ -61,6 +61,7 @@ steps:
   displayName: 'Get legacy checkpoints'
 
 - script: |
+    export MKL_THREADING_LAYER=GNU
     python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
   env:  # todo: can be removed after updating docker image
     MKL_THREADING_LAYER: GNU
