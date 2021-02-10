@@ -1091,3 +1091,15 @@ class Trainer(
             self._running_stage = RunningStage.EVALUATING
         elif self.evaluating:
             self._running_stage = None
+
+    @property
+    def tpu_cores(self) -> int:
+        return self.accelerator_connector.tpu_cores
+
+    @property
+    def gpus(self) -> Union[int, List[torch.device]]:
+        return self.accelerator_connector.gpus
+
+    @property
+    def num_gpus(self) -> int:
+        return self.accelerator_connector.num_gpus
