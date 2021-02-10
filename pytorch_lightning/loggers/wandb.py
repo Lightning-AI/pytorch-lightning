@@ -165,8 +165,9 @@ class WandbLogger(LightningLoggerBase):
             if self._save_dir is None:
                 self._save_dir = self._experiment.dir
             
-            # define default x-axis
-            self._experiment.define_metric("*", x_axis='train/step', auto=True)
+            # define default x-axis (for latest wandb versions)
+            if getattr(self._experiment, "define_metric", None):
+                self._experiment.define_metric("*", x_axis='train/step', auto=True)
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
