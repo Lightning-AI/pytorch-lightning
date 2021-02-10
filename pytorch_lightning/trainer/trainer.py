@@ -461,6 +461,7 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
+        self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator_backend.setup(self, model)
         self.setup_trainer(model)
@@ -475,8 +476,6 @@ class Trainer(
         # TODO: the old setup is now called "pre_training", where should this hook be called now?
         self.training_type_plugin.pre_training()
         self.precision_plugin.pre_training()
-
-        self.call_setup_hook(self.lightning_module)
 
         # double dispatch: let the plugin initiate the training/test loop.
         if self.testing:
