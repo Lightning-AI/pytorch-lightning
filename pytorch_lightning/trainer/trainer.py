@@ -1104,3 +1104,7 @@ class Trainer(
     @property
     def num_gpus(self) -> int:
         return self.accelerator_connector.num_gpus
+
+    @property
+    def root_gpu(self) -> int:
+        return self.accelerator_connector.root_gpu
