@@ -29,9 +29,6 @@ container:
     #endpoint: azureContainerRegistryConnection
     options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all"
 
-variables:
-    MKL_THREADING_LAYER: GNU
-
 steps:
 - bash: |
     lspci | egrep 'VGA|3D'
@@ -65,6 +62,8 @@ steps:
 
 - script: |
     python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
+  env:  # todo: can be removed after updating docker image
+    MKL_THREADING_LAYER: GNU
   displayName: 'Testing: standard'
 
 - script: |
@@ -79,4 +78,6 @@ steps:
 
 - script: |
     python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
+  env:  # todo: can be removed after updating docker image
+    MKL_THREADING_LAYER: GNU
   displayName: 'Testing: extended'
