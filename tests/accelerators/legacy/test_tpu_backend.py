@@ -22,21 +22,10 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.utils import pl_multi_process_test
 
 
-def launch_fit(trainer, model):
-    try:
-        trainer.fit(model)
-    except RuntimeError as e:
-        if "Failed to meet rendezvous 'torch_xla.core.xla_model.save" in str(e):
-            print(str(e))
-            return False
-        else:
-            raise e
-
 @pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")
 @pl_multi_process_test
 def test_resume_training_on_cpu(tmpdir):
     """ Checks if training can be resumed from a saved checkpoint on CPU"""
-
     # Train a model on TPU
     model = BoringModel()
     trainer = Trainer(
@@ -44,7 +33,7 @@ def test_resume_training_on_cpu(tmpdir):
         max_epochs=1,
         tpu_cores=8,
     )
-    launch_fit(trainer, model)
+    trainer.fit(trainer, model)
 
     model_path = trainer.checkpoint_callback.best_model_path
 
@@ -60,7 +49,7 @@ def test_resume_training_on_cpu(tmpdir):
         max_epochs=1,
         default_root_dir=tmpdir,
     )
-    launch_fit(trainer, model)
+    trainer.fit(trainer, model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
@@ -72,12 +61,5 @@ def test_if_test_works_after_train(tmpdir):
     # Train a model on TPU
     model = BoringModel()
     trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
-    try:
-        trainer.fit(model)
-        assert trainer.test(model) == 1
-    except RuntimeError as e:
-        if "Failed to meet rendezvous 'torch_xla.core.xla_model.save" in str(e):
-            print(str(e))
-            return False
-        else:
-            raise e
+    trainer.fit(model)
+    assert trainer.test(model) == 1

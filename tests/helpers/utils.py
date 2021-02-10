@@ -13,7 +13,7 @@
 # limitations under the License.
 import functools
 import os
-
+import traceback
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
@@ -90,7 +90,13 @@ def pl_multi_process_test(func):
 
         def inner_f(queue, **kwargs):
             try:
-                func(**kwargs)
+                try:
+                    func(**kwargs)
+                except RuntimeError as e:
+                    if "Failed to meet rendezvous 'torch_xla.core.xla_model.save" in str(e):
+                        pass
+                    else:
+                        raise e
                 queue.put(1)
             # todo: specify the possible exception
             except Exception:
