@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
+r"""
 Stochastic Weight Averaging Callback
-====================================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. warning::
+    StochasticWeightAveraging is in beta and subject to change.
 """
 from copy import deepcopy
 from typing import Callable, Optional, Union
