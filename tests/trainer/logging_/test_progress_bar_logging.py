@@ -1,7 +1,7 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 def test_logging_to_progress_bar_with_reserved_key(tmpdir):

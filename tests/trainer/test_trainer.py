@@ -39,7 +39,8 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel, EvalModelTemplate, RandomDataset
+from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel, RandomDataset
 
 
 @pytest.fixture
@@ -1655,28 +1656,32 @@ def test_pytorch_profiler_nested(tmpdir):
 
     pa = pytorch_profiler.profiled_actions
 
+    # From PyTorch 1.8.0, less operation are being traced.
+    if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
+        expected_ = {
+            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'add'],
+            'b': ['zeros', 'empty', 'zero_'],
+            'c': ['add'],
+        }
     # From PyTorch 1.6.0, more operation are being traced.
-    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        prefix_to_remove = "aten::" if LooseVersion(torch.__version__) >= LooseVersion("1.7.1") else ''
-
-        expected_a = ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty']
-        assert [e.name.replace(prefix_to_remove, '') for e in pa['a']] == expected_a
-
-        expected_b = ['zeros', 'empty', 'zero_', 'fill_']
-        assert [e.name.replace(prefix_to_remove, '') for e in pa['b']] == expected_b
-
-        expected_c = ['add', 'empty']
-        assert [e.name.replace(prefix_to_remove, '') for e in pa['c']] == expected_c
-
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        expected_ = {
+            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty'],
+            'b': ['zeros', 'empty', 'zero_', 'fill_'],
+            'c': ['add', 'empty'],
+        }
     else:
-        expected_a = ['add']
-        assert [e.name for e in pa['a']] == expected_a
+        expected_ = {
+            'a': ['add'],
+            'b': [],
+            'c': ['add'],
+        }
 
-        expected_b = []
-        assert [e.name for e in pa['b']] == expected_b
-
-        expected_c = ['add']
-        assert [e.name for e in pa['c']] == expected_c
+    for n in ('a', 'b', 'c'):
+        pa[n] = [e.name for e in pa[n]]
+        if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
+            pa[n] = [e.replace("aten::", "") for e in pa[n]]
+        assert pa[n] == expected_[n]
 
 
 @pytest.mark.parametrize(

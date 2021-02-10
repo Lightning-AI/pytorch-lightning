@@ -13,7 +13,7 @@
 # limitations under the License
 import logging
 import os
-from typing import Any, List, Optional, Sequence
+from typing import List, Optional
 
 import torch
 import torch.distributed as torch_distrib
@@ -22,8 +22,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.rpc import DEFAULT_RPC_TIMEOUT_SEC, RPCPlugin
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
@@ -97,15 +96,18 @@ class RPCSequentialPlugin(RPCPlugin):
         self.checkpoint = checkpoint
         self.balance_mode = balance_mode
         self.pipelined_backward = pipelined_backward
-        self.main_rpc_process = False  # Updated by main process, default for all secondary processes
+        self._main_rpc_process = True
 
     def init_ddp_connection(
         self,
         global_rank: int,
         world_size: int,
     ) -> None:
-        # what is this used for?
-        self.prepared_for_backwards = False
+        if self.lightning_module.trainer.amp_backend is not None:
+            raise MisconfigurationException(
+                'RPCSequentialPlugin is currently not supported in Automatic Mixed Precision'
+            )
+
         if self._skip_init_connections():
             return
         super().init_ddp_connection(
@@ -119,21 +121,18 @@ class RPCSequentialPlugin(RPCPlugin):
         self.set_main_rpc_process()
 
         self._check_sequential_model_exists(model)
+
+        # check if user given balance is valid
+        if self.balance is not None:
+            self._assert_valid_model_balance()
+
         if self.main_rpc_process:
             if self.balance is None:
                 self._infer_model_balance()
-            self._assert_valid_model_balance()
-
-        if not self.is_main_rpc_process:
-            self.on_accelerator_exit_rpc_process()
-            self.exit_rpc_process()
-            if self.return_after_exit_rpc_process:
-                return
+            self.init_pipe_module()
         else:
-            self.on_main_rpc_connection()
-
-    def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
-        pass
+            self.handle_transferred_pipe_module()
+            self.exit_rpc_process()
 
     def _infer_model_balance(self):
         log.info(f'Inferring model balance using {self.balance_mode} mode')
@@ -231,21 +230,16 @@ class RPCSequentialPlugin(RPCPlugin):
         # Assume that the user wants to balance his model on all GPUs
         return self.world_size
 
-    def on_accelerator_exit_rpc_process(self) -> None:
+    def handle_transferred_pipe_module(self) -> None:
         if not self.lightning_module.running_stage == RunningStage.TESTING:
             torch_distrib.barrier()  # Ensure we await main process initialization
-
             # Add trainer/configure_optimizers to the pipe model for access in all worker processes
             rpc_pipe.PipeModel.trainer = self.lightning_module.trainer
             del rpc_pipe.PipeModel.trainer.model.sequential_module
             rpc_pipe.PipeModel.trainer.model.sequential_module = rpc_pipe.PipeModel
             rpc_pipe.PipeModel.configure_optimizers = self.lightning_module.configure_optimizers
-        super().on_accelerator_exit_rpc_process()
 
-    def set_main_rpc_process(self):
-        self.main_rpc_process = torch_distrib.get_rank(group=mpu.get_pipeline_parallel_group()) == 0
-
-    def on_main_rpc_connection(self) -> None:
+    def init_pipe_module(self) -> None:
         # Create pipe_module
         model = self.lightning_module
         self._find_and_init_pipe_module(model)
@@ -253,21 +247,23 @@ class RPCSequentialPlugin(RPCPlugin):
             torch_distrib.barrier()  # Ensure we join main process initialization
             model.sequential_module.foreach_worker(register_optimizers, include_self=True)
 
-    # TODO: Move this to the connector
-    def _check_arguments(self, trainer):
-        if trainer.amp_backend is not None:
-            raise MisconfigurationException(
-                'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision'
-            )
+            # TODO: Move this to the connector
 
     def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run before precision plugin executes backward"""
 
-    def configure_ddp(self) -> None:
-        # process_group=mpu.get_data_parallel_group()
-        super().configure_ddp()
-        # Plugin handle backwards across processes. Currently not supported for DDP + pipe parallel
-        self._model.require_backward_grad_sync = False
+    def configure_ddp(self):
+        if self.main_rpc_process:
+            self.pre_configure_ddp()
+
+            self._model = DistributedDataParallel(
+                LightningDistributedModule(self.model),
+                device_ids=self.determine_ddp_device_ids(),
+                process_group=mpu.get_data_parallel_group(),
+                **self._ddp_kwargs,
+            )
+            # Plugin handle backwards across processes. Currently not supported for DDP + pipe parallel
+            self._model.require_backward_grad_sync = False
 
     @rank_zero_only
     def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
@@ -302,16 +298,19 @@ class RPCSequentialPlugin(RPCPlugin):
     def data_parallel_group(self):
         return mpu.get_data_parallel_group()
 
-    @property
-    def is_main_rpc_process(self) -> bool:
-        return self.main_rpc_process
+    def set_main_rpc_process(self):
+        self.main_rpc_process = torch_distrib.get_rank(group=mpu.get_pipeline_parallel_group()) == 0
 
     @property
-    def return_after_exit_rpc_process(self) -> bool:
-        return True
+    def main_rpc_process(self) -> bool:
+        return self._main_rpc_process
+
+    @main_rpc_process.setter
+    def main_rpc_process(self, is_main_process):
+        self._main_rpc_process = is_main_process
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if torch_distrib.is_initialized() and self.is_main_rpc_process:
+        if torch_distrib.is_initialized() and self.main_rpc_process:
             torch_distrib.barrier(group=self.data_parallel_group)
 
     def _check_pipe_available(self):
@@ -322,10 +321,21 @@ class RPCSequentialPlugin(RPCPlugin):
 
     def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, **kwargs) -> None:
         """Hook to do something after each optimizer step."""
-        if self.rpc_enabled and self.is_main_rpc_process:
-
+        if self.rpc_enabled and self.main_rpc_process:
             # Initialize optimizer step on main process
             self.worker_optimizer_step(model=self.lightning_module, opt_idx=optimizer_idx, **kwargs)
+
+    def post_training(self):
+        if self.main_rpc_process:
+            super().post_training()
+
+    def start_training(self, trainer: 'Trainer') -> None:
+        if self.main_rpc_process:
+            super().start_training(trainer)
+
+    def start_testing(self, trainer: 'Trainer') -> None:
+        if self.main_rpc_process:
+            super().start_testing(trainer)
 
 
 class LightningPipeModule(nn.Module):

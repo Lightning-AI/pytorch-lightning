@@ -18,7 +18,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 def test_model_torch_save(tmpdir):

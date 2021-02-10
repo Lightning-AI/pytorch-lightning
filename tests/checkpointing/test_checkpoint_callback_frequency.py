@@ -18,7 +18,7 @@ import pytest
 import torch
 
 from pytorch_lightning import callbacks, seed_everything, Trainer
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})

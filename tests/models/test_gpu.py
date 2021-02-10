@@ -23,7 +23,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 PRETEND_N_OF_GPUS = 16
 

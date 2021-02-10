@@ -20,7 +20,7 @@ from torch.optim import Adam, SGD
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 def test_property_current_epoch():

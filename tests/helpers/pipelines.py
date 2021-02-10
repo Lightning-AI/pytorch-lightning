@@ -13,10 +13,10 @@
 # limitations under the License.
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
 
@@ -44,16 +44,20 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
 
 
 def run_model_test(
-    trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True, min_acc: float = 0.25
+    trainer_options,
+    model,
+    data: LightningDataModule = None,
+    on_gpu: bool = True,
+    version=None,
+    with_hpc: bool = True,
+    min_acc: float = 0.25
 ):
-
     reset_seed()
     save_dir = trainer_options['default_root_dir']
 
     # logger file to get meta
     logger = get_default_logger(save_dir, version=version)
     trainer_options.update(logger=logger)
-
     try:
         trainer = Trainer(**trainer_options)
         initial_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
@@ -75,7 +79,7 @@ def run_model_test(
     pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
 
     # test new model accuracy
-    test_loaders = model.test_dataloader()
+    test_loaders = model.test_dataloader() if not data else data.test_dataloader()
     if not isinstance(test_loaders, list):
         test_loaders = [test_loaders]
 

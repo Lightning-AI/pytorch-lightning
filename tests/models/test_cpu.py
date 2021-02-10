@@ -23,7 +23,10 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import BoringModel, EvalModelTemplate
+from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
 
 
 def test_cpu_slurm_save_load(tmpdir):
@@ -141,8 +144,9 @@ def test_multi_cpu_model_ddp(tmpdir):
         accelerator='ddp_cpu',
     )
 
-    model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    dm = ClassifDataModule()
+    model = ClassificationModel()
+    tpipes.run_model_test(trainer_options, model, data=dm, on_gpu=False)
 
 
 def test_lbfgs_cpu_model(tmpdir):
@@ -166,7 +170,7 @@ def test_lbfgs_cpu_model(tmpdir):
     )
 
     model = ModelSpecifiedOptimizer(optimizer_name="LBFGS", learning_rate=0.004)
-    tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
+    tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.01)
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
