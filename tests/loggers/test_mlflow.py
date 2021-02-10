@@ -184,3 +184,18 @@ def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
 
     with pytest.warns(RuntimeWarning, match='special characters in metric name'):
         logger.log_metrics(metrics)
+
+
+@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
+@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
+def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
+    """
+    Test that the logger raises warning with special characters not accepted by MLFlow.
+    """
+    logger = MLFlowLogger('test', save_dir=tmpdir)
+    value = 'test' * 100
+    key = 'test_param'
+    params = {key: value}
+
+    with pytest.warns(RuntimeWarning, match=f'Discard {key} = {value}'):
+        logger.log_hyperparams(params)
