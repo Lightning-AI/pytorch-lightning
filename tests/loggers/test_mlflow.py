@@ -197,5 +197,5 @@ def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
     key = 'test_param'
     params = {key: value}
 
-    with pytest.warns(RuntimeWarning, match=f'Discard {key} = {value}'):
+    with pytest.warns(Warning, match=f'Discard {key} = {value}'):
         logger.log_hyperparams(params)
