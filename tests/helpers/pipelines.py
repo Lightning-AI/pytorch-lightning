@@ -63,7 +63,7 @@ def run_model_test(
             print(str(e))
             return
         else:
-            raise RuntimeError(str(e))
+            raise e
     post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
