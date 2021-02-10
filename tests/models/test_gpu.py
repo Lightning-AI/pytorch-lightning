@@ -68,6 +68,10 @@ def mocked_device_count(monkeypatch):
     def device_count():
         return PRETEND_N_OF_GPUS
 
+    def is_available():
+        return True
+
+    monkeypatch.setattr(torch.cuda, 'is_available', is_available)
     monkeypatch.setattr(torch.cuda, 'device_count', device_count)
 
 
