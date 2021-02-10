@@ -243,6 +243,9 @@ def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 @pl_multi_process_test
 def test_broadcast_on_tpu():
     """ Checks if an object from the master process is broadcasted to other processes correctly"""
