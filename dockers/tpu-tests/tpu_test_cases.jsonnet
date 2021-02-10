@@ -25,8 +25,6 @@ local tputests = base.BaseTest {
           pytorch_lightning/utilities/xla_device_utils.py \
           tests/accelerators/legacy/test_tpu_backend.py \
           tests/models/test_tpu.py
-      PL_RUNNING_SPECIAL_TESTS=1 coverage run -a --source=pytorch_lightning -m pytest -v \
-          tests/models/test_tpu.py::test_broadcast_on_tpu
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
