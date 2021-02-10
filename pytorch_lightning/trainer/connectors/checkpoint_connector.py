@@ -31,6 +31,7 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
@@ -308,7 +309,7 @@ class CheckpointConnector:
 
         # add the hyper_parameters and state_dict from the model
         model = self.trainer.get_model()
-
+        
         # dump the module_arguments and state_dict from the model
         checkpoint['state_dict'] = model.state_dict()
 
@@ -399,14 +400,20 @@ class CheckpointConnector:
             weights_only: saving model weights only
         """
         # dump states as a checkpoint dictionary object
+        print(self.trainer.training_type_plugin.global_rank, "dump_checkpoint")
         checkpoint = self.dump_checkpoint(weights_only)
 
         if self.trainer.is_global_zero:
             # write the checkpoint dictionary on the file
-            if self.trainer.accelerator_backend:
-                checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
+            #print(checkpoint)
+            #if self.trainer.training_type_plugin:
+            #    checkpoint = self.trainer.training_type_plugin.on_save(checkpoint)
+            return
             try:
+                print("HERE 1")
+                print(checkpoint)
                 atomic_save(checkpoint, filepath)
+                print("HERE 2")
             except AttributeError as err:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]

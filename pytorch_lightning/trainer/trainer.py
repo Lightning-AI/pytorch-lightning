@@ -481,6 +481,8 @@ class Trainer(
         else:
             self.training_type_plugin.start_training(self)
 
+        print(self.training_type_plugin.global_rank, "start_training")
+
         self.precision_plugin.post_training()
         self.training_type_plugin.post_training()
         self.accelerator_backend.teardown()
@@ -563,18 +565,12 @@ class Trainer(
 
     def train(self):
 
-        print(os.getenv("LOCAL_RANK"), "1")
-
         self.pre_training_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        print(os.getenv("LOCAL_RANK"), "2")
-
         self.run_sanity_check(self.get_model())
-
-        print(os.getenv("LOCAL_RANK"), "3")
 
         # set stage for logging
         self._set_wide_running_stage(RunningStage.TRAINING)
@@ -604,13 +600,18 @@ class Trainer(
                 with self.profiler.profile("run_training_epoch"):
                     # run train epoch
                     self.train_loop.run_training_epoch()
+                    print(self.training_type_plugin.global_rank, "f")
 
                 if self.max_steps and self.max_steps <= self.global_step:
                     return
 
+                print(self.training_type_plugin.global_rank, "g")
+
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
+
+                print(self.training_type_plugin.global_rank, "h")
 
                 if self.should_stop:
                     if met_min_epochs and met_min_steps:
@@ -622,12 +623,11 @@ class Trainer(
                             ' not been met. Training will continue...'
                         )
 
-            print(os.getenv("LOCAL_RANK"), "4")
-
+                print(self.training_type_plugin.global_rank, "i")
             # hook
             self.train_loop.on_train_end()
 
-            print(os.getenv("LOCAL_RANK"), "5")
+            print(self.training_type_plugin.global_rank, "j")
 
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
@@ -674,8 +674,6 @@ class Trainer(
         # hook
         self.evaluation_loop.on_evaluation_epoch_start()
 
-        print(os.getenv("LOCAL_RANK"), "6")
-
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
             # bookkeeping
@@ -686,8 +684,6 @@ class Trainer(
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
                     continue
-
-                print(os.getenv("LOCAL_RANK"), batch_idx, "7")
 
                 # stop short when running on limited batches
                 if batch_idx >= dl_max_batches:
@@ -718,39 +714,38 @@ class Trainer(
         if self._predicting:
             return self.evaluation_loop.on_predict_epoch_end()
 
-        print(os.getenv("LOCAL_RANK"), "8")
 
         # lightning module method
         deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
 
-        print(os.getenv("LOCAL_RANK"), "9")
-
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
-        print(os.getenv("LOCAL_RANK"), "10")
+        print(self.training_type_plugin.global_rank, "update_learning_rates")
 
         # update epoch-level lr_schedulers
         if on_epoch:
             self.optimizer_connector.update_learning_rates(interval='epoch')
-        print(os.getenv("LOCAL_RANK"), "11")
+
+        print(self.training_type_plugin.global_rank, "on_evaluation_end")
 
         # hook
         self.evaluation_loop.on_evaluation_end()
-        print(os.getenv("LOCAL_RANK"), "12")
+
+        print(self.training_type_plugin.global_rank, "log_epoch_metrics_on_evaluation_end")
 
         # log epoch metrics
         eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
-        print(os.getenv("LOCAL_RANK"), "13")
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
-        print(os.getenv("LOCAL_RANK"), "14")
 
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
+
+        print(self.training_type_plugin.global_rank, "on_evaluation_model_train")
+
         torch.set_grad_enabled(True)
-        print(os.getenv("LOCAL_RANK"), "15")
 
         return eval_loop_results, deprecated_eval_results
 

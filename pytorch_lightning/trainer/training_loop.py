@@ -123,22 +123,32 @@ class TrainLoop:
 
         self._teardown_already_run = True
 
+        print(self.trainer.training_type_plugin.global_rank, "k")
+
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
         # when a checkpoint was saved at the last step
         self.trainer.global_step -= 1
         self.check_checkpoint_callback(should_update=True, is_last=True)
         self.trainer.global_step += 1
 
+        print(self.trainer.training_type_plugin.global_rank, "l")
+
         # hook
         self.trainer.call_hook("on_train_end")
 
+        print(self.trainer.training_type_plugin.global_rank, "m")
+
         # kill loggers
-        if self.trainer.logger is not None:
-            self.trainer.logger.finalize("success")
+        #if self.trainer.logger is not None:
+        #    self.trainer.logger.finalize("success")
+
+        print(self.trainer.training_type_plugin.global_rank, "n")
 
         # summarize profile results
         if self.trainer.global_rank == 0:
             self.trainer.profiler.describe()
+
+        print(self.trainer.training_type_plugin.global_rank, "o")
 
         # give accelerators a chance to finish
         self.trainer.accelerator_backend.on_train_end()
@@ -148,6 +158,8 @@ class TrainLoop:
             model = self.trainer.get_model()
             model.cpu()
             torch.cuda.empty_cache()
+
+        print(self.trainer.training_type_plugin.global_rank, "q")
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
@@ -548,9 +560,11 @@ class TrainLoop:
                 # reset stage to train
                 self.trainer._set_wide_running_stage(RunningStage.TRAINING)
 
+
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
             # -----------------------------------------
+            print(self.trainer.training_type_plugin.global_rank, "save_loggers_on_train_batch_end")
             self.save_loggers_on_train_batch_end()
 
             # update LR schedulers
@@ -583,10 +597,14 @@ class TrainLoop:
         # epoch end hook
         self.run_on_epoch_end_hook(epoch_output)
 
+        print(self.trainer.training_type_plugin.global_rank, "a")
+
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
             epoch_output, self.checkpoint_accumulator, self.early_stopping_accumulator, self.num_optimizers
         )
+
+        print(self.trainer.training_type_plugin.global_rank, "b")
 
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         if should_check_val:
@@ -595,18 +613,24 @@ class TrainLoop:
             # reset stage to train
             self.trainer._set_wide_running_stage(RunningStage.TRAINING)
 
+        print(self.trainer.training_type_plugin.global_rank, "c")
+
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
 
         if should_train_only:
             # update epoch level lr_schedulers
             self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
-            self.check_checkpoint_callback(True)
+            #self.check_checkpoint_callback(True)
             self.check_early_stopping_callback(True)
+
+        print(self.trainer.training_type_plugin.global_rank, "d")
 
         # increment the global step once
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
+
+        print(self.trainer.training_type_plugin.global_rank, "e")
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms

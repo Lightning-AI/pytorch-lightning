@@ -1,5 +1,6 @@
 import io
 import os
+import re
 from typing import Any, Dict, Iterable, Optional, Sequence, Union
 
 import torch
@@ -88,6 +89,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         else:
             results = trainer.train()
 
+        print(self.global_rank, "results")
+
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
@@ -109,7 +112,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         Recommended on XLA Guide:
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
-        return move_data_to_device(checkpoint, torch.device("cpu"))
+        print("Moving to cpu 1")
+        checkpoint = move_data_to_device(checkpoint, torch.device("cpu"))
+        print("Moving to cpu 2")
+        return checkpoint
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         buffer = io.BytesIO()
@@ -120,6 +126,30 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
         return obj
+
+    def transfer_distrib_spawn_state_on_fit_end(self, results):
+        # TODO: is there a better way than accessing callback through model -> trainer -> callback?
+        best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
+
+        #print(self.global_rank, self.mp_queue, self.lightning_module.trainer.testing, best_model_path)
+
+        if self.global_rank == 0 and self.mp_queue is not None:
+            rank_zero_warn("cleaning up ddp environment...")
+
+            # save the last weights
+            last_path = None
+            # TODO: is there a better way than accessing trainer through model -> trainer?
+            if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
+                print("SAVING MODEL")
+                self.lightning_module.cpu()
+                torch.save(self.lightning_module.state_dict(), last_path)
+                print("SAVED MODEL")
+
+            # todo, pass complete checkpoint as state dictionary
+            self.mp_queue.put(best_model_path)
+            self.mp_queue.put(last_path)
+            self.mp_queue.put(results)
 
     def load_spawn_weights(self, original_model: LightningModule) -> LightningModule:
         """
@@ -166,6 +196,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         best_path = self.mp_queue.get()
         results = self.mp_queue.get()
         last_path = self.mp_queue.get()
+
+        print(self.global_rank, "post_training")
 
         # transfer back the best path to the trainer
         if self.lightning_module.trainer.checkpoint_callback is not None:
