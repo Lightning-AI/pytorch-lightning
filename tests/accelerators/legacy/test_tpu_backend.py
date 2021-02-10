@@ -18,8 +18,8 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils
-from tests.base.boring_model import BoringModel
-from tests.base.develop_utils import pl_multi_process_test
+from tests.helpers.boring_model import BoringModel
+from tests.helpers.utils import pl_multi_process_test
 
 
 @pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")
@@ -29,7 +29,11 @@ def test_resume_training_on_cpu(tmpdir):
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=8,)
+    trainer = Trainer(
+        checkpoint_callback=True,
+        max_epochs=1,
+        tpu_cores=8,
+    )
     trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path

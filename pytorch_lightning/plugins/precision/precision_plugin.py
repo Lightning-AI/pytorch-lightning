@@ -37,7 +37,8 @@ class PrecisionPlugin(Plugin):
             for p in group["params"]:
                 yield p
 
-    def connect(self, model: torch.nn.Module, optimizers: Sequence, lr_schedulers: Sequence) -> Tuple[torch.nn.Module, Sequence, Sequence]:
+    def connect(self, model: torch.nn.Module, optimizers: Sequence,
+                lr_schedulers: Sequence) -> Tuple[torch.nn.Module, Sequence, Sequence]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 

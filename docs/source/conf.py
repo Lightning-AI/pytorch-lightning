@@ -183,14 +183,14 @@ html_theme_options = {
     'logo_only': False,
 }
 
-html_logo = '_images/logos/lightning_logo-name.svg'
+html_logo = '_static/images/logo.svg'
 
-html_favicon = '_images/logos/lightning_icon.svg'
+html_favicon = '_static/images/icon.svg'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_images', '_templates', '_static']
+html_static_path = ['_templates', '_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -369,21 +369,20 @@ autosectionlabel_prefix_document = True
 # only run doctests marked with a ".. doctest::" directive
 doctest_test_doctest_blocks = ''
 doctest_global_setup = """
-
 import importlib
 import os
 import torch
 from torch import nn
-
 import pytorch_lightning as pl
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.utilities import (
     _NATIVE_AMP_AVAILABLE,
     _APEX_AVAILABLE,
     _XLA_AVAILABLE,
     _TPU_AVAILABLE,
+    _TORCHVISION_AVAILABLE,
+    _module_available,
 )
-_TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
-
+TORCHVISION_AVAILABLE = _module_available("torchvision")
 """
 coverage_skip_undoc_in_source = True

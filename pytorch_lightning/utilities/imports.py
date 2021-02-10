@@ -16,6 +16,7 @@ import importlib
 import platform
 from distutils.version import LooseVersion
 
+import pkg_resources
 import torch
 
 
@@ -52,6 +53,10 @@ _XLA_AVAILABLE = _module_available("torch_xla")
 _FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')
 _RPC_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.rpc')
 _GROUP_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.group')
-_FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
+_FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and LooseVersion(
+    torch.__version__
+) >= LooseVersion("1.6.0") and LooseVersion(pkg_resources.get_distribution('fairscale').version
+                                            ) <= LooseVersion("0.1.3")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
 _PYTORCH_PRUNE_AVAILABLE = _module_available('torch.nn.utils.prune')
+_TORCHVISION_AVAILABLE = _module_available('torchvision')

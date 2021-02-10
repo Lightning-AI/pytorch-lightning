@@ -23,16 +23,16 @@ import pytest
 import torch
 from sklearn.metrics import accuracy_score
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.legacy.horovod_accelerator import HorovodAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from tests.base import EvalModelTemplate
-from tests.base.boring_model import BoringModel
-from tests.base.models import BasicGAN
+from tests.helpers.advanced_models import BasicGAN
+from tests.helpers.boring_model import BoringModel
 
 if _HOROVOD_AVAILABLE:
     import horovod
@@ -57,10 +57,9 @@ def _run_horovod(trainer_options, on_gpu=False):
     trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
     cmdline = [
-        'horovodrun',
-        '-np', str(num_processes),
-        sys.executable, TEST_SCRIPT,
-        '--trainer-options', shlex.quote(json.dumps(trainer_options))
+        'horovodrun', '-np',
+        str(num_processes), sys.executable, TEST_SCRIPT, '--trainer-options',
+        shlex.quote(json.dumps(trainer_options))
     ]
     if on_gpu:
         cmdline += ['--on-gpu']
@@ -121,6 +120,7 @@ def test_horovod_multi_gpu(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
+@pytest.mark.skip(reason="Horovod has a problem with broadcast when using apex?")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -172,7 +172,9 @@ def test_horovod_amp(tmpdir):
 @pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_horovod_transfer_batch_to_gpu(tmpdir):
+
     class TestTrainingStepModel(EvalModelTemplate):
+
         def training_step(self, batch, *args, **kwargs):
             x, y = batch
             assert str(x.device) != 'cpu'
@@ -249,12 +251,12 @@ def test_result_reduce_horovod(tmpdir):
         sys.path.insert(0, os.path.abspath(path_root))
 
         class TestModel(BoringModel):
+
             def training_step(self, batch, batch_idx):
                 self.training_step_called = True
 
                 tensor = torch.tensor([1.0])
-                self.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum',
-                         on_step=True, on_epoch=True)
+                self.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum', on_step=True, on_epoch=True)
 
                 res = self._results
 
@@ -306,10 +308,12 @@ def test_accuracy_metric_horovod():
         accelerator_backend = trainer.accelerator_connector.select_accelerator()
         assert isinstance(accelerator_backend, HorovodAccelerator)
 
-        metric = Accuracy(compute_on_step=True,
-                          dist_sync_on_step=True,
-                          dist_sync_fn=accelerator_backend.gather_all_tensors,
-                          threshold=threshold)
+        metric = Accuracy(
+            compute_on_step=True,
+            dist_sync_on_step=True,
+            dist_sync_fn=accelerator_backend.gather_all_tensors,
+            threshold=threshold
+        )
 
         for i in range(hvd.rank(), num_batches, hvd.size()):
             batch_result = metric(preds[i], target[i])
@@ -330,6 +334,7 @@ def test_accuracy_metric_horovod():
         assert np.allclose(result.numpy(), sk_result)
 
     horovod.run(_compute_batch, np=2)
+
 
 # @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 # def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):

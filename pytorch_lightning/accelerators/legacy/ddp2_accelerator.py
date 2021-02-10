@@ -19,10 +19,10 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.legacy.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import AMPType
@@ -186,9 +186,6 @@ class DDP2Accelerator(Accelerator):
 
         self.ddp_plugin.on_after_setup_optimizers(self.trainer)
 
-        # set model properties before going into wrapper
-        self.trainer.model_connector.copy_trainer_model_properties(model)
-
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
@@ -198,8 +195,7 @@ class DDP2Accelerator(Accelerator):
         # allow user to configure ddp
         model = self.configure_ddp(model, device_ids)
 
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        self.trainer.setup_trainer(model)
 
         # train or test
         results = self.train_or_test()

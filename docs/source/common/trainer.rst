@@ -515,7 +515,9 @@ callbacks
 
 |
 
-Add a list of :class:`~pytorch_lightning.callbacks.Callback`.
+Add a list of :class:`~pytorch_lightning.callbacks.Callback`. Callbacks run sequentially in the order defined here
+with the exception of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
+after all others to ensure all states are saved to the checkpoints.
 
 .. code-block:: python
 
@@ -1121,7 +1123,7 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 .. code-block:: python
 
-    from pytorch_lightning.cluster_environments import cluster_environment
+    from pytorch_lightning.plugins.environments import cluster_environment
 
     class MyCluster(ClusterEnvironment):
 

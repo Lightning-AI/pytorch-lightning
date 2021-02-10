@@ -11,9 +11,7 @@ from tests.metrics.utils import BATCH_SIZE, MetricTester, NUM_BATCHES
 
 torch.manual_seed(42)
 
-
 Input = namedtuple('Input', ["preds", "target", "multichannel"])
-
 
 _inputs = []
 for size, channel, coef, multichannel, dtype in [
@@ -23,13 +21,11 @@ for size, channel, coef, multichannel, dtype in [
     (15, 3, 0.6, True, torch.float64),
 ]:
     preds = torch.rand(NUM_BATCHES, BATCH_SIZE, channel, size, size, dtype=dtype)
-    _inputs.append(
-        Input(
-            preds=preds,
-            target=preds * coef,
-            multichannel=multichannel,
-        )
-    )
+    _inputs.append(Input(
+        preds=preds,
+        target=preds * coef,
+        multichannel=multichannel,
+    ))
 
 
 def _sk_metric(preds, target, data_range, multichannel):
@@ -41,8 +37,14 @@ def _sk_metric(preds, target, data_range, multichannel):
         sk_target = sk_target[:, :, :, 0]
 
     return structural_similarity(
-        sk_target, sk_preds, data_range=data_range, multichannel=multichannel,
-        gaussian_weights=True, win_size=11, sigma=1.5, use_sample_covariance=False
+        sk_target,
+        sk_preds,
+        data_range=data_range,
+        multichannel=multichannel,
+        gaussian_weights=True,
+        win_size=11,
+        sigma=1.5,
+        use_sample_covariance=False
     )
 
 

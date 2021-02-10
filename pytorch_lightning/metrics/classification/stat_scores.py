@@ -165,7 +165,7 @@ class StatScores(Metric):
             if reduce == "micro":
                 zeros_shape = []
             elif reduce == "macro":
-                zeros_shape = (num_classes,)
+                zeros_shape = (num_classes, )
             default, reduce_fn = lambda: torch.zeros(zeros_shape, dtype=torch.long), "sum"
         else:
             default, reduce_fn = lambda: [], None

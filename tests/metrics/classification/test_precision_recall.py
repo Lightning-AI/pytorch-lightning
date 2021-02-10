@@ -9,12 +9,13 @@ from sklearn.metrics import precision_score, recall_score
 from pytorch_lightning.metrics import Metric, Precision, Recall
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics.functional import precision, precision_recall, recall
-from tests.metrics.classification.inputs import _binary_inputs, _binary_prob_inputs, _multiclass_inputs
-from tests.metrics.classification.inputs import _multiclass_prob_inputs as _mc_prob
-from tests.metrics.classification.inputs import _multidim_multiclass_inputs as _mdmc
-from tests.metrics.classification.inputs import _multidim_multiclass_prob_inputs as _mdmc_prob
-from tests.metrics.classification.inputs import _multilabel_inputs as _ml
-from tests.metrics.classification.inputs import _multilabel_prob_inputs as _ml_prob
+from tests.metrics.classification.inputs import _input_binary, _input_binary_prob
+from tests.metrics.classification.inputs import _input_multiclass as _input_mcls
+from tests.metrics.classification.inputs import _input_multiclass_prob as _input_mcls_prob
+from tests.metrics.classification.inputs import _input_multidim_multiclass as _input_mdmc
+from tests.metrics.classification.inputs import _input_multidim_multiclass_prob as _input_mdmc_prob
+from tests.metrics.classification.inputs import _input_multilabel as _input_mlb
+from tests.metrics.classification.inputs import _input_multilabel_prob as _input_mlb_prob
 from tests.metrics.utils import MetricTester, NUM_CLASSES, THRESHOLD
 
 torch.manual_seed(42)
@@ -45,7 +46,9 @@ def _sk_prec_recall(preds, target, sk_fn, num_classes, average, is_multiclass, i
     return sk_scores
 
 
-def _sk_prec_recall_mdmc(preds, target, sk_fn, num_classes, average, is_multiclass, ignore_index, mdmc_average):
+def _sk_prec_recall_multidim_multiclass(
+    preds, target, sk_fn, num_classes, average, is_multiclass, ignore_index, mdmc_average
+):
     preds, target, _ = _input_format_classification(
         preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
     )
@@ -89,8 +92,8 @@ def test_wrong_params(metric, fn_metric, average, mdmc_average, num_classes, ign
 
     with pytest.raises(ValueError, match=match_str):
         fn_metric(
-            _binary_inputs.preds[0],
-            _binary_inputs.target[0],
+            _input_binary.preds[0],
+            _input_binary.target[0],
             average=average,
             mdmc_average=mdmc_average,
             num_classes=num_classes,
@@ -99,8 +102,8 @@ def test_wrong_params(metric, fn_metric, average, mdmc_average, num_classes, ign
 
     with pytest.raises(ValueError, match=match_str):
         precision_recall(
-            _binary_inputs.preds[0],
-            _binary_inputs.target[0],
+            _input_binary.preds[0],
+            _input_binary.target[0],
             average=average,
             mdmc_average=mdmc_average,
             num_classes=num_classes,
@@ -156,19 +159,26 @@ def test_no_support(metric_class, metric_fn):
 @pytest.mark.parametrize(
     "preds, target, num_classes, is_multiclass, mdmc_average, sk_wrapper",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, 1, None, None, _sk_prec_recall),
-        (_binary_inputs.preds, _binary_inputs.target, 1, False, None, _sk_prec_recall),
-        (_ml_prob.preds, _ml_prob.target, NUM_CLASSES, None, None, _sk_prec_recall),
-        (_ml.preds, _ml.target, NUM_CLASSES, False, None, _sk_prec_recall),
-        (_mc_prob.preds, _mc_prob.target, NUM_CLASSES, None, None, _sk_prec_recall),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, NUM_CLASSES, None, None, _sk_prec_recall),
-        (_mdmc.preds, _mdmc.target, NUM_CLASSES, None, "global", _sk_prec_recall_mdmc),
-        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, None, "global", _sk_prec_recall_mdmc),
-        (_mdmc.preds, _mdmc.target, NUM_CLASSES, None, "samplewise", _sk_prec_recall_mdmc),
-        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, None, "samplewise", _sk_prec_recall_mdmc),
+        (_input_binary_prob.preds, _input_binary_prob.target, 1, None, None, _sk_prec_recall),
+        (_input_binary.preds, _input_binary.target, 1, False, None, _sk_prec_recall),
+        (_input_mlb_prob.preds, _input_mlb_prob.target, NUM_CLASSES, None, None, _sk_prec_recall),
+        (_input_mlb.preds, _input_mlb.target, NUM_CLASSES, False, None, _sk_prec_recall),
+        (_input_mcls_prob.preds, _input_mcls_prob.target, NUM_CLASSES, None, None, _sk_prec_recall),
+        (_input_mcls.preds, _input_mcls.target, NUM_CLASSES, None, None, _sk_prec_recall),
+        (_input_mdmc.preds, _input_mdmc.target, NUM_CLASSES, None, "global", _sk_prec_recall_multidim_multiclass),
+        (
+            _input_mdmc_prob.preds, _input_mdmc_prob.target, NUM_CLASSES, None, "global",
+            _sk_prec_recall_multidim_multiclass
+        ),
+        (_input_mdmc.preds, _input_mdmc.target, NUM_CLASSES, None, "samplewise", _sk_prec_recall_multidim_multiclass),
+        (
+            _input_mdmc_prob.preds, _input_mdmc_prob.target, NUM_CLASSES, None, "samplewise",
+            _sk_prec_recall_multidim_multiclass
+        ),
     ],
 )
 class TestPrecisionRecall(MetricTester):
+
     @pytest.mark.parametrize("ddp", [False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_precision_recall_class(
@@ -278,11 +288,15 @@ def test_precision_recall_joint(average):
     which are already tested thoroughly.
     """
 
-    precision_result = precision(_mc_prob.preds[0], _mc_prob.target[0], average=average, num_classes=NUM_CLASSES)
-    recall_result = recall(_mc_prob.preds[0], _mc_prob.target[0], average=average, num_classes=NUM_CLASSES)
+    precision_result = precision(
+        _input_mcls_prob.preds[0], _input_mcls_prob.target[0], average=average, num_classes=NUM_CLASSES
+    )
+    recall_result = recall(
+        _input_mcls_prob.preds[0], _input_mcls_prob.target[0], average=average, num_classes=NUM_CLASSES
+    )
 
     prec_recall_result = precision_recall(
-        _mc_prob.preds[0], _mc_prob.target[0], average=average, num_classes=NUM_CLASSES
+        _input_mcls_prob.preds[0], _input_mcls_prob.target[0], average=average, num_classes=NUM_CLASSES
     )
 
     assert torch.equal(precision_result, prec_recall_result[0])
