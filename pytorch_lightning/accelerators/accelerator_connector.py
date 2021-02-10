@@ -113,7 +113,6 @@ class BackendConnector(object):
             self.gpus = pick_multiple_gpus(gpus)
 
         self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
-        self.root_gpu = device_parser.determine_root_gpu_device(self.parallel_device_ids)
 
         self.set_distributed_mode()
         self.configure_slurm_ddp()
@@ -277,6 +276,10 @@ class BackendConnector(object):
         return devices
 
     @property
+    def root_gpu(self) -> int:
+        return self.accelerator.root_device.index
+
+    @property
     def is_using_torchelastic(self):
         te_flags_passed = "WORLD_SIZE" in os.environ and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
         return te_flags_passed
@@ -375,7 +378,8 @@ class BackendConnector(object):
         elif self.on_tpu:
             plugin = SingleTPUPlugin(self.tpu_id)
         else:
-            plugin = SingleDevicePlugin(device=torch.device(f"cuda:{self.root_gpu}" if self.on_gpu else "cpu"))
+            single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
+            plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.on_gpu else "cpu"))
         return plugin
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
@@ -525,7 +529,6 @@ class BackendConnector(object):
         if self.on_gpu:
             # Horovod assigns one local GPU per process
             self.parallel_device_ids = list(range(hvd.local_size()))
-            self.root_gpu = hvd.local_rank()
         else:
             self.num_processes = hvd.local_size()
 
