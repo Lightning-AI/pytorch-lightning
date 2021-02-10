@@ -260,13 +260,13 @@ In practise this means that:
 
 
 Metric API
-##########
+----------
 
 .. autoclass:: pytorch_lightning.metrics.Metric
     :noindex:
 
 Internal implementation details
-###############################
+-------------------------------
 
 This section briefly describe how metrics work internally. We encourage looking at the source code for more info.
 Internally, Lightning wraps the user defined ``update()`` and ``compute()`` method. We do this to among other to
