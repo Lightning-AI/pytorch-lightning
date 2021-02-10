@@ -28,7 +28,7 @@ from pytorch_lightning import callbacks, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import BoringModel, RandomDataset
+from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
 
 

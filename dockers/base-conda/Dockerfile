@@ -13,10 +13,10 @@
 # limitations under the License.
 
 # Existing images:
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.8 --build-arg PYTORCH_CHANNEL=pytorch-nightly
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6 --build-arg PYTORCH_CHANNEL=pytorch
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.5 --build-arg PYTORCH_CHANNEL=pytorch
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4 --build-arg PYTORCH_CHANNEL=pytorch
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.8
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.5
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4
 
 ARG CUDNN_VERSION=8
 ARG CUDA_VERSION=10.2
@@ -27,8 +27,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
-ARG PYTORCH_CHANNEL=pytorch
-ARG CONDA_VERSION=4.7.12
+ARG CONDA_VERSION=4.9.2
 
 SHELL ["/bin/bash", "-c"]
 
@@ -47,7 +46,7 @@ RUN apt-get update -qq && \
 
 # Install conda and python.
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
-    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh  && \
+    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_${CONDA_VERSION}-Linux-x86_64.sh && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
     rm ~/miniconda.sh && \
@@ -62,6 +61,7 @@ ENV \
     PATH="/root/miniconda3/bin:$PATH" \
     LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
+    MKL_THREADING_LAYER=GNU \
     HOROVOD_GPU_OPERATIONS=NCCL \
     HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
@@ -76,13 +76,13 @@ ENV \
 COPY environment.yml environment.yml
 
 # conda init
-RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} && \
+RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installed later
-    python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- python[>=]+[\d\.]+', '# - python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '# - pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- horovod[>=]+[\d\.]+', '# - horovod', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if 'horovod' not in ln])" && \
     cat environment.yml && \
     conda env update --name $CONDA_ENV --file environment.yml && \
@@ -99,6 +99,8 @@ COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-test.txt
 
 RUN \
+    pip list | grep torch && \
+    python -c "import torch; print(torch.__version__)" && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \
     pip install -r requirements-test.txt --no-cache-dir && \

@@ -36,7 +36,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 class LogInTwoMethods(BoringModel):

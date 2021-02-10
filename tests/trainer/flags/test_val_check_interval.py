@@ -14,7 +14,7 @@
 import pytest
 
 from pytorch_lightning.trainer import Trainer
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])
