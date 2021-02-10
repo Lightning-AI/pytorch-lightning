@@ -58,5 +58,4 @@ _FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and LooseVersion(
 ) >= LooseVersion("1.6.0") and LooseVersion(pkg_resources.get_distribution('fairscale').version
                                             ) <= LooseVersion("0.1.3")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
-_PYTORCH_PRUNE_AVAILABLE = _module_available('torch.nn.utils.prune')
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
