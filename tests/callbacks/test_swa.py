@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import platform
 from unittest import mock
 
 import pytest
@@ -129,6 +130,7 @@ def test_swa_callback_ddp_spawn(tmpdir):
 
 
 @pytest.mark.skipif(not _PYTORCH_GREATER_EQUAL_1_6_0, reason="SWA available from PyTorch 1.6.0")
+@pytest.mark.skipif(platform.system() == "Windows", reason="ddp_cpu is not available on Windows")
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
 
