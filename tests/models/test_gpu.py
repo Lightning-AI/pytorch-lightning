@@ -68,6 +68,10 @@ def mocked_device_count(monkeypatch):
     def device_count():
         return PRETEND_N_OF_GPUS
 
+    def is_available():
+        return True
+
+    monkeypatch.setattr(torch.cuda, 'is_available', is_available)
     monkeypatch.setattr(torch.cuda, 'device_count', device_count)
 
 
@@ -104,12 +108,7 @@ def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, distr
 
 @pytest.mark.gpus_param_tests
 @pytest.mark.parametrize(['gpus', 'expected_root_gpu', "distributed_backend"], [
-    pytest.param(None, None, "ddp", id="None is None"),
-    pytest.param(0, None, "ddp", id="O gpus, expect gpu root device to be None."),
     pytest.param(1, 0, "ddp", id="1 gpu, expect gpu root device to be 0."),
-    pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
-    pytest.param('-1', 0, "ddp", id="'-1' - use all gpus, expect gpu root device to be 0."),
-    pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)")
 ])
 def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, distributed_backend):
     assert Trainer(gpus=gpus, accelerator=distributed_backend).root_gpu == expected_root_gpu
