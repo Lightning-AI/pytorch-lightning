@@ -121,12 +121,13 @@ def test_quantization_triggers(tmpdir, trigger_fn, expected_count):
     dm = RegressDataModule()
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(collect_quantization=trigger_fn)
-    Trainer(
+    trainer = Trainer(
         callbacks=[qcb],
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=4,
-    ).fit(qmodel, datamodule=dm)
+    )
+    trainer.fit(qmodel, datamodule=dm)
 
     assert qcb._forward_calls == expected_count
