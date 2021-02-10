@@ -257,6 +257,10 @@ class BackendConnector(object):
         return self._distrib_type == DistributedType.HOROVOD
 
     @property
+    def is_distributed(self):
+        return self.use_ddp or self.use_ddp2 or self.use_horovod or self.on_tpu
+
+    @property
     def num_gpus(self) -> int:
         gpus = self.parallel_device_ids
         if gpus is None:
