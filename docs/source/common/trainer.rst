@@ -128,7 +128,9 @@ So you can run it like so:
 
     if __name__ == '__main__':
         parser = ArgumentParser()
-        parser = Trainer.add_argparse_args(parser)
+        parser = Trainer.add_argparse_args(
+            parser.add_argument_group(title="pl.Trainer args")
+        )
         args = parser.parse_args()
 
         main(args)
