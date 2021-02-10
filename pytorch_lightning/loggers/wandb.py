@@ -24,7 +24,6 @@ import torch.nn as nn
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warning_utils import WarningCache
 
 _WANDB_AVAILABLE = _module_available("wandb")
 
@@ -121,7 +120,6 @@ class WandbLogger(LightningLoggerBase):
         self._kwargs = kwargs
         # logging multiple Trainer on a single W&B run (k-fold, resuming, etc)
         self._step_offset = 0
-        self.warning_cache = WarningCache()
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -168,6 +166,7 @@ class WandbLogger(LightningLoggerBase):
             # define default x-axis (for latest wandb versions)
             if getattr(self._experiment, "define_metric", None):
                 self._experiment.define_metric("*", x_axis='train/step', auto=True)
+
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
