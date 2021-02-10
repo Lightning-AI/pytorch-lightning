@@ -21,6 +21,7 @@ from torch.utils.data import DataLoader
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
+from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -248,8 +249,9 @@ def test_broadcast_on_tpu():
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
         assert isinstance(trainer.accelerator_backend, TPUAccelerator)
+        assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
         obj = ("ver_0.5", "logger_name", rank)
-        result = trainer.accelerator_backend.broadcast(obj)
+        result = trainer.training_type_plugin.broadcast(obj)
         assert result == ("ver_0.5", "logger_name", 0)
 
     xmp.spawn(test_broadcast, nprocs=8, start_method='fork')
