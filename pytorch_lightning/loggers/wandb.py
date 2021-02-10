@@ -118,8 +118,6 @@ class WandbLogger(LightningLoggerBase):
         self._prefix = prefix
         self._experiment = experiment
         self._kwargs = kwargs
-        # logging multiple Trainer on a single W&B run (k-fold, resuming, etc)
-        self._step_offset = 0
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -156,9 +154,6 @@ class WandbLogger(LightningLoggerBase):
                 **self._kwargs
             ) if wandb.run is None else wandb.run
 
-            # offset logging step when resuming a run
-            self._step_offset = self._experiment.step
-
             # save checkpoints in wandb dir to upload on W&B servers
             if self._save_dir is None:
                 self._save_dir = self._experiment.dir
@@ -186,7 +181,7 @@ class WandbLogger(LightningLoggerBase):
 
         metrics = self._add_prefix(metrics)
         if step is not None:
-            self.experiment.log({**metrics, 'train/step': (step + self._step_offset)})
+            self.experiment.log({**metrics, 'train/step': step})
         else:
             self.experiment.log(metrics)
 
@@ -206,10 +201,6 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        # offset future training logged on same W&B run
-        if self._experiment is not None:
-            self._step_offset = self._experiment.step
-
         # upload all checkpoints from saving dir
         if self._log_model:
             wandb.save(os.path.join(self.save_dir, "*.ckpt"))
