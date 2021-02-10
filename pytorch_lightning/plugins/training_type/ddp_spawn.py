@@ -218,7 +218,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             # TODO: is there a better way than accessing trainer through model -> trainer?
             if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                print("SAVING MODEL")
                 atomic_save(self.on_save(self.lightning_module.state_dict()), last_path)
 
             # todo, pass complete checkpoint as state dictionary

@@ -603,7 +603,7 @@ class TrainLoop:
         if should_train_only:
             # update epoch level lr_schedulers
             self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
-            # self.check_checkpoint_callback(True)
+            self.check_checkpoint_callback(True)
             self.check_early_stopping_callback(True)
 
         # increment the global step once

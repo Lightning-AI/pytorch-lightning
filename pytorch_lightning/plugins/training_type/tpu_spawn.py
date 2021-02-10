@@ -96,8 +96,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         else:
             results = trainer.train()
 
-        print(self.global_rank, "results")
-
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
 

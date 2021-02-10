@@ -481,8 +481,6 @@ class Trainer(
         else:
             self.training_type_plugin.start_training(self)
 
-        print(self.training_type_plugin.global_rank, "start_training")
-
         self.precision_plugin.post_training()
         self.training_type_plugin.post_training()
         self.accelerator_backend.teardown()
