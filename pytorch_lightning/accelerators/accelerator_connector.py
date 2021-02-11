@@ -482,7 +482,6 @@ class BackendConnector(object):
         # special case with TPUs
         elif self.distributed_backend == 'tpu':
             self._device_type = DeviceType.TPU
-        # set all other requested distrib. types and if it was not set in the
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)
 
