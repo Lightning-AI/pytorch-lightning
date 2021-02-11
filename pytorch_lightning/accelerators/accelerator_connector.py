@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os
-from typing import Optional, Sequence, Union, List
+from typing import List, Optional, Sequence, Union
 
 import torch
 

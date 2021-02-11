@@ -77,4 +77,3 @@ class DataParallelPlugin(ParallelPlugin):
 
     def test_step_end(self, output):
         return self.reduce(output)
-

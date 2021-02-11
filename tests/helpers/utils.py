@@ -96,7 +96,7 @@ def pl_multi_process_test(func):
             except Exception:
                 _trace = traceback.format_exc()
                 print(_trace)
-                # code 17 means RuntimeError: tensorflow/compiler/xla/xla_client/mesh_service.cc:364 : 
+                # code 17 means RuntimeError: tensorflow/compiler/xla/xla_client/mesh_service.cc:364 :
                 # Failed to meet rendezvous 'torch_xla.core.xla_model.save': Socket closed (14)
                 if "terminated with exit code 17" in _trace:
                     queue.put(1)

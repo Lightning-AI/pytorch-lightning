@@ -7,8 +7,8 @@ import torch
 from pytorch_lightning import LightningModule
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
-from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 
 if _TPU_AVAILABLE:
     import torch_xla

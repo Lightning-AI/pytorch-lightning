@@ -66,6 +66,7 @@ def test_ddp_choice_sharded_amp(tmpdir, accelerator):
     """
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded
     """
+
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
