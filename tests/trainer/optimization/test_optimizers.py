@@ -459,6 +459,24 @@ def test_unknown_configure_optimizers_raises(tmpdir):
         trainer.fit(model)
 
 
+def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
+    """
+    Test exception when lr_scheduler dict has unknown interval param value
+    """
+    model = EvalModelTemplate()
+    optimizer = torch.optim.Adam(model.parameters())
+    model.configure_optimizers = lambda: {
+        'optimizer': optimizer,
+        'lr_scheduler': {
+            'scheduler': torch.optim.lr_scheduler.StepLR(optimizer, 1),
+            'interval': "incorrect_unknown_value"
+        },
+    }
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.raises(MisconfigurationException, match=r'The "interval" key in lr scheduler dict must be one of.*'):
+        trainer.fit(model)
+
+
 def test_lr_scheduler_with_extra_keys_warns(tmpdir):
     """
     Test warning when lr_scheduler dict has extra keys
