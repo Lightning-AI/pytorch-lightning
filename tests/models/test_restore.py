@@ -208,8 +208,8 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         def training_step(self, batch, batch_idx):
             _, y = batch
             out = self._step(batch, batch_idx)
-            out['loss'] = F.cross_entropy(out['logits'], y)
-            return out
+            loss = F.cross_entropy(out['logits'], y)
+            return loss
 
         def validation_step(self, batch, batch_idx):
             return self._step(batch, batch_idx)
@@ -221,7 +221,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
             self.log('val_acc', self.valid_acc(outputs['logits'], outputs['y']))
 
     dm = ClassifDataModule()
-    model = CustomClassificationModelDP()
+    model = CustomClassificationModelDP(lr=0.1)
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
