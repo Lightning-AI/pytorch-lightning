@@ -463,7 +463,7 @@ def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
     """
     Test exception when lr_scheduler dict has unknown interval param value
     """
-    model = EvalModelTemplate()
+    model = BoringModel()
     optimizer = torch.optim.Adam(model.parameters())
     model.configure_optimizers = lambda: {
         'optimizer': optimizer,
