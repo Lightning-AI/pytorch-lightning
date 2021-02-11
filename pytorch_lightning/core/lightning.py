@@ -380,7 +380,7 @@ class LightningModule(
             self.write_prediction_dict(pred_dict)
 
         Args:
-            predictions_dict: dict containing predictions, where predicions each prediction should
+            predictions_dict: dict containing predictions, where each prediction should
                 either be single :class:`~torch.Tensor` or a list of them
 
         Note:
