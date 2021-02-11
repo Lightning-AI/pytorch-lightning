@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union, List
 
 import torch
 
@@ -218,46 +218,46 @@ class BackendConnector(object):
         return self._cluster_environment
 
     @property
-    def on_cpu(self):
+    def on_cpu(self) -> bool:
         return self._device_type == DeviceType.CPU
 
     @property
-    def on_tpu(self):
+    def on_tpu(self) -> bool:
         return self.tpu_cores is not None
 
     @property
-    def tpu_id(self):
+    def tpu_id(self) -> Optional[int]:
         if self.on_tpu and isinstance(self.tpu_cores, list):
             return self.tpu_cores[0]
 
         return None
 
     @property
-    def on_gpu(self):
+    def on_gpu(self) -> bool:
         gpus = self.parallel_device_ids
         return gpus is not None and len(gpus) > 0 and torch.cuda.is_available()
 
     @property
-    def use_dp(self):
+    def use_dp(self) -> bool:
         return self._distrib_type == DistributedType.DP
 
     @property
-    def use_ddp(self):
+    def use_ddp(self) -> bool:
         return self._distrib_type in (
             DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED,
             DistributedType.DDP_SHARDED_SPAWN
         )
 
     @property
-    def use_ddp2(self):
+    def use_ddp2(self) -> bool:
         return self._distrib_type == DistributedType.DDP2
 
     @property
-    def use_horovod(self):
+    def use_horovod(self) -> bool:
         return self._distrib_type == DistributedType.HOROVOD
 
     @property
-    def is_distributed(self):
+    def is_distributed(self) -> bool:
         is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
         if self.on_tpu:
             is_distributed |= self.training_type_plugin.is_distributed
@@ -271,7 +271,7 @@ class BackendConnector(object):
         return len(gpus)
 
     @property
-    def parallel_devices(self):
+    def parallel_devices(self) -> Union[List[torch.device], int]:
         if self.on_gpu:
             devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
         elif self.on_tpu:
@@ -287,11 +287,11 @@ class BackendConnector(object):
         return self.accelerator.root_device.index if not isinstance(self.accelerator, TPUAccelerator) else None
 
     @property
-    def is_using_torchelastic(self):
+    def is_using_torchelastic(self) -> bool:
         te_flags_passed = "WORLD_SIZE" in os.environ and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
         return te_flags_passed
 
-    def select_precision_plugin(self):
+    def select_precision_plugin(self) -> PrecisionPlugin:
         if self.precision == 32:
             self.amp_type = None
             return PrecisionPlugin()
@@ -341,7 +341,7 @@ class BackendConnector(object):
         else:
             raise NotImplementedError("We only support precisions 32 and 16!")
 
-    def select_training_type_plugin(self):
+    def select_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
             plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp:
@@ -407,7 +407,7 @@ class BackendConnector(object):
 
         return training_type
 
-    def select_accelerator(self):
+    def select_accelerator(self) -> Accelerator:
         if isinstance(self.distributed_backend, Accelerator):
             # custom accelerator from user
             if self._precision_plugin is not None or self._training_type_plugin is not None:
@@ -430,7 +430,7 @@ class BackendConnector(object):
             training_type_plugin=self.training_type_plugin,
         )
 
-    def select_cluster_environment(self):
+    def select_cluster_environment(self) -> ClusterEnvironment:
         if self._cluster_environment is not None:
             return self._cluster_environment
         if self.is_slurm_managing_tasks:
@@ -559,7 +559,7 @@ class BackendConnector(object):
             )
 
     @staticmethod
-    def has_horovodrun():
+    def has_horovodrun() -> bool:
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
         return "OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ
 
