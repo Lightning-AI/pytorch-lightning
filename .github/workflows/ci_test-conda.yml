@@ -3,7 +3,7 @@ name: PyTorch & Conda
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]
+    branches: [ master, "release/*" ]
   pull_request:
     branches: [master, "release/*"]
 
@@ -50,7 +50,6 @@ jobs:
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
         python -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
-        # coverage report
       shell: bash -l {0}
 
     - name: Upload pytest test results
