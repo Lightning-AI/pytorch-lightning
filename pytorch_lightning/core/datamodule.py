@@ -377,7 +377,6 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
         Create an instance from torch.utils.data.Dataset.
 
         Args:
-
             train_dataset: (optional) Dataset to be used for train_dataloader()
             val_dataset: (optional) Dataset or list of Dataset to be used for val_dataloader()
             test_dataset: (optional) Dataset or list of Dataset to be used for test_dataloader()
