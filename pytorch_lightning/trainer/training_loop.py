@@ -48,6 +48,7 @@ class TrainLoop:
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
         self._multiple_trainloader_mode = multiple_trainloader_mode
+        self._skip_backward = False
         self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
 
     def on_trainer_init(
@@ -775,7 +776,7 @@ class TrainLoop:
                     self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
                 return None
 
-            if self.trainer.train_loop.automatic_optimization:
+            if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
                 # backward pass
                 with self.trainer.profiler.profile("model_backward"):
                     self.backward(result, optimizer, opt_idx)
