@@ -95,7 +95,9 @@ def pl_multi_process_test(func):
                 queue.put(1)
             except Exception:
                 _trace = traceback.format_exc()
+                print(func.__name__)
                 print(_trace)
+                print(func.__name__)
                 if "Failed to meet rendezvous" in _trace:
                     queue.put(1)
                 else:

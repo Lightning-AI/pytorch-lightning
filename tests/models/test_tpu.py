@@ -118,10 +118,10 @@ def test_model_16bit_tpu_cores_1(tmpdir):
         default_root_dir=tmpdir,
         precision=16,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         tpu_cores=1,
-        limit_train_batches=4,
-        limit_val_batches=4,
+        limit_train_batches=8,
+        limit_val_batches=2,
     )
 
     model = BoringModel()
@@ -139,7 +139,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
         default_root_dir=tmpdir,
         precision=16,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         tpu_cores=[tpu_core],
         limit_train_batches=4,
         limit_val_batches=2,
@@ -207,11 +207,11 @@ def test_tpu_grad_norm(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=4,
         tpu_cores=1,
         limit_train_batches=4,
         limit_val_batches=4,
-        gradient_clip_val=0.1,
+        gradient_clip_val=0.5,
     )
 
     model = BoringModel()
