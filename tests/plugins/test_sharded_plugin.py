@@ -58,6 +58,7 @@ def test_invalid_apex_sharded(tmpdir):
         trainer.fit(model)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
 @pytest.mark.parametrize(["accelerator"], [("ddp_sharded", ), ("ddp_sharded_spawn", )])
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
