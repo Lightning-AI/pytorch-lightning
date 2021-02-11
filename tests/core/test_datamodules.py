@@ -13,21 +13,22 @@
 # limitations under the License.
 import pickle
 from argparse import ArgumentParser
-
 from typing import Any, Dict, Optional
-from unittest.mock import MagicMock
+from unittest import mock
+from unittest.mock import PropertyMock
 
 import pytest
 import torch
 import torch.nn.functional as F
+from torch.utils.data import DataLoader, random_split
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.model_helpers import is_overridden
-
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.datasets import TrialMNIST
 from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.utils import reset_seed, set_random_master_port
 
@@ -427,6 +428,7 @@ def test_full_loop_dp(tmpdir):
 def test_dm_transfer_batch_to_device(get_module_mock):
 
     class CustomBatch:
+
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
@@ -459,6 +461,7 @@ def test_dm_transfer_batch_to_device(get_module_mock):
 
 
 class CustomMNISTDataModule(LightningDataModule):
+
     def __init__(self, data_dir: str = "./"):
         super().__init__()
         self.data_dir = data_dir
@@ -515,6 +518,7 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
 
 
 class DummyDS(torch.utils.data.Dataset):
+
     def __getitem__(self, index):
         return 1
 

@@ -175,6 +175,7 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 @pl_multi_process_test
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
+
     # todo: Test on 8 cores - hanging.
 
     class CustomBoringModel(BoringModel):
@@ -186,7 +187,6 @@ def test_model_tpu_early_stop(tmpdir):
 
     tutils.reset_seed()
     model = CustomBoringModel()
-    
     trainer = Trainer(
         callbacks=[EarlyStopping(monitor='val_loss')],
         default_root_dir=tmpdir,
