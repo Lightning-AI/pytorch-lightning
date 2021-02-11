@@ -14,6 +14,7 @@
 import functools
 import os
 import traceback
+
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
@@ -92,7 +93,7 @@ def pl_multi_process_test(func):
             try:
                 func(**kwargs)
                 queue.put(1)
-            except Exception as e:
+            except Exception:
                 _trace = traceback.format_exc()
                 print(_trace)
                 if "Failed to meet rendezvous" in _trace:
