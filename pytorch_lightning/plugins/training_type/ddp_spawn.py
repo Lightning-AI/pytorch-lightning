@@ -95,13 +95,20 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.global_rank = self.node_rank * self.num_processes + self.local_rank
         self.world_size = self.num_nodes * self.num_processes
 
+    @property
+    def mp_spawn_kwargs(self):
+        return {
+            "args": (self.lightning_module.trainer, self.mp_queue),
+            "nprocs": self.num_processes,
+        }
+
     def start_training(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, self.mp_queue))
+        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_testing(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, self.mp_queue))
+        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
 
     def new_process(self, process_idx, trainer, mp_queue):
         self.mp_queue = mp_queue
@@ -173,7 +180,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             self._ddp_kwargs["find_unused_parameters"] = True
 
     def configure_ddp(self):
-
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model),
@@ -197,6 +203,9 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
+    def on_save(self, checkpoint: dict) -> dict:
+        return checkpoint
+
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         # TODO: is there a better way than accessing callback through model -> trainer -> callback?
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
@@ -210,7 +219,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             # TODO: is there a better way than accessing trainer through model -> trainer?
             if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                atomic_save(self.lightning_module.state_dict(), last_path)
+                atomic_save(self.on_save(self.lightning_module.state_dict()), last_path)
 
             # todo, pass complete checkpoint as state dictionary
             self.mp_queue.put(best_model_path)

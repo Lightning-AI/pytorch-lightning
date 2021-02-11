@@ -58,10 +58,9 @@ def run_model_test(
     # logger file to get meta
     logger = get_default_logger(save_dir, version=version)
     trainer_options.update(logger=logger)
-
     trainer = Trainer(**trainer_options)
     initial_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
-    trainer.fit(model, datamodule=data)
+    trainer.fit(model)
     post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"

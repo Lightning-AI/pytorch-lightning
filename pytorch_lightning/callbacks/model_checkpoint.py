@@ -520,11 +520,9 @@ class ModelCheckpoint(Callback):
                 trainer,
             )
 
-        accelerator_backend = trainer.accelerator_backend
-
-        if accelerator_backend.training_type_plugin.rpc_enabled:
+        if trainer.training_type_plugin.rpc_enabled:
             # RPCPlugin manages saving all model states
-            accelerator_backend.training_type_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
+            trainer.training_type_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
         else:
             self._save_model(last_filepath, trainer, pl_module)
         if (

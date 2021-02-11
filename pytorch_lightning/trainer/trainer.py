@@ -564,6 +564,7 @@ class Trainer(
             ref_model.on_pretrain_routine_end()
 
     def train(self):
+
         self.pre_training_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
@@ -727,6 +728,7 @@ class Trainer(
 
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
+
         torch.set_grad_enabled(True)
 
         return eval_loop_results, deprecated_eval_results
