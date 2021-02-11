@@ -102,11 +102,13 @@ jobs:
     parameters:
       python:
         type: string
+      torch:
+        type: string
     docker:
       - image: circleci/python:3.7
     environment:
       - PYTHON_VER: << parameters.python >>
-      - XLA_VER: 1.7
+      - XLA_VER: << parameters.torch >>
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
@@ -157,9 +159,11 @@ workflows:
     jobs:
       - build-Docs
       - TPU-tests:
-          matrix:
-            parameters:
-              python: ["3.6", "3.7"]
+          python: "3.6"
+          torch: "1.6"
+      - TPU-tests:
+          python: "3.7"
+          torch: "1.7"
   tpu-cleanup:
     triggers:
       - schedule:
