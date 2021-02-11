@@ -258,7 +258,10 @@ class BackendConnector(object):
 
     @property
     def is_distributed(self):
-        return self.use_ddp or self.use_ddp2 or self.use_horovod or self.on_tpu
+        is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
+        if self.on_tpu:
+            is_distributed |= self.training_type_plugin.is_distributed
+        return is_distributed
 
     @property
     def num_gpus(self) -> int:

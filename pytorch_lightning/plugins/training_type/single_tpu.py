@@ -65,3 +65,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
         return move_data_to_device(checkpoint, torch.device("cpu"))
+
+    @property
+    def is_distributed(self):
+        return False

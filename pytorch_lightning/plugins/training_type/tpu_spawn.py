@@ -50,6 +50,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def should_finalize(self):
         return self.world_size == 1
 
+    @property
+    def is_distributed(self):
+        return self.world_size != 1
+
     def process_dataloader(self, dataloader: Union[Iterable, torch.utils.data.DataLoader]) -> ParallelLoader:
         device = xm.xla_device()
         dataloader = xla_pl.ParallelLoader(dataloader, [device])
