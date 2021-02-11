@@ -19,14 +19,14 @@ import pytest
 from torch.utils.data import DataLoader
 
 import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
-from tests.helpers.datasets import TrialMNIST
+from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.utils import pl_multi_process_test
 
 if _TPU_AVAILABLE:
@@ -34,7 +34,7 @@ if _TPU_AVAILABLE:
     import torch_xla.distributed.xla_multiprocessing as xmp
     SERIAL_EXEC = xmp.MpSerialExecutor()
 
-_LARGER_DATASET = TrialMNIST(download=True, num_samples=2000, digits=(0, 1, 2, 5, 8))
+_LARGER_DATASET = RandomDataset(32, 2000)
 
 
 # 8 cores needs a big dataset
@@ -42,20 +42,30 @@ def _serial_train_loader():
     return DataLoader(_LARGER_DATASET, batch_size=32)
 
 
+class SerialLoaderBoringModel(BoringModel):
+
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(32, 2000), batch_size=32)
+
+    def val_dataloader(self):
+        return DataLoader(RandomDataset(32, 2000), batch_size=32)
+
+
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_tpu_cores_1(tmpdir):
     """Make sure model trains on TPU."""
+    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=4,
+        limit_val_batches=4,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
@@ -64,16 +74,17 @@ def test_model_tpu_cores_1(tmpdir):
 @pl_multi_process_test
 def test_model_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
+    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=[tpu_core],
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=4,
+        limit_val_batches=4,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
     assert torch_xla._XLAC._xla_get_default_device() == f'xla:{tpu_core}'
 
@@ -82,6 +93,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
 @pl_multi_process_test
 def test_model_tpu_cores_8(tmpdir):
     """Make sure model trains on TPU."""
+    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -91,29 +103,27 @@ def test_model_tpu_cores_8(tmpdir):
         limit_val_batches=0.4,
     )
 
-    model = EvalModelTemplate()
     # 8 cores needs a big dataset
-    model.train_dataloader = _serial_train_loader
-    model.val_dataloader = _serial_train_loader
-
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    model = SerialLoaderBoringModel()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.05)
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_16bit_tpu_cores_1(tmpdir):
     """Make sure model trains on TPU."""
+    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=4,
+        limit_val_batches=4,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
     assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
@@ -123,17 +133,18 @@ def test_model_16bit_tpu_cores_1(tmpdir):
 @pl_multi_process_test
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
+    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=[tpu_core],
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
+        limit_train_batches=4,
+        limit_val_batches=2,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
     assert torch_xla._XLAC._xla_get_default_device() == f'xla:{tpu_core}'
     assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
@@ -143,6 +154,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 @pl_multi_process_test
 def test_model_16bit_tpu_cores_8(tmpdir):
     """Make sure model trains on TPU."""
+    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
@@ -153,26 +165,32 @@ def test_model_16bit_tpu_cores_8(tmpdir):
         limit_val_batches=0.4,
     )
 
-    model = EvalModelTemplate()
     # 8 cores needs a big dataset
-    model.train_dataloader = _serial_train_loader
-    model.val_dataloader = _serial_train_loader
-
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    model = SerialLoaderBoringModel()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.05)
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
-    model = EvalModelTemplate()
+
+    class CustomBoringModel(BoringModel):
+
+        def validation_step(self, *args, **kwargs):
+            out = super().validation_step(*args, **kwargs)
+            self.log('val_loss', out['x'])
+            return out
+
+    tutils.reset_seed()
+    model = CustomBoringModel()
     trainer = Trainer(
-        callbacks=[EarlyStopping()],
+        callbacks=[EarlyStopping(monitor='val_loss')],
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=50,
-        limit_train_batches=10,
-        limit_val_batches=10,
+        limit_train_batches=4,
+        limit_val_batches=4,
         tpu_cores=1,
     )
     trainer.fit(model)
@@ -182,6 +200,7 @@ def test_model_tpu_early_stop(tmpdir):
 @pl_multi_process_test
 def test_tpu_grad_norm(tmpdir):
     """Test if grad_norm works on TPU."""
+    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -192,7 +211,7 @@ def test_tpu_grad_norm(tmpdir):
         gradient_clip_val=0.1,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
@@ -201,7 +220,8 @@ def test_tpu_grad_norm(tmpdir):
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
 
-    model = EvalModelTemplate()
+    tutils.reset_seed()
+    model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, tpu_cores=8)
     trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
