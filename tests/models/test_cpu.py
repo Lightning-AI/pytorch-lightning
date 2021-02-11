@@ -23,7 +23,6 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
@@ -101,10 +100,12 @@ def test_early_stopping_cpu_model(tmpdir):
 
     class ModelTrainVal(BoringModel):
 
-        def validation_epoch_end(self, outputs) -> None:
-            val_loss = torch.stack([x["x"] for x in outputs]).mean()
-            self.log('val_loss', val_loss)
+        def validation_step(self, *args, **kwargs):
+            output = super().validation_step(*args, **kwargs)
+            self.log('val_loss', output['x'])
+            return output
 
+    tutils.reset_seed()
     stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
     trainer_options = dict(
         callbacks=[stopping],
@@ -198,13 +199,15 @@ def test_running_test_after_fitting(tmpdir):
 
     class ModelTrainValTest(BoringModel):
 
-        def validation_epoch_end(self, outputs) -> None:
-            val_loss = torch.stack([x["x"] for x in outputs]).mean()
-            self.log('val_loss', val_loss)
+        def validation_step(self, *args, **kwargs):
+            output = super().validation_step(*args, **kwargs)
+            self.log('val_loss', output['x'])
+            return output
 
-        def test_epoch_end(self, outputs) -> None:
-            test_loss = torch.stack([x["y"] for x in outputs]).mean()
-            self.log('test_loss', test_loss)
+        def test_step(self, *args, **kwargs):
+            output = super().test_step(*args, **kwargs)
+            self.log('test_loss', output['y'])
+            return output
 
     model = ModelTrainValTest()
 
@@ -244,9 +247,10 @@ def test_running_test_no_val(tmpdir):
         def val_dataloader(self):
             pass
 
-        def test_epoch_end(self, outputs) -> None:
-            test_loss = torch.stack([x["y"] for x in outputs]).mean()
-            self.log('test_loss', test_loss)
+        def test_step(self, *args, **kwargs):
+            output = super().test_step(*args, **kwargs)
+            self.log('test_loss', output['y'])
+            return output
 
     model = ModelTrainTest()
 
@@ -297,15 +301,10 @@ def test_simple_cpu(tmpdir):
 def test_cpu_model(tmpdir):
     """Make sure model trains on CPU."""
     trainer_options = dict(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4
+        default_root_dir=tmpdir, progress_bar_refresh_rate=0, max_epochs=1, limit_train_batches=4, limit_val_batches=4
     )
 
-    model = EvalModelTemplate()
-
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
