@@ -429,10 +429,13 @@ class BackendConnector(object):
             return self._cluster_environment
         if self.is_slurm_managing_tasks:
             env = SLURMEnvironment()
+            # TODO: decouple DDP from SLURM
+            #   refactor and let generic cluster env hold the information about who spawns the processes
+            os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
         elif self.is_using_torchelastic:
             env = TorchElasticEnvironment()
             # TODO: decouple DDP from TE
-            #   maybe introduce a DefaultEnvironment?
+            #   refactor and let generic cluster env hold the information about who spawns the processes
             os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
         else:
             # TODO: maybe introduce a DefaultEnvironment?
