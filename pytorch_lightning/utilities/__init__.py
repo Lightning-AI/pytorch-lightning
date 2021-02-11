@@ -39,6 +39,8 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _PYTORCH_PRUNE_AVAILABLE,
     _RPC_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_6,
+    _TORCH_LOWER_EQUAL_1_4,
+    _TORCH_QUANTIZE_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _XLA_AVAILABLE,
