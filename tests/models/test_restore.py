@@ -221,7 +221,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
             self.log('val_acc', self.valid_acc(outputs['logits'], outputs['y']))
 
     dm = ClassifDataModule()
-    model = CustomClassificationModelDP()
+    model = CustomClassificationModelDP(lr=0.1)
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
