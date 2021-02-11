@@ -75,14 +75,14 @@ jobs:
       matrix:
         include:
           # todo: see notes in Dockerfile
-          #- python_version: 3.7
-          #  pytorch_version: 1.8
           - python_version: 3.6
             pytorch_version: 1.4
+          - python_version: 3.7
+            pytorch_version: 1.6
           - python_version: 3.8
             pytorch_version: 1.7
-          - python_version: 3.9
-            pytorch_version: 1.8
+          #- python_version: 3.9
+          #  pytorch_version: 1.8
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -90,7 +90,6 @@ jobs:
       # for PT 1.3 and 1.4 we need to use CUDA 10.1
       - run: |
           cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) >= 1.5 else 10.1)" 2>&1)
-          cuda=$(python -c "print(11.2 if float(${{matrix.pytorch_version}}) >= 1.8 else $cuda)" 2>&1)
           echo "::set-output name=CUDA::$cuda"
         id: extend
 
