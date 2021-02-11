@@ -116,9 +116,9 @@ jobs:
         include:
           - python_version: 3.6
             pytorch_version: 1.4
-          - python_version: 3.8
+          - python_version: 3.7
             pytorch_version: 1.7
-          - python_version: 3.9
+          - python_version: 3.8
             pytorch_version: 1.8
     steps:
       - name: Checkout
