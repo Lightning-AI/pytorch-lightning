@@ -141,3 +141,6 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def test_step_end(self, output):
         return output
+
+    def on_save(self, checkpoint: dict) -> dict:
+        return checkpoint

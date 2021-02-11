@@ -148,7 +148,7 @@ class Result(Dict):
                 value = torch.tensor(value, device=device, dtype=torch.float)
             value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
-        if value.device.type == "xla":
+        if isinstance(value, torch.Tensor) and value.device.type == "xla":
             value = value.cpu()
 
         if 'meta' not in self:

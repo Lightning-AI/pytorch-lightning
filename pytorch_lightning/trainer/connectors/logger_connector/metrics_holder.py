@@ -72,7 +72,7 @@ class MetricsHolder:
                 else:
                     current = torch.tensor(current, device=device, dtype=torch.float)
 
-        if current.device.type == "xla":
+        if isinstance(current, torch.Tensor) and current.device.type == "xla":
             current = current.cpu()
 
         return current
