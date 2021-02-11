@@ -117,6 +117,13 @@ class TrainerOptimizersMixin(ABC):
                     raise MisconfigurationException(
                         'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
                     )
+                allowed_interval_keys = ['step', 'epoch']
+                if 'interval' in scheduler and scheduler['interval'] not in allowed_interval_keys:
+                    raise MisconfigurationException(
+                        f'The "interval" key in lr scheduler dict must be one of {allowed_interval_keys},'
+                        f' but is "{scheduler["interval"]}"'
+                    )
+
                 scheduler['reduce_on_plateau'] = isinstance(
                     scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau
                 )
