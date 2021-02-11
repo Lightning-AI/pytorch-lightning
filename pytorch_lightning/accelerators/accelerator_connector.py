@@ -283,8 +283,8 @@ class BackendConnector(object):
         return devices
 
     @property
-    def root_gpu(self) -> int:
-        return self.accelerator.root_device.index
+    def root_gpu(self) -> Optional[int]:
+        return self.accelerator.root_device.index if not isinstance(self.accelerator, TPUAccelerator) else None
 
     @property
     def is_using_torchelastic(self):
