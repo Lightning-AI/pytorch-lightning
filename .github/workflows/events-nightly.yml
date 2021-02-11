@@ -101,7 +101,7 @@ jobs:
       - run: |
           cuda=10.1
           cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) >= 1.5 else $cuda)" 2>&1)
-          cuda=$(python -c "print(11.0 if float(${{matrix.pytorch_version}}) >= 1.4 else $cuda)" 2>&1)
+          cuda=$(python -c "print(11.0 if float(${{matrix.pytorch_version}}) >= 1.8 else $cuda)" 2>&1)
           echo "::set-output name=CUDA::$cuda"
         id: extend
 
