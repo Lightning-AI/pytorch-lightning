@@ -90,7 +90,7 @@ jobs:
       # for PT 1.3 and 1.4 we need to use CUDA 10.1
       - run: |
           cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) >= 1.5 else 10.1)" 2>&1)
-          cuda=$(python -c "print(11.0 if float(${{matrix.pytorch_version}}) >= 1.7 else $cuda)" 2>&1)
+          cuda=$(python -c "print(11.2 if float(${{matrix.pytorch_version}}) >= 1.8 else $cuda)" 2>&1)
           echo "::set-output name=CUDA::$cuda"
         id: extend
 
@@ -128,7 +128,7 @@ jobs:
       # for PT 1.3 and 1.4 we need to use CUDA 10.1
       - run: |
           cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) >= 1.5 else 10.1)" 2>&1)
-          cuda=$(python -c "print(11.0 if float(${{matrix.pytorch_version}}) >= 1.7 else $cuda)" 2>&1)
+          cuda=$(python -c "print(11.2 if float(${{matrix.pytorch_version}}) >= 1.8 else $cuda)" 2>&1)
           echo "::set-output name=CUDA::$cuda"
         id: extend
 
