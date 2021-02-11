@@ -389,8 +389,8 @@ def test_full_loop_dp(tmpdir):
         def training_step(self, batch, batch_idx):
             _, y = batch
             out = self._step(batch, batch_idx)
-            out['loss'] = F.cross_entropy(out['logits'], y)
-            return out
+            loss = F.cross_entropy(out['logits'], y)
+            return loss
 
         def validation_step(self, batch, batch_idx):
             return self._step(batch, batch_idx)
@@ -458,29 +458,6 @@ def test_dm_transfer_batch_to_device(get_module_mock):
     expected = torch.device('cuda', 0)
     assert dm.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
-
-
-class CustomMNISTDataModule(LightningDataModule):
-
-    def __init__(self, data_dir: str = "./"):
-        super().__init__()
-        self.data_dir = data_dir
-        self._epochs_called_for = []
-
-    def prepare_data(self):
-        TrialMNIST(self.data_dir, train=True, download=True)
-
-    def setup(self, stage: Optional[str] = None):
-
-        mnist_full = TrialMNIST(root=self.data_dir, train=True, num_samples=64, download=True)
-        self.mnist_train, self.mnist_val = random_split(mnist_full, [128, 64])
-        self.dims = self.mnist_train[0][0].shape
-
-    def train_dataloader(self):
-        assert self.trainer.current_epoch not in self._epochs_called_for
-        self._epochs_called_for.append(self.trainer.current_epoch)
-
-        return DataLoader(self.mnist_train, batch_size=4)
 
 
 def test_dm_reload_dataloaders_every_epoch(tmpdir):
