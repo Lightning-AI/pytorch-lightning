@@ -438,9 +438,7 @@ class Trainer(
         # SET UP TRAINING
         # ----------------------------
         self.accelerator_backend = self.accelerator_connector.select_accelerator()
-        self.local_rank = self.accelerator_backend.cluster_environment.local_rank()
-        self.node_rank = self.accelerator_backend.cluster_environment.node_rank()
-        self.global_rank = self.accelerator_backend.cluster_environment.global_rank()
+        self.accelerator_backend.cluster_environment.set_ranks_to_trainer(self)
         self.accelerator_backend.setup(model)
 
         # ----------------------------

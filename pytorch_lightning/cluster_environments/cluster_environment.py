@@ -37,3 +37,8 @@ class ClusterEnvironment(LightningPlugin):
 
     def node_rank(self):
         pass
+
+    def set_ranks_to_trainer(self):
+        trainer.local_rank = self.accelerator_backend.cluster_environment.local_rank()
+        trainer.node_rank = self.accelerator_backend.cluster_environment.node_rank()
+        trainer.global_rank = self.accelerator_backend.cluster_environment.global_rank()
