@@ -72,8 +72,7 @@ class Callback(abc.ABC):
         pass
 
     def on_train_batch_end(
-        self, trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int,
-        dataloader_idx: int
+        self, trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """Called when the train batch ends."""
         pass
@@ -121,8 +120,7 @@ class Callback(abc.ABC):
         pass
 
     def on_validation_batch_end(
-        self, trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int,
-        dataloader_idx: int
+        self, trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """Called when the validation batch ends."""
         pass
@@ -134,8 +132,7 @@ class Callback(abc.ABC):
         pass
 
     def on_test_batch_end(
-        self, trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int,
-        dataloader_idx: int
+        self, trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """Called when the test batch ends."""
         pass
