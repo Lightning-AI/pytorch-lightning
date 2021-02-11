@@ -333,7 +333,11 @@ class Metric(nn.Module, ABC):
         hash_vals = [self.__class__.__name__]
 
         for key in self._defaults.keys():
-            hash_vals.append(getattr(self, key))
+            val = getattr(self, key)
+            # Special case: allow list values, so long as their elements are hashable
+            if isinstance(val, list):
+                val = tuple(val)
+            hash_vals.append(val)
 
         return hash(tuple(hash_vals))
 
