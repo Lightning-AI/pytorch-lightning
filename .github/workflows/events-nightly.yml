@@ -14,8 +14,6 @@ jobs:
     steps:
       # does nightly releases from feature branch
       - uses: actions/checkout@v2
-        #with:
-        #  ref: release/1.2-dev
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7

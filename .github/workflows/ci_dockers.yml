@@ -87,7 +87,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # for PT 1.3 and 1.4 we need to use CUDA 10.1
+      # for PT 1.4 we need to use CUDA 10.1
       - run: |
           cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) >= 1.5 else 10.1)" 2>&1)
           echo "::set-output name=CUDA::$cuda"
