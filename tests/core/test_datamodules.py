@@ -13,12 +13,13 @@
 # limitations under the License.
 import pickle
 from argparse import ArgumentParser
-from typing import Any, Dict
-from unittest import mock
-from unittest.mock import PropertyMock
+
+from typing import Any, Dict, Optional
+from unittest.mock import MagicMock
 
 import pytest
 import torch
+import torch.nn.functional as F
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -26,7 +27,9 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
 from tests.helpers import BoringDataModule, BoringModel
-from tests.helpers.utils import reset_seed
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.utils import reset_seed, set_random_master_port
 
 
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
@@ -197,8 +200,8 @@ def test_dm_pickle_after_init(tmpdir):
 def test_train_loop_only(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     model.validation_step = None
     model.validation_step_end = None
@@ -214,18 +217,17 @@ def test_train_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
-    # TODO: add end-to-end test
-    # assert trainer.callback_metrics['loss'] < 0.6
+    assert trainer.callback_metrics['train_loss'] < 1.0
 
 
 def test_train_val_loop_only(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     model.validation_step = None
     model.validation_step_end = None
@@ -238,11 +240,10 @@ def test_train_val_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
-    # TODO: add end-to-end test
-    # assert trainer.callback_metrics['train_loss'] < 0.6
+    assert trainer.callback_metrics['train_loss'] < 1.0
 
 
 def test_dm_checkpoint_save(tmpdir):
@@ -301,8 +302,8 @@ def test_test_loop_only(tmpdir):
 def test_full_loop(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -318,8 +319,7 @@ def test_full_loop(tmpdir):
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 def test_trainer_attached_to_dm(tmpdir):
@@ -353,8 +353,8 @@ def test_trainer_attached_to_dm(tmpdir):
 def test_full_loop_single_gpu(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -371,16 +371,37 @@ def test_full_loop_single_gpu(tmpdir):
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_full_loop_dp(tmpdir):
-    reset_seed()
+    set_random_master_port()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    class CustomClassificationModelDP(ClassificationModel):
+
+        def _step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            return {'logits': logits, 'y': y}
+
+        def training_step(self, batch, batch_idx):
+            _, y = batch
+            out = self._step(batch, batch_idx)
+            out['loss'] = F.cross_entropy(out['logits'], y)
+            return out
+
+        def validation_step(self, batch, batch_idx):
+            return self._step(batch, batch_idx)
+
+        def test_step(self, batch, batch_idx):
+            return self._step(batch, batch_idx)
+
+        def test_step_end(self, outputs):
+            self.log('test_acc', self.test_acc(outputs['logits'], outputs['y']))
+
+    dm = ClassifDataModule()
+    model = CustomClassificationModelDP()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -392,14 +413,13 @@ def test_full_loop_dp(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -407,7 +427,6 @@ def test_full_loop_dp(tmpdir):
 def test_dm_transfer_batch_to_device(get_module_mock):
 
     class CustomBatch:
-
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
@@ -437,6 +456,28 @@ def test_dm_transfer_batch_to_device(get_module_mock):
     expected = torch.device('cuda', 0)
     assert dm.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
+
+
+class CustomMNISTDataModule(LightningDataModule):
+    def __init__(self, data_dir: str = "./"):
+        super().__init__()
+        self.data_dir = data_dir
+        self._epochs_called_for = []
+
+    def prepare_data(self):
+        TrialMNIST(self.data_dir, train=True, download=True)
+
+    def setup(self, stage: Optional[str] = None):
+
+        mnist_full = TrialMNIST(root=self.data_dir, train=True, num_samples=64, download=True)
+        self.mnist_train, self.mnist_val = random_split(mnist_full, [128, 64])
+        self.dims = self.mnist_train[0][0].shape
+
+    def train_dataloader(self):
+        assert self.trainer.current_epoch not in self._epochs_called_for
+        self._epochs_called_for.append(self.trainer.current_epoch)
+
+        return DataLoader(self.mnist_train, batch_size=4)
 
 
 def test_dm_reload_dataloaders_every_epoch(tmpdir):
@@ -470,5 +511,37 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
         limit_train_batches=0.01,
         reload_dataloaders_every_epoch=True,
     )
-    results = trainer.fit(model, dm)
-    assert results
+    trainer.fit(model, dm)
+
+
+class DummyDS(torch.utils.data.Dataset):
+    def __getitem__(self, index):
+        return 1
+
+    def __len__(self):
+        return 100
+
+
+def test_dm_init_from_datasets(tmpdir):
+
+    train_ds = DummyDS()
+    valid_ds = DummyDS()
+    test_ds = DummyDS()
+
+    valid_dss = [DummyDS(), DummyDS()]
+    test_dss = [DummyDS(), DummyDS()]
+
+    dm = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.train_dataloader())) == torch.ones(4))
+    assert dm.val_dataloader() is None
+    assert dm.test_dataloader() is None
+
+    dm = LightningDataModule.from_datasets(train_ds, valid_ds, test_ds, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.val_dataloader())) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader())) == torch.ones(4))
+
+    dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.val_dataloader()[0])) == torch.ones(4))
+    assert torch.all(next(iter(dm.val_dataloader()[1])) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader()[0])) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader()[1])) == torch.ones(4))

@@ -21,14 +21,13 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
 def test_on_before_zero_grad_called(tmpdir, max_steps):
 
-    class CurrentTestModel(EvalModelTemplate):
+    class CurrentTestModel(BoringModel):
         on_before_zero_grad_called = 0
 
         def on_before_zero_grad(self, optimizer):
@@ -40,7 +39,6 @@ def test_on_before_zero_grad_called(tmpdir, max_steps):
         default_root_dir=tmpdir,
         max_steps=max_steps,
         max_epochs=2,
-        num_sanity_val_steps=5,
     )
     assert 0 == model.on_before_zero_grad_called
     trainer.fit(model)
@@ -55,23 +53,24 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     """ Test that progress bar metrics also get collected at the end of an epoch. """
     num_epochs = 3
 
-    class CurrentModel(EvalModelTemplate):
+    class CurrentModel(BoringModel):
 
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
-            output['progress_bar'].update({'step_metric': torch.tensor(-1)})
-            output['progress_bar'].update({'shared_metric': 100})
+            self.log_dict({'step_metric': torch.tensor(-1), 'shared_metric': 100}, logger=False, prog_bar=True)
             return output
 
         def training_epoch_end(self, outputs):
             epoch = self.current_epoch
             # both scalar tensors and Python numbers are accepted
-            return {
-                'progress_bar': {
-                    f'epoch_metric_{epoch}': torch.tensor(epoch),  # add a new metric key every epoch
-                    'shared_metric': 111,
-                }
-            }
+            self.log_dict(
+                {
+                    f'epoch_metric_{epoch}': torch.tensor(epoch),
+                    'shared_metric': 111
+                },
+                logger=False,
+                prog_bar=True,
+            )
 
     model = CurrentModel()
     trainer = Trainer(
@@ -103,7 +102,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
         def on_train_epoch_end(self, trainer, pl_module, outputs):
             self.len_outputs = len(outputs[0])
 
-    class OverriddenModel(EvalModelTemplate):
+    class OverriddenModel(BoringModel):
 
         def on_train_epoch_start(self):
             self.num_train_batches = 0
@@ -114,7 +113,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
         def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             self.num_train_batches += 1
 
-    class NotOverriddenModel(EvalModelTemplate):
+    class NotOverriddenModel(BoringModel):
 
         def on_train_epoch_start(self):
             self.num_train_batches = 0
@@ -124,6 +123,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 
     overridden_model = OverriddenModel()
     not_overridden_model = NotOverriddenModel()
+    not_overridden_model.training_epoch_end = None
 
     callback = LoggingCallback()
     trainer = Trainer(
@@ -153,7 +153,7 @@ def test_transfer_batch_hook(model_getter_mock):
             self.samples = data[0]
             self.targets = data[1]
 
-    class CurrentTestModel(EvalModelTemplate):
+    class CurrentTestModel(BoringModel):
 
         hook_called = False
 
@@ -167,7 +167,7 @@ def test_transfer_batch_hook(model_getter_mock):
             return data
 
     model = CurrentTestModel()
-    batch = CustomBatch((torch.zeros(5, 28), torch.ones(5, 1, dtype=torch.long)))
+    batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
     trainer = Trainer(gpus=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
@@ -226,7 +226,7 @@ def test_transfer_batch_hook_ddp(tmpdir):
 @pytest.mark.parametrize('max_epochs,batch_idx_', [(2, 5), (3, 8), (4, 12)])
 def test_on_train_batch_start_hook(max_epochs, batch_idx_):
 
-    class CurrentModel(EvalModelTemplate):
+    class CurrentModel(BoringModel):
 
         def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
             if batch_idx == batch_idx_:
