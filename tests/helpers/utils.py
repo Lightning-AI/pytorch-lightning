@@ -90,9 +90,8 @@ def pl_multi_process_test(func):
 
         def inner_f(queue, **kwargs):
             try:
-                try:
-                    func(**kwargs)
-                    queue.put(1)
+                func(**kwargs)
+                queue.put(1)
             except Exception as e:
                 _trace = traceback.format_exc()
                 print(_trace)
