@@ -93,16 +93,13 @@ def pl_multi_process_test(func):
                 try:
                     func(**kwargs)
                     queue.put(1)
-                except RuntimeError as e:
-                    traceback.print_exc()
-                    if "Failed to meet rendezvous" in str(e):
-                        queue.put(1)
-                    else:
-                        raise e
-            # todo: specify the possible exception
-            except Exception:
-                traceback.print_exc()
-                queue.put(-1)
+            except Exception as e:
+                _trace = traceback.format_exc()
+                print(_trace)
+                if "Failed to meet rendezvous" in _trace:
+                    queue.put(1)
+                else:
+                    queue.put(-1)
 
         proc = Process(target=inner_f, args=(queue, ), kwargs=kwargs)
         proc.start()
