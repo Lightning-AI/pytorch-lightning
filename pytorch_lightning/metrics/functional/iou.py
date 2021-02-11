@@ -63,15 +63,15 @@ def iou(
 
     Note that it is different from box IoU.
 
-    If pred and target are the same shape and pred is a float tensor,
-    we use the ``threshold`` argument. This is the case for binary and multi-label logits.
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument
+    to convert into integer labels. This is the case for binary and multi-label probabilities.
 
     If pred has an extra dimension as in the case of multi-class scores we
     perform an argmax on ``dim=1``.
 
     Args:
-        pred: Tensor containing integer predictions, with shape [N, d1, d2, ...]
-        target: Tensor containing integer targets, with shape [N, d1, d2, ...]
+        preds: tensor containing predictions from model (probabilities, or labels) with shape ``[N, d1, d2, ...]``
+        target: tensor containing ground truth labels with shape ``[N, d1, d2, ...]``
         ignore_index: optional int specifying a target class to ignore. If given,
             this class index does not contribute to the returned score, regardless
             of reduction method. Has no effect if given an int that is not in the
@@ -83,7 +83,7 @@ def iou(
             [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be
             assigned the `absent_score`.
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
+            Threshold value for binary or multi-label probabilities. default: 0.5
         num_classes:
             Optionally specify the number of classes
         reduction: a method to reduce metric score over labels.
