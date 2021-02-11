@@ -111,28 +111,34 @@ conda install pytorch-lightning -c conda-forge
 <details>
   <summary>Other options</summary>
 
-  #### Install bleeding-edge - future 1.2
-
-  the actual status of 1.2 [nightly] is following:
-
-  ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
-  ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
-  ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.2-dev&event=push)
-  ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.2-dev&event=push)
-  ![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.2-dev&event=push)
-
-  Install future release from the source (no guarantees)
-  ```bash
-  pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.2-dev --upgrade
-  ```
-  or nightly from testing PyPI
-  ```bash
-  pip install -iU https://test.pypi.org/simple/ pytorch-lightning
-  ```
+    #### Install stable/nightly - future 1.1.x
+    
+    the actual status of 1.1 [stable] is following:
+    
+    ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.1.x&event=push)
+    ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.1.x&event=push)
+    ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.1.x&event=push)
+    ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.1.x&event=push)
+    ![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.1.x&event=push)
+    
+    Install future release from the source
+    ```bash
+    pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.1.x --upgrade
+    ```
+    
+    #### Install bleeding-edge - future 1.2
+    
+    Install future release from the source (no guarantees)
+    ```bash
+    pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master
+    ```
+    or nightly from testing PyPI
+    ```bash
+    pip install -iU https://test.pypi.org/simple/ pytorch-lightning
+    ```
 
 </details>
 <!-- end skipping PyPI description -->
-
 
 ### Step 1: Add these imports
 
