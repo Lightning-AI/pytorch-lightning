@@ -3,6 +3,7 @@ name: Nightly events
 # https://jasonet.co/posts/scheduled-actions/
 # https://github.community/t/distinct-job-for-each-schedule/17811/2
 on:
+  push: {} # fixme
   schedule:
     - cron: "0 0 * * *" # At the end of every day
 
@@ -14,8 +15,8 @@ jobs:
     steps:
       # does nightly releases from feature branch
       - uses: actions/checkout@v2
-        with:
-          ref: release/1.2-dev
+        #with:
+        #  ref: release/1.2-dev
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
