@@ -419,6 +419,7 @@ def test_full_loop_dp(tmpdir):
 def test_dm_transfer_batch_to_device(tmpdir):
 
     class CustomBatch:
+
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
@@ -452,6 +453,7 @@ def test_dm_transfer_batch_to_device(tmpdir):
 
 
 class CustomMNISTDataModule(LightningDataModule):
+
     def __init__(self, data_dir: str = "./"):
         super().__init__()
         self.data_dir = data_dir
@@ -508,6 +510,7 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
 
 
 class DummyDS(torch.utils.data.Dataset):
+
     def __getitem__(self, index):
         return 1
 
