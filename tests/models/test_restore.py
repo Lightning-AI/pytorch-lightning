@@ -208,8 +208,8 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         def training_step(self, batch, batch_idx):
             _, y = batch
             out = self._step(batch, batch_idx)
-            out['loss'] = F.cross_entropy(out['logits'], y)
-            return out
+            loss = F.cross_entropy(out['logits'], y)
+            return loss
 
         def validation_step(self, batch, batch_idx):
             return self._step(batch, batch_idx)
