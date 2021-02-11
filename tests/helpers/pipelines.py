@@ -13,7 +13,7 @@
 # limitations under the License.
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType
 from tests.helpers import BoringModel
@@ -49,9 +49,14 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
 
 
 def run_model_test(
-    trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True, min_acc: float = 0.25
+    trainer_options,
+    model,
+    data: LightningDataModule = None,
+    on_gpu: bool = True,
+    version=None,
+    with_hpc: bool = True,
+    min_acc: float = 0.25
 ):
-
     reset_seed()
     save_dir = trainer_options['default_root_dir']
 
@@ -61,7 +66,7 @@ def run_model_test(
 
     trainer = Trainer(**trainer_options)
     initial_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
-    trainer.fit(model)
+    trainer.fit(model, datamodule=data)
     post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
@@ -73,7 +78,7 @@ def run_model_test(
     pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
 
     # test new model accuracy
-    test_loaders = model.test_dataloader()
+    test_loaders = model.test_dataloader() if not data else data.test_dataloader()
     if not isinstance(test_loaders, list):
         test_loaders = [test_loaders]
 

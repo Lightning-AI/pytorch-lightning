@@ -1,7 +1,7 @@
 # extended list of package dependencies to reach full functionality
 
 matplotlib>3.1
-horovod>=0.20.2  # no need to install with [pytorch] as pytorch is already installed
+horovod>=0.21.2  # no need to install with [pytorch] as pytorch is already installed
 omegaconf>=2.0.1
 torchtext>=0.5, <0.7  # TODO: temporary fix fix for compatibility
 onnx>=1.7.0
