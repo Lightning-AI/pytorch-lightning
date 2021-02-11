@@ -45,31 +45,22 @@ def _get_version(package: str) -> LooseVersion:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _TORCH_GREATER_EQUAL_1_6_0 = _get_version("torch") >= LooseVersion("1.6.0")
+_TORCH_GREATER_EQUAL_1_7_0 = _get_version("torch") >= LooseVersion("1.7.0")
 
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available('fairscale.nn.data_parallel')
-_FAIRSCALE_PIPE_AVAILABLE = (
-    _FAIRSCALE_AVAILABLE and _TORCH_GREATER_EQUAL_1_6_0 and _get_version('fairscale') <= LooseVersion("0.1.3")
-)
+_FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and LooseVersion(
+    pkg_resources.get_distribution('torch').version
+) >= LooseVersion("1.6.0") and LooseVersion(pkg_resources.get_distribution('fairscale').version) <= LooseVersion("0.1.3")
 _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.group')
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _module_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
 _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
+_PYTORCH_PRUNE_AVAILABLE = _module_available('torch.nn.utils.prune')
 _RPC_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.rpc')
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
 _XLA_AVAILABLE = _module_available("torch_xla")
-_FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')
-_RPC_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.rpc')
-_GROUP_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.group')
-_FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and LooseVersion(
-    pkg_resources.get_distribution('torch').version
-) >= LooseVersion("1.6.0") and LooseVersion(pkg_resources.get_distribution('fairscale').version
-                                            ) <= LooseVersion("0.1.3")
-_BOLTS_AVAILABLE = _module_available('pl_bolts')
-_PYTORCH_PRUNE_AVAILABLE = _module_available('torch.nn.utils.prune')
-_PYTORCH_GREATER_EQUAL_1_7_0 = LooseVersion(pkg_resources.get_distribution('torch').version) >= LooseVersion("1.7.0")
-_TORCHVISION_AVAILABLE = _module_available('torchvision')
