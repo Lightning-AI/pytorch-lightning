@@ -92,15 +92,15 @@ def pl_multi_process_test(func):
             try:
                 try:
                     func(**kwargs)
+                    queue.put(1)
                 except RuntimeError as e:
-                    if "Failed to meet rendezvous 'torch_xla.core.xla_model.save" in str(e):
-                        pass
+                    traceback.print_exc()
+                    if "Failed to meet rendezvous" in str(e):
+                        queue.put(1)
                     else:
                         raise e
-                queue.put(1)
             # todo: specify the possible exception
             except Exception:
-                import traceback
                 traceback.print_exc()
                 queue.put(-1)
 

@@ -33,7 +33,7 @@ def test_resume_training_on_cpu(tmpdir):
         max_epochs=1,
         tpu_cores=8,
     )
-    trainer.fit(trainer, model)
+    trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path
 
@@ -49,7 +49,7 @@ def test_resume_training_on_cpu(tmpdir):
         max_epochs=1,
         default_root_dir=tmpdir,
     )
-    trainer.fit(trainer, model)
+    trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
