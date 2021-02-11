@@ -50,10 +50,10 @@ Lightning disentangles PyTorch code to decouple the science from the engineering
 ## Lightning Philosophy
 Lightning is designed with these principles in mind:
 
-Principle 1: Enable maximal flexibility.   
-Principle 2: Abstract away unnecessary boilerplate, but make it accessible when needed.   
-Principle 3: Systems should be self-contained (ie: optimizers, computation code, etc).   
-Principle 4: Deep learning code should be organized into 4 distinct categories.   
+Principle 1: Enable maximal flexibility.
+Principle 2: Abstract away unnecessary boilerplate, but make it accessible when needed.
+Principle 3: Systems should be self-contained (ie: optimizers, computation code, etc).
+Principle 4: Deep learning code should be organized into 4 distinct categories.
 
   - Research code (the LightningModule).
   - Engineering code (you delete, and is handled by the Trainer).
@@ -107,9 +107,9 @@ From Conda
 conda install pytorch-lightning -c conda-forge
 ```
 
+<!-- following section will be skipped from PyPI description -->
 <details>
   <summary>Other options</summary>
-    <!-- following section will be skipped from PyPI description -->
 
   #### Install bleeding-edge - future 1.2
 
@@ -130,8 +130,8 @@ conda install pytorch-lightning -c conda-forge
   pip install -iU https://test.pypi.org/simple/ pytorch-lightning
   ```
 
-  <!-- end skipping PyPI description -->
 </details>
+<!-- end skipping PyPI description -->
 
 
 ### Step 1: Add these imports
