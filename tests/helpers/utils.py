@@ -95,10 +95,10 @@ def pl_multi_process_test(func):
                 queue.put(1)
             except Exception:
                 _trace = traceback.format_exc()
-                print(func.__name__)
                 print(_trace)
-                print(func.__name__)
-                if "Failed to meet rendezvous" in _trace:
+                # code 17 means RuntimeError: tensorflow/compiler/xla/xla_client/mesh_service.cc:364 : 
+                # Failed to meet rendezvous 'torch_xla.core.xla_model.save': Socket closed (14)
+                if "terminated with exit code 17" in _trace:
                     queue.put(1)
                 else:
                     queue.put(-1)
