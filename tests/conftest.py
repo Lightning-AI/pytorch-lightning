@@ -21,6 +21,16 @@ import pytest
 import torch.multiprocessing as mp
 
 
+@pytest.fixture(scope="function", autouse=True)
+def restore_env_variables():
+    """ Ensures that environment variables set during the test do not leak out. """
+    env_backup = os.environ.copy()
+    yield
+    # restore environment as it was before running the test
+    os.environ.clear()
+    os.environ.update(env_backup)
+
+
 def pytest_configure(config):
     config.addinivalue_line("markers", "spawn: spawn test in a separate process using torch.multiprocessing.spawn")
 
