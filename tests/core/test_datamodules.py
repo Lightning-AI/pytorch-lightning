@@ -19,6 +19,7 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 import torch.nn.functional as F
+from torch.utils.data import DataLoader, random_split
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
@@ -26,6 +27,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.datasets import TrialMNIST
 from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.utils import reset_seed, set_random_master_port
 
