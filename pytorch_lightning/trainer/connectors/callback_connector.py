@@ -16,7 +16,6 @@ from typing import List, Union
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -111,7 +110,7 @@ class CallbackConnector:
             callback.log_dict = model.log_dict
 
     @staticmethod
-    def _attach_model_callbacks(model: LightningModule, trainer: Trainer) -> None:
+    def _attach_model_callbacks(model: LightningModule, trainer) -> None:
         """
         Attaches the callbacks defined in the model.
         If a callback returned by the model's configure_callback method has the same type as one or several
@@ -120,8 +119,9 @@ class CallbackConnector:
         will be pushed to the end of the list, ensuring they run last.
 
         Args:
-            A model which may or may not define new callbacks in
-            :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
+            model: A model which may or may not define new callbacks in
+                :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
+            trainer: The trainer on which the callbacks get attached/merged.
         """
         model_callbacks = model.configure_callbacks()
         if not model_callbacks:
