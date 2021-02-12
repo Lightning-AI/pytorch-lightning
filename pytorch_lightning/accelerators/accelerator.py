@@ -31,7 +31,6 @@ from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
 
-
 class Accelerator(object):
     """
     The Accelerator Base Class.
@@ -141,9 +140,8 @@ class Accelerator(object):
 
         args[0] = batch
 
-        with self.precision_plugin.train_step_context():
-            with self.training_type_plugin.train_step_context():
-                return self.training_type_plugin.training_step(*args)
+        with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
+            return self.training_type_plugin.training_step(*args)
 
     def post_training_step(self):
         self.training_type_plugin.post_training_step()
@@ -163,9 +161,8 @@ class Accelerator(object):
 
         args[0] = batch
 
-        with self.precision_plugin.val_step_context():
-            with self.training_type_plugin.val_step_context():
-                return self.training_type_plugin.validation_step(*args)
+        with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
+            return self.training_type_plugin.validation_step(*args)
 
     def test_step(self, args):
         """The actual test step.
@@ -182,9 +179,8 @@ class Accelerator(object):
 
         args[0] = batch
 
-        with self.precision_plugin.test_step_context():
-            with self.training_type_plugin.test_step_context():
-                return self.training_type_plugin.test_step(*args)
+        with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
+            return self.training_type_plugin.test_step(*args)
 
     def predict(self, args):
         """The actual predict step.
@@ -201,9 +197,8 @@ class Accelerator(object):
 
         args[0] = batch
 
-        with self.precision_plugin.predict_context():
-            with self.training_type_plugin.predict_context():
-                return self.training_type_plugin.predict(*args)
+        with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
+            return self.training_type_plugin.predict(*args)
 
     def training_step_end(self, output):
         """A hook to do something at the end of the training step
@@ -228,23 +223,6 @@ class Accelerator(object):
             output: the output of the validation step
         """
         return self.training_type_plugin.validation_step_end(output)
-
-    def predict(self, args):
-        """The prediction step.
-
-        Args:
-            args: the arguments for the models predict step. Can consist of the following:
-                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                batch_idx (int): Integer displaying index of this batch
-                optimizer_idx (int): When using multiple optimizers, this argument will also be present.
-                hiddens(:class:`~torch.Tensor`): Passed in if
-                    :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
-
-        """
-        batch = self.to_device(args[0])
-        args[0] = batch
-        return self.training_type_plugin.predict(*args)
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Wraps the dataloader if necessary

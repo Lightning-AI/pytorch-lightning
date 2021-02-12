@@ -110,6 +110,9 @@ class DDPSpawnPlugin(ParallelPlugin):
     def start_testing(self, trainer):
         mp.spawn(self.new_process, **self.mp_spawn_kwargs)
 
+    def start_predicting(self, trainer):
+        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+
     def new_process(self, process_idx, trainer, mp_queue):
         self.mp_queue = mp_queue
 
@@ -153,7 +156,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         self.barrier()
 
-        results = trainer.accelerator_backend.train_or_test_or_predict()
+        results = trainer.train_or_test_or_predict()
 
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(results)

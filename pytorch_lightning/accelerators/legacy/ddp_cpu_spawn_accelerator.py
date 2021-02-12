@@ -152,8 +152,6 @@ class DDPCPUSpawnAccelerator(Accelerator):
         model = self.configure_ddp(model, device_ids)
 
         self.trainer.setup_trainer(model)
-
-        # train or test
         results = self.train_or_test_or_predict()
 
         # get original model

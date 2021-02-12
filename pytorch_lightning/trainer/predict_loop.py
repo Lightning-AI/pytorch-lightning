@@ -17,24 +17,14 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 class PredictLoop(object):
+
     def __init__(self, trainer):
         self.trainer = trainer
         self.max_batches = None
         self.num_dataloaders = None
 
     def on_trainer_init(self):
-        self.trainer.num_val_batches = []
-        self.trainer.num_sanity_val_batches = []
-        self.trainer.num_test_batches = []
-        self.trainer.test_dataloaders = None
-        self.trainer.val_dataloaders = None
-        self.trainer.running_sanity_check = False
-
-        # when .test() is called, it sets this
-        self.trainer.tested_ckpt_path = None
-
-        # when true, prints test results
-        self.trainer.verbose_test = True
+        self.trainer.num_predict_batches = []
 
     def get_predict_dataloaders(self, max_batches):
         # select dataloaders

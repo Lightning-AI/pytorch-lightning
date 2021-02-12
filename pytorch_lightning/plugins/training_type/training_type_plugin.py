@@ -119,7 +119,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._results = trainer.run_test()
 
     def start_predicting(self, trainer: 'Trainer') -> None:
-        # double dispatch to initiate the training loop
+        # double dispatch to initiate the predicting loop
         self._results = trainer.run_predict()
 
     def training_step(self, *args, **kwargs):

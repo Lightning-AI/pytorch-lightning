@@ -1518,7 +1518,6 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
         gpus=gpus,
         num_processes=num_processes,
         plugins=plugins,
-        num_sanity_val_steps=0
     )
     if datamodule:
         results = trainer.predict(model, datamodule=datamodule)

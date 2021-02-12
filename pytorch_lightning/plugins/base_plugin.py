@@ -50,10 +50,10 @@ class Plugin(ABC):
 
     @contextlib.contextmanager
     def test_step_context(self) -> Generator:
-        """A contextmanager for the teststep"""
+        """A contextmanager for the test step"""
         yield
 
     @contextlib.contextmanager
     def predict_context(self) -> Generator:
-        """A contextmanager for the teststep"""
+        """A contextmanager for the predict step"""
         yield

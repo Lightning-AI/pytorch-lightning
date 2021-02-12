@@ -230,6 +230,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def start_testing(self, trainer) -> None:
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
+    def start_predicting(self, trainer) -> None:
+        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+
     def training_step(self, *args, **kwargs):
         return self.lightning_module.training_step(*args, **kwargs)
 

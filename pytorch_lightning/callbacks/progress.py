@@ -67,6 +67,7 @@ class ProgressBarBase(Callback):
         self._train_batch_idx = 0
         self._val_batch_idx = 0
         self._test_batch_idx = 0
+        self._predict_batch_idx = 0
 
     @property
     def trainer(self):
@@ -97,6 +98,14 @@ class ProgressBarBase(Callback):
         return self._test_batch_idx
 
     @property
+    def predict_batch_idx(self) -> int:
+        """
+        The current batch index being processed during predicting.
+        Use this to update your progress bar.
+        """
+        return self._predict_batch_idx
+
+    @property
     def total_train_batches(self) -> int:
         """
         The total number of training batches during training, which may change from epoch to epoch.
@@ -108,7 +117,7 @@ class ProgressBarBase(Callback):
     @property
     def total_val_batches(self) -> int:
         """
-        The total number of training batches during validation, which may change from epoch to epoch.
+        The total number of validation batches during validation, which may change from epoch to epoch.
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         validation dataloader is of infinite size.
         """
@@ -121,11 +130,20 @@ class ProgressBarBase(Callback):
     @property
     def total_test_batches(self) -> int:
         """
-        The total number of training batches during testing, which may change from epoch to epoch.
+        The total number of testing batches during testing, which may change from epoch to epoch.
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         test dataloader is of infinite size.
         """
         return sum(self.trainer.num_test_batches)
+
+    @property
+    def total_predict_batches(self) -> int:
+        """
+        The total number of predicting batches during testing, which may change from epoch to epoch.
+        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
+        test dataloader is of infinite size.
+        """
+        return sum(self.trainer.num_predict_batches)
 
     def disable(self):
         """
@@ -167,6 +185,12 @@ class ProgressBarBase(Callback):
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._test_batch_idx += 1
+
+    def on_predict_start(self, trainer, pl_module):
+        self._predict_batch_idx = 0
+
+    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        self._predict_batch_idx += 1
 
 
 class ProgressBar(ProgressBarBase):
@@ -283,7 +307,7 @@ class ProgressBar(ProgressBarBase):
         return bar
 
     def init_predict_tqdm(self) -> tqdm:
-        """ Override this to customize the tqdm bar for training. """
+        """ Override this to customize the tqdm bar for predicting. """
         bar = tqdm(
             desc='Predicting',
             initial=self.train_batch_idx,
@@ -390,17 +414,17 @@ class ProgressBar(ProgressBarBase):
         self.test_progress_bar.close()
 
     def on_predict_start(self, trainer, pl_module):
-        super().on_train_start(trainer, pl_module)
-        self.predict_progress_bar = self.init_train_tqdm()
+        super().on_predict_start(trainer, pl_module)
+        self.predict_progress_bar = self.init_predict_tqdm()
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self._should_update(self.test_batch_idx, self.total_test_batches):
+        super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        if self._should_update(self.predict_batch_idx, self.total_predict_batches):
             self._update_bar(self.predict_progress_bar)
 
     def on_predict_end(self, trainer, pl_module):
-        super().on_test_end(trainer, pl_module)
         self.predict_progress_bar.close()
+        self._predict_batch_idx = 0
 
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)

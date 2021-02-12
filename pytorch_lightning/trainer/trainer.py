@@ -528,7 +528,7 @@ class Trainer(
         self.accelerator_backend.teardown()
 
     def dispatch(self):
-        if self.training:
+        if self.training or self.evaluating:
             self.training_type_plugin.start_training(self)
 
         elif self.testing:
@@ -539,8 +539,24 @@ class Trainer(
 
         else:
             raise MisconfigurationException(
-                f"Received {self._running_stage}. Please, open an issue, it shouldn't happen."
+                f"Received {self._running_stage}. Please, open an issue, as it shouldn't happen."
             )
+
+    def train_or_test_or_predict(self):
+        if self.training or self.evaluating:
+            results = self.run_train()
+
+        elif self.testing:
+            results = self.run_test()
+
+        elif self.predicting:
+            results = self.run_predict()
+
+        else:
+            raise MisconfigurationException(
+                f"Received {self._running_stage}. Please, open an issue, as it shouldn't happen."
+            )
+        return results
 
     def _set_running_stage(self, stage: LightningEnum, model_ref: LightningModule):
         """
