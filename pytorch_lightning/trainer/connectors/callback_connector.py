@@ -154,7 +154,6 @@ class CallbackConnector:
         Return:
             A new list in which the last elements are ModelCheckpoints if there were any present in the
             input.
-            
         """
         checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
         not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
