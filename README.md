@@ -16,7 +16,7 @@ Scale your models, not the boilerplate.**
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
   <a href="#grid-ai">Grid AI</a> •
-  <a href="#licence">Licence</a>
+  <a href="#license">License</a>
 </p>
 
 <!-- DO NOT ADD CONDA DOWNLOADS... README CHANGES MUST BE APPROVED BY EDEN OR WILL -->
