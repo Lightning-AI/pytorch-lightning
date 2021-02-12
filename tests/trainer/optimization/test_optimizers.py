@@ -473,7 +473,7 @@ def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
         },
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(MisconfigurationException, match=r'The "interval" key in lr scheduler dict must be one of.*'):
+    with pytest.raises(MisconfigurationException, match=r'The "interval" key in lr scheduler dict must be'):
         trainer.fit(model)
 
 
