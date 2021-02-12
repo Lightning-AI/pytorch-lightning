@@ -167,16 +167,16 @@ class BackendConnector(object):
 
                 else:
                     raise MisconfigurationException(
-                        'You can only specify one precision and one training type plugin. '
-                        'Found more than 1 training type plugin'
+                        'You can only specify one precision and one training type plugin.'
+                        ' Found more than 1 training type plugin: {type(plug).__name__}'
                     )
             elif isinstance(plug, PrecisionPlugin):
                 if precision is None:
                     precision = plug
                 else:
                     raise MisconfigurationException(
-                        'You can only specify one precision and one training type plugin. '
-                        'Found more than 1 precision plugin'
+                        'You can only specify one precision and one training type plugin.'
+                        ' Found more than 1 precision plugin: {type(plug).__name__}'
                     )
 
             elif isinstance(plug, ClusterEnvironment):
@@ -184,13 +184,11 @@ class BackendConnector(object):
                     cluster_environment = plug
                 else:
                     raise MisconfigurationException(
-                        'You can only specify one cluster environment '
-                        'Found more than 1 cluster environment plugin'
+                        'You can only specify one cluster environment. Found more than 1 cluster environment plugin'
                     )
             else:
                 raise MisconfigurationException(
-                    f'Found invalid type for plugin {plug}. '
-                    'Expected a precision or training type plugin.'
+                    f'Found invalid type for plugin {plug}. Expected a precision or training type plugin.'
                 )
 
         self._training_type_plugin = training_type
