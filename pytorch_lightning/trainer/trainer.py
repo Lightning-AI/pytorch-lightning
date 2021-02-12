@@ -475,19 +475,27 @@ class Trainer(
         self.setup_trainer(model)
 
         # ----------------------------
+        # INSPECT THESE FOR MAIN LOOPS
+        # ----------------------------
+        # assign training and eval functions... inspect these to see the train and eval loops :)
+        self.accelerator_backend.train_loop = self.run_train
+        self.accelerator_backend.validation_loop = self.run_evaluation
+        self.accelerator_backend.test_loop = self.run_evaluation
+        self.accelerator_backend.predict_loop = self.run_predict
+
+        # ----------------------------
         # FITTING
         # ----------------------------
-
         # hook
         self.call_hook("on_fit_start")
 
-        # plugin will setup training (e.g. ddp will launch child processes)
+        # plugin will setup fitting (e.g. ddp will launch child processes)
         self.pre_dispatch()
 
         # dispath `start_training` or `start_testing` or `start_predicting`
         self.dispatch()
 
-        # plugin will setup training (e.g. ddp will launch child processes)
+        # plugin will finalized fitting (e.g. ddp_spawn will launch load trained model)
         self.post_dispatch()
 
         # ----------------------------

@@ -72,7 +72,7 @@ class Accelerator(object):
             results = self.trainer.run_predict()
         else:
             self.trainer.train_loop.setup_training()
-            results = self.trainer.train()
+            results = self.trainer.run_train()
         return results
 
     def batch_to_device(self, batch: Any, device: torch.device):
