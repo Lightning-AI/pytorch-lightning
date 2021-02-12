@@ -27,6 +27,8 @@ class DataParallelPlugin(ParallelPlugin):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
     def setup(self, model):
+        # model needs to be moved to the device before it is wrapped
+        model.to(self.root_device)
         self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)
 
     def reduce(self, output, *args, **kwargs):
@@ -66,3 +68,12 @@ class DataParallelPlugin(ParallelPlugin):
 
     def predict(self, *args, **kwargs):
         return self.model(*args, **kwargs)
+
+    def training_step_end(self, output):
+        return self.reduce(output)
+
+    def validation_step_end(self, output):
+        return self.reduce(output)
+
+    def test_step_end(self, output):
+        return self.reduce(output)

@@ -14,12 +14,13 @@
 import pytest
 from torch import optim
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel, EvalModelTemplate
+from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
 
 
 def test_lr_monitor_single_lr(tmpdir):
@@ -54,7 +55,9 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
     """
     Test that learning rates and momentum are extracted and logged for single lr scheduler.
     """
+
     class LogMomentumModel(BoringModel):
+
         def __init__(self, opt):
             super().__init__()
             self.opt = opt
@@ -94,7 +97,9 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
     """
     Test that if optimizer doesn't have momentum then a warning is raised with log_momentum=True.
     """
+
     class LogMomentumModel(BoringModel):
+
         def configure_optimizers(self):
             optimizer = optim.ASGD(self.parameters(), lr=1e-2)
             lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -151,7 +156,7 @@ def test_lr_monitor_no_logger(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         callbacks=[lr_monitor],
-        logger=False
+        logger=False,
     )
 
     with pytest.raises(MisconfigurationException, match='`Trainer` that has no logger'):
@@ -222,7 +227,9 @@ def test_lr_monitor_param_groups(tmpdir):
 
 
 def test_lr_monitor_custom_name(tmpdir):
+
     class TestModel(BoringModel):
+
         def configure_optimizers(self):
             optimizer, [scheduler] = super().configure_optimizers()
             lr_scheduler = {'scheduler': scheduler, 'name': 'my_logging_name'}

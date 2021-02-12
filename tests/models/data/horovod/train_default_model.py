@@ -21,13 +21,14 @@ import json
 import os
 import sys
 
-# this is need as e.g. Conda do not uses `PYTHONPATH` env var as pip or/and virtualenv
-from pytorch_lightning.trainer.states import TrainerState
-
-sys.path = os.getenv('PYTHONPATH').split(':') + sys.path
+# this is needed because Conda does not use `PYTHONPATH` env var while pip and virtualenv do
+PYTHONPATH = os.getenv('PYTHONPATH', '')
+if ':' in PYTHONPATH:
+    sys.path = PYTHONPATH.split(':') + sys.path
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
+from pytorch_lightning.trainer.states import TrainerState  # noqa: E402
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE  # noqa: E402
 
 if _HOROVOD_AVAILABLE:
@@ -35,9 +36,9 @@ if _HOROVOD_AVAILABLE:
 else:
     print('You requested to import Horovod which is missing or not supported for your OS.')
 
-from tests.base import EvalModelTemplate  # noqa: E402
-from tests.base.develop_pipelines import run_prediction  # noqa: E402
-from tests.base.develop_utils import reset_seed, set_random_master_port  # noqa: E402
+from tests.helpers import BoringModel  # noqa: E402
+from tests.helpers.pipelines import run_prediction  # noqa: E402
+from tests.helpers.utils import reset_seed, set_random_master_port  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--trainer-options', required=True)
@@ -52,7 +53,7 @@ def run_test_from_config(trainer_options):
     ckpt_path = trainer_options['weights_save_path']
     trainer_options.update(callbacks=[ModelCheckpoint(dirpath=ckpt_path)])
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
@@ -65,7 +66,7 @@ def run_test_from_config(trainer_options):
         return
 
     # test model loading
-    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = BoringModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()

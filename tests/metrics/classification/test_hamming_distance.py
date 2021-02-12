@@ -5,18 +5,15 @@ from sklearn.metrics import hamming_loss as sk_hamming_loss
 from pytorch_lightning.metrics import HammingDistance
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics.functional import hamming_distance
-from tests.metrics.classification.inputs import (
-    _binary_inputs,
-    _binary_prob_inputs,
-    _multiclass_inputs,
-    _multiclass_prob_inputs,
-    _multidim_multiclass_inputs,
-    _multidim_multiclass_prob_inputs,
-    _multilabel_inputs,
-    _multilabel_multidim_inputs,
-    _multilabel_multidim_prob_inputs,
-    _multilabel_prob_inputs,
-)
+from tests.metrics.classification.inputs import _input_binary, _input_binary_prob
+from tests.metrics.classification.inputs import _input_multiclass as _input_mcls
+from tests.metrics.classification.inputs import _input_multiclass_prob as _input_mcls_prob
+from tests.metrics.classification.inputs import _input_multidim_multiclass as _input_mdmc
+from tests.metrics.classification.inputs import _input_multidim_multiclass_prob as _input_mdmc_prob
+from tests.metrics.classification.inputs import _input_multilabel as _input_mlb
+from tests.metrics.classification.inputs import _input_multilabel_multidim as _input_mlmd
+from tests.metrics.classification.inputs import _input_multilabel_multidim_prob as _input_mlmd_prob
+from tests.metrics.classification.inputs import _input_multilabel_prob as _input_mlb_prob
 from tests.metrics.utils import MetricTester, THRESHOLD
 
 torch.manual_seed(42)
@@ -33,19 +30,20 @@ def _sk_hamming_loss(preds, target):
 @pytest.mark.parametrize(
     "preds, target",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target),
-        (_binary_inputs.preds, _binary_inputs.target),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target),
-        (_multilabel_inputs.preds, _multilabel_inputs.target),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target),
-        (_multiclass_inputs.preds, _multiclass_inputs.target),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target),
-        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target),
-        (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target),
+        (_input_binary_prob.preds, _input_binary_prob.target),
+        (_input_binary.preds, _input_binary.target),
+        (_input_mlb_prob.preds, _input_mlb_prob.target),
+        (_input_mlb.preds, _input_mlb.target),
+        (_input_mcls_prob.preds, _input_mcls_prob.target),
+        (_input_mcls.preds, _input_mcls.target),
+        (_input_mdmc_prob.preds, _input_mdmc_prob.target),
+        (_input_mdmc.preds, _input_mdmc.target),
+        (_input_mlmd_prob.preds, _input_mlmd_prob.target),
+        (_input_mlmd.preds, _input_mlmd.target),
     ],
 )
 class TestHammingDistance(MetricTester):
+
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [False, True])
     def test_hamming_distance_class(self, ddp, dist_sync_on_step, preds, target):
@@ -71,7 +69,7 @@ class TestHammingDistance(MetricTester):
 
 @pytest.mark.parametrize("threshold", [1.5])
 def test_wrong_params(threshold):
-    preds, target = _multiclass_prob_inputs.preds, _multiclass_prob_inputs.target
+    preds, target = _input_mcls_prob.preds, _input_mcls_prob.target
 
     with pytest.raises(ValueError):
         ham_dist = HammingDistance(threshold=threshold)

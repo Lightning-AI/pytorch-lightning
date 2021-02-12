@@ -25,14 +25,16 @@ from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_e
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
 
 
-def scale_batch_size(trainer,
-                     model: LightningModule,
-                     mode: str = 'power',
-                     steps_per_trial: int = 3,
-                     init_val: int = 2,
-                     max_trials: int = 25,
-                     batch_arg_name: str = 'batch_size',
-                     **fit_kwargs):
+def scale_batch_size(
+    trainer,
+    model: LightningModule,
+    mode: str = 'power',
+    steps_per_trial: int = 3,
+    init_val: int = 2,
+    max_trials: int = 25,
+    batch_arg_name: str = 'batch_size',
+    **fit_kwargs
+):
     r"""
     Will iteratively try to find the largest batch size for a given model
     that does not give an out of memory (OOM) error.
@@ -74,8 +76,7 @@ def scale_batch_size(trainer,
         return
 
     if not lightning_hasattr(model, batch_arg_name):
-        raise MisconfigurationException(
-            f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
+        raise MisconfigurationException(f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
     if hasattr(model, batch_arg_name) and hasattr(model, "hparams") and batch_arg_name in model.hparams:
         rank_zero_warn(
             f'Field `model.{batch_arg_name}` and `model.hparams.{batch_arg_name}` are mutually exclusive!'
@@ -84,9 +85,10 @@ def scale_batch_size(trainer,
         )
 
     if hasattr(model.train_dataloader, 'patch_loader_code'):
-        raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
-                                        ' passed directly to `.fit()`. Please disable the feature or'
-                                        ' incorporate the dataloader into the model.')
+        raise MisconfigurationException(
+            'The batch scaling feature cannot be used with dataloaders passed directly to `.fit()`.'
+            ' Please disable the feature or incorporate the dataloader into the model.'
+        )
 
     # Arguments we adjust during the batch size finder, save for restoring
     __scale_batch_dump_params(trainer)
@@ -240,11 +242,13 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
     return new_size
 
 
-def _adjust_batch_size(trainer,
-                       batch_arg_name: str = 'batch_size',
-                       factor: float = 1.0,
-                       value: Optional[int] = None,
-                       desc: Optional[str] = None) -> Tuple[int, bool]:
+def _adjust_batch_size(
+    trainer,
+    batch_arg_name: str = 'batch_size',
+    factor: float = 1.0,
+    value: Optional[int] = None,
+    desc: Optional[str] = None
+) -> Tuple[int, bool]:
     """ Helper function for adjusting the batch size.
 
     Args:

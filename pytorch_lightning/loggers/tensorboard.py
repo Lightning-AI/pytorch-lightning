@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 TensorBoard Logger
 ------------------
@@ -144,8 +143,21 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
-                        metrics: Optional[Dict[str, Any]] = None) -> None:
+    def log_hyperparams(
+        self,
+        params: Union[Dict[str, Any], Namespace],
+        metrics: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Record hyperparameters. TensorBoard logs with and without saved hyperparameters
+        are incompatible, the hyperparameters are then not displayed in the TensorBoard.
+        Please delete or move the previously saved logs to display the new ones with hyperparameters.
+
+        Args:
+            params: a dictionary-like container with the hyperparameters
+            metrics: Dictionary with metric names as keys and measured quantities as values
+        """
+
         params = self._convert_params(params)
 
         # store params to output
@@ -202,10 +214,11 @@ class TensorBoardLogger(LightningLoggerBase):
                 input_array = model.transfer_batch_to_device(input_array, model.device)
                 self.experiment.add_graph(model, input_array)
             else:
-                rank_zero_warn('Could not log computational graph since the'
-                               ' `model.example_input_array` attribute is not set'
-                               ' or `input_array` was not given',
-                               UserWarning)
+                rank_zero_warn(
+                    'Could not log computational graph since the'
+                    ' `model.example_input_array` attribute is not set'
+                    ' or `input_array` was not given', UserWarning
+                )
 
     @rank_zero_only
     def save(self) -> None:
@@ -224,6 +237,7 @@ class TensorBoardLogger(LightningLoggerBase):
     @rank_zero_only
     def finalize(self, status: str) -> None:
         self.experiment.flush()
+        self.experiment.close()
         self.save()
 
     @property

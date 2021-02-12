@@ -134,11 +134,16 @@ class DDPAccelerator(Accelerator):
                 del env_copy['PL_GLOBAL_SEED']
 
             # start process
-            # if hydra is available and initialized, make sure to set the cwd correctly
+            # if hydra is available and initialized, make sure to set the original cwd correctly
+            # and pass current cwd for ddp processes (which hydra has overridden)
             cwd: Optional[str] = None
             if _HYDRA_AVAILABLE:
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
+                    command += [
+                        f'hydra.run.dir={os.getcwd()}',
+                        f'hydra.job.name=train_ddp_process_{local_rank}'
+                    ]
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.interactive_ddp_procs.append(proc)
 
@@ -289,9 +294,6 @@ class DDPAccelerator(Accelerator):
         # allow for lr schedulers as well
         self.setup_optimizers(model)
 
-        # set model properties before going into wrapper
-        self.trainer.model_connector.copy_trainer_model_properties(model)
-
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
@@ -301,9 +303,8 @@ class DDPAccelerator(Accelerator):
         # allow user to configure ddp
         model = self.configure_ddp(model, device_ids)
 
-        # set up training routine
         self.barrier('ddp_setup')
-        self.trainer.train_loop.setup_training(model)
+        self.trainer.setup_trainer(model)
 
         # train or test
         results = self.train_or_test_or_predict()

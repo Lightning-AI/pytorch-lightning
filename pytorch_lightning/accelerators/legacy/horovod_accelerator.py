@@ -103,8 +103,7 @@ class HorovodAccelerator(Accelerator):
                 # Synchronization will be performed explicitly following backward()
                 stack.enter_context(optimizer.skip_synchronize())
 
-            # set up training routine
-            self.trainer.train_loop.setup_training(self.trainer.model)
+            self.trainer.setup_trainer(self.trainer.model)
 
             # train or test
             results = self.train_or_test_or_predict()
@@ -148,6 +147,7 @@ class HorovodAccelerator(Accelerator):
         hvd.join()
 
     def broadcast(self, obj, src=0):
+        self.barrier()
         obj = hvd.broadcast_object(obj, src)
         return obj
 

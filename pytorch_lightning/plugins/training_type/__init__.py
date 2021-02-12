@@ -12,5 +12,3 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
-from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
-from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin

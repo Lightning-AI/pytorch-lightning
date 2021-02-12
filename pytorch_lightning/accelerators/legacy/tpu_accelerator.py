@@ -13,7 +13,6 @@
 # limitations under the License.
 import io
 import os
-import re
 from typing import Any, Callable, Optional, Union
 
 import torch
@@ -31,7 +30,6 @@ from pytorch_lightning.utilities import (
     rank_zero_only,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TPU_AVAILABLE:
@@ -134,8 +132,7 @@ class TPUAccelerator(Accelerator):
         # setup TPU training
         self.__setup_tpu_training(model, trainer)
 
-        # set up training routine
-        self.trainer.train_loop.setup_training(model)
+        self.trainer.setup_trainer(model)
 
         # train or test
         results = self.train_or_test_or_predict()
@@ -308,30 +305,10 @@ class TPUAccelerator(Accelerator):
 
         return loaded_model
 
-    def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
-        if self.trainer.distributed_backend not in ("ddp_spawn", "ddp_cpu", "tpu"):
-            return
-
-        # track the best model path
-        best_model_path = None
-        if self.trainer.checkpoint_callback is not None:
-            best_model_path = self.trainer.checkpoint_callback.best_model_path
-
-        if self.trainer.global_rank == 0 and mp_queue is not None:
-            rank_zero_warn('cleaning up ddp environment...')
-            # todo, pass complete checkpoint as state dictionary
-            mp_queue.put(best_model_path)
-            mp_queue.put(results)
-
-            # save the last weights
-            last_path = None
-            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
-                state_dict = move_data_to_device(model.state_dict(), torch.device("cpu"))
-                atomic_save(state_dict, last_path)
-            mp_queue.put(last_path)
-
     def broadcast(self, obj, src=0):
+        if self.trainer.tpu_id is not None:
+            # running on a single core
+            return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())

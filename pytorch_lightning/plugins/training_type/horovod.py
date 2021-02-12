@@ -15,7 +15,7 @@ from contextlib import ExitStack
 from typing import Any, List, Optional, Union
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import _LRScheduler, Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -115,6 +115,9 @@ class HorovodPlugin(ParallelPlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         obj = hvd.broadcast_object(obj, src)
         return obj
+
+    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+        optimizer.synchronize()
 
     def model_to_device(self):
         if self.on_gpu:

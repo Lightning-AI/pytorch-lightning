@@ -18,18 +18,21 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils
-from tests.base.boring_model import BoringModel
-from tests.base.develop_utils import pl_multi_process_test
+from tests.helpers.boring_model import BoringModel
+from tests.helpers.utils import pl_multi_process_test
 
 
 @pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")
 @pl_multi_process_test
 def test_resume_training_on_cpu(tmpdir):
     """ Checks if training can be resumed from a saved checkpoint on CPU"""
-
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=8,)
+    trainer = Trainer(
+        checkpoint_callback=True,
+        max_epochs=1,
+        tpu_cores=8,
+    )
     trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path
@@ -57,7 +60,6 @@ def test_if_test_works_after_train(tmpdir):
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=8, default_root_dir=tmpdir)
+    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
-
-    assert trainer.test() == 1
+    assert trainer.test(model) == 1

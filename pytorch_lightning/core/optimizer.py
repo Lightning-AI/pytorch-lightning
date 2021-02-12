@@ -34,9 +34,8 @@ class LightningOptimizer:
     This class is used to wrap the user optimizers and handle properly
     the backward and optimizer_step logic across accelerators, AMP, accumulate_grad_batches
     """
-    def __init__(self,
-                 optimizer: Optimizer,
-                 accumulate_grad_batches: Optional[int] = None):
+
+    def __init__(self, optimizer: Optimizer, accumulate_grad_batches: Optional[int] = None):
 
         assert accumulate_grad_batches is None or isinstance(accumulate_grad_batches, int)
         if isinstance(accumulate_grad_batches, int) and accumulate_grad_batches < 1:
@@ -48,8 +47,9 @@ class LightningOptimizer:
 
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
-            self.__class__ = type("Lightning" + optimizer.__class__.__name__,
-                                  (self.__class__, optimizer.__class__.__bases__[0]), {})
+            self.__class__ = type(
+                "Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {}
+            )
             self.skip_synchronize = optimizer.skip_synchronize
             self.synchronize = optimizer.synchronize
         else:
@@ -59,6 +59,7 @@ class LightningOptimizer:
         self._trainer = None
         self._accumulate_grad_batches = accumulate_grad_batches
         self._optimizer_idx = None
+        self._total_optimizer_step_calls = 0
 
     @property
     def optimizer(self):
@@ -135,17 +136,13 @@ class LightningOptimizer:
 
         trainer.train_loop.on_before_zero_grad(optimizer)
 
-        model.optimizer_zero_grad(
-            trainer.current_epoch,
-            trainer.batch_idx,
-            optimizer,
-            self._optimizer_idx
-        )
+        model.optimizer_zero_grad(trainer.current_epoch, trainer.batch_idx, optimizer, self._optimizer_idx)
 
     def _check_make_optimizer_step(self, make_optimizer_step: Optional[bool]) -> bool:
         if make_optimizer_step is not None and self._trainer.overriden_optimizer_zero_grad:
             raise MisconfigurationException(
-                "When overriding LightningModule `optimizer_zero_grad`, make_optimizer_step is not allowed.")
+                "When overriding LightningModule `optimizer_zero_grad`, make_optimizer_step is not allowed."
+            )
 
         if self._trainer.train_loop.automatic_optimization:
             if self._trainer.overriden_optimizer_step and self._trainer.overriden_optimizer_zero_grad:
@@ -262,19 +259,14 @@ class LightningOptimizer:
 
         if make_optimizer_step:
             self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
+            self._total_optimizer_step_calls += 1
         else:
             # make sure to call optimizer_closure when accumulating
             with self._trainer.profiler.profile(f"closure_{self._optimizer_idx}"):
-                with self._trainer.train_loop.block_ddp_sync_behaviour():
+                with self._trainer.train_loop.block_ddp_sync_behaviour(True):
                     closure()
 
     def __repr__(self):
-        groups = [
-            {
-                k: round(v, 12) if isinstance(v, float) else v
-                for k, v in sorted(group.items())
-                if k != "params"
-            }
-            for group in self.param_groups
-        ]
+        groups = [{k: round(v, 12) if isinstance(v, float) else v
+                   for k, v in sorted(group.items()) if k != "params"} for group in self.param_groups]
         return f"{self.__class__.__name__}(groups={groups})"

@@ -29,6 +29,7 @@ class DebuggingConnector:
         limit_train_batches,
         limit_val_batches,
         limit_test_batches,
+        limit_predict_batches,
         val_check_interval,
         overfit_batches,
         fast_dev_run,
@@ -60,7 +61,7 @@ class DebuggingConnector:
             self.trainer.max_steps = fast_dev_run
             self.trainer.num_sanity_val_steps = 0
             self.trainer.max_epochs = 1
-            self.trainer.val_check_interval = 1.0
+            val_check_interval = 1.0
             self.trainer.check_val_every_n_epoch = 1
             self.trainer.logger = DummyLogger()
 

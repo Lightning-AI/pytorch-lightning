@@ -20,6 +20,16 @@ docker image build \
     --build-arg PYTORCH_VERSION=1.6 \
     .
 ```
+or nightly version from Coda
+```bash
+git clone <git-repository>
+docker image build \
+    -t pytorch-lightning:py3.7-pt1.8 \
+    -f dockers/base-conda/Dockerfile \
+    --build-arg PYTHON_VERSION=3.7 \
+    --build-arg PYTORCH_VERSION=1.8 \
+    .
+```
 
 To run your docker use
 

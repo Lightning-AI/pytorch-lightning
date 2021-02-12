@@ -36,9 +36,16 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
     ):
         super().__init__()
         self.parallel_devices = parallel_devices
-        self.local_rank = 0
         self.world_size = 1
+        self.local_rank = 0
         self.cluster_environment = cluster_environment
+
+    @property
+    def cluster_local_rank(self):
+        try:
+            return self.cluster_environment.local_rank()
+        except KeyError:
+            return 0
 
     @property
     @abstractmethod
@@ -100,8 +107,9 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """
-        if isinstance(self.model, (LightningDistributedDataParallel, DistributedDataParallel)):
-            yield self.model.no_sync()
+        if isinstance(self.model, DistributedDataParallel):
+            with self.model.no_sync():
+                yield None
         else:
             yield None
 
