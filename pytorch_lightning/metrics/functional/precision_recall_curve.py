@@ -160,6 +160,8 @@ def precision_recall_curve(
     Computes precision-recall pairs for different thresholds.
 
     Args:
+        preds: predictions from model (probabilities)
+        target: ground truth labels
         num_classes: integer with number of classes. Not nessesary to provide
             for binary problems.
         pos_label: integer determining the positive class. Default is ``None``

@@ -29,7 +29,7 @@ class IoU(ConfusionMatrix):
     They may be subject to conversion from input data (see description below). Note that it is different from box IoU.
 
     Works with binary, multiclass and multi-label data.
-    Accepts logits from a model output or integer class values in prediction.
+    Accepts probabilities from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
 
     Forward accepts
@@ -37,8 +37,8 @@ class IoU(ConfusionMatrix):
     - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
     - ``target`` (long tensor): ``(N, ...)``
 
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument
+    to convert into integer labels. This is the case for binary and multi-label probabilities.
 
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
@@ -51,7 +51,7 @@ class IoU(ConfusionMatrix):
             `pred` AND no instances of the class index were present in `target`. For example, if we have 3 classes,
             [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be assigned the `absent_score`.
         threshold:
-            Threshold value for binary or multi-label logits.
+            Threshold value for binary or multi-label probabilities.
         reduction: a method to reduce metric score over labels.
 
             - ``'elementwise_mean'``: takes the mean (default)
