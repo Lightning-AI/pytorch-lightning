@@ -157,7 +157,7 @@ class WandbLogger(LightningLoggerBase):
             # save checkpoints in wandb dir to upload on W&B servers
             if self._save_dir is None:
                 self._save_dir = self._experiment.dir
-            
+
             # define default x-axis (for latest wandb versions)
             if getattr(self._experiment, "define_metric", None):
                 self._experiment.define_metric('train/step')
