@@ -72,16 +72,6 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):
         assert out['test_acc'] > 0.90
 
 
-# START: test_cli ddp test
-@pytest.mark.skipif(os.getenv("PL_IN_LAUNCHER", '0') == '1', reason="test runs only in DDPLauncher")
-def internal_test_cli(tmpdir, args=None):
-    """
-    This test verify we can call function using test_cli name
-    """
-
-    return 1
-
-
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @DDPLauncher.run(
     "--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]",
