@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [unreleased.Features] - YYYY-MM-DD
+## [1.2] - YYYY-MM-DD
 
 ### Added
 
@@ -133,6 +133,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Added missing `LightningModule`-wrapper logic to new plugins and accelerator ([#5734](https://github.com/PyTorchLightning/pytorch-lightning/pull/5734))
 
 
+- Enabled `self.log` in callbacks ([#5094](https://github.com/PyTorchLightning/pytorch-lightning/pull/5094))
+
+
+- Renamed xxx_AVAILABLE as protected ([#5082](https://github.com/PyTorchLightning/pytorch-lightning/pull/5082))
+
+
+- Unified module names in Utils ([#5199](https://github.com/PyTorchLightning/pytorch-lightning/pull/5199))
+
+
+- Separated utils: imports & enums ([#5256](https://github.com/PyTorchLightning/pytorch-lightning/pull/5256))
+
+
 ### Deprecated
 
 - Function `stat_scores_multiple_classes` is deprecated in favor of `stat_scores` ([#4839](https://github.com/PyTorchLightning/pytorch-lightning/pull/4839))
@@ -145,6 +157,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated `LightningDataParallel` in favor of new wrapper module `LightningParallelModule` ([#5670](https://github.com/PyTorchLightning/pytorch-lightning/pull/5670))
+
+
+- Renamed utils modules ([#5199](https://github.com/PyTorchLightning/pytorch-lightning/pull/5199))
+    * `argparse_utils` >> `argparse`
+    * `model_utils` >> `model_helpers`
+    * `warning_utils` >> `warnings`
+    * `xla_device_utils` >> `xla_device`
 
 
 ### Removed
@@ -182,6 +201,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed support custom DataLoader with DDP if they can be re-instantiated ([#5745](https://github.com/PyTorchLightning/pytorch-lightning/pull/5745))
+
 
 
 ## [1.1.8] - 2021-02-08
