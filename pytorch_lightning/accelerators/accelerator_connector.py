@@ -168,7 +168,7 @@ class BackendConnector(object):
                 else:
                     raise MisconfigurationException(
                         'You can only specify one precision and one training type plugin.'
-                        ' Found more than 1 training type plugin: {type(plug).__name__}'
+                        f' Found more than 1 training type plugin: {type(plug).__name__}'
                     )
             elif isinstance(plug, PrecisionPlugin):
                 if precision is None:
@@ -176,7 +176,7 @@ class BackendConnector(object):
                 else:
                     raise MisconfigurationException(
                         'You can only specify one precision and one training type plugin.'
-                        ' Found more than 1 precision plugin: {type(plug).__name__}'
+                        f' Found more than 1 precision plugin: {type(plug).__name__}'
                     )
 
             elif isinstance(plug, ClusterEnvironment):
@@ -411,8 +411,8 @@ class BackendConnector(object):
             if self._precision_plugin is not None or self._training_type_plugin is not None:
                 # plugins also specified by user
                 rank_zero_warn(
-                    'Specified Precision and TrainingType Plugins will be ignored, '
-                    'since an Accelerator instance was provided'
+                    'Specified `Precision` and `TrainingType` plugins will be ignored,'
+                    ' since an `Accelerator` instance was provided.'
                 )
             return self.distributed_backend
 
