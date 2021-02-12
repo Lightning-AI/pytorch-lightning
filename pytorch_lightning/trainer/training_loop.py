@@ -552,7 +552,7 @@ class TrainLoop:
                 self.trainer.run_evaluation()
 
                 # reset stage to train
-                self.trainer._set_running_stage(RunningStage.TRAINING, model)
+                self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.get_model())
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)

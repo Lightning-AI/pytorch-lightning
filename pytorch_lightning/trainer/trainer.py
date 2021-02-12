@@ -300,6 +300,8 @@ class Trainer(
         super().__init__()
         self._running_stage = None
 
+        distributed_backend = distributed_backend or accelerator
+
         # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
@@ -480,17 +482,13 @@ class Trainer(
         self.call_hook("on_fit_start")
 
         # plugin will setup training (e.g. ddp will launch child processes)
-        # TODO: the old setup is now called "pre_training", where should this hook be called now?
-        self.training_type_plugin.pre_training()
-        self.precision_plugin.pre_training()
+        self.pre_dispatch()
 
-        # double dispatch: let the plugin initiate the training/test loop.
-        if self.testing:
-            self.training_type_plugin.start_testing(self)
-        else:
-            self.training_type_plugin.start_training(self)
+        # dispath `start_training` or `start_testing` or `start_predicting`
+        self.dispatch()
 
-        self.accelerator_backend.teardown()
+        # plugin will setup training (e.g. ddp will launch child processes)
+        self.post_dispatch()
 
         # ----------------------------
         # POST-Training CLEAN UP
@@ -512,14 +510,14 @@ class Trainer(
 
         return self.training_type_plugin.results or 1
 
-    def pre_dispath(self):
+    def pre_dispatch(self):
         self.training_type_plugin.pre_dispatch()
         self.precision_plugin.pre_dispatch()
-        self.call_setup_hook(self.lightning_module)
 
-    def post_dispath(self):
+    def post_dispatch(self):
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
+        self.accelerator_backend.teardown()
 
     def dispatch(self):
         if self.training:
@@ -535,7 +533,6 @@ class Trainer(
             raise MisconfigurationException(
                 f"Received {self._running_stage}. Please, open an issue, it shouldn't happen."
             )
-
 
     def _set_running_stage(self, stage: LightningEnum, model_ref: LightningModule):
         """
@@ -878,9 +875,7 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
-        model = model or self.get_model()
-
-        self._set_running_stage(RunningStage.TESTING, model)
+        self._set_running_stage(RunningStage.TESTING, model or self.get_model())
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -889,7 +884,7 @@ class Trainer(
             )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.data_connector.attach_datamodule(model, datamodule, 'test')
+        self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
@@ -897,7 +892,7 @@ class Trainer(
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
         self.teardown('test')
-
+        self._set_running_stage(None, model or self.get_model())
         return results
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
@@ -985,8 +980,6 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        self._set_running_stage(RunningStage.TESTING)
-
         # If you supply a datamodule you can't supply dataloaders
 
         model = model or self.get_model()
@@ -1008,6 +1001,7 @@ class Trainer(
 
         self.model = model
         results = self.fit(model)
+        self._set_running_stage(None, model)
 
         return results
 
