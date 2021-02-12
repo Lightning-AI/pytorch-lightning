@@ -21,14 +21,13 @@ import torch
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
 
 
 def test_model_saves_with_input_sample(tmpdir):
     """Test that ONNX model saves with input sample and size is greater than 3 MB"""
     model = BoringModel()
-    trainer = Trainer(max_epochs=1)
+    trainer = Trainer(fast_dev_run=True)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
@@ -42,7 +41,7 @@ def test_model_saves_with_input_sample(tmpdir):
 def test_model_saves_on_gpu(tmpdir):
     """Test that model saves on gpu"""
     model = BoringModel()
-    trainer = Trainer(gpus=1, max_epochs=1)
+    trainer = Trainer(gpus=1, fast_dev_run=True)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
@@ -55,7 +54,7 @@ def test_model_saves_on_gpu(tmpdir):
 def test_model_saves_with_example_output(tmpdir):
     """Test that ONNX model saves when provided with example output"""
     model = BoringModel()
-    trainer = Trainer(max_epochs=1)
+    trainer = Trainer(fast_dev_run=True)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
@@ -92,9 +91,10 @@ def test_model_saves_on_multi_gpu(tmpdir):
         progress_bar_refresh_rate=0,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
+    model.example_input_array = torch.randn(5, 32)
 
-    tpipes.run_model_test(trainer_options, model)
+    tpipes.run_model_test(trainer_options, model, min_acc=0.08)
 
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path)
@@ -130,7 +130,7 @@ def test_if_inference_output_is_valid(tmpdir):
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
 
-    trainer = Trainer(max_epochs=2)
+    trainer = Trainer(fast_dev_run=True)
     trainer.fit(model)
 
     model.eval()

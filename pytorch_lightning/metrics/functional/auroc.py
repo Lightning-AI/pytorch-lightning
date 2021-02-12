@@ -147,7 +147,7 @@ def auroc(
     <https://en.wikipedia.org/wiki/Receiver_operating_characteristic#Further_interpretations>`_
 
     Args:
-        preds: Predictions from model (probabilities)
+        preds: predictions from model (logits or probabilities)
         target: Ground truth labels
         num_classes: integer with number of classes. Not nessesary to provide
             for binary problems.
