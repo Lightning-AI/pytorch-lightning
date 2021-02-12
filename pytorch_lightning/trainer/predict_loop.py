@@ -31,10 +31,8 @@ class PredictLoop(object):
         model = self.trainer.get_model()
         self.trainer.reset_predict_dataloader(model)
         dataloaders = self.trainer.predict_dataloaders
-        new_max_batches = self.trainer.num_predict_batches
-
         if max_batches is None:
-            max_batches = new_max_batches
+            max_batches = self.trainer.num_predict_batches
 
         return dataloaders, max_batches
 
