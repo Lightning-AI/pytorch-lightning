@@ -13,17 +13,20 @@
 # limitations under the License.
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks.finetuning import BackboneLambdaFinetuningCallback, BaseFinetuningCallback
+from pytorch_lightning.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from pytorch_lightning.callbacks.lambda_function import LambdaCallback
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.callbacks.progress import ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks.pruning import ModelPruning
+from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining
+from pytorch_lightning.callbacks.swa import StochasticWeightAveraging
 
 __all__ = [
-    'BackboneLambdaFinetuningCallback',
-    'BaseFinetuningCallback',
+    'BackboneFinetuning',
+    'BaseFinetuning',
     'Callback',
     'EarlyStopping',
     'GPUStatsMonitor',
@@ -31,6 +34,10 @@ __all__ = [
     'LambdaCallback',
     'LearningRateMonitor',
     'ModelCheckpoint',
+    'ModelPruning',
     'ProgressBar',
     'ProgressBarBase',
+    'ModelPruning',
+    'QuantizationAwareTraining',
+    'StochasticWeightAveraging',
 ]

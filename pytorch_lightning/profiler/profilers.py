@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Profiler to check if there are any bottlenecks in your code."""
 
 import cProfile
@@ -151,17 +150,13 @@ class SimpleProfiler(BaseProfiler):
 
     def start(self, action_name: str) -> None:
         if action_name in self.current_actions:
-            raise ValueError(
-                f"Attempted to start {action_name} which has already started."
-            )
+            raise ValueError(f"Attempted to start {action_name} which has already started.")
         self.current_actions[action_name] = time.monotonic()
 
     def stop(self, action_name: str) -> None:
         end_time = time.monotonic()
         if action_name not in self.current_actions:
-            raise ValueError(
-                f"Attempting to stop recording an action ({action_name}) which was never started."
-            )
+            raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
         start_time = self.current_actions.pop(action_name)
         duration = end_time - start_time
         self.recorded_durations[action_name].append(duration)
@@ -193,10 +188,14 @@ class SimpleProfiler(BaseProfiler):
                 output_string += f"{os.linesep}{'-' * output_string_len}"
                 for action, durations, duration_per in report:
                     output_string += log_row(
-                        action, f"{np.mean(durations):.5}", f"{len(durations):}",
-                        f"{np.sum(durations):.5}", f"{duration_per:.5}"
+                        action,
+                        f"{np.mean(durations):.5}",
+                        f"{len(durations):}",
+                        f"{np.sum(durations):.5}",
+                        f"{duration_per:.5}",
                     )
         else:
+
             def log_row(action, mean, total):
                 return f"{os.linesep}{action:<20s}\t|  {mean:<15}\t|  {total:<15}"
 
@@ -204,9 +203,7 @@ class SimpleProfiler(BaseProfiler):
             output_string += f"{os.linesep}{'-' * 65}"
 
             for action, durations in self.recorded_durations.items():
-                output_string += log_row(
-                    action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}"
-                )
+                output_string += log_row(action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}")
         output_string += os.linesep
         return output_string
 
@@ -274,9 +271,7 @@ class AdvancedProfiler(BaseProfiler):
         # log to standard out
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
         for action, stats in recorded_stats.items():
-            output_string += (
-                f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
-            )
+            output_string += f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
 
         return output_string
 
@@ -296,9 +291,15 @@ class PyTorchProfiler(BaseProfiler):
 
     PROFILED_FUNCTIONS = ("training_step_and_backward", "validation_step", "test_step")
     AVAILABLE_SORT_KEYS = (
-        "cpu_time", "cuda_time", "cpu_time_total",
-        "cuda_time_total", "cpu_memory_usage", "cuda_memory_usage",
-        "self_cpu_memory_usage", "self_cuda_memory_usage", "count"
+        "cpu_time",
+        "cuda_time",
+        "cpu_time_total",
+        "cuda_time_total",
+        "cpu_memory_usage",
+        "cuda_memory_usage",
+        "self_cpu_memory_usage",
+        "self_cuda_memory_usage",
+        "count",
     )
 
     def __init__(
@@ -311,7 +312,7 @@ class PyTorchProfiler(BaseProfiler):
         group_by_input_shapes: bool = False,
         with_stack: bool = False,
         use_kineto: bool = False,
-        use_cpu: bool = False,
+        use_cpu: bool = True,
         emit_nvtx: bool = False,
         export_to_chrome: bool = False,
         path_to_export_trace: str = None,
@@ -396,11 +397,13 @@ class PyTorchProfiler(BaseProfiler):
         if export_to_chrome and path_to_export_trace is None:
             rank_zero_warn(
                 "The exported trace would be save locally as `path_to_export_trace` is empty."
-                " Note: Each functions will generate its own traced file.")
+                " Note: Each functions will generate its own traced file."
+            )
 
         if self.sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
-                f"Found sort_by_key: {sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. ")
+                f"Found sort_by_key: {sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
+            )
 
         self.profiled_actions = {}
         self.context_names = {}
@@ -460,9 +463,7 @@ class PyTorchProfiler(BaseProfiler):
 
     def _create_profiler(self, action_name, profiler, enter=True):
         init_args = inspect.signature(profiler.__init__).parameters
-        profiler_args = {
-            k: v for k, v in vars(self).items() if k in init_args
-        }
+        profiler_args = {k: v for k, v in vars(self).items() if k in init_args}
         pr = profiler(**profiler_args)
         if enter:
             pr = pr.__enter__()
@@ -472,11 +473,7 @@ class PyTorchProfiler(BaseProfiler):
         if self.profiler is None:
             return
 
-        self.profiler.__exit__(
-            exc_type=None,
-            exc_val=None,
-            exc_tb=None
-        )
+        self.profiler.__exit__(exc_type=None, exc_val=None, exc_tb=None)
 
         function_events = self.profiler.function_events
         self.profiler = None
@@ -525,18 +522,14 @@ class PyTorchProfiler(BaseProfiler):
                 return output_string
 
             else:
-                table = function_events.key_averages(
-                    group_by_input_shapes=self.group_by_input_shapes).table(
-                        sort_by=self.sort_by_key,
-                        row_limit=self.row_limit)
+                data = function_events.key_averages(group_by_input_shapes=self.group_by_input_shapes)
+                table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
                 recorded_stats[action_name] = table
 
         # log to standard out
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
         for action, stats in recorded_stats.items():
-            output_string += (
-                f"{os.linesep}Profile stats for: {action} rank: {local_rank} {os.linesep}{stats}"
-            )
+            output_string += (f"{os.linesep}Profile stats for: {action} rank: {local_rank} {os.linesep}{stats}")
 
         return output_string
 

@@ -22,6 +22,8 @@ from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
+#: define waiting time got checking TPU available in sec
+TPU_CHECK_TIMEOUT = 100
 
 
 def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
@@ -34,12 +36,13 @@ def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
 
 
 def pl_multi_process(func):
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         queue = Queue()
         proc = Process(target=inner_f, args=(queue, func, *args), kwargs=kwargs)
         proc.start()
-        proc.join(20)
+        proc.join(TPU_CHECK_TIMEOUT)
         try:
             return queue.get_nowait()
         except q.Empty:

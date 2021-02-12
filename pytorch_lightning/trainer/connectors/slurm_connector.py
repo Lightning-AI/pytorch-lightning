@@ -140,7 +140,7 @@ class SLURMConnector:
         # figure out the root node addr
         root_node = os.environ.get("SLURM_NODELIST")
         if root_node:
-            root_node = root_node.split(" ")[0]
+            root_node = root_node.split(" ")[0].split(",")[0]
         else:
             root_node = "127.0.0.1"
 
@@ -151,9 +151,5 @@ class SLURMConnector:
         torch_backend = "nccl" if self.trainer._device_type == DeviceType.GPU else "gloo"
 
         if not torch.distributed.is_initialized():
-            log.info(
-                f"initializing ddp (SLURM): GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
-            )
-            torch_distrib.init_process_group(
-                torch_backend, rank=global_rank, world_size=world_size
-            )
+            log.info(f"initializing ddp (SLURM): GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+            torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)

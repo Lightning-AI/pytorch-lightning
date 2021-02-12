@@ -26,3 +26,5 @@ Core Maintainers
 - Roger Shieh (`s-rog <https://github.com/s-rog>`_)
 - Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
 - Ananth Subramaniam (`ananthsub <https://github.com/ananthsub>`_)
+- Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
+- Sean Narenthiran (`SeanNaren <https://github.com/SeanNaren>`_)

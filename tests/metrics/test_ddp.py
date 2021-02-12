@@ -43,13 +43,14 @@ def _test_ddp_sum_cat(rank, worldsize):
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 @pytest.mark.parametrize("process", [_test_ddp_cat, _test_ddp_sum, _test_ddp_sum_cat])
 def test_ddp(process):
-    torch.multiprocessing.spawn(process, args=(2,), nprocs=2)
+    torch.multiprocessing.spawn(process, args=(2, ), nprocs=2)
 
 
 def _test_non_contiguous_tensors(rank, worldsize):
     setup_ddp(rank, worldsize)
 
     class DummyMetric(Metric):
+
         def __init__(self):
             super().__init__()
             self.add_state("x", default=[], dist_reduce_fx=None)
@@ -68,4 +69,4 @@ def _test_non_contiguous_tensors(rank, worldsize):
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_non_contiguous_tensors():
     """ Test that gather_all operation works for non contiguous tensors """
-    torch.multiprocessing.spawn(_test_non_contiguous_tensors, args=(2,), nprocs=2)
+    torch.multiprocessing.spawn(_test_non_contiguous_tensors, args=(2, ), nprocs=2)

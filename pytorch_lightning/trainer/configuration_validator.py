@@ -52,7 +52,7 @@ class ConfigValidator(object):
         # verify model has a train dataloader
         # -----------------------------------
         has_train_dataloader = is_overridden('train_dataloader', model)
-        if not has_train_dataloader:
+        if not has_train_dataloader and not self.trainer._predicting:
             raise MisconfigurationException(
                 'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
                 ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
@@ -62,7 +62,7 @@ class ConfigValidator(object):
         # verify model has optimizer
         # -----------------------------------
         has_optimizers = is_overridden('configure_optimizers', model)
-        if not has_optimizers:
+        if not has_optimizers and not self.trainer._predicting:
             raise MisconfigurationException(
                 'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
                 ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
@@ -95,10 +95,6 @@ class ConfigValidator(object):
         has_step = is_overridden(step_name, model)
 
         if has_loader and not has_step:
-            rank_zero_warn(
-                f'you passed in a {loader_name} but have no {step_name}. Skipping {eval_loop_name} loop'
-            )
+            rank_zero_warn(f'you passed in a {loader_name} but have no {step_name}. Skipping {eval_loop_name} loop')
         if has_step and not has_loader:
-            rank_zero_warn(
-                f'you defined a {step_name} but have no {loader_name}. Skipping {eval_loop_name} loop'
-            )
+            rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {eval_loop_name} loop')

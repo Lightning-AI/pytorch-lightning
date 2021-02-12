@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 CSV logger
 ----------
@@ -67,6 +66,7 @@ class ExperimentWriter(object):
 
     def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
         """Record metrics"""
+
         def _handle_value(value):
             if isinstance(value, torch.Tensor):
                 return value.item()

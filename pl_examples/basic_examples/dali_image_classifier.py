@@ -29,7 +29,7 @@ if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
     from torchvision.datasets.mnist import MNIST
 else:
-    from tests.base.datasets import MNIST
+    from tests.helpers.datasets import MNIST
 
 if _DALI_AVAILABLE:
     from nvidia.dali import __version__ as dali_version
@@ -95,22 +95,30 @@ class DALIClassificationLoader(DALIClassificationIterator):
     """
 
     def __init__(
-            self,
-            pipelines,
-            size=-1,
-            reader_name=None,
-            auto_reset=False,
-            fill_last_batch=True,
-            dynamic_shape=False,
-            last_batch_padded=False,
+        self,
+        pipelines,
+        size=-1,
+        reader_name=None,
+        auto_reset=False,
+        fill_last_batch=True,
+        dynamic_shape=False,
+        last_batch_padded=False,
     ):
         if NEW_DALI_API:
             last_batch_policy = LastBatchPolicy.FILL if fill_last_batch else LastBatchPolicy.DROP
-            super().__init__(pipelines, size, reader_name, auto_reset, dynamic_shape,
-                             last_batch_policy=last_batch_policy, last_batch_padded=last_batch_padded)
+            super().__init__(
+                pipelines,
+                size,
+                reader_name,
+                auto_reset,
+                dynamic_shape,
+                last_batch_policy=last_batch_policy,
+                last_batch_padded=last_batch_padded
+            )
         else:
-            super().__init__(pipelines, size, reader_name, auto_reset, fill_last_batch,
-                             dynamic_shape, last_batch_padded)
+            super().__init__(
+                pipelines, size, reader_name, auto_reset, fill_last_batch, dynamic_shape, last_batch_padded
+            )
         self._fill_last_batch = fill_last_batch
 
     def __len__(self):
@@ -120,6 +128,7 @@ class DALIClassificationLoader(DALIClassificationIterator):
 
 
 class LitClassifier(pl.LightningModule):
+
     def __init__(self, hidden_dim=128, learning_rate=1e-3):
         super().__init__()
         self.save_hyperparameters()

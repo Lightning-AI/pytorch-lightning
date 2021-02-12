@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 
 LightningShardedDataParallel = None
@@ -23,10 +24,18 @@ if _FAIRSCALE_AVAILABLE:
             if self.enable_broadcast_buffers:
                 self.sync_buffers()
 
-            if self.module.training:
+            running_stage = self.module.running_stage
+
+            if running_stage == RunningStage.TRAINING:
                 outputs = self.module.training_step(*inputs, **kwargs)
-            elif self.module.testing:
+
+            elif running_stage == RunningStage.TESTING:
                 outputs = self.module.test_step(*inputs, **kwargs)
-            else:
+
+            elif running_stage == RunningStage.EVALUATING:
                 outputs = self.module.validation_step(*inputs, **kwargs)
+
+            else:
+                outputs = self.module.predict(*inputs, **kwargs)
+
             return outputs

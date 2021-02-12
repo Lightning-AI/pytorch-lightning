@@ -24,15 +24,15 @@ def _explained_variance_update(preds: torch.Tensor, target: torch.Tensor) -> Tup
 
 
 def _explained_variance_compute(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        multioutput: str = 'uniform_average',
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    multioutput: str = 'uniform_average',
 ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
     diff_avg = torch.mean(target - preds, dim=0)
-    numerator = torch.mean((target - preds - diff_avg) ** 2, dim=0)
+    numerator = torch.mean((target - preds - diff_avg)**2, dim=0)
 
     target_avg = torch.mean(target, dim=0)
-    denominator = torch.mean((target - target_avg) ** 2, dim=0)
+    denominator = torch.mean((target - target_avg)**2, dim=0)
 
     # Take care of division by zero
     nonzero_numerator = numerator != 0
@@ -54,9 +54,9 @@ def _explained_variance_compute(
 
 
 def explained_variance(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        multioutput: str = 'uniform_average',
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    multioutput: str = 'uniform_average',
 ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
     """
     Computes explained variance.

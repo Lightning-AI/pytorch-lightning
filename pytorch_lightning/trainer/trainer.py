@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Trainer to automate the training."""
 
-import os
 import warnings
+from itertools import count
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
 
@@ -23,14 +22,14 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
+from pytorch_lightning.accelerators.legacy.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.plugins.plugin_connector import PluginConnector
+from pytorch_lightning.plugins.legacy.plugin_connector import PluginConnector
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -57,7 +56,7 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities import AMPType, DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -66,7 +65,8 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
-    'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
+    'ignore', message='torch.distributed.reduce_op is deprecated, '
+    'please use torch.distributed.ReduceOp instead'
 )
 
 
@@ -80,6 +80,7 @@ class Trainer(
     TrainerDataLoadingMixin,
     DeprecatedDistDeviceAttributes,
 ):
+
     @overwrite_by_env_vars
     def __init__(
         self,
@@ -101,8 +102,8 @@ class Trainer(
         check_val_every_n_epoch: int = 1,
         fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
-        max_epochs: int = 1000,
-        min_epochs: int = 1,
+        max_epochs: Optional[int] = None,
+        min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
         min_steps: Optional[int] = None,
         limit_train_batches: Union[int, float] = 1.0,
@@ -231,9 +232,11 @@ class Trainer(
 
             precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
-            max_epochs: Stop training once this number of epochs is reached.
+            max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
+                If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
 
-            min_epochs: Force training for at least these many epochs
+            min_epochs: Force training for at least these many epochs. Disabled by default (None).
+                If both min_epochs and min_steps are not specified, defaults to ``min_epochs`` = 1.
 
             max_steps: Stop training after this number of steps. Disabled by default (None).
 
@@ -297,6 +300,7 @@ class Trainer(
         self._device_type = DeviceType.CPU
         self._distrib_type = None
         self._running_stage = None
+        self._predicting = False
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -420,6 +424,46 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
+    def setup_trainer(self, model: LightningModule):
+        """
+        Sanity check a few things before starting actual training or testing.
+
+        Args:
+            model: The model to run sanity test on.
+        """
+        # --------------------------
+        # Setup??
+        # --------------------------
+        ref_model = self.get_model()
+
+        # set the ranks and devices
+        self.accelerator_backend.dist.rank = self.global_rank
+        self.accelerator_backend.dist.device = ref_model.device
+
+        # set local properties on the model
+        self.model_connector.copy_trainer_model_properties(model)
+
+        # init amp. Must be done here instead of __init__ to allow ddp to work
+        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and self._device_type != DeviceType.TPU:
+            self.scaler = self.precision_connector.backend.scaler
+
+        # log hyper-parameters
+        if self.logger is not None:
+            # save exp to get started (this is where the first experiment logs are written)
+            self.logger.log_hyperparams(ref_model.hparams_initial)
+            self.logger.log_graph(ref_model)
+            self.logger.save()
+
+        # wait for all to join if on distributed
+        self.accelerator_backend.barrier("setup_trainer")
+
+        # register auto-resubmit when on SLURM
+        self.slurm_connector.register_slurm_signal_handlers()
+
+        # track model now.
+        # if cluster resets state, the model will update with the saved weights
+        self.model = model
+
     def fit(
         self,
         model: LightningModule,
@@ -444,6 +488,7 @@ class Trainer(
         """
         # bookkeeping
         self._state = TrainerState.RUNNING
+        self._set_wide_running_stage(RunningStage.TRAINING)
 
         # ----------------------------
         # LINK DATA
@@ -453,10 +498,6 @@ class Trainer(
 
         # hook
         self.data_connector.prepare_data(model)
-
-        # bookkeeping
-        # we reuse fit in .test() but change its behavior using this flag
-        self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
 
         # ----------------------------
         # SET UP TRAINING
@@ -478,7 +519,6 @@ class Trainer(
         # ----------------------------
         # hook
         self.call_hook('on_fit_start')
-
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
 
@@ -498,13 +538,39 @@ class Trainer(
 
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
+
+        self._set_wide_running_stage(None)
+
         return results or 1
+
+    def _set_wide_running_stage(self, stage):
+        model_ref = self.get_model()
+
+        if stage is None:
+            self._running_stage = stage
+            model_ref.running_stage = stage
+            return
+
+        # todo: clean up this routing mess.
+        if self._running_stage == RunningStage.TESTING:
+            stage = RunningStage.TESTING
+
+        # WARNING: With predicting,
+        # trainer _running_state should be RunningStage.TESTING
+        # however, the model running_stage should be RunningStage.PREDICTING or None
+        if model_ref is not None:
+            if self._predicting:
+                model_ref.running_stage = RunningStage.PREDICTING
+            else:
+                model_ref.running_stage = stage
+
+        self._running_stage = stage
 
     def train(self):
         self.run_sanity_check(self.get_model())
 
         # set stage for logging
-        self.logger_connector.set_stage("train")
+        self._set_wide_running_stage(RunningStage.TRAINING)
 
         self.checkpoint_connector.has_trained = False
 
@@ -523,7 +589,8 @@ class Trainer(
             if self.train_loop.should_skip_training():
                 return
             # run all epochs
-            for epoch in range(self.current_epoch, self.max_epochs):
+            epochs = range(self.current_epoch, self.max_epochs) if self.max_epochs else count(self.current_epoch)
+            for epoch in epochs:
 
                 # hook
                 self.train_loop.on_train_epoch_start(epoch)
@@ -535,11 +602,8 @@ class Trainer(
                 if self.max_steps and self.max_steps <= self.global_step:
                     return
 
-                # update LR schedulers
-                self.optimizer_connector.update_learning_rates(interval='epoch')
-
                 # early stopping
-                met_min_epochs = epoch >= self.min_epochs - 1
+                met_min_epochs = (epoch >= self.min_epochs - 1) if self.min_epochs else True
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
@@ -563,19 +627,20 @@ class Trainer(
             # hook
             self.train_loop.on_train_end()
 
-    def run_evaluation(self, test_mode: bool = False, max_batches=None):
+    def run_evaluation(self, max_batches=None, on_epoch=False):
 
         # used to know if we are logging for val, test + reset cached results
-        self.logger_connector.set_stage(test_mode, reset=True)
+        self._set_wide_running_stage(RunningStage.TESTING if self.testing else RunningStage.EVALUATING)
+        self.logger_connector.reset()
 
         # bookkeeping
-        self.evaluation_loop.testing = test_mode
+        self.evaluation_loop.testing = self.testing
 
         # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
 
         # check if we want to skip this evaluation
-        if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
+        if self.evaluation_loop.should_skip_evaluation(max_batches):
             return [], []
 
         # ref model
@@ -615,7 +680,9 @@ class Trainer(
 
                 # lightning module methods
                 with self.profiler.profile("evaluation_step_and_end"):
-                    output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                    output = self.evaluation_loop.evaluation_step(batch, batch_idx, dataloader_idx)
+                    if self._predicting:
+                        continue
                     output = self.evaluation_loop.evaluation_step_end(output)
 
                 # hook + store predictions
@@ -630,11 +697,18 @@ class Trainer(
             # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
 
+        if self._predicting:
+            return self.evaluation_loop.on_predict_epoch_end()
+
         # lightning module method
         deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
+
+        # update epoch-level lr_schedulers
+        if on_epoch:
+            self.optimizer_connector.update_learning_rates(interval='epoch')
 
         # hook
         self.evaluation_loop.on_evaluation_end()
@@ -668,7 +742,7 @@ class Trainer(
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
         with self.profiler.profile("run_test_evaluation"):
-            eval_loop_results, _ = self.run_evaluation(test_mode=True)
+            eval_loop_results, _ = self.run_evaluation()
 
         if len(eval_loop_results) == 0:
             return 1
@@ -699,7 +773,7 @@ class Trainer(
             self.on_sanity_check_start()
 
             # run eval step
-            _, eval_results = self.run_evaluation(test_mode=False, max_batches=self.num_sanity_val_batches)
+            _, eval_results = self.run_evaluation(max_batches=self.num_sanity_val_batches)
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
@@ -739,14 +813,14 @@ class Trainer(
             verbose: If True, prints the test results
 
         Returns:
-            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
+            Returns a list of dictionaries, one for each test dataloader containing their respective metrics.
         """
         # --------------------
         # SETUP HOOK
         # --------------------
         self.verbose_test = verbose
 
-        self.logger_connector.set_stage("test")
+        self._set_wide_running_stage(RunningStage.TESTING)
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -763,6 +837,8 @@ class Trainer(
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
         self.teardown('test')
+
+        self._set_wide_running_stage(None)
 
         return results
 
@@ -799,12 +875,8 @@ class Trainer(
 
         # run tests
         self.tested_ckpt_path = ckpt_path
-        self.testing = True
-        os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
         results = self.fit(model)
-        self.testing = False
-        del os.environ['PL_TESTING_MODE']
 
         # teardown
         if self.is_function_implemented('teardown'):
@@ -821,14 +893,71 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        self.testing = True
         self.model = model
         results = self.fit(model)
-        self.testing = False
 
         # teardown
         if self.is_function_implemented('teardown'):
             model.teardown('test')
+
+        return results
+
+    def predict(
+        self,
+        model: Optional[LightningModule] = None,
+        dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional[LightningDataModule] = None,
+    ):
+        r"""
+
+        Separates from fit to make sure you never run on your predictions set until you want to.
+
+        This will call the model forward function to compute predictions.
+
+        Args:
+            model: The model to predict on.
+
+            dataloaders: Either a single
+                Pytorch Dataloader or a list of them, specifying inference samples.
+
+            datamodule: A instance of :class:`LightningDataModule`.
+
+        Returns:
+            Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
+        """
+
+        # --------------------
+        # SETUP HOOK
+        # --------------------
+        self._set_wide_running_stage(RunningStage.TESTING)
+
+        # If you supply a datamodule you can't supply dataloaders
+        if dataloaders and datamodule:
+            raise MisconfigurationException(
+                'You cannot pass dataloaders to trainer.predict if you supply a datamodule.'
+            )
+
+        if model is None:
+            raise MisconfigurationException('You need to pass a model to `trainer.predict`.')
+
+        if datamodule is not None:
+            # Attach datamodule to get setup/prepare_data added to model before the call to it below
+            self.data_connector.attach_datamodule(model, datamodule, 'test')
+
+        # attach data
+        if dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
+
+        # set path variable
+        self._predicting = True
+        self.model = model
+
+        results = self.fit(model)
+
+        # unset path variable
+        self.teardown('test')
+        self._predicting = False
+        self._set_wide_running_stage(None)
 
         return results
 
@@ -902,7 +1031,7 @@ class Trainer(
                 hook_fx = getattr(model_ref, hook_name)
                 output = hook_fx(*args, **kwargs)
 
-            # if the PL module doesn't have the hook then call the accelator
+            # if the PL module doesn't have the hook then call the accelerator
             # used to auto-reduce things for the user with Results obj
             elif hasattr(self.accelerator_backend, hook_name):
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)

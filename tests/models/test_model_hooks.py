@@ -14,7 +14,7 @@
 from unittest import mock
 
 from pytorch_lightning import Trainer
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 @mock.patch('pytorch_lightning.core.hooks.ModelHooks.on_validation_model_eval')

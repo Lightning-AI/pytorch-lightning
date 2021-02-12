@@ -25,8 +25,9 @@ def _gaussian(kernel_size: int, sigma: int, dtype: torch.dtype, device: torch.de
     return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
 
 
-def _gaussian_kernel(channel: int, kernel_size: Sequence[int], sigma: Sequence[float],
-                     dtype: torch.dtype, device: torch.device):
+def _gaussian_kernel(
+    channel: int, kernel_size: Sequence[int], sigma: Sequence[float], dtype: torch.dtype, device: torch.device
+):
     gaussian_kernel_x = _gaussian(kernel_size[0], sigma[0], dtype, device)
     gaussian_kernel_y = _gaussian(kernel_size[1], sigma[1], dtype, device)
     kernel = torch.matmul(gaussian_kernel_x.t(), gaussian_kernel_y)  # (kernel_size, 1) * (1, kernel_size)
@@ -92,7 +93,7 @@ def _ssim_compute(
 
     input_list = torch.cat((preds, target, preds * preds, target * target, preds * target))  # (5 * B, C, H, W)
     outputs = F.conv2d(input_list, kernel, groups=channel)
-    output_list = [outputs[x * preds.size(0): (x + 1) * preds.size(0)] for x in range(len(outputs))]
+    output_list = [outputs[x * preds.size(0):(x + 1) * preds.size(0)] for x in range(len(outputs))]
 
     mu_pred_sq = output_list[0].pow(2)
     mu_target_sq = output_list[1].pow(2)

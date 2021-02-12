@@ -28,6 +28,12 @@ repos:
       - id: isort
         args: [--settings-path, ./pyproject.toml]
 
+  - repo: https://github.com/pre-commit/mirrors-yapf
+    rev: v0.30.0
+    hooks:
+      - id: yapf
+        args: [--parallel, --in-place]
+
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.790
     hooks:

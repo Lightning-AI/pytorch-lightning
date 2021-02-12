@@ -18,13 +18,16 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
+import torch.nn.functional as F
 
 from pytorch_lightning import LightningDataModule, Trainer
-from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
+from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import BoringDataModule, BoringModel
-from tests.base.develop_utils import reset_seed
+from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.utils import reset_seed, set_random_master_port
 
 
 def test_can_prepare_data(tmpdir):
@@ -86,6 +89,7 @@ def test_hooks_no_recursion_error(tmpdir):
     # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
     # See https://github.com/PyTorchLightning/pytorch-lightning/issues/3652
     class DummyDM(LightningDataModule):
+
         def setup(self, *args, **kwargs):
             pass
 
@@ -189,8 +193,8 @@ def test_dm_pickle_after_init(tmpdir):
 def test_train_loop_only(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     model.validation_step = None
     model.validation_step_end = None
@@ -206,18 +210,17 @@ def test_train_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
-    # TODO: add end-to-end test
-    # assert trainer.callback_metrics['loss'] < 0.6
+    assert trainer.callback_metrics['train_loss'] < 1.0
 
 
 def test_train_val_loop_only(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     model.validation_step = None
     model.validation_step_end = None
@@ -230,21 +233,23 @@ def test_train_val_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
-    # TODO: add end-to-end test
-    # assert trainer.callback_metrics['train_loss'] < 0.6
+    assert trainer.callback_metrics['train_loss'] < 1.0
 
 
 def test_dm_checkpoint_save(tmpdir):
+
     class CustomBoringModel(BoringModel):
+
         def validation_step(self, batch, batch_idx):
             out = super().validation_step(batch, batch_idx)
             self.log('early_stop_on', out['x'])
             return out
 
     class CustomBoringDataModule(BoringDataModule):
+
         def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
             checkpoint[self.__class__.__name__] = self.__class__.__name__
 
@@ -290,8 +295,8 @@ def test_test_loop_only(tmpdir):
 def test_full_loop(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -307,8 +312,7 @@ def test_full_loop(tmpdir):
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 def test_trainer_attached_to_dm(tmpdir):
@@ -342,8 +346,8 @@ def test_trainer_attached_to_dm(tmpdir):
 def test_full_loop_single_gpu(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -360,16 +364,37 @@ def test_full_loop_single_gpu(tmpdir):
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_full_loop_dp(tmpdir):
-    reset_seed()
+    set_random_master_port()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    class CustomClassificationModelDP(ClassificationModel):
+
+        def _step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            return {'logits': logits, 'y': y}
+
+        def training_step(self, batch, batch_idx):
+            _, y = batch
+            out = self._step(batch, batch_idx)
+            loss = F.cross_entropy(out['logits'], y)
+            return loss
+
+        def validation_step(self, batch, batch_idx):
+            return self._step(batch, batch_idx)
+
+        def test_step(self, batch, batch_idx):
+            return self._step(batch, batch_idx)
+
+        def test_step_end(self, outputs):
+            self.log('test_acc', self.test_acc(outputs['logits'], outputs['y']))
+
+    dm = ClassifDataModule()
+    model = CustomClassificationModelDP()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -381,19 +406,20 @@ def test_full_loop_dp(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_dm_transfer_batch_to_device(tmpdir):
+
     class CustomBatch:
+
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
@@ -429,7 +455,9 @@ def test_dm_transfer_batch_to_device(tmpdir):
 def test_dm_reload_dataloaders_every_epoch(tmpdir):
     """Test datamodule, where trainer argument
     reload_dataloaders_every_epoch is set to True/False"""
+
     class CustomBoringDataModule(BoringDataModule):
+
         def __init__(self):
             super().__init__()
             self._epochs_called_for = []
@@ -455,5 +483,38 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
         limit_train_batches=0.01,
         reload_dataloaders_every_epoch=True,
     )
-    results = trainer.fit(model, dm)
-    assert results
+    trainer.fit(model, dm)
+
+
+class DummyDS(torch.utils.data.Dataset):
+
+    def __getitem__(self, index):
+        return 1
+
+    def __len__(self):
+        return 100
+
+
+def test_dm_init_from_datasets(tmpdir):
+
+    train_ds = DummyDS()
+    valid_ds = DummyDS()
+    test_ds = DummyDS()
+
+    valid_dss = [DummyDS(), DummyDS()]
+    test_dss = [DummyDS(), DummyDS()]
+
+    dm = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.train_dataloader())) == torch.ones(4))
+    assert dm.val_dataloader() is None
+    assert dm.test_dataloader() is None
+
+    dm = LightningDataModule.from_datasets(train_ds, valid_ds, test_ds, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.val_dataloader())) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader())) == torch.ones(4))
+
+    dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.val_dataloader()[0])) == torch.ones(4))
+    assert torch.all(next(iter(dm.val_dataloader()[1])) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader()[0])) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader()[1])) == torch.ones(4))

@@ -18,20 +18,8 @@ from typing import List
 
 from pytorch_lightning import __homepage__, __version__, _PROJECT_ROOT
 
-_PATH_BADGES = os.path.join('.', 'docs', 'source', '_images', 'badges')
-# badge to download
-_DEFAULT_BADGES = [
-    'Conda',
-    'DockerHub',
-    'codecov',
-    'ReadTheDocs',
-    'Slack',
-    'Discourse status',
-    'license',
-]
 
-
-def _load_requirements(path_dir: str , file_name: str = 'requirements.txt', comment_char: str = '#') -> List[str]:
+def _load_requirements(path_dir: str, file_name: str = 'requirements.txt', comment_char: str = '#') -> List[str]:
     """Load requirements from a file
 
     >>> _load_requirements(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
@@ -62,18 +50,17 @@ def _load_readme_description(path_dir: str, homepage: str = __homepage__, versio
     text = open(path_readme, encoding="utf-8").read()
 
     # drop images from readme
-    text = text.replace('![PT to PL](docs/source/_images/general/pl_quick_start_full_compressed.gif)', '')
+    text = text.replace('![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)', '')
 
-    # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
+    # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_static/images/lightning_module/pt_to_pl.png
     github_source_url = os.path.join(homepage, "raw", version)
     # replace relative repository path to absolute link to the release
     #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
-    text = text.replace("docs/source/_images/", f"{os.path.join(github_source_url, 'docs/source/_images/')}")
+    text = text.replace("docs/source/_static/", f"{os.path.join(github_source_url, 'docs/source/_static/')}")
 
     # readthedocs badge
     text = text.replace('badge/?version=stable', f'badge/?version={version}')
-    text = text.replace('pytorch-lightning.readthedocs.io/en/stable/',
-                        f'pytorch-lightning.readthedocs.io/en/{version}')
+    text = text.replace('pytorch-lightning.readthedocs.io/en/stable/', f'pytorch-lightning.readthedocs.io/en/{version}')
     # codecov badge
     text = text.replace('/branch/master/graph/badge.svg', f'/release/{version}/graph/badge.svg')
     # replace github badges for release ones
