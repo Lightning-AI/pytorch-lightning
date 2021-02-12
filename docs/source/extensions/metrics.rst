@@ -269,9 +269,9 @@ Internal implementation details
 -------------------------------
 
 This section briefly describe how metrics work internally. We encourage looking at the source code for more info.
-Internally, Lightning wraps the user defined ``update()`` and ``compute()`` method. We do this to among other to
-automatically perform sync and reduce metric states across multiple devices. More precisely, calling ``update()`` does
-the following internally:
+Internally, Lightning wraps the user defined ``update()`` and ``compute()`` method. We do this to automatically
+synchronize and reduce metric states across multiple devices. More precisely, calling ``update()`` does the
+following internally:
 
 1. Clears computed cache
 2. Calls user-defined ``update()``
