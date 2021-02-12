@@ -77,7 +77,8 @@ def test_none_length_cycle_iterator():
         ([list(range(10)), list(range(20))]),
         ([range(10), range(20)]),
         ([torch.randn(10, 3, 2), torch.randn(20, 5, 6)]),
-        ([TensorDataset(torch.randn(10, 3, 2)), TensorDataset(torch.randn(20, 5, 6))]),
+        ([TensorDataset(torch.randn(10, 3, 2)),
+          TensorDataset(torch.randn(20, 5, 6))]),
     ],
 )
 def test_combined_dataset(dataset_1, dataset_2):
@@ -208,12 +209,28 @@ def test_combined_loader_sequence_max_size_cycle():
     [
         ([*range(10), list(range(1, 20))], min, 0),
         ([*range(10), list(range(1, 20))], max, 19),
-        ([*range(10), {str(i): i for i in range(1, 20)}], min, 0),
-        ([*range(10), {str(i): i for i in range(1, 20)}], max, 19),
-        ({**{str(i): i for i in range(10)}, "nested": {str(i): i for i in range(1, 20)}}, min, 0),
-        ({**{str(i): i for i in range(10)}, "nested": {str(i): i for i in range(1, 20)}}, max, 19),
-        ({**{str(i): i for i in range(10)}, "nested": list(range(20))}, min, 0),
-        ({**{str(i): i for i in range(10)}, "nested": list(range(20))}, max, 19),
+        ([*range(10), {str(i): i
+                       for i in range(1, 20)}], min, 0),
+        ([*range(10), {str(i): i
+                       for i in range(1, 20)}], max, 19),
+        ({
+            **{str(i): i
+               for i in range(10)}, "nested": {str(i): i
+                                               for i in range(1, 20)}
+        }, min, 0),
+        ({
+            **{str(i): i
+               for i in range(10)}, "nested": {str(i): i
+                                               for i in range(1, 20)}
+        }, max, 19),
+        ({
+            **{str(i): i
+               for i in range(10)}, "nested": list(range(20))
+        }, min, 0),
+        ({
+            **{str(i): i
+               for i in range(10)}, "nested": list(range(20))
+        }, max, 19),
     ],
 )
 def test_nested_calc_num_data(input_data, compute_func, expected_length):

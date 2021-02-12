@@ -14,7 +14,6 @@
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
-from typing import Union, Any, List, Optional, Tuple, MutableSequence
 
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

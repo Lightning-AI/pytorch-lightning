@@ -20,7 +20,7 @@ import torch
 from tqdm import tqdm
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from tests.base.models import ParityModuleMNIST, ParityModuleRNN
+from tests.helpers.advanced_models import ParityModuleMNIST, ParityModuleRNN
 
 
 def assert_parity_relative(pl_values, pt_values, norm_by: float = 1, max_diff: float = 0.1):

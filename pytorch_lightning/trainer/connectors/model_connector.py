@@ -42,6 +42,6 @@ class ModelConnector:
         return self._get_reference_model(self.trainer.model)
 
     def _get_reference_model(self, model):
-        if self.trainer.accelerator_backend:
+        if self.trainer.accelerator_backend and self.trainer.accelerator_backend.lightning_module:
             return self.trainer.accelerator_backend.lightning_module
         return model

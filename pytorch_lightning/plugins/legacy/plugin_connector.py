@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from enum import Enum
-from typing import List, Optional, Union, Sequence
+from typing import List, Optional, Union
 
-from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.plugins.legacy.apex import ApexPlugin
 from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
@@ -27,22 +26,22 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class PluginConnector:
 
-    def __init__(self, trainer, plugins: Optional[Union[str, list]] = None):
+    def __init__(self, trainer):
         self.trainer = trainer
-        self.plugins = plugins or []
+        self.plugins = []
+        self.ddp_plugin = DDPPlugin()
         self.cloud_environment = None
-        # self.ddp_plugin = DDPPlugin()
+
+    def on_trainer_init(self, plugins: Optional[Union[str, list]]):
+        self.plugins = plugins
+        if self.plugins is None:
+            self.plugins = []
         self.plugins = self._convert_str_custom_plugins(self.plugins)
-
-        # TODO: plugin dependencies
-        # self.plugins = self._append_required_plugins(self.plugins)
-
+        self.plugins = self._append_required_plugins(self.plugins)
+        self.__attach_ddp()
         self.__attach_cluster()
-
-        # TODO: attach custom training type and precision plugins
-        # self.__attach_ddp()
-        # self.__attach_amp()
-        # self.__attach_apex()
+        self.__attach_amp()
+        self.__attach_apex()
 
     def __attach_amp(self):
         amp_plugin = self.__attach_plugin(NativeAMPPlugin)

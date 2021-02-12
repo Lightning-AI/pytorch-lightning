@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""
 
 Learning Rate Monitor
@@ -63,11 +62,10 @@ class LearningRateMonitor(Callback):
             return [optimizer], [lr_scheduler]
 
     """
+
     def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False):
         if logging_interval not in (None, 'step', 'epoch'):
-            raise MisconfigurationException(
-                'logging_interval should be `step` or `epoch` or `None`.'
-            )
+            raise MisconfigurationException('logging_interval should be `step` or `epoch` or `None`.')
 
         self.logging_interval = logging_interval
         self.log_momentum = log_momentum
@@ -93,10 +91,9 @@ class LearningRateMonitor(Callback):
             )
 
         if self.log_momentum:
+
             def _check_no_key(key):
-                return any(
-                    key not in sch['scheduler'].optimizer.defaults for sch in trainer.lr_schedulers
-                )
+                return any(key not in sch['scheduler'].optimizer.defaults for sch in trainer.lr_schedulers)
 
             if _check_no_key('momentum') and _check_no_key('betas'):
                 rank_zero_warn(
@@ -197,9 +194,6 @@ class LearningRateMonitor(Callback):
 
     @staticmethod
     def _should_log(trainer) -> bool:
-        should_log = (
-            (trainer.global_step + 1) % trainer.log_every_n_steps == 0
-            or trainer.should_stop
-        )
+        should_log = ((trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop)
 
         return should_log

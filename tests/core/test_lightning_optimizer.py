@@ -14,20 +14,21 @@
 from unittest.mock import patch
 
 import torch
-from torch.optim import Adam
-from torch.optim import Optimizer
+from torch.optim import Adam, Optimizer
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 def test_lightning_optimizer(tmpdir):
     """
     Test that optimizer are correctly wrapped by our LightningOptimizer
     """
+
     class TestModel(BoringModel):
+
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -54,6 +55,7 @@ def test_lightning_optimizer_from_user(tmpdir):
     """
 
     class TestModel(BoringModel):
+
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.layer.parameters(), lr=0.1)
             optimizer = LightningOptimizer(optimizer)
@@ -81,7 +83,12 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
     """
     Test that the user can use our LightningOptimizer. Not recommended for now.
     """
+
     class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx, optimizer_idx=None):
             (opt_1, opt_2) = self.optimizers()
@@ -91,13 +98,16 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
             output = self.layer(batch)
             loss_1 = self.loss(batch, output)
             self.manual_backward(loss_1)
-            opt_1.step(zero_grad=True)
+            opt_1.step()
+            opt_1.zero_grad()
 
             def closure():
                 output = self.layer(batch)
                 loss_2 = self.loss(batch, output)
                 self.manual_backward(loss_2)
-            opt_2.step(closure=closure, make_optimizer_step=batch_idx % 2 == 0, zero_grad=True)
+
+            opt_2.step(closure=closure, make_optimizer_step=batch_idx % 2 == 0)
+            opt_2.zero_grad()
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -106,10 +116,6 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
 
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
             return [optimizer_1, optimizer_2], [lr_scheduler]
-
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
 
     model = TestModel()
     model.training_step_end = None
@@ -133,7 +139,12 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
     """
     Test that the user can use our LightningOptimizer. Not recommended.
     """
+
     class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx, optimizer_idx=None):
             (opt_1, opt_2) = self.optimizers()
@@ -149,6 +160,7 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
                 output = self.layer(batch)
                 loss_2 = self.loss(batch, output)
                 self.manual_backward(loss_2)
+
             opt_2.step(closure=closure)
 
         def configure_optimizers(self):
@@ -158,10 +170,6 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
 
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
             return [optimizer_1, optimizer_2], [lr_scheduler]
-
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
 
     model = TestModel()
     model.training_step_end = None
@@ -205,9 +213,21 @@ def test_state(tmpdir):
     assert isinstance(lightning_optimizer, Optimizer)
 
     lightning_dict = {}
-    special_attrs = ["_accumulate_grad_batches", "_optimizer", "_optimizer_idx", "_support_closure",
-                     "_trainer", "__getstate__", "__setstate__", "state_dict", "load_state_dict",
-                     "zero_grad", "__setstate__", "add_param_group"]
+    special_attrs = [
+        "_accumulate_grad_batches",
+        "_optimizer",
+        "_optimizer_idx",
+        "_support_closure",
+        "_trainer",
+        "__getstate__",
+        "__setstate__",
+        "state_dict",
+        "load_state_dict",
+        "zero_grad",
+        "__setstate__",
+        "add_param_group",
+        "_total_optimizer_step_calls",
+    ]
 
     for k, v in lightning_optimizer.__dict__.items():
         if k not in special_attrs:
@@ -222,6 +242,7 @@ def test_lightning_optimizer_automatic_optimization(tmpdir):
     """
     Test lightning optimize works with make_optimizer_step in automatic_optimization
     """
+
     class TestModel(BoringModel):
 
         def training_step(self, batch, batch_idx, optimizer_idx=None):
@@ -233,8 +254,9 @@ def test_lightning_optimizer_automatic_optimization(tmpdir):
             outputs = sum(outputs, [])
             torch.stack([x["loss"] for x in outputs]).mean()
 
-        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                           optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+        def optimizer_step(
+            self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
+        ):
 
             assert optimizer_closure.__name__ == "train_step_and_backward_closure"
 
@@ -287,8 +309,17 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
                     if batch_idx % 5 == 0:
                         optimizer.zero_grad()
 
-            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+            def optimizer_step(
+                self,
+                epoch,
+                batch_idx,
+                optimizer,
+                optimizer_idx,
+                optimizer_closure,
+                on_tpu,
+                using_native_amp,
+                using_lbfgs,
+            ):
 
                 assert optimizer_closure.__name__ == "train_step_and_backward_closure"
 
@@ -343,8 +374,17 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad_make_opt
                         if batch_idx % 5 == 0:
                             optimizer.zero_grad()
 
-                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                def optimizer_step(
+                    self,
+                    epoch,
+                    batch_idx,
+                    optimizer,
+                    optimizer_idx,
+                    optimizer_closure,
+                    on_tpu,
+                    using_native_amp,
+                    using_lbfgs,
+                ):
 
                     assert optimizer_closure.__name__ == "train_step_and_backward_closure"
 
@@ -395,8 +435,17 @@ def test_lightning_optimizer_automatic_optimization_make_optimizer_step_2(tmpdir
                 outputs = sum(outputs, [])
                 torch.stack([x["loss"] for x in outputs]).mean()
 
-            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+            def optimizer_step(
+                self,
+                epoch,
+                batch_idx,
+                optimizer,
+                optimizer_idx,
+                optimizer_closure,
+                on_tpu,
+                using_native_amp,
+                using_lbfgs,
+            ):
 
                 assert optimizer_closure.__name__ == "train_step_and_backward_closure"
 

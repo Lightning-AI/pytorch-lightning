@@ -17,18 +17,15 @@ from abc import ABC
 from argparse import ArgumentParser, Namespace
 from typing import Any, cast, List, Optional, Type, TypeVar, Union
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
+import torch
 
+from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
+from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loggers.base import LightningLoggerBase
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     from_argparse_args,
@@ -36,20 +33,15 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.model_helpers import is_overridden
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.loggers.base import LightningLoggerBase
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
-from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class TrainerProperties(ABC):
@@ -135,24 +127,25 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.root_gpu
 
     @property
+    def tpu_cores(self) -> int:
+        return self.accelerator_connector.tpu_cores
+
+    @property
+    def num_gpus(self) -> int:
+        return self.accelerator_connector.num_gpus
+
+    @property
     def data_parallel_device_ids(self):
         return self.accelerator_connector.parallel_device_ids
 
     @property
     def log_dir(self):
-        if self.checkpoint_callback is not None:
-            dirpath = self.checkpoint_callback.dirpath
-            dirpath = os.path.split(dirpath)[0]
-        elif self.logger is not None:
-            if isinstance(self.logger, TensorBoardLogger):
-                dirpath = self.logger.log_dir
-            else:
-                dirpath = self.logger.save_dir
+        if self.logger is None:
+            dirpath = self.default_root_dir
         else:
-            dirpath = self._default_root_dir
+            dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
 
-        if self.accelerator_backend is not None:
-            dirpath = self.accelerator_backend.broadcast(dirpath)
+        dirpath = self.training_type_plugin.broadcast(dirpath)
         return dirpath
 
     @property
@@ -247,10 +240,6 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.gpus
 
     @property
-    def num_gpus(self) -> int:
-        return self.accelerator_connector.num_gpus
-
-    @property
     def data_parallel(self) -> bool:
         return self._distrib_type in (
             DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2
@@ -265,7 +254,20 @@ class TrainerProperties(ABC):
         """ Read-only for progress bar metrics. """
         ref_model = self.get_model()
         ref_model = cast(LightningModule, ref_model)
-        return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
+
+        standard_metrics = ref_model.get_progress_bar_dict()
+        logged_metrics = self.progress_bar_metrics
+        duplicates = list(standard_metrics.keys() & logged_metrics.keys())
+        if duplicates:
+            rank_zero_warn(
+                f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
+                f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
+                f" If this is undesired, change the name or override `get_progress_bar_dict()`"
+                f" in `LightingModule`.", UserWarning
+            )
+        all_metrics = dict(**standard_metrics)
+        all_metrics.update(**logged_metrics)
+        return all_metrics
 
     @property
     def disable_validation(self) -> bool:
@@ -346,7 +348,7 @@ class TrainerProperties(ABC):
         return self.accelerator.model
 
     @model.setter
-    def model(self, model: Any):
+    def model(self, model: torch.nn.Module):
         """
         Setter for the model, pass-through to accelerator and plugin where the model reference is stored.
         Used by the Tuner to reset the state of Trainer and Accelerator.
