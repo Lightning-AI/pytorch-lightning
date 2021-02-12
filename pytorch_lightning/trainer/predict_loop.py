@@ -39,16 +39,7 @@ class PredictLoop(object):
         return dataloaders, max_batches
 
     def should_skip_predict(self, dataloaders, max_batches):
-        # skip when dataloaders aren't defined
-        if dataloaders is None:
-            return True
-
-        # enable disabling validation step with limit_val_batches = 0
-        should_skip = sum(max_batches) == 0
-        if should_skip:
-            return True
-
-        return False
+        return dataloaders is None or not sum(max_batches)
 
     def on_predict_model_eval(self, *_, **__):
         model_ref = self.trainer.get_model()
