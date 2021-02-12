@@ -285,20 +285,20 @@ Simiarly, calling ``compute()`` does the following internally
 
 From a user's standpoint this has one important side-effect: computed results are cached. This means that no
 matter how many times ``compute`` is called after one and another, it will continue to return the same result.
-The cashe is first emptied on the next call to ``update``.
+The cache is first emptied on the next call to ``update``.
 
 ``forward`` serves the dual purpose of both returning the metric on the current data and updating the internal
 metric state for accumulating over multiple batches. The ``forward()`` method achives this by combining calls
 to ``update`` and ``compute`` in the following way (assuming metric is initialized with ``compute_on_step=True``):
 
 1. Calls ``update()`` to update the global metric states (for accumulation over multiple batches)
-2. Caches the globel state
+2. Caches the global state
 3. Calls ``reset()`` to clear global metric state
 4. Calls ``update()`` to update local metric state
 5. Calls ``compute()`` to calculate metric for current batch
 6. Restores the global state
 
-This structure has the important consequence the user defined ``update`` is called **twice** during a single
+This procedure has the consequence of calling the user defined ``update`` **twice** during a single
 forward call (one to update global statistics and one for getting the batch statistics).
 
 
