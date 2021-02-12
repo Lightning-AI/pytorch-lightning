@@ -16,8 +16,7 @@ import os
 import pytest
 import torch
 
-from tests.accelerators import DDPLauncher
-from tests.accelerators import ddp_model
+from tests.accelerators import ddp_model, DDPLauncher
 from tests.utilities.distributed import call_training_script
 
 
