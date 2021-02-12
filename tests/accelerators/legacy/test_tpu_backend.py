@@ -26,7 +26,6 @@ from tests.helpers.utils import pl_multi_process_test
 @pl_multi_process_test
 def test_resume_training_on_cpu(tmpdir):
     """ Checks if training can be resumed from a saved checkpoint on CPU"""
-
     # Train a model on TPU
     model = BoringModel()
     trainer = Trainer(
@@ -61,7 +60,6 @@ def test_if_test_works_after_train(tmpdir):
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=8, default_root_dir=tmpdir)
+    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
-
-    assert trainer.test() == 1
+    assert trainer.test(model) == 1
