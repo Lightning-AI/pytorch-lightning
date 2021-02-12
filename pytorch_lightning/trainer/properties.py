@@ -346,7 +346,7 @@ class TrainerProperties(ABC):
         return self.accelerator.model
 
     @model.setter
-    def model(self, model: Any):
+    def model(self, model: LightningModule):
         """
         Setter for the model, pass-through to accelerator and plugin where the model reference is stored.
         Used by the Tuner to reset the state of Trainer and Accelerator.
