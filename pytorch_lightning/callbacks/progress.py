@@ -18,7 +18,9 @@ Progress Bars
 Use or override one of the progress bar callbacks.
 
 """
+from collections import OrderedDict
 import importlib
+from numbers import Number
 import sys
 
 # check if ipywidgets is installed before importing tqdm.auto
@@ -26,11 +28,44 @@ import sys
 from typing import Optional, Union
 
 if importlib.util.find_spec('ipywidgets') is not None:
-    from tqdm.auto import tqdm
+    from tqdm.auto import tqdm as _tqdm
 else:
-    from tqdm import tqdm
+    from tqdm import tqdm as _tqdm
+from tqdm.utils import _basestring
 
 from pytorch_lightning.callbacks import Callback
+
+
+_PAD_SIZE = 5
+class tqdm(_tqdm):
+    """ custom tqdm progressbar where we pad values to prevent flickering from happening """
+    @staticmethod
+    def format_num(n):
+        """ Add additional padding to the formatted numbers """
+        n = _tqdm.format_num(n)
+        n = n.ljust(_PAD_SIZE, ' ')
+        return n
+
+    def set_postfix(self, ordered_dict=None, refresh=True, **kwargs):
+        """ Copy of super method, except we do not strip away extra spaces when setting the postfix """
+        # Sort in alphabetical order to be more deterministic
+        postfix = OrderedDict([] if ordered_dict is None else ordered_dict)
+        for key in sorted(kwargs.keys()):
+            postfix[key] = kwargs[key]
+        # Preprocess stats according to datatype
+        for key in postfix.keys():
+            # Number: limit the length of the string
+            if isinstance(postfix[key], Number):
+                postfix[key] = self.format_num(postfix[key])
+            # Else for any other type, try to get the string conversion
+            elif not isinstance(postfix[key], _basestring):
+                postfix[key] = str(postfix[key])
+            # Else if it's a string, don't need to preprocess anything
+        # Stitch together to get the final postfix
+        self.postfix = ', '.join(key + '=' + postfix[key]
+                                 for key in postfix.keys())
+        if refresh:
+            self.refresh()
 
 
 class ProgressBarBase(Callback):
