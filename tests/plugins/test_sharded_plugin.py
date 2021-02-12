@@ -1,37 +1,20 @@
 import os
 import platform
-from unittest import mock
 
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.legacy.sharded_native_amp_plugin import ShardedNativeAMPPlugin
-from pytorch_lightning.plugins.legacy.sharded_plugin import _FAIRSCALE_AVAILABLE, DDPShardedPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0",
-    },
-)
-@mock.patch("torch.cuda.device_count", return_value=2)
-@pytest.mark.parametrize(
-    ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
-)
+@pytest.mark.parametrize(["accelerator"], [("ddp_sharded", ), ("ddp_sharded_spawn", )])
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_choice_sharded(tmpdir, ddp_backend, gpus, num_processes):
+def test_sharded_ddp_choice(tmpdir, accelerator):
     """
         Test to ensure that plugin is correctly chosen
     """
@@ -39,16 +22,16 @@ def test_ddp_choice_sharded(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.ddp_plugin, DDPShardedPlugin)
+            if accelerator == 'ddp_sharded':
+                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPShardedPlugin)
+            elif accelerator == 'ddp_sharded_spawn':
+                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPSpawnShardedPlugin)
             raise SystemExit()
 
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        gpus=gpus,
-        num_processes=num_processes,
-        accelerator=ddp_backend,
-        plugins=[DDPShardedPlugin()],
+        accelerator=accelerator,
         callbacks=[CB()],
     )
 
@@ -67,8 +50,7 @@ def test_invalid_apex_sharded(tmpdir):
     with pytest.raises(MisconfigurationException, match='Sharded Plugin is not supported with Apex AMP'):
         trainer = Trainer(
             fast_dev_run=True,
-            accelerator='ddp_spawn',
-            plugins=[DDPShardedPlugin()],
+            accelerator='ddp_sharded_spawn',
             precision=16,
             amp_backend='apex',
         )
@@ -76,25 +58,11 @@ def test_invalid_apex_sharded(tmpdir):
         trainer.fit(model)
 
 
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0",
-    },
-)
-@mock.patch("torch.cuda.device_count", return_value=2)
-@pytest.mark.parametrize(
-    ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, 2), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
-)
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
+@pytest.mark.parametrize(["accelerator"], [("ddp_sharded", ), ("ddp_sharded_spawn", )])
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
-def test_ddp_choice_sharded_amp(tmpdir, ddp_backend, gpus, num_processes):
+def test_ddp_choice_sharded_amp(tmpdir, accelerator):
     """
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded
     """
@@ -102,18 +70,18 @@ def test_ddp_choice_sharded_amp(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.ddp_plugin, DDPShardedPlugin)
-            assert isinstance(trainer.precision_connector.backend, ShardedNativeAMPPlugin)
+            if accelerator == 'ddp_sharded':
+                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPShardedPlugin)
+            elif accelerator == 'ddp_sharded_spawn':
+                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPSpawnShardedPlugin)
             raise SystemExit()
 
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        gpus=gpus,
+        gpus=1,
         precision=16,
-        num_processes=num_processes,
-        accelerator=ddp_backend,
-        plugins=[DDPShardedPlugin()],
+        accelerator=accelerator,
         callbacks=[CB()],
     )
 
@@ -129,9 +97,8 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
     """
     model = BoringModel()
     trainer = Trainer(
-        accelerator='ddp_cpu',
+        accelerator='ddp_sharded_spawn',
         num_processes=2,
-        plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )
 
@@ -143,7 +110,7 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
 
     # Assert model parameters are identical after loading
     for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(ddp_param, shard_param)
+        assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -156,8 +123,7 @@ def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         gpus=2,
-        accelerator='ddp_spawn',
-        plugins=[DDPShardedPlugin()],
+        accelerator='ddp_sharded_spawn',
         fast_dev_run=True,
     )
 
@@ -169,7 +135,7 @@ def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
 
     # Assert model parameters are identical after loading
     for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(ddp_param, shard_param)
+        assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -182,8 +148,7 @@ def test_ddp_sharded_plugin_finetune(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         gpus=2,
-        accelerator='ddp_spawn',
-        plugins=[DDPShardedPlugin()],
+        accelerator='ddp_sharded_spawn',
         fast_dev_run=True,
     )
     trainer.fit(model)
@@ -204,9 +169,8 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     """
     model = BoringModel()
     trainer = Trainer(
-        accelerator='ddp_cpu',
+        accelerator='ddp_sharded_spawn',
         num_processes=2,
-        plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )
 
@@ -218,11 +182,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
-        accelerator='ddp_cpu',
-        num_processes=2,
-        plugins=[DDPShardedPlugin()],
-        fast_dev_run=True,
-        resume_from_checkpoint=checkpoint_path
+        accelerator='ddp_sharded_spawn', num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path,
     )
 
     trainer.fit(model)
@@ -239,8 +199,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     """
     model = BoringModel()
     trainer = Trainer(
-        accelerator='ddp_spawn',
-        plugins=[DDPShardedPlugin()],
+        accelerator='ddp_sharded_spawn',
         fast_dev_run=True,
         gpus=2,
     )
@@ -253,11 +212,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
-        accelerator='ddp_spawn',
-        plugins=[DDPShardedPlugin()],
-        fast_dev_run=True,
-        gpus=1,
-        resume_from_checkpoint=checkpoint_path
+        accelerator='ddp_sharded_spawn', fast_dev_run=True, gpus=1, resume_from_checkpoint=checkpoint_path,
     )
 
     trainer.fit(model)
@@ -272,8 +227,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     """
     model = BoringModel()
     trainer = Trainer(
-        accelerator='ddp_spawn',
-        plugins=[DDPShardedPlugin()],
+        accelerator='ddp_sharded_spawn',
         gpus=1,
         fast_dev_run=True,
     )
@@ -286,11 +240,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
-        plugins=[DDPShardedPlugin()],
-        accelerator='ddp_cpu',
-        num_processes=2,
-        fast_dev_run=True,
-        resume_from_checkpoint=checkpoint_path
+        accelerator='ddp_sharded_spawn', num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path,
     )
 
     trainer.fit(model)
@@ -298,15 +248,17 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_ddp_sharded_plugin_test(tmpdir):
     """
         Test to ensure we can use test without fit
     """
     model = BoringModel()
     trainer = Trainer(
-        accelerator='ddp_cpu',
+        accelerator='ddp_sharded_spawn',
         num_processes=2,
-        plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )
 
@@ -322,9 +274,8 @@ def test_ddp_sharded_plugin_test_multigpu(tmpdir):
     """
     model = BoringModel()
     trainer = Trainer(
-        accelerator='ddp_spawn',
+        accelerator='ddp_sharded_spawn',
         gpus=2,
-        plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )
 
