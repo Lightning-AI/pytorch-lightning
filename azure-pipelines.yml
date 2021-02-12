@@ -91,4 +91,6 @@ jobs:
 
     - script: |
         bash pl_examples/run_ddp-example.sh
+      env:
+        PYTHONPATH: "$PWD:$PYTHONPATH"
       displayName: 'Examples'
