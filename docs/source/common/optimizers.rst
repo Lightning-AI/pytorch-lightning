@@ -21,46 +21,57 @@ Manual optimization
 For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable
 to manually manage the optimization process. To do so, do the following:
 
-* Disable automatic optimization in Trainer:  Trainer(automatic_optimization=False)
+* Disable automatic optimization in Trainer:  Trainer(automatic_optimization=False) or override your LightningModule ``automatic_optimization`` property to False
 * Drop or ignore the optimizer_idx argument
-* Use `self.manual_backward(loss)` instead of `loss.backward()` to automatically scale your loss
+* Use `self.manual_backward(loss)` instead of `loss.backward()`.
+
+.. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with zero_grad, accumulated_grad_batches, model toggling, etc..
 
 .. code-block:: python
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    # Scenario for a gan.
 
-        # 1. ignore optimizer_idx
-        # 2. `use_pl_optimizer=True` means `opt_g` and `opt_d` will be of type `LightningOptimizer`
-        # `LightningOptimizer` simply wrapped your optimizer and behave the same way !
-        # When calling `optimizer.step`, `LightningOptimizer` will just handle TPU, AMP, accumulate_grad_batches, etc ... for you.
+    def training_step(...):
+        opt_gen, opt_dis = self.optimizers()
 
-        # access your optimizers with `use_pl_optimizer=False` or `optimizer.optimizer` when using use_pl_optimizer=True
-        # use_pl_optimizer=True is the default
-        (opt_g, opt_d) = self.optimizers(use_pl_optimizer=True)
+        ...
 
-        # do anything you want
-        loss_a = ...
+        # compute generator loss
+        loss_gen = self.compute_generator_loss(...)
 
-        # use self.backward which will also handle scaling the loss when using amp
-        self.manual_backward(loss_a, opt_g)
-        opt_g.step()
+        # zero_grad needs to be called before backward
+        opt_gen.zero_grad()
+        self.manual_backward(loss_gen)
+        opt_gen.step()
+
+        # compute discriminator loss
+        loss_dis = self.compute_discriminator_loss(...)
+
+        # zero_grad needs to be called before backward
+        opt_dis.zero_grad()
+        self.manual_backward(loss_dis)
+        opt_dis.step()
+
+.. note:: ``self.optimizers()`` will return ``LightningOptimizer``. You can access your own optimizer with ``optimizer.optimizer``. However, if you use our own accelerator, we will lose support for accelerators and precision.
 
 
-        # do anything you want
-        loss_b = ...
+.. note:: To perform the accumulate_grad_batches with one optimizer, you can do as such.
 
-        # pass in any args that loss.backward() normally takes
-        self.manual_backward(loss_b, opt_d, retain_graph=True)
-        self.manual_backward(loss_b, opt_d)
-        opt_d.step()
+.. code-block:: python
 
-        # log losses
-        self.log('loss_a', loss_a)
-        self.log('loss_b', loss_b)
+    # Scenario for a gan.
 
-.. note:: This is only recommended for experts who need ultimate flexibility
+    def training_step(batch, batch_idx, optimizer_idx):
+        opt = self.optimizers()
 
-Manual optimization does not yet support accumulated gradients but will be live in 1.1.0
+        def closure()
+            loss = self.compute_loss(batch)
+            self.manual_backward(loss)
+
+        opt.step(closure=closure)
+
+        if batch_idx % 2 == 0:
+            opt.zero_grad()
 
 ------
 
@@ -166,7 +177,7 @@ returned as a dict which can contain the following keywords:
 * ``strict`` (optional): if set to ``True`` will enforce that value specified in ``monitor`` is available while trying
   to call ``scheduler.step()``, and stop training if not found. If ``False`` will only give a warning and continue training
   (without calling the scheduler).
-* ``name`` (optional): if using the :class:`~pytorch_lightning.callbacks.LearningRateMonitor` callback to monitor the 
+* ``name`` (optional): if using the :class:`~pytorch_lightning.callbacks.LearningRateMonitor` callback to monitor the
   learning rate progress, this keyword can be used to specify a specific name the learning rate should be logged as.
 
 .. testcode::
@@ -247,23 +258,6 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
         if optimizer_idx == 1:
             if batch_nb % 4 == 0 :
                optimizer.step(closure=closure)
-
-.. note:: When using ``Trainer(enable_pl_optimizer=True)``, ``.step`` accepts a boolean ``make_optimizer_step`` which can be used as follow.
-
-.. testcode::
-
-    def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
-      optimizer.zero_grad()
-
-    # Alternating schedule for optimizer steps (ie: GANs)
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-        # update generator opt every 2 steps
-        if optimizer_idx == 0:
-            optimizer.step(closure=closure, make_optimizer_step=(batch_nb % 2) == 0)
-
-        # update discriminator opt every 4 steps
-        if optimizer_idx == 1:
-            optimizer.step(closure=closure, make_optimizer_step=(batch_nb % 4) == 0)
 
 Here we add a learning-rate warm up
 

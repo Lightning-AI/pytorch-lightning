@@ -111,33 +111,18 @@ class LightningOptimizer:
             trainer.train_loop.on_before_zero_grad(optimizer)
             model.optimizer_zero_grad(trainer.current_epoch, trainer.batch_idx, optimizer, self._optimizer_idx)
 
-    def __check_make_optimizer_step(self, make_optimizer_step: Optional[bool]) -> bool:
-        if make_optimizer_step is not None and self._trainer.overriden_optimizer_zero_grad:
-            raise MisconfigurationException(
-                "When overriding LightningModule `optimizer_zero_grad`, make_optimizer_step is not allowed."
-            )
-
-        if self._trainer.train_loop.automatic_optimization:
-            if self._trainer.overriden_optimizer_step and self._trainer.overriden_optimizer_zero_grad:
-                return True
-
-        if make_optimizer_step is None:
-            make_optimizer_step = True
-
-        return make_optimizer_step
-
-    def step(self, *args, closure: Optional[Callable] = None, make_optimizer_step: Optional[bool] = None, **kwargs):
+    def step(self, *args, closure: Optional[Callable] = None, **kwargs):
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit, accelerator etc
         is been done properly for you.
 
+        .. note:: In Manual Optimization, the user is expected to know when to call zero_grad,
+            perform accumulated_grad_batches, etc ... Lightning will only take care of precision and accelerators
+
         Args:
 
             closure: One could provide its own optimizer_closure. Set to None by default.
-
-            make_optimizer_step: Whether to force an optimizer step. When nothing is provided,
-                we will use perform an optimizer step.
 
             args: Any parameters provided to wrapped optimizer.step()
 
@@ -168,24 +153,16 @@ class LightningOptimizer:
                 opt_dis.step()
 
         """
-        profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
-
         if closure is None:
+            profiler_name = "closure_{self._optimizer_idx}"
             closure = do_nothing_closure
         else:
             if not isinstance(closure, types.FunctionType):
                 raise MisconfigurationException("When closure is provided, it should be a function")
+            profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
-        make_optimizer_step = self.__check_make_optimizer_step(make_optimizer_step)
-
-        if make_optimizer_step:
-            self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
-            self._total_optimizer_step_calls += 1
-        else:
-            # make sure to call optimizer_closure when accumulating
-            with self._trainer.profiler.profile(f"closure_{self._optimizer_idx}"):
-                with self._trainer.train_loop.block_ddp_sync_behaviour(True):
-                    closure()
+        self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
+        self._total_optimizer_step_calls += 1
 
     def __repr__(self):
         groups = [{k: round(v, 12) if isinstance(v, float) else v

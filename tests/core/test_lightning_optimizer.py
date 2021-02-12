@@ -18,7 +18,6 @@ from torch.optim import Adam, Optimizer
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
@@ -106,8 +105,10 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
                 loss_2 = self.loss(batch, output)
                 self.manual_backward(loss_2)
 
-            opt_2.step(closure=closure, make_optimizer_step=batch_idx % 2 == 0)
-            opt_2.zero_grad()
+            closure()
+            if batch_idx % 2 == 0:
+                opt_2.step()
+                opt_2.zero_grad()
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -240,7 +241,7 @@ def test_state(tmpdir):
 
 def test_lightning_optimizer_automatic_optimization(tmpdir):
     """
-    Test lightning optimize works with make_optimizer_step in automatic_optimization
+    Test lightning optimize works with in automatic_optimization
     """
 
     class TestModel(BoringModel):
@@ -257,10 +258,11 @@ def test_lightning_optimizer_automatic_optimization(tmpdir):
         def optimizer_step(
             self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
         ):
-
             assert optimizer_closure.__name__ == "train_step_and_backward_closure"
-
-            optimizer.step(closure=optimizer_closure, make_optimizer_step=batch_idx % 2 == 0)
+            optimizer_closure()
+            if batch_idx % 2 == 0:
+                optimizer.step()
+                optimizer.zero_grad()
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -287,7 +289,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
     """
 
     with patch("torch.optim.Adam.zero_grad") as adam_zero_grad, \
-         patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
+            patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
 
         class TestModel(BoringModel):
 
@@ -309,151 +311,6 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
                     if batch_idx % 5 == 0:
                         optimizer.zero_grad()
 
-            def optimizer_step(
-                self,
-                epoch,
-                batch_idx,
-                optimizer,
-                optimizer_idx,
-                optimizer_closure,
-                on_tpu,
-                using_native_amp,
-                using_lbfgs,
-            ):
-
-                assert optimizer_closure.__name__ == "train_step_and_backward_closure"
-
-                optimizer.step(closure=optimizer_closure)
-
-            def configure_optimizers(self):
-                optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-                optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-                lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
-                return [optimizer_1, optimizer_2], [lr_scheduler]
-
-        model = TestModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=10,
-            limit_val_batches=1,
-            max_epochs=1,
-            weights_summary=None,
-        )
-        trainer.fit(model)
-
-        assert adam_zero_grad.call_count == 2
-        assert sgd_zero_grad.call_count == 5
-
-
-def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad_make_optimizer_step(tmpdir):
-    """
-    Test lightning optimize works with optimizer_zero_grad overrides and make_optimizer_step in automatic_optimization
-    """
-
-    try:
-        with patch("torch.optim.Adam.zero_grad") as adam_zero_grad, \
-             patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-
-            class TestModel(BoringModel):
-
-                def training_step(self, batch, batch_idx, optimizer_idx=None):
-                    output = self.layer(batch)
-                    loss = self.loss(batch, output)
-                    return {"loss": loss}
-
-                def training_epoch_end(self, outputs):
-                    outputs = sum(outputs, [])
-                    torch.stack([x["loss"] for x in outputs]).mean()
-
-                def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
-                    if optimizer_idx == 0:
-                        if batch_idx % 2 == 0:
-                            optimizer.zero_grad()
-
-                    if optimizer_idx == 1:
-                        if batch_idx % 5 == 0:
-                            optimizer.zero_grad()
-
-                def optimizer_step(
-                    self,
-                    epoch,
-                    batch_idx,
-                    optimizer,
-                    optimizer_idx,
-                    optimizer_closure,
-                    on_tpu,
-                    using_native_amp,
-                    using_lbfgs,
-                ):
-
-                    assert optimizer_closure.__name__ == "train_step_and_backward_closure"
-
-                    if optimizer_idx == 0:
-                        optimizer.step(closure=optimizer_closure, make_optimizer_step=batch_idx % 3 == 0)
-                        return
-                    optimizer.step(closure=optimizer_closure)
-
-                def configure_optimizers(self):
-                    optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-                    optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-                    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
-                    return [optimizer_1, optimizer_2], [lr_scheduler]
-
-            model = TestModel()
-            trainer = Trainer(
-                default_root_dir=tmpdir,
-                limit_train_batches=20,
-                limit_val_batches=1,
-                max_epochs=1,
-                weights_summary=None,
-            )
-            trainer.fit(model)
-
-            assert adam_zero_grad.call_count == 4
-            assert sgd_zero_grad.call_count == 10
-
-    except MisconfigurationException as e:
-        assert "When overriding LightningModule `optimizer_zero_grad`, make_optimizer_step is not allowed" in str(e)
-
-
-def test_lightning_optimizer_automatic_optimization_make_optimizer_step_2(tmpdir):
-    """
-    Test lightning optimize works with make_optimizer_step in automatic_optimization
-    """
-
-    with patch("torch.optim.Adam.zero_grad") as adam_zero_grad, \
-         patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-
-        class TestModel(BoringModel):
-
-            def training_step(self, batch, batch_idx, optimizer_idx=None):
-                output = self.layer(batch)
-                loss = self.loss(batch, output)
-                return {"loss": loss}
-
-            def training_epoch_end(self, outputs):
-                outputs = sum(outputs, [])
-                torch.stack([x["loss"] for x in outputs]).mean()
-
-            def optimizer_step(
-                self,
-                epoch,
-                batch_idx,
-                optimizer,
-                optimizer_idx,
-                optimizer_closure,
-                on_tpu,
-                using_native_amp,
-                using_lbfgs,
-            ):
-
-                assert optimizer_closure.__name__ == "train_step_and_backward_closure"
-
-                make_optimizer_step = None
-                if optimizer_idx == 0:
-                    make_optimizer_step = batch_idx % 4 == 0
-                optimizer.step(closure=optimizer_closure, make_optimizer_step=make_optimizer_step)
-
             def configure_optimizers(self):
                 optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
                 optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
@@ -470,5 +327,5 @@ def test_lightning_optimizer_automatic_optimization_make_optimizer_step_2(tmpdir
         )
         trainer.fit(model)
 
-        assert adam_zero_grad.call_count == 20
-        assert sgd_zero_grad.call_count == 5
+        assert adam_zero_grad.call_count == 4
+        assert sgd_zero_grad.call_count == 10
