@@ -82,6 +82,8 @@ class MLFlowLogger(LightningLoggerBase):
             Defaults to `./mlflow` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
         prefix: A string to put at the beginning of metric keys.
+        figure_file_extension: File extension that is interpretable by
+            matplotlib, will be the one that the artifact is saved with.
 
     """
 
@@ -94,6 +96,7 @@ class MLFlowLogger(LightningLoggerBase):
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
+        figure_file_extension: str = '.png',
     ):
         if mlflow is None:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
@@ -109,6 +112,7 @@ class MLFlowLogger(LightningLoggerBase):
         self.tags = tags
         self._prefix = prefix
         self._mlflow_client = MlflowClient(tracking_uri)
+        self._figure_file_extension = figure_file_extension
 
     @property
     @rank_zero_experiment
@@ -179,7 +183,7 @@ class MLFlowLogger(LightningLoggerBase):
     @rank_zero_only
     def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
 
-        filename = self.save_dir + '/' + name + f"_step{step}.png"
+        filename = self.save_dir + '/' + name + f"_step_{step}" + self._figure_file_extension
         figure.savefig(filename)
         self.experiment.log_artifact(self.run_id, filename, artifact_path="figure_" + name)
 
