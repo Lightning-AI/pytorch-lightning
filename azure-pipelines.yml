@@ -90,6 +90,7 @@ jobs:
       displayName: 'Testing: extended'
 
     - script: |
-        python setup.py install --user
+        python setup.py install --user --quiet
         bash pl_examples/run_ddp-example.sh
+        pip uninstall pytorch-lightning
       displayName: 'Examples'
