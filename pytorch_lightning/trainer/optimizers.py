@@ -119,7 +119,7 @@ class TrainerOptimizersMixin(ABC):
                     )
                 if 'interval' in scheduler and scheduler['interval'] not in ('step', 'epoch'):
                     raise MisconfigurationException(
-                        f'The "interval" key in lr scheduler dict must be one of {allowed_interval_keys},'
+                        f'The "interval" key in lr scheduler dict must be "step" or "epoch"'
                         f' but is "{scheduler["interval"]}"'
                     )
 
