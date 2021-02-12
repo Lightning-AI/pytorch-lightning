@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import sys
 
 import torch
 
@@ -431,7 +430,7 @@ class BackendConnector(object):
     @staticmethod
     def has_horovodrun():
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
-        return 'OMPI_COMM_WORLD_RANK' in os.environ or 'HOROVOD_RANK' in os.environ
+        return "OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ
 
     def configure_slurm_ddp(self):
         # extract SLURM flag vars
