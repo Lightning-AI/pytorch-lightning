@@ -378,6 +378,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
 
 
+@pytest.mark.parametrize("close", [True, False])
 @pytest.mark.parametrize("logger_class", [
     CometLogger,
     CSVLogger,
@@ -386,12 +387,15 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     TensorBoardLogger,
     WandbLogger,
 ])
-def test_logger_close_figure_all(logger_class, tmpdir):
+def test_logger_close_figure_all(logger_class, close, tmpdir):
     f = tests.base.plotting.dummy_figure()
 
     logger = _instantiate_logger(logger_class, save_idr=tmpdir)
 
     with mock.patch('matplotlib.pyplot.close') as plt_close:
-        logger.log_figure('dummy', f, 0, close=True)
+        logger.log_figure('dummy', f, 0, close=close)
 
-    plt_close.assert_called_once_with(f)
+    if close:
+        plt_close.assert_called_once_with(f)
+    else:
+        plt_close.assert_not_called()
