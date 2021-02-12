@@ -31,7 +31,6 @@ from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
 
-
 class Accelerator(object):
     """
     The Accelerator Base Class.
