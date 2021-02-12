@@ -90,7 +90,7 @@ def test_wandb_logger_init(wandb, recwarn):
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 @pytest.mark.parametrize("step_idx", [10, None])
-def test_wandb_logger_log_figure(wandb, close, step_idx):
+def test_wandb_logger_log_figure(wandb, step_idx):
     logger = WandbLogger(anonymous=True, offline=True)
     logger.log_figure('dummy', tests.base.plotting.dummy_figure(), step_idx, close=True)  # functional test
 
@@ -98,7 +98,7 @@ def test_wandb_logger_log_figure(wandb, close, step_idx):
             f = tests.base.plotting.dummy_figure()
             logger.log_figure('dummy', f, step_idx, close=True)
 
-    mock_log.assert_called_once_with({'dummy': wandb.Image(f)}, step=step_idx, close=True)
+    mock_log.assert_called_once_with({'dummy': wandb.Image(f)}, step=step_idx)
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_wandb_pickle(wandb, tmpdir):

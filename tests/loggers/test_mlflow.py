@@ -183,9 +183,10 @@ def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
 @mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
 @mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
 @pytest.mark.parametrize("step_idx", [10, None])
-def test_mlflow_log_figure(client, mlflow, step_idx, tmpdir):
+@pytest.mark.parametrize("figure_format", ['.png', '.pdf'])
+def test_mlflow_log_figure(client, mlflow, step_idx, figure_format, tmpdir):
 
-    logger = MLFlowLogger('test', save_dir=tmpdir)
+    logger = MLFlowLogger('test', save_dir=tmpdir, figure_file_extension=figure_format)
     logger.log_figure('dummy', tests.base.plotting.dummy_figure(), step_idx, close=True)  # functional test
 
     # test whether figure is closed etc.
@@ -193,7 +194,7 @@ def test_mlflow_log_figure(client, mlflow, step_idx, tmpdir):
         f = tests.base.plotting.dummy_figure()
         logger.log_figure('dummy', f, step_idx, close=True)
 
-    fname_expect = logger.save_dir + f'/dummy_step{step_idx}.png'
+    fname_expect = logger.save_dir + f'/dummy_step_{step_idx}{figure_format}'
     artifact_expect = 'figure_dummy'
 
     mock_log.assert_called_once_with(logger.run_id, fname_expect, artifact_path=artifact_expect)
