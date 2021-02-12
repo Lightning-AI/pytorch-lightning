@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional, Union
+from typing import List, Union
 
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -25,14 +25,14 @@ class CallbackConnector:
         self.trainer = trainer
 
     def on_trainer_init(
-            self,
-            callbacks,
-            checkpoint_callback,
-            progress_bar_refresh_rate,
-            process_position,
-            default_root_dir,
-            weights_save_path,
-            resume_from_checkpoint
+        self,
+        callbacks,
+        checkpoint_callback,
+        progress_bar_refresh_rate,
+        process_position,
+        default_root_dir,
+        weights_save_path,
+        resume_from_checkpoint,
     ):
         self.trainer.resume_from_checkpoint = resume_from_checkpoint
 
@@ -41,17 +41,20 @@ class CallbackConnector:
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
 
         # init callbacks
+        if isinstance(callbacks, Callback):
+            callbacks = [callbacks]
         self.trainer.callbacks = callbacks or []
 
         # configure checkpoint callback
-        # it is important that this is the last callback to run
         # pass through the required args to figure out defaults
         self.configure_checkpoint_callbacks(checkpoint_callback)
 
         # init progress bar
-        self.trainer._progress_bar_callback = self.configure_progress_bar(
-            progress_bar_refresh_rate, process_position
-        )
+        self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
+
+        # push all checkpoint callbacks to the end
+        # it is important that these are the last callbacks to run
+        self.trainer.callbacks = self._reorder_callbacks(self.trainer.callbacks)
 
     def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):
         if isinstance(checkpoint_callback, ModelCheckpoint):
@@ -59,8 +62,7 @@ class CallbackConnector:
             rank_zero_warn(
                 "Passing a ModelCheckpoint instance to Trainer(checkpoint_callbacks=...)"
                 " is deprecated since v1.1 and will no longer be supported in v1.3."
-                " Use `callbacks` argument instead.",
-                DeprecationWarning
+                " Use `callbacks` argument instead.", DeprecationWarning
             )
             self.trainer.callbacks.append(checkpoint_callback)
 
@@ -73,14 +75,11 @@ class CallbackConnector:
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
             self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None, mode='min'))
 
-    def configure_progress_bar(self, refresh_rate=1, process_position=0):
-        # smaller refresh rate on colab causes crashes, warn user about this
-        if os.getenv('COLAB_GPU') and refresh_rate < 20:
-            rank_zero_warn(
-                "You have set progress_bar_refresh_rate < 20 on Google Colab. This"
-                " may crash. Consider using progress_bar_refresh_rate >= 20 in Trainer.",
-                UserWarning
-            )
+    def configure_progress_bar(self, refresh_rate=None, process_position=0):
+        if os.getenv('COLAB_GPU') and refresh_rate is None:
+            # smaller refresh rate on colab causes crashes, choose a higher value
+            refresh_rate = 20
+        refresh_rate = 1 if refresh_rate is None else refresh_rate
 
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
@@ -103,3 +102,25 @@ class CallbackConnector:
 
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0
+
+    def attach_model_logging_functions(self, model):
+        for callback in self.trainer.callbacks:
+            callback.log = model.log
+            callback.log_dict = model.log_dict
+
+    @staticmethod
+    def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
+        """
+        Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
+        checkpoint callbacks is preserved, as well as the order of all other callbacks.
+
+        Args:
+            callbacks: A list of callbacks.
+
+        Return:
+            A new list in which the last elements are ModelCheckpoints if there were any present in the
+            input.
+        """
+        checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
+        not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
+        return not_checkpoints + checkpoints

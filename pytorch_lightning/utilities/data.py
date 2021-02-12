@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from distutils.version import LooseVersion
+from typing import Union
+
 import torch
 from torch.utils.data import DataLoader, IterableDataset
 
@@ -30,8 +32,9 @@ def has_len(dataloader: DataLoader) -> bool:
     try:
         # try getting the length
         if len(dataloader) == 0:
-            raise ValueError('`Dataloader` returned 0 length.'
-                             ' Please make sure that your Dataloader at least returns 1 batch')
+            raise ValueError(
+                '`Dataloader` returned 0 length. Please make sure that your Dataloader at least returns 1 batch'
+            )
         has_len = True
     except TypeError:
         has_len = False
@@ -45,3 +48,12 @@ def has_len(dataloader: DataLoader) -> bool:
             ' this can lead to unintended side effects since the samples will be duplicated.'
         )
     return has_len
+
+
+def get_len(dataloader: DataLoader) -> Union[int, float]:
+    """ Return the length of the given DataLoader. If ``__len__`` method is not implemented, return float('inf'). """
+
+    if has_len(dataloader):
+        return len(dataloader)
+
+    return float('inf')

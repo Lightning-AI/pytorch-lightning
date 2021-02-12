@@ -17,11 +17,12 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from tests.backends import DDPLauncher
-from tests.base.boring_model import BoringModel
+from tests.accelerators.legacy import DDPLauncher
+from tests.helpers.boring_model import BoringModel
 
 
 class TrainerGetModel(BoringModel):
+
     def on_fit_start(self):
         assert self == self.trainer.get_model()
 
@@ -61,7 +62,7 @@ def test_get_model_ddp_cpu(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         accelerator='ddp_cpu',
-        num_processes=2
+        num_processes=2,
     )
     trainer.fit(model)
 
@@ -80,16 +81,14 @@ def test_get_model_gpu(tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
         max_epochs=1,
-        gpus=1
+        gpus=1,
     )
     trainer.fit(model)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@DDPLauncher.run("--accelerator [accelerator]",
-                 max_epochs=["1"],
-                 accelerator=["ddp", "ddp_spawn"])
+@DDPLauncher.run("--accelerator [accelerator]", max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
 def test_get_model_ddp_gpu(tmpdir, args=None):
     """
     Tests that :meth:`trainer.get_model` extracts the model correctly when using GPU + ddp accelerators

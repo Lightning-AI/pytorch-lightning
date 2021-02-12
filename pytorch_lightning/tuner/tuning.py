@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List, Union
+from typing import List, Optional, Union
 
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
+from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
+from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
 
 
 class Tuner:
@@ -50,22 +50,20 @@ class Tuner:
                 val_dataloaders=val_dataloaders,
                 datamodule=datamodule,
             )
-            model.logger = self.trainer.logger  # reset logger binding
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
             self.internal_find_lr(model)
-            model.logger = self.trainer.logger  # reset logger binding
 
     def scale_batch_size(
-            self,
-            model,
-            mode: str = 'power',
-            steps_per_trial: int = 3,
-            init_val: int = 2,
-            max_trials: int = 25,
-            batch_arg_name: str = 'batch_size',
-            **fit_kwargs
+        self,
+        model,
+        mode: str = 'power',
+        steps_per_trial: int = 3,
+        init_val: int = 2,
+        max_trials: int = 25,
+        batch_arg_name: str = 'batch_size',
+        **fit_kwargs
     ):
         r"""
         Will iteratively try to find the largest batch size for a given model
@@ -115,16 +113,16 @@ class Tuner:
         )
 
     def lr_find(
-            self,
-            model: LightningModule,
-            train_dataloader: Optional[DataLoader] = None,
-            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-            min_lr: float = 1e-8,
-            max_lr: float = 1,
-            num_training: int = 100,
-            mode: str = 'exponential',
-            early_stop_threshold: float = 4.0,
-            datamodule: Optional[LightningDataModule] = None
+        self,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        min_lr: float = 1e-8,
+        max_lr: float = 1,
+        num_training: int = 100,
+        mode: str = 'exponential',
+        early_stop_threshold: float = 4.0,
+        datamodule: Optional[LightningDataModule] = None
     ):
         return lr_find(
             self.trainer,

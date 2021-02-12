@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Union, Tuple, List
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 
-from pytorch_lightning.metrics import Metric
 from pytorch_lightning.metrics.functional.precision_recall_curve import (
+    _precision_recall_curve_compute,
     _precision_recall_curve_update,
-    _precision_recall_curve_compute
 )
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -31,10 +31,10 @@ class PrecisionRecallCurve(Metric):
 
     Forward accepts
 
-    - ``preds`` (float tensor): ``(N, ...)`` (binary) or ``(N, C, ...)`` (multiclass)
-      where C is the number of classes
+    - ``preds`` (float tensor): ``(N, ...)`` (binary) or ``(N, C, ...)`` (multiclass) tensor
+      with probabilities, where C is the number of classes.
 
-    - ``target`` (long tensor): ``(N, ...)``
+    - ``target`` (long tensor): ``(N, ...)`` or ``(N, C, ...)`` with integer labels
 
     Args:
         num_classes: integer with number of classes. Not nessesary to provide
@@ -73,14 +73,16 @@ class PrecisionRecallCurve(Metric):
         >>> target = torch.tensor([0, 1, 3, 2])
         >>> pr_curve = PrecisionRecallCurve(num_classes=5)
         >>> precision, recall, thresholds = pr_curve(pred, target)
-        >>> precision
-        [tensor([1., 1.]), tensor([1., 1.]), tensor([0.2500, 0.0000, 1.0000]), tensor([0.2500, 0.0000, 1.0000]), tensor([0., 1.])]
+        >>> precision   # doctest: +NORMALIZE_WHITESPACE
+        [tensor([1., 1.]), tensor([1., 1.]), tensor([0.2500, 0.0000, 1.0000]),
+         tensor([0.2500, 0.0000, 1.0000]), tensor([0., 1.])]
         >>> recall
         [tensor([1., 0.]), tensor([1., 0.]), tensor([1., 0., 0.]), tensor([1., 0., 0.]), tensor([nan, 0.])]
-        >>> thresholds   # doctest: +NORMALIZE_WHITESPACE
+        >>> thresholds
         [tensor([0.7500]), tensor([0.7500]), tensor([0.0500, 0.7500]), tensor([0.0500, 0.7500]), tensor([0.0500])]
 
     """
+
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -115,18 +117,17 @@ class PrecisionRecallCurve(Metric):
             target: Ground truth values
         """
         preds, target, num_classes, pos_label = _precision_recall_curve_update(
-            preds,
-            target,
-            self.num_classes,
-            self.pos_label
+            preds, target, self.num_classes, self.pos_label
         )
         self.preds.append(preds)
         self.target.append(target)
         self.num_classes = num_classes
         self.pos_label = pos_label
 
-    def compute(self) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-                               Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
+    def compute(
+        self
+    ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[List[torch.Tensor], List[torch.Tensor],
+                                                                      List[torch.Tensor]]]:
         """
         Compute the precision-recall curve
 

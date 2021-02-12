@@ -29,15 +29,15 @@ import torch.nn.functional as F
 import torchvision
 
 import pytorch_lightning as pl
+from pl_examples import cli_lightning_logo
 from pytorch_lightning import Trainer
 from pytorch_lightning.metrics.functional import accuracy
-from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
-from pytorch_lightning.utilities import BOLTS_AVAILABLE, FAIRSCALE_PIPE_AVAILABLE
+from pytorch_lightning.plugins.legacy.ddp_sequential_plugin import DDPSequentialPlugin
+from pytorch_lightning.utilities import _BOLTS_AVAILABLE, _FAIRSCALE_PIPE_AVAILABLE
 
-if BOLTS_AVAILABLE:
+if _BOLTS_AVAILABLE:
     import pl_bolts
     from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
-
 
 #####################
 #      Modules      #
@@ -45,8 +45,10 @@ if BOLTS_AVAILABLE:
 
 
 class Flatten(nn.Module):
+
     def forward(self, x):
         return x.view(x.size(0), -1)
+
 
 ###############################
 #       LightningModule       #
@@ -54,6 +56,13 @@ class Flatten(nn.Module):
 
 
 class LitResnet(pl.LightningModule):
+    """
+    >>> LitResnet()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    LitResnet(
+      (sequential_module): Sequential(...)
+    )
+    """
+
     def __init__(self, lr=0.05, batch_size=32, manual_optimization=False):
         super().__init__()
 
@@ -83,9 +92,7 @@ class LitResnet(pl.LightningModule):
             nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, padding=1),
             nn.ReLU(inplace=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
-
             Flatten(),
-
             nn.Dropout(p=0.1),
             nn.Linear(4096, 1024),
             nn.ReLU(inplace=False),
@@ -152,7 +159,8 @@ class LitResnet(pl.LightningModule):
                     optimizer,
                     0.1,
                     epochs=self.trainer.max_epochs,
-                    steps_per_epoch=math.ceil(45000 / self.hparams.batch_size)),
+                    steps_per_epoch=math.ceil(45000 / self.hparams.batch_size)
+                ),
                 'interval': 'step',
             }
         }
@@ -165,6 +173,7 @@ class LitResnet(pl.LightningModule):
 #################################
 #     Instantiate Data Module   #
 #################################
+
 
 def instantiate_datamodule(args):
     train_transforms = torchvision.transforms.Compose([
@@ -190,14 +199,15 @@ def instantiate_datamodule(args):
 
 
 if __name__ == "__main__":
+    cli_lightning_logo()
     parser = ArgumentParser(description="Pipe Example")
     parser.add_argument("--use_ddp_sequential", action="store_true")
     parser = Trainer.add_argparse_args(parser)
     parser = pl_bolts.datamodules.CIFAR10DataModule.add_argparse_args(parser)
     args = parser.parse_args()
 
-    assert BOLTS_AVAILABLE, "Bolts is required for this example, install it via pip install pytorch-lightning-bolts"
-    assert FAIRSCALE_PIPE_AVAILABLE, "FairScale and PyTorch 1.6 is required for this example."
+    assert _BOLTS_AVAILABLE, "Bolts is required for this example, install it via pip install pytorch-lightning-bolts"
+    assert _FAIRSCALE_PIPE_AVAILABLE, "FairScale and PyTorch 1.6 is required for this example."
 
     cifar10_dm = instantiate_datamodule(args)
 

@@ -14,14 +14,17 @@
 
 from typing import Union
 
-from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler, AdvancedProfiler
+from pytorch_lightning.profiler import (
+    AdvancedProfiler,
+    BaseProfiler,
+    PassThroughProfiler,
+    PyTorchProfiler,
+    SimpleProfiler,
+)
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-PROFILERS = {
-    "simple": SimpleProfiler,
-    "advanced": AdvancedProfiler,
-}
+PROFILERS = {"simple": SimpleProfiler, "advanced": AdvancedProfiler, "pytorch": PyTorchProfiler}
 
 
 class ProfilerConnector:
@@ -33,14 +36,17 @@ class ProfilerConnector:
 
         if profiler and not isinstance(profiler, (bool, str, BaseProfiler)):
             # TODO: Update exception on removal of bool
-            raise MisconfigurationException("Only None, bool, str and subclasses of `BaseProfiler`"
-                                            " are valid values for `Trainer`'s `profiler` parameter."
-                                            f" Received {profiler} which is of type {type(profiler)}.")
+            raise MisconfigurationException(
+                "Only None, bool, str and subclasses of `BaseProfiler`"
+                " are valid values for `Trainer`'s `profiler` parameter."
+                f" Received {profiler} which is of type {type(profiler)}."
+            )
 
         if isinstance(profiler, bool):
-            rank_zero_warn("Passing a bool value as a `profiler` argument to `Trainer` is deprecated"
-                           " and will be removed in v1.3. Use str ('simple' or 'advanced') instead.",
-                           DeprecationWarning)
+            rank_zero_warn(
+                "Passing a bool value as a `profiler` argument to `Trainer` is deprecated"
+                " and will be removed in v1.3. Use str ('simple' or 'advanced') instead.", DeprecationWarning
+            )
             if profiler:
                 profiler = SimpleProfiler()
         elif isinstance(profiler, str):
@@ -48,6 +54,12 @@ class ProfilerConnector:
                 profiler_class = PROFILERS[profiler.lower()]
                 profiler = profiler_class()
             else:
-                raise ValueError("When passing string value for the `profiler` parameter of"
-                                 " `Trainer`, it can only be 'simple' or 'advanced'")
+                raise ValueError(
+                    "When passing string value for the `profiler` parameter of"
+                    " `Trainer`, it can only be 'simple' or 'advanced'"
+                )
         self.trainer.profiler = profiler or PassThroughProfiler()
+
+    def on_train_start(self, trainer):
+        local_rank = trainer.local_rank if trainer.world_size > 1 else None
+        self.trainer.profiler.on_train_start(local_rank)

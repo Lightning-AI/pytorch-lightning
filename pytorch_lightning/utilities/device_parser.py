@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
-from typing import Union, Any, List, Optional, MutableSequence
+from typing import Any, List, MutableSequence, Optional, Union
 
-from pytorch_lightning.utilities import TPU_AVAILABLE
+import torch
+
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -29,7 +30,9 @@ def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
     if gpus is None:
         return None
 
-    assert isinstance(gpus, list), "gpus should be a list"
+    if not isinstance(gpus, list):
+        raise TypeError("gpus should be a list")
+
     assert len(gpus) > 0, "gpus should be a non empty list"
 
     # set root gpu
@@ -106,7 +109,7 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
     if not _tpu_cores_valid(tpu_cores):
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
-    if tpu_cores is not None and not TPU_AVAILABLE:
+    if tpu_cores is not None and not _TPU_AVAILABLE:
         raise MisconfigurationException('No TPU devices were found.')
 
     return tpu_cores
@@ -136,10 +139,9 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     all_available_gpus = _get_all_available_gpus()
     for gpu in gpus:
         if gpu not in all_available_gpus:
-            raise MisconfigurationException(f"""
-                You requested GPUs: {gpus}
-                But your machine only has: {all_available_gpus}
-            """)
+            raise MisconfigurationException(
+                f"You requested GPUs: {gpus}\n But your machine only has: {all_available_gpus}"
+            )
     return gpus
 
 
