@@ -4,7 +4,7 @@ from typing import Optional, Union
 
 import torch
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
