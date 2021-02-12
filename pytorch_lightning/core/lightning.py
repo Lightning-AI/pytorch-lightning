@@ -350,10 +350,46 @@ class LightningModule(
                 tbptt_reduce_fx=tbptt_reduce_fx,
             )
 
-    def write_prediction(self, name, value, filename='predictions.pt'):
+    def write_prediction(
+        self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'
+    ):
+        """
+        Write predictions to disk using ``torch.save``
+
+        Example::
+
+            self.write_prediction('pred', torch.tensor(...), filename='my_predictions.pt')
+
+        Args:
+            name: a string indicating the name to save the predictions under
+            value: the predictions, either a single :class:`~torch.Tensor` or a list of them
+            filename: name of the file to save the predictions to
+
+        Note:
+            when running in distributed mode, calling ``write_prediction`` will create a file for
+            each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
+
+        """
         self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
 
-    def write_prediction_dict(self, predictions_dict, filename='predictions.pt'):
+    def write_prediction_dict(self, predictions_dict: Dict[str, Any], filename: str = 'predictions.pt'):
+        """
+        Write a dictonary of predictions to disk at once using ``torch.save``
+
+        Example::
+
+            pred_dict = {'pred1': torch.tensor(...), 'pred2': torch.tensor(...)}
+            self.write_prediction_dict(pred_dict)
+
+        Args:
+            predictions_dict: dict containing predictions, where each prediction should
+                either be single :class:`~torch.Tensor` or a list of them
+
+        Note:
+            when running in distributed mode, calling ``write_prediction_dict`` will create a file for
+            each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
+
+        """
         for k, v in predictions_dict.items():
             self.write_prediction(k, v, filename)
 

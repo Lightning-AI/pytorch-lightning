@@ -297,7 +297,7 @@ class Result(Dict):
             dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
 
             if options['logger'] and options['on_step']:
-                if isinstance(self[k], Metric):
+                if isinstance(self[k], Metric) and self[k]._forward_cache is not None:
                     result[dl_key] = self[k]._forward_cache.detach()
                 else:
                     result[dl_key] = self[k]
@@ -406,7 +406,7 @@ class Result(Dict):
             dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
 
             if options['prog_bar'] and options['on_step']:
-                if isinstance(self[k], Metric):
+                if isinstance(self[k], Metric) and self[k]._forward_cache is not None:
                     result[dl_key] = self[k]._forward_cache
                 else:
                     result[dl_key] = self[k]

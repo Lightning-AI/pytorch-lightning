@@ -4,10 +4,6 @@ requires = [
     "wheel",
 ]
 
-[tool.autopep8]
-max_line_length = 120
-ignore = ["W503", "W504", "E402", "E731", "C40", "E741", "F40", "F841"]
-
 [tool.isort]
 known_first_party = [
     "benchmarks",
