@@ -90,6 +90,6 @@ jobs:
       displayName: 'Testing: extended'
 
     - script: |
-        python setup.py install
+        python setup.py install --user
         bash pl_examples/run_ddp-example.sh
       displayName: 'Examples'
