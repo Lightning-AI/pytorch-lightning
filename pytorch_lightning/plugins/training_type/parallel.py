@@ -11,18 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import io
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from typing import List, Optional
 
 import torch
+from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
-from pytorch_lightning.utilities.distributed import ReduceOp
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
@@ -34,9 +36,16 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
     ):
         super().__init__()
         self.parallel_devices = parallel_devices
-        self.local_rank = 0
         self.world_size = 1
+        self.local_rank = 0
         self.cluster_environment = cluster_environment
+
+    @property
+    def cluster_local_rank(self):
+        try:
+            return self.cluster_environment.local_rank()
+        except KeyError:
+            return 0
 
     @property
     @abstractmethod
@@ -98,7 +107,18 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """
-        if isinstance(self.model, LightningDistributedDataParallel):
-            yield self.model.no_sync()
+        if isinstance(self.model, DistributedDataParallel):
+            with self.model.no_sync():
+                yield None
         else:
             yield None
+
+    def broadcast(self, obj: object, src: int) -> object:
+        buffer = io.BytesIO()
+        torch.save(obj, buffer)
+        data = bytearray(buffer.getbuffer())
+        data_tensor = torch.tensor(data).to(self.root_device, dtype=torch.float)
+        data = all_gather_ddp_if_available(data_tensor)
+        buffer = io.BytesIO(data.cpu().byte().numpy())
+        obj = torch.load(buffer)
+        return obj
