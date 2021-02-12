@@ -82,7 +82,7 @@ jobs:
     - bash: |
         python -m coverage report
         python -m coverage xml
-        codecov --token $(CODECOV_TOKEN) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
+        codecov --token=$(CODECOV_TOKEN) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
       displayName: 'Statistics'
 
     - script: |
