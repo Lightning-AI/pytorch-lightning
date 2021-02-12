@@ -214,7 +214,8 @@ def test_state(tmpdir):
     lightning_dict = {}
     special_attrs = [
         "_accumulate_grad_batches", "_optimizer", "_optimizer_idx", "_support_closure", "_trainer", "__getstate__",
-        "__setstate__", "state_dict", "load_state_dict", "zero_grad", "__setstate__", "add_param_group"
+        "__setstate__", "state_dict", "load_state_dict", "zero_grad", "__setstate__", "add_param_group",
+        "_total_optimizer_step_calls",
     ]
 
     for k, v in lightning_optimizer.__dict__.items():

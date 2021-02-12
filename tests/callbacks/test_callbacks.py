@@ -54,8 +54,8 @@ def test_trainer_callback_system(torch_save, tmpdir):
     assert callback_mock.method_calls == [
         call.on_init_start(trainer),
         call.on_init_end(trainer),
-        call.on_before_accelerator_backend_setup(trainer, model),
         call.setup(trainer, model, 'fit'),
+        call.on_before_accelerator_backend_setup(trainer, model),
         call.on_fit_start(trainer, model),
         call.on_pretrain_routine_start(trainer, model),
         call.on_pretrain_routine_end(trainer, model),
@@ -109,8 +109,8 @@ def test_trainer_callback_system(torch_save, tmpdir):
     assert callback_mock.method_calls == [
         call.on_init_start(trainer),
         call.on_init_end(trainer),
-        call.on_before_accelerator_backend_setup(trainer, model),
         call.setup(trainer, model, 'test'),
+        call.on_before_accelerator_backend_setup(trainer, model),
         call.on_fit_start(trainer, model),
         call.on_test_start(trainer, model),
         call.on_test_epoch_start(trainer, model),

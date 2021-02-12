@@ -521,7 +521,6 @@ def test_ckpt_metric_names(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_default_checkpoint_behavior(tmpdir):
     seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = LogInTwoMethods()
     trainer = Trainer(
