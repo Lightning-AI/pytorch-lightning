@@ -171,7 +171,7 @@ def test_hash():
     assert hash(b1) == hash(b2)
     assert isinstance(b1.x, list) and len(b1.x) == 0
     b1.x.append(torch.tensor(5))
-    assert isinstance(hash(b1), int) # <- check that nothing crashes
+    assert isinstance(hash(b1), int)  # <- check that nothing crashes
     assert isinstance(b1.x, list) and len(b1.x) == 1
 
 
