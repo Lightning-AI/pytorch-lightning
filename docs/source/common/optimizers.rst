@@ -31,7 +31,7 @@ to manually manage the optimization process. To do so, do the following:
 
 .. tip:: To perform ``accumulate_grad_batches`` with one optimizer, you can do as such.
 
-.. tip:: ``self.optimizers()`` will return ``LightningOptimizer`` objects. You can access your own optimizer with ``optimizer.optimizer``. However, if you use our own accelerator to perform a step, Lightning won't be able to support accelerators and precision for you.
+.. tip:: ``self.optimizers()`` will return ``LightningOptimizer`` objects. You can access your own optimizer with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to support accelerators and precision for you.
 
 
 .. code-block:: python
@@ -80,7 +80,7 @@ to manually manage the optimization process. To do so, do the following:
 Here is an explanation of what it does:
 
 Considering the current optimizer as A and all other optimizers as B.
-Toggling means that all parameters from B exclusive to A will have their ``requieres_grad`` attribute set to ``False``. Their original state will be restored when exitting the context manager.
+Toggling means that all parameters from B exclusive to A will have their ``requires_grad`` attribute set to ``False``. Their original state will be restored when exiting the context manager.
 
 When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
 Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.

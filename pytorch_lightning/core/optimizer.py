@@ -114,12 +114,12 @@ class LightningOptimizer:
         This function is just a helper for advanced users.
 
         Considering the current optimizer as A and all other optimizers as B.
-        Toggling means all parameters from B exclusive to A will have ``requieres_grad`` set to False.
+        Toggling means all parameters from B exclusive to A will have ``requires_grad`` set to False.
 
 
         When performing gradient accumulation, there is no need to perform grad synchronization
         during the accumulation phase.
-        Setting `sync_grad` to False will block this synchronization and improve performances.
+        Setting `sync_grad` to False will block this synchronization and improve performance.
         """
         with self._trainer.train_loop.block_ddp_sync_behaviour(not sync_grad):
             self._toggle_model()

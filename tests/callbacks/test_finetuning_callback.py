@@ -138,7 +138,7 @@ def test_finetuning_callback_warning(tmpdir):
 
 
 def test_freeze_unfreeze_function(tmpdir):
-    """Test freeze properly set requieres_grad on the modules"""
+    """Test freeze properly set requires_grad on the modules"""
 
     seed_everything(42)
 
