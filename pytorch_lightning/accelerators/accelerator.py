@@ -146,6 +146,9 @@ class Accelerator(object):
     def post_training_step(self):
         self.training_type_plugin.post_training_step()
 
+    def post_training_step(self):
+        self.training_type_plugin.post_training_step()
+
     def validation_step(self, args):
         """The actual validation step.
 
@@ -223,6 +226,23 @@ class Accelerator(object):
             output: the output of the validation step
         """
         return self.training_type_plugin.validation_step_end(output)
+
+    def predict(self, args):
+        """The prediction step.
+
+        Args:
+            args: the arguments for the models predict step. Can consist of the following:
+                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                batch_idx (int): Integer displaying index of this batch
+                optimizer_idx (int): When using multiple optimizers, this argument will also be present.
+                hiddens(:class:`~torch.Tensor`): Passed in if
+                    :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
+
+        """
+        batch = self.to_device(args[0])
+        args[0] = batch
+        return self.training_type_plugin.predict(*args)
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Wraps the dataloader if necessary

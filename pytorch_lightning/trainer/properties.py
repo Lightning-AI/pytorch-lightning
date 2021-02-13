@@ -17,6 +17,8 @@ from abc import ABC
 from argparse import ArgumentParser, Namespace
 from typing import Any, cast, List, Optional, Type, TypeVar, Union
 
+import torch
+
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
@@ -346,7 +348,7 @@ class TrainerProperties(ABC):
         return self.accelerator.model
 
     @model.setter
-    def model(self, model: Any):
+    def model(self, model: torch.nn.Module):
         """
         Setter for the model, pass-through to accelerator and plugin where the model reference is stored.
         Used by the Tuner to reset the state of Trainer and Accelerator.

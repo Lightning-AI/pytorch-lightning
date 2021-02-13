@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 class LoggerConnector:
 
-    def __init__(self, trainer, log_gpu_memory):
+    def __init__(self, trainer, log_gpu_memory: bool):
         self.trainer = trainer
         self.log_gpu_memory = log_gpu_memory
         self._callback_metrics = MetricsHolder()

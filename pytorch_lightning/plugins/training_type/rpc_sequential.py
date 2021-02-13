@@ -105,7 +105,7 @@ class RPCSequentialPlugin(RPCPlugin):
     ) -> None:
         if self.lightning_module.trainer.amp_backend is not None:
             raise MisconfigurationException(
-                'RPCSequentialPlugin is currently not supported in Automatic Mixed Precision'
+                '`RPCSequentialPlugin` is currently not supported in Automatic Mixed Precision'
             )
 
         if self._skip_init_connections():

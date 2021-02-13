@@ -75,7 +75,8 @@ def test_rpc_sequential_plugin_manual_amp(tmpdir, args=None):
         plugins=[RPCSequentialPlugin(balance=[2, 1])],
     )
     with pytest.raises(
-        MisconfigurationException, match='RPCSequentialPlugin is currently not supported in Automatic Mixed Precision'
+        MisconfigurationException,
+        match='`RPCSequentialPlugin` is currently not supported in Automatic Mixed Precision'
     ):
         trainer.fit(model)
 

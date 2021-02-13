@@ -302,6 +302,8 @@ class Trainer(
 
         distributed_backend = distributed_backend or accelerator
 
+        distributed_backend = distributed_backend or accelerator
+
         # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
@@ -457,6 +459,9 @@ class Trainer(
         # set local properties on the model
         self.model_connector.copy_trainer_model_properties(model)
 
+        # set local properties on the model
+        self.model_connector.copy_trainer_model_properties(model)
+
         # ----------------------------
         # LINK DATA
         # ----------------------------
@@ -465,6 +470,7 @@ class Trainer(
 
         # hook
         self.data_connector.prepare_data(model)
+        self.callback_connector._attach_model_callbacks(model, self)
 
         # ----------------------------
         # SET UP TRAINING
@@ -566,7 +572,7 @@ class Trainer(
         model_ref.running_stage = stage
         self._running_stage = stage
 
-    def pre_training_routine(self):
+    def _pre_training_routine(self):
         # wait for all to join if on distributed
         self.accelerator.training_type_plugin.barrier("setup_training")
 
@@ -600,7 +606,7 @@ class Trainer(
 
     def run_train(self):
 
-        self.pre_training_routine()
+        self._pre_training_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()

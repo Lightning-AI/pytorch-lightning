@@ -146,8 +146,6 @@ def test_progress_bar_fast_dev_run(tmpdir):
     assert 1 == progress_bar.total_train_batches
     # total val batches are known only after val dataloaders have reloaded
 
-    trainer.fit(model)
-
     assert 1 == progress_bar.total_val_batches
     assert 1 == progress_bar.train_batch_idx
     assert 1 == progress_bar.val_batch_idx
