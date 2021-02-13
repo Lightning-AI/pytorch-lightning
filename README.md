@@ -41,11 +41,6 @@ Scale your models, not the boilerplate.**
 
 ---
 
-## NEWS
-[Dec 2020 - Read about how Facebook uses Lightning to standardize deep learning across research and production teams](https://ai.facebook.com/blog/reengineering-facebook-ais-deep-learning-platforms-for-interoperability)
-
----
-
 ## PyTorch Lightning is just organized PyTorch
 Lightning disentangles PyTorch code to decouple the science from the engineering.
 ![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)
@@ -55,10 +50,10 @@ Lightning disentangles PyTorch code to decouple the science from the engineering
 ## Lightning Philosophy
 Lightning is designed with these principles in mind:
 
-Principle 1: Enable maximal flexibility.
-Principle 2: Abstract away unnecessary boilerplate, but make it accessible when needed.
-Principle 3: Systems should be self-contained (ie: optimizers, computation code, etc).
-Principle 4: Deep learning code should be organized into 4 distinct categories.
+Principle 1: Enable maximal flexibility.   
+Principle 2: Abstract away unnecessary boilerplate, but make it accessible when needed.   
+Principle 3: Systems should be self-contained (ie: optimizers, computation code, etc).   
+Principle 4: Deep learning code should be organized into 4 distinct categories.   
 
   - Research code (the LightningModule).
   - Engineering code (you delete, and is handled by the Trainer).
