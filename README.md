@@ -91,6 +91,19 @@ Lightning is rigurously tested across multiple GPUs, TPUs CPUs and against major
   </center>
 </details>
 
+<details>
+  <summary>Bleeding edge build status (1.2)</summary>
+  
+  <center>
+  
+  ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.2-dev&event=push)
+  </center>
+</details>
+
 ---
 
 ## How To Use
@@ -101,26 +114,29 @@ Simple installation from PyPI
 ```bash
 pip install pytorch-lightning
 ```
-_To get full package experience you can install also all optional dependencies with `pytorch-lightning['extra']` or for CPU users with `pytorch-lightning['cpu-extra']`._
-
-From Conda
-```bash
-conda install pytorch-lightning -c conda-forge
-```
 
 <details>
-  <summary>Other options</summary>
+  <summary>Other installation options</summary>
     <!-- following section will be skipped from PyPI description -->
+  
+  #### Install with optional dependencies (CPU)
+  
+  ```bash
+  pip install pytorch-lightning['cpu-extra']
+  ```
+
+  #### Install with optional dependencies (GPU, TPU)
+  
+  ```bash
+  pip install pytorch-lightning['extra']
+  ```
+  
+  #### Conda
+  ```bash
+  conda install pytorch-lightning -c conda-forge
+  ```
 
   #### Install bleeding-edge - future 1.2
-
-  the actual status of 1.2 [nightly] is following:
-
-  ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
-  ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
-  ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.2-dev&event=push)
-  ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.2-dev&event=push)
-  ![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.2-dev&event=push)
 
   Install future release from the source (no guarantees)
   ```bash
