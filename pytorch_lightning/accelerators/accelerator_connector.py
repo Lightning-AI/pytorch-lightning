@@ -30,6 +30,8 @@ from pytorch_lightning.plugins import (
     DDPShardedPlugin,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
+    DeepSpeedPlugin,
+    DeepSpeedPrecisionPlugin,
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
@@ -71,6 +73,7 @@ class BackendConnector(object):
         gpus,
         num_nodes,
         sync_batchnorm,
+        deepspeed_config,
         benchmark,
         replace_sampler_ddp,
         deterministic,
@@ -90,6 +93,7 @@ class BackendConnector(object):
         self.gpus = gpus
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
+        self.deepspeed_config = deepspeed_config
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.deterministic = deterministic
@@ -243,7 +247,7 @@ class BackendConnector(object):
     def use_ddp(self) -> bool:
         return self._distrib_type in (
             DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED,
-            DistributedType.DDP_SHARDED_SPAWN
+            DistributedType.DDP_SHARDED_SPAWN, DistributedType.DEEPSPEED
         )
 
     @property
@@ -253,6 +257,10 @@ class BackendConnector(object):
     @property
     def use_horovod(self) -> bool:
         return self._distrib_type == DistributedType.HOROVOD
+
+    @property
+    def use_deepspeed(self) -> bool:
+        return self._distrib_type == DistributedType.DEEPSPEED
 
     @property
     def is_distributed(self) -> bool:
@@ -290,15 +298,19 @@ class BackendConnector(object):
         return te_flags_passed
 
     def select_precision_plugin(self) -> PrecisionPlugin:
+        self._set_precision_type()
+
+        if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
+            return DeepSpeedPrecisionPlugin(self.precision)
+
         if self.precision == 32:
-            self.amp_type = None
             return PrecisionPlugin()
 
         elif self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 
-            if self.amp_type == "native":
+            if self.amp_type == AMPType.NATIVE:
                 if not _NATIVE_AMP_AVAILABLE:
                     rank_zero_warn(
                         "You have asked for native AMP but your PyTorch version does not support it."
@@ -309,7 +321,7 @@ class BackendConnector(object):
                         raise MisconfigurationException(
                             "You have asked for native AMP on CPU, but AMP is only available on GPU."
                         )
-                    self.amp_type = "apex"
+                    self.amp_type = AMPType.NATIVE
                 elif self.on_cpu:
                     raise MisconfigurationException(
                         "You have asked for native AMP on CPU, but AMP is only available on GPU."
@@ -318,10 +330,9 @@ class BackendConnector(object):
                     log.info("Using native 16bit precision.")
                     if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
                         return ShardedNativeMixedPrecisionPlugin()
-                    self.amp_type = AMPType.NATIVE
                     return NativeMixedPrecisionPlugin()
 
-            if self.amp_type == "apex":
+            if self.amp_type == AMPType.APEX:
                 if not _APEX_AVAILABLE:
                     rank_zero_warn(
                         "You have asked for Apex AMP but you have not installed it yet."
@@ -334,14 +345,29 @@ class BackendConnector(object):
                             "please using native AMP for 16-bit precision."
                         )
                     log.info("Using APEX 16bit precision.")
-                    self.amp_type = AMPType.APEX
                     return ApexMixedPrecisionPlugin(self.amp_level)
         else:
             raise NotImplementedError("We only support precisions 32 and 16!")
 
-    def select_training_type_plugin(self) -> TrainingTypePlugin:
+    def _set_precision_type(self):
+        if self.precision == 32:
+            self.amp_type = None
+        elif self.precision == 16:
+            if self.amp_type == 'amp':
+                self.amp_type = AMPType.NATIVE
+            elif self.amp_type == 'apex':
+                self.amp_type = AMPType.APEX
+
+    def select_training_type_plugin(self):
         if self.use_ddp2:
             plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+        elif self.use_ddp and self.use_deepspeed:
+            plugin = DeepSpeedPlugin(
+                config=self.deepspeed_config,
+                num_nodes=self.num_nodes,
+                cluster_environment=self.select_cluster_environment(),
+                parallel_devices=self.parallel_devices
+            )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic

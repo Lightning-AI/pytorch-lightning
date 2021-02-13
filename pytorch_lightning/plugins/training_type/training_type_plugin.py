@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from abc import ABC, abstractmethod
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.nn import Module
@@ -144,3 +143,9 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def on_save(self, checkpoint: dict) -> dict:
         return checkpoint
+
+    def init_optimizers(self, trainer: "Trainer", model: LightningModule):
+        return trainer.init_optimizers(model)
+
+    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
+        optimizer.step(closure=lambda_closure, **kwargs)

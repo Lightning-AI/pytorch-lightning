@@ -601,6 +601,8 @@ Lightning currently offers the following methods to leverage model parallelism:
 - Sharded Training (partitioning your gradients and optimizer state across multiple GPUs, for reduced memory overhead with **no performance loss**)
 - Sequential Model Parallelism with Checkpointing (partition your :class:`nn.Sequential <torch.nn.Sequential>` module across multiple GPUs, leverage checkpointing and microbatching for further memory improvements and device utilization)
 
+.. _sharded:
+
 Sharded Training
 ^^^^^^^^^^^^^^^^
 Lightning integration of optimizer sharded training provided by `FairScale <https://github.com/facebookresearch/fairscale>`_.
@@ -665,6 +667,75 @@ To use Sharded Training, you need to first install FairScale using the command b
 Sharded Training can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 
 Internally we re-initialize your optimizers and shard them across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
+
+----------
+
+.. _deepspeed:
+
+DeepSpeed
+^^^^^^^^^
+`DeepSpeed <https://github.com/microsoft/DeepSpeed>`_ offers additional CUDA deep learning training optimizations, similar to `FairScale <https://github.com/facebookresearch/fairscale>`_. DeepSpeed offers lower level training optimizations, and useful memory optimized optimizers such as 1-bit Adam.
+We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models), and where sacrificing flexibility as a tradeoff is acceptable. In addition, we recommend trying :doc:`sharded` first before trying DeepSpeed's further optimizations.
+
+To use DeepSpeed, you first need to install DeepSpeed using the commands below.
+
+.. code-block:: bash
+
+    pip install mpi4py deepspeed
+
+If you run into an issue with the install or later in training, ensure that the CUDA version of the pytorch you've installed matches your locally installed CUDA (you can see which one has been recognized by running ``nvidia-smi``).
+Additionally if you run into any issues installing m4py, ensure you have openmpi installed using ``sudo apt install libopenmpi-dev`` or ``brew install mpich`` before running ``pip install mpi4py``.
+
+Below we show an example of running `ZeRO Offload <https://www.deepspeed.ai/tutorials/zero-offload/>`_. ZeRO-Offload leverages the host CPU to offload optimizer memory/computation, reducing the overall memory consumption.
+For even more speed benefit, they offer an optimized CPU version of ADAM to run the offloaded computation, which is faster than the standard PyTorch implementation.
+
+DeepSpeed requires that the optimizers and schedulers are defined within a config file. We've included the config to enable ZeRO-Offload.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+
+    deepspeed_config = {
+        "optimizer": {
+            "type": "Adam",
+            "params": {
+                "lr": 3e-5,
+                "betas": [0.998, 0.999],
+                "eps": 1e-5,
+                "weight_decay": 1e-9,
+            },
+        },
+        'scheduler': {
+            "type": "WarmupLR",
+            "params": {
+                "last_batch_iteration": -1,
+                "warmup_min_lr": 0,
+                "warmup_max_lr": 3e-5,
+                "warmup_num_steps": 100,
+            }
+        },
+        "zero_optimization": {
+            "stage": 2,
+            "cpu_offload": True,
+            "contiguous_gradients": True,
+            "overlap_comm": True
+        }
+    }
+
+    model = MyModel()
+    trainer = Trainer(accelerator='deepspeed', gpus=4, deepspeed_config=deepspeed_config, precision=16) # zero offload requires mixed precision
+    trainer.fit(model)
+
+We also support taking the config as a json formatted file.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+
+    model = MyModel()
+    trainer = Trainer(accelerator='deepspeed', gpus=4, deepspeed_config="/path/to/deepspeed_config.json", precision=16) # zero offload requires mixed precision
+    trainer.fit(model)
+
 
 ----------
 

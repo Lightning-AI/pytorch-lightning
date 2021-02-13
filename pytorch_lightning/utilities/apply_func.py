@@ -164,3 +164,22 @@ def convert_to_tensors(data, device: torch.device = None):
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
     return data
+
+
+def move_float_tensors_to_half(batch: Any):
+    """
+    Transfers all float32 tensors in batch to half precision.
+    Args:
+        batch: A float32 tensor or collection of float32 tensors.
+            See :func:`apply_to_collection` for a list of supported collection types.
+    Return:
+        the same collection but with all contained float32 tensors converted to half precision.
+    """
+
+    def batch_to(data):
+        return data.half()
+
+    dtypes = [torch.FloatTensor, torch.cuda.FloatTensor]
+    for dtype in dtypes:
+        batch = apply_to_collection(batch, dtype=dtype, function=batch_to)
+    return batch
