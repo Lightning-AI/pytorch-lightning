@@ -476,13 +476,33 @@ class Trainer(
         self.setup_trainer(model)
 
         # ----------------------------
-        # INSPECT THESE FOR MAIN LOOPS
+        # INSPECT THE CORE LOOPS
         # ----------------------------
-        # assign training and eval functions... inspect these to see the train and eval loops :)
-        self.accelerator_backend.train_loop = self.run_train
-        self.accelerator_backend.validation_loop = self.run_evaluation
-        self.accelerator_backend.test_loop = self.run_evaluation
-        self.accelerator_backend.predict_loop = self.run_predict
+        # Our fitting flow looks like this.
+        #
+        #   trainer.test(...) or trainer.predict(...)   ||
+        #                     |                         ||
+        #               trainer.fit(...)                ||
+        #                     |                         ||
+        #         trainer - create accelerator          ||
+        #                     |                         ||
+        #              trainer.dispatch                 ||   FITTING
+        #                     |                         ||
+        #  start_{training, testing, predicting} call   ||   FLOW
+        #            in training_type_plugin            ||
+        #                     |                         ||   DIRECTION
+        #     run_train, run_test, run_predict call     ||
+        #                in trainer                     ||
+        #                     |                         ||
+        #                  results                      \/
+        # This is used to guide readers to the core loops: train, test, predict.
+        # `run_predict` is the simplest to understand, use `Go to Definition` to read it :)
+        # Search for `start_training` or `start_testing` or `start_predicting` in
+        # `pytorch_lightning/plugins/training_type` folder to find accelerator dispatch functions.
+        self.accelerator.train_loop = self.run_train
+        self.accelerator.validation_loop = self.run_evaluation
+        self.accelerator.test_loop = self.run_evaluation
+        self.accelerator.predict_loop = self.run_predict
 
         # ----------------------------
         # TRAIN
