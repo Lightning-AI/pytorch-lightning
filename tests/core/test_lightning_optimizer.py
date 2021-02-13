@@ -100,12 +100,10 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
             opt_1.step()
             opt_1.zero_grad()
 
-            def closure():
-                output = self.layer(batch)
-                loss_2 = self.loss(batch, output)
-                self.manual_backward(loss_2)
+            output = self.layer(batch)
+            loss_2 = self.loss(batch, output)
+            self.manual_backward(loss_2)
 
-            closure()
             if batch_idx % 2 == 0:
                 opt_2.step()
                 opt_2.zero_grad()

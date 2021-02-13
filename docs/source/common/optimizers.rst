@@ -21,15 +21,18 @@ Manual optimization
 For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable
 to manually manage the optimization process. To do so, do the following:
 
-* Disable automatic optimization in Trainer:  Trainer(automatic_optimization=False) or override your LightningModule ``automatic_optimization`` property to False
+* Override your LightningModule ``automatic_optimization`` property to return ``False``
 * Drop or ignore the optimizer_idx argument
 * Use `self.manual_backward(loss)` instead of `loss.backward()`.
 
 .. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with zero_grad, accumulated_grad_batches, model toggling, etc..
 
-.. note:: Before 1.2, ``optimzer.step`` was calling ``zero_grad`` internally. From 1.2, it is left to the users expertize.
+.. warning:: Before 1.2, ``optimzer.step`` was calling ``zero_grad`` internally. From 1.2, it is left to the users expertize.
 
-.. note:: To perform ``accumulate_grad_batches`` with one optimizer, you can do as such.
+.. tip:: To perform ``accumulate_grad_batches`` with one optimizer, you can do as such.
+
+.. tip:: ``self.optimizers()`` will return ``LightningOptimizer`` objects. You can access your own optimizer with ``optimizer.optimizer``. However, if you use our own accelerator to perform a step, Lightning won't be able to support accelerators and precision for you.
+
 
 .. code-block:: python
 
@@ -44,9 +47,6 @@ to manually manage the optimization process. To do so, do the following:
 
         if batch_idx % 2 == 0:
             opt.zero_grad()
-
-
-.. note:: ``self.optimizers()`` will return ``LightningOptimizer`` objects. You can access your own optimizer with ``optimizer.optimizer``. However, if you use our own accelerator to perform a step, Lightning won't be able to support accelerators and precision for you.
 
 
 .. code-block:: python
