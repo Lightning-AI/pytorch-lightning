@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import ANY, call, MagicMock
+from unittest.mock import ANY, call, MagicMock, Mock
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 
 
 @mock.patch("torch.save")  # need to mock torch.save or we get pickle error
-def test_trainer_callback_system(torch_save):
+def test_trainer_callback_system(torch_save, tmpdir):
     """Test the callback system."""
 
     model = BoringModel()
@@ -27,6 +27,7 @@ def test_trainer_callback_system(torch_save):
     callback_mock = MagicMock()
 
     trainer_options = dict(
+        default_root_dir=tmpdir,
         callbacks=[callback_mock],
         max_epochs=1,
         limit_val_batches=1,
@@ -123,3 +124,90 @@ def test_trainer_callback_system(torch_save):
         call.teardown(trainer, model, 'fit'),
         call.teardown(trainer, model, 'test'),
     ]
+
+
+def test_callbacks_configured_in_model(tmpdir):
+    """ Test the callback system with callbacks added through the model hook. """
+
+    model_callback_mock = Mock()
+    trainer_callback_mock = Mock()
+
+    class TestModel(BoringModel):
+
+        def configure_callbacks(self):
+            return [model_callback_mock]
+
+    model = TestModel()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        checkpoint_callback=False,
+        fast_dev_run=True,
+        progress_bar_refresh_rate=0,
+    )
+
+    def assert_expected_calls(_trainer, model_callback, trainer_callback):
+        # some methods in callbacks configured through model won't get called
+        uncalled_methods = [
+            call.on_init_start(_trainer),
+            call.on_init_end(_trainer),
+        ]
+        for uncalled in uncalled_methods:
+            assert uncalled not in model_callback.method_calls
+
+        # assert that the rest of calls are the same as for trainer callbacks
+        expected_calls = [m for m in trainer_callback.method_calls if m not in uncalled_methods]
+        assert expected_calls
+        assert model_callback.method_calls == expected_calls
+
+    # .fit()
+    trainer_options.update(callbacks=[trainer_callback_mock])
+    trainer = Trainer(**trainer_options)
+    assert trainer_callback_mock in trainer.callbacks
+    assert model_callback_mock not in trainer.callbacks
+    trainer.fit(model)
+    assert model_callback_mock in trainer.callbacks
+    assert trainer.callbacks[-1] == model_callback_mock
+    assert_expected_calls(trainer, model_callback_mock, trainer_callback_mock)
+
+    # .test()
+    model_callback_mock.reset_mock()
+    trainer_callback_mock.reset_mock()
+    trainer_options.update(callbacks=[trainer_callback_mock])
+    trainer = Trainer(**trainer_options)
+    trainer.test(model)
+    assert model_callback_mock in trainer.callbacks
+    assert trainer.callbacks[-1] == model_callback_mock
+    assert_expected_calls(trainer, model_callback_mock, trainer_callback_mock)
+
+
+def test_configure_callbacks_hook_multiple_calls(tmpdir):
+    """ Test that subsequent calls to `configure_callbacks` do not change the callbacks list. """
+    model_callback_mock = Mock()
+
+    class TestModel(BoringModel):
+
+        def configure_callbacks(self):
+            return [model_callback_mock]
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        checkpoint_callback=False,
+        progress_bar_refresh_rate=1,
+    )
+
+    callbacks_before_fit = trainer.callbacks.copy()
+    assert callbacks_before_fit
+
+    trainer.fit(model)
+    callbacks_after_fit = trainer.callbacks.copy()
+    assert callbacks_after_fit == callbacks_before_fit + [model_callback_mock]
+
+    trainer.test(model)
+    callbacks_after_test = trainer.callbacks.copy()
+    assert callbacks_after_test == callbacks_after_fit
+
+    trainer.test(ckpt_path=None)
+    callbacks_after_test = trainer.callbacks.copy()
+    assert callbacks_after_test == callbacks_after_fit
