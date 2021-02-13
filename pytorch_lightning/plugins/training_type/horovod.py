@@ -101,7 +101,7 @@ class HorovodPlugin(ParallelPlugin):
         hvd.join()
 
     def start_testing(self, trainer):
-        with ExitStack() as stack:
+        with ExitStack():
             # set up training routine
             # self.trainer.train_loop.setup_training(self.trainer.model)
             self._results = trainer.run_test()

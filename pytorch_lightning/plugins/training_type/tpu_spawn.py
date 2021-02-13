@@ -1,7 +1,7 @@
 import io
 import os
 import re
-from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, Optional, Sequence, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -189,7 +189,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
-        results = self.mp_queue.get()
+        self._results = self.mp_queue.get()
 
         # transfer back the best path to the trainer
         if self.lightning_module.trainer.checkpoint_callback is not None:

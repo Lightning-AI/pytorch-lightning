@@ -1,7 +1,6 @@
 from typing import Any, Union
 
 import torch
-from torch._C import device
 
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 

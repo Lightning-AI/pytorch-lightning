@@ -11,21 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Iterable, Optional, Union
 
 import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.plugins.precision import (
     ApexMixedPrecisionPlugin,
-    MixedPrecisionPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
 )
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
-from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
