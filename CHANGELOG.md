@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [unreleased.Features] - YYYY-MM-DD
+## [1.2] - YYYY-MM-DD
 
 ### Added
 
@@ -59,10 +59,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added missing val/test hooks in `LightningModule` ([#5467](https://github.com/PyTorchLightning/pytorch-lightning/pull/5467))
 
 
-- `Recall` and `Precision` metrics (and their functional counterparts `recall` and `precision`) can now be generalized to Recall@K and Precision@K with the use of `top_k` parameter ([#4842](https://github.com/PyTorchLightning/pytorch-lightning/pull/4842))
+- The `Recall` and `Precision` metrics (and their functional counterparts `recall` and `precision`) can now be generalized to Recall@K and Precision@K with the use of `top_k` parameter ([#4842](https://github.com/PyTorchLightning/pytorch-lightning/pull/4842))
 
 
-- Added `ModelPruning` Callback ([#5618](https://github.com/PyTorchLightning/pytorch-lightning/pull/5618))
+- Added `ModelPruning` Callback ([#5618](https://github.com/PyTorchLightning/pytorch-lightning/pull/5618),
+    [#5825](https://github.com/PyTorchLightning/pytorch-lightning/pull/5825))
 
 
 - Added `PyTorchProfiler` ([#5560](https://github.com/PyTorchLightning/pytorch-lightning/pull/5560))
@@ -81,6 +82,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Added `LightningModule.configure_callbacks` to enable the definition of model-specific callbacks ([#5621](https://github.com/PyTorchLightning/pytorch-lightning/pull/5621))
+
+
+- Added promxial policy optimization template to pl_examples ([#5394](https://github.com/PyTorchLightning/pytorch-lightning/pull/5394))
+
+
+- Added `log_graph` to `CometLogger` ([#5295](https://github.com/PyTorchLightning/pytorch-lightning/pull/5295))
+
+
+- Added possibility for nested loaders ([#5404](https://github.com/PyTorchLightning/pytorch-lightning/pull/5404))
+
+
+- Added `sync_step` to Wandb logger ([#5351](https://github.com/PyTorchLightning/pytorch-lightning/pull/5351))
+
+
+- Added `StochasticWeightAveraging` callback ([#5640](https://github.com/PyTorchLightning/pytorch-lightning/pull/5640))
+
+
+- Added `LightningDataModule.from_datasets(...)` ([#5133](https://github.com/PyTorchLightning/pytorch-lightning/pull/5133))
 
 
 ### Changed
@@ -127,13 +146,48 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Forced `ModelCheckpoint` callbacks to run after all others to guarantee all states are saved to the checkpoint ([#5731](https://github.com/PyTorchLightning/pytorch-lightning/pull/5731))
 
 
-- Refactored Accelerators and Plugins
+- Refactored Accelerators and Plugins ([#5743](https://github.com/PyTorchLightning/pytorch-lightning/pull/5743))
     * Added base classes for plugins ([#5715](https://github.com/PyTorchLightning/pytorch-lightning/pull/5715))
     * Added parallel plugins for DP, DDP, DDPSpawn, DDP2 and Horovod ([#5714](https://github.com/PyTorchLightning/pytorch-lightning/pull/5714))
+    * Precision Plugins ([#5718](https://github.com/PyTorchLightning/pytorch-lightning/pull/5718))
     * Added new Accelerators for CPU, GPU and TPU ([#5719](https://github.com/PyTorchLightning/pytorch-lightning/pull/5719))
     * Added Plugins for TPU training ([#5719](https://github.com/PyTorchLightning/pytorch-lightning/pull/5719))
     * Added RPC and Sharded plugins ([#5732](https://github.com/PyTorchLightning/pytorch-lightning/pull/5732))
     * Added missing `LightningModule`-wrapper logic to new plugins and accelerator ([#5734](https://github.com/PyTorchLightning/pytorch-lightning/pull/5734))
+
+
+- Enabled `self.log` in callbacks ([#5094](https://github.com/PyTorchLightning/pytorch-lightning/pull/5094))
+
+
+- Renamed xxx_AVAILABLE as protected ([#5082](https://github.com/PyTorchLightning/pytorch-lightning/pull/5082))
+
+
+- Unified module names in Utils ([#5199](https://github.com/PyTorchLightning/pytorch-lightning/pull/5199))
+
+
+- Separated utils: imports & enums ([#5256](https://github.com/PyTorchLightning/pytorch-lightning/pull/5256)
+    [#5874](https://github.com/PyTorchLightning/pytorch-lightning/pull/5874))
+
+
+- Refactor: clean trainer device & distributed getters ([#5300](https://github.com/PyTorchLightning/pytorch-lightning/pull/5300))
+
+
+- Simplified training phase as LightningEnum ([#5419](https://github.com/PyTorchLightning/pytorch-lightning/pull/5419))
+
+
+- Updated metrics to use LightningEnum ([#5689](https://github.com/PyTorchLightning/pytorch-lightning/pull/5689))
+
+
+- Changed the seq of `on_train_batch_end`, `on_batch_end` & `on_train_epoch_end`, `on_epoch_end hooks` ([#5688](https://github.com/PyTorchLightning/pytorch-lightning/pull/5688))
+
+
+- Refactored `setup_training` and remove `test_mode` ([#5388](https://github.com/PyTorchLightning/pytorch-lightning/pull/5388))
+
+
+- Disabled training with zero `num_training_batches` when insufficient `limit_train_batches` ([#5703](https://github.com/PyTorchLightning/pytorch-lightning/pull/5703))
+
+
+- Refactored `EpochResultStore` ([#5522](https://github.com/PyTorchLightning/pytorch-lightning/pull/5522))
 
 
 ### Deprecated
@@ -148,6 +202,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated `LightningDataParallel` in favor of new wrapper module `LightningParallelModule` ([#5670](https://github.com/PyTorchLightning/pytorch-lightning/pull/5670))
+
+
+- Renamed utils modules ([#5199](https://github.com/PyTorchLightning/pytorch-lightning/pull/5199))
+    * `argparse_utils` >> `argparse`
+    * `model_utils` >> `model_helpers`
+    * `warning_utils` >> `warnings`
+    * `xla_device_utils` >> `xla_device`
 
 
 ### Removed
@@ -185,6 +246,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed support custom DataLoader with DDP if they can be re-instantiated ([#5745](https://github.com/PyTorchLightning/pytorch-lightning/pull/5745))
+
+
+- Fixed repeated `.fit()` calls ignore max_steps iteration bound ([#5936](https://github.com/PyTorchLightning/pytorch-lightning/pull/5936))
+
+
+- Fixed throwing `MisconfigurationError` on unknown mode ([#5255](https://github.com/PyTorchLightning/pytorch-lightning/pull/5255))
+
+
+- Resolve bug with Finetuning ([#5744](https://github.com/PyTorchLightning/pytorch-lightning/pull/5744))
+
+
+- Fixed `ModelCheckpoint` race condition in file existence check ([#5155](https://github.com/PyTorchLightning/pytorch-lightning/pull/5155))
+
+
+- Fixed some compatibility with PyTorch 1.8 ([#5864](https://github.com/PyTorchLightning/pytorch-lightning/pull/5864))
+
+
+- Fixed forward cache ([#5895](https://github.com/PyTorchLightning/pytorch-lightning/pull/5895))
+
+
+- Fixed passing wrong strings for scheduler interval doesn't throw an error ([#5923](https://github.com/PyTorchLightning/pytorch-lightning/pull/5923))
 
 
 ## [1.1.8] - 2021-02-08
@@ -429,7 +511,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed checkpoint `hparams` dict casting when `omegaconf` is available ([#4770](https://github.com/PyTorchLightning/pytorch-lightning/pull/4770))
 - Fixed incomplete progress bars when total batches not divisible by refresh rate ([#4577](https://github.com/PyTorchLightning/pytorch-lightning/pull/4577))
-- Updated SSIM metric (#4566)([#4656](https://github.com/PyTorchLightning/pytorch-lightning/pull/4656))
+- Updated SSIM metric ([#4566](https://github.com/PyTorchLightning/pytorch-lightning/pull/4566))
 - Fixed batch_arg_name - add `batch_arg_name` to all calls to `_adjust_batch_size`bug ([#4812](https://github.com/PyTorchLightning/pytorch-lightning/pull/4812))
 - Fixed `torchtext` data to GPU ([#4785](https://github.com/PyTorchLightning/pytorch-lightning/pull/4785))
 - Fixed a crash bug in MLFlow logger ([#4716](https://github.com/PyTorchLightning/pytorch-lightning/pull/4716))
@@ -1130,7 +1212,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Regression metrics ([#2221](https://github.com/PyTorchLightning/pytorch-lightning/pull/2221))
 - Added type hints in `Trainer.fit()` and `Trainer.test()` to reflect that also a list of dataloaders can be passed in ([#1723](https://github.com/PyTorchLightning/pytorch-lightning/pull/1723))
 - Allow dataloaders without sampler field present ([#1907](https://github.com/PyTorchLightning/pytorch-lightning/pull/1907))
-- Added option `save_last` to save the model at the end of every epoch in `ModelCheckpoint` [(#1908)](https://github.com/PyTorchLightning/pytorch-lightning/pull/1908)
+- Added option `save_last` to save the model at the end of every epoch in `ModelCheckpoint` ([#1908](https://github.com/PyTorchLightning/pytorch-lightning/pull/1908))
 - Early stopping checks `on_validation_end` ([#1458](https://github.com/PyTorchLightning/pytorch-lightning/pull/1458))
 - Attribute `best_model_path` to `ModelCheckpoint` for storing and later retrieving the path to the best saved model file ([#1799](https://github.com/PyTorchLightning/pytorch-lightning/pull/1799))
 - Speed up single-core TPU training by loading data using `ParallelLoader` ([#2033](https://github.com/PyTorchLightning/pytorch-lightning/pull/2033))
