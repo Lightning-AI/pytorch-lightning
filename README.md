@@ -191,7 +191,7 @@ trainer = pl.Trainer()
 trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 ```
 
-### Advanced features
+## Advanced features
 Lightning has over [40+ advanced features](https://pytorch-lightning.readthedocs.io/en/stable/trainer.html#trainer-flags) designed for professional AI research at scale.
 
 Here are some examples:
@@ -248,7 +248,8 @@ Here are some examples:
    ```
 </details>
 
-#### For advanced users, you can still own complex training loops
+### Pro-level control of training loops (advanced users)
+For complex/professional level work, you have optional full control of the training loop and optimizers.
 
 ```python
 class LitAutoEncoder(pl.LightningModule):
