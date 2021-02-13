@@ -187,7 +187,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Disabled training with zero `num_training_batches` when insufficient `limit_train_batches` ([#5703](https://github.com/PyTorchLightning/pytorch-lightning/pull/5703))
 
 
-- Refactors `EpochResultStore` ([#5522](https://github.com/PyTorchLightning/pytorch-lightning/pull/5522))
+- Refactored `EpochResultStore` ([#5522](https://github.com/PyTorchLightning/pytorch-lightning/pull/5522))
 
 
 ### Deprecated
