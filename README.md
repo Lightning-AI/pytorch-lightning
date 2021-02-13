@@ -191,39 +191,62 @@ trainer = pl.Trainer()
 trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 ```
 
+### Advanced features
+Lightning has over [40+ advanced features](https://pytorch-lightning.readthedocs.io/en/stable/trainer.html#trainer-flags) designed for professional AI research at scale.
+
+Here are some examples:
+
+
 <details>
   <summary>Train on GPUs without code changes</summary>
   
-    ```python
-     # 8 GPUs
-     trainer = Trainer(max_epochs=1, gpus=8)
+  ```python
+   # 8 GPUs
+   trainer = Trainer(max_epochs=1, gpus=8)
 
-     # 256 GPUs
-     trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
-     ```
+   # 256 GPUs
+   trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+   ```
 </details>
 
 <details>
   <summary>Train on TPUs without code changes</summary>
   
-    ```python
-    trainer = Trainer(tpu_cores=8)
-     ```
+  ```python
+  trainer = Trainer(tpu_cores=8)
+   ```
 </details>
 
-#### And even export for production via onnx or torchscript
-```python
-# torchscript
-autoencoder = LitAutoEncoder()
-torch.jit.save(autoencoder.to_torchscript(), "model.pt")
+<details>
+  <summary>16-bit precision</summary>
+  
+  ```python
+  trainer = Trainer(precision=16)
+   ```
+</details>
 
-# onnx
-with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-    autoencoder = LitAutoEncoder()
-    input_sample = torch.randn((1, 64))
-    autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
-    os.path.isfile(tmpfile.name)
-```
+<details>
+  <summary>Export to torchscript (JIT) (production use)</summary>
+  
+  ```python
+  # torchscript
+  autoencoder = LitAutoEncoder()
+  torch.jit.save(autoencoder.to_torchscript(), "model.pt")
+   ```
+</details>
+
+<details>
+  <summary>Export to ONNX (production use)</summary>
+  
+  ```python
+  # onnx
+  with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
+      autoencoder = LitAutoEncoder()
+      input_sample = torch.randn((1, 64))
+      autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
+      os.path.isfile(tmpfile.name)
+   ```
+</details>
 
 #### For advanced users, you can still own complex training loops
 
