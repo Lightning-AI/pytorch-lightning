@@ -1765,8 +1765,8 @@ def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epo
     assert trainer.global_step == global_step
     trainer.fit(model, train_data)
     assert trainer.global_step == global_step
-    
-    
+
+
 def test_trainer_access_in_configure_optimizers(tmpdir):
     """
     Verify that the configure optimizer function can reference the trainer.
