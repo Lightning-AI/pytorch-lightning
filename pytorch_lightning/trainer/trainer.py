@@ -465,6 +465,7 @@ class Trainer(
 
         # hook
         self.data_connector.prepare_data(model)
+        self.callback_connector._attach_model_callbacks(model, self)
 
         # ----------------------------
         # SET UP TRAINING
@@ -475,19 +476,26 @@ class Trainer(
         self.setup_trainer(model)
 
         # ----------------------------
-        # INSPECT THESE FOR MAIN LOOPS
-        # ----------------------------
-        # assign training and eval functions... inspect these to see the train and eval loops :)
-        self.accelerator_backend.train_loop = self.run_train
-        self.accelerator_backend.validation_loop = self.run_evaluation
-        self.accelerator_backend.test_loop = self.run_evaluation
-        self.accelerator_backend.predict_loop = self.run_predict
-
-        # ----------------------------
-        # FITTING
+        # TRAIN
         # ----------------------------
         # hook
         self.call_hook("on_fit_start")
+
+        # plugin will setup training (e.g. ddp will launch child processes)
+        # TODO: the old setup is now called "pre_training", where should this hook be called now?
+        self.training_type_plugin.pre_training()
+        self.precision_plugin.pre_training()
+
+        # double dispatch: let the plugin initiate the training/test loop.
+        if self.testing:
+            self.training_type_plugin.start_testing(self)
+        else:
+            self.training_type_plugin.start_training(self)
+
+        self.precision_plugin.post_training()
+        self.training_type_plugin.post_training()
+        self.accelerator_backend.teardown()
+        results = self.training_type_plugin.results
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self.pre_dispatch()
@@ -566,7 +574,7 @@ class Trainer(
         model_ref.running_stage = stage
         self._running_stage = stage
 
-    def pre_training_routine(self):
+    def _pre_training_routine(self):
         # wait for all to join if on distributed
         self.accelerator.training_type_plugin.barrier("setup_training")
 
@@ -598,9 +606,9 @@ class Trainer(
         if self.is_function_implemented("on_pretrain_routine_end"):
             ref_model.on_pretrain_routine_end()
 
-    def run_train(self):
+    def train(self):
 
-        self.pre_training_routine()
+        self._pre_training_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()

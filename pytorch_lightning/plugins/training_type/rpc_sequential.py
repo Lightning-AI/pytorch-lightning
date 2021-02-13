@@ -105,7 +105,7 @@ class RPCSequentialPlugin(RPCPlugin):
     ) -> None:
         if self.lightning_module.trainer.amp_backend is not None:
             raise MisconfigurationException(
-                'RPCSequentialPlugin is currently not supported in Automatic Mixed Precision'
+                '`RPCSequentialPlugin` is currently not supported in Automatic Mixed Precision'
             )
 
         if self._skip_init_connections():
@@ -325,9 +325,9 @@ class RPCSequentialPlugin(RPCPlugin):
             # Initialize optimizer step on main process
             self.worker_optimizer_step(model=self.lightning_module, opt_idx=optimizer_idx, **kwargs)
 
-    def post_training_step(self):
+    def post_training(self):
         if self.main_rpc_process:
-            super().post_training_step()
+            super().post_training()
 
     def start_training(self, trainer: 'Trainer') -> None:
         if self.main_rpc_process:

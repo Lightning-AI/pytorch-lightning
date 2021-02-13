@@ -6,7 +6,7 @@ import torch
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
 class GPUAccelerator(Accelerator):
@@ -36,4 +36,4 @@ class GPUAccelerator(Accelerator):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
-        log.info(f"LOCAL_RANK: {os.getenv('LOCAL_RANK', 0)} - CUDA_VISIBLE_DEVICES: [{devices}]")
+        _log.info(f"LOCAL_RANK: {os.getenv('LOCAL_RANK', 0)} - CUDA_VISIBLE_DEVICES: [{devices}]")
