@@ -1741,6 +1741,32 @@ def test_disabled_training_for_insufficient_limit_train_batches(
     assert model.training_epoch_end_invoked == should_train, f"`training_epoch_end` {error_string}"
 
 
+@pytest.mark.parametrize(["max_steps", "max_epochs", "global_step"], [(10, 5, 10), (20, None, 20)])
+def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epochs, global_step):
+    """
+    Ensure that the training loop is bound by `max_steps` and
+    `max_epochs` for repeated calls of `trainer.fit`, and
+    disabled if the limit is reached
+    """
+
+    dataset_len = 200
+    batch_size = 10
+
+    train_data = DataLoader(RandomDataset(32, dataset_len), batch_size=batch_size)
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=max_steps,
+        max_epochs=max_epochs,
+    )
+    trainer.fit(model, train_data)
+    assert trainer.global_step == global_step
+    trainer.fit(model, train_data)
+    assert trainer.global_step == global_step
+
+
 def test_trainer_access_in_configure_optimizers(tmpdir):
     """
     Verify that the configure optimizer function can reference the trainer.
