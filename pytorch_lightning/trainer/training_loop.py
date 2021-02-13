@@ -553,7 +553,7 @@ class TrainLoop:
                 self.trainer.run_evaluation()
 
                 # reset stage to train
-                self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.get_model())
+                self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -600,7 +600,7 @@ class TrainLoop:
             self.trainer.run_evaluation(on_epoch=True)
 
             # reset stage to train
-            self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.get_model())
+            self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
 
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval

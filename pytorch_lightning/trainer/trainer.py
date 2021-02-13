@@ -476,26 +476,19 @@ class Trainer(
         self.setup_trainer(model)
 
         # ----------------------------
+        # INSPECT THESE FOR MAIN LOOPS
+        # ----------------------------
+        # assign training and eval functions... inspect these to see the train and eval loops :)
+        self.accelerator_backend.train_loop = self.run_train
+        self.accelerator_backend.validation_loop = self.run_evaluation
+        self.accelerator_backend.test_loop = self.run_evaluation
+        self.accelerator_backend.predict_loop = self.run_predict
+
+        # ----------------------------
         # TRAIN
         # ----------------------------
         # hook
         self.call_hook("on_fit_start")
-
-        # plugin will setup training (e.g. ddp will launch child processes)
-        # TODO: the old setup is now called "pre_dispatch", where should this hook be called now?
-        self.training_type_plugin.pre_dispatch()
-        self.precision_plugin.pre_dispatch()
-
-        # double dispatch: let the plugin initiate the training/test loop.
-        if self.testing:
-            self.training_type_plugin.start_testing(self)
-        else:
-            self.training_type_plugin.start_training(self)
-
-        self.precision_plugin.post_dispatch()
-        self.training_type_plugin.post_dispatch()
-        self.accelerator_backend.teardown()
-        results = self.training_type_plugin.results
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self.pre_dispatch()
@@ -536,34 +529,25 @@ class Trainer(
         self.accelerator_backend.teardown()
 
     def dispatch(self):
-        if self.training or self.evaluating:
-            self.training_type_plugin.start_training(self)
-
-        elif self.testing:
+        if self.testing:
             self.training_type_plugin.start_testing(self)
 
         elif self.predicting:
             self.training_type_plugin.start_predicting(self)
 
         else:
-            raise MisconfigurationException(
-                f"Received {self._running_stage}. Please, open an issue, as it shouldn't happen."
-            )
+            self.training_type_plugin.start_training(self)
 
     def train_or_test_or_predict(self):
-        if self.training or self.evaluating:
-            results = self.train()
-
-        elif self.testing:
+        if self.testing:
             results = self.run_test()
 
         elif self.predicting:
             results = self.run_predict()
 
         else:
-            raise MisconfigurationException(
-                f"Received {self._running_stage}. Please, open an issue, as it shouldn't happen."
-            )
+            results = self.run_train()
+
         return results
 
     def _set_running_stage(self, stage: LightningEnum, model_ref: LightningModule):
@@ -606,7 +590,7 @@ class Trainer(
         if self.is_function_implemented("on_pretrain_routine_end"):
             ref_model.on_pretrain_routine_end()
 
-    def train(self):
+    def run_train(self):
 
         self._pre_training_routine()
 
