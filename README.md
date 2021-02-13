@@ -218,18 +218,20 @@ Here are some examples:
   <summary>Train on GPUs without code changes</summary>
   
   ```python
-   # 8 GPUs
-   trainer = Trainer(max_epochs=1, gpus=8)
+  # 8 GPUs
+  # no code changes needed
+  trainer = Trainer(max_epochs=1, gpus=8)
 
-   # 256 GPUs
-   trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
-   ```
+  # 256 GPUs
+  trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+  ```
 </details>
 
 <details>
   <summary>Train on TPUs without code changes</summary>
   
   ```python
+  # no code changes needed
   trainer = Trainer(tpu_cores=8)
    ```
 </details>
@@ -238,7 +240,51 @@ Here are some examples:
   <summary>16-bit precision</summary>
   
   ```python
+  # no code changes needed
   trainer = Trainer(precision=16)
+   ```
+</details>
+
+<details>
+  <summary>Experiment managers</summary>
+  
+  ```python
+  from pytorch_lightning import loggers
+  
+  # tensorboard
+  trainer = Trainer(logger=TensorBoardLogger('logs/'))
+  
+  # weights and biases
+  trainer = Trainer(logger=loggers.WandbLogger())
+  
+  # comet
+  trainer = Trainer(logger=loggers.CometLogger())
+  
+  # mlflow
+  trainer = Trainer(logger=loggers.MLFlowLogger())
+  
+  # neptune
+  trainer = Trainer(logger=loggers.NeptuneLogger())
+  
+  # ... and dozens more
+   ```
+</details>
+
+<details>
+  <summary>EarlyStopping</summary>
+  
+  ```python
+  es = EarlyStopping(monitor='val_loss')
+  trainer = Trainer(callbacks=[es])
+   ```
+</details>
+
+<details>
+  <summary>Checkpointing</summary>
+  
+  ```python
+  checkpointing = ModelCheckpoint(monitor='val_loss')
+  trainer = Trainer(callbacks=[checkpointing])
    ```
 </details>
 
@@ -287,26 +333,16 @@ class LitAutoEncoder(pl.LightningModule):
 ```
 ---
 
-## Key Features
+## Advantages over unstructured PyTorch
 
-* Scale your models to run on any hardware (CPU, GPUs, TPUs) without changing your model
-* Making code more readable by decoupling the research code from the engineering
+* Models become hardware agnostic
+* Code is clear to read because engineering code is abstracted away
 * Easier to reproduce
-* Less error prone by automating most of the training loop and tricky engineering
+* Make fewer mistakes because lightning handles the tricky engineering
 * Keeps all the flexibility (LightningModules are still PyTorch modules), but removes a ton of boilerplate
-* Lightning has out-of-the-box integration with the popular logging/visualizing frameworks ([Tensorboard](https://pytorch.org/docs/stable/tensorboard.html), [MLFlow](https://mlflow.org/), [Neptune.ai](https://neptune.ai/), [Comet.ml](https://www.comet.ml/site/), [Wandb](https://www.wandb.com/)).
+* Lightning has dozens of integrations with popular machine learning tools.
 * [Tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests). We test every combination of PyTorch and Python supported versions, every OS, multi GPUs and even TPUs.
 * Minimal running speed overhead (about 300 ms per epoch compared with pure PyTorch).
-
-### Lightning automates 40+ parts of DL/ML research
-- GPU training
-- Distributed GPU (cluster) training
-- TPU training
-- EarlyStopping
-- Logging/Visualizing
-- Checkpointing
-- Experiment management
-- [Full list here](https://pytorch-lightning.readthedocs.io/en/latest/#common-use-cases)
 
 ---
 
