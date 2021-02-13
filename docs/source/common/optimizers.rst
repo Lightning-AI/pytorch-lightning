@@ -39,12 +39,31 @@ to manually manage the optimization process. To do so, do the following:
     def training_step(batch, batch_idx, optimizer_idx):
         opt = self.optimizers()
 
-        def closure()
+        loss = self.compute_loss(batch)
+        self.manual_backward(loss)
+        opt.step()
+
+        # zero grad
+        if batch_idx % 2 == 0:
+            opt.zero_grad()
+
+
+.. tip:: It is good pratice to provide to the optimizer a ``closure function`` that perform a ``forward and backward`` evaluation of your model. It is optional for most optimizers, but make your code compatible if you switch to an optimizer which requires a closure.
+
+Here is the same example as above using a ``closure``.
+
+.. code-block:: python
+
+    def training_step(batch, batch_idx, optimizer_idx):
+        opt = self.optimizers()
+
+        def forward_and_backward():
             loss = self.compute_loss(batch)
             self.manual_backward(loss)
 
-        opt.step(closure=closure)
+        opt.step(closure=forward_and_backward)
 
+        # zero grad
         if batch_idx % 2 == 0:
             opt.zero_grad()
 
@@ -55,8 +74,6 @@ to manually manage the optimization process. To do so, do the following:
 
     def training_step(...):
         opt_gen, opt_dis = self.optimizers()
-
-        ...
 
         # compute generator loss
         loss_gen = self.compute_generator_loss(...)
@@ -95,7 +112,6 @@ Here is an example on how to use it:
     def training_step(self, batch, batch_idx, ...):
         opt_gen, opt_dis = self.optimizers()
 
-        ...
         accumulated_grad_batches = batch_idx % 2 == 0
 
         # compute generator loss
