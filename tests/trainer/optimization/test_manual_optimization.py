@@ -608,8 +608,6 @@ def test_multiple_optimizers_step(tmpdir):
             self.automatic_optimization = False
 
         def on_after_backward(self):
-            for opt in self.optimizers():
-                self.trainer.scaler.unscale_(opt)
             self.called = True
             norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
             if not (torch.isinf(norm) or torch.isnan(norm)):
