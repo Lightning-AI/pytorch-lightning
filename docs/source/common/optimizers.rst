@@ -29,6 +29,25 @@ to manually manage the optimization process. To do so, do the following:
 
 .. note:: Before 1.2, ``optimzer.step`` was calling ``zero_grad`` internally and gradients were unscaled with AMP Native. From 1.2, it is left to the users expertize.
 
+.. note:: To perform the accumulate_grad_batches with one optimizer, you can do as such.
+
+.. code-block:: python
+
+    def training_step(batch, batch_idx, optimizer_idx):
+        opt = self.optimizers()
+
+        def closure()
+            loss = self.compute_loss(batch)
+            self.manual_backward(loss)
+
+        opt.step(closure=closure)
+
+        if batch_idx % 2 == 0:
+            opt.zero_grad()
+
+
+.. note:: ``self.optimizers()`` will return ``LightningOptimizer``. You can access your own optimizer with ``optimizer.optimizer``. However, if you use our own accelerator, we will lose support for accelerators and precision.
+
 
 .. code-block:: python
 
@@ -55,26 +74,46 @@ to manually manage the optimization process. To do so, do the following:
         self.manual_backward(loss_dis)
         opt_dis.step()
 
-.. note:: ``self.optimizers()`` will return ``LightningOptimizer``. You can access your own optimizer with ``optimizer.optimizer``. However, if you use our own accelerator, we will lose support for accelerators and precision.
+
+.. note:: LightningOptimizer provides `toggle_model` as a context manager for advanced users. It can be useful when performing gradient accumulation with several optimizers and training with multiple gpus.
+
+Considering the current optimizer as A and all other optimizers as B.
+Toggling means all parameters from B exclusive to A will have ``requieres_grad`` attribute set to ``False``. This would be restored when
 
 
-.. note:: To perform the accumulate_grad_batches with one optimizer, you can do as such.
+When performing gradient accumulation, there is no need to perform grad synchronization during accumulation phase.
+Setting ``sync_grad`` to ``False`` will block this synchronization and improve performances.
+
 
 .. code-block:: python
 
-    # Scenario for a GAN.
 
-    def training_step(batch, batch_idx, optimizer_idx):
-        opt = self.optimizers()
+    # Scenario for a GAN advanced.
 
-        def closure()
-            loss = self.compute_loss(batch)
-            self.manual_backward(loss)
+    def training_step(self, batch, batch_idx, ...):
+        opt_gen, opt_dis = self.optimizers()
 
-        opt.step(closure=closure)
+        ...
+        accumulated_grad_batches = batch_idx % 2 == 0
 
-        if batch_idx % 2 == 0:
-            opt.zero_grad()
+        # compute generator loss
+        def closure_gen():
+            loss_gen = self.compute_generator_loss(...)
+            self.manual_backward(loss_gen)
+            if accumulated_grad_batches:
+                opt_gen.zero_grad()
+
+        with opt_gen.toggle_model(sync_grad=accumulated_grad_batches):
+            opt_gen.step(closure=closure_gen)
+
+        def closure_dis():
+            loss_dis = self.compute_discriminator_loss(...)
+            self.manual_backward(loss_dis)
+            if accumulated_grad_batches:
+                opt_dis.zero_grad()
+
+        with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
+            opt_dis.step(closure=closure_dis)
 
 ------
 

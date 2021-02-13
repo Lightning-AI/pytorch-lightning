@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import types
+from contextlib import contextmanager
 from typing import Callable, Optional
 from weakref import proxy
 
@@ -99,6 +100,32 @@ class LightningOptimizer:
             optimizer = trainer.lightning_optimizers[opt_idx]
         return optimizer
 
+    def __toggle_model(self):
+        model_ref = self._trainer.get_model()
+        model_ref.toggle_optimizer(self, self._optimizer_idx)
+
+    def __untoggle_model(self):
+        model_ref = self._trainer.get_model()
+        model_ref.untoggle_optimizer(self)
+
+    @contextmanager
+    def toggle_model(self, sync_grad: bool = True):
+        """
+        This function is just a helper for advanced users.
+
+        Considering the current optimizer as A and all other optimizers as B.
+        Toggling means all parameters from B exclusive to A will have ``requieres_grad`` set to False.
+
+
+        When performing gradient accumulation, there is no need to perform grad synchronization
+        during the accumulation phase.
+        Setting `sync_grad` to False will block this synchronization and improve performances.
+        """
+        with self._trainer.train_loop.block_ddp_sync_behaviour(not sync_grad):
+            self.__toggle_model()
+            yield
+            self.__untoggle_model()
+
     def __optimizer_step(self, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
         trainer = self._trainer
         optimizer = self._optimizer
@@ -151,6 +178,34 @@ class LightningOptimizer:
                 opt_dis.zero_grad()
                 self.manual_backward(loss_dis)
                 opt_dis.step()
+
+
+            # Scenario for a GAN advanced
+
+            def training_step(self, batch, batch_idx, ...):
+                opt_gen, opt_dis = self.optimizers()
+
+                ...
+                accumulated_grad_batches = batch_idx % 2 == 0
+
+                # compute generator loss
+                def closure_gen():
+                    loss_gen = self.compute_generator_loss(...)
+                    self.manual_backward(loss_gen)
+                    if accumulated_grad_batches:
+                        opt_gen.zero_grad()
+
+                with opt_gen.toggle_model(sync_grad=accumulated_grad_batches):
+                    opt_gen.step(closure=closure_gen)
+
+                def closure_dis():
+                    loss_dis = self.compute_discriminator_loss(...)
+                    self.manual_backward(loss_dis)
+                    if accumulated_grad_batches:
+                        opt_dis.zero_grad()
+
+                with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
+                    opt_dis.step(closure=closure_dis)
 
         """
         if closure is None:

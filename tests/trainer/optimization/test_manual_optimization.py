@@ -1047,11 +1047,11 @@ class TesManualOptimizationDDPModel(BoringModel):
         return [optimizer_gen, optimizer_dis]
 
 
-def train_manual_optimization(tmpdir, accelerator):
+def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizationDDPModel):
 
     seed_everything(42)
 
-    model = TesManualOptimizationDDPModel()
+    model = model_cls()
     model_copy = deepcopy(model)
     model.val_dataloader = None
     model.training_epoch_end = None
@@ -1094,3 +1094,66 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir
     """
 
     train_manual_optimization(tmpdir, "ddp_spawn")
+
+
+class TesManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+
+        # emulate gans training
+        opt_gen, opt_dis = self.optimizers()
+
+        # Note: Be careful, don't log on the same key in self.log in both closure
+        # as they will be aggregated together on epoch_end
+
+        world_size = torch_distrib.get_world_size(torch_distrib.group.WORLD)
+        assert world_size == 2
+
+        make_gen_optimizer_step = batch_idx % 2 == 1
+        make_dis_optimizer_step = batch_idx % 4 == 0
+
+        def compute_loss():
+            x = batch[0]
+            x = F.dropout(x, 0.1)
+            predictions = self(x)
+            predictions = F.dropout(predictions, 0.1)
+            loss_ones = self.loss_ones(None, predictions)
+            loss_zeros = self.loss_zeros(None, predictions)
+            return loss_ones, loss_zeros
+
+        def make_manual_backward(loss, opt, retain_graph=False, make_optimizer_step=True):
+            self.manual_backward(loss, opt, retain_graph=retain_graph)
+            if make_optimizer_step:
+                grad_clone = self.layer.weight.grad.clone()
+                assert self.manual_sync_grad()
+                self.layer.weight.grad /= world_size
+                assert torch.equal(self.layer.weight.grad, grad_clone)
+
+        def gen_closure():
+            loss_ones_gen, loss_zeros = compute_loss()
+            make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
+            make_manual_backward(loss_ones_gen, opt_gen, make_optimizer_step=make_gen_optimizer_step)
+            if make_gen_optimizer_step:
+                opt_gen.zero_grad()
+
+        def dis_closure():
+            loss_ones_gen, loss_zeros = compute_loss()
+            make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
+            make_manual_backward(loss_ones_gen, opt_dis, make_optimizer_step=make_dis_optimizer_step)
+            if make_dis_optimizer_step:
+                opt_dis.zero_grad()
+
+        # this will accumulate gradients for 2 batches and then call opt_gen.step()
+        with opt_gen.toggle_model(grad_sync=make_gen_optimizer_step):
+            opt_gen.step(closure=gen_closure)
+
+        with opt_dis.toggle_model(grad_sync=make_dis_optimizer_step):
+            opt_dis.step(closure=dis_closure)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
+def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
+    train_manual_optimization(tmpdir, "ddp", model_cls=TesManualOptimizationDDPModelToggleModel)
