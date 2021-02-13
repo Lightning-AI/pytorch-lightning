@@ -41,11 +41,6 @@ Scale your models, not the boilerplate.**
 
 ---
 
-## NEWS
-[Dec 2020 - Read about how Facebook uses Lightning to standardize deep learning across research and production teams](https://ai.facebook.com/blog/reengineering-facebook-ais-deep-learning-platforms-for-interoperability)
-
----
-
 ## PyTorch Lightning is just organized PyTorch
 Lightning disentangles PyTorch code to decouple the science from the engineering.
 ![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)
@@ -55,10 +50,10 @@ Lightning disentangles PyTorch code to decouple the science from the engineering
 ## Lightning Philosophy
 Lightning is designed with these principles in mind:
 
-Principle 1: Enable maximal flexibility.
-Principle 2: Abstract away unnecessary boilerplate, but make it accessible when needed.
-Principle 3: Systems should be self-contained (ie: optimizers, computation code, etc).
-Principle 4: Deep learning code should be organized into 4 distinct categories.
+Principle 1: Enable maximal flexibility.   
+Principle 2: Abstract away unnecessary boilerplate, but make it accessible when needed.   
+Principle 3: Systems should be self-contained (ie: optimizers, computation code, etc).   
+Principle 4: Deep learning code should be organized into 4 distinct categories.   
 
   - Research code (the LightningModule).
   - Engineering code (you delete, and is handled by the Trainer).
@@ -112,28 +107,32 @@ From Conda
 conda install pytorch-lightning -c conda-forge
 ```
 
-<!-- following section will be skipped from PyPI description -->
+<details>
+  <summary>Other options</summary>
+    <!-- following section will be skipped from PyPI description -->
 
-#### Install bleeding-edge - future 1.2
+  #### Install bleeding-edge - future 1.2
 
-the actual status of 1.2 [nightly] is following:
+  the actual status of 1.2 [nightly] is following:
 
-![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
-![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
-![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.2-dev&event=push)
-![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.2-dev&event=push)
-![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.2-dev&event=push)
 
-Install future release from the source (no guarantees)
-```bash
-pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.2-dev --upgrade
-```
-or nightly from testing PyPI
-```bash
-pip install -iU https://test.pypi.org/simple/ pytorch-lightning
-```
+  Install future release from the source (no guarantees)
+  ```bash
+  pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.2-dev --upgrade
+  ```
+  or nightly from testing PyPI
+  ```bash
+  pip install -iU https://test.pypi.org/simple/ pytorch-lightning
+  ```
 
-<!-- end skipping PyPI description -->
+  <!-- end skipping PyPI description -->
+</details>
+
 
 ### Step 1: Add these imports
 
@@ -192,33 +191,65 @@ trainer = pl.Trainer()
 trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 ```
 
-#### And without changing a single line of code, you could run on GPUs/TPUs
-```python
-# 8 GPUs
-trainer = Trainer(max_epochs=1, gpus=8)
+## Advanced features
+Lightning has over [40+ advanced features](https://pytorch-lightning.readthedocs.io/en/stable/trainer.html#trainer-flags) designed for professional AI research at scale.
 
-# 256 GPUs
-trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+Here are some examples:
 
-# TPUs
-trainer = Trainer(tpu_cores=8)
-```
 
-#### And even export for production via onnx or torchscript
-```python
-# torchscript
-autoencoder = LitAutoEncoder()
-torch.jit.save(autoencoder.to_torchscript(), "model.pt")
+<details>
+  <summary>Train on GPUs without code changes</summary>
+  
+  ```python
+   # 8 GPUs
+   trainer = Trainer(max_epochs=1, gpus=8)
 
-# onnx
-with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-    autoencoder = LitAutoEncoder()
-    input_sample = torch.randn((1, 64))
-    autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
-    os.path.isfile(tmpfile.name)
-```
+   # 256 GPUs
+   trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+   ```
+</details>
 
-#### For advanced users, you can still own complex training loops
+<details>
+  <summary>Train on TPUs without code changes</summary>
+  
+  ```python
+  trainer = Trainer(tpu_cores=8)
+   ```
+</details>
+
+<details>
+  <summary>16-bit precision</summary>
+  
+  ```python
+  trainer = Trainer(precision=16)
+   ```
+</details>
+
+<details>
+  <summary>Export to torchscript (JIT) (production use)</summary>
+  
+  ```python
+  # torchscript
+  autoencoder = LitAutoEncoder()
+  torch.jit.save(autoencoder.to_torchscript(), "model.pt")
+   ```
+</details>
+
+<details>
+  <summary>Export to ONNX (production use)</summary>
+  
+  ```python
+  # onnx
+  with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
+      autoencoder = LitAutoEncoder()
+      input_sample = torch.randn((1, 64))
+      autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
+      os.path.isfile(tmpfile.name)
+   ```
+</details>
+
+### Pro-level control of training loops (advanced users)
+For complex/professional level work, you have optional full control of the training loop and optimizers.
 
 ```python
 class LitAutoEncoder(pl.LightningModule):
