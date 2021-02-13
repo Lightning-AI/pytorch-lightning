@@ -49,9 +49,9 @@ def _compare_version(package: str, op, version) -> bool:
 
 
 _IS_WINDOWS = platform.system() == "Windows"
-
 _TORCH_LOWER_EQUAL_1_4 = _compare_version("torch", operator.le, "1.5.0")
 _TORCH_GREATER_EQUAL_1_6 = _compare_version("torch", operator.ge, "1.6.0")
+_TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
 _TORCH_QUANTIZE_AVAILABLE = _module_available('torch.ops.quantized')
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')

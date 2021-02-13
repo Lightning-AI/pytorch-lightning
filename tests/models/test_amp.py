@@ -21,6 +21,7 @@ from torch import optim
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -108,7 +109,15 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@mock.patch.dict(os.environ, {"SLURM_LOCALID": "0"})
+@mock.patch.dict(
+    os.environ, {
+        "SLURM_NTASKS": "1",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "0"
+    }
+)
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     # simulate setting slurm flags
@@ -132,17 +141,18 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         callbacks=[checkpoint],
         logger=logger,
     )
-    trainer.is_slurm_managing_tasks = True
-    trainer.fit(model)
+    _ = trainer.fit(model)
 
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, 'amp + ddp model failed to complete'
 
     # test root model address
-    assert trainer.slurm_connector.resolve_root_node_address('abc') == 'abc'
-    assert trainer.slurm_connector.resolve_root_node_address('abc[23]') == 'abc23'
-    assert trainer.slurm_connector.resolve_root_node_address('abc[23-24]') == 'abc23'
-    assert trainer.slurm_connector.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
+    assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc') == 'abc'
+    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23]') == 'abc23'
+    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24]') == 'abc23'
+    generated = trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24, 45-40, 40]')
+    assert generated == 'abc23'
 
 
 def test_cpu_model_with_amp(tmpdir):
@@ -158,7 +168,7 @@ def test_cpu_model_with_amp(tmpdir):
 
     model = BoringModel()
 
-    with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
+    with pytest.raises(MisconfigurationException, match="AMP is only available on GPU"):
         tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 

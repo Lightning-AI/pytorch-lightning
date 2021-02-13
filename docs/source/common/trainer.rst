@@ -535,6 +535,14 @@ Example::
         def on_train_end(self, trainer, pl_module):
             print("Training is done.")
 
+
+Model-specific callbacks can also be added inside the ``LightningModule`` through
+:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
+Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
+the trainer callbacks should there be two or more of the same type.
+:class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
+
+
 check_val_every_n_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1178,13 +1186,13 @@ If used on TPU will use torch.bfloat16 but tensor printing
 will still show torch.float32.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
     # default used by the Trainer
     trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16)
+    trainer = Trainer(precision=16, gpus=1)
 
 Example::
 
