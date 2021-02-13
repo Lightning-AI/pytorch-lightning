@@ -191,17 +191,25 @@ trainer = pl.Trainer()
 trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 ```
 
-#### And without changing a single line of code, you could run on GPUs/TPUs
-```python
-# 8 GPUs
-trainer = Trainer(max_epochs=1, gpus=8)
+<details>
+  <summary>Train on GPUs without code changes</summary>
+  
+    ```python
+     # 8 GPUs
+     trainer = Trainer(max_epochs=1, gpus=8)
 
-# 256 GPUs
-trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+     # 256 GPUs
+     trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+     ```
+</details>
 
-# TPUs
-trainer = Trainer(tpu_cores=8)
-```
+<details>
+  <summary>Train on TPUs without code changes</summary>
+  
+    ```python
+    trainer = Trainer(tpu_cores=8)
+     ```
+</details>
 
 #### And even export for production via onnx or torchscript
 ```python
