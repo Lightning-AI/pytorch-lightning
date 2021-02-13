@@ -439,7 +439,7 @@ class ModelCheckpoint(Callback):
                 if isinstance(trainer.logger.version, str) else f"version_{trainer.logger.version}"
             )
 
-            version, name = trainer.accelerator_backend.broadcast((version, trainer.logger.name))
+            version, name = trainer.training_type_plugin.broadcast((version, trainer.logger.name))
 
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
@@ -520,11 +520,9 @@ class ModelCheckpoint(Callback):
                 trainer,
             )
 
-        accelerator_backend = trainer.accelerator_backend
-
-        if accelerator_backend is not None and accelerator_backend.rpc_enabled:
+        if trainer.training_type_plugin.rpc_enabled:
             # RPCPlugin manages saving all model states
-            accelerator_backend.ddp_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
+            trainer.training_type_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
         else:
             self._save_model(last_filepath, trainer, pl_module)
         if (
@@ -607,6 +605,5 @@ class ModelCheckpoint(Callback):
         the internal state to diverge between ranks.
         """
         exists = self._fs.exists(filepath)
-        if trainer.accelerator_backend is not None:
-            exists = trainer.accelerator_backend.broadcast(exists)
+        exists = trainer.training_type_plugin.broadcast(exists)
         return exists
