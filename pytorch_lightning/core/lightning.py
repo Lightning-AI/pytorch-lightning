@@ -1042,6 +1042,32 @@ class LightningModule(
         """
         return self(batch)
 
+    def configure_callbacks(self):
+        """
+        Configure model-specific callbacks.
+        When the model gets attached, e.g., when ``.fit()`` or ``.test()`` gets called,
+        the list returned here will be merged with the list of callbacks passed to the Trainer's ``callbacks`` argument.
+        If a callback returned here has the same type as one or several callbacks already present in
+        the Trainer's callbacks list, it will take priority and replace them.
+        In addition, Lightning will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        callbacks run last.
+
+        Return:
+            A list of callbacks which will extend the list of callbacks in the Trainer.
+
+        Example::
+
+            def configure_callbacks(self):
+                early_stop = EarlyStopping(monitor"val_acc", mode="max")
+                checkpoint = ModelCheckpoint(monitor="val_loss")
+                return [early_stop, checkpoint]
+
+        Note:
+            Certain callback methods like :meth:`~pytorch_lightning.callbacks.base.Callback.on_init_start`
+            will never be invoked on the new callbacks returned here.
+        """
+        return []
+
     def configure_optimizers(self):
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.

@@ -843,7 +843,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                     retain_graph = num_backward != backward_idx  # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
-            opt.step(closure=optimizer_closure)
+            opt.step(closure=optimizer_closure, make_optimizer_step=True)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
