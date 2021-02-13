@@ -141,7 +141,7 @@ class ProgressBarBase(Callback):
         """
         The total number of predicting batches during testing, which may change from epoch to epoch.
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
-        test dataloader is of infinite size.
+        predict dataloader is of infinite size.
         """
         return sum(self.trainer.num_predict_batches)
 
