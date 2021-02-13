@@ -482,9 +482,9 @@ class Trainer(
         self.call_hook("on_fit_start")
 
         # plugin will setup training (e.g. ddp will launch child processes)
-        # TODO: the old setup is now called "pre_training", where should this hook be called now?
-        self.training_type_plugin.pre_training()
-        self.precision_plugin.pre_training()
+        # TODO: the old setup is now called "pre_dispatch", where should this hook be called now?
+        self.training_type_plugin.pre_dispatch()
+        self.precision_plugin.pre_dispatch()
 
         # double dispatch: let the plugin initiate the training/test loop.
         if self.testing:
@@ -492,8 +492,8 @@ class Trainer(
         else:
             self.training_type_plugin.start_training(self)
 
-        self.precision_plugin.post_training()
-        self.training_type_plugin.post_training()
+        self.precision_plugin.post_dispatch()
+        self.training_type_plugin.post_dispatch()
         self.accelerator_backend.teardown()
         results = self.training_type_plugin.results
 
