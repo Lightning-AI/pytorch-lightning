@@ -496,7 +496,7 @@ class Trainer(
         # dispath `start_training` or `start_testing` or `start_predicting`
         self.dispatch()
 
-        # plugin will finalized fitting (e.g. ddp_spawn will launch load trained model)
+        # plugin will finalized fitting (e.g. ddp_spawn will load trained model)
         self.post_dispatch()
 
         # ----------------------------
