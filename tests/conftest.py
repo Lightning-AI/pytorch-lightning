@@ -26,9 +26,8 @@ def restore_env_variables():
     """ Ensures that environment variables set during the test do not leak out. """
     env_backup = os.environ.copy()
     yield
-    # restore environment as it was before running the test
-    os.environ.clear()
-    os.environ.update(env_backup)
+    leaked_vars = [var for var in os.environ.keys() if var not in env_backup.keys()]
+    assert not leaked_vars, f"test is leaking environment variable(s): {', '.join(leaked_vars)}"
 
 
 def pytest_configure(config):
