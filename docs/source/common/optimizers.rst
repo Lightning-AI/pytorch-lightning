@@ -86,7 +86,7 @@ Toggling means that all parameters from B exclusive to A will have their ``requi
 When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
 Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
 
-Here is an example to on how to use it:
+Here is an example on how to use it:
 
 .. code-block:: python
 
