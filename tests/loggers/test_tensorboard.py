@@ -14,6 +14,7 @@
 import os
 from argparse import Namespace
 from distutils.version import LooseVersion
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -291,3 +292,18 @@ def test_tensorboard_finalize(summary_writer, tmpdir):
     logger.finalize("any")
     summary_writer().flush.assert_called()
     summary_writer().close.assert_called()
+
+
+def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
+
+    hparams_file = "hparams.yaml"
+    model = BoringModel()
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    assert trainer.log_dir == trainer.logger.log_dir
+    trainer.fit(model)
+
+    dir_path = trainer.log_dir
+
+    hparams_file_path = os.path.join(dir_path, hparams_file)
+    assert os.path.isfile(hparams_file_path)
+    assert not os.path.isfile(Path(tmpdir / hparams_file))
