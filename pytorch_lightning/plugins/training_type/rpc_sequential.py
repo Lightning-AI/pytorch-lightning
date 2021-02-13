@@ -21,6 +21,7 @@ from torch import nn
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 
+from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.rpc import DEFAULT_RPC_TIMEOUT_SEC, RPCPlugin
