@@ -29,7 +29,7 @@ to manually manage the optimization process. To do so, do the following:
 
 .. note:: Before 1.2, ``optimzer.step`` was calling ``zero_grad`` internally. From 1.2, it is left to the users expertize.
 
-.. note:: To perform the accumulate_grad_batches with one optimizer, you can do as such.
+.. note:: To perform ``accumulate_grad_batches`` with one optimizer, you can do as such.
 
 .. code-block:: python
 
@@ -46,7 +46,7 @@ to manually manage the optimization process. To do so, do the following:
             opt.zero_grad()
 
 
-.. note:: ``self.optimizers()`` will return ``LightningOptimizer``. You can access your own optimizer with ``optimizer.optimizer``. However, if you use our own accelerator, we will lose support for accelerators and precision.
+.. note:: ``self.optimizers()`` will return ``LightningOptimizer`` objects. You can access your own optimizer with ``optimizer.optimizer``. However, if you use our own accelerator to perform a step, Lightning won't be able to support for accelerators and precision for you.
 
 
 .. code-block:: python
@@ -75,20 +75,22 @@ to manually manage the optimization process. To do so, do the following:
         opt_dis.step()
 
 
-.. note:: LightningOptimizer provides `toggle_model` as a context manager for advanced users. It can be useful when performing gradient accumulation with several optimizers and training with multiple gpus.
+.. note:: LightningOptimizer provides `toggle_model` function as a ``context manager`` for advanced users. It can be useful when performing ``gradient accumulation with several optimizers`` and training with ``multiple gpus``.
+
+Here is an explanation of what it does:
 
 Considering the current optimizer as A and all other optimizers as B.
-Toggling means all parameters from B exclusive to A will have ``requieres_grad`` attribute set to ``False``. This would be restored when
+Toggling means that all parameters from B exclusive to A will have their ``requieres_grad`` attribute set to ``False``. This state will be restored when exitting the context manager.
 
 
-When performing gradient accumulation, there is no need to perform grad synchronization during accumulation phase.
-Setting ``sync_grad`` to ``False`` will block this synchronization and improve performances.
+When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
+Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
 
 
 .. code-block:: python
 
 
-    # Scenario for a GAN advanced.
+    # Scenario for a GAN with accumulate_grad_batches and multiple gpus.
 
     def training_step(self, batch, batch_idx, ...):
         opt_gen, opt_dis = self.optimizers()
