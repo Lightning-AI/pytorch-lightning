@@ -65,16 +65,12 @@ class Accelerator(object):
     def broadcast(self, obj, src=0):
         return obj
 
-    def train_or_test_or_predict(self):
+    def train_or_test(self):
         if self.trainer.testing:
             results = self.trainer.run_test()
-
-        elif self.trainer.predicting:
-            results = self.trainer.run_predict()
-
         else:
             self.trainer.train_loop.setup_training()
-            results = self.trainer.run_train()
+            results = self.trainer.train()
         return results
 
     def batch_to_device(self, batch: Any, device: torch.device):
