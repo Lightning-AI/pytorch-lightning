@@ -36,11 +36,8 @@ class Plugin(ABC):
     def pre_training(self) -> None:
         """Hook to do something before the training starts."""
 
-    def pre_dispatch(self) -> None:
-        """Hook to do something before the dispatch starts."""
-
-    def post_dispatch(self) -> None:
-        """Hook to do something after the dispatch finishes."""
+    def post_training(self) -> None:
+        """Hook to do something after the training finishes."""
 
     @contextlib.contextmanager
     def train_step_context(self) -> Generator:
@@ -54,7 +51,7 @@ class Plugin(ABC):
 
     @contextlib.contextmanager
     def test_step_context(self) -> Generator:
-        """A contextmanager for the test step"""
+        """A contextmanager for the teststep"""
         yield
 
     @contextlib.contextmanager
