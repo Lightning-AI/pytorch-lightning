@@ -416,6 +416,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
             self.manual_backward(loss, opt)
             opt.step()
+            opt.zero_grad()
 
         return loss.detach() if self.detach else loss
 
