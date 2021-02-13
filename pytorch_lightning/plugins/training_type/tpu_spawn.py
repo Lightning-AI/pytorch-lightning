@@ -95,10 +95,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         trainer.save_checkpoint = self.save_checkpoint
         self.barrier()
 
-        if trainer.testing:
-            results = trainer.run_test()
-        else:
-            results = trainer.train()
+        results = trainer.accelerator_backend.train_or_test_or_predict()
 
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
@@ -182,7 +179,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         should_stop = int(stop.item()) == self.world_size
         return should_stop
 
-    def post_training(self) -> None:
+    def post_dispatch(self) -> None:
         # TODO: Check if trainer references can be resolved otherwise
         model = self.lightning_module
 
@@ -231,6 +228,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def start_testing(self, trainer) -> None:
+        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+
+    def start_predicting(self, trainer) -> None:
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def training_step(self, *args, **kwargs):

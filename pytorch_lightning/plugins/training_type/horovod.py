@@ -50,7 +50,7 @@ class HorovodPlugin(ParallelPlugin):
 
         self.model_to_device()
 
-    def pre_training(self):
+    def pre_dispatch(self):
 
         def _unpack_lightning_optimizer(opt):
             return opt._optimizer if isinstance(opt, LightningOptimizer) else opt
@@ -95,16 +95,22 @@ class HorovodPlugin(ParallelPlugin):
                 stack.enter_context(optimizer.skip_synchronize())
 
             # set up training routine
-            self._results = trainer.train()
+            self._results = trainer.run_train()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
 
     def start_testing(self, trainer):
         with ExitStack() as stack:
-            # set up training routine
-            # self.trainer.train_loop.setup_training(self.trainer.model)
             self._results = trainer.run_test()
+
+        # Make sure all workers have finished training before returning to the user
+        hvd.join()
+
+    def start_predicting(self, trainer):
+        with ExitStack() as stack:
+            # set up training routine
+            self._results = trainer.run_predict()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()

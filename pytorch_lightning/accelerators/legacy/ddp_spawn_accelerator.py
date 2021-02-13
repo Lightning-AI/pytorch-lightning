@@ -168,8 +168,7 @@ class DDPSpawnAccelerator(Accelerator):
 
         self.trainer.setup_trainer(model)
 
-        # train or test
-        results = self.train_or_test()
+        results = self.train_or_test_or_predict()
 
         # get original model
         model = self.trainer.get_model()

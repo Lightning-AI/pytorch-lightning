@@ -293,7 +293,8 @@ class TrainerDataLoadingMixin(ABC):
             loader = dataloaders[loader_i]
 
             # shuffling in val and test set is bad practice
-            if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
+            modes = ('val', 'test', 'predict')
+            if mode in modes and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
 
                 # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0:
@@ -363,7 +364,7 @@ class TrainerDataLoadingMixin(ABC):
             self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
-        """Resets the validation dataloader and determines the number of batches.
+        """Resets the test dataloader and determines the number of batches.
 
         Args:
             model: The current `LightningModule`
@@ -373,6 +374,17 @@ class TrainerDataLoadingMixin(ABC):
         if has_loader and has_step:
             self.num_test_batches, self.test_dataloaders =\
                 self._reset_eval_dataloader(model, 'test')
+
+    def reset_predict_dataloader(self, model) -> None:
+        """Resets the predict dataloader and determines the number of batches.
+
+        Args:
+            model: The current `LightningModule`
+        """
+        has_loader = is_overridden('predict_dataloader', model)
+        if has_loader:
+            self.num_predict_batches, self.predict_dataloaders =\
+                self._reset_eval_dataloader(model, 'predict')
 
     def request_dataloader(self, dataloader_fx: Callable) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.
