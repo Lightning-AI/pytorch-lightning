@@ -100,11 +100,11 @@ class LightningOptimizer:
             optimizer = trainer.lightning_optimizers[opt_idx]
         return optimizer
 
-    def __toggle_model(self):
+    def _toggle_model(self):
         model_ref = self._trainer.get_model()
         model_ref.toggle_optimizer(self, self._optimizer_idx)
 
-    def __untoggle_model(self):
+    def _untoggle_model(self):
         model_ref = self._trainer.get_model()
         model_ref.untoggle_optimizer(self)
 
@@ -122,9 +122,9 @@ class LightningOptimizer:
         Setting `sync_grad` to False will block this synchronization and improve performances.
         """
         with self._trainer.train_loop.block_ddp_sync_behaviour(not sync_grad):
-            self.__toggle_model()
+            self._toggle_model()
             yield
-            self.__untoggle_model()
+            self._untoggle_model()
 
     def __optimizer_step(self, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
         trainer = self._trainer

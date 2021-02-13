@@ -1133,22 +1133,24 @@ class TesManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
             loss_ones_gen, loss_zeros = compute_loss()
             make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
             make_manual_backward(loss_ones_gen, opt_gen, make_optimizer_step=make_gen_optimizer_step)
-            if make_gen_optimizer_step:
-                opt_gen.zero_grad()
 
         def dis_closure():
             loss_ones_gen, loss_zeros = compute_loss()
             make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
             make_manual_backward(loss_ones_gen, opt_dis, make_optimizer_step=make_dis_optimizer_step)
-            if make_dis_optimizer_step:
-                opt_dis.zero_grad()
 
         # this will accumulate gradients for 2 batches and then call opt_gen.step()
-        with opt_gen.toggle_model(grad_sync=make_gen_optimizer_step):
-            opt_gen.step(closure=gen_closure)
+        with opt_gen.toggle_model(sync_grad=make_gen_optimizer_step):
+            gen_closure()
+            if make_gen_optimizer_step:
+                opt_gen.step()
+                opt_gen.zero_grad()
 
-        with opt_dis.toggle_model(grad_sync=make_dis_optimizer_step):
-            opt_dis.step(closure=dis_closure)
+        with opt_dis.toggle_model(sync_grad=make_dis_optimizer_step):
+            dis_closure()
+            if make_dis_optimizer_step:
+                opt_dis.step()
+                opt_dis.zero_grad()
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
