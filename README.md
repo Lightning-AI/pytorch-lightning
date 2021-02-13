@@ -213,9 +213,12 @@ Lightning has over [40+ advanced features](https://pytorch-lightning.readthedocs
 
 Here are some examples:
 
+<div align="center">
+  <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/features_2.jpg" max-height="600px">
+</div>
 
 <details>
-  <summary>Train on GPUs without code changes</summary>
+  <summary>Highlighted feature code snippets</summary>
   
   ```python
   # 8 GPUs
@@ -225,27 +228,21 @@ Here are some examples:
   # 256 GPUs
   trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
   ```
-</details>
 
-<details>
   <summary>Train on TPUs without code changes</summary>
   
   ```python
   # no code changes needed
   trainer = Trainer(tpu_cores=8)
    ```
-</details>
 
-<details>
   <summary>16-bit precision</summary>
   
   ```python
   # no code changes needed
   trainer = Trainer(precision=16)
    ```
-</details>
 
-<details>
   <summary>Experiment managers</summary>
   
   ```python
@@ -268,27 +265,21 @@ Here are some examples:
   
   # ... and dozens more
    ```
-</details>
 
-<details>
   <summary>EarlyStopping</summary>
   
   ```python
   es = EarlyStopping(monitor='val_loss')
   trainer = Trainer(callbacks=[es])
    ```
-</details>
 
-<details>
   <summary>Checkpointing</summary>
   
   ```python
   checkpointing = ModelCheckpoint(monitor='val_loss')
   trainer = Trainer(callbacks=[checkpointing])
    ```
-</details>
 
-<details>
   <summary>Export to torchscript (JIT) (production use)</summary>
   
   ```python
@@ -296,9 +287,7 @@ Here are some examples:
   autoencoder = LitAutoEncoder()
   torch.jit.save(autoencoder.to_torchscript(), "model.pt")
    ```
-</details>
 
-<details>
   <summary>Export to ONNX (production use)</summary>
   
   ```python
@@ -393,15 +382,7 @@ If you have any questions please:
 4. [Join our slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A).
 
 ### Funding
-Building open-source software with only a few part-time people is hard!
-
-[We're venture funded](https://techcrunch.com/2020/10/08/grid-ai-raises-18-6m-series-a-to-help-ai-researchers-and-engineers-bring-their-models-to-production/)
-and backed by some of the top VC funds in the world, [Index Ventures](https://www.indexventures.com/companies/), [Bain Capital Ventures](https://www.baincapitalventures.com/portfolio/), [First Minute Capital](https://firstminute.capital/companies).
-
-Their funding ensures we can continue to build awesome tooling like Grid, give you around the clock support,
-hire a full-time staff, attend conferences, and move faster through implementing features you request.
-
-To supercharge your research and production work, visit our [Grid.ai platform](https://www.grid.ai/)
+[We're venture funded](https://techcrunch.com/2020/10/08/grid-ai-raises-18-6m-series-a-to-help-ai-researchers-and-engineers-bring-their-models-to-production/) to make sure we can provide around the clock support, hire a full-time staff, attend conferences, and move faster through implementing features you request.
 
 ---
 
