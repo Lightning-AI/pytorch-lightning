@@ -95,7 +95,7 @@ class HorovodPlugin(ParallelPlugin):
                 stack.enter_context(optimizer.skip_synchronize())
 
             # set up training routine
-            self._results = trainer.run_train()
+            self._results = trainer.train()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()

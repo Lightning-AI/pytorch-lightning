@@ -552,7 +552,7 @@ class Trainer(
 
     def train_or_test_or_predict(self):
         if self.training or self.evaluating:
-            results = self.run_train()
+            results = self.train()
 
         elif self.testing:
             results = self.run_test()
