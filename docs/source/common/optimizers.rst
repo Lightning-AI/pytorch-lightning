@@ -91,7 +91,7 @@ Here is an example on how to use it:
 .. code-block:: python
 
 
-    # Scenario for a GAN with accumulate_grad_batches and multiple gpus.
+    # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
 
     def training_step(self, batch, batch_idx, ...):
         opt_gen, opt_dis = self.optimizers()
