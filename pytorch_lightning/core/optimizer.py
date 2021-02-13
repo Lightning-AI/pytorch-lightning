@@ -130,7 +130,7 @@ class LightningOptimizer:
 
         Example::
 
-            # Scenario for a gan.
+            # Scenario for a GAN.
 
             def training_step(...):
                 opt_gen, opt_dis = self.optimizers()

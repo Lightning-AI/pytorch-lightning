@@ -189,3 +189,29 @@ def test_v1_4_0_deprecated_lightning_data_parallel():
         dp_model = LightningDataParallel(model, device_ids=[0])
     assert isinstance(dp_model, torch.nn.DataParallel)
     assert isinstance(dp_model.module, LightningParallelModule)
+
+
+def test_v1_4_0_deprecated_manual_optimization_optimizer(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, *_, **kwargs):
+            opt = self.optimizers()
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.manual_backward(loss, opt)
+
+        @property
+        def automatic_optimization(self):
+            return False
+
+    model = TestModel()
+    model.training_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+    )
+    with pytest.deprecated_call(
+        match="`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4"
+    ):
+        trainer.fit(model)

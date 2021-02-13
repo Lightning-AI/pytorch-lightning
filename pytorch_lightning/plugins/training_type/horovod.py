@@ -116,9 +116,6 @@ class HorovodPlugin(ParallelPlugin):
         obj = hvd.broadcast_object(obj, src)
         return obj
 
-    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
-        optimizer.synchronize()
-
     def model_to_device(self):
         if self.on_gpu:
             torch.cuda.set_device(self.root_device)
@@ -160,5 +157,6 @@ class HorovodPlugin(ParallelPlugin):
         return gathered_result
 
     def post_backward(self, loss: torch.Tensor, should_accumulate: bool):
-        for optimizer in self.optimizers:
+        # synchronize all horovod optimizers.
+        for optimizer in self.lightning_module.trainer.optimizers:
             optimizer.synchronize()

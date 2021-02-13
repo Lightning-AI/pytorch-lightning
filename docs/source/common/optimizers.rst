@@ -27,9 +27,12 @@ to manually manage the optimization process. To do so, do the following:
 
 .. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with zero_grad, accumulated_grad_batches, model toggling, etc..
 
+.. note:: Before 1.2, ``optimzer.step`` was calling ``zero_grad`` internally. From 1.2, it is left to the users expertize.
+
+
 .. code-block:: python
 
-    # Scenario for a gan.
+    # Scenario for a GAN.
 
     def training_step(...):
         opt_gen, opt_dis = self.optimizers()
@@ -59,7 +62,7 @@ to manually manage the optimization process. To do so, do the following:
 
 .. code-block:: python
 
-    # Scenario for a gan.
+    # Scenario for a GAN.
 
     def training_step(batch, batch_idx, optimizer_idx):
         opt = self.optimizers()

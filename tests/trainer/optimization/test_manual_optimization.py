@@ -843,7 +843,8 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                     retain_graph = num_backward != backward_idx  # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
-            opt.step(closure=optimizer_closure, make_optimizer_step=True)
+            opt.step(closure=optimizer_closure)
+            opt.zero_grad()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -914,13 +915,15 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
             gen_closure()
-            if (batch_idx % 2 == 0):
+            if batch_idx % 2 == 0:
                 opt_gen.step(closure=gen_closure, optim='sgd')
+                opt_gen.zero_grad()
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
             if batch_idx % 4 == 0:
                 opt_dis.step(closure=dis_closure)
+                opt_dis.zero_grad()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
