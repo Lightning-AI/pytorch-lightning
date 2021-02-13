@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import torch
 
-from pytorch_lightning.metrics.functional.psnr import _psnr_compute, _psnr_update
+from pytorch_lightning.metrics.functional.psnr import _psnr, _psnr_compute, _psnr_update
 from pytorch_lightning.metrics.metric import Metric
 
 
@@ -29,7 +29,9 @@ class PSNR(Metric):
     <https://en.wikipedia.org/wiki/Mean_squared_error>`_ function.
 
     Args:
-        data_range: the range of the data. If None, it is determined from the data (max - min)
+        data_range:
+            the range of the data. If `None`, it is determined from the data (max - min). `data_range` must be given
+            when `dim` is not `None`. default: `None`
         base: a base of a logarithm to use (default: 10)
         reduction: a method to reduce metric score over labels.
 
@@ -37,6 +39,10 @@ class PSNR(Metric):
             - ``'sum'``: takes the sum
             - ``'none'``: no reduction will be applied
 
+        dim:
+            Use the mean values of squared errors in the given dimension `dim` to calculate PSNR. If `dim` is a list of
+            dimensions, use the mean values over all of them. If `dim` is `None`, use the mean value over all of
+            batches. default: `None`
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -61,6 +67,7 @@ class PSNR(Metric):
         data_range: Optional[float] = None,
         base: float = 10.0,
         reduction: str = 'elementwise_mean',
+        dim: Optional[Union[int, Tuple[int, ...]]] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -71,9 +78,18 @@ class PSNR(Metric):
             process_group=process_group,
         )
 
-        self.add_state("sum_squared_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
+        if dim is None:
+            self.add_state("sum_squared_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
+            self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
+        else:
+            self.add_state("psnrs", default=[])
+
         if data_range is None:
+            if dim is not None:
+                # Maybe we could use `torch.amax(target, dim=dim) - torch.amin(target, dim=dim)` in PyTorch 1.7 to
+                # calculate `data_range` in the future.
+                raise ValueError("`data_range` must be given when `dim` is not `None`.")
+
             self.data_range = None
             self.add_state("min_target", default=torch.tensor(0.0), dist_reduce_fx=torch.min)
             self.add_state("max_target", default=torch.tensor(0.0), dist_reduce_fx=torch.max)
@@ -81,6 +97,7 @@ class PSNR(Metric):
             self.register_buffer("data_range", torch.tensor(float(data_range)))
         self.base = base
         self.reduction = reduction
+        self.dim = tuple(dim) if isinstance(dim, Sequence) else dim
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -90,21 +107,27 @@ class PSNR(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        if self.data_range is None:
-            # keep track of min and max target values
-            self.min_target = min(target.min(), self.min_target)
-            self.max_target = max(target.max(), self.max_target)
+        if self.dim is None:
+            if self.data_range is None:
+                # keep track of min and max target values
+                self.min_target = min(target.min(), self.min_target)
+                self.max_target = max(target.max(), self.max_target)
 
-        sum_squared_error, n_obs = _psnr_update(preds, target)
-        self.sum_squared_error += sum_squared_error
-        self.total += n_obs
+            self.sum_squared_error += torch.sum(torch.pow(preds - target, 2))
+            self.total += target.numel()
+        else:
+            self.psnrs.append(_psnr_update(preds, target, self.dim, self.data_range, base=self.base))
 
     def compute(self):
         """
         Compute peak signal-to-noise ratio over state.
         """
-        if self.data_range is not None:
-            data_range = self.data_range
+        if self.dim is None:
+            if self.data_range is not None:
+                data_range = self.data_range
+            else:
+                data_range = self.max_target - self.min_target
+            return _psnr(self.sum_squared_error / self.total, data_range, base=self.base)
         else:
-            data_range = self.max_target - self.min_target
-        return _psnr_compute(self.sum_squared_error, self.total, data_range, self.base, self.reduction)
+            psnrs = torch.cat([values.flatten() for values in self.psnrs])
+            return _psnr_compute(psnrs, self.reduction)

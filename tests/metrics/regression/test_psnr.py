@@ -14,32 +14,55 @@ torch.manual_seed(42)
 
 Input = namedtuple('Input', ["preds", "target"])
 
+_input_size = (NUM_BATCHES, BATCH_SIZE, 32, 32)
 _inputs = [
     Input(
-        preds=torch.randint(n_cls_pred, (NUM_BATCHES, BATCH_SIZE), dtype=torch.float),
-        target=torch.randint(n_cls_target, (NUM_BATCHES, BATCH_SIZE), dtype=torch.float),
+        preds=torch.randint(n_cls_pred, _input_size, dtype=torch.float),
+        target=torch.randint(n_cls_target, _input_size, dtype=torch.float),
     ) for n_cls_pred, n_cls_target in [(10, 10), (5, 10), (10, 5)]
 ]
 
 
-def _sk_metric(preds, target, data_range):
-    sk_preds = preds.view(-1).numpy()
-    sk_target = target.view(-1).numpy()
-    return peak_signal_noise_ratio(sk_target, sk_preds, data_range=data_range)
+def _to_sk_peak_signal_noise_ratio_inputs(value, dim):
+    value = value.numpy()
+    batches = value[None] if value.ndim == len(_input_size) - 1 else value
+
+    if dim is None:
+        return [batches]
+
+    num_dims = np.size(dim)
+    if not num_dims:
+        return batches
+
+    inputs = []
+    for batch in batches:
+        batch = np.moveaxis(batch, dim, np.arange(-num_dims, 0))
+        psnr_input_shape = batch.shape[-num_dims:]
+        inputs.extend(batch.reshape(-1, *psnr_input_shape))
+    return inputs
 
 
-def _base_e_sk_metric(preds, target, data_range):
-    sk_preds = preds.view(-1).numpy()
-    sk_target = target.view(-1).numpy()
-    return peak_signal_noise_ratio(sk_target, sk_preds, data_range=data_range) * np.log(10)
+def _sk_metric(preds, target, data_range, dim):
+    sk_preds_lists = _to_sk_peak_signal_noise_ratio_inputs(preds, dim=dim)
+    sk_target_lists = _to_sk_peak_signal_noise_ratio_inputs(target, dim=dim)
+    return np.mean([
+        peak_signal_noise_ratio(sk_target, sk_preds, data_range=data_range)
+        for sk_target, sk_preds in zip(sk_target_lists, sk_preds_lists)
+    ])
+
+
+def _base_e_sk_metric(preds, target, data_range, dim):
+    return _sk_metric(preds, target, data_range, dim) * np.log(10)
 
 
 @pytest.mark.parametrize(
-    "preds, target, data_range",
+    "preds, target, data_range, dim",
     [
-        (_inputs[0].preds, _inputs[0].target, 10),
-        (_inputs[1].preds, _inputs[1].target, 10),
-        (_inputs[2].preds, _inputs[2].target, 5),
+        (_inputs[0].preds, _inputs[0].target, 10, None),
+        (_inputs[1].preds, _inputs[1].target, 10, None),
+        (_inputs[2].preds, _inputs[2].target, 5, None),
+        (_inputs[2].preds, _inputs[2].target, 5, 1),
+        (_inputs[2].preds, _inputs[2].target, 5, (1, 2)),
     ],
 )
 @pytest.mark.parametrize(
@@ -53,28 +76,38 @@ class TestPSNR(MetricTester):
 
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-    def test_psnr(self, preds, target, data_range, base, sk_metric, ddp, dist_sync_on_step):
+    def test_psnr(self, preds, target, data_range, base, dim, sk_metric, ddp, dist_sync_on_step):
         self.run_class_metric_test(
             ddp,
             preds,
             target,
             PSNR,
-            partial(sk_metric, data_range=data_range),
+            partial(sk_metric, data_range=data_range, dim=dim),
             metric_args={
                 "data_range": data_range,
-                "base": base
+                "base": base,
+                "dim": dim
             },
             dist_sync_on_step=dist_sync_on_step,
         )
 
-    def test_psnr_functional(self, preds, target, sk_metric, data_range, base):
+    def test_psnr_functional(self, preds, target, sk_metric, data_range, base, dim):
         self.run_functional_metric_test(
             preds,
             target,
             psnr,
-            partial(sk_metric, data_range=data_range),
+            partial(sk_metric, data_range=data_range, dim=dim),
             metric_args={
                 "data_range": data_range,
-                "base": base
+                "base": base,
+                "dim": dim
             },
         )
+
+
+def test_missing_data_range():
+    with pytest.raises(ValueError):
+        PSNR(data_range=None, dim=0)
+
+    with pytest.raises(ValueError):
+        psnr(_inputs[0].preds, _inputs[0].target, data_range=None, dim=0)
