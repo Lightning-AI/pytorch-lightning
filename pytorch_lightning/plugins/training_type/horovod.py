@@ -156,7 +156,7 @@ class HorovodPlugin(ParallelPlugin):
         gathered_result = list(gathered.split(1, dim=0))
         return gathered_result
 
-    def post_backward(self, loss: torch.Tensor, should_accumulate: bool):
+    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         # synchronize all horovod optimizers.
         for optimizer in self.lightning_module.trainer.optimizers:
             optimizer.synchronize()

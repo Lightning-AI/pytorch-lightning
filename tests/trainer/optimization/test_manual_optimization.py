@@ -345,8 +345,8 @@ def test_multiple_optimizers_manual_apex(tmpdir):
 
             # ensure we forward the correct params to the optimizer
             # without retain_graph we can't do multiple backward passes
-            self.manual_backward(loss_2, opt_b, retain_graph=True)
-            self.manual_backward(loss_2, opt_a)
+            self.manual_backward(loss_2, retain_graph=True)
+            self.manual_backward(loss_2)
 
             assert self.layer.weight.grad is not None
             opt_b.step()
@@ -607,6 +607,8 @@ def test_multiple_optimizers_step(tmpdir):
             self.automatic_optimization = False
 
         def on_after_backward(self):
+            for opt in self.optimizers():
+                self.trainer.scaler.unscale_(opt)
             self.called = True
             norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
             if not (torch.isinf(norm) or torch.isnan(norm)):
@@ -638,6 +640,7 @@ def test_multiple_optimizers_step(tmpdir):
 
             assert self.layer.weight.grad is not None
             opt_b.step()
+            opt_b.zero_grad()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
