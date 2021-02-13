@@ -82,7 +82,6 @@ Here is an explanation of what it does:
 Considering the current optimizer as A and all other optimizers as B.
 Toggling means that all parameters from B exclusive to A will have their ``requieres_grad`` attribute set to ``False``. Their original state will be restored when exitting the context manager.
 
-
 When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
 Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
 
