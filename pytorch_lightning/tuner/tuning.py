@@ -101,6 +101,9 @@ class Tuner:
                 or datamodule.
 
         """
+        self.trainer.model_connector.copy_trainer_model_properties(model)
+        self.trainer.train_loop.setup_fit(model, **fit_kwargs)
+        self.trainer.data_connector.prepare_data(model)
         return scale_batch_size(
             self.trainer,
             model,
@@ -124,6 +127,9 @@ class Tuner:
         early_stop_threshold: float = 4.0,
         datamodule: Optional[LightningDataModule] = None
     ):
+        self.trainer.model_connector.copy_trainer_model_properties(model)
+        self.trainer.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
+        self.trainer.data_connector.prepare_data(model)
         return lr_find(
             self.trainer,
             model,
