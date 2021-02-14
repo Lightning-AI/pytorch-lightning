@@ -21,7 +21,6 @@ from torch import nn
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 
-from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.rpc import DEFAULT_RPC_TIMEOUT_SEC, RPCPlugin
@@ -330,11 +329,11 @@ class RPCSequentialPlugin(RPCPlugin):
         if self.main_rpc_process:
             super().post_training_step()
 
-    def start_training(self, trainer: 'Trainer') -> None:
+    def start_training(self, trainer) -> None:
         if self.main_rpc_process:
             super().start_training(trainer)
 
-    def start_testing(self, trainer: 'Trainer') -> None:
+    def start_testing(self, trainer) -> None:
         if self.main_rpc_process:
             super().start_testing(trainer)
 
