@@ -23,7 +23,7 @@ import torch
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.plugins import DDPSpawnShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
-from tests.accelerators.legacy import DDPLauncher
+from tests.accelerators import DDPLauncher
 from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
