@@ -18,7 +18,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.plugins.precision import (
     ApexMixedPrecisionPlugin,
     NativeMixedPrecisionPlugin,
@@ -63,7 +62,7 @@ class Accelerator(object):
         self.lr_schedulers = None
         self.optimizer_frequencies = None
 
-    def setup(self, trainer: "Trainer", model: LightningModule) -> None:
+    def setup(self, trainer, model: LightningModule) -> None:
         """
         Connects the plugins to the training process, creates optimizers
 
@@ -302,7 +301,7 @@ class Accelerator(object):
         """Hook to do something at the end of the training"""
         pass
 
-    def setup_optimizers(self, trainer: "Trainer"):
+    def setup_optimizers(self, trainer):
         """creates optimizers and schedulers
 
         Args:
