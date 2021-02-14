@@ -148,13 +148,7 @@ class TrainLoop:
             self.trainer.profiler.describe()
 
         # give accelerators a chance to finish
-        self.trainer.accelerator_backend.on_train_end()
-
-        # clear mem
-        if self.trainer._device_type == DeviceType.GPU:
-            model = self.trainer.get_model()
-            model.cpu()
-            torch.cuda.empty_cache()
+        self.trainer.accelerator.on_train_end()
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback

@@ -29,6 +29,7 @@ class GPUAccelerator(Accelerator):
         # clean up memory
         with torch.cuda.device(self.root_device):
             torch.cuda.empty_cache()
+        self.model.cpu()
 
     @staticmethod
     def set_nvidia_flags():
