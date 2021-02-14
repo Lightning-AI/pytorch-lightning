@@ -500,7 +500,28 @@ class BackendConnector(object):
             else:
                 rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
                 self._distrib_type = None
+        
+        # finished configuring self._distrib_type, check ipython environment
+        ipython_incompatible_distrib_types = [DistributedType.DDP, DistributedType.DDP2, DistributedType.HOROVOD]
+        if self._distrib_type in ipython_incompatible_distrib_types:
+            # check ipython env
+            import sys
+            in_ipython = False
+            in_ipython_kernel = False
+            if 'IPython' in sys.modules:
+                from IPython import get_ipython
+                ip = get_ipython()
+                in_ipython = ip is not None
 
+            if in_ipython:
+                in_ipython_kernel = getattr(ip, 'kernel', None) is not None
+            
+            if in_ipython_kernel:
+                raise MisconfigurationException(
+            "Selected distributed backend {self._distrib_type} not compatible with IPython environment"
+            "Run your code as a script, or choose DDP_Spawn/DP as accelerator backend"
+            )
+        
         # for DDP overwrite nb processes by requested GPUs
         if (
             self._device_type == DeviceType.GPU
