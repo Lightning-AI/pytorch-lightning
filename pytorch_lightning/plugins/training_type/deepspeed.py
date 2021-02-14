@@ -17,7 +17,7 @@ import logging
 import os
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Callable, List, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
 
@@ -26,7 +26,7 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.apply_func import move_float_tensors_to_half
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
@@ -47,8 +47,17 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
     def forward(self, *inputs, **kwargs):
         if self.precision == 16:
-            inputs = move_float_tensors_to_half(inputs)
+            inputs = self._move_float_tensors_to_half(inputs)
+
         return super().forward(*inputs, **kwargs)
+
+    def _move_float_tensors_to_half(self, batch: Any):
+
+        def batch_to(data):
+            return data.half()
+
+        batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=batch_to)
+        return batch
 
 
 class DeepSpeedPlugin(DDPPlugin):
@@ -58,16 +67,21 @@ class DeepSpeedPlugin(DDPPlugin):
         self,
         config: Union[Path, str, dict],
         logging_level: int = logging.WARN,
-        num_nodes=1,
-        parallel_devices: List[torch.device] = None,
-        cluster_environment: ClusterEnvironment = None,
+        num_nodes: int = 1,
+        parallel_devices: Optional[List[torch.device]] = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
     ) -> None:
         super().__init__(
             parallel_devices=parallel_devices, num_nodes=num_nodes, cluster_environment=cluster_environment
         )
         if isinstance(config, str) or isinstance(config, Path):
-            with open(config) as f:
-                self.config = json.load(f)
+            if os.path.exists(config):
+                with open(config) as f:
+                    self.config = json.load(f)
+            else:
+                raise MisconfigurationException(
+                    f"You passed in a path to a DeepSpeed config but the path does not exist: {config}"
+                )
         else:
             self.config = config
         self._config_initialized = False
@@ -90,9 +104,6 @@ class DeepSpeedPlugin(DDPPlugin):
         # set the ranks and devices
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
-
-        # move the model to the correct device
-        self.model_to_device()
         self.barrier()
 
     def init_deepspeed(self):
@@ -164,9 +175,9 @@ class DeepSpeedPlugin(DDPPlugin):
 
             if not (isinstance(self.optimizer, dict) or isinstance(self.scheduler, dict)):
                 raise MisconfigurationException(
-                    "If you have not specified an optimizer or scheduler within the DeepSpeed config "
-                    "then you must return a dict from `configure_optimizers` within the LightningModule. "
-                    "See x for more information."
+                    "If you have not specified an optimizer or scheduler within the DeepSpeed config"
+                    " then you must return a dict from `configure_optimizers` within the LightningModule."
+                    " See x for more information."
                 )
 
             if not len(self.optimizer) == 1 or len(self.scheduler) == 1:

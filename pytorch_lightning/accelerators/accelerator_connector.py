@@ -298,7 +298,8 @@ class BackendConnector(object):
         return te_flags_passed
 
     def select_precision_plugin(self) -> PrecisionPlugin:
-        self._set_precision_type()
+        # set precision type
+        self.amp_type = AMPType.from_str(self.amp_type)
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
@@ -348,15 +349,6 @@ class BackendConnector(object):
                     return ApexMixedPrecisionPlugin(self.amp_level)
         else:
             raise NotImplementedError("We only support precisions 32 and 16!")
-
-    def _set_precision_type(self):
-        if self.precision == 32:
-            self.amp_type = None
-        elif self.precision == 16:
-            if self.amp_type == 'amp':
-                self.amp_type = AMPType.NATIVE
-            elif self.amp_type == 'apex':
-                self.amp_type = AMPType.APEX
 
     def select_training_type_plugin(self):
         if self.use_ddp2:

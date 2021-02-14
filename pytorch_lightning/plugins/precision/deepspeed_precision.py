@@ -16,8 +16,14 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     def pre_optimizer_step(
         self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs
     ) -> bool:
+        # DeepSpeed not support closures.
         lambda_closure()
-        return True
+
+        if not pl_module.automatic_optimization:
+            pl_module.trainer.call_hook("on_after_backward")
+            optimizer.step()
+
+        return False
 
     def backward(
         self,
@@ -33,7 +39,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         # Means that the lightning module backward function is never called
         # This is an issue if the user overrides the backwards function
         deepspeed_engine = lightning_module.trainer.model
-        deepspeed_engine.backward(closure_loss)
+        deepspeed_engine.backward(closure_loss, **kwargs)
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
 
