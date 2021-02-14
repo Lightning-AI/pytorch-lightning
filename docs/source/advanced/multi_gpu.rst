@@ -679,7 +679,7 @@ In addition, we use Gradient Checkpointing to reduce GPU memory requirements fur
 
 Reference: https://arxiv.org/abs/1811.06965
 
-.. note:: DDPSequentialPlugin is currently supported only for Pytorch 1.6.
+.. note:: RPCSequentialPlugin is currently supported only for Pytorch 1.6.
 
 To get started, install FairScale using the command below. We install a specific branch which contains PyTorch related fixes for Sequential Parallelism.
 
