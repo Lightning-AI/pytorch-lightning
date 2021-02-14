@@ -409,10 +409,6 @@ class Trainer(
             model: The model to run sanity test on.
         """
 
-        # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and self._device_type != DeviceType.TPU:
-            self.scaler = self.precision_connector.backend.scaler
-
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
