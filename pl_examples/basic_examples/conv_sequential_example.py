@@ -18,7 +18,7 @@ This script splits a convolutional model onto multiple GPUs, whilst using the in
 to balance across your GPUs.
 
 To run:
-python conv_model_sequential_example.py --accelerator ddp --gpus 4 --max_epochs 1  --batch_size 256 --use_ddp_sequential
+python conv_model_sequential_example.py --accelerator ddp --gpus 4 --max_epochs 1  --batch_size 256 --use_rpc_sequential
 """
 import math
 from argparse import ArgumentParser
@@ -201,7 +201,7 @@ def instantiate_datamodule(args):
 if __name__ == "__main__":
     cli_lightning_logo()
     parser = ArgumentParser(description="Pipe Example")
-    parser.add_argument("--use_ddp_sequential", action="store_true")
+    parser.add_argument("--use_rpc_sequential", action="store_true")
     parser = Trainer.add_argparse_args(parser)
     parser = pl_bolts.datamodules.CIFAR10DataModule.add_argparse_args(parser)
     args = parser.parse_args()
@@ -212,7 +212,7 @@ if __name__ == "__main__":
     cifar10_dm = instantiate_datamodule(args)
 
     plugins = None
-    if args.use_ddp_sequential:
+    if args.use_rpc_sequential:
         plugins = RPCSequentialPlugin()
 
     model = LitResnet(batch_size=args.batch_size, manual_optimization=not args.automatic_optimization)
@@ -223,4 +223,4 @@ if __name__ == "__main__":
 
     if trainer.accelerator_backend.rpc_enabled:
         # Called at the end of trainer to ensure all processes are killed
-        trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
+        trainer.training_type_plugin.exit_rpc_process()

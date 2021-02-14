@@ -42,7 +42,7 @@ class RPCSequentialPlugin(RPCPlugin):
 
     def __init__(
         self,
-        balance: List[int],
+        balance: Optional[List[int]] = None,
         microbatches: int = 8,
         checkpoint: str = 'except_last',
         balance_mode: str = "balance_by_size",
