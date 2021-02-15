@@ -20,14 +20,14 @@ from typing import cast, List, Optional, Type, TypeVar, Union
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning import Callback
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.plugins import TrainingTypePlugin, PrecisionPlugin
+from pytorch_lightning.plugins import PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import TrainerState
