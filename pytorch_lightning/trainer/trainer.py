@@ -581,7 +581,10 @@ class Trainer(
         # enable train mode
         model = self.get_model()
         model.train()
-        torch.set_grad_enabled(True)
+
+        from syft import client_cache
+
+        client_cache["duet"].torch.set_grad_enabled(True)
 
         # reload data when needed
         self.train_loop.reset_train_val_dataloaders(model)
