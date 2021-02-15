@@ -15,6 +15,7 @@ from typing import Any, Optional, Sequence, Tuple, Union
 
 import torch
 
+from pytorch_lightning import utilities
 from pytorch_lightning.metrics.functional.psnr import _psnr, _psnr_compute, _psnr_update
 from pytorch_lightning.metrics.metric import Metric
 
@@ -77,6 +78,11 @@ class PSNR(Metric):
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
         )
+
+        if dim is None and reduction != 'elementwise_mean':
+            utilities.rank_zero_warn(
+                f'The `reduction={reduction}` parameter is unused when `dim` is `None` and will not have any effect.'
+            )
 
         if dim is None:
             self.add_state("sum_squared_error", default=torch.tensor(0.0), dist_reduce_fx="sum")

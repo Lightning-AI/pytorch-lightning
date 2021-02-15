@@ -2,6 +2,7 @@ from typing import Optional, Tuple, Union
 
 import torch
 
+from pytorch_lightning import utilities
 from pytorch_lightning.metrics import utils
 
 
@@ -72,6 +73,11 @@ def psnr(
         tensor(2.5527)
 
     """
+    if dim is None and reduction != 'elementwise_mean':
+        utilities.rank_zero_warn(
+            f'The `reduction={reduction}` parameter is unused when `dim` is `None` and will not have any effect.'
+        )
+
     if data_range is None:
         if dim is not None:
             # Maybe we could use `torch.amax(target, dim=dim) - torch.amin(target, dim=dim)` in PyTorch 1.7 to calculate
