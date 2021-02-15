@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-
+from unittest import mock
 import pytest
 import torch
-
+from pytorch_lightning import Trainer
+from tests.helpers.boring_model import BoringModel
 from tests.accelerators import ddp_model, DDPLauncher
 from tests.utilities.distributed import call_training_script
 
@@ -83,3 +84,23 @@ def test_cli_to_pass(tmpdir, args=None):
     This test verify we can call function using test_cli name
     """
     return '1'
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
+@mock.patch.dict(os.environ, {"TORCH_DISTRIBUTED_BACKEND": "undefined"})
+def test_torch_distributed_backend_env_variables(tmpdir):
+    """
+    This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError.
+    """
+    with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
+            accelerator="ddp",
+            gpus=2,
+        )
+        trainer.fit(model)

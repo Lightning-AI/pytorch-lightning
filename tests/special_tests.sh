@@ -30,3 +30,4 @@ python ${DEFAULTS} tests/callbacks/test_pruning.py::test_pruning_callback_ddp
 python ${DEFAULTS} tests/trainer/test_trainer.py::test_pytorch_profiler_trainer_ddp
 python ${DEFAULTS} tests/models/test_hooks.py::test_transfer_batch_hook_ddp
 python ${DEFAULTS} tests/trainer/test_data_loading.py::test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler
+python ${DEFAULTS} tests/accelerators/test_ddp.py::test_torch_distributed_backend_env_variables

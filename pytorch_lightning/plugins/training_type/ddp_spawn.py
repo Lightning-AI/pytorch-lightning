@@ -194,11 +194,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
-        torch_backend = "nccl" if self.on_gpu else "gloo"
 
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
+            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
