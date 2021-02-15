@@ -23,6 +23,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -59,7 +60,7 @@ def test_model_tpu_cores_1(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         tpu_cores=1,
         limit_train_batches=4,
         limit_val_batches=4,
@@ -78,7 +79,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         tpu_cores=[tpu_core],
         limit_train_batches=4,
         limit_val_batches=4,
@@ -99,8 +100,8 @@ def test_model_tpu_cores_8(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=8,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=4,
+        limit_val_batches=4,
     )
 
     # 8 cores needs a big dataset
@@ -117,10 +118,10 @@ def test_model_16bit_tpu_cores_1(tmpdir):
         default_root_dir=tmpdir,
         precision=16,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         tpu_cores=1,
-        limit_train_batches=4,
-        limit_val_batches=4,
+        limit_train_batches=8,
+        limit_val_batches=2,
     )
 
     model = BoringModel()
@@ -138,7 +139,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
         default_root_dir=tmpdir,
         precision=16,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         tpu_cores=[tpu_core],
         limit_train_batches=4,
         limit_val_batches=2,
@@ -161,8 +162,8 @@ def test_model_16bit_tpu_cores_8(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=8,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=4,
+        limit_val_batches=4,
     )
 
     # 8 cores needs a big dataset
@@ -174,6 +175,8 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 @pl_multi_process_test
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
+
+    # todo: Test on 8 cores - hanging.
 
     class CustomBoringModel(BoringModel):
 
@@ -188,10 +191,10 @@ def test_model_tpu_early_stop(tmpdir):
         callbacks=[EarlyStopping(monitor='val_loss')],
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        max_epochs=50,
-        limit_train_batches=4,
-        limit_val_batches=4,
-        tpu_cores=1,
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        tpu_cores=[1],
     )
     trainer.fit(model)
 
@@ -204,11 +207,11 @@ def test_tpu_grad_norm(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=4,
         tpu_cores=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
-        gradient_clip_val=0.1,
+        limit_train_batches=4,
+        limit_val_batches=4,
+        gradient_clip_val=0.5,
     )
 
     model = BoringModel()
@@ -236,7 +239,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires missing TPU")
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     """Test if trainer.tpu_id is set as expected"""
-    assert Trainer(tpu_cores=tpu_cores).tpu_id == expected_tpu_id
+    assert Trainer(tpu_cores=tpu_cores).accelerator_connector.tpu_id == expected_tpu_id
 
 
 def test_tpu_misconfiguration():
@@ -261,15 +264,19 @@ def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 @pl_multi_process_test
 def test_broadcast_on_tpu():
     """ Checks if an object from the master process is broadcasted to other processes correctly"""
 
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
-        backend = TPUAccelerator(trainer)
+        assert isinstance(trainer.accelerator_backend, TPUAccelerator)
+        assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
         obj = ("ver_0.5", "logger_name", rank)
-        result = backend.broadcast(obj)
+        result = trainer.training_type_plugin.broadcast(obj)
         assert result == ("ver_0.5", "logger_name", 0)
 
     xmp.spawn(test_broadcast, nprocs=8, start_method='fork')
@@ -299,7 +306,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
             Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
     else:
         trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
-        assert trainer.tpu_id == expected_tpu_id
+        assert trainer.accelerator_connector.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize(

@@ -42,11 +42,6 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     for dataloader in test_loaders:
         run_prediction(pretrained_model, dataloader, min_acc=min_acc)
 
-    if trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN):
-        # on hpc this would work fine... but need to hack it for the purpose of the test
-        trainer.model = pretrained_model
-        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
-
 
 def run_model_test(
     trainer_options,
@@ -63,7 +58,6 @@ def run_model_test(
     # logger file to get meta
     logger = get_default_logger(save_dir, version=version)
     trainer_options.update(logger=logger)
-
     trainer = Trainer(**trainer_options)
     initial_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
     trainer.fit(model, datamodule=data)
@@ -88,10 +82,8 @@ def run_model_test(
     if with_hpc:
         if trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2):
             # on hpc this would work fine... but need to hack it for the purpose of the test
-            trainer.model = pretrained_model
-            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = trainer.init_optimizers(
-                pretrained_model
-            )
+            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = \
+                trainer.init_optimizers(pretrained_model)
 
         # test HPC saving
         trainer.checkpoint_connector.hpc_save(save_dir, logger)
