@@ -41,9 +41,8 @@ class PSNR(Metric):
             - ``'none'``: no reduction will be applied
 
         dim:
-            Use the mean values of squared errors in the given dimension `dim` to calculate PSNR. If `dim` is a list of
-            dimensions, use the mean values over all of them. If `dim` is `None`, use the mean value over all of
-            batches. default: `None`
+            Dimensions to reduce PSNR scores over, provided as either a integer or a list of integers. Default is
+            `None` meaning scores will be reduced across all dimensions and all batches. default: `None`
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:

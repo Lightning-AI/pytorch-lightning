@@ -79,7 +79,8 @@ def psnr(
             - ``'none'``: no reduction will be applied
 
         dim:
-            Dimensions to reduce PSNR scores over, provided as either a integer or list of integers. Default is `None` meaning scores will be reduced across all dimensions.
+            Dimensions to reduce PSNR scores over, provided as either a integer or a list of integers. Default is
+            `None` meaning scores will be reduced across all dimensions. (default: `None`)
     Return:
         Tensor with PSNR score
 
