@@ -183,7 +183,9 @@ class ModelSummary(object):
         self._mode = mode
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
-        self._precision_megabytes = (self._model.precision / 8.0) * 1e-6
+        # TODO: how do we compute precisin_megabytes in case of mixed precision?
+        precision = self._model.precision if isinstance(self._model.precision, int) else 32
+        self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
@@ -227,6 +229,7 @@ class ModelSummary(object):
 
     @property
     def model_size(self) -> float:
+        # todo: seems it does not work with quantized models - it returns 0.0
         return self.total_parameters * self._precision_megabytes
 
     def summarize(self) -> Dict[str, LayerSummary]:

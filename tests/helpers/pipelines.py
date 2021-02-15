@@ -13,7 +13,7 @@
 # limitations under the License.
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType
 from tests.helpers import BoringModel
@@ -42,26 +42,25 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     for dataloader in test_loaders:
         run_prediction(pretrained_model, dataloader, min_acc=min_acc)
 
-    if trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN):
-        # on hpc this would work fine... but need to hack it for the purpose of the test
-        trainer.model = pretrained_model
-        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
-
 
 def run_model_test(
-    trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True, min_acc: float = 0.25
+    trainer_options,
+    model,
+    data: LightningDataModule = None,
+    on_gpu: bool = True,
+    version=None,
+    with_hpc: bool = True,
+    min_acc: float = 0.25
 ):
-
     reset_seed()
     save_dir = trainer_options['default_root_dir']
 
     # logger file to get meta
     logger = get_default_logger(save_dir, version=version)
     trainer_options.update(logger=logger)
-
     trainer = Trainer(**trainer_options)
     initial_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
-    trainer.fit(model)
+    trainer.fit(model, datamodule=data)
     post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
@@ -73,7 +72,7 @@ def run_model_test(
     pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
 
     # test new model accuracy
-    test_loaders = model.test_dataloader()
+    test_loaders = model.test_dataloader() if not data else data.test_dataloader()
     if not isinstance(test_loaders, list):
         test_loaders = [test_loaders]
 
@@ -83,10 +82,8 @@ def run_model_test(
     if with_hpc:
         if trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2):
             # on hpc this would work fine... but need to hack it for the purpose of the test
-            trainer.model = pretrained_model
-            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = trainer.init_optimizers(
-                pretrained_model
-            )
+            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = \
+                trainer.init_optimizers(pretrained_model)
 
         # test HPC saving
         trainer.checkpoint_connector.hpc_save(save_dir, logger)
@@ -97,9 +94,9 @@ def run_model_test(
 
 def run_prediction(trained_model, dataloader, dp=False, min_acc=0.25):
     if isinstance(trained_model, BoringModel):
-        return _boring_model_run_prediction(trained_model, dataloader, dp, min_acc)
+        return _boring_model_run_prediction(trained_model, dataloader, min_acc)
     else:
-        return _eval_model_template_run_prediction(trained_model, dataloader, dp, min_acc)
+        return _eval_model_template_run_prediction(trained_model, dataloader, dp, min_acc=min_acc)
 
 
 def _eval_model_template_run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
@@ -130,11 +127,15 @@ def _eval_model_template_run_prediction(trained_model, dataloader, dp=False, min
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
 
 
-def _boring_model_run_prediction(trained_model, dataloader, dp=False, min_acc=0.25):
+# TODO: This test compares a loss value with a min accuracy - complete non-sense!
+# create BoringModels that make actual predictions!
+def _boring_model_run_prediction(trained_model, dataloader, min_acc=0.25):
     # run prediction on 1 batch
+    trained_model.cpu()
     batch = next(iter(dataloader))
+
     with torch.no_grad():
         output = trained_model(batch)
-    acc = trained_model.loss(batch, output)
 
+    acc = trained_model.loss(batch, output)
     assert acc >= min_acc, f"This model is expected to get, {min_acc} in test set but got {acc}"

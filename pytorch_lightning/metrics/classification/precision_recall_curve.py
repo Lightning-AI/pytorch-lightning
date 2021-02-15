@@ -31,10 +31,10 @@ class PrecisionRecallCurve(Metric):
 
     Forward accepts
 
-    - ``preds`` (float tensor): ``(N, ...)`` (binary) or ``(N, C, ...)`` (multiclass)
-      where C is the number of classes
+    - ``preds`` (float tensor): ``(N, ...)`` (binary) or ``(N, C, ...)`` (multiclass) tensor
+      with probabilities, where C is the number of classes.
 
-    - ``target`` (long tensor): ``(N, ...)``
+    - ``target`` (long tensor): ``(N, ...)`` or ``(N, C, ...)`` with integer labels
 
     Args:
         num_classes: integer with number of classes. Not nessesary to provide

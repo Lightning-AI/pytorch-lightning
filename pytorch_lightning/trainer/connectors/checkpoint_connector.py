@@ -73,7 +73,7 @@ class CheckpointConnector:
             self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer._device_type == DeviceType.GPU)
 
         # wait for all to catch up
-        self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')
+        self.trainer.training_type_plugin.barrier('TrainerIOMixin.restore_weights')
 
         # clear cache after restore
         if self.trainer._device_type == DeviceType.GPU:
@@ -158,7 +158,7 @@ class CheckpointConnector:
         self.trainer.current_epoch = checkpoint['epoch']
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
-        if self.trainer.current_epoch > self.trainer.max_epochs:
+        if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
             m = f"""
             you restored a checkpoint with current_epoch={self.trainer.current_epoch}
             but the Trainer(max_epochs={self.trainer.max_epochs})
@@ -400,11 +400,11 @@ class CheckpointConnector:
         """
         # dump states as a checkpoint dictionary object
         checkpoint = self.dump_checkpoint(weights_only)
-
         if self.trainer.is_global_zero:
             # write the checkpoint dictionary on the file
-            if self.trainer.accelerator_backend:
-                checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
+
+            if self.trainer.training_type_plugin:
+                checkpoint = self.trainer.training_type_plugin.on_save(checkpoint)
             try:
                 atomic_save(checkpoint, filepath)
             except AttributeError as err:

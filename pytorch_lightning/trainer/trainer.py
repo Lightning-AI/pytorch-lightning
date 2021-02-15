@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Trainer to automate the training."""
-
 import warnings
+from itertools import count
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
 
@@ -21,14 +21,14 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
-from pytorch_lightning.accelerators.legacy.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.plugins.legacy.plugin_connector import PluginConnector
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -40,7 +40,6 @@ from pytorch_lightning.trainer.connectors.env_vars_connector import overwrite_by
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
-from pytorch_lightning.trainer.connectors.precision_connector import PrecisionConnector
 from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
@@ -101,8 +100,8 @@ class Trainer(
         check_val_every_n_epoch: int = 1,
         fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
-        max_epochs: int = 1000,
-        min_epochs: int = 1,
+        max_epochs: Optional[int] = None,
+        min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
         min_steps: Optional[int] = None,
         limit_train_batches: Union[int, float] = 1.0,
@@ -231,9 +230,11 @@ class Trainer(
 
             precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
-            max_epochs: Stop training once this number of epochs is reached.
+            max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
+                If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
 
-            min_epochs: Force training for at least these many epochs
+            min_epochs: Force training for at least these many epochs. Disabled by default (None).
+                If both min_epochs and min_steps are not specified, defaults to ``min_epochs`` = 1.
 
             max_steps: Stop training after this number of steps. Disabled by default (None).
 
@@ -294,20 +295,23 @@ class Trainer(
                 reload when reaching the minimum length of datasets.
         """
         super().__init__()
-        self._device_type = DeviceType.CPU
-        self._distrib_type = None
         self._running_stage = None
         self._predicting = False
+
+        distributed_backend = distributed_backend or accelerator
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
         self.optimizer_connector = OptimizerConnector(self)
-        self.accelerator_connector = AcceleratorConnector(self)
-        self.logger_connector = LoggerConnector(self)
+
+        self.accelerator_connector = BackendConnector(
+            num_processes, tpu_cores, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm, benchmark,
+            replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
+        )
+        self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
-        self.precision_connector = PrecisionConnector(self)
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
@@ -315,13 +319,11 @@ class Trainer(
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
-        self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
         self.train_loop = TrainLoop(self, multiple_trainloader_mode)
-        self.plugin_connector = PluginConnector(self)
 
         # training state
-        self.model = None
+        self.weights_summary = weights_summary
         self.shown_warnings = set()
 
         # init callbacks
@@ -350,22 +352,6 @@ class Trainer(
         # init training tricks
         self.training_tricks_connector.on_trainer_init(
             gradient_clip_val, track_grad_norm, accumulate_grad_batches, truncated_bptt_steps, terminate_on_nan
-        )
-
-        # init accelerator related flags
-        self.accelerator_connector.on_trainer_init(
-            num_processes,
-            tpu_cores,
-            accelerator,
-            distributed_backend,
-            auto_select_gpus,
-            gpus,
-            num_nodes,
-            log_gpu_memory,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic,
         )
 
         # init train loop related flags
@@ -412,12 +398,6 @@ class Trainer(
             fast_dev_run,
         )
 
-        # set precision
-        self.precision_connector.on_trainer_init(precision, amp_level, amp_backend)
-
-        # last thing are the plugins which override whatever the trainer used by default
-        self.plugin_connector.on_trainer_init(plugins)
-
         # Callback system
         self.on_init_end()
 
@@ -428,17 +408,6 @@ class Trainer(
         Args:
             model: The model to run sanity test on.
         """
-        # --------------------------
-        # Setup??
-        # --------------------------
-        ref_model = self.get_model()
-
-        # set the ranks and devices
-        self.accelerator_backend.dist.rank = self.global_rank
-        self.accelerator_backend.dist.device = ref_model.device
-
-        # set local properties on the model
-        self.model_connector.copy_trainer_model_properties(model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
         if self.amp_backend == AMPType.NATIVE and self.precision == 16 and self._device_type != DeviceType.TPU:
@@ -447,19 +416,9 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            self.logger.log_hyperparams(ref_model.hparams_initial)
-            self.logger.log_graph(ref_model)
+            self.logger.log_hyperparams(model.hparams_initial)
+            self.logger.log_graph(model)
             self.logger.save()
-
-        # wait for all to join if on distributed
-        self.accelerator_backend.barrier("setup_trainer")
-
-        # register auto-resubmit when on SLURM
-        self.slurm_connector.register_slurm_signal_handlers()
-
-        # track model now.
-        # if cluster resets state, the model will update with the saved weights
-        self.model = model
 
     def fit(
         self,
@@ -487,6 +446,9 @@ class Trainer(
         self._state = TrainerState.RUNNING
         self._set_wide_running_stage(RunningStage.TRAINING)
 
+        # set local properties on the model
+        self.model_connector.copy_trainer_model_properties(model)
+
         # ----------------------------
         # LINK DATA
         # ----------------------------
@@ -495,29 +457,37 @@ class Trainer(
 
         # hook
         self.data_connector.prepare_data(model)
+        self.callback_connector._attach_model_callbacks(model, self)
 
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.accelerator_backend = self.accelerator_connector.select_accelerator()
+        self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
-        self.accelerator_backend.setup(model)
-
-        # ----------------------------
-        # INSPECT THESE FOR MAIN LOOPS
-        # ----------------------------
-        # assign training and eval functions... inspect these to see the train and eval loops :)
-        self.accelerator_backend.train_loop = self.train
-        self.accelerator_backend.validation_loop = self.run_evaluation
-        self.accelerator_backend.test_loop = self.run_evaluation
+        self.accelerator_backend.setup(self, model)
+        self.setup_trainer(model)
 
         # ----------------------------
         # TRAIN
         # ----------------------------
         # hook
-        self.call_hook('on_fit_start')
-        results = self.accelerator_backend.train()
+        self.call_hook("on_fit_start")
+
+        # plugin will setup training (e.g. ddp will launch child processes)
+        # TODO: the old setup is now called "pre_training", where should this hook be called now?
+        self.training_type_plugin.pre_training()
+        self.precision_plugin.pre_training()
+
+        # double dispatch: let the plugin initiate the training/test loop.
+        if self.testing:
+            self.training_type_plugin.start_testing(self)
+        else:
+            self.training_type_plugin.start_training(self)
+
+        self.precision_plugin.post_training()
+        self.training_type_plugin.post_training()
         self.accelerator_backend.teardown()
+        results = self.training_type_plugin.results
 
         # ----------------------------
         # POST-Training CLEAN UP
@@ -532,7 +502,6 @@ class Trainer(
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
-
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
 
@@ -563,7 +532,45 @@ class Trainer(
 
         self._running_stage = stage
 
+    def _pre_training_routine(self):
+        # wait for all to join if on distributed
+        self.accelerator.training_type_plugin.barrier("setup_training")
+
+        # register auto-resubmit when on SLURM
+        self.slurm_connector.register_slurm_signal_handlers()
+
+        # --------------------------
+        # Pre-train
+        # --------------------------
+        # on pretrain routine start
+        ref_model = self.get_model()
+
+        self.on_pretrain_routine_start(ref_model)
+        if self.is_function_implemented("on_pretrain_routine_start"):
+            ref_model.on_pretrain_routine_start()
+
+        # print model summary
+        if self.is_global_zero and self.weights_summary is not None and not self.testing:
+            if self.weights_summary in ModelSummary.MODES:
+                ref_model.summarize(mode=self.weights_summary)
+            else:
+                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+
+        # restore training and model before hpc is called
+        self.checkpoint_connector.restore_weights()
+
+        # on pretrain routine end
+        self.on_pretrain_routine_end(ref_model)
+        if self.is_function_implemented("on_pretrain_routine_end"):
+            ref_model.on_pretrain_routine_end()
+
     def train(self):
+
+        self._pre_training_routine()
+
+        if not self.is_global_zero and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
+
         self.run_sanity_check(self.get_model())
 
         # set stage for logging
@@ -586,7 +593,8 @@ class Trainer(
             if self.train_loop.should_skip_training():
                 return
             # run all epochs
-            for epoch in range(self.current_epoch, self.max_epochs):
+            epochs = range(self.current_epoch, self.max_epochs) if self.max_epochs else count(self.current_epoch)
+            for epoch in epochs:
 
                 # hook
                 self.train_loop.on_train_epoch_start(epoch)
@@ -599,17 +607,21 @@ class Trainer(
                     return
 
                 # early stopping
-                met_min_epochs = epoch >= self.min_epochs - 1
+                met_min_epochs = (epoch >= self.min_epochs - 1) if self.min_epochs else True
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
                     if met_min_epochs and met_min_steps:
                         return
-                    log.info(
-                        'Trainer was signaled to stop but required minimum epochs'
-                        f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                        ' not been met. Training will continue...'
-                    )
+                    else:
+                        log.info(
+                            'Trainer was signaled to stop but required minimum epochs'
+                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                            ' not been met. Training will continue...'
+                        )
+
+            # hook
+            self.train_loop.on_train_end()
 
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
@@ -717,6 +729,7 @@ class Trainer(
 
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
+
         torch.set_grad_enabled(True)
 
         return eval_loop_results, deprecated_eval_results
@@ -735,6 +748,9 @@ class Trainer(
         return outputs
 
     def run_test(self):
+        if not self.is_global_zero and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
+
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
         with self.profiler.profile("run_test_evaluation"):
@@ -859,8 +875,8 @@ class Trainer(
                     f'specify a path for a checkpoint .test(ckpt_path=PATH)'
                 )
                 return {}
-            if self.accelerator_backend is not None and not self._device_type == DeviceType.TPU:
-                self.accelerator_backend.barrier()
+            if not self._device_type == DeviceType.TPU:
+                self.training_type_plugin.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
@@ -871,7 +887,6 @@ class Trainer(
 
         # run tests
         self.tested_ckpt_path = ckpt_path
-        self.model = model
         results = self.fit(model)
 
         # teardown
@@ -889,7 +904,6 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        self.model = model
         results = self.fit(model)
 
         # teardown
@@ -1027,7 +1041,7 @@ class Trainer(
                 hook_fx = getattr(model_ref, hook_name)
                 output = hook_fx(*args, **kwargs)
 
-            # if the PL module doesn't have the hook then call the accelator
+            # if the PL module doesn't have the hook then call the accelerator
             # used to auto-reduce things for the user with Results obj
             elif hasattr(self.accelerator_backend, hook_name):
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
@@ -1036,16 +1050,6 @@ class Trainer(
         if not skip:
             self._cache_logged_metrics()
         return output
-
-    @staticmethod
-    def available_plugins():
-        """
-        List of all available plugins that can be string arguments to the trainer.
-
-        Returns:
-            List of all available plugins that are supported as string arguments.
-        """
-        return PluginConnector.available_plugins()
 
     @property
     def training(self) -> bool:

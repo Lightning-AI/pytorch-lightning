@@ -1550,23 +1550,31 @@ def test_trainer_predict_dp(tmpdir, num_gpus):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-@pytest.mark.parametrize('plugins', [None, "ddp_sharded"])
-def test_trainer_predict_ddp(tmpdir, plugins):
-    predict(tmpdir, "ddp", 2, None, plugins=plugins)
+def test_trainer_predict_ddp(tmpdir):
+    predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_trainer_predict_ddp_spawn(tmpdir):
     predict(tmpdir, "ddp_spawn", 2, None)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, None, 1, None)
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
 
@@ -1648,28 +1656,32 @@ def test_pytorch_profiler_nested(tmpdir):
 
     pa = pytorch_profiler.profiled_actions
 
+    # From PyTorch 1.8.0, less operation are being traced.
+    if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
+        expected_ = {
+            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'add'],
+            'b': ['zeros', 'empty', 'zero_'],
+            'c': ['add'],
+        }
     # From PyTorch 1.6.0, more operation are being traced.
-    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        prefix_to_remove = "aten::" if LooseVersion(torch.__version__) >= LooseVersion("1.7.1") else ''
-
-        expected_a = ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty']
-        assert [e.name.replace(prefix_to_remove, '') for e in pa['a']] == expected_a
-
-        expected_b = ['zeros', 'empty', 'zero_', 'fill_']
-        assert [e.name.replace(prefix_to_remove, '') for e in pa['b']] == expected_b
-
-        expected_c = ['add', 'empty']
-        assert [e.name.replace(prefix_to_remove, '') for e in pa['c']] == expected_c
-
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        expected_ = {
+            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty'],
+            'b': ['zeros', 'empty', 'zero_', 'fill_'],
+            'c': ['add', 'empty'],
+        }
     else:
-        expected_a = ['add']
-        assert [e.name for e in pa['a']] == expected_a
+        expected_ = {
+            'a': ['add'],
+            'b': [],
+            'c': ['add'],
+        }
 
-        expected_b = []
-        assert [e.name for e in pa['b']] == expected_b
-
-        expected_c = ['add']
-        assert [e.name for e in pa['c']] == expected_c
+    for n in ('a', 'b', 'c'):
+        pa[n] = [e.name for e in pa[n]]
+        if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
+            pa[n] = [e.replace("aten::", "") for e in pa[n]]
+        assert pa[n] == expected_[n]
 
 
 @pytest.mark.parametrize(
@@ -1727,3 +1739,73 @@ def test_disabled_training_for_insufficient_limit_train_batches(
     assert trainer.current_epoch == current_epoch
     assert model.training_step_invoked == should_train, f"`training_step` {error_string}"
     assert model.training_epoch_end_invoked == should_train, f"`training_epoch_end` {error_string}"
+
+
+@pytest.mark.parametrize(["max_steps", "max_epochs", "global_step"], [(10, 5, 10), (20, None, 20)])
+def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epochs, global_step):
+    """
+    Ensure that the training loop is bound by `max_steps` and
+    `max_epochs` for repeated calls of `trainer.fit`, and
+    disabled if the limit is reached
+    """
+
+    dataset_len = 200
+    batch_size = 10
+
+    train_data = DataLoader(RandomDataset(32, dataset_len), batch_size=batch_size)
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=max_steps,
+        max_epochs=max_epochs,
+    )
+    trainer.fit(model, train_data)
+    assert trainer.global_step == global_step
+    trainer.fit(model, train_data)
+    assert trainer.global_step == global_step
+
+
+def test_trainer_access_in_configure_optimizers(tmpdir):
+    """
+    Verify that the configure optimizer function can reference the trainer.
+    """
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            assert self.trainer is not None, "Expect to have access to the trainer within `configure_optimizers`"
+
+    train_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer.fit(model, train_data)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_setup_hook_move_to_device_correctly(tmpdir):
+    """
+    Verify that if a user defines a layer in the setup hook function, this is moved to the correct device.
+    """
+
+    class TestModel(BoringModel):
+
+        def setup(self, stage: str) -> None:
+            self.new_layer = torch.nn.Linear(2, 2)
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            # will crash if not moved to correct device
+            output = self.new_layer(output)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
+    # fake data
+    train_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    # model
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
+    trainer.fit(model, train_data)

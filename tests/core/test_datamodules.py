@@ -14,20 +14,26 @@
 import pickle
 from argparse import ArgumentParser
 from typing import Any, Dict
-from unittest.mock import MagicMock
+from unittest import mock
+from unittest.mock import PropertyMock
 
 import pytest
 import torch
+import torch.nn.functional as F
 
 from pytorch_lightning import LightningDataModule, Trainer
-from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
-from tests.helpers.utils import reset_seed
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.utils import reset_seed, set_random_master_port
 
 
-def test_can_prepare_data(tmpdir):
+@mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
+@mock.patch("pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
+def test_can_prepare_data(local_rank, node_rank):
 
     dm = BoringDataModule()
     trainer = Trainer()
@@ -37,33 +43,36 @@ def test_can_prepare_data(tmpdir):
     # prepare_data_per_node = True
     # local rank = 0   (True)
     trainer.prepare_data_per_node = True
-    trainer.local_rank = 0
+
+    local_rank.return_value = 0
+    assert trainer.local_rank == 0
     assert trainer.data_connector.can_prepare_data()
 
     # local rank = 1   (False)
-    trainer.local_rank = 1
+    local_rank.return_value = 1
+    assert trainer.local_rank == 1
     assert not trainer.data_connector.can_prepare_data()
 
     # prepare_data_per_node = False (prepare across all nodes)
     # global rank = 0   (True)
     trainer.prepare_data_per_node = False
-    trainer.node_rank = 0
-    trainer.local_rank = 0
+    node_rank.return_value = 0
+    local_rank.return_value = 0
     assert trainer.data_connector.can_prepare_data()
 
     # global rank = 1   (False)
-    trainer.node_rank = 1
-    trainer.local_rank = 0
+    node_rank.return_value = 1
+    local_rank.return_value = 0
     assert not trainer.data_connector.can_prepare_data()
-    trainer.node_rank = 0
-    trainer.local_rank = 1
+    node_rank.return_value = 0
+    local_rank.return_value = 1
     assert not trainer.data_connector.can_prepare_data()
 
     # 2 dm
     # prepar per node = True
     # local rank = 0 (True)
     trainer.prepare_data_per_node = True
-    trainer.local_rank = 0
+    local_rank.return_value = 0
 
     # is_overridden prepare data = True
     # has been called
@@ -190,8 +199,8 @@ def test_dm_pickle_after_init(tmpdir):
 def test_train_loop_only(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     model.validation_step = None
     model.validation_step_end = None
@@ -207,18 +216,17 @@ def test_train_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
-    # TODO: add end-to-end test
-    # assert trainer.callback_metrics['loss'] < 0.6
+    assert trainer.callback_metrics['train_loss'] < 1.0
 
 
 def test_train_val_loop_only(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     model.validation_step = None
     model.validation_step_end = None
@@ -231,11 +239,10 @@ def test_train_val_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
-    # TODO: add end-to-end test
-    # assert trainer.callback_metrics['train_loss'] < 0.6
+    assert trainer.callback_metrics['train_loss'] < 1.0
 
 
 def test_dm_checkpoint_save(tmpdir):
@@ -294,8 +301,8 @@ def test_test_loop_only(tmpdir):
 def test_full_loop(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -311,8 +318,7 @@ def test_full_loop(tmpdir):
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 def test_trainer_attached_to_dm(tmpdir):
@@ -346,8 +352,8 @@ def test_trainer_attached_to_dm(tmpdir):
 def test_full_loop_single_gpu(tmpdir):
     reset_seed()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -364,16 +370,37 @@ def test_full_loop_single_gpu(tmpdir):
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_full_loop_dp(tmpdir):
-    reset_seed()
+    set_random_master_port()
 
-    dm = BoringDataModule()
-    model = BoringModel()
+    class CustomClassificationModelDP(ClassificationModel):
+
+        def _step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            return {'logits': logits, 'y': y}
+
+        def training_step(self, batch, batch_idx):
+            _, y = batch
+            out = self._step(batch, batch_idx)
+            loss = F.cross_entropy(out['logits'], y)
+            return loss
+
+        def validation_step(self, batch, batch_idx):
+            return self._step(batch, batch_idx)
+
+        def test_step(self, batch, batch_idx):
+            return self._step(batch, batch_idx)
+
+        def test_step_end(self, outputs):
+            self.log('test_acc', self.test_acc(outputs['logits'], outputs['y']))
+
+    dm = ClassifDataModule()
+    model = CustomClassificationModelDP()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -385,18 +412,18 @@ def test_full_loop_dp(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    result = trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert result
 
     # test
     result = trainer.test(datamodule=dm)
-    # TODO: add end-to-end test
-    # assert result[0]['test_acc'] > 0.8
+    assert result[0]['test_acc'] > 0.6
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_dm_transfer_batch_to_device(tmpdir):
+@mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
+def test_dm_transfer_batch_to_device(get_module_mock):
 
     class CustomBatch:
 
@@ -421,11 +448,10 @@ def test_dm_transfer_batch_to_device(tmpdir):
 
     trainer = Trainer(gpus=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
-    trainer.get_model = MagicMock(return_value=model)
+    get_module_mock.return_value = model
+    if is_overridden('transfer_batch_to_device', dm):
+        model.transfer_batch_to_device = dm.transfer_batch_to_device
 
-    model.transfer_batch_to_device = dm.transfer_batch_to_device
-
-    trainer.accelerator_backend = GPUAccelerator(trainer)
     batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
     assert dm.hook_called
@@ -463,5 +489,38 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
         limit_train_batches=0.01,
         reload_dataloaders_every_epoch=True,
     )
-    results = trainer.fit(model, dm)
-    assert results
+    trainer.fit(model, dm)
+
+
+class DummyDS(torch.utils.data.Dataset):
+
+    def __getitem__(self, index):
+        return 1
+
+    def __len__(self):
+        return 100
+
+
+def test_dm_init_from_datasets(tmpdir):
+
+    train_ds = DummyDS()
+    valid_ds = DummyDS()
+    test_ds = DummyDS()
+
+    valid_dss = [DummyDS(), DummyDS()]
+    test_dss = [DummyDS(), DummyDS()]
+
+    dm = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.train_dataloader())) == torch.ones(4))
+    assert dm.val_dataloader() is None
+    assert dm.test_dataloader() is None
+
+    dm = LightningDataModule.from_datasets(train_ds, valid_ds, test_ds, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.val_dataloader())) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader())) == torch.ones(4))
+
+    dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.val_dataloader()[0])) == torch.ones(4))
+    assert torch.all(next(iter(dm.val_dataloader()[1])) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader()[0])) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader()[1])) == torch.ones(4))
