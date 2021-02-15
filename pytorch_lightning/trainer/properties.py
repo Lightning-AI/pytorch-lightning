@@ -23,6 +23,7 @@ from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType, rank_zero_warn
@@ -420,36 +421,9 @@ class TrainerProperties(ABC):
         self.__dict__ = state
 
     @property
-    def require_distributed_sampler(self):
-        if self.accelerator_backend is not None:
-            return self.accelerator_backend.require_distributed_sampler
-        return self._distrib_type in (
-            DistributedType.HOROVOD, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2
-        ) or self._device_type == DeviceType.TPU
-
-    @property
-    def distributed_sampler_kwargs(self):
-        if self.accelerator_backend is not None:
+    def distributed_sampler_kwargs(self) -> Optional[dict]:
+        if isinstance(self.training_type_plugin, ParallelPlugin):
             return self.training_type_plugin.distributed_sampler_kwargs
-
-        # TODO: make sure the cases below are handled by the training_type_plugin
-        if self._device_type == DeviceType.TPU:
-            kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
-
-        elif self._distrib_type == DistributedType.HOROVOD:
-            kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
-
-        else:
-            world_size = {
-                "ddp": self.num_nodes * self.num_processes,
-                "ddp_spawn": self.num_nodes * self.num_processes,
-                "ddp2": self.num_nodes,
-                "ddp_cpu": self.num_processes * self.num_nodes
-            }
-            assert self.distributed_backend is not None
-            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
-
-        return kwargs
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
