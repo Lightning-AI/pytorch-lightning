@@ -106,7 +106,7 @@ class Accelerator(object):
         """
         pass
 
-    def batch_to_device(self, batch: Any, device: torch.device) -> Any:
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """Moves the batch to the correct device.
         The returned batch is of the same type as the input batch, just having all tensors on the correct device.
 
@@ -115,8 +115,10 @@ class Accelerator(object):
             device: The target device
         """
         model = self.lightning_module
+
         if model is not None:
-            return model.transfer_batch_to_device(batch, device)
+            return model._apply_batch_transfer_handler(batch, device)
+
         return move_data_to_device(batch, device)
 
     def on_train_start(self):
@@ -136,9 +138,7 @@ class Accelerator(object):
                     :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         """
-        batch = self.to_device(args[0])
-
-        args[0] = batch
+        args[0] = self.to_device(args[0])
 
         with self.precision_plugin.train_step_context():
             with self.training_type_plugin.train_step_context():
