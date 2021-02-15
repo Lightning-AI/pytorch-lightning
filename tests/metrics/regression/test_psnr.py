@@ -42,27 +42,30 @@ def _to_sk_peak_signal_noise_ratio_inputs(value, dim):
     return inputs
 
 
-def _sk_metric(preds, target, data_range, dim):
+def _sk_metric(preds, target, data_range, reduction, dim):
     sk_preds_lists = _to_sk_peak_signal_noise_ratio_inputs(preds, dim=dim)
     sk_target_lists = _to_sk_peak_signal_noise_ratio_inputs(target, dim=dim)
-    return np.mean([
+    np_reduce_map = {"elementwise_mean": np.mean, "none": np.array, "sum": np.sum}
+    return np_reduce_map[reduction]([
         peak_signal_noise_ratio(sk_target, sk_preds, data_range=data_range)
         for sk_target, sk_preds in zip(sk_target_lists, sk_preds_lists)
     ])
 
 
-def _base_e_sk_metric(preds, target, data_range, dim):
-    return _sk_metric(preds, target, data_range, dim) * np.log(10)
+def _base_e_sk_metric(preds, target, data_range, reduction, dim):
+    return _sk_metric(preds, target, data_range, reduction, dim) * np.log(10)
 
 
 @pytest.mark.parametrize(
-    "preds, target, data_range, dim",
+    "preds, target, data_range, reduction, dim",
     [
-        (_inputs[0].preds, _inputs[0].target, 10, None),
-        (_inputs[1].preds, _inputs[1].target, 10, None),
-        (_inputs[2].preds, _inputs[2].target, 5, None),
-        (_inputs[2].preds, _inputs[2].target, 5, 1),
-        (_inputs[2].preds, _inputs[2].target, 5, (1, 2)),
+        (_inputs[0].preds, _inputs[0].target, 10, "elementwise_mean", None),
+        (_inputs[1].preds, _inputs[1].target, 10, "elementwise_mean", None),
+        (_inputs[2].preds, _inputs[2].target, 5, "elementwise_mean", None),
+        (_inputs[2].preds, _inputs[2].target, 5, "elementwise_mean", 1),
+        (_inputs[2].preds, _inputs[2].target, 5, "elementwise_mean", (1, 2)),
+        (_inputs[2].preds, _inputs[2].target, 5, "none", (1, 2)),
+        (_inputs[2].preds, _inputs[2].target, 5, "sum", (1, 2)),
     ],
 )
 @pytest.mark.parametrize(
@@ -76,30 +79,32 @@ class TestPSNR(MetricTester):
 
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-    def test_psnr(self, preds, target, data_range, base, dim, sk_metric, ddp, dist_sync_on_step):
+    def test_psnr(self, preds, target, data_range, base, reduction, dim, sk_metric, ddp, dist_sync_on_step):
         self.run_class_metric_test(
             ddp,
             preds,
             target,
             PSNR,
-            partial(sk_metric, data_range=data_range, dim=dim),
+            partial(sk_metric, data_range=data_range, reduction=reduction, dim=dim),
             metric_args={
                 "data_range": data_range,
                 "base": base,
+                "reduction": reduction,
                 "dim": dim
             },
             dist_sync_on_step=dist_sync_on_step,
         )
 
-    def test_psnr_functional(self, preds, target, sk_metric, data_range, base, dim):
+    def test_psnr_functional(self, preds, target, sk_metric, data_range, base, reduction, dim):
         self.run_functional_metric_test(
             preds,
             target,
             psnr,
-            partial(sk_metric, data_range=data_range, dim=dim),
+            partial(sk_metric, data_range=data_range, reduction=reduction, dim=dim),
             metric_args={
                 "data_range": data_range,
                 "base": base,
+                "reduction": reduction,
                 "dim": dim
             },
         )
