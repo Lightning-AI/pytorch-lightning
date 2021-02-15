@@ -57,6 +57,7 @@ from pl_examples import cli_lightning_logo
 from pytorch_lightning import _logger as log
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.callbacks.finetuning import BaseFinetuning
+from pytorch_lightning.utilities import rank_zero_info
 
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
 
@@ -262,6 +263,11 @@ class TransferLearningModel(pl.LightningModule):
         self.log("val_acc", self.valid_acc(y_logits, y_true.int()), prog_bar=True)
 
     def configure_optimizers(self):
+        parameters = list(self.parameters())
+        trainable_parameters = list(filter(lambda p: p.requires_grad, parameters))
+        rank_zero_info(
+            f"The model will start training with only {len(trainable_parameters)} trainable parameters out of {len(parameters)}."
+        )
         optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=self.lr)
         scheduler = MultiStepLR(optimizer, milestones=self.milestones, gamma=self.lr_scheduler_gamma)
         return [optimizer], [scheduler]
