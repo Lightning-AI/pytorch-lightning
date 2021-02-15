@@ -14,9 +14,10 @@
 from typing import List
 
 import torch
+from torch.nn import DataParallel
 
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.overrides.data_parallel import LightningDataParallel
+from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 
 
@@ -26,7 +27,9 @@ class DataParallelPlugin(ParallelPlugin):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
     def setup(self, model):
-        self._model = LightningDataParallel(model, self.parallel_devices)
+        # model needs to be moved to the device before it is wrapped
+        model.to(self.root_device)
+        self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)
 
     def reduce(self, output, *args, **kwargs):
         if isinstance(output, Result):
@@ -41,10 +44,6 @@ class DataParallelPlugin(ParallelPlugin):
     def root_device(self):
         return self.parallel_devices[0]
 
-    @property
-    def lightning_module(self):
-        return self._model.module
-
     def model_to_device(self):
         # no need to do anything when model is wrapped in torch.nn.DataParallel
         pass
@@ -57,3 +56,24 @@ class DataParallelPlugin(ParallelPlugin):
 
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
         return should_stop
+
+    def training_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def validation_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def predict(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def training_step_end(self, output):
+        return self.reduce(output)
+
+    def validation_step_end(self, output):
+        return self.reduce(output)
+
+    def test_step_end(self, output):
+        return self.reduce(output)

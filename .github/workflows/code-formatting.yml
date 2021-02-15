@@ -69,7 +69,7 @@ jobs:
           python-version: 3.8
       - name: Install mypy
         run: |
-          pip install "mypy==0.790"
+          pip install mypy==0.790
           pip list
       - name: mypy check
         run: |

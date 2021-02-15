@@ -15,7 +15,7 @@ from typing import Optional
 
 import torch
 
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -23,7 +23,7 @@ def _confusion_matrix_update(
     preds: torch.Tensor, target: torch.Tensor, num_classes: int, threshold: float = 0.5
 ) -> torch.Tensor:
     preds, target, mode = _input_format_classification(preds, target, threshold)
-    if mode not in ('binary', 'multi-label'):
+    if mode not in (DataType.BINARY, DataType.MULTILABEL):
         preds = preds.argmax(dim=1)
         target = target.argmax(dim=1)
     unique_mapping = (target.view(-1) * num_classes + preds.view(-1)).to(torch.long)
@@ -33,11 +33,11 @@ def _confusion_matrix_update(
 
 
 def _confusion_matrix_compute(confmat: torch.Tensor, normalize: Optional[str] = None) -> torch.Tensor:
-    allowed_normalize = ('true', 'pred', 'all', None)
+    allowed_normalize = ('true', 'pred', 'all', 'none', None)
     assert normalize in allowed_normalize, \
         f"Argument average needs to one of the following: {allowed_normalize}"
     confmat = confmat.float()
-    if normalize is not None:
+    if normalize is not None and normalize != 'none':
         if normalize == 'true':
             cm = confmat / confmat.sum(axis=1, keepdim=True)
         elif normalize == 'pred':
@@ -61,28 +61,28 @@ def confusion_matrix(
 ) -> torch.Tensor:
     """
     Computes the confusion matrix. Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
+    Accepts probabilities from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
 
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument
+    to convert into integer labels. This is the case for binary and multi-label probabilities.
 
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
     Args:
         preds: (float or long tensor), Either a ``(N, ...)`` tensor with labels or
-            ``(N, C, ...)`` where C is the number of classes, tensor with logits/probabilities
+            ``(N, C, ...)`` where C is the number of classes, tensor with labels/probabilities
         target: ``target`` (long tensor), tensor with shape ``(N, ...)`` with ground true labels
         num_classes: Number of classes in the dataset.
         normalize: Normalization mode for confusion matrix. Choose from
 
-            - ``None``: no normalization (default)
+            - ``None`` or ``'none'``: no normalization (default)
             - ``'true'``: normalization over the targets (most commonly used)
             - ``'pred'``: normalization over the predictions
             - ``'all'``: normalization over the whole matrix
 
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
+            Threshold value for binary or multi-label probabilities. default: 0.5
 
     Example:
 

@@ -19,8 +19,8 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel
-from tests.base.models import ParityModuleRNN
+from tests.helpers import BoringModel
+from tests.helpers.advanced_models import ParityModuleRNN
 
 
 class EmptyModule(LightningModule):
@@ -80,8 +80,8 @@ class MixedDtypeModel(LightningModule):
 
     def __init__(self):
         super().__init__()
-        self.embed = nn.Embedding(10, 20)   # expects dtype long as input
-        self.reduce = nn.Linear(20, 1)      # dtype: float
+        self.embed = nn.Embedding(10, 20)  # expects dtype long as input
+        self.reduce = nn.Linear(20, 1)  # dtype: float
         self.example_input_array = torch.tensor([[0, 2, 1], [3, 5, 3]])  # dtype: long
 
     def forward(self, x):
@@ -126,17 +126,17 @@ def test_linear_model_summary_shapes(device, mode):
     model.train()
     summary = model.summarize(mode=mode)
     assert summary.in_sizes == [
-        [2, 10],    # layer 2
-        [2, 7],     # combine
-        [2, 3],     # layer 1
-        [2, 7],     # relu
+        [2, 10],  # layer 2
+        [2, 7],  # combine
+        [2, 3],  # layer 1
+        [2, 7],  # relu
         UNKNOWN_SIZE,
     ]
     assert summary.out_sizes == [
-        [2, 2],     # layer 2
-        [2, 9],     # combine
-        [2, 5],     # layer 1
-        [2, 7],     # relu
+        [2, 2],  # layer 2
+        [2, 9],  # combine
+        [2, 5],  # layer 1
+        [2, 7],  # relu
         UNKNOWN_SIZE,
     ]
     assert model.training
@@ -148,12 +148,12 @@ def test_mixed_dtype_model_summary():
     model = MixedDtypeModel()
     summary = model.summarize()
     assert summary.in_sizes == [
-        [2, 3],         # embed
-        [2, 3, 20],     # reduce
+        [2, 3],  # embed
+        [2, 3, 20],  # reduce
     ]
     assert summary.out_sizes == [
-        [2, 3, 20],     # embed
-        [2, 3, 1],      # reduce
+        [2, 3, 20],  # embed
+        [2, 3, 1],  # reduce
     ]
 
 
@@ -193,8 +193,8 @@ def test_rnn_summary_shapes(mode):
         [b, t, h],  # linear
     ]
     assert summary.out_sizes == [
-        [[b, t, h], [[1, b, h], [1, b, h]]],    # rnn
-        [b, t, o]                               # linear
+        [[b, t, h], [[1, b, h], [1, b, h]]],  # rnn
+        [b, t, o]  # linear
     ]
 
 
@@ -249,6 +249,7 @@ def test_example_input_array_types(example_input, expected_size, mode):
     """ Test the types of example inputs supported for display in the summary. """
 
     class DummyModule(nn.Module):
+
         def forward(self, *args, **kwargs):
             return None
 
@@ -292,7 +293,12 @@ def test_empty_model_size(mode):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
-@pytest.mark.parametrize('precision', [16, 32])
+@pytest.mark.parametrize(
+    'precision', [
+        pytest.param(16, marks=pytest.mark.skip(reason="no longer valid, because 16 can mean mixed precision")),
+        pytest.param(32),
+    ]
+)
 def test_model_size_precision(monkeypatch, tmpdir, precision):
     """ Test model size for half and full precision. """
     model = PreCalculatedModel(precision)

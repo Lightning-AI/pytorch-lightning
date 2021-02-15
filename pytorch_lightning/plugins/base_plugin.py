@@ -13,26 +13,25 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Generator, Optional, overload, Sequence, Tuple
+from typing import Any, Callable, Generator, Optional, overload, Sequence, Tuple
 
 import torch
+from torch.nn import Module
 
 
 class Plugin(ABC):
     """Basic Plugin class to derive precision and training type plugins from."""
 
     @abstractmethod
-    def connect(self, model: torch.nn.Module, *args: Sequence,
-                **kwargs: Sequence) -> Optional[Tuple[torch.nn.Module, Sequence, Sequence]]:
+    def connect(
+        self,
+        model: Module,
+        *args: Sequence,
+        **kwargs: Sequence,
+    ) -> Optional[Tuple[Module, Sequence, Sequence]]:
         """Connects the plugin with the accelerator (and thereby with trainer and model).
         Will be called by the accelerator.
         """
-
-    def pre_optimizer_step(self, optimizer: torch.optim.Optimizer, optimizer_idx: int) -> None:
-        """Hook to do something before each optimizer step."""
-
-    def post_optimizer_step(self, optimizer: torch.optim.Optimizer, optimizer_idx: int) -> None:
-        """Hook to do something after each optimizer step."""
 
     def pre_training(self) -> None:
         """Hook to do something before the training starts."""
@@ -43,11 +42,14 @@ class Plugin(ABC):
     @contextlib.contextmanager
     def train_step_context(self) -> Generator:
         """A contextmanager for the trainstep"""
+        yield
 
     @contextlib.contextmanager
     def val_step_context(self) -> Generator:
         """A contextmanager for the validation step"""
+        yield
 
     @contextlib.contextmanager
     def test_step_context(self) -> Generator:
         """A contextmanager for the teststep"""
+        yield

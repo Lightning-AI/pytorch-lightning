@@ -15,13 +15,14 @@ import inspect
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 def test_lambda_call(tmpdir):
     seed_everything(42)
 
     class CustomModel(BoringModel):
+
         def on_train_epoch_start(self):
             if self.current_epoch > 1:
                 raise KeyboardInterrupt

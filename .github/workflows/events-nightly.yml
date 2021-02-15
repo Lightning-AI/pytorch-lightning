@@ -101,8 +101,6 @@ jobs:
       - run: |
           cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) > 1.4 else 10.1)" 2>&1)
           echo "::set-output name=CUDA::$cuda"
-          channel=$(python -c "print('pytorch-nightly' if float(${{matrix.pytorch_version}}) > 1.7 else 'pytorch')" 2>&1)
-          echo "::set-output name=CHANNEL::$channel"
         id: extend
 
       - name: Publish CUDA to Docker Hub
@@ -127,7 +125,6 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            PYTORCH_CHANNEL=${{ steps.extend.outputs.CHANNEL }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
           file: dockers/base-conda/Dockerfile
           push: true

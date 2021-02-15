@@ -3,7 +3,7 @@ name: PyTorch & Conda
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]
+    branches: [ master, "release/*" ]
   pull_request:
     branches: [master, "release/*"]
 
@@ -40,9 +40,6 @@ jobs:
     - name: Pull checkpoints from S3
       # todo: consider adding coma caching, but ATM all models have less then 100KB
       run: |
-        # todo: remove unzip install after new nigtly docker is created
-        apt-get update -qq
-        apt-get install -y --no-install-recommends unzip
         # enter legacy and update checkpoints from S3
         cd legacy
         curl https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip --output checkpoints.zip
@@ -53,7 +50,6 @@ jobs:
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
         python -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
-        # coverage report
       shell: bash -l {0}
 
     - name: Upload pytest test results

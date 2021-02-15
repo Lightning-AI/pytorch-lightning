@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from typing import Any, Dict, Iterable, Union
+from typing import Dict, Iterable, Union
 
 import torch
 
@@ -31,12 +31,14 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class LoggerConnector:
-    def __init__(self, trainer):
+
+    def __init__(self, trainer, log_gpu_memory: bool):
         self.trainer = trainer
+        self.log_gpu_memory = log_gpu_memory
         self._callback_metrics = MetricsHolder()
         self._evaluation_callback_metrics = MetricsHolder(to_float=True)
         self._logged_metrics = MetricsHolder()
-        self._progress_bar_metrics = MetricsHolder()
+        self._progress_bar_metrics = MetricsHolder(to_float=True)
         self.eval_loop_results = []
         self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in RunningStage}
         self._cached_results[None] = EpochResultStore(trainer, None)
@@ -76,18 +78,18 @@ class LoggerConnector:
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
-        return self._cached_results.get(self.trainer._running_stage)    # type: ignore
+        return self._cached_results.get(self.trainer._running_stage)  # type: ignore
 
     def get_metrics(self, key: str) -> Dict:
         metrics_holder = getattr(self, f"_{key}", None)
         model_ref = self.trainer.get_model()
         metrics_holder.convert(
             self.trainer._device_type == DeviceType.TPU,
-            model_ref.device if model_ref is not None else model_ref
+            model_ref.device if model_ref is not None else model_ref,
         )
         return metrics_holder.metrics
 
-    def set_metrics(self, key: str, val: Any) -> None:
+    def set_metrics(self, key: str, val: Dict) -> None:
         metrics_holder = getattr(self, f"_{key}", None)
         metrics_holder.reset(val)
 
@@ -217,8 +219,8 @@ class LoggerConnector:
                 and global_step for the rest.
         """
         # add gpu memory
-        if self.trainer._device_type == DeviceType.GPU and self.trainer.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.trainer.log_gpu_memory)
+        if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
+            mem_map = memory.get_memory_profile(self.log_gpu_memory)
             metrics.update(mem_map)
 
         # add norms
@@ -254,9 +256,9 @@ class LoggerConnector:
 
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
-    def track_metrics_deprecated(self, deprecated_eval_results, test_mode):
+    def track_metrics_deprecated(self, deprecated_eval_results):
         self._track_callback_metrics(deprecated_eval_results)
-        self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
+        self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results)
 
     def evaluation_epoch_end(self, testing):
         # Todo: required argument `testing` is not used
@@ -286,7 +288,7 @@ class LoggerConnector:
         for dl_idx in range(self.trainer.evaluation_loop.num_dataloaders):
             self.add_to_eval_loop_results(dl_idx, has_been_initialized)
 
-    def get_evaluate_epoch_results(self, test_mode):
+    def get_evaluate_epoch_results(self):
         if not self.trainer.running_sanity_check:
             # log all the metrics as a single dict
             metrics_to_log = self.cached_results.get_epoch_log_metrics()
@@ -296,11 +298,14 @@ class LoggerConnector:
         self.prepare_eval_loop_results()
 
         # log results of test
-        if test_mode and self.trainer.is_global_zero and self.trainer.verbose_test:
+        if self.trainer.testing and self.trainer.is_global_zero and self.trainer.verbose_test:
             print('-' * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
                 print(f'DATALOADER:{result_idx} TEST RESULTS')
-                pprint(results)
+                pprint({
+                    k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
+                    for k, v in results.items()
+                })
                 print('-' * 80)
 
         results = self.eval_loop_results
@@ -366,7 +371,7 @@ class LoggerConnector:
         if len(dataloader_result_metrics) > 0:
             self.eval_loop_results.append(dataloader_result_metrics)
 
-    def __process_eval_epoch_end_results_and_log_legacy(self, eval_results, test_mode):
+    def __process_eval_epoch_end_results_and_log_legacy(self, eval_results):
         if self.trainer.running_sanity_check:
             return
 

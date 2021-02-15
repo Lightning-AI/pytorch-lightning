@@ -13,12 +13,14 @@
 # limitations under the License.
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Optional, TYPE_CHECKING, Union
 
 import torch
+from torch.nn import Module
+from torch.optim import Optimizer
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
 
 if TYPE_CHECKING:
@@ -32,6 +34,10 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = None
         self._results = None
         self.global_rank = 0
+
+    @property
+    def should_finalize(self):
+        return True
 
     @property
     @abstractmethod
@@ -64,35 +70,32 @@ class TrainingTypePlugin(Plugin, ABC):
     def broadcast(self, obj: object, src: int = 0) -> object:
         """Broadcasts an object to all processes"""
 
-    # TODO method this is currently unused. Check after complete refactors are pushed
-    def set_nvidia_flags(self, is_slurm_managing_tasks: bool, device_ids: Optional[Sequence]) -> None:
-        if device_ids is None:
-            return
-
-        # set the correct cuda visible devices (using pci order)
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
-        devices = os.environ.get("CUDA_VISIBLE_DEVICES", all_gpu_ids)
-        if self.lightning_module is not None:
-            log.info(f"LOCAL_RANK: {self.lightning_module.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
-
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
         """Reduce the early stopping decision across all possibly spawned processes"""
         return should_stop
 
+    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+        """Run before precision plugin executes backward"""
+
+    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+        """Run after precision plugin executes backward"""
+
+    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, **kwargs) -> None:
+        """Hook to do something after each optimizer step."""
+
     @property
-    def model(self) -> torch.nn.Module:
+    def model(self) -> Module:
         """Returns the potentially wrapped LightningModule"""
         return self._model
 
     @model.setter
-    def model(self, new_model: torch.nn.Module) -> None:
+    def model(self, new_model: Module) -> None:
         self._model = new_model
 
     @property
     def lightning_module(self) -> Optional[LightningModule]:
         """Returns the pure LightningModule without potential wrappers"""
-        return self._model
+        return unwrap_lightning_module(self._model)
 
     @property
     def results(self) -> Any:
@@ -114,3 +117,30 @@ class TrainingTypePlugin(Plugin, ABC):
     def start_testing(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
         self._results = trainer.run_test()
+
+    def training_step(self, *args, **kwargs):
+        return self.lightning_module.training_step(*args, **kwargs)
+
+    def post_training_step(self):
+        pass
+
+    def validation_step(self, *args, **kwargs):
+        return self.lightning_module.validation_step(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.lightning_module.test_step(*args, **kwargs)
+
+    def predict(self, *args, **kwargs):
+        return self.lightning_module.predict(*args, **kwargs)
+
+    def training_step_end(self, output):
+        return output
+
+    def validation_step_end(self, output):
+        return output
+
+    def test_step_end(self, output):
+        return output
+
+    def on_save(self, checkpoint: dict) -> dict:
+        return checkpoint

@@ -14,6 +14,8 @@
 from typing import Any
 
 import torch
+from torch.nn import DataParallel
+from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.states import RunningStage
@@ -44,6 +46,13 @@ class _LightningModuleWrapperBase(torch.nn.Module):
 
         if running_stage == RunningStage.TRAINING:
             output = self.module.training_step(*inputs, **kwargs)
+
+            # In manual_optimization, we need to prevent DDP reducer as
+            # it is done manually in ``LightningModule.manual_backward``
+            # `require_backward_grad_sync` will be reset in the
+            # ddp_plugin ``post_training_step`` hook
+            if not self.module.automatic_optimization:
+                self.module.trainer.model.require_backward_grad_sync = False
             warn_if_output_is_none(output, "training_step")
         elif running_stage == RunningStage.TESTING:
             output = self.module.test_step(*inputs, **kwargs)
@@ -53,7 +62,6 @@ class _LightningModuleWrapperBase(torch.nn.Module):
             warn_if_output_is_none(output, "validation_step")
         else:
             output = self.module.predict(*inputs, **kwargs)
-
         return output
 
 
@@ -61,3 +69,12 @@ def warn_if_output_is_none(output: Any, method_name: str) -> None:
     """ Warns user about which method returned None. """
     if output is None:
         warning_cache.warn(f'Your {method_name} returned None. Did you forget to return an output?')
+
+
+def unwrap_lightning_module(wrapped_model) -> LightningModule:
+    model = wrapped_model
+    if isinstance(model, (DistributedDataParallel, DataParallel)):
+        model = model.module
+    if isinstance(model, _LightningModuleWrapperBase):
+        model = model.module
+    return model

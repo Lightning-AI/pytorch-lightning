@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""
 Gradient Accumulator
 ====================
@@ -32,6 +31,13 @@ class GradientAccumulationScheduler(Callback):
 
     Args:
         scheduling: scheduling in format {epoch: accumulation_factor}
+
+    Raises:
+        TypeError:
+            If ``scheduling`` is an empty ``dict``,
+            or not all keys and values of ``scheduling`` are integers.
+        IndexError:
+            If ``minimal_epoch`` is less than 0.
 
     Example::
 
@@ -58,9 +64,7 @@ class GradientAccumulationScheduler(Callback):
 
         minimal_epoch = min(scheduling.keys())
         if minimal_epoch < 0:
-            raise IndexError(
-                f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
-            )
+            raise IndexError(f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct")
         if minimal_epoch != 0:  # if user didnt define first epoch accumulation factor
             scheduling.update({0: 1})
 

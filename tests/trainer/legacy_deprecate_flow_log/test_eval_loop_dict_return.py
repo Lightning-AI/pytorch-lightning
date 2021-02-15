@@ -16,7 +16,7 @@ Tests to ensure that the training loop works with a dict
 """
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.deterministic_model import DeterministicModel
+from tests.helpers.deterministic_model import DeterministicModel
 
 
 def test_validation_step_no_return(tmpdir):
@@ -25,11 +25,13 @@ def test_validation_step_no_return(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+
     model = TestModel()
-    model.training_step = model.training_step_dict_return
-    model.validation_step = model.validation_step_no_return
+    model.training_step = model.training_step__dict_return
+    model.validation_step = model.validation_step__no_return
     model.validation_step_end = None
     model.validation_epoch_end = None
 
@@ -42,7 +44,7 @@ def test_validation_step_no_return(tmpdir):
 
     # out are the results of the full loop
     # eval_results are output of _evaluate
-    out, eval_results = trainer.run_evaluation(test_mode=False)
+    out, eval_results = trainer.run_evaluation()
     assert len(out) == 1
     assert len(eval_results) == 0
 
@@ -57,8 +59,8 @@ def test_validation_step_scalar_return(tmpdir):
     Test that val step can return a scalar
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_dict_return
-    model.validation_step = model.validation_step_scalar_return
+    model.training_step = model.training_step__dict_return
+    model.validation_step = model.validation_step__scalar_return
     model.validation_step_end = None
     model.validation_epoch_end = None
 
@@ -67,13 +69,13 @@ def test_validation_step_scalar_return(tmpdir):
         weights_summary=None,
         limit_train_batches=2,
         limit_val_batches=2,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 
     # out are the results of the full loop
     # eval_results are output of _evaluate
-    out, eval_results = trainer.run_evaluation(test_mode=False)
+    out, eval_results = trainer.run_evaluation()
     assert len(out) == 1
     assert len(eval_results) == 2
     assert eval_results[0] == 171 and eval_results[1] == 171
@@ -89,8 +91,8 @@ def test_validation_step_arbitrary_dict_return(tmpdir):
     Test that val step can return an arbitrary dict
     """
     model = DeterministicModel()
-    model.training_step = model.training_step_dict_return
-    model.validation_step = model.validation_step_arbitary_dict_return
+    model.training_step = model.training_step__dict_return
+    model.validation_step = model.validation_step__dummy_dict_return
     model.validation_step_end = None
     model.validation_epoch_end = None
 
@@ -99,13 +101,13 @@ def test_validation_step_arbitrary_dict_return(tmpdir):
         weights_summary=None,
         limit_train_batches=2,
         limit_val_batches=2,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 
     # out are the results of the full loop
     # eval_results are output of _evaluate
-    callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
+    callback_metrics, eval_results = trainer.run_evaluation()
     assert len(callback_metrics) == 1
     assert len(eval_results) == 2
     assert eval_results[0]['some'] == 171
@@ -127,8 +129,8 @@ def test_validation_step_dict_return(tmpdir):
     """
 
     model = DeterministicModel()
-    model.training_step = model.training_step_dict_return
-    model.validation_step = model.validation_step_dict_return
+    model.training_step = model.training_step__dict_return
+    model.validation_step = model.validation_step__dict_return
     model.validation_step_end = None
     model.validation_epoch_end = None
 
@@ -137,13 +139,13 @@ def test_validation_step_dict_return(tmpdir):
         weights_summary=None,
         limit_train_batches=2,
         limit_val_batches=2,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 
     # out are the results of the full loop
     # eval_results are output of _evaluate
-    callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
+    callback_metrics, eval_results = trainer.run_evaluation()
     assert len(callback_metrics) == 1
     assert len(callback_metrics[0]) == 5
     assert len(eval_results) == 2
@@ -169,9 +171,9 @@ def test_val_step_step_end_no_return(tmpdir):
     """
 
     model = DeterministicModel()
-    model.training_step = model.training_step_dict_return
-    model.validation_step = model.validation_step_dict_return
-    model.validation_step_end = model.validation_step_end_no_return
+    model.training_step = model.training_step__dict_return
+    model.validation_step = model.validation_step__dict_return
+    model.validation_step_end = model.validation_step_end__no_return
     model.validation_epoch_end = None
 
     trainer = Trainer(
@@ -179,13 +181,13 @@ def test_val_step_step_end_no_return(tmpdir):
         weights_summary=None,
         limit_train_batches=2,
         limit_val_batches=2,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 
     # out are the results of the full loop
     # eval_results are output of _evaluate
-    callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
+    callback_metrics, eval_results = trainer.run_evaluation()
     assert len(callback_metrics) == 1
     assert len(eval_results) == 0
 
@@ -201,8 +203,8 @@ def test_val_step_step_end(tmpdir):
     """
 
     model = DeterministicModel()
-    model.training_step = model.training_step_dict_return
-    model.validation_step = model.validation_step_dict_return
+    model.training_step = model.training_step__dict_return
+    model.validation_step = model.validation_step__dict_return
     model.validation_step_end = model.validation_step_end
     model.validation_epoch_end = None
 
@@ -211,13 +213,13 @@ def test_val_step_step_end(tmpdir):
         weights_summary=None,
         limit_train_batches=2,
         limit_val_batches=2,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 
     # out are the results of the full loop
     # eval_results are output of _evaluate
-    callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
+    callback_metrics, eval_results = trainer.run_evaluation()
     assert len(callback_metrics) == 1
     assert len(callback_metrics[0]) == 6
 
@@ -246,8 +248,8 @@ def test_no_val_step_end(tmpdir):
     """
 
     model = DeterministicModel()
-    model.training_step = model.training_step_dict_return
-    model.validation_step = model.validation_step_dict_return
+    model.training_step = model.training_step__dict_return
+    model.validation_step = model.validation_step__dict_return
     model.validation_step_end = None
     model.validation_epoch_end = model.validation_epoch_end
 
@@ -263,7 +265,7 @@ def test_no_val_step_end(tmpdir):
 
     # out are the results of the full loop
     # eval_results are output of _evaluate
-    callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
+    callback_metrics, eval_results = trainer.run_evaluation()
     assert len(callback_metrics) == 1
     assert len(callback_metrics[0]) == 6
     assert len(eval_results) == 1
@@ -290,8 +292,8 @@ def test_full_val_loop(tmpdir):
     """
 
     model = DeterministicModel()
-    model.training_step = model.training_step_dict_return
-    model.validation_step = model.validation_step_dict_return
+    model.training_step = model.training_step__dict_return
+    model.validation_step = model.validation_step__dict_return
     model.validation_step_end = model.validation_step_end
     model.validation_epoch_end = model.validation_epoch_end
 
@@ -307,7 +309,7 @@ def test_full_val_loop(tmpdir):
 
     # out are the results of the full loop
     # eval_results are output of _evaluate
-    callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
+    callback_metrics, eval_results = trainer.run_evaluation()
     assert len(callback_metrics) == 1
     assert len(callback_metrics[0]) == 7
     assert len(eval_results) == 1
