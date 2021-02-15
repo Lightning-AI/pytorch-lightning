@@ -43,12 +43,12 @@ to manually manage the optimization process. To do so, do the following:
         self.manual_backward(loss)
         opt.step()
 
-        # zero grad
+        # accumulate gradient batches
         if batch_idx % 2 == 0:
             opt.zero_grad()
 
 
-.. tip:: It is good pratice to provide to the optimizer a ``closure function`` that perform a ``forward and backward`` evaluation of your model. It is optional for most optimizers, but make your code compatible if you switch to an optimizer which requires a closure.
+.. tip:: It is a good practice to provide the optimizer with a ``closure`` function that performs a ``forward`` and ``backward`` pass of your model. It is optional for most optimizers, but makes your code compatible if you switch to an optimizer which requires a closure.
 
 Here is the same example as above using a ``closure``.
 
@@ -63,7 +63,7 @@ Here is the same example as above using a ``closure``.
 
         opt.step(closure=forward_and_backward)
 
-        # zero grad
+        # accumulate gradient batches
         if batch_idx % 2 == 0:
             opt.zero_grad()
 
@@ -92,7 +92,7 @@ Here is the same example as above using a ``closure``.
         opt_dis.step()
 
 
-.. note:: ``LightningOptimizer`` provides a ``toggle_model`` function as a ``context manager`` for advanced users. It can be useful when performing ``gradient accumulation with several optimizers`` and training with ``multiple gpus``.
+.. note:: ``LightningOptimizer`` provides a ``toggle_model`` function as a ``@context_manager`` for advanced users. It can be useful when performing gradient accumulation with several optimizers or training in a distributed setting.
 
 Here is an explanation of what it does:
 
