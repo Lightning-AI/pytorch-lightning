@@ -670,12 +670,13 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 ----------
 
-.. _deepspeed:
+.. _deep_speed:
 
 DeepSpeed
 ^^^^^^^^^
-`DeepSpeed <https://github.com/microsoft/DeepSpeed>`_ offers additional CUDA deep learning training optimizations, similar to `FairScale <https://github.com/facebookresearch/fairscale>`_. DeepSpeed offers lower level training optimizations, and useful memory optimized optimizers such as 1-bit Adam.
-We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models), and where sacrificing flexibility as a tradeoff is acceptable. In addition, we recommend trying :doc:`sharded` first before trying DeepSpeed's further optimizations.
+`DeepSpeed <https://github.com/microsoft/DeepSpeed>`_ offers additional CUDA deep learning training optimizations, similar to `FairScale <https://github.com/facebookresearch/fairscale>`_. DeepSpeed offers lower level training optimizations, and useful memory optimized optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_.
+Using the plugin, we were able to train model sizes of 10 Billion+ parameters and above, with a lot of useful information in this `issue <https://github.com/huggingface/transformers/issues/9996>`_ and DeepSpeed `docs <https://www.deepspeed.ai/tutorials/megatron/>`_.
+We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models), and where sacrificing flexibility as a tradeoff is acceptable. In addition, we recommend trying :ref:`sharded` first before trying DeepSpeed's further optimizations.
 
 To use DeepSpeed, you first need to install DeepSpeed using the commands below.
 
@@ -689,11 +690,16 @@ Additionally if you run into any issues installing m4py, ensure you have openmpi
 Below we show an example of running `ZeRO Offload <https://www.deepspeed.ai/tutorials/zero-offload/>`_. ZeRO-Offload leverages the host CPU to offload optimizer memory/computation, reducing the overall memory consumption.
 For even more speed benefit, they offer an optimized CPU version of ADAM to run the offloaded computation, which is faster than the standard PyTorch implementation.
 
-DeepSpeed requires that the optimizers and schedulers are defined within a config file. We've included the config to enable ZeRO-Offload.
+DeepSpeed requires that the optimizers and schedulers are defined within a config file.
+We've included the config to enable ZeRO-Offload, as well as set the bucket sizes to reasonable defaults for low VRAM GPUs (less than 7GB).
+
+.. note::
+    To use ZeRO-Offload to train large models, you must use ``precision=16`` or set precision via `the DeepSpeed config as seen <https://www.deepspeed.ai/docs/config-json/#fp16-training-options>`_.
 
 .. code-block:: python
 
     from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
 
     deepspeed_config = {
         "optimizer": {
@@ -715,15 +721,17 @@ DeepSpeed requires that the optimizers and schedulers are defined within a confi
             }
         },
         "zero_optimization": {
-            "stage": 2,
-            "cpu_offload": True,
-            "contiguous_gradients": True,
-            "overlap_comm": True
+            "stage": 2, # Enable Stage 2 ZeRO (Optimizer/Gradient state partitioning)
+            "cpu_offload": True, # Enable Offloading optimizer state/calculation to the host CPU
+            "contiguous_gradients": True, # Copy gradients to a contiguous memory buffer to reduce fragmentation.
+            "overlap_comm": True # Overlap the reduce operation of gradients with the backwards pass for speed optimization.
+            "allgather_bucket_size": 2e8, # Controls the number of elements to all gather at once.
+            "reduce_bucket_size": 2e8, # Controls the number of elements we reduce/allreduce at once.
         }
     }
 
     model = MyModel()
-    trainer = Trainer(accelerator='deepspeed', gpus=4, deepspeed_config=deepspeed_config, precision=16) # zero offload requires mixed precision
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(deepspeed_config), precision=16)
     trainer.fit(model)
 
 We also support taking the config as a json formatted file.
@@ -731,11 +739,16 @@ We also support taking the config as a json formatted file.
 .. code-block:: python
 
     from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
 
     model = MyModel()
-    trainer = Trainer(accelerator='deepspeed', gpus=4, deepspeed_config="/path/to/deepspeed_config.json", precision=16) # zero offload requires mixed precision
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin("/path/to/deepspeed_config.json"), precision=16)
     trainer.fit(model)
 
+.. note::
+    We suggest tuning the ``allgather_bucket_size`` parameter and ``reduce_bucket_size`` parameter to find optimum parameters. Larger values will be more effecient in terms of throughput time, but will require more memory.
+    DeepSpeed allocates a reduce buffer size `multiplied by 4.5x <https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/runtime/zero/stage2.py#L1594-L1607>`_ so take that into consideration when tweaking the parameter.
+    As reference, a reduce buffer size of 2e8 means you'll allocate roughly 3.6GB of VRAM for the buffer.
 
 ----------
 

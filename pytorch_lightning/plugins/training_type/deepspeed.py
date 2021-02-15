@@ -62,10 +62,11 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
 class DeepSpeedPlugin(DDPPlugin):
     distributed_backend = "deepspeed"
+    DEEPSPEED_ENV_VAR = "DEEPSPEED_CONFIG_PATH"
 
     def __init__(
         self,
-        config: Union[Path, str, dict],
+        config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
         num_nodes: int = 1,
         parallel_devices: Optional[List[torch.device]] = None,
@@ -74,18 +75,28 @@ class DeepSpeedPlugin(DDPPlugin):
         super().__init__(
             parallel_devices=parallel_devices, num_nodes=num_nodes, cluster_environment=cluster_environment
         )
+        self.config = self._load_config(config)
+        self._config_initialized = False
+        deepspeed.utils.logging.logger.setLevel(logging_level)
+
+    def _load_config(self, config):
+        if config is None:
+            if self.DEEPSPEED_ENV_VAR not in os.environ:
+                raise MisconfigurationException(
+                    f"You did not pass a DeepSpeed config object or path for DeepSpeed. This can be passed"
+                    f" via instantiating the `DeepSpeedPlugin` object, or by the DEEPSPEED_CONFIG_PATH env variable."
+                    f" see x for more information."
+                )
+            config = os.environ.get(self.DEEPSPEED_ENV_VAR)
         if isinstance(config, str) or isinstance(config, Path):
             if os.path.exists(config):
                 with open(config) as f:
-                    self.config = json.load(f)
+                    config = json.load(f)
             else:
                 raise MisconfigurationException(
                     f"You passed in a path to a DeepSpeed config but the path does not exist: {config}"
                 )
-        else:
-            self.config = config
-        self._config_initialized = False
-        deepspeed.utils.logging.logger.setLevel(logging_level)
+        return config
 
     def pre_training(self):
         self.set_world_ranks()

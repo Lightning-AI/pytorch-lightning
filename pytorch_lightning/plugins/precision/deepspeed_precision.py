@@ -16,12 +16,13 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     def pre_optimizer_step(
         self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs
     ) -> bool:
+        deepspeed_engine = pl_module.trainer.model
         # DeepSpeed not support closures.
         lambda_closure()
 
-        if not pl_module.automatic_optimization:
+        if pl_module.automatic_optimization:
             pl_module.trainer.call_hook("on_after_backward")
-            optimizer.step()
+            deepspeed_engine.step()
 
         return False
 

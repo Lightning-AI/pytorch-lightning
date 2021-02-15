@@ -73,7 +73,6 @@ class BackendConnector(object):
         gpus,
         num_nodes,
         sync_batchnorm,
-        deepspeed_config,
         benchmark,
         replace_sampler_ddp,
         deterministic,
@@ -93,7 +92,6 @@ class BackendConnector(object):
         self.gpus = gpus
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
-        self.deepspeed_config = deepspeed_config
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.deterministic = deterministic
@@ -355,7 +353,6 @@ class BackendConnector(object):
             plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedPlugin(
-                config=self.deepspeed_config,
                 num_nodes=self.num_nodes,
                 cluster_environment=self.select_cluster_environment(),
                 parallel_devices=self.parallel_devices

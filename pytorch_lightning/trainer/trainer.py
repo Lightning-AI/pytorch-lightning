@@ -135,7 +135,6 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         enable_pl_optimizer: bool = None,  # todo: remove in v1.3
         multiple_trainloader_mode: str = 'max_size_cycle',
-        deepspeed_config: Optional[Union[Path, str, Dict]] = None,
     ):
         r"""
         Customize every aspect of training via flags
@@ -294,8 +293,6 @@ class Trainer(
                 In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
-
-            deepspeed_config: Path to deepspeed config or dict when using deepspeed accelerator backend.
         """
         super().__init__()
         self._running_stage = None
@@ -310,8 +307,8 @@ class Trainer(
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = BackendConnector(
-            num_processes, tpu_cores, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm,
-            deepspeed_config, benchmark, replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
+            num_processes, tpu_cores, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm, benchmark,
+            replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
