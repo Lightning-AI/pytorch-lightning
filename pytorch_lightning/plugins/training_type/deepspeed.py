@@ -104,11 +104,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
         self.init_deepspeed()
 
-        # TODO: check if needed
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
-
         # set warning rank
         rank_zero_only.rank = self.global_rank
 
