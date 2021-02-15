@@ -14,7 +14,6 @@
 import os
 from argparse import Namespace
 from distutils.version import LooseVersion
-from pathlib import Path
 from unittest import mock
 
 import pytest
