@@ -135,6 +135,14 @@ class ModelPruning(Callback):
 
             verbose: Verbosity level. 0 to disable, 1 to log overall sparsity, 2 to log per-layer sparsity
 
+        Raises:
+            MisconfigurationException:
+                If ``parameter_names`` is neither ``"weight"`` nor ``"bias"``,
+                if the provided ``pruning_fn`` is not supported,
+                if ``pruning_dim`` is not provided when ``"unstructured"``,
+                if ``pruning_norm`` is not provided when ``"ln_structured"``,
+                if ``pruning_fn`` is neither ``str`` nor :class:`torch.nn.utils.prune.BasePruningMethod`, or
+                if ``amount`` is none of ``int``, ``float`` and ``Callable``.
         """
 
         self._use_global_unstructured = use_global_unstructured
@@ -382,6 +390,11 @@ class ModelPruning(Callback):
         """
         This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``.
         If ``parameters_to_prune is None``, it will be generated with all parameters of the model.
+
+        Raises:
+            MisconfigurationException:
+                If ``parameters_to_prune`` doesn't exist in the model, or
+                if ``parameters_to_prune`` is neither a list of tuple nor ``None``.
         """
         parameters = parameter_names or ModelPruning.PARAMETER_NAMES
 
