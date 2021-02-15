@@ -139,13 +139,13 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.parallel_device_ids
 
     @property
-    def log_dir(self) -> str:
+    def log_dir(self) -> Optional[str]:
         if self.logger is None:
             dirpath = self.default_root_dir
         else:
             dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
 
-        dirpath = str(self.training_type_plugin.broadcast(dirpath))
+        dirpath = self.training_type_plugin.broadcast(dirpath)
         return dirpath
 
     @property
