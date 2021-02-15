@@ -115,6 +115,14 @@ class ModelCheckpoint(Callback):
         For example, you can change the default last checkpoint name by doing
         ``checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"``
 
+    Raises:
+        MisconfigurationException:
+            If ``save_top_k`` is neither ``None`` nor more than or equal to ``-1``,
+            if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``, or
+            if ``mode`` is none of ``"min"``, ``"max"``, and ``"auto"``.
+        ValueError:
+            If ``trainer.save_checkpoint`` is ``None``.
+
     Example::
 
         >>> from pytorch_lightning import Trainer
