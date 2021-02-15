@@ -2,8 +2,4 @@
 
 
 # TODO
-pytorch_lightning/accelerators/legacy/*
-
-
-# TODO
 pytorch_lightning/plugins/legacy/*
