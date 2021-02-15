@@ -482,7 +482,7 @@ class Trainer(
         #
         #   trainer.fit(...) or trainer.test(...) or trainer.predict(...)   ||
         #                                |                                  ||
-        #                    trainer - create accelerator                   ||
+        #                        create accelerator                         ||
         #                                |                                  ||
         #                         trainer.dispatch                          ||  LIGHTNING
         #                                |                                  ||
@@ -490,7 +490,7 @@ class Trainer(
         #               from `accelerator.training_type_plugin`             ||
         #                                |                                  ||  DIRECTION
         #             run_train or run_test or run_predict call             ||
-        #                            from trainer                           ||
+        #                           from `trainer`                          ||
         #                                |                                  ||
         #                             results                               \/
         # This is used to guide readers to the core loops: train, test, predict.
