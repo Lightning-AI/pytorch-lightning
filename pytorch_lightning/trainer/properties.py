@@ -25,11 +25,10 @@ from pytorch_lightning.accelerators.accelerator_connector import BackendConnecto
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.plugins import PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import TrainerState
