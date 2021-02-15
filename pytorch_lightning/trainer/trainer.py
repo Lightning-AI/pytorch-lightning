@@ -478,13 +478,13 @@ class Trainer(
         # ----------------------------
         # INSPECT THE CORE LOOPS
         # ----------------------------
-        #                  Our fitting flow looks like this.
+        #             Lightning internal flow looks like this.
         #
         #   trainer.fit(...) or trainer.test(...) or trainer.predict(...)   ||
         #                                |                                  ||
         #                    trainer - create accelerator                   ||
         #                                |                                  ||
-        #                         trainer.dispatch                          ||  FITTING
+        #                         trainer.dispatch                          ||  LIGHTNING
         #                                |                                  ||
         #    start_training or start_testing or start_predicting call       ||  FLOW
         #               from `accelerator.training_type_plugin`             ||
