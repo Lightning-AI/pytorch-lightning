@@ -155,14 +155,15 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert generated == 'abc23'
 
 
+@pytest.mark.skipif(torch.cuda.is_available(), reason="test is restricted only on CPU")
 def test_cpu_model_with_amp(tmpdir):
     """Make sure model trains on CPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=2,
+        limit_val_batches=2,
         precision=16,
     )
 
