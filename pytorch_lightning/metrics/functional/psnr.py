@@ -94,9 +94,7 @@ def psnr(
 
     """
     if dim is None and reduction != 'elementwise_mean':
-        utilities.rank_zero_warn(
-            f'The `reduction={reduction}` parameter is unused when `dim` is `None` and will not have any effect.'
-        )
+        utilities.rank_zero_warn(f'The `reduction={reduction}` will not have any effect when `dim` is `None`.')
 
     if data_range is None:
         if dim is not None:

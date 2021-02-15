@@ -110,8 +110,8 @@ class TestPSNR(MetricTester):
 
 
 def test_reduction_for_dim_none():
-    for reduction in ['none', 'sum']:
-        match = f'The `reduction={reduction}` parameter is unused when `dim` is `None` and will not have any effect.'
+    for reduction in ["none", "sum"]:
+        match = f"The `reduction={reduction}` will not have any effect when `dim` is `None`."
         with pytest.warns(UserWarning, match=match):
             PSNR(reduction=reduction, dim=None)
 
