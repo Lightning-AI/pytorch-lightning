@@ -51,12 +51,12 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
         return super().forward(*inputs, **kwargs)
 
+    @staticmethod
+    def batch_to(data):
+        return data.half()
+
     def _move_float_tensors_to_half(self, batch: Any):
-
-        def batch_to(data):
-            return data.half()
-
-        batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=batch_to)
+        batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
         return batch
 
 
