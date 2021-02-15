@@ -416,6 +416,7 @@ class ProgressBar(ProgressBarBase):
     def on_predict_start(self, trainer, pl_module):
         super().on_predict_start(trainer, pl_module)
         self.predict_progress_bar = self.init_predict_tqdm()
+        self.predict_progress_bar.total = convert_inf(self.total_predict_batches)
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
@@ -424,7 +425,6 @@ class ProgressBar(ProgressBarBase):
 
     def on_predict_end(self, trainer, pl_module):
         self.predict_progress_bar.close()
-        self._predict_batch_idx = 0
 
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)

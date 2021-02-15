@@ -484,13 +484,13 @@ class Trainer(
         #                     |                         ||
         #               trainer.fit(...)                ||
         #                     |                         ||
-        #         trainer - create accelerator          ||
+        #         trainer - create accelerator          ||  FITTING
         #                     |                         ||
-        #              trainer.dispatch                 ||   FITTING
+        #              trainer.dispatch                 ||  FLOW
         #                     |                         ||
-        #  start_{training, testing, predicting} call   ||   FLOW
+        #  start_{training, testing, predicting} call   ||  DIRECTION
         #            in training_type_plugin            ||
-        #                     |                         ||   DIRECTION
+        #                     |                         ||
         #     run_train, run_test, run_predict call     ||
         #                in trainer                     ||
         #                     |                         ||
