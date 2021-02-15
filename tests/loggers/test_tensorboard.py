@@ -291,3 +291,15 @@ def test_tensorboard_finalize(summary_writer, tmpdir):
     logger.finalize("any")
     summary_writer().flush.assert_called()
     summary_writer().close.assert_called()
+
+
+def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
+    model = BoringModel()
+    logger = TensorBoardLogger(save_dir=tmpdir, default_hp_metric=False)
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
+    assert trainer.log_dir == trainer.logger.log_dir
+    trainer.fit(model)
+
+    hparams_file = "hparams.yaml"
+    assert os.path.isfile(os.path.join(trainer.log_dir, hparams_file))
+    assert not os.path.isfile(os.path.join(tmpdir, hparams_file))
