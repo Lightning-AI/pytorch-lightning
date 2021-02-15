@@ -16,7 +16,7 @@ from typing import Any, Optional, Sequence, Tuple, Union
 import torch
 
 from pytorch_lightning import utilities
-from pytorch_lightning.metrics.functional.psnr import _psnr, _psnr_compute, _psnr_update
+from pytorch_lightning.metrics.functional.psnr import _psnr_compute, _psnr_update
 from pytorch_lightning.metrics.metric import Metric
 
 
@@ -88,7 +88,8 @@ class PSNR(Metric):
             self.add_state("sum_squared_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
             self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
         else:
-            self.add_state("psnrs", default=[])
+            self.add_state("sum_squared_error", default=[])
+            self.add_state("total", default=[])
 
         if data_range is None:
             if dim is not None:
@@ -113,27 +114,32 @@ class PSNR(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
+        sum_squared_error, n_obs = _psnr_update(preds, target, dim=self.dim)
         if self.dim is None:
             if self.data_range is None:
                 # keep track of min and max target values
                 self.min_target = min(target.min(), self.min_target)
                 self.max_target = max(target.max(), self.max_target)
 
-            self.sum_squared_error += torch.sum(torch.pow(preds - target, 2))
-            self.total += target.numel()
+            self.sum_squared_error += sum_squared_error
+            self.total += n_obs
         else:
-            self.psnrs.append(_psnr_update(preds, target, self.dim, self.data_range, base=self.base))
+            self.sum_squared_error.append(sum_squared_error)
+            self.total.append(n_obs)
 
     def compute(self):
         """
         Compute peak signal-to-noise ratio over state.
         """
-        if self.dim is None:
-            if self.data_range is not None:
-                data_range = self.data_range
-            else:
-                data_range = self.max_target - self.min_target
-            return _psnr(self.sum_squared_error / self.total, data_range, base=self.base)
+        if self.data_range is not None:
+            data_range = self.data_range
         else:
-            psnrs = torch.cat([values.flatten() for values in self.psnrs])
-            return _psnr_compute(psnrs, self.reduction)
+            data_range = self.max_target - self.min_target
+
+        if self.dim is None:
+            sum_squared_error = self.sum_squared_error
+            total = self.total
+        else:
+            sum_squared_error = torch.cat([values.flatten() for values in self.sum_squared_error])
+            total = torch.cat([values.flatten() for values in self.total])
+        return _psnr_compute(sum_squared_error, total, data_range, base=self.base, reduction=self.reduction)

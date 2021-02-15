@@ -19,32 +19,39 @@ from pytorch_lightning import utilities
 from pytorch_lightning.metrics import utils
 
 
-def _psnr(
-    mean_squared_error: torch.Tensor,
-    data_range: float,
+def _psnr_compute(
+    sum_squared_error: torch.Tensor,
+    n_obs: torch.Tensor,
+    data_range: torch.Tensor,
     base: float = 10.0,
+    reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
-    psnr_base_e = 2 * torch.log(data_range) - torch.log(mean_squared_error)
+    psnr_base_e = 2 * torch.log(data_range) - torch.log(sum_squared_error / n_obs)
     psnr = psnr_base_e * (10 / torch.log(torch.tensor(base)))
-    return psnr
+    return utils.reduce(psnr, reduction=reduction)
 
 
-def _psnr_compute(psnrs: torch.Tensor, reduction: str = 'elementwise_mean') -> torch.Tensor:
-    return utils.reduce(psnrs, reduction)
-
-
-def _psnr_update(
-    preds: torch.Tensor,
-    target: torch.Tensor,
-    dim: Union[int, Tuple[int, ...]],
-    data_range: float,
-    base: float = 10.0,
-) -> torch.Tensor:
+def _psnr_update(preds: torch.Tensor,
+                 target: torch.Tensor,
+                 dim: Optional[Union[int, Tuple[int, ...]]] = None) -> Tuple[torch.Tensor, torch.Tensor]:
     if dim is None:
-        mean_squared_error = torch.mean(torch.pow(preds - target, 2))
+        sum_squared_error = torch.sum(torch.pow(preds - target, 2))
+        n_obs = torch.tensor(target.numel(), device=target.device)
+        return sum_squared_error, n_obs
+
+    sum_squared_error = torch.sum(torch.pow(preds - target, 2), dim=dim)
+
+    if isinstance(dim, int):
+        dim_list = [dim]
     else:
-        mean_squared_error = torch.mean(torch.pow(preds - target, 2), dim=dim)
-    return _psnr(mean_squared_error, data_range, base=base)
+        dim_list = list(dim)
+    if not dim_list:
+        n_obs = torch.tensor(target.numel(), device=target.device)
+    else:
+        n_obs = torch.tensor(target.size(), device=target.device)[dim_list].prod()
+        n_obs = n_obs.expand_as(sum_squared_error)
+
+    return sum_squared_error, n_obs
 
 
 def psnr(
@@ -100,5 +107,5 @@ def psnr(
         data_range = target.max() - target.min()
     else:
         data_range = torch.tensor(float(data_range))
-    psnrs = _psnr_update(preds, target, dim, data_range, base=base)
-    return _psnr_compute(psnrs, reduction=reduction)
+    sum_squared_error, n_obs = _psnr_update(preds, target, dim=dim)
+    return _psnr_compute(sum_squared_error, n_obs, data_range, base=base, reduction=reduction)

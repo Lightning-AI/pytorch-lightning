@@ -64,7 +64,6 @@ def _base_e_sk_metric(preds, target, data_range, reduction, dim):
         (_inputs[2].preds, _inputs[2].target, 5, "elementwise_mean", None),
         (_inputs[2].preds, _inputs[2].target, 5, "elementwise_mean", 1),
         (_inputs[2].preds, _inputs[2].target, 5, "elementwise_mean", (1, 2)),
-        (_inputs[2].preds, _inputs[2].target, 5, "none", (1, 2)),
         (_inputs[2].preds, _inputs[2].target, 5, "sum", (1, 2)),
     ],
 )
