@@ -25,13 +25,15 @@ from pytorch_lightning.accelerators.accelerator_connector import BackendConnecto
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins import PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType, rank_zero_warn
+from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     from_argparse_args,
@@ -39,14 +41,6 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-
-if _HOROVOD_AVAILABLE:
-    import horovod.torch as hvd
-
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
@@ -420,36 +414,9 @@ class TrainerProperties(ABC):
         self.__dict__ = state
 
     @property
-    def require_distributed_sampler(self) -> bool:
-        if self.accelerator is not None:
-            return self.accelerator.require_distributed_sampler
-        return self._distrib_type in (
-            DistributedType.HOROVOD, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2
-        ) or self._device_type == DeviceType.TPU
-
-    @property
-    def distributed_sampler_kwargs(self) -> dict:
-        if self.accelerator is not None:
+    def distributed_sampler_kwargs(self) -> Optional[dict]:
+        if isinstance(self.training_type_plugin, ParallelPlugin):
             return self.training_type_plugin.distributed_sampler_kwargs
-
-        # TODO: make sure the cases below are handled by the training_type_plugin
-        if self._device_type == DeviceType.TPU:
-            kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
-
-        elif self._distrib_type == DistributedType.HOROVOD:
-            kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
-
-        else:
-            world_size = {
-                "ddp": self.num_nodes * self.num_processes,
-                "ddp_spawn": self.num_nodes * self.num_processes,
-                "ddp2": self.num_nodes,
-                "ddp_cpu": self.num_processes * self.num_nodes
-            }
-            assert self.distributed_backend is not None
-            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
-
-        return kwargs
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
