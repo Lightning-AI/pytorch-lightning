@@ -39,6 +39,7 @@ references:
       command: |
         gcloud --quiet auth configure-docker
         #cd dockers/tpu-tests
+        PYTHON_VER = $(python -c "import random ; print('3.6' if random.random() > 0.5 else '3.7')" 2>&1)
         docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" --build-arg "PYTORCH_VERSION=$XLA_VER" .
         docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
 
@@ -102,8 +103,7 @@ jobs:
     docker:
       - image: circleci/python:3.7
     environment:
-      - PYTHON_VER: $(python -c "import random ; print('3.6' if random.random() > 0.5 else '3.7')" 2>&1)
-      - XLA_VER: $(python -c "import random ; print('1.6' if random.random() > 0.5 else '1.7')" 2>&1)
+      - XLA_VER: 1.7
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
