@@ -160,14 +160,6 @@ class CatDogImageDataModule(LightningDataModule):
 
 
 class TransferLearningModel(pl.LightningModule):
-    """Transfer Learning with pre-trained ResNet50.
-    >>> with TemporaryDirectory(dir='.') as tmp_dir:
-    ...     TransferLearningModel(tmp_dir)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    TransferLearningModel(
-      (feature_extractor): Sequential(...)
-      (fc): Sequential(...)
-    )
-    """
 
     def __init__(
         self,
@@ -266,7 +258,8 @@ class TransferLearningModel(pl.LightningModule):
         parameters = list(self.parameters())
         trainable_parameters = list(filter(lambda p: p.requires_grad, parameters))
         rank_zero_info(
-            f"The model will start training with only {len(trainable_parameters)} trainable parameters out of {len(parameters)}."
+            f"The model will start training with only {len(trainable_parameters)} "
+            f"trainable parameters out of {len(parameters)}."
         )
         optimizer = optim.Adam(trainable_parameters, lr=self.lr)
         scheduler = MultiStepLR(optimizer, milestones=self.milestones, gamma=self.lr_scheduler_gamma)
