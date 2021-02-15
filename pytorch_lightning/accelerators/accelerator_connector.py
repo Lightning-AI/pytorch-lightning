@@ -348,7 +348,7 @@ class BackendConnector(object):
         else:
             raise NotImplementedError("We only support precisions 32 and 16!")
 
-    def select_training_type_plugin(self):
+    def select_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
             plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp and self.use_deepspeed:
