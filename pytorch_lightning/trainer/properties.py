@@ -15,7 +15,7 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import Any, cast, List, Optional, Type, TypeVar, Union
+from typing import cast, List, Optional, Type, TypeVar, Union
 
 import torch
 from torch.optim import Optimizer
@@ -31,8 +31,7 @@ from pytorch_lightning.plugins import TrainingTypePlugin, PrecisionPlugin
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType, rank_zero_warn, \
-    AMPType
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     from_argparse_args,
@@ -53,32 +52,18 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 class TrainerProperties(ABC):
 
-    # precision: int
-    # logger_connector: LoggerConnector
     _default_root_dir: str
+    _lightning_optimizers = None
     _progress_bar_callback: ProgressBarBase
     _state: TrainerState
     _weights_save_path: str
-    # global_rank: int
-    # fast_dev_run: Union[int, bool]
-    # _device_type: DeviceType
-    # _distrib_type: DistributedType
-    # model: LightningModule
-    # data_parallel_device_ids: Optional[List[int]]
 
-    #
-
-    # accelerator_backend: Accelerator
-    # num_nodes: int
-    # num_processes: int
     accelerator_connector: BackendConnector
     callbacks: List[Callback]
     checkpoint_connector: CheckpointConnector
     limit_val_batches: int
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
-
-    # _lightning_optimizers = None
 
     @property
     def accelerator(self) -> Accelerator:
@@ -436,15 +421,15 @@ class TrainerProperties(ABC):
 
     @property
     def require_distributed_sampler(self) -> bool:
-        if self.accelerator_backend is not None:
-            return self.accelerator_backend.require_distributed_sampler
+        if self.accelerator is not None:
+            return self.accelerator.require_distributed_sampler
         return self._distrib_type in (
             DistributedType.HOROVOD, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2
         ) or self._device_type == DeviceType.TPU
 
     @property
     def distributed_sampler_kwargs(self) -> dict:
-        if self.accelerator_backend is not None:
+        if self.accelerator is not None:
             return self.training_type_plugin.distributed_sampler_kwargs
 
         # TODO: make sure the cases below are handled by the training_type_plugin
