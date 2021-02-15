@@ -24,6 +24,11 @@ class RetrievalMAP(RetrievalMetric):
     Args:
         query_without_relevant_docs:
             Specify what to do with queries that do not have at least a positive target. Choose from:
+
+            - ``'skip'``: skip those queries (default); if all queries are skipped, ``0.0`` is returned
+            - ``'error'``: raise a ``ValueError``
+            - ``'pos'``: score on those queries is counted as ``1.0``
+            - ``'neg'``: score on those queries is counted as ``0.0``
         exclude:
             Do not take into account predictions where the target is equal to this value. default `-100`
         compute_on_step:
@@ -37,11 +42,6 @@ class RetrievalMAP(RetrievalMetric):
         dist_sync_fn:
             Callback that performs the allgather operation on the metric state. When `None`, DDP
             will be used to perform the allgather. default: None
-
-            - ``'skip'``: skip those queries (default); if all queries are skipped, ``0.0`` is returned
-            - ``'error'``: raise a ``ValueError``
-            - ``'pos'``: score on those queries is counted as ``1.0``
-            - ``'neg'``: score on those queries is counted as ``0.0``
 
     Example:
         >>> from pytorch_lightning.metrics import RetrievalMAP
