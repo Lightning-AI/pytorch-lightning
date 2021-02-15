@@ -13,11 +13,13 @@
 # limitations under the License.
 import os
 from unittest import mock
+
 import pytest
 import torch
+
 from pytorch_lightning import Trainer
-from tests.helpers.boring_model import BoringModel
 from tests.accelerators import ddp_model, DDPLauncher
+from tests.helpers.boring_model import BoringModel
 from tests.utilities.distributed import call_training_script
 
 
