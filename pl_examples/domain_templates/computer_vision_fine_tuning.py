@@ -268,7 +268,7 @@ class TransferLearningModel(pl.LightningModule):
         rank_zero_info(
             f"The model will start training with only {len(trainable_parameters)} trainable parameters out of {len(parameters)}."
         )
-        optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=self.lr)
+        optimizer = optim.Adam(trainable_parameters, lr=self.lr)
         scheduler = MultiStepLR(optimizer, milestones=self.milestones, gamma=self.lr_scheduler_gamma)
         return [optimizer], [scheduler]
 
