@@ -208,7 +208,7 @@ python -m pytest pytorch_lightning tests pl_examples -v
 You can also run a single test as follows:
 
 ```bash
-python -m pytest -v ./tests/trainer/test_trainer_cli.py::test_default_args
+python -m pytest -v tests/trainer/test_trainer_cli.py::test_default_args
 ```
 
 ### Pull Request
