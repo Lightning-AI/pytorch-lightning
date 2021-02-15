@@ -21,7 +21,6 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
-from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase

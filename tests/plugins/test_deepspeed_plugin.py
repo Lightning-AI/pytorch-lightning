@@ -20,6 +20,7 @@ def deepspeed_config():
     return {
         "optimizer": {
             "type": "Adam",
+            "torch_adam": True,
             "params": {
                 "lr": 3e-5,
                 "betas": [0.998, 0.999],
