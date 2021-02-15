@@ -478,23 +478,21 @@ class Trainer(
         # ----------------------------
         # INSPECT THE CORE LOOPS
         # ----------------------------
-        # Our fitting flow looks like this.
+        #                  Our fitting flow looks like this.
         #
-        #   trainer.test(...) or trainer.predict(...)   ||
-        #                     |                         ||
-        #               trainer.fit(...)                ||
-        #                     |                         ||
-        #         trainer - create accelerator          ||  FITTING
-        #                     |                         ||
-        #              trainer.dispatch                 ||  FLOW
-        #                     |                         ||
-        #  start_{training, testing, predicting} call   ||  DIRECTION
-        #            in training_type_plugin            ||
-        #                     |                         ||
-        #     run_train, run_test, run_predict call     ||
-        #                in trainer                     ||
-        #                     |                         ||
-        #                  results                      \/
+        #   trainer.fit(...) or trainer.test(...) or trainer.predict(...)   ||
+        #                                |                                  ||
+        #                    trainer - create accelerator                   ||
+        #                                |                                  ||
+        #                         trainer.dispatch                          ||  FITTING
+        #                                |                                  ||
+        #    start_training or start_testing or start_predicting call       ||  FLOW
+        #               from `accelerator.training_type_plugin`             ||
+        #                                |                                  ||  DIRECTION
+        #             run_train or run_test or run_predict call             ||
+        #                            from trainer                           ||
+        #                                |                                  ||
+        #                             results                               \/
         # This is used to guide readers to the core loops: train, test, predict.
         # `run_predict` is the simplest to understand, use `Go to Definition` to read it :)
         # Search for `start_training` or `start_testing` or `start_predicting` in
