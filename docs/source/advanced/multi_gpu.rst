@@ -695,6 +695,7 @@ We've included the config to enable ZeRO-Offload, as well as set the bucket size
 
 .. note::
     To use ZeRO-Offload to train large models, you must use ``precision=16`` or set precision via `the DeepSpeed config as seen <https://www.deepspeed.ai/docs/config-json/#fp16-training-options>`_.
+    All compatible arguments can be seen `in the DeepSpeed Config Json docs <https://www.deepspeed.ai/docs/config-json/>`_.
 
 .. code-block:: python
 
@@ -734,6 +735,7 @@ We've included the config to enable ZeRO-Offload, as well as set the bucket size
     trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(deepspeed_config), precision=16)
     trainer.fit(model)
 
+
 We also support taking the config as a json formatted file.
 
 .. code-block:: python
@@ -744,6 +746,7 @@ We also support taking the config as a json formatted file.
     model = MyModel()
     trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin("/path/to/deepspeed_config.json"), precision=16)
     trainer.fit(model)
+
 
 .. note::
     We suggest tuning the ``allgather_bucket_size`` parameter and ``reduce_bucket_size`` parameter to find optimum parameters. Larger values will be more effecient in terms of throughput time, but will require more memory.
