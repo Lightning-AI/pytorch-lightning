@@ -291,12 +291,16 @@ class BackendConnector(object):
 
     def _check_valid_amp_native(self):
         if not _NATIVE_AMP_AVAILABLE:
-            rank_zero_warn(
-                "You have asked for native AMP but your PyTorch version does not support it."
-                " Consider upgrading with `pip install torch>=1.6`."
-                " We will attempt to use NVIDIA Apex for this session."
+            msg = "You have asked for native AMP but your PyTorch version does not support it." \
+                  " Consider upgrading with `pip install torch>=1.6`."
+            if _APEX_AVAILABLE:
+                self.amp_type = "apex"
+                msg += " We will attempt to use NVIDIA Apex for this session."
+            rank_zero_warn(msg)
+        elif self.on_cpu:
+            raise MisconfigurationException(
+                "You have asked for native AMP on CPU, but AMP is only available on GPU."
             )
-            self.amp_type = "apex"
         else:
             log.info("Using native 16bit precision.")
             if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
@@ -328,10 +332,6 @@ class BackendConnector(object):
         elif self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
-            elif self.on_cpu:
-                raise MisconfigurationException(
-                    "You have asked for native AMP on CPU, but AMP is only available on GPU."
-                )
 
             if self.amp_type == "native":
                 self._check_valid_amp_native()
