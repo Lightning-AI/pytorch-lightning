@@ -20,6 +20,8 @@ from types import SimpleNamespace
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
+from torch.nn.parallel import DistributedDataParallel
+from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -27,10 +29,9 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.seed import seed_everything
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
@@ -83,9 +84,9 @@ class DeepSpeedPlugin(DDPPlugin):
         if config is None:
             if self.DEEPSPEED_ENV_VAR not in os.environ:
                 raise MisconfigurationException(
-                    f"You did not pass a DeepSpeed config object or path for DeepSpeed. This can be passed"
-                    f" via instantiating the `DeepSpeedPlugin` object, or by the DEEPSPEED_CONFIG_PATH env variable."
-                    f" see x for more information."
+                    "You did not pass a DeepSpeed config object or path for DeepSpeed. This can be passed"
+                    " via instantiating the `DeepSpeedPlugin` object, or by the DEEPSPEED_CONFIG_PATH env variable."
+                    " See: https://pytorch-lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed"
                 )
             config = os.environ.get(self.DEEPSPEED_ENV_VAR)
         if isinstance(config, str) or isinstance(config, Path):
@@ -118,19 +119,60 @@ class DeepSpeedPlugin(DDPPlugin):
             self._config_initialized = True
 
         precision = self.lightning_module.trainer.accelerator_backend.precision
+        model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
+
+        if self.lightning_module.trainer.training:
+            self._initialize_deepspeed_train(model)
+        else:
+            self._initialize_deepspeed_inference(model)
+
+    def _init_scheduler_optimizer(self):
+        optimizer, lightning_scheduler, optimizer_frequencies = self.lightning_module.trainer.init_optimizers(
+            self.lightning_module
+        )
+        if (len(optimizer) != 1) or (lightning_scheduler is not None and len(lightning_scheduler) != 1):
+            raise MisconfigurationException(
+                "DeepSpeed currently only supports single optimizer, single optional scheduler."
+            )
+        lightning_scheduler = lightning_scheduler[0]['scheduler'] if lightning_scheduler else None
+        optimizer = optimizer[0]
+        return optimizer, lightning_scheduler, optimizer_frequencies
+
+    def _initialize_deepspeed_train(self, model):
+        optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
+        if "optimizer" not in self.config:
+            rank_zero_info(
+                "You have not specified an optimizer or scheduler within the DeepSpeed config."
+                "Using `configure_optimizers` to define optimizer and scheduler."
+            )
+            optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
+
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         model, optimizer, _, lr_scheduler = deepspeed.initialize(
             args=SimpleNamespace(local_rank=self.local_rank),
-            model=LightningDeepSpeedModule(pl_module=self.model, precision=precision),
+            model=model,
             model_parameters=model_parameters,
+            optimizer=optimizer,
+            lr_scheduler=lightning_scheduler,
             config_params=self.config,
         )
+
+        # set optimizer for save/load, but deepspeed manages the specific optimizer logic
         trainer = self.lightning_module.trainer
-        if self.lightning_module.training:
-            trainer.optimizers = [optimizer]
-            trainer.lr_schedulers = self.configure_scheduler(lr_scheduler)
-            trainer.convert_to_lightning_optimizers()
+        trainer.optimizers = [optimizer]
+        trainer.convert_to_lightning_optimizers()
         self.model = model
+
+    def _initialize_deepspeed_inference(self, model):
+        # move the model to the correct device
+        self.model_to_device()
+
+        self.pre_configure_ddp()
+        self._model = DistributedDataParallel(
+            model,
+            device_ids=self.determine_ddp_device_ids(),
+            **self._ddp_kwargs,
+        )
 
     def configure_scheduler(self, lr_scheduler):
         # this duplicates the defaults from init_optimizers
@@ -157,9 +199,9 @@ class DeepSpeedPlugin(DDPPlugin):
         return distributed_sampler_kwargs
 
     def init_optimizers(self, trainer: "Trainer", model: LightningModule) -> Tuple[List, List, List]:
-        # Skip initializing optimizers as DeepSpeed handles optimizers via config.
+        # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
-        # via `_format_config`
+        # via `_initialize_deepspeed_train`
         return [], [], []  # empty optimizers, schedulers and frequencies
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
@@ -168,51 +210,21 @@ class DeepSpeedPlugin(DDPPlugin):
     def _format_config(self):
         if not self.config:
             raise MisconfigurationException(
-                "To use DeepSpeed you must pass in a DeepSpeed config dictionary, or path to a json config."
-                "todo: Doc Link."
+                "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
+                " See: https://pytorch-lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed"
             )
-        self._format_optimizer_config()
-        self._format_batch_size_grad_accum_config()
+        self._format_batch_size_and_grad_accum_config()
         self._format_precision_config()
 
-    def _format_optimizer_config(self):
-        if ("optimizer" not in self.config) or ("scheduler" not in self.config):
-            self.optimizer, self.scheduler = self.model.configure_optimizers()
-
-            if not (isinstance(self.optimizer, dict) or isinstance(self.scheduler, dict)):
-                raise MisconfigurationException(
-                    "If you have not specified an optimizer or scheduler within the DeepSpeed config"
-                    " then you must return a dict from `configure_optimizers` within the LightningModule."
-                    " See x for more information."
-                )
-
-            if not len(self.optimizer) == 1 or len(self.scheduler) == 1:
-                raise MisconfigurationException("DeepSpeed currently only supports single optimizer, single scheduler.")
-
-            optimizer_name, optimizer_params = self.optimizer.items()[0]
-            scheduler_name, scheduler_params = self.scheduler.items()[0]
-
-            self.config["optimizer"] = {
-                "type": optimizer_name,
-                "params": optimizer_params,
-            }
-            self.config["scheduler"] = {
-                "type": scheduler_name,
-                "params": scheduler_params,
-            }
-
-    def _format_batch_size_grad_accum_config(self):
-        if "train_batch_size" in self.config or "train_micro_batch_size_per_gpu" in self.config:
-            raise MisconfigurationException(
-                "Within the DeepSpeed config, do not set train_batch_size or train_micro_batch_size_per_gpu "
-                "as these will be passed from the data-loader."
-            )
+    def _format_batch_size_and_grad_accum_config(self):
         if "gradient_accumulation_steps" in self.config:
             raise MisconfigurationException(
-                "Within the DeepSpeed config, do not set gradient_accumulation_steps "
-                "as this will be set via accumulate_grad_batches=x argument passed via the Lightning Trainer."
+                "Within the DeepSpeed config, do not set gradient_accumulation_steps"
+                " as this will be set via accumulate_grad_batches=x argument passed via the Lightning Trainer."
             )
-        self.config["train_micro_batch_size_per_gpu"] = self.lightning_module.train_dataloader().batch_size
+        if "train_micro_batch_size_per_gpu" not in self.config:
+            # train_micro_batch_size_per_gpu is used for logging purposes, use loader batch size
+            self.config["train_micro_batch_size_per_gpu"] = self.lightning_module.train_dataloader().batch_size
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "gradient_clipping" not in self.config:
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val

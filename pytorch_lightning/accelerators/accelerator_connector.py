@@ -34,6 +34,7 @@ from pytorch_lightning.plugins import (
     DeepSpeedPrecisionPlugin,
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
+    Plugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
@@ -146,7 +147,7 @@ class BackendConnector(object):
 
         self.replace_sampler_ddp = replace_sampler_ddp
 
-    def handle_given_plugins(self, plugins: Optional[Sequence]):
+    def handle_given_plugins(self, plugins: Optional[Union[Plugin, Sequence]]):
         plugins = plugins if plugins is not None else []
 
         if isinstance(plugins, str):

@@ -64,6 +64,36 @@ def test_deepspeed_plugin(tmpdir):
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
+    """
+        Test to ensure that the plugin can be passed via a string with an environment variable.
+    """
+    config_path = os.path.join(tmpdir, 'temp.json')
+    with open(config_path, 'w') as f:
+        f.write(json.dumps(deepspeed_config))
+    monkeypatch.setenv("DEEPSPEED_CONFIG_PATH", config_path)
+
+    class CB(Callback):
+
+        def on_fit_start(self, trainer, pl_module):
+            plugin = trainer.accelerator_backend.training_type_plugin
+            assert isinstance(plugin, DeepSpeedPlugin)
+            assert plugin.parallel_devices == [torch.device('cpu')]
+            assert plugin.config == deepspeed_config
+            raise SystemExit()
+
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        plugins='deepspeed',
+        callbacks=[CB()],
+    )
+
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
 def test_deepspeed_amp_choice(tmpdir):
     """
