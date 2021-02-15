@@ -289,41 +289,6 @@ class BackendConnector(object):
         te_flags_passed = "WORLD_SIZE" in os.environ and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
         return te_flags_passed
 
-    def _check_valid_amp_native(self):
-        if not _NATIVE_AMP_AVAILABLE:
-            msg = "You have asked for native AMP but your PyTorch version does not support it." \
-                  " Consider upgrading with `pip install torch>=1.6`."
-            if _APEX_AVAILABLE:
-                self.amp_type = "apex"
-                msg += " We will attempt to use NVIDIA Apex for this session."
-            rank_zero_warn(msg)
-        elif self.on_cpu:
-            raise MisconfigurationException(
-                "You have asked for native AMP on CPU, but AMP is only available on GPU."
-            )
-        else:
-            log.info("Using native 16bit precision.")
-            if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
-                return ShardedNativeMixedPrecisionPlugin()
-            self.amp_type = AMPType.NATIVE
-            return NativeMixedPrecisionPlugin()
-
-    def _check_valid_amp_apex(self):
-        if not _APEX_AVAILABLE:
-            rank_zero_warn(
-                "You have asked for Apex AMP but you have not installed it yet."
-                " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
-            )
-        else:
-            if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
-                raise MisconfigurationException(
-                    "Sharded Plugin is not supported with Apex AMP,"
-                    " please using native AMP for 16-bit precision."
-                )
-            log.info("Using APEX 16bit precision.")
-            self.amp_type = AMPType.APEX
-            return ApexMixedPrecisionPlugin(self.amp_level)
-
     def select_precision_plugin(self) -> PrecisionPlugin:
         if self.precision == 32:
             self.amp_type = None
@@ -333,11 +298,41 @@ class BackendConnector(object):
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 
-            if self.amp_type == "native":
-                self._check_valid_amp_native()
+            self.amp_type = AMPType(self.amp_type)
+            if self.amp_type == AMPType.NATIVE:
+                if not _NATIVE_AMP_AVAILABLE:
+                    msg = "You have asked for native AMP but your PyTorch version does not support it." \
+                          " Consider upgrading with `pip install torch>=1.6`."
+                    if _APEX_AVAILABLE:
+                        self.amp_type = AMPType.APEX
+                        msg += " We will attempt to use NVIDIA Apex for this session."
+                        rank_zero_warn(msg)
+                    else:
+                        raise MisconfigurationException(msg)
+                elif self.on_cpu:
+                    raise MisconfigurationException(
+                        "You have asked for native AMP on CPU, but AMP is only available on GPU."
+                    )
+                else:
+                    log.info("Using native 16bit precision.")
+                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
+                        return ShardedNativeMixedPrecisionPlugin()
+                    return NativeMixedPrecisionPlugin()
 
-            if self.amp_type == "apex":
-                self._check_valid_amp_apex()
+            if self.amp_type == AMPType.APEX:
+                if not _APEX_AVAILABLE:
+                    raise MisconfigurationException(
+                        "You have asked for Apex AMP but you have not installed it yet."
+                        " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
+                    )
+                else:
+                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
+                        raise MisconfigurationException(
+                            "Sharded Plugin is not supported with Apex AMP,"
+                            " please using native AMP for 16-bit precision."
+                        )
+                    log.info("Using APEX 16bit precision.")
+                    return ApexMixedPrecisionPlugin(self.amp_level)
         else:
             raise NotImplementedError("We only support precisions 32 and 16!")
 
