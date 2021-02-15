@@ -20,17 +20,10 @@ import torch.distributed as torch_distrib
 from torch import nn
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins.legacy.ddp_sequential_plugin import DDPSequentialPlugin
+from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequentialPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import RandomDataset
-
-
-def cleanup(ctx, model):
-    """
-    Cleanup function required to ensure we delete the pipe module at the end of the the test on all workers
-    """
-    del model
 
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
@@ -39,7 +32,7 @@ def cleanup(ctx, model):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
+def test_rpc_sequential_plugin_manual(tmpdir, args=None):
     model = SequentialModelRPCManual()
     trainer = Trainer(
         max_epochs=2,
@@ -48,18 +41,18 @@ def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
         limit_test_batches=2,
         gpus=2,
         distributed_backend="ddp",
-        plugins=[DDPSequentialPlugin(balance=[2, 1], rpc_timeout_sec=5 * 60)],
+        plugins=[RPCSequentialPlugin(balance=[2, 1], rpc_timeout_sec=5 * 60)],
         enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
 
-    if torch_distrib.get_rank() == 0:
+    if torch_distrib.is_initialized() and torch_distrib.get_rank() == 0:
         assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
     if trainer.accelerator_backend.rpc_enabled:
         # Called at the end of trainer to ensure all processes are killed
-        trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
+        trainer.accelerator_backend.training_type_plugin.exit_rpc_process()
 
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
@@ -68,7 +61,7 @@ def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_ddp_sequential_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
+def test_rpc_sequential_plugin_manual_amp(tmpdir, args=None):
     model = SequentialModelRPCManual()
     trainer = Trainer(
         max_epochs=2,
@@ -79,15 +72,13 @@ def test_ddp_sequential_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
         precision=16,
         amp_backend="native",
         distributed_backend="ddp",
-        plugins=[DDPSequentialPlugin(balance=[2, 1])],
+        plugins=[RPCSequentialPlugin(balance=[2, 1])],
     )
-    try:
+    with pytest.raises(
+        MisconfigurationException,
+        match='`RPCSequentialPlugin` is currently not supported in Automatic Mixed Precision'
+    ):
         trainer.fit(model)
-
-        assert len(trainer.dev_debugger.pbar_added_metrics) > 0
-
-    except MisconfigurationException as e:
-        assert str(e) == 'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision'
 
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
@@ -96,7 +87,7 @@ def test_ddp_sequential_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
+def test_rpc_sequential_plugin_automatic(tmpdir, args=None):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(
         max_epochs=2,
@@ -105,18 +96,17 @@ def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
         limit_test_batches=2,
         gpus=2,
         distributed_backend="ddp",
-        plugins=[DDPSequentialPlugin(balance=[2, 1])],
+        plugins=[RPCSequentialPlugin(balance=[2, 1])],
     )
 
     trainer.fit(model)
 
-    if torch_distrib.get_rank() == 0:
+    if torch_distrib.is_initialized() and torch_distrib.get_rank() == 0:
         assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
     if trainer.accelerator_backend.rpc_enabled:
-
         # Called at the end of trainer to ensure all processes are killed
-        trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
+        trainer.accelerator_backend.training_type_plugin.exit_rpc_process()
 
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
@@ -125,7 +115,7 @@ def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_ddp_sequential_plugin_ddp_rpc_with_wrong_balance(tmpdir, args=None):
+def test_rpc_sequential_plugin_with_wrong_balance(tmpdir, args=None):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(
         max_epochs=2,
@@ -134,18 +124,17 @@ def test_ddp_sequential_plugin_ddp_rpc_with_wrong_balance(tmpdir, args=None):
         limit_test_batches=2,
         gpus=2,
         distributed_backend="ddp",
-        plugins=[DDPSequentialPlugin(balance=[2, 2])],
+        plugins=[RPCSequentialPlugin(balance=[2, 2])],
     )
 
-    try:
+    with pytest.raises(
+        MisconfigurationException, match="The provided balance sum: 4 does not match your Sequential length: 3"
+    ):
         trainer.fit(model)
-
-    except MisconfigurationException as e:
-        assert str(e) == 'The provided balance sum: 4 does not match your Sequential length: 3'
 
     if trainer.accelerator_backend.rpc_enabled:
         # Called at the end of trainer to ensure all processes are killed
-        trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
+        trainer.accelerator_backend.training_type_plugin.exit_rpc_process()
 
 
 class SequentialModelRPCManual(LightningModule):

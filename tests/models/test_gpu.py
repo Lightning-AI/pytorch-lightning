@@ -21,7 +21,6 @@ from torchtext.data import Batch, Dataset, Example, Field, LabelField
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
@@ -69,6 +68,10 @@ def mocked_device_count(monkeypatch):
     def device_count():
         return PRETEND_N_OF_GPUS
 
+    def is_available():
+        return True
+
+    monkeypatch.setattr(torch.cuda, 'is_available', is_available)
     monkeypatch.setattr(torch.cuda, 'device_count', device_count)
 
 
@@ -163,6 +166,7 @@ def test_determine_root_gpu_device(gpus, expected_root_gpu):
     pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
     pytest.param([0], [0]),
     pytest.param([1, 3], [1, 3]),
+    pytest.param((1, 3), [1, 3]),
     pytest.param('0', [0]),
     pytest.param('3', [3]),
     pytest.param('1, 3', [1, 3]),
@@ -182,7 +186,6 @@ def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
     pytest.param([-1]),
     pytest.param([None]),
     pytest.param(['0']),
-    pytest.param((0, 1)),
 ])
 def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
     with pytest.raises(MisconfigurationException):
@@ -212,7 +215,6 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_batch_parse():
     trainer = Trainer(gpus=1)
-    trainer.accelerator_backend = GPUAccelerator(trainer)
 
     # non-transferrable types
     primitive_objects = [None, {}, [], 1.0, "x", [None, 2], {"x": (1, 2), "y": None}]
@@ -305,7 +307,6 @@ def test_single_gpu_batch_parse():
 def test_non_blocking():
     """ Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects. """
     trainer = Trainer()
-    trainer.accelerator_backend = GPUAccelerator(trainer)
 
     batch = torch.zeros(2, 3)
     with patch.object(batch, 'to', wraps=batch.to) as mocked:

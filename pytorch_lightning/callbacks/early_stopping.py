@@ -54,6 +54,12 @@ class EarlyStopping(Callback):
         strict: whether to crash the training if `monitor` is
             not found in the validation metrics. Default: ``True``.
 
+    Raises:
+        MisconfigurationException:
+            If ``mode`` is none of ``"min"``, ``"max"``, and ``"auto"``.
+        RuntimeError:
+            If the metric ``monitor`` is not available.
+
     Example::
 
         >>> from pytorch_lightning import Trainer
@@ -175,6 +181,7 @@ class EarlyStopping(Callback):
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
             self.wait_count = 0
+            should_stop = False
         else:
             self.wait_count += 1
             should_stop = self.wait_count >= self.patience
@@ -184,5 +191,5 @@ class EarlyStopping(Callback):
                 trainer.should_stop = True
 
         # stop every ddp process if any world process decides to stop
-        should_stop = trainer.accelerator_backend.early_stopping_should_stop(pl_module)
+        should_stop = trainer.training_type_plugin.reduce_early_stopping_decision(should_stop)
         trainer.should_stop = should_stop
