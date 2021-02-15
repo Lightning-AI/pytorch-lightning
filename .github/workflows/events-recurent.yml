@@ -3,8 +3,8 @@ name: Recurent events
 # https://jasonet.co/posts/scheduled-actions/
 # https://github.community/t/distinct-job-for-each-schedule/17811/2
 on:
-  push:
-    branches: [ master ]
+  push: {}  # fixme: this is just test that all works
+  #  branches: [ master ]
   schedule:
     - cron: "0 * * * *" # At every hour
 
