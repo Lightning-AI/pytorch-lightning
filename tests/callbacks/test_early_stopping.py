@@ -24,7 +24,6 @@ from pytorch_lightning import _logger, seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
@@ -189,25 +188,19 @@ def test_pickling(tmpdir):
 def test_early_stopping_no_val_step(tmpdir):
     """Test that early stopping callback falls back to training metrics when no validation defined."""
 
-    class CurrentModel(EvalModelTemplate):
-
-        def training_step(self, *args, **kwargs):
-            output = super().training_step(*args, **kwargs)
-            output.update({'my_train_metric': output['loss']})  # could be anything else
-            return output
-
-    model = CurrentModel()
+    model = ClassificationModel()
+    dm = ClassifDataModule()
     model.validation_step = None
     model.val_dataloader = None
 
-    stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1, patience=0)
+    stopping = EarlyStopping(monitor='train_loss', min_delta=0.1, patience=0)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[stopping],
         overfit_batches=0.20,
         max_epochs=10,
     )
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.current_epoch < trainer.max_epochs - 1
