@@ -18,7 +18,6 @@ import pytest
 import torch
 from torch import optim
 
-import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
