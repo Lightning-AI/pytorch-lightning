@@ -115,14 +115,14 @@ class TestPSNR(MetricTester):
         )
 
 
-def test_reduction_for_dim_none():
-    for reduction in ["none", "sum"]:
-        match = f"The `reduction={reduction}` will not have any effect when `dim` is `None`."
-        with pytest.warns(UserWarning, match=match):
-            PSNR(reduction=reduction, dim=None)
+@pytest.mark.parametrize("reduction", ["none", "sum"])
+def test_reduction_for_dim_none(reduction):
+    match = f"The `reduction={reduction}` will not have any effect when `dim` is None."
+    with pytest.warns(UserWarning, match=match):
+        PSNR(reduction=reduction, dim=None)
 
-        with pytest.warns(UserWarning, match=match):
-            psnr(_inputs[0].preds, _inputs[0].target, reduction=reduction, dim=None)
+    with pytest.warns(UserWarning, match=match):
+        psnr(_inputs[0].preds, _inputs[0].target, reduction=reduction, dim=None)
 
 
 def test_missing_data_range():
