@@ -679,8 +679,8 @@ DeepSpeed
     The DeepSpeed plugin is in beta and the API is subject to change. Please create an `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_ if you run into any issues.
 
 `DeepSpeed <https://github.com/microsoft/DeepSpeed>`_ offers additional CUDA deep learning training optimizations, similar to `FairScale <https://github.com/facebookresearch/fairscale>`_. DeepSpeed offers lower level training optimizations, and useful efficient optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_.
-Using the plugin, we were able to **train model sizes of 10 Billion+ parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and DeepSpeed `docs <https://www.deepspeed.ai/tutorials/megatron/>`_.
-We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models), and where sacrificing flexibility as a tradeoff is acceptable. In addition, we recommend trying :ref:`sharded` first before trying DeepSpeed's further optimizations.
+Using the plugin, we were able to **train model sizes of 10 Billion parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and the DeepSpeed `docs <https://www.deepspeed.ai/tutorials/megatron/>`_.
+We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models). In addition, we recommend trying :ref:`sharded` first before trying DeepSpeed's further optimizations, primarily due to FairScale Sharded ease of use in scenarios such as multiple optimizers/schedulers.
 
 To use DeepSpeed, you first need to install DeepSpeed using the commands below.
 
@@ -716,7 +716,7 @@ This can also be done via the command line using a Pytorch Lightning script:
     python train.py --plugins deepspeed --precision 16 --gpus 4
 
 
-Modify ZeRO parameters via the plugin as below.
+You can also modify the ZeRO-Offload parameters via the plugin as below.
 
 .. code-block:: python
 
@@ -740,7 +740,7 @@ Modify ZeRO parameters via the plugin as below.
 Custom DeepSpeed Config
 """""""""""""""""""""""
 
-DeepSpeed allows to use custom optimizers and schedulers that are defined within a config file. This allows you to enable Optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_.
+DeepSpeed allows use of custom DeepSpeed optimizers and schedulers defined within a config file. This allows you to enable optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_.
 
 .. note::
     All plugin default parameters will be ignored when a config object is passed.
@@ -752,13 +752,15 @@ DeepSpeed allows to use custom optimizers and schedulers that are defined within
     from pytorch_lightning.plugins import DeepSpeedPlugin
 
     deepspeed_config = {
+        "zero_allow_untested_optimizer": True,
         "optimizer": {
-            "type": "Adam",
+            "type": "OneBitAdam",
             "params": {
                 "lr": 3e-5,
                 "betas": [0.998, 0.999],
                 "eps": 1e-5,
                 "weight_decay": 1e-9,
+                "cuda_aware": True,
             },
         },
         'scheduler': {
@@ -774,7 +776,7 @@ DeepSpeed allows to use custom optimizers and schedulers that are defined within
             "stage": 2, # Enable Stage 2 ZeRO (Optimizer/Gradient state partitioning)
             "cpu_offload": True, # Enable Offloading optimizer state/calculation to the host CPU
             "contiguous_gradients": True, # Reduce gradient fragmentation.
-            "overlap_comm": True # Overlap reduce/backward operation of gradients for speed.
+            "overlap_comm": True, # Overlap reduce/backward operation of gradients for speed.
             "allgather_bucket_size": 2e8, # Number of elements to all gather at once.
             "reduce_bucket_size": 2e8, # Number of elements we reduce/allreduce at once.
         }
