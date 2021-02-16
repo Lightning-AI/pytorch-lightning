@@ -329,26 +329,29 @@ class Metric(nn.Module, ABC):
             filtered_kwargs = kwargs
         return filtered_kwargs
 
+    @staticmethod
+    def _hash_tensor(t):
+        """
+        Torch tensors are hashable, but based on their
+        underlying pointer. Since we do a structural
+        equality check in __eq__, we circumvent this
+        by hashing the _sum_ of tensors' contents.
+        """
+        if not isinstance(t, torch.Tensor):
+            return t
+        return float(t.detach().cpu().sum())
+
     def __hash__(self):
         hash_vals = [self.__class__.__name__]
-
-        # Torch tensors are hashable, but based on their
-        # underlying pointer. Since we do a structural
-        # equality check in __eq__, we circumvent this
-        # by hashing the _sum_ of tensors' contents
-        def format_tensor(t):
-            if not isinstance(t, torch.Tensor):
-                return t
-            return float(t.detach().cpu().sum())
 
         for key in self._defaults.keys():
             val = getattr(self, key)
             # Special case: allow list values, so long
             # as their elements are hashable
             if hasattr(val, '__iter__') and not isinstance(val, torch.Tensor):
-                hash_vals.extend((format_tensor(x) for x in val))
+                hash_vals.extend((self._hash_tensor(x) for x in val))
             else:
-                hash_vals.append(format_tensor(val))
+                hash_vals.append(self._hash_tensor(val))
 
         return hash(tuple(hash_vals))
 
