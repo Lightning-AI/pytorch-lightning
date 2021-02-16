@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from collections import namedtuple
 from functools import partial
 
@@ -42,7 +56,7 @@ def _to_sk_peak_signal_noise_ratio_inputs(value, dim):
     return inputs
 
 
-def _sk_metric(preds, target, data_range, reduction, dim):
+def _sk_psnr(preds, target, data_range, reduction, dim):
     sk_preds_lists = _to_sk_peak_signal_noise_ratio_inputs(preds, dim=dim)
     sk_target_lists = _to_sk_peak_signal_noise_ratio_inputs(target, dim=dim)
     np_reduce_map = {"elementwise_mean": np.mean, "none": np.array, "sum": np.sum}
@@ -52,8 +66,8 @@ def _sk_metric(preds, target, data_range, reduction, dim):
     ])
 
 
-def _base_e_sk_metric(preds, target, data_range, reduction, dim):
-    return _sk_metric(preds, target, data_range, reduction, dim) * np.log(10)
+def _base_e_sk_psnr(preds, target, data_range, reduction, dim):
+    return _sk_psnr(preds, target, data_range, reduction, dim) * np.log(10)
 
 
 @pytest.mark.parametrize(
@@ -70,8 +84,8 @@ def _base_e_sk_metric(preds, target, data_range, reduction, dim):
 @pytest.mark.parametrize(
     "base, sk_metric",
     [
-        (10.0, _sk_metric),
-        (2.718281828459045, _base_e_sk_metric),
+        (10.0, _sk_psnr),
+        (2.718281828459045, _base_e_sk_psnr),
     ],
 )
 class TestPSNR(MetricTester):
@@ -79,33 +93,25 @@ class TestPSNR(MetricTester):
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_psnr(self, preds, target, data_range, base, reduction, dim, sk_metric, ddp, dist_sync_on_step):
+        _args = {"data_range": data_range, "base": base, "reduction": reduction, "dim": dim}
         self.run_class_metric_test(
             ddp,
             preds,
             target,
             PSNR,
             partial(sk_metric, data_range=data_range, reduction=reduction, dim=dim),
-            metric_args={
-                "data_range": data_range,
-                "base": base,
-                "reduction": reduction,
-                "dim": dim
-            },
+            metric_args=_args,
             dist_sync_on_step=dist_sync_on_step,
         )
 
     def test_psnr_functional(self, preds, target, sk_metric, data_range, base, reduction, dim):
+        _args = {"data_range": data_range, "base": base, "reduction": reduction, "dim": dim}
         self.run_functional_metric_test(
             preds,
             target,
             psnr,
             partial(sk_metric, data_range=data_range, reduction=reduction, dim=dim),
-            metric_args={
-                "data_range": data_range,
-                "base": base,
-                "reduction": reduction,
-                "dim": dim
-            },
+            metric_args=_args,
         )
 
 
