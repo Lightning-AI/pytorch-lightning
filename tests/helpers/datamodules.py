@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities import _module_available
-from tests.helpers.datasets import MNIST, SklearnDataset
+from tests.helpers.datasets import MNIST, SklearnDataset, TrialMNIST
 
 _SKLEARN_AVAILABLE = _module_available("sklearn")
 if _SKLEARN_AVAILABLE:
@@ -28,11 +28,14 @@ if _SKLEARN_AVAILABLE:
 
 class MNISTDataModule(LightningDataModule):
 
-    def __init__(self, data_dir: str = "./", batch_size: int = 32) -> None:
+    def __init__(self, data_dir: str = "./", batch_size: int = 32, use_trials: bool = False) -> None:
         super().__init__()
 
         self.data_dir = data_dir
         self.batch_size = batch_size
+
+        # TrialMNIST is a constrained MNIST dataset
+        self.dataset_cls = TrialMNIST if use_trials else MNIST
 
         # self.dims is returned when you call dm.size()
         # Setting default dims here because we know them.
@@ -41,16 +44,15 @@ class MNISTDataModule(LightningDataModule):
 
     def prepare_data(self):
         # download only
-        MNIST(self.data_dir, train=True, download=True, normalize=(0.1307, 0.3081))
-        MNIST(self.data_dir, train=False, download=True, normalize=(0.1307, 0.3081))
+        self.dataset_cls(self.data_dir, train=True, download=True)
+        self.dataset_cls(self.data_dir, train=False, download=True)
 
     def setup(self, stage: Optional[str] = None):
         # TODO: need to split using random_split once updated to torch >= 1.6
         if stage == "fit" or stage is None:
-            self.mnist_train = MNIST(self.data_dir, train=True, normalize=(0.1307, 0.3081))
-
+            self.mnist_train = self.dataset_cls(self.data_dir, train=True)
         if stage == "test" or stage is None:
-            self.mnist_test = MNIST(self.data_dir, train=False, normalize=(0.1307, 0.3081))
+            self.mnist_test = self.dataset_cls(self.data_dir, train=False)
 
     def train_dataloader(self):
         return DataLoader(self.mnist_train, batch_size=self.batch_size, shuffle=False)

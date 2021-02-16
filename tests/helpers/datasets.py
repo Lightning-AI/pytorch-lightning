@@ -67,7 +67,7 @@ class MNIST(Dataset):
         self,
         root: str = PATH_DATASETS,
         train: bool = True,
-        normalize: tuple = (0.5, 1.0),
+        normalize: tuple = (0.1307, 0.3081),
         download: bool = True,
     ):
         super().__init__()
@@ -77,18 +77,15 @@ class MNIST(Dataset):
 
         self.prepare_data(download)
 
-        if not self._check_exists(self.cached_folder_path):
-            raise RuntimeError('Dataset not found.')
-
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
-        self.data, self.targets = _try_load(os.path.join(self.cached_folder_path, data_file))
+        self.data, self.targets = self._try_load(os.path.join(self.cached_folder_path, data_file))
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
         img = self.data[idx].float().unsqueeze(0)
         target = int(self.targets[idx])
 
-        if self.normalize is not None:
-            img = normalize_tensor(img, mean=self.normalize[0], std=self.normalize[1])
+        if self.normalize is not None and len(self.normalize) == 2:
+            img = self.normalize_tensor(img, **self.normalize)
 
         return img, target
 
@@ -105,67 +102,53 @@ class MNIST(Dataset):
             existing = existing and os.path.isfile(os.path.join(data_folder, fname))
         return existing
 
-    def prepare_data(self, download: bool):
-        if download:
+    def prepare_data(self, download: bool = True):
+        if download and not self._check_exists(self.cached_folder_path):
             self._download(self.cached_folder_path)
+        if not self._check_exists(self.cached_folder_path):
+            raise RuntimeError('Dataset not found.')
 
     def _download(self, data_folder: str) -> None:
-        """Download the MNIST data if it doesn't exist in cached_folder_path already."""
-
-        if self._check_exists(data_folder):
-            return
-
-        os.makedirs(data_folder, exist_ok=True)
-
+        os.makedirs(data_folder)
         for url in self.RESOURCES:
             logging.info(f'Downloading {url}')
             fpath = os.path.join(data_folder, os.path.basename(url))
             urllib.request.urlretrieve(url, fpath)
 
+    @staticmethod
+    def _try_load(path_data, trials: int = 30, delta: float = 1.):
+        """Resolving loading from the same time from multiple concurrent processes."""
+        res, exception = None, None
+        assert trials, "at least some trial has to be set"
+        assert os.path.isfile(path_data), f'missing file: {path_data}'
+        for _ in range(trials):
+            try:
+                res = torch.load(path_data)
+            # todo: specify the possible exception
+            except Exception as e:
+                exception = e
+                time.sleep(delta * random.random())
+            else:
+                break
+        if exception is not None:
+            # raise the caught exception
+            raise exception
+        return res
 
-def _try_load(path_data, trials: int = 30, delta: float = 1.):
-    """Resolving loading from the same time from multiple concurrentprocesses."""
-    res, exp = None, None
-    assert trials, "at least some trial has to be set"
-    assert os.path.isfile(path_data), 'missing file: %s' % path_data
-    for _ in range(trials):
-        try:
-            res = torch.load(path_data)
-        # todo: specify the possible exception
-        except Exception as ex:
-            exp = ex
-            time.sleep(delta * random.random())
-        else:
-            break
-    else:
-        # raise the caught exception if any
-        if exp:
-            raise exp
-    return res
-
-
-def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Tensor:
-    tensor = tensor.clone()
-    mean = torch.as_tensor(mean, dtype=tensor.dtype, device=tensor.device)
-    std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
-    tensor.sub_(mean).div_(std)
-    return tensor
+    @staticmethod
+    def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Tensor:
+        mean = torch.as_tensor(mean, dtype=tensor.dtype, device=tensor.device)
+        std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
+        return tensor.sub(mean).div(std)
 
 
 class TrialMNIST(MNIST):
-    """Constrain image dataset
+    """Constrained MNIST dataset
 
     Args:
-        root: Root directory of dataset where ``MNIST/processed/training.pt``
-            and  ``MNIST/processed/test.pt`` exist.
-        train: If ``True``, creates dataset from ``training.pt``,
-            otherwise from ``test.pt``.
-        normalize: mean and std deviation of the MNIST dataset.
-        download: If true, downloads the dataset from the internet and
-            puts it in root directory. If dataset is already downloaded, it is not
-            downloaded again.
         num_samples: number of examples per selected class/digit
         digits: list selected MNIST digits/classes
+        kwargs: Same as MNIST
 
     Examples:
         >>> dataset = TrialMNIST(download=True)
@@ -177,25 +160,15 @@ class TrialMNIST(MNIST):
         tensor([100, 100, 100])
     """
 
-    def __init__(
-        self,
-        root: str = PATH_DATASETS,
-        train: bool = True,
-        normalize: tuple = (0.5, 1.0),
-        download: bool = False,
-        num_samples: int = 100,
-        digits: Optional[Sequence] = (0, 1, 2),
-    ):
-
+    def __init__(self, num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2), **kwargs):
         # number of examples per class
         self.num_samples = num_samples
         # take just a subset of MNIST dataset
-        self.digits = digits if digits else list(range(10))
+        self.digits = sorted(digits) if digits else list(range(10))
 
-        self.cache_folder_name = 'digits-' + '-'.join(str(d) for d in sorted(self.digits)) \
-                                 + f'_nb-{self.num_samples}'
+        self.cache_folder_name = f"digits-{'-'.join(str(d) for d in self.digits)}_nb-{self.num_samples}"
 
-        super().__init__(root, train=train, normalize=normalize, download=download)
+        super().__init__(**kwargs)
 
     @staticmethod
     def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor, num_samples: int, digits: Sequence):
@@ -213,16 +186,12 @@ class TrialMNIST(MNIST):
         targets = full_targets[indexes]
         return data, targets
 
-    def prepare_data(self, download: bool) -> None:
-        if self._check_exists(self.cached_folder_path):
-            return
-        if download:
-            self._download(super().cached_folder_path)
-
+    def _download(self, data_folder: str) -> None:
+        super()._download(data_folder)
         for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
-            path_fname = os.path.join(super().cached_folder_path, fname)
-            assert os.path.isfile(path_fname), 'Missing cached file: %s' % path_fname
-            data, targets = _try_load(path_fname)
+            path_fname = os.path.join(self.cached_folder_path, fname)
+            assert os.path.isfile(path_fname), f'Missing cached file: {path_fname}'
+            data, targets = self._try_load(path_fname)
             data, targets = self._prepare_subset(data, targets, self.num_samples, self.digits)
             torch.save((data, targets), os.path.join(self.cached_folder_path, fname))
 
