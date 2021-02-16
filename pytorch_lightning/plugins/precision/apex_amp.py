@@ -157,8 +157,9 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         # apex amp does not support closures.
         lambda_closure()
 
-        if pl_module.automatic_optimization:
+        if not pl_module.automatic_optimization:
             pl_module.trainer.call_hook("on_after_backward")
-            optimizer.step()
+
+        optimizer.step()
 
         return False
