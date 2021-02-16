@@ -232,8 +232,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
     model = TestModel()
     trainer = Trainer(
         fast_dev_run=True,
-        plugins='deepspeed',
-        precision=16,
+        plugins=DeepSpeedPlugin(zero_optimization=False),
         gpus=1,
     )
     with pytest.warns(UserWarning, match='Overridden backward hook in the LightningModule will be ignored'):
