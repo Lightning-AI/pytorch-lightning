@@ -550,24 +550,26 @@ class BackendConnector(object):
 
     def check_ipython_compatibility(self):
         """Raises a `MisconfigurationException` if the accelerator is not compatible with IPython and code is run in an IPython kernel."""
-        if self._distrib_type not in self.ipython_compatible_distrib_types:
+        if self._distrib_type in self.ipython_compatible_distrib_types:
+            return
+        else:
             # check ipython env
             import sys
-            in_ipython = False
-            in_ipython_kernel = False
             if 'IPython' in sys.modules:
                 from IPython import get_ipython
+                in_ipython = False
+                in_ipython_kernel = False
                 ip = get_ipython()
                 in_ipython = ip is not None
 
-            if in_ipython:
-                in_ipython_kernel = getattr(ip, 'kernel', None) is not None
+                if in_ipython:
+                    in_ipython_kernel = getattr(ip, 'kernel', None) is not None
 
-            if in_ipython_kernel:
-                raise MisconfigurationException(
-                    f"Selected distributed backend {self._distrib_type} not compatible with IPython environment"
-                    f"Run your code as a script, or choose one of compatible backends {self.ipython_compatible_distrib_types} as accelerator backend"
-                )
+                if in_ipython_kernel:
+                    raise MisconfigurationException(
+                        f"Selected distributed backend {self._distrib_type} not compatible with IPython environment"
+                        f"Run your code as a script, or choose one of compatible backends {self.ipython_compatible_distrib_types} as accelerator backend"
+                    )
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
