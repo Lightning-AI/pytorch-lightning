@@ -269,9 +269,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed passing wrong strings for scheduler interval doesn't throw an error ([#5923](https://github.com/PyTorchLightning/pytorch-lightning/pull/5923))
 
 
-- Fixed `toggle_optimizers` not handling all optimizer parameters ([#5775](https://github.com/PyTorchLightning/pytorch-lightning/pull/5775))
-
-
 - Fixed DDP hanging with ModelCheckpoint monitor None and `val_loss` being logged ([#6004](https://github.com/PyTorchLightning/pytorch-lightning/pull/6004))
 
 
