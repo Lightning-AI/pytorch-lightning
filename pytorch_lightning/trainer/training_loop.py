@@ -24,7 +24,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
-from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
+from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -38,8 +38,6 @@ class TrainLoop:
 
     def __init__(self, trainer, multiple_trainloader_mode):
         self.trainer = trainer
-        self.early_stopping_accumulator = None
-        self.checkpoint_accumulator = None
         self.accumulated_loss = None
         self.warning_cache = WarningCache()
         self._teardown_already_run = False
@@ -193,10 +191,6 @@ class TrainLoop:
 
         # stores accumulated grad fractions per batch
         self.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
-
-        # structured result accumulators for callbacks
-        self.early_stopping_accumulator = Accumulator()
-        self.checkpoint_accumulator = Accumulator()
 
         # hook
         self.trainer.call_hook("on_epoch_start")
@@ -509,7 +503,6 @@ class TrainLoop:
 
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
-        should_check_val = False
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
@@ -525,11 +518,7 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
-            batch_end_outputs = self.process_train_step_outputs(
-                batch_output.training_step_output_for_epoch_end,
-                self.early_stopping_accumulator,
-                self.checkpoint_accumulator,
-            )
+            batch_end_outputs = self.process_train_step_outputs(batch_output.training_step_output_for_epoch_end)
             # hook
             # TODO: add outputs to batches
             self.on_train_batch_end(epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx)
@@ -885,32 +874,15 @@ class TrainLoop:
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
 
-    def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
+    def process_train_step_outputs(self, all_train_step_outputs):
         """
         Figure out what needs to be tracked/logged at the end of the epoch
         """
-
         # the training step outputs a list per optimizer. The list contains the outputs at each time step
         # when no TBPTT is used, then the list has 1 item per batch
         # when TBPTT IS used, then the list has n items (1 per time step)
-        batch_end_outputs = []
-        for optimizer_idx_outputs in all_train_step_outputs:
-            # extract one representative sample from each time step (1 if no tbptt) and 0th optimizer
-            if len(optimizer_idx_outputs) == 0:
-                continue
-
-            sample_output = optimizer_idx_outputs[-1]
-
-            # pull out callback info if available (ie: Results object)
-            if isinstance(sample_output, dict) and "early_stop_on" in sample_output:
-                early_stopping_accumulator.accumulate(sample_output["early_stop_on"])
-
-            if isinstance(sample_output, dict) and "checkpoint_on" in sample_output:
-                checkpoint_accumulator.accumulate(sample_output["checkpoint_on"])
-
-            batch_end_outputs.append(optimizer_idx_outputs)
-
-        return batch_end_outputs
+        # extract one representative sample from each time step (1 if no tbptt) and 0th optimizer
+        return [opt_idx_out for opt_idx_out in all_train_step_outputs if len(opt_idx_out)]
 
     def prepare_optimizers(self):
         # in manual optimization we loop over all optimizers at once

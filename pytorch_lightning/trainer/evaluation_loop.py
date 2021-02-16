@@ -252,11 +252,6 @@ class EvaluationLoop(object):
         eval_results = []
         for epoch_output in outputs:
             result = epoch_output[0].__class__.gather(epoch_output)
-            if 'checkpoint_on' in result:
-                result.checkpoint_on = result.checkpoint_on.mean()
-            if 'early_stop_on' in result:
-                result.early_stop_on = result.early_stop_on.mean()
-
             eval_results.append(result)
 
         # with 1 dataloader don't pass in a list
@@ -270,10 +265,6 @@ class EvaluationLoop(object):
         for dl_output in outputs:
             result = dl_output[0]
             result = result.__class__.reduce_on_epoch_end(dl_output)
-            if 'checkpoint_on' in result:
-                result.checkpoint_on = result.checkpoint_on.mean()
-            if 'early_stop_on' in result:
-                result.early_stop_on = result.early_stop_on.mean()
             eval_results.append(result)
 
         return eval_results

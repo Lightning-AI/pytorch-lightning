@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""[Train, Eval]Result for easier logging, checkpointing, early stopping, epoch-wise reduction."""
+"""Result class for easier logging and epoch-wise reduction."""
 
 import numbers
 import os
@@ -23,6 +23,9 @@ from torch import Tensor
 
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 class Result(Dict):
@@ -30,8 +33,6 @@ class Result(Dict):
     def __init__(
         self,
         minimize: Optional[Tensor] = None,
-        early_stop_on: Optional[Tensor] = None,
-        checkpoint_on: Optional[Union[Tensor, bool]] = None,
         hiddens: Optional[Tensor] = None,
     ):
 
@@ -40,19 +41,12 @@ class Result(Dict):
         # temporary until dict results are deprecated
         os.environ['PL_USING_RESULT_OBJ'] = '1'
 
-        if early_stop_on is not None:
-            self.early_stop_on = early_stop_on
-        if checkpoint_on is not None and checkpoint_on:
-            self.checkpoint_on = checkpoint_on
         if hiddens is not None:
             self.hiddens = hiddens.detach()
         if minimize is not None:
             err = 'Minimize can only be used in training_step, training_step_end, training_epoch_end'
             self._assert_grad_tensor_metric('minimize', minimize, err)
             self.minimize = minimize
-
-        if minimize is not None and checkpoint_on is None:
-            self.checkpoint_on = minimize.detach()
 
         self['meta'] = {'_internal': {'_reduce_on_epoch': False, 'batch_sizes': []}}
 
@@ -64,9 +58,7 @@ class Result(Dict):
 
     def __getattr__(self, key: str) -> Any:
         try:
-            if key == 'callback_metrics':
-                return self.get_callback_metrics()
-            elif key == 'batch_log_metrics':
+            if key == 'batch_log_metrics':
                 return self.get_batch_log_metrics()
             elif key == 'batch_pbar_metrics':
                 return self.get_batch_pbar_metrics()
@@ -80,16 +72,9 @@ class Result(Dict):
             return None
 
     def __setattr__(self, key: str, val: Union[Tensor, Any]):
-        # ensure reserve keys are tensors and detached
-        if key in {'checkpoint_on', 'early_stop_on'}:
-            self._assert_tensor_metric(key, val)
-            if val is not None and isinstance(val, torch.Tensor):
-                val = val.detach()
-
-        # ensure anything else that is a tensor is detached
-        elif isinstance(val, torch.Tensor) and key != 'minimize':
+        # ensure tensors are detached
+        if isinstance(val, torch.Tensor) and key != 'minimize':
             val = val.detach()
-
         self[key] = val
 
     def __getstate__(self):
@@ -97,11 +82,6 @@ class Result(Dict):
 
     def __setstate__(self, d):
         self.update(d)
-
-    def _assert_tensor_metric(self, name: str, potential_metric: Union[bool, Tensor, None, Any]):
-        if potential_metric is not None and not isinstance(potential_metric, bool):
-            if not isinstance(potential_metric, Tensor):
-                raise TypeError(f'{name} must be a torch.Tensor')
 
     def _assert_grad_tensor_metric(self, name: str, x: Union[torch.Tensor, Any], additional_err: str = ''):
         if x is not None:
@@ -271,11 +251,6 @@ class Result(Dict):
     def get_batch_sizes(self):
         meta = self['meta']
         return torch.tensor(meta['_internal']['batch_sizes'])
-
-    def get_callback_metrics(self) -> dict:
-        result = {'early_stop_on': self.early_stop_on, 'checkpoint_on': self.checkpoint_on}
-
-        return result
 
     def _add_dataloader_idx(self, k: str, dataloader_idx: Union[int, None], add_dataloader_idx: bool) -> str:
         if dataloader_idx is not None and add_dataloader_idx:
@@ -493,25 +468,28 @@ class Result(Dict):
         # find the padding used for other values
         default_padding_idx = 0
         for name, value in result.items():
-            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor):
-                if name not in {'checkpoint_on', 'early_stop_on', 'minimize'}:
-                    default_padding_idx = meta[name]['tbptt_pad_token']
-                    break
+            if (
+                name != 'minimize'
+                and isinstance(value, list)
+                and len(value) > 0
+                and isinstance(value[0], torch.Tensor)
+            ):
+                default_padding_idx = meta[name]['tbptt_pad_token']
+                break
 
         # pad across each key individually
         for name, value in result.items():
-            is_reserved = name in {'checkpoint_on', 'early_stop_on', 'minimize'}
-            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor):
-
-                if is_reserved:
-                    padding_key = default_padding_idx
-                else:
-                    padding_key = meta[name]['tbptt_pad_token']
+            if (
+                isinstance(value, list)
+                and len(value) > 0
+                and isinstance(value[0], torch.Tensor)
+            ):
+                padding_key = default_padding_idx if name == 'minimize' else meta[name]['tbptt_pad_token']
                 padded = torch.nn.utils.rnn.pad_sequence(value, batch_first=True, padding_value=padding_key)
                 result[name] = padded
 
                 # also update the result
-                if meta and not is_reserved:
+                if meta and name != "minimize":
                     meta[name]['value'] = padded
         if meta:
             result['meta'] = meta
@@ -579,10 +557,7 @@ class Result(Dict):
                 continue
 
             # pick the reduce fx
-            if k in ['checkpoint_on', 'early_stop_on', 'minimize']:
-                tbptt_reduce_fx = torch.mean
-            else:
-                tbptt_reduce_fx = meta[k]['tbptt_reduce_fx']
+            tbptt_reduce_fx = torch.mean if k == "minimize" else meta[k]['tbptt_reduce_fx']
 
             if isinstance(value, list):
                 value = torch.tensor(value)

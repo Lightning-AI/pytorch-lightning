@@ -465,9 +465,6 @@ class ModelCheckpoint(Callback):
         if self.monitor is None and 'val_loss' in metrics:
             self.monitor = 'val_loss'
 
-        if self.monitor is None and 'checkpoint_on' in metrics:
-            self.monitor = 'checkpoint_on'
-
         if self.save_top_k is None and self.monitor is not None:
             self.save_top_k = 1
 
