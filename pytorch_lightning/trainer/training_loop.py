@@ -502,7 +502,7 @@ class TrainLoop:
 
     def run_training_epoch(self):
         # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.trainer.accelerator_backend.process_dataloader(self.trainer.train_dataloader)
+        train_dataloader = self.trainer.training_type_plugin.process_dataloader(self.trainer.train_dataloader)
 
         # track epoch output
         epoch_output = [[] for _ in range(self.num_optimizers)]
