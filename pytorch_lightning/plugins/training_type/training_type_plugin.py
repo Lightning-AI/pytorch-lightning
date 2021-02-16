@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from abc import ABC, abstractmethod
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import Any, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
@@ -144,3 +144,11 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def on_save(self, checkpoint: dict) -> dict:
         return checkpoint
+
+    def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Wraps the dataloader if necessary
+
+        Args:
+            dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
+        """
+        return dataloader
