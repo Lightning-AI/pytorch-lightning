@@ -32,7 +32,7 @@ jobs:
     #container: "pytorchlightning/pytorch_lightning:base-cuda-py$[ variables['python.version'] ]-torch1.6"
     container:
       # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04
-      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.6"
+      image: "pytorchlightning/pytorch_lightning:base-conda-py3.7-torch1.6"
       #endpoint: azureContainerRegistryConnection
       options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all"
 
