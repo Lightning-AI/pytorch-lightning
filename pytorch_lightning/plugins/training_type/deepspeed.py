@@ -126,16 +126,16 @@ class DeepSpeedPlugin(DDPPlugin):
             self._initialize_deepspeed_inference(model)
 
     def _init_scheduler_optimizer(self):
-        optimizer, lightning_scheduler, optimizer_frequencies = self.lightning_module.trainer.init_optimizers(
+        optimizers, schedulers, optimizer_frequencies = self.lightning_module.trainer.init_optimizers(
             self.lightning_module
         )
-        if (len(optimizer) != 1) or (lightning_scheduler is not None and len(lightning_scheduler) != 1):
+        if (len(optimizers) != 1) or len(schedulers) > 1:
             raise MisconfigurationException(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
             )
-        lightning_scheduler = lightning_scheduler[0]['scheduler'] if lightning_scheduler else None
-        optimizer = optimizer[0]
-        return optimizer, lightning_scheduler, optimizer_frequencies
+        scheduler = schedulers[0]['scheduler'] if len(schedulers) > 1 else None
+        optimizer = optimizers[0]
+        return optimizer, scheduler, optimizer_frequencies
 
     def _initialize_deepspeed_train(self, model):
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
