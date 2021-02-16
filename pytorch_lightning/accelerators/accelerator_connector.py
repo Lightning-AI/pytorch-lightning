@@ -325,16 +325,15 @@ class BackendConnector(object):
                         "You have asked for Apex AMP but you have not installed it yet."
                         " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
                     )
-                else:
-                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
-                        raise MisconfigurationException(
-                            "Sharded Plugin is not supported with Apex AMP,"
-                            " please using native AMP for 16-bit precision."
-                        )
-                    log.info("Using APEX 16bit precision.")
-                    return ApexMixedPrecisionPlugin(self.amp_level)
-        else:
-            raise NotImplementedError("We only support precisions 32 and 16!")
+                if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
+                    raise MisconfigurationException(
+                        "Sharded Plugin is not supported with Apex AMP,"
+                        " please using native AMP for 16-bit precision."
+                    )
+                log.info("Using APEX 16bit precision.")
+                return ApexMixedPrecisionPlugin(self.amp_level)
+
+        raise NotImplementedError("We only support precisions 32 and 16!")
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
