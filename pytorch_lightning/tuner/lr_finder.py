@@ -92,15 +92,15 @@ def lr_find(
 
         mode: Search strategy to update learning rate after each batch:
 
-            - ``'exponential'`` [default]: Will increase learning rate exponentially.
-            - ``'linear'``: Will increate learning rate linearly.
+            - ``'exponential'`` (default): Will increase the learning rate exponentially.
+            - ``'linear'``: Will increase the learning rate linearly.
 
         early_stop_threshold: threshold for stopping the search. If the
             loss at any point is larger than early_stop_threshold*best_loss
             then the search is stopped. To disable, set to None.
 
         datamodule: An optional ``LightningDataModule`` which holds the training
-            and validation dataloader(s). Note that the `train_dataloader` and
+            and validation dataloader(s). Note that the ``train_dataloader`` and
             ``val_dataloaders`` parameters cannot be used at the same time as
             this parameter, or a ``MisconfigurationException`` will be raised.
 
