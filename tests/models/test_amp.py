@@ -155,7 +155,6 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert generated == 'abc23'
 
 
-@mock.patch('apex.amp', return_value=None)
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test is restricted only on CPU")
 def test_cpu_model_with_amp(tmpdir):
     """Make sure model trains on CPU."""
