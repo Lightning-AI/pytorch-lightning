@@ -45,7 +45,7 @@ class tqdm(_tqdm):
         """ Add additional padding to the formatted numbers """
         should_be_padded = isinstance(n, (float, str))
         if not isinstance(n, str):
-            n = super(_tqdm, _tqdm).format_num(n)
+            n = _tqdm.format_num(n)
         if should_be_padded and 'e' not in n:
             if '.' not in n:
                 n += '.'
