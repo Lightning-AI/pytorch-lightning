@@ -119,20 +119,15 @@ pip install pytorch-lightning
 <details>
   <summary>Other installation options</summary>
     <!-- following section will be skipped from PyPI description -->
-  
-  #### Install with optional dependencies (CPU)
-  
-  ```bash
-  pip install pytorch-lightning['cpu-extra']
-  ```
 
-  #### Install with optional dependencies (GPU, TPU)
+  #### Install with optional dependencies
   
   ```bash
   pip install pytorch-lightning['extra']
   ```
   
   #### Conda
+  
   ```bash
   conda install pytorch-lightning -c conda-forge
   ```
@@ -154,11 +149,12 @@ pip install pytorch-lightning
 
   #### Install bleeding-edge - future 1.2
 
-  Install future release from the source (no guarantees)
+  Install nightly from the source (no guarantees)
   ```bash
   pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip
   ```
-  or nightly from testing PyPI
+
+  or from testing PyPI
   ```bash
   pip install -iU https://test.pypi.org/simple/ pytorch-lightning
   ```
@@ -383,8 +379,8 @@ class LitAutoEncoder(pl.LightningModule):
 ## Community
 
 The lightning community is maintained by
-- [16 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, Ph.D. students from top AI labs.
-- 280+ community contributors.
+- [16 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
+- 400+ community contributors.
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 
