@@ -46,7 +46,7 @@ class tqdm(_tqdm):
         should_be_padded = isinstance(n, (float, str))
         if not isinstance(n, str):
             n = _tqdm.format_num(n)
-        if should_be_padded:
+        if should_be_padded and 'e' not in n:
             if '.' not in n:
                 n += '.'
             n += "0" * (_PAD_SIZE - len(n))
