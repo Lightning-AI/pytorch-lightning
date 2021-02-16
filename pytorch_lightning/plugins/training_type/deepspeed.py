@@ -120,8 +120,8 @@ class DeepSpeedPlugin(DDPPlugin):
             reduce_bucket_size: Number of elements to reduce at once.
                 Used to limit the memory required for larger model sizes, with a tradeoff with speed (default: 2e8)
 
-            zero_allow_untested_optimizer: Allow untested optimizers to be used with ZERO. Currently only Adam is a
-                supported Optimizer (default: True)
+            zero_allow_untested_optimizer: Allow untested optimizers to be used with ZeRO. Currently only Adam is a
+                DeepSpeed supported optimizer when using ZeRO (default: True)
 
             config: Pass in a deepspeed formatted config dict,
                 or path to a deepspeed config: https://www.deepspeed.ai/docs/config-json.
