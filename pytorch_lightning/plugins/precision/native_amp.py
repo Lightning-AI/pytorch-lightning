@@ -86,7 +86,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
         """Updates the GradScaler"""
-        self.scaler.step(optimizer)
+        print(self.scaler.step(optimizer))
         self.scaler.update()
 
     @contextmanager
