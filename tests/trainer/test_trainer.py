@@ -540,12 +540,12 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
 
     class TestModel(BoringModel):
         # Model that tracks epochs and batches seen
-        num_epochs_seen = 0
+        num_epochs_end_seen = 0
         num_batches_seen = 0
         num_on_load_checkpoint_called = 0
 
         def on_epoch_end(self):
-            self.num_epochs_seen += 1
+            self.num_epochs_end_seen += 1
 
         def on_train_batch_start(self, *_):
             self.num_batches_seen += 1
@@ -567,7 +567,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
     )
     trainer.fit(model)
 
-    assert model.num_epochs_seen == 2
+    assert model.num_epochs_end_seen == 1 + 2 + 2  # val_sanity, 2 for train, 2 for val
     assert model.num_batches_seen == trainer.num_training_batches * 2
     assert model.num_on_load_checkpoint_called == 0
 
