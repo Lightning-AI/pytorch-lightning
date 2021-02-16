@@ -132,14 +132,7 @@ pip install pytorch-lightning
   conda install pytorch-lightning -c conda-forge
   ```
 
-  #### Install bleeding-edge
-
-  Install future release from the source (no guarantees)
-  ```bash
-  pip install git+https://github.com/PytorchLightning/pytorch-lightning --upgrade
-  ```
-
-  #### Install stable/nightly - future 1.1.x
+  #### Install stable - future 1.1.x
 
   the actual status of 1.1 [stable] is following:
 
@@ -154,7 +147,14 @@ pip install pytorch-lightning
   pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.1.x --upgrade
   ```
 
-  or nightly from testing PyPI
+  #### Install bleeding-edge - future 1.2
+
+  Install nightly from the source (no guarantees)
+  ```bash
+  pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip
+  ```
+
+  or from testing PyPI
   ```bash
   pip install -iU https://test.pypi.org/simple/ pytorch-lightning
   ```
