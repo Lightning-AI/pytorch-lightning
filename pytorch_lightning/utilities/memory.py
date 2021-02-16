@@ -25,24 +25,21 @@ def recursive_detach(in_dict: dict, to_cpu: bool = False) -> dict:
     not affected by this utility function.
 
     Args:
-        in_dict:
-        to_cpu: Wheter to move tensor to cpu
+        in_dict: Dictionary with tensors to detach
+        to_cpu: Whether to move tensor to cpu
 
     Return:
-        out_dict:
+        out_dict: Dictionary with detached tensors
     """
     out_dict = {}
     for k, v in in_dict.items():
         if isinstance(v, dict):
-            out_dict.update({k: recursive_detach(v, to_cpu)})
+            v = recursive_detach(v, to_cpu=to_cpu)
         elif callable(getattr(v, 'detach', None)):
-            # detach
             v = v.detach()
             if to_cpu:
                 v = v.cpu()
-            out_dict.update({k: v})
-        else:
-            out_dict.update({k: v})
+        out_dict[k] = v
     return out_dict
 
 
