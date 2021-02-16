@@ -124,7 +124,19 @@ class HorovodPlugin(ParallelPlugin):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
+        """
+        Reduces a tensor from several distributed processes to one aggregated tensor.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            group: the process group to gather results from. Defaults to all processes (world)
+            reduce_op: the reduction operation. Defaults to 'sum'.
+                Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
         if group is not None:
             raise ValueError(
                 "Horovod does not support allreduce using a subcommunicator at this time. "
@@ -140,7 +152,7 @@ class HorovodPlugin(ParallelPlugin):
 
         # sync all processes before reduction
         hvd.join()
-        return hvd.allreduce(output, op=reduce_op)
+        return hvd.allreduce(tensor, op=reduce_op)
 
     def gather_all_tensors(self, result: Union[torch.Tensor], group: Optional[Any] = None):
         if group is not None:

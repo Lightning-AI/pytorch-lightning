@@ -31,14 +31,25 @@ class DataParallelPlugin(ParallelPlugin):
         model.to(self.root_device)
         self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)
 
-    def reduce(self, output, *args, **kwargs):
-        if isinstance(output, Result):
-            output.dp_reduce()
+    def reduce(self, tensor, *args, **kwargs):
+        """
+        Reduces a tensor from all parallel processes to one aggregated tensor.
 
-        elif isinstance(output, torch.Tensor):
-            output = output.mean()
+        Args:
+            tensor: the tensor to sync and reduce
+            *args: ignored for DP
+            **kwargs: ignored for DP
 
-        return output
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
+        if isinstance(tensor, Result):
+            tensor.dp_reduce()
+
+        elif isinstance(tensor, torch.Tensor):
+            tensor = tensor.mean()
+
+        return tensor
 
     @property
     def root_device(self):
