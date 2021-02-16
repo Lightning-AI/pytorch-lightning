@@ -82,7 +82,9 @@ class BackendConnector(object):
         # initialization
         self._device_type = DeviceType.CPU
         self._distrib_type = None
-        self.ipython_compatible_distrib_types = [DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN]
+        self.ipython_compatible_distrib_types = [
+            DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN
+        ]
 
         self.num_processes = num_processes
         self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
@@ -501,10 +503,10 @@ class BackendConnector(object):
             else:
                 rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
                 self._distrib_type = None
-        
+
         # finished configuring self._distrib_type, check ipython environment
         self.check_ipython_compatibility()
-        
+
         # for DDP overwrite nb processes by requested GPUs
         if (
             self._device_type == DeviceType.GPU
@@ -560,12 +562,12 @@ class BackendConnector(object):
 
             if in_ipython:
                 in_ipython_kernel = getattr(ip, 'kernel', None) is not None
-            
+
             if in_ipython_kernel:
                 raise MisconfigurationException(
-            "Selected distributed backend {self._distrib_type} not compatible with IPython environment"
-            "Run your code as a script, or choose one of compatible backends {self.ipython_compatible_distrib_types} as accelerator backend"
-            )
+                    f"Selected distributed backend {self._distrib_type} not compatible with IPython environment"
+                    f"Run your code as a script, or choose one of compatible backends {self.ipython_compatible_distrib_types} as accelerator backend"
+                )
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
