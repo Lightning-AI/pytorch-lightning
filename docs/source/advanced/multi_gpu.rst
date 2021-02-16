@@ -685,7 +685,7 @@ To get started, install FairScale using the command below. We install a specific
 
 .. code-block:: bash
 
-     pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.1.0.zip
+     pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.2.0.zip
 
 To use Sequential Model Parallelism, you must define a  :class:`nn.Sequential <torch.nn.Sequential>` module that defines the layers you wish to parallelize across GPUs.
 This should be kept within the ``sequential_module`` variable within your ``LightningModule`` like below.
