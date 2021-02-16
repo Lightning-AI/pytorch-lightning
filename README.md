@@ -92,7 +92,7 @@ Lightning is rigurously tested across multiple GPUs, TPUs CPUs and against major
 </details>
 
 <details>
-  <summary>Bleeding edge build status (future release)</summary>
+  <summary>Bleeding edge build status (1.2)</summary>
   
   <center>
   
