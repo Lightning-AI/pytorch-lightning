@@ -159,6 +159,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         if not pl_module.automatic_optimization:
             pl_module.trainer.call_hook("on_after_backward")
-            optimizer.step()
+
+        optimizer.step()
 
         return False
