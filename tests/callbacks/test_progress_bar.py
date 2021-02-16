@@ -11,21 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from unittest import mock
+from unittest.mock import call, Mock
+
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ProgressBarBase, ProgressBar, ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
 
 
-@pytest.mark.parametrize('callbacks,refresh_rate', [
-    ([], 1),
-    ([], 2),
-    ([ProgressBar(refresh_rate=1)], 0),
-    ([ProgressBar(refresh_rate=2)], 0),
-    ([ProgressBar(refresh_rate=2)], 1),
-])
+@pytest.mark.parametrize(
+    'callbacks,refresh_rate', [
+        ([], None),
+        ([], 1),
+        ([], 2),
+        ([ProgressBar(refresh_rate=1)], 0),
+        ([ProgressBar(refresh_rate=2)], 0),
+        ([ProgressBar(refresh_rate=2)], 1),
+    ]
+)
 def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned on."""
 
@@ -43,11 +52,13 @@ def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
     assert progress_bars[0] is trainer.progress_bar_callback
 
 
-@pytest.mark.parametrize('callbacks,refresh_rate', [
-    ([], 0),
-    ([], False),
-    ([ModelCheckpoint(dirpath='../trainer')], 0),
-])
+@pytest.mark.parametrize(
+    'callbacks,refresh_rate', [
+        ([], 0),
+        ([], False),
+        ([ModelCheckpoint(dirpath='../trainer')], 0),
+    ]
+)
 def test_progress_bar_off(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned off."""
 
@@ -135,8 +146,6 @@ def test_progress_bar_fast_dev_run(tmpdir):
     assert 1 == progress_bar.total_train_batches
     # total val batches are known only after val dataloaders have reloaded
 
-    trainer.fit(model)
-
     assert 1 == progress_bar.total_val_batches
     assert 1 == progress_bar.train_batch_idx
     assert 1 == progress_bar.val_batch_idx
@@ -216,7 +225,9 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
     """
     Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument.
     """
+
     class CurrentProgressBar(ProgressBar):
+
         def __init__(self):
             super().__init__()
             self.val_progress_bar_total = 0
@@ -231,7 +242,7 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
         default_root_dir=tmpdir,
         max_epochs=1,
         num_sanity_val_steps=2,
-        limit_train_batches=0,
+        limit_train_batches=1,
         limit_val_batches=limit_val_batches,
         callbacks=[progress_bar],
         logger=False,
@@ -239,3 +250,125 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
     )
     trainer.fit(model)
     assert trainer.progress_bar_callback.val_progress_bar_total == expected
+
+
+def test_progress_bar_default_value(tmpdir):
+    """ Test that a value of None defaults to refresh rate 1. """
+    trainer = Trainer(default_root_dir=tmpdir)
+    assert trainer.progress_bar_callback.refresh_rate == 1
+
+    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=None)
+    assert trainer.progress_bar_callback.refresh_rate == 1
+
+
+@mock.patch.dict(os.environ, {'COLAB_GPU': '1'})
+def test_progress_bar_value_on_colab(tmpdir):
+    """ Test that Trainer will override the default in Google COLAB. """
+    trainer = Trainer(default_root_dir=tmpdir)
+    assert trainer.progress_bar_callback.refresh_rate == 20
+
+    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=None)
+    assert trainer.progress_bar_callback.refresh_rate == 20
+
+    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=19)
+    assert trainer.progress_bar_callback.refresh_rate == 19
+
+
+class MockedUpdateProgressBars(ProgressBar):
+    """ Mocks the update method once bars get initializied. """
+
+    def _mock_bar_update(self, bar):
+        bar.update = Mock(wraps=bar.update)
+        return bar
+
+    def init_train_tqdm(self):
+        bar = super().init_train_tqdm()
+        return self._mock_bar_update(bar)
+
+    def init_validation_tqdm(self):
+        bar = super().init_validation_tqdm()
+        return self._mock_bar_update(bar)
+
+    def init_test_tqdm(self, trainer=None):
+        bar = super().init_test_tqdm(trainer=trainer)
+        return self._mock_bar_update(bar)
+
+
+@pytest.mark.parametrize(
+    "train_batches,val_batches,refresh_rate,train_deltas,val_deltas", [
+        [2, 3, 1, [1, 1, 1, 1, 1], [1, 1, 1]],
+        [0, 0, 3, [], []],
+        [1, 0, 3, [1], []],
+        [1, 1, 3, [2], [1]],
+        [5, 0, 3, [3, 2], []],
+        [5, 2, 3, [3, 3, 1], [2]],
+        [5, 2, 6, [6, 1], [2]],
+    ]
+)
+def test_main_progress_bar_update_amount(tmpdir, train_batches, val_batches, refresh_rate, train_deltas, val_deltas):
+    """
+    Test that the main progress updates with the correct amount together with the val progress. At the end of
+    the epoch, the progress must not overshoot if the number of steps is not divisible by the refresh rate.
+    """
+    model = BoringModel()
+    progress_bar = MockedUpdateProgressBars(refresh_rate=refresh_rate)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=train_batches,
+        limit_val_batches=val_batches,
+        callbacks=[progress_bar],
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.fit(model)
+    progress_bar.main_progress_bar.update.assert_has_calls([call(delta) for delta in train_deltas])
+    if val_batches > 0:
+        progress_bar.val_progress_bar.update.assert_has_calls([call(delta) for delta in val_deltas])
+
+
+@pytest.mark.parametrize("test_batches,refresh_rate,test_deltas", [
+    [1, 3, [1]],
+    [3, 1, [1, 1, 1]],
+    [5, 3, [3, 2]],
+])
+def test_test_progress_bar_update_amount(tmpdir, test_batches, refresh_rate, test_deltas):
+    """
+    Test that test progress updates with the correct amount.
+    """
+    model = BoringModel()
+    progress_bar = MockedUpdateProgressBars(refresh_rate=refresh_rate)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_test_batches=test_batches,
+        callbacks=[progress_bar],
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.test(model)
+    progress_bar.test_progress_bar.update.assert_has_calls([call(delta) for delta in test_deltas])
+
+
+def test_tensor_to_float_conversion(tmpdir):
+    """Check tensor gets converted to float"""
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo', torch.tensor(0.123), prog_bar=True)
+            self.log('bar', {"baz": torch.tensor([1])}, prog_bar=True)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.fit(TestModel())
+
+    pbar = trainer.progress_bar_callback.main_progress_bar
+    actual = str(pbar.postfix)
+    assert actual.endswith("foo=0.123, bar={'baz': tensor([1])}")

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""
 
 Learning Rate Monitor
@@ -33,11 +32,15 @@ class LearningRateMonitor(Callback):
     Automatically monitor and logs learning rate for learning rate schedulers during training.
 
     Args:
-        logging_interval: set to `epoch` or `step` to log `lr` of all optimizers
-            at the same interval, set to `None` to log at individual interval
-            according to the `interval` key of each scheduler. Defaults to ``None``.
+        logging_interval: set to ``'epoch'`` or ``'step'`` to log ``lr`` of all optimizers
+            at the same interval, set to ``None`` to log at individual interval
+            according to the ``interval`` key of each scheduler. Defaults to ``None``.
         log_momentum: option to also log the momentum values of the optimizer, if the optimizer
-            has the `momentum` attribute. Defaults to ``False``.
+            has the ``momentum`` or ``betas`` attribute. Defaults to ``False``.
+
+    Raises:
+        MisconfigurationException:
+            If ``logging_interval`` is none of ``"step"``, ``"epoch"``, or ``None``.
 
     Example::
 
@@ -47,25 +50,26 @@ class LearningRateMonitor(Callback):
         >>> trainer = Trainer(callbacks=[lr_monitor])
 
     Logging names are automatically determined based on optimizer class name.
-    In case of multiple optimizers of same type, they will be named `Adam`,
-    `Adam-1` etc. If a optimizer has multiple parameter groups they will
-    be named `Adam/pg1`, `Adam/pg2` etc. To control naming, pass in a
-    `name` keyword in the construction of the learning rate schdulers
+    In case of multiple optimizers of same type, they will be named ``Adam``,
+    ``Adam-1`` etc. If a optimizer has multiple parameter groups they will
+    be named ``Adam/pg1``, ``Adam/pg2`` etc. To control naming, pass in a
+    ``name`` keyword in the construction of the learning rate schdulers
 
     Example::
 
         def configure_optimizer(self):
             optimizer = torch.optim.Adam(...)
-            lr_scheduler = {'scheduler': torch.optim.lr_schedulers.LambdaLR(optimizer, ...)
-                            'name': 'my_logging_name'}
+            lr_scheduler = {
+                'scheduler': torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
+                'name': 'my_logging_name'
+            }
             return [optimizer], [lr_scheduler]
 
     """
+
     def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False):
         if logging_interval not in (None, 'step', 'epoch'):
-            raise MisconfigurationException(
-                'logging_interval should be `step` or `epoch` or `None`.'
-            )
+            raise MisconfigurationException('logging_interval should be `step` or `epoch` or `None`.')
 
         self.logging_interval = logging_interval
         self.log_momentum = log_momentum
@@ -77,18 +81,33 @@ class LearningRateMonitor(Callback):
         Called before training, determines unique names for all lr
         schedulers in the case of multiple of the same type or in
         the case of multiple parameter groups
+
+        Raises:
+            MisconfigurationException:
+                If ``Trainer`` has no ``logger``.
         """
         if not trainer.logger:
             raise MisconfigurationException(
-                'Cannot use LearningRateMonitor callback with Trainer that has no logger.'
+                'Cannot use `LearningRateMonitor` callback with `Trainer` that has no logger.'
             )
 
         if not trainer.lr_schedulers:
             rank_zero_warn(
-                'You are using LearningRateMonitor callback with models that'
+                'You are using `LearningRateMonitor` callback with models that'
                 ' have no learning rate schedulers. Please see documentation'
                 ' for `configure_optimizers` method.', RuntimeWarning
             )
+
+        if self.log_momentum:
+
+            def _check_no_key(key):
+                return any(key not in sch['scheduler'].optimizer.defaults for sch in trainer.lr_schedulers)
+
+            if _check_no_key('momentum') and _check_no_key('betas'):
+                rank_zero_warn(
+                    "You have set log_momentum=True, but some optimizers do not"
+                    " have momentum. This will log a value 0 for the momentum.", RuntimeWarning
+                )
 
         # Find names for schedulers
         names = self._find_names(trainer.lr_schedulers)
@@ -105,7 +124,7 @@ class LearningRateMonitor(Callback):
             interval = 'step' if self.logging_interval is None else 'any'
             latest_stat = self._extract_stats(trainer, interval)
 
-            if trainer.logger is not None and latest_stat:
+            if latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def on_train_epoch_start(self, trainer, *args, **kwargs):
@@ -113,27 +132,25 @@ class LearningRateMonitor(Callback):
             interval = 'epoch' if self.logging_interval is None else 'any'
             latest_stat = self._extract_stats(trainer, interval)
 
-            if trainer.logger is not None and latest_stat:
-                trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
+            if latest_stat:
+                trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def _extract_stats(self, trainer, interval: str) -> Dict[str, float]:
         latest_stat = {}
 
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
             if scheduler['interval'] == interval or interval == 'any':
-                param_groups = scheduler['scheduler'].optimizer.param_groups
-                if len(param_groups) != 1:
-                    for i, pg in enumerate(param_groups):
-                        lr = self._extract_lr(param_group=pg, name=f'{name}/pg{i + 1}')
-                        latest_stat.update(lr)
-                        momentum = self._extract_momentum(param_group=pg, name=f'{name}-momentum/pg{i + 1}')
-                        latest_stat.update(momentum)
+                opt = scheduler['scheduler'].optimizer
+                param_groups = opt.param_groups
+                use_betas = 'betas' in opt.defaults
 
-                else:
-                    pg = param_groups[0]
-                    lr = self._extract_lr(param_group=pg, name=name)
+                for i, pg in enumerate(param_groups):
+                    suffix = f'/pg{i + 1}' if len(param_groups) > 1 else ''
+                    lr = self._extract_lr(param_group=pg, name=f'{name}{suffix}')
                     latest_stat.update(lr)
-                    momentum = self._extract_momentum(param_group=pg, name=f'{name}-momentum')
+                    momentum = self._extract_momentum(
+                        param_group=pg, name=f'{name}-momentum{suffix}', use_betas=use_betas
+                    )
                     latest_stat.update(momentum)
 
         return latest_stat
@@ -143,11 +160,11 @@ class LearningRateMonitor(Callback):
         self.lrs[name].append(lr)
         return {name: lr}
 
-    def _extract_momentum(self, param_group, name: str) -> Dict[str, float]:
+    def _extract_momentum(self, param_group, name: str, use_betas: bool) -> Dict[str, float]:
         if not self.log_momentum:
             return {}
 
-        momentum = param_group.get('momentum')
+        momentum = param_group.get('betas')[0] if use_betas else param_group.get('momentum', 0)
         self.last_momentum_values[name] = momentum
         return {name: momentum}
 
@@ -157,7 +174,7 @@ class LearningRateMonitor(Callback):
         names = []
         for scheduler in lr_schedulers:
             sch = scheduler['scheduler']
-            if 'name' in scheduler:
+            if scheduler['name'] is not None:
                 name = scheduler['name']
             else:
                 opt_name = 'lr-' + sch.optimizer.__class__.__name__
@@ -185,10 +202,6 @@ class LearningRateMonitor(Callback):
 
     @staticmethod
     def _should_log(trainer) -> bool:
-        should_log = (
-            (trainer.global_step + 1) % trainer.log_every_n_steps == 0
-            or trainer.should_stop
-        )
+        should_log = ((trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop)
 
-        should_log = should_log and not trainer.fast_dev_run
         return should_log

@@ -13,33 +13,42 @@
 # limitations under the License.
 
 from argparse import ArgumentParser
-import torch
-from torch import nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-import pytorch_lightning as pl
-from torch.utils.data import random_split
 
-try:
-    from torchvision.datasets.mnist import MNIST
+import torch
+import torch.nn.functional as F
+from torch import nn
+from torch.utils.data import DataLoader, random_split
+
+import pytorch_lightning as pl
+from pl_examples import _TORCHVISION_AVAILABLE, cli_lightning_logo
+
+if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
-except ModuleNotFoundError:
-    from tests.base.datasets import MNIST
+    from torchvision.datasets.mnist import MNIST
+else:
+    from tests.helpers.datasets import MNIST
 
 
 class LitAutoEncoder(pl.LightningModule):
+    """
+    >>> LitAutoEncoder()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    LitAutoEncoder(
+      (encoder): ...
+      (decoder): ...
+    )
+    """
 
     def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(
             nn.Linear(28 * 28, 64),
             nn.ReLU(),
-            nn.Linear(64, 3)
+            nn.Linear(64, 3),
         )
         self.decoder = nn.Sequential(
             nn.Linear(3, 64),
             nn.ReLU(),
-            nn.Linear(64, 28 * 28)
+            nn.Linear(64, 28 * 28),
         )
 
     def forward(self, x):
@@ -102,4 +111,5 @@ def cli_main():
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     cli_main()

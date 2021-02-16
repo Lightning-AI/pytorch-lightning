@@ -11,233 +11,376 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import math
-from enum import Enum
-from typing import Any, Optional
+from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
+from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.core import LightningModule
+from pytorch_lightning.plugins.precision import (
+    ApexMixedPrecisionPlugin,
+    MixedPrecisionPlugin,
+    NativeMixedPrecisionPlugin,
+    PrecisionPlugin,
+)
+from pytorch_lightning.plugins.training_type import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict
-import torch.distributed as torch_distrib
-from pytorch_lightning import _logger as log
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
-EPSILON = 1e-6
-EPSILON_FP16 = 1e-5
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
+from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
 
 class Accelerator(object):
+    """
+    The Accelerator Base Class.
+    An Accelerator is meant to deal with one type of Hardware.
 
-    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
-        self.trainer = trainer
-        self.nickname = None
-        self.cluster_environment = cluster_environment
-        self.dist = AttributeDict(rank=0, device=None)
-        self.ddp_plugin = ddp_plugin
+    Currently there are accelerators for:
+    - CPU
+    - GPU
+    - TPU
 
-        if trainer is not None:
-            self.train_loop = self.trainer.train
-            self.validation_loop = self.trainer.run_evaluation
-            self.test_loop = self.trainer.run_evaluation
+    Each Accelerator gets two plugins upon initialization:
+    One to handle differences from the training routine and one to handle different precisions.
 
-    def setup(self, model):
-        pass
+    """
+
+    def __init__(
+        self,
+        precision_plugin: PrecisionPlugin,
+        training_type_plugin: TrainingTypePlugin,
+    ) -> None:
+        """
+
+        Args:
+            precision_plugin: the plugin to handle precision-specific parts
+            training_type_plugin: the plugin to handle different training routines
+        """
+        self.precision_plugin = precision_plugin
+        self.training_type_plugin = training_type_plugin
+
+        self.optimizers = None
+        self.lr_schedulers = None
+        self.optimizer_frequencies = None
+
+    def setup(self, trainer: "Trainer", model: LightningModule) -> None:
+        """
+        Connects the plugins to the training process, creates optimizers
+
+        Args:
+            trainer: the trainer instance to connect to
+            model: the model to train
+        """
+        self.connect_training_type_plugin(self.training_type_plugin, model)
+        self.setup_optimizers(trainer)
+        self.connect_precision_plugin(self.precision_plugin)
+
+    @property
+    def model(self) -> torch.nn.Module:
+        """Returns the model. This can also be a wrapped LightningModule.
+        For retrieving the pure LightningModule use :attr:`Accelerator.lightning_module`
+
+        """
+        return self.training_type_plugin.model
+
+    @model.setter
+    def model(self, new_model: torch.nn.Module) -> None:
+        self.training_type_plugin.model = new_model
+
+    @property
+    def lightning_module(self) -> LightningModule:
+        """Returns the pure LightningModule.
+        To get the potentially wrapped model use :attr:`Accelerator.model`
+
+        """
+        return self.training_type_plugin.lightning_module
+
+    @property
+    def root_device(self) -> torch.device:
+        return self.training_type_plugin.root_device
 
     def teardown(self):
-        # Ensure if necessary all processes are finished
-        self.barrier()
-
-    def barrier(self, name: Optional[str] = None):
+        """This method is called to teardown the training process.
+        It is the right place to release memory and free other ressources.
+        """
         pass
 
-    def broadcast(self, obj, src=0):
-        return obj
+    def batch_to_device(self, batch: Any, device: torch.device) -> Any:
+        """Moves the batch to the correct device.
+        The returned batch is of the same type as the input batch, just having all tensors on the correct device.
 
-    def train_or_test(self):
-        if self.trainer.testing:
-            results = self.trainer.run_test()
-        else:
-            results = self.trainer.train()
-        return results
-
-    def batch_to_device(self, batch: Any, device: torch.device):
-        model = self.trainer.get_model()
+        Args:
+            batch: The batch of samples to move to the correct device
+            device: The target device
+        """
+        model = self.lightning_module
         if model is not None:
             return model.transfer_batch_to_device(batch, device)
         return move_data_to_device(batch, device)
 
+    def on_train_start(self):
+        """Hook to do something upon the training start"""
+        pass
+
+    def training_step(self, args):
+        """The actual training step.
+
+        Args:
+            args: the arguments for the models training step. Can consist of the following:
+                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                batch_idx (int): Integer displaying index of this batch
+                optimizer_idx (int): When using multiple optimizers, this argument will also be present.
+                hiddens(:class:`~torch.Tensor`): Passed in if
+                    :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
+
+        """
+        batch = self.to_device(args[0])
+
+        args[0] = batch
+
+        with self.precision_plugin.train_step_context():
+            with self.training_type_plugin.train_step_context():
+                return self.training_type_plugin.training_step(*args)
+
+    def post_training_step(self):
+        self.training_type_plugin.post_training_step()
+
+    def validation_step(self, args):
+        """The actual validation step.
+
+        Args:
+            args: the arguments for the models validation step. Can consist of the following:
+                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                batch_idx (int): The index of this batch
+                dataloader_idx (int): The index of the dataloader that produced this batch
+                    (only if multiple val dataloaders used)
+        """
+        batch = self.to_device(args[0])
+
+        args[0] = batch
+
+        with self.precision_plugin.val_step_context():
+            with self.training_type_plugin.val_step_context():
+                return self.training_type_plugin.validation_step(*args)
+
+    def test_step(self, args):
+        """The actual test step.
+
+        Args:
+            args: the arguments for the models test step. Can consist of the following:
+                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                batch_idx (int): The index of this batch.
+                dataloader_idx (int): The index of the dataloader that produced this batch
+                    (only if multiple test dataloaders used).
+        """
+        batch = self.to_device(args[0])
+
+        args[0] = batch
+
+        with self.precision_plugin.test_step_context():
+            with self.training_type_plugin.test_step_context():
+                return self.training_type_plugin.test_step(*args)
+
     def training_step_end(self, output):
-        return output
+        """A hook to do something at the end of the training step
+
+        Args:
+            output: the output of the training step
+        """
+        return self.training_type_plugin.training_step_end(output)
 
     def test_step_end(self, output):
-        return output
+        """A hook to do something at the end of the test step
+
+        Args:
+            output: the output of the test step
+        """
+        return self.training_type_plugin.test_step_end(output)
 
     def validation_step_end(self, output):
-        return output
+        """A hook to do something at the end of the validation step
 
-    def process_dataloader(self, dataloader):
+        Args:
+            output: the output of the validation step
+        """
+        return self.training_type_plugin.validation_step_end(output)
+
+    def predict(self, args):
+        """The prediction step.
+
+        Args:
+            args: the arguments for the models predict step. Can consist of the following:
+                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                batch_idx (int): Integer displaying index of this batch
+                optimizer_idx (int): When using multiple optimizers, this argument will also be present.
+                hiddens(:class:`~torch.Tensor`): Passed in if
+                    :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
+
+        """
+        batch = self.to_device(args[0])
+        args[0] = batch
+        return self.training_type_plugin.predict(*args)
+
+    def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Wraps the dataloader if necessary
+
+        Args:
+            dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
+        """
         return dataloader
 
-    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
-        if self.trainer.precision == 16:
-            closure_loss = self.trainer.precision_connector.backend.backward(
-                closure_loss, optimizer, opt_idx, *args, **kwargs
-            )
-        else:
-            # do backward pass
-            model = self.trainer.get_model()
-            model.backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
+    def backward(
+        self,
+        closure_loss: torch.Tensor,
+        optimizer: Optimizer,
+        opt_idx: int,
+        should_accumulate: bool,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Forwards backward-calls to the precision plugin.
 
-            # once backward has been applied, release graph
-            closure_loss = closure_loss.detach()
-        return closure_loss
+        Args:
+            closure_loss: a tensor holding the loss value to backpropagate
+            optimizer: the optimizer to do the step later on.
+            opt_idx: the index of the optimizer
+            should_accumulate: whether to accumulate gradients
+        """
+        self.training_type_plugin.pre_backward(closure_loss, should_accumulate, optimizer, opt_idx)
 
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):
-        model_ref = self.trainer.get_model()
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        native_amp = self.trainer.amp_backend == AMPType.NATIVE
-
-        # native amp + lbfgs is a no go right now
-        if native_amp and is_lbfgs:
-            raise MisconfigurationException(
-                'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-
-        # model hook
-        model_ref.optimizer_step(
-            self.trainer.current_epoch,
-            batch_idx,
-            optimizer,
-            opt_idx,
-            lambda_closure,
-            using_native_amp=native_amp,
-            using_lbfgs=is_lbfgs
+        output = self.precision_plugin.backward(
+            self.lightning_module, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
         )
 
-        # scale when native amp
-        if native_amp:
-            self.trainer.scaler.update()
+        self.training_type_plugin.post_backward(closure_loss, should_accumulate, optimizer, opt_idx)
 
-    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
-        model_ref = self.trainer.get_model()
-        model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
+        return output
 
-    def clip_gradients(self, optimizer, clip_val=None):
+    def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs):
+        """performs the actual optimizer step.
 
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            self.trainer.scaler.unscale_(optimizer)
+        Args:
+            optimizer: the optimizer performing the step
+            opt_idx: index of the current optimizer
+            lambda_closure: closure calculating the loss value
 
-        # apply clip gradients
-        # TODO: separate TPU case from here
-        self._clip_gradients(optimizer, clip_val)
+        """
+        make_optimizer_step = self.precision_plugin.pre_optimizer_step(
+            self.lightning_module, optimizer, opt_idx, lambda_closure, **kwargs
+        )
+        if make_optimizer_step:
+            self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
+        self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
+        self.training_type_plugin.post_optimizer_step(optimizer, opt_idx, **kwargs)
 
-    def _clip_gradients(self, optimizer, clip_val=None):
-        # use the trainer's clip val if none passed
-        grad_clip_val = self.trainer.gradient_clip_val
-        if clip_val is not None:
-            grad_clip_val = clip_val
-        grad_clip_val = float(grad_clip_val)
+    def run_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs):
+        optimizer.step(closure=lambda_closure, **kwargs)
 
-        # this code is a modification of torch.nn.utils.clip_grad_norm_
-        # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
-        if grad_clip_val <= 0:
-            return
+    def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
+        """Zeros all model parameter's gradients"""
+        model_ref = self.lightning_module
+        model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
-        model = self.trainer.get_model()
-        if self.trainer.amp_backend == AMPType.APEX:
-            parameters = amp.master_params(optimizer)
-        else:
-            parameters = model.parameters()
+    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
+        """clips all the optimizer parameters to the given value"""
 
-        max_norm = grad_clip_val
-        norm_type = float(2.0)
+        self.precision_plugin.clip_gradients(optimizer, clip_val)
 
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
-        parameters = list(filter(lambda p: p.grad is not None, parameters))
+    def on_train_epoch_end(self, outputs) -> None:
+        """Hook to do something on the end of an training epoch
 
-        if norm_type == math.inf:
-            total_norm = max(p.grad.data.abs().max() for p in parameters)
-        else:
-            device = parameters[0].device
-            out = torch.empty(len(parameters), device=device)
-            for i, p in enumerate(parameters):
-                torch.norm(p.grad.data.to(device), norm_type, out=out[i])
-            total_norm = torch.norm(out, norm_type)
-
-        eps = EPSILON_FP16 if self.trainer.precision == 16 else EPSILON
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
-        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
-        for p in parameters:
-            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
-
-    def on_train_epoch_end(self, outputs):
+        Args:
+            outputs: the outputs of the training steps
+        """
         pass
 
-    def on_train_end(self):
+    def on_train_end(self) -> None:
+        """Hook to do something at the end of the training"""
         pass
 
-    def early_stopping_should_stop(self, pl_module):
-        return self.trainer.should_stop
+    def setup_optimizers(self, trainer: "Trainer"):
+        """creates optimizers and schedulers
 
-    def setup_optimizers(self, model):
-        if self.trainer.testing is True:
+        Args:
+            trainer: the Trainer, these optimizers should be connected to
+            model: the model to be optimized by the created optimizers
+        """
+        if trainer.testing is True:
             return
+        optimizers, lr_schedulers, optimizer_frequencies = trainer.init_optimizers(self.lightning_module)
+        self.optimizers = optimizers
+        self.lr_schedulers = lr_schedulers
+        self.optimizer_frequencies = optimizer_frequencies
 
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+        """Attaches the training type plugin to the accelerator.
+        Also transfers ownership of the model to this plugin
 
-    def init_ddp_connection(
-        self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
-    ) -> None:
-        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
-        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
+        """
+        plugin.connect(model)
 
-        if not torch.distributed.is_initialized():
-            log.info(
-                f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
-            )
-            torch_distrib.init_process_group(
-                torch_backend, rank=global_rank, world_size=world_size
-            )
+    def connect_precision_plugin(self, plugin: PrecisionPlugin):
+        """Attaches the precision plugin to the accelerator"""
+        model, optimizers, schedulers = plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        self.model = model
+        self.optimizers = optimizers
+        self.schedulers = schedulers
 
-    def __getstate__(self):
-        return {
-            'trainer': self.trainer,
-            'nickname': self.nickname,
-            'cluster_environment': self.cluster_environment,
-            'dist': self.dist,
-            'ddp_plugin': self.ddp_plugin
-        }
+    def to_device(self, batch: Any) -> Any:
+        """Pushes the batch to the root device"""
+        return self.batch_to_device(batch, self.root_device)
 
-    def __setstate__(self, d):
-        self.trainer = d['trainer']
-        self.nickname = d['nickname']
-        self.cluster_environment = d['cluster_environment']
-        self.dist = d['dist']
-        self.ddp_plugin = d['ddp_plugin']
+    @property
+    def amp_backend(self) -> Optional[LightningEnum]:
+        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+            return AMPType.APEX
+        elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+            return AMPType.NATIVE
+        return None
 
+    @property
+    def precision(self) -> int:
+        return self.precision_plugin.precision
 
-# TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
-class BackendType(Enum):
-    DP = 'dp'
-    DDP = 'ddp'
-    DDP2 = 'ddp2'
-    DDP_SPAWN = 'ddp_spawn'
-    # decuple distrib and device
-    DDP_CPU = 'ddp_cpu'
-    HOROVOD = 'horovod'
-    # this is rather device
-    TPU = 'tpu'
+    @property
+    def scaler(self):
+        if hasattr(self.precision_plugin, "scaler"):
+            return self.precision_plugin.scaler
+
+        return None
+
+    @property
+    def rpc_enabled(self) -> bool:
+        return self.training_type_plugin.rpc_enabled
+
+    def optimizer_state(self, optimizer: Optimizer) -> dict:
+        """
+        Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
+        plugins.
+        """
+        if self.training_type_plugin and hasattr(self.training_type_plugin, "optimizer_state"):
+            return self.training_type_plugin.optimizer_state(optimizer)
+        return optimizer.state_dict()
+
+    def on_save(self, checkpoint):
+        return checkpoint
+
+    def barrier(self, name: Optional[str] = None) -> None:
+        self.training_type_plugin.barrier(name=name)
+
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        """
+        Function to gather a tensor from several distributed processes
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)

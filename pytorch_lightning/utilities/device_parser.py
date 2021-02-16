@@ -11,8 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, List, MutableSequence, Optional, Tuple, Union
+
 import torch
-from typing import Union, Any, List, Optional, MutableSequence
+
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -27,7 +30,9 @@ def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
     if gpus is None:
         return None
 
-    assert isinstance(gpus, list), "gpus should be a list"
+    if not isinstance(gpus, list):
+        raise TypeError("gpus should be a list")
+
     assert len(gpus) > 0, "gpus should be a non empty list"
 
     # set root gpu
@@ -104,6 +109,9 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
     if not _tpu_cores_valid(tpu_cores):
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
+    if tpu_cores is not None and not _TPU_AVAILABLE:
+        raise MisconfigurationException('No TPU devices were found.')
+
     return tpu_cores
 
 
@@ -131,16 +139,15 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     all_available_gpus = _get_all_available_gpus()
     for gpu in gpus:
         if gpu not in all_available_gpus:
-            raise MisconfigurationException(f"""
-                You requested GPUs: {gpus}
-                But your machine only has: {all_available_gpus}
-            """)
+            raise MisconfigurationException(
+                f"You requested GPUs: {gpus}\n But your machine only has: {all_available_gpus}"
+            )
     return gpus
 
 
-def _normalize_parse_gpu_input_to_list(gpus: Union[int, List[int]]) -> Optional[List[int]]:
+def _normalize_parse_gpu_input_to_list(gpus: Union[int, List[int], Tuple[int, ...]]) -> Optional[List[int]]:
     assert gpus is not None
-    if isinstance(gpus, MutableSequence):
+    if isinstance(gpus, (MutableSequence, tuple)):
         return list(gpus)
 
     # must be an int
@@ -169,7 +176,7 @@ def _check_data_type(device_ids: Any) -> None:
         device_ids: gpus/tpu_cores parameter as passed to the Trainer
     """
     if device_ids is not None and \
-            (not isinstance(device_ids, (int, str, MutableSequence)) or isinstance(device_ids, bool)):
+            (not isinstance(device_ids, (int, str, MutableSequence, tuple)) or isinstance(device_ids, bool)):
         raise MisconfigurationException("Device ID's (GPU/TPU) must be int, string or sequence of ints or None.")
 
 

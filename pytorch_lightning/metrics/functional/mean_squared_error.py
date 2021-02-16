@@ -14,6 +14,7 @@
 from typing import Tuple
 
 import torch
+
 from pytorch_lightning.metrics.utils import _check_same_shape
 
 
@@ -33,7 +34,7 @@ def mean_squared_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tenso
     Computes mean squared error
 
     Args:
-        pred: estimated labels
+        preds: estimated labels
         target: ground truth labels
 
     Return:

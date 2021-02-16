@@ -24,4 +24,4 @@ source activate $1
 # -------------------------
 
 # run script from above
-srun python3 image_classifier.py --distributed_backend 'ddp' --gpus 2 --num_nodes 2
+srun python3 image_classifier.py --accelerator 'ddp' --gpus 2 --num_nodes 2

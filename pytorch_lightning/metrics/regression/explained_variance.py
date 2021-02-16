@@ -11,20 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
+import torch
+
+from pytorch_lightning.metrics.functional.explained_variance import (
+    _explained_variance_compute,
+    _explained_variance_update,
+)
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.metrics.functional.explained_variance import (
-    _explained_variance_update,
-    _explained_variance_compute,
-)
 
 
 class ExplainedVariance(Metric):
-    """
-    Computes explained variance.
+    r"""
+    Computes `explained variance
+    <https://en.wikipedia.org/wiki/Explained_variation>`_:
+
+    .. math:: \text{ExplainedVariance} = 1 - \frac{\text{Var}(y - \hat{y})}{\text{Var}(y)}
+
+    Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a
+    tensor of predictions.
 
     Forward accepts
 
@@ -74,11 +81,13 @@ class ExplainedVariance(Metric):
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
+        dist_sync_fn: Callable = None,
     ):
         super().__init__(
             compute_on_step=compute_on_step,
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
+            dist_sync_fn=dist_sync_fn,
         )
         allowed_multioutput = ('raw_values', 'uniform_average', 'variance_weighted')
         if multioutput not in allowed_multioutput:

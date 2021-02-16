@@ -26,10 +26,15 @@ class TrainerCallbackHookMixin(ABC):
     callbacks: List[Callback] = []
     get_model: Callable
 
-    def setup(self, stage: str):
+    def on_before_accelerator_backend_setup(self, model):
         """Called in the beginning of fit and test"""
         for callback in self.callbacks:
-            callback.setup(self, self.get_model(), stage)
+            callback.on_before_accelerator_backend_setup(self, model)
+
+    def setup(self, model, stage: str):
+        """Called in the beginning of fit and test"""
+        for callback in self.callbacks:
+            callback.setup(self, model, stage)
 
     def teardown(self, stage: str):
         """Called at the end of fit and test"""
@@ -204,11 +209,15 @@ class TrainerCallbackHookMixin(ABC):
     def on_load_checkpoint(self, checkpoint):
         """Called when loading a model checkpoint."""
         callback_states = checkpoint.get('callbacks')
-        for callback in self.callbacks:
-            state = callback_states.get(type(callback))
-            if state:
-                state = deepcopy(state)
-                callback.on_load_checkpoint(state)
+        # Todo: the `callback_states` are dropped with TPUSpawn as they
+        # can't be saved using `xm.save`
+        # https://github.com/pytorch/xla/issues/2773
+        if callback_states is not None:
+            for callback in self.callbacks:
+                state = callback_states.get(type(callback))
+                if state:
+                    state = deepcopy(state)
+                    callback.on_load_checkpoint(state)
 
     def on_after_backward(self):
         """

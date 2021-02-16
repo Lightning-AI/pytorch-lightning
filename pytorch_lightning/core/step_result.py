@@ -11,20 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""[Train, Eval]Result for easier logging, checkpointing, early stopping, epoch-wise reduction."""
 
 import numbers
+import os
 from copy import copy
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple, Iterable
+from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
-import os
 
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.metrics import Metric
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 
 
 class Result(Dict):
+
     def __init__(
         self,
         minimize: Optional[Tensor] = None,
@@ -98,11 +100,14 @@ class Result(Dict):
 
     def _assert_tensor_metric(self, name: str, potential_metric: Union[bool, Tensor, None, Any]):
         if potential_metric is not None and not isinstance(potential_metric, bool):
-            assert isinstance(potential_metric, Tensor), f'{name} must be a torch.Tensor'
+            if not isinstance(potential_metric, Tensor):
+                raise TypeError(f'{name} must be a torch.Tensor')
 
     def _assert_grad_tensor_metric(self, name: str, x: Union[torch.Tensor, Any], additional_err: str = ''):
         if x is not None:
-            assert isinstance(x, Tensor), f'{name} must be a torch.Tensor'
+            if not isinstance(x, Tensor):
+                raise TypeError(f'{name} must be a torch.Tensor')
+
             m = f'{name} must have a computational graph.'
 
             if additional_err:
@@ -124,14 +129,27 @@ class Result(Dict):
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        sync_fn: Callable = None,
+        dataloader_idx: Optional[int] = None,
+        device: torch.device = None,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
-        # sync across ddp
+        # sync across workers when using distributed training
+        sync_fn = sync_fn or sync_ddp_if_available
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
-            value = sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
+            is_dist_initialized = torch.distributed.is_available() and torch.distributed.is_initialized()
+            # TODO: Find a way to make the reduction only once, so we don't need to clone.
+            if is_dist_initialized and isinstance(value, torch.Tensor):
+                value = value.clone()
+            else:
+                value = torch.tensor(value, device=device, dtype=torch.float)
+            value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
+
+        if isinstance(value, torch.Tensor) and value.device.type == "xla":
+            value = value.cpu()
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
@@ -144,6 +162,7 @@ class Result(Dict):
 
             # set step version
             step_name = f'{name}_step'
+
             self.__set_meta(
                 step_name,
                 value,
@@ -154,12 +173,15 @@ class Result(Dict):
                 reduce_fx=reduce_fx,
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 tbptt_pad_token=tbptt_pad_token,
-                forked=False
+                forked=False,
+                dataloader_idx=dataloader_idx,
             )
+
             self.__setitem__(step_name, value)
 
             # set epoch version
             epoch_name = f'{name}_epoch'
+
             self.__set_meta(
                 epoch_name,
                 value,
@@ -170,7 +192,8 @@ class Result(Dict):
                 reduce_fx=reduce_fx,
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 tbptt_pad_token=tbptt_pad_token,
-                forked=False
+                forked=False,
+                dataloader_idx=dataloader_idx,
             )
             self.__setitem__(epoch_name, value)
 
@@ -185,7 +208,8 @@ class Result(Dict):
             reduce_fx,
             tbptt_reduce_fx=tbptt_reduce_fx,
             tbptt_pad_token=tbptt_pad_token,
-            forked=was_forked
+            forked=was_forked,
+            dataloader_idx=dataloader_idx,
         )
 
         # set the value
@@ -202,7 +226,8 @@ class Result(Dict):
         reduce_fx: Callable,
         tbptt_pad_token: int,
         tbptt_reduce_fx: Callable,
-        forked: bool
+        forked: bool,
+        dataloader_idx: Union[int, None],
     ):
         # set the meta for the item
         meta_value = value
@@ -215,7 +240,8 @@ class Result(Dict):
             value=meta_value,
             tbptt_reduce_fx=tbptt_reduce_fx,
             tbptt_pad_token=tbptt_pad_token,
-            forked=forked
+            forked=forked,
+            dataloader_idx=dataloader_idx,
         )
 
         self['meta'][name] = meta
@@ -225,13 +251,22 @@ class Result(Dict):
         _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
 
     def track_batch_size(self, batch):
+        batch_size = Result.extract_batch_size(batch)
+        Result.attach_batch_size(batch_size, self)
+
+    @staticmethod
+    def extract_batch_size(batch):
         try:
             batch_size = Result.unpack_batch_size(batch)
-        except RecursionError as re:
+        except RecursionError:
             batch_size = 1
+        return batch_size
 
-        meta = self['meta']
-        meta['_internal']['batch_sizes'].append(batch_size)
+    @staticmethod
+    def attach_batch_size(batch_size: Union[int, None], result: 'Result') -> None:
+        if batch_size is not None:
+            meta = result['meta']
+            meta['_internal']['batch_sizes'].append(batch_size)
 
     def get_batch_sizes(self):
         meta = self['meta']
@@ -242,7 +277,12 @@ class Result(Dict):
 
         return result
 
-    def get_batch_log_metrics(self, include_forked_originals=True) -> dict:
+    def _add_dataloader_idx(self, k: str, dataloader_idx: Union[int, None], add_dataloader_idx: bool) -> str:
+        if dataloader_idx is not None and add_dataloader_idx:
+            return f"{k}/dataloader_idx_{dataloader_idx}"
+        return k
+
+    def get_batch_log_metrics(self, include_forked_originals=True, add_dataloader_idx=False) -> dict:
         """
         Gets the metrics to log at the end of the batch step
 
@@ -257,20 +297,21 @@ class Result(Dict):
             if options['forked'] and not include_forked_originals:
                 continue
 
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
+
             if options['logger'] and options['on_step']:
-                if isinstance(self[k], Metric):
-                    result[k] = self[k]._forward_cache
+                if isinstance(self[k], Metric) and self[k]._forward_cache is not None:
+                    result[dl_key] = self[k]._forward_cache.detach()
                 else:
-                    result[k] = self[k]
+                    result[dl_key] = self[k]
 
         return result
 
-    def get_epoch_log_metrics(self) -> dict:
+    def get_epoch_log_metrics(self, add_dataloader_idx=False) -> dict:
         """
         Gets the metrics to log at the end of epoch
         """
         result = {}
-
         meta = self['meta']
         for k, options in meta.items():
             if k == '_internal':
@@ -278,20 +319,26 @@ class Result(Dict):
 
             if options['forked']:
                 continue
+
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
 
             if options['logger'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
-                    result[k] = self[k].compute()
+                    result[dl_key] = self[k].compute().detach()
+                    self[k].reset()
                 else:
-                    result[k] = self[k]
+                    result[dl_key] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # compute metric on epoch anyway so state does not accumulate
+                # reset metric anyway so state does not accumulate
+                # NOTE: we must compute before reseting just in case the computed value is needed
+                # later (i.e. if the step metric gets visited first, and then the epoch metric)
                 self[k].compute()
+                self[k].reset()
 
         return result
 
-    def get_epoch_pbar_metrics(self):
+    def get_epoch_pbar_metrics(self, add_dataloader_idx=False):
         """
         Gets the metrics to log at the end of epoch
         """
@@ -304,20 +351,26 @@ class Result(Dict):
 
             if options['forked']:
                 continue
+
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
 
             if options['prog_bar'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
-                    result[k] = self[k].compute()
+                    result[dl_key] = self[k].compute().detach()
+                    self[k].reset()
                 else:
-                    result[k] = self[k]
+                    result[dl_key] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # compute metric on epoch anyway so state does not accumulate
+                # reset metric anyway so state does not accumulate
+                # NOTE: we must compute before reseting just in case the computed value is needed
+                # later (i.e. if the step metric gets visited first, and then the epoch metric)
                 self[k].compute()
+                self[k].reset()
 
         return result
 
-    def get_forked_metrics(self):
+    def get_forked_metrics(self, add_dataloader_idx=False):
         """
         Gets the metrics to log at the end of epoch
         """
@@ -328,12 +381,18 @@ class Result(Dict):
             if k == '_internal':
                 continue
 
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
+
             if options['forked']:
-                result[k] = self[k]
+                if isinstance(self[k], Metric):
+                    result[dl_key] = self[k].compute().detach()
+                    self[k].reset()
+                else:
+                    result[dl_key] = self[k]
 
         return result
 
-    def get_batch_pbar_metrics(self, include_forked_originals=True):
+    def get_batch_pbar_metrics(self, include_forked_originals=True, add_dataloader_idx=False):
         """
         Gets the metrics to log at the end of the batch step
         """
@@ -347,11 +406,13 @@ class Result(Dict):
             if options['forked'] and not include_forked_originals:
                 continue
 
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
+
             if options['prog_bar'] and options['on_step']:
-                if isinstance(self[k], Metric):
-                    result[k] = self[k]._forward_cache
+                if isinstance(self[k], Metric) and self[k]._forward_cache is not None:
+                    result[dl_key] = self[k]._forward_cache
                 else:
-                    result[k] = self[k]
+                    result[dl_key] = self[k]
 
         return result
 
@@ -359,6 +420,16 @@ class Result(Dict):
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.detach())
+
+    def to(self, *args, **kwargs):
+        """Move all self attributes to the given device."""
+        for k, v in self.items():
+            if isinstance(v, torch.Tensor):
+                self.__setitem__(k, v.to(*args, **kwargs))
+
+    def cpu(self):
+        """Move all self attributes to CPU."""
+        self.to(torch.device("cpu"))
 
     def __repr__(self):
         self_copy = self.copy()
@@ -473,9 +544,12 @@ class Result(Dict):
             if option['on_epoch']:
                 fx = option['reduce_fx']
                 if fx == torch.mean:
+                    if isinstance(result[k], list):
+                        result[k] = torch.tensor(result[k]).float()
                     try:
                         reduced_val = weighted_mean(result[k], batch_sizes)
-                    except Exception as e:
+                    # todo: specify the expected Exceptions to come
+                    except Exception:
                         reduced_val = torch.mean(result[k])
                 else:
                     reduced_val = fx(result[k])
@@ -627,383 +701,6 @@ def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
         return torch.cat(items)
 
     return items
-
-
-class TrainResult(Result):
-    def __init__(
-        self,
-        minimize: Optional[Tensor] = None,
-        early_stop_on: Optional[Tensor] = None,
-        checkpoint_on: Optional[Union[Tensor, bool]] = None,
-        hiddens: Optional[Tensor] = None,
-    ):
-        """
-        Tracks internal metrics aggregations
-
-        Args:
-            minimize: Metric currently being minimized.
-            early_stop_on: Metric to early stop on.
-                Should be a one element tensor if combined with default
-                :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`.
-                If this result is returned by
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
-                the specified value will be averaged across all steps.
-            checkpoint_on: Metric to checkpoint on.
-                Should be a one element tensor if combined with default checkpoint callback.
-                If this result is returned by
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
-                the specified value will be averaged across all steps.
-            hiddens:
-        """
-
-        super().__init__(minimize, early_stop_on, checkpoint_on, hiddens)
-
-    def log(
-        self,
-        name,
-        value,
-        prog_bar: bool = False,
-        logger: bool = True,
-        on_step: bool = True,
-        on_epoch: bool = False,
-        reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
-        enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-    ):
-        """
-        Log a key, value
-
-        Example::
-
-            result.log('train_loss', loss)
-
-            # defaults used
-            result.log(
-                name,
-                value,
-                on_step=True,
-                on_epoch=False,
-                logger=True,
-                prog_bar=False,
-                reduce_fx=torch.mean,
-                enable_graph=False
-            )
-
-
-        Args:
-            name: key name
-            value: value name
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs the output of validation_step or test_step
-            on_epoch: if True, logs the output of the training loop aggregated
-            reduce_fx: Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
-            sync_dist_group: the ddp group
-        """
-        super().log(
-            name=name,
-            value=value,
-            prog_bar=prog_bar,
-            logger=logger,
-            on_step=on_step,
-            on_epoch=on_epoch,
-            reduce_fx=reduce_fx,
-            enable_graph=enable_graph,
-            sync_dist=sync_dist,
-            sync_dist_group=sync_dist_group,
-            sync_dist_op=sync_dist_op,
-            tbptt_pad_token=tbptt_pad_token,
-            tbptt_reduce_fx=tbptt_reduce_fx,
-        )
-
-    def log_dict(
-        self,
-        dictionary: dict,
-        prog_bar: bool = False,
-        logger: bool = True,
-        on_step: bool = False,
-        on_epoch: bool = True,
-        reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
-        enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-    ):
-        """
-        Log a dictonary of values at once
-
-        Example::
-
-            values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
-            result.log_dict(values)
-
-        Args:
-            dictionary: key value pairs (str, tensors)
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs the output of validation_step or test_step
-            on_epoch: if True, logs the output of the training loop aggregated
-            reduce_fx: Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
-            sync_dist_group: the ddp group:
-        """
-        for k, v in dictionary.items():
-            self.log(
-                name=k,
-                value=v,
-                prog_bar=prog_bar,
-                logger=logger,
-                on_step=on_step,
-                on_epoch=on_epoch,
-                reduce_fx=reduce_fx,
-                enable_graph=enable_graph,
-                sync_dist=sync_dist,
-                sync_dist_group=sync_dist_group,
-                sync_dist_op=sync_dist_op,
-                tbptt_pad_token=tbptt_pad_token,
-                tbptt_reduce_fx=tbptt_reduce_fx,
-            )
-
-
-class EvalResult(Result):
-    def __init__(
-        self,
-        early_stop_on: Optional[Tensor] = None,
-        checkpoint_on: Optional[Tensor] = None,
-        hiddens: Optional[Tensor] = None,
-    ):
-        """
-        Used in val/train loop to auto-log to a logger or progress bar without needing to define
-        a _step_end or _epoch_end method
-
-        Example::
-
-            def validation_step(self, batch, batch_idx):
-                loss = ...
-                result = EvalResult()
-                result.log('val_loss', loss)
-                return result
-
-            def test_step(self, batch, batch_idx):
-                loss = ...
-                result = EvalResult()
-                result.log('val_loss', loss)
-                return result
-
-        Args:
-            early_stop_on: Metric to early stop on.
-                Should be a one element tensor if combined with default
-                :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`.
-                If this result is returned by
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
-                the specified value will be averaged across all steps.
-            checkpoint_on: Metric to checkpoint on.
-                Should be a one element tensor if combined with default checkpoint callback.
-                If this result is returned by
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
-                the specified value will be averaged across all steps.
-            hiddens:
-        """
-
-        super().__init__(None, early_stop_on, checkpoint_on, hiddens)
-
-    def log(
-        self,
-        name,
-        value,
-        prog_bar: bool = False,
-        logger: bool = True,
-        on_step: bool = False,
-        on_epoch: bool = True,
-        reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
-        enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-    ):
-        """
-        Log a key, value
-
-        Example::
-
-            result.log('val_loss', loss)
-
-            # defaults used
-            result.log(
-                name,
-                value,
-                on_step=False,
-                on_epoch=True,
-                logger=True,
-                prog_bar=False,
-                reduce_fx=torch.mean
-            )
-
-
-        Args:
-            name: key name
-            value: value name
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs the output of validation_step or test_step
-            on_epoch: if True, logs the output of the training loop aggregated
-            reduce_fx: Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
-            sync_dist_group: the ddp group
-        """
-        super().log(
-            name=name,
-            value=value,
-            prog_bar=prog_bar,
-            logger=logger,
-            on_step=on_step,
-            on_epoch=on_epoch,
-            reduce_fx=reduce_fx,
-            enable_graph=enable_graph,
-            sync_dist=sync_dist,
-            sync_dist_group=sync_dist_group,
-            sync_dist_op=sync_dist_op,
-            tbptt_pad_token=tbptt_pad_token,
-            tbptt_reduce_fx=tbptt_reduce_fx,
-        )
-
-    def log_dict(
-        self,
-        dictionary: dict,
-        prog_bar: bool = False,
-        logger: bool = True,
-        on_step: bool = False,
-        on_epoch: bool = True,
-        reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
-        enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-    ):
-        """
-        Log a dictonary of values at once
-
-        Example::
-
-            values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
-            result.log_dict(values)
-
-        Args:
-            dictionary: key value pairs (str, tensors)
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs the output of validation_step or test_step
-            on_epoch: if True, logs the output of the training loop aggregated
-            reduce_fx: Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
-            sync_dist_group: the ddp group
-        """
-        for k, v in dictionary.items():
-            self.log(
-                name=k,
-                value=v,
-                prog_bar=prog_bar,
-                logger=logger,
-                on_step=on_step,
-                on_epoch=on_epoch,
-                reduce_fx=reduce_fx,
-                enable_graph=enable_graph,
-                sync_dist=sync_dist,
-                sync_dist_group=sync_dist_group,
-                sync_dist_op=sync_dist_op,
-                tbptt_pad_token=tbptt_pad_token,
-                tbptt_reduce_fx=tbptt_reduce_fx,
-            )
-
-    def get_callback_metrics(self) -> dict:
-        result = {}
-        if self.early_stop_on:
-            result['early_stop_on'] = self.early_stop_on
-        if self.checkpoint_on:
-            result['checkpoint_on'] = self.checkpoint_on
-        return result
-
-    def write(self, name: str, values: Union[Tensor, list], filename: str = 'predictions.pt'):
-        """Add feature name and value pair to collection of predictions that will be written to disk on
-        `validation_end` or `test_end`. If running on multiple GPUs, you will get separate `n_gpu`
-        prediction files with the rank prepended onto filename.
-
-        Example::
-
-            result = pl.EvalResult()
-            result.write('ids', [0, 1, 2])
-            result.write('preds', ['cat', 'dog', 'dog'])
-
-        Args:
-            name: Feature name that will turn into column header of predictions file
-            values: Flat tensor or list of row values for given feature column 'name'.
-            filename: Filepath where your predictions will be saved. Defaults to 'predictions.pt'.
-        """
-        # Type check the incoming arguments
-        if not isinstance(name, str):
-            raise ValueError(f"Expected str for 'name' but got {type(name)}")
-        if not isinstance(filename, str):
-            raise ValueError(f"Expected str for 'filename' but got {type(name)}")
-
-        if isinstance(values, Tensor):
-            values = values.detach()
-
-        preds = getattr(self, 'predictions', None)
-        if preds is None:
-            self.predictions = {filename: {name: values}}
-        elif filename not in preds:
-            preds[filename] = {name: values}
-        elif name not in preds[filename]:
-            preds[filename][name] = values
-        elif isinstance(values, Tensor):
-            preds[filename][name] = torch.cat((preds[filename][name], values))
-        elif isinstance(values, list):
-            preds[filename][name].extend(values)
-
-    def write_dict(self, predictions_dict, filename='predictions.pt'):
-        """Calls EvalResult.write() for each key-value pair in predictions_dict.
-
-        It is recommended that you use this function call instead of .write if you need to
-        store more than one column of predictions in your output file.
-
-        Example::
-
-            predictions_to_write = {'preds': ['cat', 'dog'], 'ids': tensor([0, 1])}
-            result.write_dict(predictions_to_write)
-
-        Args:
-            predictions_dict ([type]): Dict of predictions to store and then write to filename at eval end.
-            filename (str, optional): File where your predictions will be stored. Defaults to './predictions.pt'.
-        """
-        for k, v in predictions_dict.items():
-            self.write(k, v, filename)
 
 
 def weighted_mean(result, weights):

@@ -1,10 +1,34 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import os
 import sys
 import threading
-from functools import wraps, partial
+from functools import partial, wraps
 from http.server import SimpleHTTPRequestHandler
 
 import pytest
 import torch.multiprocessing as mp
+
+
+@pytest.fixture(scope="function", autouse=True)
+def restore_env_variables():
+    """ Ensures that environment variables set during the test do not leak out. """
+    env_backup = os.environ.copy()
+    yield
+    # restore environment as it was before running the test
+    os.environ.clear()
+    os.environ.update(env_backup)
 
 
 def pytest_configure(config):
@@ -30,9 +54,9 @@ def tmpdir_server(tmpdir):
     else:
         # unfortunately SimpleHTTPRequestHandler doesn't accept the directory arg in python3.6
         # so we have to hack it like this
-        import os
 
         class Handler(SimpleHTTPRequestHandler):
+
             def translate_path(self, path):
                 # get the path from cwd
                 path = super().translate_path(path)
@@ -42,8 +66,8 @@ def tmpdir_server(tmpdir):
                 return os.path.join(str(tmpdir), relpath)
 
         # ThreadingHTTPServer was added in 3.7, so we need to define it ourselves
-        from socketserver import ThreadingMixIn
         from http.server import HTTPServer
+        from socketserver import ThreadingMixIn
 
         class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
             daemon_threads = True

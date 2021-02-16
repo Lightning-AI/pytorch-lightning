@@ -15,7 +15,7 @@ import pytest
 import torch
 
 import pytorch_lightning as pl
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from tests.base import EvalModelTemplate
 
 
@@ -58,7 +58,7 @@ def test_ddp_spawn_test(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
     )
     trainer.fit(model)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path

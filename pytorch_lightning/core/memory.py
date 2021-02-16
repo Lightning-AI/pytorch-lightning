@@ -16,14 +16,14 @@ import os
 import shutil
 import subprocess
 from collections import OrderedDict
-from typing import Tuple, Dict, Union, List, Any
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.hooks import RemovableHandle
 
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import AMPType, DeviceType
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
@@ -155,12 +155,22 @@ class ModelSummary(object):
           | Name | Type       | Params | In sizes  | Out sizes
         ------------------------------------------------------------
         0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
+        ------------------------------------------------------------
+        132 K     Trainable params
+        0         Non-trainable params
+        132 K     Total params
+        0.530     Total estimated model params size (MB)
         >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
         0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
         1 | net.0 | Linear      | 131 K  | [10, 256] | [10, 512]
-        2 | net.1 | BatchNorm1d | 1 K    | [10, 512] | [10, 512]
+        2 | net.1 | BatchNorm1d | 1.0 K    | [10, 512] | [10, 512]
+        --------------------------------------------------------------
+        132 K     Trainable params
+        0         Non-trainable params
+        132 K     Total params
+        0.530     Total estimated model params size (MB)
     """
 
     MODE_TOP = "top"
@@ -172,6 +182,10 @@ class ModelSummary(object):
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
+        # 1 byte -> 8 bits
+        # TODO: how do we compute precisin_megabytes in case of mixed precision?
+        precision = self._model.precision if isinstance(self._model.precision, int) else 32
+        self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
@@ -205,6 +219,19 @@ class ModelSummary(object):
     def param_nums(self) -> List[int]:
         return [layer.num_parameters for layer in self._layer_summary.values()]
 
+    @property
+    def total_parameters(self) -> int:
+        return sum(p.numel() for p in self._model.parameters())
+
+    @property
+    def trainable_parameters(self) -> int:
+        return sum(p.numel() for p in self._model.parameters() if p.requires_grad)
+
+    @property
+    def model_size(self) -> float:
+        # todo: seems it does not work with quantized models - it returns 0.0
+        return self.total_parameters * self._precision_megabytes
+
     def summarize(self) -> Dict[str, LayerSummary]:
         summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
@@ -221,7 +248,7 @@ class ModelSummary(object):
         input_ = model.example_input_array
         input_ = model.transfer_batch_to_device(input_, model.device)
 
-        if trainer is not None and trainer.amp_backend == AMPType.NATIVE and not trainer.use_tpu:
+        if trainer is not None and trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU:
             model.forward = torch.cuda.amp.autocast()(model.forward)
 
         mode = model.training
@@ -240,7 +267,7 @@ class ModelSummary(object):
         """
         Makes a summary listing with:
 
-        Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes
+        Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
         """
         arrays = [
             [" ", list(map(str, range(len(self._layer_summary))))],
@@ -251,8 +278,11 @@ class ModelSummary(object):
         if self._model.example_input_array is not None:
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
+        total_parameters = self.total_parameters
+        trainable_parameters = self.trainable_parameters
+        model_size = self.model_size
 
-        return _format_summary_table(*arrays)
+        return _format_summary_table(total_parameters, trainable_parameters, model_size, *arrays)
 
     def __repr__(self):
         return str(self)
@@ -269,7 +299,7 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
     return UNKNOWN_SIZE
 
 
-def _format_summary_table(*cols) -> str:
+def _format_summary_table(total_parameters: int, trainable_parameters: int, model_size: float, *cols) -> str:
     """
     Takes in a number of arrays, each specifying a column in
     the summary table, and combines them all into one big
@@ -297,6 +327,16 @@ def _format_summary_table(*cols) -> str:
         for c, l in zip(cols, col_widths):
             line.append(s.format(str(c[1][i]), l))
         summary += "\n" + " | ".join(line)
+    summary += "\n" + "-" * total_width
+
+    summary += "\n" + s.format(get_human_readable_count(trainable_parameters), 10)
+    summary += "Trainable params"
+    summary += "\n" + s.format(get_human_readable_count(total_parameters - trainable_parameters), 10)
+    summary += "Non-trainable params"
+    summary += "\n" + s.format(get_human_readable_count(total_parameters), 10)
+    summary += "Total params"
+    summary += "\n" + s.format(get_formatted_model_size(model_size), 10)
+    summary += "Total estimated model params size (MB)"
 
     return summary
 
@@ -348,10 +388,12 @@ def get_gpu_memory_map() -> Dict[str, int]:
 
     # Convert lines into a dictionary
     gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {
-        f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)
-    }
+    gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
+
+
+def get_formatted_model_size(total_model_size: float) -> float:
+    return f"{total_model_size:,.3f}"
 
 
 def get_human_readable_count(number: int) -> str:
@@ -363,13 +405,13 @@ def get_human_readable_count(number: int) -> str:
         >>> get_human_readable_count(123)
         '123  '
         >>> get_human_readable_count(1234)  # (one thousand)
-        '1 K'
+        '1.2 K'
         >>> get_human_readable_count(2e6)   # (two million)
-        '2 M'
+        '2.0 M'
         >>> get_human_readable_count(3e9)   # (three billion)
-        '3 B'
-        >>> get_human_readable_count(4e12)  # (four trillion)
-        '4 T'
+        '3.0 B'
+        >>> get_human_readable_count(4e14)  # (four hundred trillion)
+        '400 T'
         >>> get_human_readable_count(5e15)  # (more than trillion)
         '5,000 T'
 
@@ -386,6 +428,9 @@ def get_human_readable_count(number: int) -> str:
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
-    number = number * (10 ** shift)
+    number = number * (10**shift)
     index = num_groups - 1
-    return f"{int(number):,d} {labels[index]}"
+    if index < 1 or number >= 100:
+        return f"{int(number):,d} {labels[index]}"
+    else:
+        return f"{number:,.1f} {labels[index]}"

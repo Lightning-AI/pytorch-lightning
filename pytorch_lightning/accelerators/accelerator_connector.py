@@ -11,415 +11,588 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning import accelerators
+
 import os
+from typing import List, Optional, Sequence, Union
+
 import torch
 
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import _logger as log
-from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
-from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.cpu import CPUAccelerator
+from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.tpu import TPUAccelerator
+from pytorch_lightning.plugins import (
+    ApexMixedPrecisionPlugin,
+    DataParallelPlugin,
+    DDP2Plugin,
+    DDPPlugin,
+    DDPShardedPlugin,
+    DDPSpawnPlugin,
+    DDPSpawnShardedPlugin,
+    HorovodPlugin,
+    NativeMixedPrecisionPlugin,
+    PrecisionPlugin,
+    ShardedNativeMixedPrecisionPlugin,
+    SingleDevicePlugin,
+    SingleTPUPlugin,
+    TPUHalfPrecisionPlugin,
+    TPUSpawnPlugin,
+    TrainingTypePlugin,
+)
+from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
+from pytorch_lightning.utilities import (
+    _APEX_AVAILABLE,
+    _HOROVOD_AVAILABLE,
+    _NATIVE_AMP_AVAILABLE,
+    _TPU_AVAILABLE,
+    AMPType,
+    device_parser,
+    DeviceType,
+    DistributedType,
+    rank_zero_only,
+)
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
-    import torch_xla
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
-try:
+if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
-class AcceleratorConnector:
+class BackendConnector(object):
 
-    def __init__(self, trainer):
-        self.trainer = trainer
-        self.accelerator = None
-
-    def on_trainer_init(
-            self,
-            num_processes,
-            tpu_cores,
-            accelerator,
-            distributed_backend,
-            auto_select_gpus,
-            gpus,
-            num_nodes,
-            log_gpu_memory,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic,
+    def __init__(
+        self,
+        num_processes,
+        tpu_cores,
+        distributed_backend,
+        auto_select_gpus,
+        gpus,
+        num_nodes,
+        sync_batchnorm,
+        benchmark,
+        replace_sampler_ddp,
+        deterministic,
+        precision,
+        amp_type,
+        amp_level,
+        plugins,
     ):
-        # temp until we remove all dist backend references
-        distributed_backend = self._map_deprecated_dist_backend(accelerator, distributed_backend)
+        # initialization
+        self._device_type = DeviceType.CPU
+        self._distrib_type = None
 
-        self.trainer.deterministic = deterministic
+        self.num_processes = num_processes
+        self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
+        self.distributed_backend = distributed_backend
+        self.auto_select_gpus = auto_select_gpus
+        self.gpus = gpus
+        self.num_nodes = num_nodes
+        self.sync_batchnorm = sync_batchnorm
+        self.benchmark = benchmark
+        self.replace_sampler_ddp = replace_sampler_ddp
+        self.deterministic = deterministic
+        self.precision = precision
+        self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
+        self.amp_level = amp_level
+        self.is_slurm_managing_tasks = False
 
-        torch.backends.cudnn.deterministic = self.trainer.deterministic
-        if self.trainer.deterministic:
-            # fixing non-deterministic part of horovod
-            # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
-            os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
-
-        # distributed backend choice
-        self.trainer.distributed_backend = distributed_backend.lower() if distributed_backend else None
+        self._precision_plugin: Optional[PrecisionPlugin] = None
+        self._training_type_plugin: Optional[TrainingTypePlugin] = None
+        self._cluster_environment: Optional[ClusterEnvironment] = None
 
         # init the default rank if exists
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
         # this way we only show it on rank 0
-        if 'LOCAL_RANK' in os.environ:
-            rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
-
-        # benchmarking
-        self.trainer.benchmark = benchmark
-        torch.backends.cudnn.benchmark = self.trainer.benchmark
-
-        # Transfer params
-        self.trainer.num_nodes = num_nodes
-        self.trainer.log_gpu_memory = log_gpu_memory
-
-        # sync-bn backend
-        self.trainer.sync_batchnorm = sync_batchnorm
-
-        self.trainer.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        self.trainer.on_tpu = self.trainer.tpu_cores is not None
-
-        self.trainer.tpu_id = self.trainer.tpu_cores[0] if isinstance(self.trainer.tpu_cores, list) else None
-
-        if num_processes != 1 and distributed_backend != "ddp_cpu":
-            rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
-        self.trainer.num_processes = num_processes
-
-        # override with environment flag
-        gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
-        self.trainer.gpus = gpus
+        if "LOCAL_RANK" in os.environ:
+            rank_zero_only.rank = int(os.environ["LOCAL_RANK"])
 
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
-            self.trainer.gpus = self.trainer.tuner.pick_multiple_gpus(gpus)
+            self.gpus = pick_multiple_gpus(gpus)
 
-        self.trainer.data_parallel_device_ids = device_parser.parse_gpu_ids(self.trainer.gpus)
-        self.trainer.root_gpu = device_parser.determine_root_gpu_device(self.trainer.data_parallel_device_ids)
-        self.trainer.root_device = torch.device("cpu")
+        self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
 
-        self.trainer.on_gpu = True if (self.trainer.data_parallel_device_ids and torch.cuda.is_available()) else False
-
-        # tpu state flags
-        self.trainer.use_tpu = False
-        self.trainer.tpu_local_core_rank = None
-        self.trainer.tpu_global_core_rank = None
-
-        # distributed backend choice
         self.set_distributed_mode()
+        self.configure_slurm_ddp()
+
+        self.handle_given_plugins(plugins)
+
+        self.accelerator = self.select_accelerator()
 
         # override dist backend when using tpus
-        if self.trainer.on_tpu:
-            self.trainer.distributed_backend = "tpu"
-            self.trainer.use_tpu = True
+        if self.on_tpu:
+            self.distributed_backend = "tpu"
 
         # init flags for SLURM+DDP to work
-        self.trainer.world_size = 1
-        self.trainer.interactive_ddp_procs = []
+        self.world_size = 1
+        self.interactive_ddp_procs = []
+        self.global_rank = 0
 
-        # link up SLURM
-        # TODO: this should be taken out of here... but depends too much on DDP
-        self.trainer.slurm_connector.on_trainer_init(self.trainer.num_nodes)
-        self.trainer.node_rank = self.determine_ddp_node_rank()
-        self.trainer.local_rank = self.determine_local_rank()
-        self.trainer.global_rank = 0
+        # benchmarking
+        # TODO: should this be moved to GPU accelerator?
+        torch.backends.cudnn.benchmark = self.benchmark
 
-        # NVIDIA setup
-        self.set_nvidia_flags(self.trainer.is_slurm_managing_tasks, self.trainer.data_parallel_device_ids)
+        # determinism for cudnn
+        # TODO: should this be moved to GPU accelerator?
+        torch.backends.cudnn.deterministic = deterministic
+        if deterministic:
+            # fixing non-deterministic part of horovod
+            # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
+            os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
-        self.trainer.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
+        self.replace_sampler_ddp = replace_sampler_ddp
 
-        self.trainer.replace_sampler_ddp = replace_sampler_ddp
+    def handle_given_plugins(self, plugins: Optional[Sequence]):
+        plugins = plugins if plugins is not None else []
 
-    def _map_deprecated_dist_backend(self, accelerator, distributed_backend):
-        if distributed_backend is not None:
-            rank_zero_warn(DeprecationWarning('distributed_backend has been renamed to accelerator. '
-                                              'Deprecated in 1.0.0, will be removed in 1.2.0'))
+        if isinstance(plugins, str):
+            plugins = [plugins]
 
-        # temporary mapping until we remove all the distributed_backend references
-        if accelerator is not None:
-            self.accelerator = accelerator
-            if isinstance(accelerator, Accelerator):
-                self.accelerator.trainer = self
-                distributed_backend = self.accelerator.nickname
+        if not isinstance(plugins, Sequence):
+            plugins = [plugins]
+
+        training_type = None
+        precision = None
+        cluster_environment = None
+
+        for plug in plugins:
+            if isinstance(plug, str):
+                self.set_distributed_mode(plug)
+
+            elif isinstance(plug, TrainingTypePlugin):
+                if training_type is None:
+                    training_type = plug
+
+                else:
+                    raise MisconfigurationException(
+                        'You can only specify one precision and one training type plugin.'
+                        f' Found more than 1 training type plugin: {type(plug).__name__}'
+                    )
+            elif isinstance(plug, PrecisionPlugin):
+                if precision is None:
+                    precision = plug
+                else:
+                    raise MisconfigurationException(
+                        'You can only specify one precision and one training type plugin.'
+                        f' Found more than 1 precision plugin: {type(plug).__name__}'
+                    )
+
+            elif isinstance(plug, ClusterEnvironment):
+                if cluster_environment is None:
+                    cluster_environment = plug
+                else:
+                    raise MisconfigurationException(
+                        'You can only specify one cluster environment. Found more than 1 cluster environment plugin'
+                    )
             else:
-                distributed_backend = accelerator
-        return distributed_backend
+                raise MisconfigurationException(
+                    f'Found invalid type for plugin {plug}. Expected a precision or training type plugin.'
+                )
 
-    def _select_environment(self):
-        if self.trainer.plugin_connector.cloud_environment:
-            env = self.trainer.plugin_connector.cloud_environment
-        elif self.trainer.is_slurm_managing_tasks:
-            env = SLURMEnvironment()
-        elif self._is_using_torchelastic():
-            env = TorchElasticEnvironment()
+        self._training_type_plugin = training_type
+        self._training_type_plugin = self.training_type_plugin
+        self._precision_plugin = precision
+        self._cluster_environment = cluster_environment or self.select_cluster_environment()
+
+    @property
+    def precision_plugin(self) -> PrecisionPlugin:
+        if self._precision_plugin is None:
+            self._precision_plugin = self.select_precision_plugin()
+        return self._precision_plugin
+
+    @property
+    def training_type_plugin(self) -> TrainingTypePlugin:
+        if self._training_type_plugin is None:
+            self._training_type_plugin = self.select_training_type_plugin()
         else:
+            self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
+
+        return self._training_type_plugin
+
+    @property
+    def cluster_environment(self) -> ClusterEnvironment:
+        return self._cluster_environment
+
+    @property
+    def on_cpu(self) -> bool:
+        return self._device_type == DeviceType.CPU
+
+    @property
+    def on_tpu(self) -> bool:
+        return self.tpu_cores is not None
+
+    @property
+    def tpu_id(self) -> Optional[int]:
+        if self.on_tpu and isinstance(self.tpu_cores, list):
+            return self.tpu_cores[0]
+
+        return None
+
+    @property
+    def on_gpu(self) -> bool:
+        gpus = self.parallel_device_ids
+        return gpus is not None and len(gpus) > 0 and torch.cuda.is_available()
+
+    @property
+    def use_dp(self) -> bool:
+        return self._distrib_type == DistributedType.DP
+
+    @property
+    def use_ddp(self) -> bool:
+        return self._distrib_type in (
+            DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED,
+            DistributedType.DDP_SHARDED_SPAWN
+        )
+
+    @property
+    def use_ddp2(self) -> bool:
+        return self._distrib_type == DistributedType.DDP2
+
+    @property
+    def use_horovod(self) -> bool:
+        return self._distrib_type == DistributedType.HOROVOD
+
+    @property
+    def is_distributed(self) -> bool:
+        is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
+        if self.on_tpu:
+            is_distributed |= self.training_type_plugin.is_distributed
+        return is_distributed
+
+    @property
+    def num_gpus(self) -> int:
+        gpus = self.parallel_device_ids
+        if gpus is None:
+            return 0
+        return len(gpus)
+
+    @property
+    def parallel_devices(self) -> Union[List[torch.device], int]:
+        if self.on_gpu:
+            devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
+        elif self.on_tpu:
+            # explicitly don't make a tpu device here!
+            # https://github.com/PyTorchLightning/pytorch-lightning/issues/3169
+            devices = [i for i in self.parallel_device_ids]
+        else:
+            devices = [torch.device("cpu")] * self.num_processes
+        return devices
+
+    @property
+    def root_gpu(self) -> Optional[int]:
+        return self.accelerator.root_device.index if not isinstance(self.accelerator, TPUAccelerator) else None
+
+    @property
+    def is_using_torchelastic(self) -> bool:
+        te_flags_passed = "WORLD_SIZE" in os.environ and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
+        return te_flags_passed
+
+    def select_precision_plugin(self) -> PrecisionPlugin:
+        if self.precision == 32:
+            self.amp_type = None
+            return PrecisionPlugin()
+
+        elif self.precision == 16:
+            if self.on_tpu:
+                return TPUHalfPrecisionPlugin()
+
+            if self.amp_type == "native":
+                if not _NATIVE_AMP_AVAILABLE:
+                    rank_zero_warn(
+                        "You have asked for native AMP but your PyTorch version does not support it."
+                        " Consider upgrading with `pip install torch>=1.6`."
+                        " We will attempt to use NVIDIA Apex for this session."
+                    )
+                    if not _APEX_AVAILABLE and self.on_cpu:
+                        raise MisconfigurationException(
+                            "You have asked for native AMP on CPU, but AMP is only available on GPU."
+                        )
+                    self.amp_type = "apex"
+                elif self.on_cpu:
+                    raise MisconfigurationException(
+                        "You have asked for native AMP on CPU, but AMP is only available on GPU."
+                    )
+                else:
+                    log.info("Using native 16bit precision.")
+                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
+                        return ShardedNativeMixedPrecisionPlugin()
+                    self.amp_type = AMPType.NATIVE
+                    return NativeMixedPrecisionPlugin()
+
+            if self.amp_type == "apex":
+                if not _APEX_AVAILABLE:
+                    rank_zero_warn(
+                        "You have asked for Apex AMP but you have not installed it yet."
+                        " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
+                    )
+                else:
+                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
+                        raise MisconfigurationException(
+                            "Sharded Plugin is not supported with Apex AMP, "
+                            "please using native AMP for 16-bit precision."
+                        )
+                    log.info("Using APEX 16bit precision.")
+                    self.amp_type = AMPType.APEX
+                    return ApexMixedPrecisionPlugin(self.amp_level)
+        else:
+            raise NotImplementedError("We only support precisions 32 and 16!")
+
+    def select_training_type_plugin(self) -> TrainingTypePlugin:
+        if self.use_ddp2:
+            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+        elif self.use_ddp:
+            use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
+            use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
+            use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
+            use_ddp_cpu_spawn = self.use_ddp and self.on_cpu
+            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self.is_using_torchelastic
+            use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
+            use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
+            use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
+
+            # TODO: decouple from TE
+            # ddp script mode uses the same flags as TE
+            if os.environ.get("PL_IN_DDP_SUBPROCESS", False):
+                use_torchelastic_ddp = False
+
+            if self.on_tpu:
+                ddp_plugin_cls = TPUSpawnPlugin
+            elif use_ddp_sharded:
+                ddp_plugin_cls = DDPShardedPlugin
+            elif use_ddp_sharded_spawn:
+                ddp_plugin_cls = DDPSpawnShardedPlugin
+            elif use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
+                ddp_plugin_cls = DDPPlugin
+            elif use_ddp_spawn or use_ddp_cpu_spawn:
+                ddp_plugin_cls = DDPSpawnPlugin
+            else:
+                ddp_plugin_cls = DDPPlugin
+
+            plugin = ddp_plugin_cls(
+                parallel_devices=self.parallel_devices,
+                num_nodes=self.num_nodes,
+                cluster_environment=self.cluster_environment,
+                sync_batchnorm=self.sync_batchnorm,
+            )
+        elif self.use_dp:
+            plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
+        elif self.use_horovod:
+            plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
+        elif self.on_tpu:
+            if isinstance(self.tpu_cores, list):
+                plugin = SingleTPUPlugin(self.tpu_id)
+            else:
+                plugin = TPUSpawnPlugin(parallel_devices=list(range(self.tpu_cores)))
+        else:
+            single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
+            plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.on_gpu else "cpu"))
+        return plugin
+
+    def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
+        # necessary for RPC, when user has to provide balance
+        if hasattr(training_type, 'parallel_devices') and not getattr(training_type, 'parallel_devices'):
+            training_type.parallel_devices = self.parallel_devices
+            if hasattr(training_type, 'num_processes'):
+                training_type.num_processes = len(self.parallel_devices)
+
+        if hasattr(training_type, 'cluster_environment') and getattr(training_type, 'cluster_environment') is None:
+            training_type.cluster_environment = self.select_cluster_environment()
+
+        if hasattr(training_type, 'num_nodes') and getattr(training_type, 'num_nodes') is None:
+            training_type.num_nodes = self.num_nodes
+
+        return training_type
+
+    def select_accelerator(self) -> Accelerator:
+        if isinstance(self.distributed_backend, Accelerator):
+            # custom accelerator from user
+            if self._precision_plugin is not None or self._training_type_plugin is not None:
+                # plugins also specified by user
+                rank_zero_warn(
+                    'Specified `Precision` and `TrainingType` plugins will be ignored,'
+                    ' since an `Accelerator` instance was provided.'
+                )
+            return self.distributed_backend
+
+        if self.on_gpu:
+            acc_cls = GPUAccelerator
+        elif self.on_tpu:
+            acc_cls = TPUAccelerator
+        else:
+            acc_cls = CPUAccelerator
+
+        return acc_cls(
+            precision_plugin=self.precision_plugin,
+            training_type_plugin=self.training_type_plugin,
+        )
+
+    def select_cluster_environment(self) -> ClusterEnvironment:
+        if self._cluster_environment is not None:
+            return self._cluster_environment
+        if self.is_slurm_managing_tasks:
+            env = SLURMEnvironment()
+            # TODO: decouple DDP from SLURM
+            #   refactor and let generic cluster env hold the information about who spawns the processes
+            os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
+        elif self.is_using_torchelastic:
+            env = TorchElasticEnvironment()
+            # TODO: decouple DDP from TE
+            #   refactor and let generic cluster env hold the information about who spawns the processes
+            os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
+        else:
+            # TODO: maybe introduce a DefaultEnvironment?
             env = TorchElasticEnvironment()
         return env
 
-    def _is_using_torchelastic(self):
-        te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
-        return te_flags_passed
+    def set_distributed_mode(self, distributed_backend: Optional[str] = None):
 
-    def select_accelerator(self):
-        if self.trainer.accelerator_backend is not None:
-            return self.trainer.accelerator_backend
+        if distributed_backend is not None:
+            self.distributed_backend = distributed_backend
 
-        # ----------------------------------
-        # Use the user provided accelerator
-        # ----------------------------------
-        # use the one the user passed in
-        if self.accelerator is not None and isinstance(self.accelerator, Accelerator):
-            self.accelerator.trainer = self.trainer
-            self.accelerator.ddp_plugin = self.trainer.plugin_connector.ddp_plugin
-            acc = self.accelerator
-            return acc
+        if isinstance(self.distributed_backend, Accelerator):
+            return
 
-        # ----------------------------------
-        # choose an accelerator for the user
-        # ----------------------------------
-        use_slurm_ddp = self.trainer.use_ddp and self.trainer.is_slurm_managing_tasks
-
-        # torchelastic or general non_slurm ddp
-        te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
-        use_torchelastic_ddp = self.trainer.use_ddp and te_flags_passed
-
-        use_ddp_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_spawn"
-        use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_cpu"
-
-        use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self._is_using_torchelastic()
-        use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.trainer.is_slurm_managing_tasks
-
-        # ddp script mode uses the same flags as TE
-        # TODO: decouple from TE
-        if os.environ.get('PL_IN_DDP_SUBPROCESS', False):
-            use_torchelastic_ddp = False
-
-        cluster_env = self._select_environment()
-
-        # choose the appropriate accelerator backend
-        if self.trainer.use_ddp2:
-            accelerator_backend = accelerators.DDP2Accelerator(
-                self.trainer,
-                cluster_env,
-                self.trainer.plugin_connector.ddp_plugin
-            )
-
-        elif use_ddp_cpu_slurm:
-            accelerator_backend = accelerators.DDPCPUSLURMAccelerator(
-                self.trainer,
-                cluster_env,
-                self.trainer.plugin_connector.ddp_plugin
-            )
-
-        elif use_slurm_ddp:
-            accelerator_backend = accelerators.DDPSLURMAccelerator(
-                self.trainer,
-                cluster_env,
-                self.trainer.plugin_connector.ddp_plugin
-            )
-
-        elif use_ddp_cpu_torch_elastic:
-            accelerator_backend = accelerators.DDPCPUTorchElasticAccelerator(
-                self.trainer,
-                cluster_env,
-                self.trainer.plugin_connector.ddp_plugin
-            )
-
-        elif use_torchelastic_ddp:
-            accelerator_backend = accelerators.DDPTorchElasticAccelerator(
-                self.trainer,
-                cluster_env,
-                self.trainer.plugin_connector.ddp_plugin
-            )
-
-        elif use_ddp_spawn:
-            accelerator_backend = accelerators.DDPSpawnAccelerator(
-                self.trainer,
-                nprocs=self.trainer.num_processes,
-                cluster_environment=cluster_env,
-                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
-            )
-
-        elif use_ddp_cpu_spawn:
-            accelerator_backend = accelerators.DDPCPUSpawnAccelerator(
-                self.trainer,
-                nprocs=self.trainer.num_processes,
-                cluster_environment=cluster_env,
-                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
-            )
-
-        elif self.trainer.distributed_backend == "ddp":
-            accelerator_backend = accelerators.DDPAccelerator(
-                self.trainer,
-                cluster_env,
-                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
-            )
-
-        elif self.trainer.use_dp:
-            accelerator_backend = accelerators.DataParallelAccelerator(self.trainer, cluster_env)
-
-        elif self.trainer.use_horovod:
-            accelerator_backend = accelerators.HorovodAccelerator(self.trainer, cluster_env)
-
-        elif self.trainer.use_single_gpu:
-            accelerator_backend = accelerators.GPUAccelerator(self.trainer, cluster_env)
-
-        elif self.trainer.use_tpu:
-            accelerator_backend = accelerators.TPUAccelerator(self.trainer, cluster_env)
-
-        elif self.trainer.distributed_backend is None:
-            accelerator_backend = accelerators.CPUAccelerator(self.trainer, cluster_env)
-        else:
-            raise MisconfigurationException(
-                f'Trainer(distributed_backend={self.trainer.distributed_backend} is not a supported backend'
-            )
-
-        return accelerator_backend
-
-    def set_distributed_mode(self):
-        self.trainer.use_dp = False
-        self.trainer.use_ddp = False
-        self.trainer.use_ddp2 = False
-        self.trainer.use_horovod = False
-        self.trainer.use_single_gpu = False
-
-        if self.trainer.distributed_backend is None:
+        if self.distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
-            elif self.trainer.num_gpus == 0:
-                if self.trainer.num_nodes > 1 or self.trainer.num_processes > 1:
-                    self.trainer.use_ddp = True  # ddp_cpu
-            elif self.trainer.num_gpus == 1:
-                self.trainer.use_single_gpu = True
-            elif self.trainer.num_gpus > 1:
+            elif self.num_gpus == 0 and (self.num_nodes > 1 or self.num_processes > 1):
+                self._distrib_type = DistributedType.DDP
+            elif self.num_gpus > 1:
                 rank_zero_warn(
                     'You requested multiple GPUs but did not specify a backend, e.g.'
-                    ' Trainer(distributed_backend="dp"|"ddp"|"ddp2").'
-                    ' Setting distributed_backend="ddp_spawn" for you.'
+                    ' `Trainer(accelerator="dp"|"ddp"|"ddp2")`. Setting `accelerator="ddp_spawn"` for you.'
                 )
-                self.trainer.distributed_backend = "ddp_spawn"
+                self.distributed_backend = "ddp_spawn"
 
-        if self.trainer.distributed_backend == "dp":
-            # do nothing if num_gpus == 0
-            if self.trainer.num_gpus == 1:
-                self.trainer.use_single_gpu = True
-                self.trainer.use_dp = True
-            elif self.trainer.num_gpus > 1:
-                self.trainer.use_dp = True
-
-        elif self.trainer.distributed_backend in ("ddp", "ddp_spawn"):
-            if self.trainer.num_gpus == 0:
-                if self.trainer.num_nodes > 1 or self.trainer.num_processes > 1:
-                    self.trainer.use_ddp = True  # ddp_cpu
-            elif self.trainer.num_gpus == 1:
-                self.trainer.use_single_gpu = True
-                self.trainer.use_ddp = True
-            elif self.trainer.num_gpus > 1:
-                self.trainer.use_ddp = True
-                self.trainer.num_processes = self.trainer.num_gpus
-
-        elif self.trainer.distributed_backend == "ddp2":
-            # do nothing if num_gpus == 0
-            if self.trainer.num_gpus >= 1:
-                self.trainer.use_ddp2 = True
-        elif self.trainer.distributed_backend == "ddp_cpu":
-            if self.trainer.num_gpus > 0:
+        # special case with DDP on CPUs
+        if self.distributed_backend == "ddp_cpu":
+            self._distrib_type = DistributedType.DDP
+            if self.num_gpus > 0:
                 rank_zero_warn(
                     'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
                 )
-            self.trainer.use_ddp = True
-            self.trainer.data_parallel_device_ids = None
-            self.trainer.on_gpu = False
-        elif self.trainer.distributed_backend == "horovod":
+                self.parallel_device_ids = None
+            if self.num_processes is None:
+                # define the max CPU available
+                self.num_processes = os.cpu_count()
+        # special case with TPUs
+        elif self.distributed_backend == 'tpu':
+            self._device_type = DeviceType.TPU
+        elif self.distributed_backend and self._distrib_type is None:
+            self._distrib_type = DistributedType(self.distributed_backend)
+
+        # unless you request explicitly for CPU and some GPU are available use them
+        _on_cpu = self.distributed_backend and 'cpu' in self.distributed_backend
+        if self.num_gpus > 0 and not _on_cpu:
+            self._device_type = DeviceType.GPU
+
+        _distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
+        # DP and DDP2 cannot run without GPU
+        if self.num_gpus == 0 and self._distrib_type in _distrib_types and not _on_cpu:
+            rank_zero_warn(
+                'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
+            )
+            # todo: in some cases it yield in comarison None and int
+            if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
+                self._distrib_type = DistributedType.DDP
+            else:
+                rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
+                self._distrib_type = None
+
+        # for DDP overwrite nb processes by requested GPUs
+        if (
+            self._device_type == DeviceType.GPU
+            and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
+        ):
+            self.num_processes = self.num_gpus
+
+        if (self._device_type == DeviceType.GPU and self._distrib_type == DistributedType.DDP2):
+            self.num_processes = self.num_nodes
+
+        # Horovod is an extra case...
+        if self.distributed_backend == "horovod":
             self._set_horovod_backend()
 
         # throw error to force user ddp or ddp2 choice
-        if self.trainer.num_nodes > 1 and not (self.trainer.use_ddp2 or self.trainer.use_ddp):
+        _ddp = (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
+        if (self.num_nodes > 1 and self._distrib_type not in _ddp):
             raise MisconfigurationException(
                 'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
-                'To silence this warning set distributed_backend=ddp or distributed_backend=ddp2'
+                'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
             )
 
-        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.trainer.on_gpu}')
-        num_cores = self.trainer.tpu_cores if self.trainer.tpu_cores is not None else 0
-        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
+        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
+        num_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
-        if torch.cuda.is_available() and not self.trainer.on_gpu:
-            rank_zero_warn('GPU available but not used. Set the --gpus flag when calling the script.')
+        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
+            rank_zero_warn("GPU available but not used. Set the --gpus flag when calling the script.")
 
     def _set_horovod_backend(self):
         self.check_horovod()
-        self.trainer.use_horovod = True
+        self._distrib_type = DistributedType.HOROVOD
 
         # Initialize Horovod to get rank / size info
         hvd.init()
-        if self.trainer.on_gpu:
+        if self.on_gpu:
             # Horovod assigns one local GPU per process
-            self.trainer.root_gpu = hvd.local_rank()
+            self.parallel_device_ids = list(range(hvd.local_size()))
+        else:
+            self.num_processes = hvd.local_size()
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
-        if not HOROVOD_AVAILABLE:
+        if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(
                 'Requested `distributed_backend="horovod"`, but Horovod is not installed.'
-                'Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]'
+                "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
             )
 
-        if self.trainer.num_gpus > 1 or self.trainer.num_nodes > 1:
+        if self.num_gpus > 1 or self.num_nodes > 1:
             raise MisconfigurationException(
-                'Horovod does not support setting num_nodes / num_gpus explicitly. Use '
-                'horovodrun / mpirun to configure the number of processes.'
+                "Horovod does not support setting num_nodes / num_gpus explicitly. Use "
+                "horovodrun / mpirun to configure the number of processes."
             )
 
     @staticmethod
-    def has_horovodrun():
+    def has_horovodrun() -> bool:
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
-        return 'OMPI_COMM_WORLD_RANK' in os.environ or 'HOROVOD_RANK' in os.environ
+        return "OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ
 
-    def set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
-        if data_parallel_device_ids is None:
-            return
+    def configure_slurm_ddp(self):
+        # extract SLURM flag vars
+        # whenever we have the correct number of tasks, we let slurm manage processes
+        # otherwise we launch the required number of processes
+        if self.use_ddp or self.use_ddp2:
+            num_requested_gpus = self.num_gpus * self.num_nodes
+            num_slurm_tasks = 0
+            try:
+                num_slurm_tasks = int(os.environ["SLURM_NTASKS"])
+                self.is_slurm_managing_tasks = num_slurm_tasks == num_requested_gpus
 
-        # set the correct cuda visible devices (using pci order)
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
-        devices = os.environ.get("CUDA_VISIBLE_DEVICES", all_gpu_ids)
-        log.info(f'LOCAL_RANK: {self.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]')
+                # enable slurm cpu
+                if num_requested_gpus == 0:
+                    self.is_slurm_managing_tasks = num_slurm_tasks == self.num_processes
 
-    def determine_local_rank(self):
-        if self.trainer.is_slurm_managing_tasks:
-            return int(os.environ['SLURM_LOCALID'])
-        else:
-            return int(os.environ.get('LOCAL_RANK', 0))
+                # in interactive mode we don't manage tasks
+                job_name = os.environ["SLURM_JOB_NAME"]
+                if job_name == "bash":
+                    self.is_slurm_managing_tasks = False
 
-    def determine_ddp_node_rank(self):
-        if self.trainer.is_slurm_managing_tasks:
-            return int(os.environ['SLURM_NODEID'])
+            except Exception:
+                # likely not on slurm, so set the slurm managed flag to false
+                self.is_slurm_managing_tasks = False
 
-        # torchelastic uses the envvar GROUP_RANK, whereas other systems(?) use NODE_RANK.
-        # otherwise use given node rank or default to node rank 0
-        env_vars = ['NODE_RANK', 'GROUP_RANK']
-        node_ids = [(k, os.environ.get(k, None)) for k in env_vars]
-        node_ids = [(k, v) for k, v in node_ids if v is not None]
-        if len(node_ids) == 0:
-            return 0
-        if len(node_ids) > 1:
-            log.warning(f"Multiple environment variables ({node_ids}) defined for node rank. Using the first one.")
-        k, rank = node_ids.pop()
-        rank_zero_info(f"Using environment variable {k} for node rank ({rank}).")
-        return int(rank)
+        # used for tests only, set this flag to simulate slurm managing a task
+        try:
+            should_fake = int(os.environ["FAKE_SLURM_MANAGING_TASKS"])
+            if should_fake:
+                self.is_slurm_managing_tasks = True
+        except Exception:
+            pass
+
+        # notify user the that slurm is managing tasks
+        if self.is_slurm_managing_tasks:
+            rank_zero_info("Multi-processing is handled by Slurm.")

@@ -11,19 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 from typing import Any, Optional
 
+import torch
+
+from pytorch_lightning.metrics.functional.psnr import _psnr_compute, _psnr_update
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.psnr import (
-    _psnr_update,
-    _psnr_compute,
-)
 
 
 class PSNR(Metric):
-    """
-    Computes peak signal-to-noise ratio
+    r"""
+    Computes `peak signal-to-noise ratio <https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio>`_ (PSNR):
+
+    .. math:: \text{PSNR}(I, J) = 10 * \log_{10} \left(\frac{\max(I)^2}{\text{MSE}(I, J)}\right)
+
+    Where :math:`\text{MSE}` denotes the `mean-squared-error
+    <https://en.wikipedia.org/wiki/Mean_squared_error>`_ function.
 
     Args:
         data_range: the range of the data. If None, it is determined from the data (max - min)

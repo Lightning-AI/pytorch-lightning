@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 CSV logger
 ----------
@@ -29,7 +28,7 @@ import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 
 
@@ -67,6 +66,7 @@ class ExperimentWriter(object):
 
     def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
         """Record metrics"""
+
         def _handle_value(value):
             if isinstance(value, torch.Tensor):
                 return value.item()
@@ -100,8 +100,9 @@ class ExperimentWriter(object):
 
 class CSVLogger(LightningLoggerBase):
     r"""
-    Log to local file system in yaml and CSV format. Logs are saved to
-    ``os.path.join(save_dir, name, version)``.
+    Log to local file system in yaml and CSV format.
+
+    Logs are saved to ``os.path.join(save_dir, name, version)``.
 
     Example:
         >>> from pytorch_lightning import Trainer
@@ -114,18 +115,23 @@ class CSVLogger(LightningLoggerBase):
         name: Experiment name. Defaults to ``'default'``.
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
+        prefix: A string to put at the beginning of metric keys.
     """
+
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
         save_dir: str,
         name: Optional[str] = "default",
-        version: Optional[Union[int, str]] = None
+        version: Optional[Union[int, str]] = None,
+        prefix: str = '',
     ):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''
         self._version = version
+        self._prefix = prefix
         self._experiment = None
 
     @property
@@ -156,6 +162,7 @@ class CSVLogger(LightningLoggerBase):
         return self._save_dir
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> ExperimentWriter:
         r"""
 
@@ -181,6 +188,7 @@ class CSVLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        metrics = self._add_prefix(metrics)
         self.experiment.log_metrics(metrics, step)
 
     @rank_zero_only

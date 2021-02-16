@@ -11,227 +11,310 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
-import functools
-from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
+from typing import Any, Callable, Optional
 
 import torch
-from torch import nn
-from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.utils import to_onehot, METRIC_EPS
+
+from pytorch_lightning.metrics.classification.stat_scores import StatScores
+from pytorch_lightning.metrics.functional.precision_recall import _precision_compute, _recall_compute
 
 
-def _input_format(num_classes: int, preds: torch.Tensor, target: torch.Tensor, threshold=0.5, multilabel=False):
-    if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
-        raise ValueError(
-            "preds and target must have same number of dimensions, or one additional dimension for preds"
-        )
+class Precision(StatScores):
+    r"""
+    Computes `Precision <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
 
-    if len(preds.shape) == len(target.shape) + 1:
-        # multi class probabilites
-        preds = torch.argmax(preds, dim=1)
+    .. math:: \text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}
 
-    if len(preds.shape) == len(target.shape) and preds.dtype == torch.long and num_classes > 1 and not multilabel:
-        # multi-class
-        preds = to_onehot(preds, num_classes=num_classes)
-        target = to_onehot(target, num_classes=num_classes)
+    Where :math:`\text{TP}` and :math:`\text{FP}` represent the number of true positives and
+    false positives respecitively. With the use of ``top_k`` parameter, this metric can
+    generalize to Precision@K.
 
-    elif len(preds.shape) == len(target.shape) and preds.dtype == torch.float:
-        # binary or multilabel probablities
-        preds = (preds >= threshold).long()
-
-    # transpose class as first dim and reshape
-    if len(preds.shape) > 1:
-        preds = preds.transpose(1, 0)
-        target = target.transpose(1, 0)
-
-    return preds.reshape(num_classes, -1), target.reshape(num_classes, -1)
-
-
-class Precision(Metric):
-    """
-    Computes the precision metric.
-
-    Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
-
-    Forward accepts
-
-    - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
-    - ``target`` (long tensor): ``(N, ...)``
-
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
-
-    If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
+    The reduction method (how the precision scores are aggregated) is controlled by the
+    ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
+    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`extensions/metrics:input types`.
 
     Args:
-        num_classes: Number of classes in the dataset.
-        beta: Beta coefficient in the F measure.
+        num_classes:
+            Number of classes. Necessary for ``'macro'``, ``'weighted'`` and ``None`` average methods.
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
-
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs.
         average:
-            * `'micro'` computes metric globally
-            * `'macro'` computes metric for each class and then takes the mean
+            Defines the reduction that is applied. Should be one of the following:
 
-        multilabel: If predictions are from multilabel classification.
+            - ``'micro'`` [default]: Calculate the metric globally, accross all samples and classes.
+            - ``'macro'``: Calculate the metric for each class separately, and average the
+              metrics accross classes (with equal weights for each class).
+            - ``'weighted'``: Calculate the metric for each class separately, and average the
+              metrics accross classes, weighting each class by its support (``tp + fn``).
+            - ``'none'`` or ``None``: Calculate the metric for each class separately, and return
+              the metric for every class.
+            - ``'samples'``: Calculate the metric for each sample, and average the metrics
+              across samples (with equal weights for each sample).
+
+            Note that what is considered a sample in the multi-dimensional multi-class case
+            depends on the value of ``mdmc_average``.
+        multilabel:
+            .. warning :: This parameter is deprecated and has no effect. Will be removed in v1.4.0.
+
+        mdmc_average:
+            Defines how averaging is done for multi-dimensional multi-class inputs (on top of the
+            ``average`` parameter). Should be one of the following:
+
+            - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional
+              multi-class.
+
+            - ``'samplewise'``: In this case, the statistics are computed separately for each
+              sample on the ``N`` axis, and then averaged over samples.
+              The computation for each sample is done by treating the flattened extra axes ``...``
+              (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
+              and computing the metric for the sample based on that.
+
+            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs
+              (see :ref:`extensions/metrics:input types`)
+              are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
+              were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
+
+        ignore_index:
+            Integer specifying a target class to ignore. If given, this class index does not contribute
+            to the returned score, regardless of reduction method. If an index is ignored, and ``average=None``
+            or ``'none'``, the score for the ignored class will be returned as ``nan``.
+
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s - relevant
+            only for inputs with probability predictions. If this parameter is set for multi-label
+            inputs, it will take precedence over ``threshold``. For (multi-dim) multi-class inputs,
+            this parameter defaults to 1.
+
+            Should be left unset (``None``) for inputs with label predictions.
+        is_multiclass:
+            Used only in certain special cases, where you want to treat inputs as a different type
+            than what they appear to be. See the parameter's
+            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
+            for a more detailed explanation and examples.
+
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
+            Forward only calls ``update()`` and return ``None`` if this is set to ``False``.
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
+            before returning the value at the step
         process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+            Specify the process group on which synchronization is called.
+            default: ``None`` (which selects the entire world)
+        dist_sync_fn:
+            Callback that performs the allgather operation on the metric state. When ``None``, DDP
+            will be used to perform the allgather.
 
     Example:
 
         >>> from pytorch_lightning.metrics import Precision
-        >>> target = torch.tensor([0, 1, 2, 0, 1, 2])
-        >>> preds = torch.tensor([0, 2, 1, 0, 0, 1])
-        >>> precision = Precision(num_classes=3)
+        >>> preds  = torch.tensor([2, 0, 2, 1])
+        >>> target = torch.tensor([1, 1, 2, 0])
+        >>> precision = Precision(average='macro', num_classes=3)
         >>> precision(preds, target)
-        tensor(0.3333)
+        tensor(0.1667)
+        >>> precision = Precision(average='micro')
+        >>> precision(preds, target)
+        tensor(0.2500)
 
     """
+
     def __init__(
         self,
-        num_classes: int = 1,
+        num_classes: Optional[int] = None,
         threshold: float = 0.5,
-        average: str = 'micro',
+        average: str = "micro",
         multilabel: bool = False,
+        mdmc_average: Optional[str] = None,
+        ignore_index: Optional[int] = None,
+        top_k: Optional[int] = None,
+        is_multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
+        dist_sync_fn: Callable = None,
     ):
+        allowed_average = ["micro", "macro", "weighted", "samples", "none", None]
+        if average not in allowed_average:
+            raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
+
         super().__init__(
+            reduce="macro" if average in ["weighted", "none", None] else average,
+            mdmc_reduce=mdmc_average,
+            threshold=threshold,
+            top_k=top_k,
+            num_classes=num_classes,
+            is_multiclass=is_multiclass,
+            ignore_index=ignore_index,
             compute_on_step=compute_on_step,
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
+            dist_sync_fn=dist_sync_fn,
         )
 
-        self.num_classes = num_classes
-        self.threshold = threshold
         self.average = average
-        self.multilabel = multilabel
 
-        assert self.average in ('micro', 'macro'), \
-            "average passed to the function must be either `micro` or `macro`"
+    def compute(self) -> torch.Tensor:
+        """
+        Computes the precision score based on inputs passed in to ``update`` previously.
 
-        self.add_state("true_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
-        self.add_state("predicted_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
+        Return:
+            The shape of the returned tensor depends on the ``average`` parameter
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
-        preds, target = _input_format(self.num_classes, preds, target, self.threshold, self.multilabel)
-
-        # multiply because we are counting (1, 1) pair for true positives
-        self.true_positives += torch.sum(preds * target, dim=1)
-        self.predicted_positives += torch.sum(preds, dim=1)
-
-    def compute(self):
-        if self.average == 'micro':
-            return self.true_positives.sum().float() / (self.predicted_positives.sum() + METRIC_EPS)
-        elif self.average == 'macro':
-            return (self.true_positives.float() / (self.predicted_positives + METRIC_EPS)).mean()
+            - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+            - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+              of classes
+        """
+        tp, fp, tn, fn = self._get_final_stats()
+        return _precision_compute(tp, fp, tn, fn, self.average, self.mdmc_reduce)
 
 
-class Recall(Metric):
-    """
-    Computes the recall metric.
+class Recall(StatScores):
+    r"""
+    Computes `Recall <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
 
-    Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
+    .. math:: \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}
 
-    Forward accepts
+    Where :math:`\text{TP}` and :math:`\text{FN}` represent the number of true positives and
+    false negatives respecitively. With the use of ``top_k`` parameter, this metric can
+    generalize to Recall@K.
 
-    - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
-    - ``target`` (long tensor): ``(N, ...)``
-
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
-
-    If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
+    The reduction method (how the recall scores are aggregated) is controlled by the
+    ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
+    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`extensions/metrics:input types`.
 
     Args:
-        num_classes: Number of classes in the dataset.
-        beta: Beta coefficient in the F measure.
+        num_classes:
+            Number of classes. Necessary for ``'macro'``, ``'weighted'`` and ``None`` average methods.
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
-
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs.
         average:
-            * `'micro'` computes metric globally
-            * `'macro'` computes metric for each class and then takes the mean
+            Defines the reduction that is applied. Should be one of the following:
 
-        multilabel: If predictions are from multilabel classification.
+            - ``'micro'`` [default]: Calculate the metric globally, accross all samples and classes.
+            - ``'macro'``: Calculate the metric for each class separately, and average the
+              metrics accross classes (with equal weights for each class).
+            - ``'weighted'``: Calculate the metric for each class separately, and average the
+              metrics accross classes, weighting each class by its support (``tp + fn``).
+            - ``'none'`` or ``None``: Calculate the metric for each class separately, and return
+              the metric for every class.
+            - ``'samples'``: Calculate the metric for each sample, and average the metrics
+              across samples (with equal weights for each sample).
+
+            Note that what is considered a sample in the multi-dimensional multi-class case
+            depends on the value of ``mdmc_average``.
+        multilabel:
+            .. warning :: This parameter is deprecated and has no effect. Will be removed in v1.4.0.
+
+        mdmc_average:
+            Defines how averaging is done for multi-dimensional multi-class inputs (on top of the
+            ``average`` parameter). Should be one of the following:
+
+            - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional
+              multi-class.
+
+            - ``'samplewise'``: In this case, the statistics are computed separately for each
+              sample on the ``N`` axis, and then averaged over samples.
+              The computation for each sample is done by treating the flattened extra axes ``...``
+              (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
+              and computing the metric for the sample based on that.
+
+            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs
+              (see :ref:`extensions/metrics:input types`)
+              are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
+              were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
+
+        ignore_index:
+            Integer specifying a target class to ignore. If given, this class index does not contribute
+            to the returned score, regardless of reduction method. If an index is ignored, and ``average=None``
+            or ``'none'``, the score for the ignored class will be returned as ``nan``.
+
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s - relevant
+            only for inputs with probability predictions. If this parameter is set for multi-label
+            inputs, it will take precedence over ``threshold``. For (multi-dim) multi-class inputs,
+            this parameter defaults to 1.
+
+            Should be left unset (``None``) for inputs with label predictions.
+
+        is_multiclass:
+            Used only in certain special cases, where you want to treat inputs as a different type
+            than what they appear to be. See the parameter's
+            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
+            for a more detailed explanation and examples.
+
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
+            Forward only calls ``update()`` and return ``None`` if this is set to ``False``.
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
+            before returning the value at the step
         process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+            Specify the process group on which synchronization is called.
+            default: ``None`` (which selects the entire world)
+        dist_sync_fn:
+            Callback that performs the allgather operation on the metric state. When ``None``, DDP
+            will be used to perform the allgather.
 
     Example:
 
         >>> from pytorch_lightning.metrics import Recall
-        >>> target = torch.tensor([0, 1, 2, 0, 1, 2])
-        >>> preds = torch.tensor([0, 2, 1, 0, 0, 1])
-        >>> recall = Recall(num_classes=3)
+        >>> preds  = torch.tensor([2, 0, 2, 1])
+        >>> target = torch.tensor([1, 1, 2, 0])
+        >>> recall = Recall(average='macro', num_classes=3)
         >>> recall(preds, target)
         tensor(0.3333)
+        >>> recall = Recall(average='micro')
+        >>> recall(preds, target)
+        tensor(0.2500)
 
     """
+
     def __init__(
         self,
-        num_classes: int = 1,
+        num_classes: Optional[int] = None,
         threshold: float = 0.5,
-        average: str = 'micro',
+        average: str = "micro",
         multilabel: bool = False,
+        mdmc_average: Optional[str] = None,
+        ignore_index: Optional[int] = None,
+        top_k: Optional[int] = None,
+        is_multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
+        dist_sync_fn: Callable = None,
     ):
+        allowed_average = ["micro", "macro", "weighted", "samples", "none", None]
+        if average not in allowed_average:
+            raise ValueError(f"The `average` has to be one of {allowed_average}, got {average}.")
+
         super().__init__(
+            reduce="macro" if average in ["weighted", "none", None] else average,
+            mdmc_reduce=mdmc_average,
+            threshold=threshold,
+            top_k=top_k,
+            num_classes=num_classes,
+            is_multiclass=is_multiclass,
+            ignore_index=ignore_index,
             compute_on_step=compute_on_step,
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
+            dist_sync_fn=dist_sync_fn,
         )
 
-        self.num_classes = num_classes
-        self.threshold = threshold
         self.average = average
-        self.multilabel = multilabel
 
-        assert self.average in ('micro', 'macro'), \
-            "average passed to the function must be either `micro` or `macro`"
-
-        self.add_state("true_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
-        self.add_state("actual_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
+    def compute(self) -> torch.Tensor:
         """
-        Update state with predictions and targets.
+        Computes the recall score based on inputs passed in to ``update`` previously.
 
-        Args:
-            preds: Predictions from model
-            target: Ground truth values
-        """
-        preds, target = _input_format(self.num_classes, preds, target, self.threshold, self.multilabel)
+        Return:
+            The shape of the returned tensor depends on the ``average`` parameter
 
-        # multiply because we are counting (1, 1) pair for true positives
-        self.true_positives += torch.sum(preds * target, dim=1)
-        self.actual_positives += torch.sum(target, dim=1)
-
-    def compute(self):
+            - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+            - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+              of classes
         """
-        Computes accuracy over state.
-        """
-        if self.average == 'micro':
-            return self.true_positives.sum().float() / (self.actual_positives.sum() + METRIC_EPS)
-        elif self.average == 'macro':
-            return (self.true_positives.float() / (self.actual_positives + METRIC_EPS)).mean()
+        tp, fp, tn, fn = self._get_final_stats()
+        return _recall_compute(tp, fp, tn, fn, self.average, self.mdmc_reduce)

@@ -11,17 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 from typing import Any, Optional, Sequence
 
+import torch
+
+from pytorch_lightning.metrics.functional.ssim import _ssim_compute, _ssim_update
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.metrics.functional.ssim import _ssim_update, _ssim_compute
 
 
 class SSIM(Metric):
     """
-    Computes Structual Similarity Index Measure
+    Computes `Structual Similarity Index Measure
+    <https://en.wikipedia.org/wiki/Structural_similarity>`_ (SSIM).
 
     Args:
         kernel_size: size of the gaussian kernel (default: (11, 11))

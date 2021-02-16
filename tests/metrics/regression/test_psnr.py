@@ -1,17 +1,16 @@
 from collections import namedtuple
 from functools import partial
 
+import numpy as np
 import pytest
 import torch
 from skimage.metrics import peak_signal_noise_ratio
-import numpy as np
 
-from pytorch_lightning.metrics.regression import PSNR
 from pytorch_lightning.metrics.functional import psnr
-from tests.metrics.utils import BATCH_SIZE, NUM_BATCHES, MetricTester
+from pytorch_lightning.metrics.regression import PSNR
+from tests.metrics.utils import BATCH_SIZE, MetricTester, NUM_BATCHES
 
 torch.manual_seed(42)
-
 
 Input = namedtuple('Input', ["preds", "target"])
 
@@ -19,8 +18,7 @@ _inputs = [
     Input(
         preds=torch.randint(n_cls_pred, (NUM_BATCHES, BATCH_SIZE), dtype=torch.float),
         target=torch.randint(n_cls_target, (NUM_BATCHES, BATCH_SIZE), dtype=torch.float),
-    )
-    for n_cls_pred, n_cls_target in [(10, 10), (5, 10), (10, 5)]
+    ) for n_cls_pred, n_cls_target in [(10, 10), (5, 10), (10, 5)]
 ]
 
 
@@ -52,6 +50,7 @@ def _base_e_sk_metric(preds, target, data_range):
     ],
 )
 class TestPSNR(MetricTester):
+
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_psnr(self, preds, target, data_range, base, sk_metric, ddp, dist_sync_on_step):
@@ -61,7 +60,10 @@ class TestPSNR(MetricTester):
             target,
             PSNR,
             partial(sk_metric, data_range=data_range),
-            metric_args={"data_range": data_range, "base": base},
+            metric_args={
+                "data_range": data_range,
+                "base": base
+            },
             dist_sync_on_step=dist_sync_on_step,
         )
 
@@ -71,5 +73,8 @@ class TestPSNR(MetricTester):
             target,
             psnr,
             partial(sk_metric, data_range=data_range),
-            metric_args={"data_range": data_range, "base": base},
+            metric_args={
+                "data_range": data_range,
+                "base": base
+            },
         )

@@ -20,11 +20,13 @@ from torch import optim
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainerOptimizersMixin(ABC):
+
     def init_optimizers(self, model: LightningModule) -> Tuple[List, List, List]:
         optim_conf = model.configure_optimizers()
         if optim_conf is None:
@@ -74,15 +76,31 @@ class TrainerOptimizersMixin(ABC):
                 ' * {"optimizer": `torch.optim.Optimizer`, (optional) "lr_scheduler": `torch.optim.lr_scheduler`}\n'
                 ' * A list of the previously described dict format, with an optional "frequency" key (int)'
             )
+
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor=monitor)
+        _validate_scheduler_optimizer(optimizers, lr_schedulers)
 
         return optimizers, lr_schedulers, optimizer_frequencies
+
+    def convert_to_lightning_optimizers(self):
+
+        def _convert_to_lightning_optimizer(trainer, optimizer):
+            if not isinstance(optimizer, LightningOptimizer):
+                optimizer = LightningOptimizer(optimizer)
+            optimizer._on_trainer_init(trainer)
+            return optimizer
+
+        self._lightning_optimizers = {
+            opt_idx: _convert_to_lightning_optimizer(self, opt)
+            for opt_idx, opt in enumerate(self.optimizers)
+        }
 
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information
         lr_schedulers = []
         default_config = {
             'scheduler': None,
+            'name': None,  # no custom name
             'interval': 'epoch',  # after epoch is over
             'frequency': 1,  # every epoch/batch
             'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
@@ -99,6 +117,12 @@ class TrainerOptimizersMixin(ABC):
                     raise MisconfigurationException(
                         'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
                     )
+                if 'interval' in scheduler and scheduler['interval'] not in ('step', 'epoch'):
+                    raise MisconfigurationException(
+                        f'The "interval" key in lr scheduler dict must be "step" or "epoch"'
+                        f' but is "{scheduler["interval"]}"'
+                    )
+
                 scheduler['reduce_on_plateau'] = isinstance(
                     scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau
                 )
@@ -113,36 +137,19 @@ class TrainerOptimizersMixin(ABC):
                 if monitor is None:
                     raise MisconfigurationException(
                         '`configure_optimizers` must include a monitor when a `ReduceLROnPlateau` scheduler is used.'
-                        ' For example: {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
+                        ' For example:'
+                        ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
                     )
-                lr_schedulers.append(
-                    {**default_config, 'scheduler': scheduler, 'reduce_on_plateau': True, 'monitor': monitor}
-                )
+                lr_schedulers.append({
+                    **default_config, 'scheduler': scheduler,
+                    'reduce_on_plateau': True,
+                    'monitor': monitor
+                })
             elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
                 lr_schedulers.append({**default_config, 'scheduler': scheduler})
             else:
                 raise ValueError(f'The provided lr scheduler "{scheduler}" is invalid')
         return lr_schedulers
-
-    def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
-        # Reinitialize optimizer.step properties added by schedulers
-        for scheduler in schedulers:
-            scheduler = scheduler['scheduler']
-
-            for optimizer in optimizers:
-                # check that we dont mix users optimizers and schedulers
-                if scheduler.optimizer == optimizer:
-                    # Find the mro belonging to the base lr scheduler class
-                    for i, mro in enumerate(scheduler.__class__.__mro__):
-                        if mro in (optim.lr_scheduler._LRScheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                            idx = i
-                            state = scheduler.state_dict()
-                        else:
-                            state = None
-
-                scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
-                if state is not None:
-                    scheduler.load_state_dict(state)
 
 
 class _MockOptimizer(Optimizer):
@@ -171,3 +178,10 @@ class _MockOptimizer(Optimizer):
 
     def __repr__(self):
         return 'No Optimizer'
+
+
+def _validate_scheduler_optimizer(optimizers, lr_schedulers):
+    if any(sch['scheduler'].optimizer not in optimizers for sch in lr_schedulers):
+        raise MisconfigurationException(
+            "Some schedulers are attatched with an optimizer that wasn't returned from `configure_optimizers`."
+        )

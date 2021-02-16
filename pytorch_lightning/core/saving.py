@@ -17,25 +17,28 @@ import csv
 import inspect
 import os
 from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable, MutableMapping, IO
+from copy import deepcopy
+from functools import partial
+from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
 from warnings import warn
 
-import fsspec
 import torch
 import yaml
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
-from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-
+from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
-try:
+
+if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
-except ImportError:
-    OmegaConf = None
+    from omegaconf.dictconfig import DictConfig
+    from omegaconf.errors import UnsupportedValueType, ValidationError
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -60,9 +63,9 @@ class ModelIO(object):
     ):
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
-        it stores the arguments passed to `__init__`  in the checkpoint under `module_arguments`
+        it stores the arguments passed to `__init__`  in the checkpoint under `hyper_parameters`
 
-        Any arguments specified through \*args and \*\*kwargs will override args stored in `hparams`.
+        Any arguments specified through \*args and \*\*kwargs will override args stored in `hyper_parameters`.
 
         Args:
             checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
@@ -89,42 +92,41 @@ class ModelIO(object):
                 `hparams` as :class:`~dict`.
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
                 returned by this module's state dict. Default: `True`.
-            hparam_overrides: A dictionary with keys to override in the hparams
-            kwargs: Any keyword args needed to init the model.
+            kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
+                hyperparameter values.
 
         Return:
             :class:`LightningModule` with loaded weights and hyperparameters (if available).
 
-        Example:
-            .. code-block:: python
+        Example::
 
-                # load weights without mapping ...
-                MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+            # load weights without mapping ...
+            MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
 
-                # or load weights mapping all weights from GPU 1 to GPU 0 ...
-                map_location = {'cuda:1':'cuda:0'}
-                MyLightningModule.load_from_checkpoint(
-                    'path/to/checkpoint.ckpt',
-                    map_location=map_location
-                )
+            # or load weights mapping all weights from GPU 1 to GPU 0 ...
+            map_location = {'cuda:1':'cuda:0'}
+            MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                map_location=map_location
+            )
 
-                # or load weights and hyperparameters from separate files.
-                MyLightningModule.load_from_checkpoint(
-                    'path/to/checkpoint.ckpt',
-                    hparams_file='/path/to/hparams_file.yaml'
-                )
+            # or load weights and hyperparameters from separate files.
+            MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                hparams_file='/path/to/hparams_file.yaml'
+            )
 
-                # override some of the params with new values
-                MyLightningModule.load_from_checkpoint(
-                    PATH,
-                    num_layers=128,
-                    pretrained_ckpt_path: NEW_PATH,
-                )
+            # override some of the params with new values
+            MyLightningModule.load_from_checkpoint(
+                PATH,
+                num_layers=128,
+                pretrained_ckpt_path: NEW_PATH,
+            )
 
-                # predict
-                pretrained_model.eval()
-                pretrained_model.freeze()
-                y_hat = pretrained_model(x)
+            # predict
+            pretrained_model.eval()
+            pretrained_model.freeze()
+            y_hat = pretrained_model(x)
         """
         if map_location is not None:
             checkpoint = pl_load(checkpoint_path, map_location=map_location)
@@ -159,8 +161,8 @@ class ModelIO(object):
         cls_spec = inspect.getfullargspec(cls.__init__)
         cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
 
-        self_name = cls_spec.args[0]
-        drop_names = (self_name, cls_spec.varargs, cls_spec.varkw)
+        self_var, args_var, kwargs_var = parse_class_init_keys(cls)
+        drop_names = [n for n in (self_var, args_var, kwargs_var) if n]
         cls_init_args_name = list(filter(lambda n: n not in drop_names, cls_init_args_name))
 
         cls_kwargs_loaded = {}
@@ -176,7 +178,9 @@ class ModelIO(object):
             cls_kwargs_loaded.update(checkpoint.get(_new_hparam_key))
 
             # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
-            cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+            cls_kwargs_loaded = _convert_loaded_hparams(
+                cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE)
+            )
 
             # 4. Update cls_kwargs_new with cls_kwargs_old, such that new has higher priority
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
@@ -323,8 +327,13 @@ def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> 
             writer.writerow({"key": k, "value": v})
 
 
-def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
+def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict[str, Any]:
     """Load hparams from a file.
+
+        Args:
+            config_yaml: Path to config yaml file
+            use_omegaconf: If both `OMEGACONF_AVAILABLE` and `use_omegaconf` are True,
+                the hparams will be converted to `DictConfig` if possible
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
     >>> path_yaml = './testing-hparams.yaml'
@@ -340,9 +349,15 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
         return {}
 
     with fs.open(config_yaml, "r") as fp:
-        tags = yaml.full_load(fp)
+        hparams = yaml.load(fp, Loader=yaml.UnsafeLoader)
 
-    return tags
+    if _OMEGACONF_AVAILABLE:
+        if use_omegaconf:
+            try:
+                return OmegaConf.create(hparams)
+            except (UnsupportedValueType, ValidationError):
+                pass
+    return hparams
 
 
 def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
@@ -362,24 +377,27 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         hparams = dict(hparams)
 
     # saving with OmegaConf objects
-    if OmegaConf is not None:
-        if OmegaConf.is_config(hparams):
-            with fs.open(config_yaml, "w", encoding="utf-8") as fp:
-                OmegaConf.save(hparams, fp, resolve=True)
-            return
-        for v in hparams.values():
-            if OmegaConf.is_config(v):
-                with fs.open(config_yaml, "w", encoding="utf-8") as fp:
-                    OmegaConf.save(OmegaConf.create(hparams), fp, resolve=True)
+    if _OMEGACONF_AVAILABLE:
+        # deepcopy: hparams from user shouldn't be resolved
+        hparams = deepcopy(hparams)
+        to_container = partial(OmegaConf.to_container, resolve=True)
+        hparams = apply_to_collection(hparams, DictConfig, to_container)
+        with fs.open(config_yaml, "w", encoding="utf-8") as fp:
+            try:
+                OmegaConf.save(hparams, fp)
                 return
+            except (UnsupportedValueType, ValidationError):
+                pass
 
-    assert isinstance(hparams, dict)
+    if not isinstance(hparams, dict):
+        raise TypeError("hparams must be dictionary")
+
     hparams_allowed = {}
     # drop paramaters which contain some strange datatypes as fsspec
     for k, v in hparams.items():
         try:
             yaml.dump(v)
-        except TypeError as err:
+        except TypeError:
             warn(f"Skipping '{k}' parameter because it is not possible to safely dump to YAML.")
             hparams[k] = type(v).__name__
         else:
