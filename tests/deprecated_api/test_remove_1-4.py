@@ -218,6 +218,9 @@ def test_v1_4_0_deprecated_manual_optimization_optimizer(tmpdir):
 
 
 def test_v1_4_0_deprecated_checkpoint_on(tmpdir):
+    from pytorch_lightning.callbacks.model_checkpoint import warning_cache
+    warning_cache.clear()
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             self.log("val_loss", -batch_idx)
