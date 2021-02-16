@@ -6,7 +6,7 @@ on:
   push:
     branches: [ master ]
   schedule:
-    - cron: "0 * * * *" # At every hour
+    - cron: "*/20 * * * *" # At every 20 minutes
 
 env:
   GKE_CLUSTER: lightning-cluster
