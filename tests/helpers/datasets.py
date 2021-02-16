@@ -85,7 +85,7 @@ class MNIST(Dataset):
         target = int(self.targets[idx])
 
         if self.normalize is not None and len(self.normalize) == 2:
-            img = self.normalize_tensor(img, **self.normalize)
+            img = self.normalize_tensor(img, *self.normalize)
 
         return img, target
 
