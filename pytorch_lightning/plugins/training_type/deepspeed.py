@@ -289,8 +289,10 @@ class DeepSpeedPlugin(DDPPlugin):
                 " as this will be set via accumulate_grad_batches=x argument passed via the Lightning Trainer."
             )
         if "train_micro_batch_size_per_gpu" not in self.config:
-            # train_micro_batch_size_per_gpu is used for logging purposes, use loader batch size
-            self.config["train_micro_batch_size_per_gpu"] = self.lightning_module.train_dataloader().batch_size
+            # train_micro_batch_size_per_gpu is used for throughput logging purposes
+            # by default we use the batch size of the loader which may be incorrect if a batch sampler is passed
+            batch_size = self.lightning_module.train_dataloader().batch_size
+            self.config["train_micro_batch_size_per_gpu"] = batch_size
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "gradient_clipping" not in self.config:
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val
