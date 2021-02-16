@@ -715,6 +715,19 @@ This can also be done via the command line using a Pytorch Lightning script:
 
     python train.py --plugins deepspeed --precision 16 --gpus 4
 
+
+Modify ZeRO parameters via the plugin as below.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(allgather_bucket_size=5e8, reduce_bucket_size=5e8), precision=16)
+    trainer.fit(model)
+
+
 .. note::
     We suggest tuning the ``allgather_bucket_size`` parameter and ``reduce_bucket_size`` parameter to find optimum parameters based on your model size.
     These control how large a buffer we limit the model to using when reducing gradients/gathering updated parameters. Smaller values will result in less memory, but tradeoff with speed.
