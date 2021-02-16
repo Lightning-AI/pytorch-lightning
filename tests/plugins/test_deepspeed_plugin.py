@@ -21,13 +21,9 @@ PRETEND_N_OF_GPUS = 1
 def deepspeed_config():
     return {
         "optimizer": {
-            "type": "Adam",
-            "torch_adam": True,
+            "type": "SGD",
             "params": {
                 "lr": 3e-5,
-                "betas": [0.998, 0.999],
-                "eps": 1e-5,
-                "weight_decay": 1e-9,
             },
         },
         'scheduler': {
@@ -249,26 +245,22 @@ def test_warn_deepspeed_override_backward(tmpdir):
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 def test_deepspeed_run_configure_optimizers(tmpdir):
     """
-        Test to end to end that deepspeed works with defaults,
+        Test to end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
         whilst using configure_optimizers for optimizers and schedulers.
     """
 
     class TestModel(BoringModel):
 
         def on_train_start(self) -> None:
-            from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer
-            assert isinstance(self.trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
-            assert isinstance(self.trainer.optimizers[0].optimizer, torch.optim.SGD)
+            assert isinstance(self.trainer.optimizers[0], torch.optim.SGD)
             assert self.trainer.lr_schedulers == []  # DeepSpeed manages LR scheduler internally
             # Ensure DeepSpeed engine has initialized with our optimizer/lr_scheduler
-            assert isinstance(self.trainer.model.optimizer, FP16_DeepSpeedZeroOptimizer)
             assert isinstance(self.trainer.model.lr_scheduler, torch.optim.lr_scheduler.StepLR)
 
     model = TestModel()
     trainer = Trainer(
-        plugins='deepspeed',
+        plugins=DeepSpeedPlugin(zero_optimization=False),
         gpus=1,
-        precision=16,
         fast_dev_run=True,
     )
 
@@ -297,9 +289,9 @@ def test_deepspeed_config(tmpdir, deepspeed_config):
 
         def on_train_start(self) -> None:
             import deepspeed
-            assert isinstance(self.trainer.optimizers[0], deepspeed.ops.adam.FusedAdam)
+            assert isinstance(self.trainer.optimizers[0], torch.optim.SGD)
             assert self.trainer.lr_schedulers == []  # DeepSpeed manages LR scheduler internally
-            assert isinstance(self.trainer.model.optimizer, deepspeed.ops.adam.FusedAdam)
+            assert isinstance(self.trainer.model.optimizer, torch.optim.SGD)
             assert isinstance(self.trainer.model.lr_scheduler, deepspeed.runtime.lr_schedules.WarmupLR)
 
     model = TestModel()
@@ -328,22 +320,13 @@ def test_deepspeed_config(tmpdir, deepspeed_config):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_deepspeed_offload_zero_multigpu_config(tmpdir, deepspeed_config):
+def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     """
-        Test to ensure that zero offload with multiple GPUs works correctly if a user passes a ZeRO enabled config.
+        Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.
     """
-    deepspeed_config = {
-        **deepspeed_config, "zero_allow_untested_optimizer": True,
-        "zero_optimization": {
-            "stage": 2,
-            "cpu_offload": True,
-            "contiguous_gradients": True,
-            "overlap_comm": True
-        }
-    }
     model = BoringModel()
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(config=deepspeed_config)],
+        plugins=[DeepSpeedPlugin(zero_optimization=False)],
         gpus=2,
         fast_dev_run=True,
         precision=16,
