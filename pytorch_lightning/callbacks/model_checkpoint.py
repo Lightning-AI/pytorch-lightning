@@ -549,7 +549,7 @@ class ModelCheckpoint(Callback):
         step = metrics.get("step")
 
         # when `val_loss` is being logged and no ModelCheckpoint is being provided
-        # `val_loss` or `checkpoint_on` will be selected for monitor and need to be reduced to 
+        # `val_loss` or `checkpoint_on` will be selected for monitor and need to be reduced to
         # prevent processes divergence
         if self.monitor in ("val_loss", "checkpoint_on"):
             current = trainer.training_type_plugin.reduce(current, reduce_op="mean")
