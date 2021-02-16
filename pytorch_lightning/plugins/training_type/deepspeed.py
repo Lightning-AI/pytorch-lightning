@@ -225,7 +225,6 @@ class DeepSpeedPlugin(DDPPlugin):
         # set optimizer for save/load, but deepspeed manages the specific optimizer logic
         trainer = self.lightning_module.trainer
         trainer.optimizers = [optimizer]
-        trainer.convert_to_lightning_optimizers()
         self.model = model
 
     def _initialize_deepspeed_inference(self, model):
@@ -270,6 +269,8 @@ class DeepSpeedPlugin(DDPPlugin):
         return [], [], []  # empty optimizers, schedulers and frequencies
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
+        # note: We rely on the deepspeed engine to carry out the step rather than the optimizer.
+        # internally, the engine has a reference to the optimizer already.
         self.model.step(**kwargs)
 
     def _format_config(self):
