@@ -155,9 +155,7 @@ class TestTubeLogger(LightningLoggerBase):
                 input_array = model.example_input_array
 
             if input_array is not None:
-                self.experiment.add_graph(
-                    model, model._apply_batch_transfer_handler(input_array)
-                )
+                self.experiment.add_graph(model, model._apply_batch_transfer_handler(input_array))
             else:
                 rank_zero_warn(
                     'Could not log computational graph since neither the'

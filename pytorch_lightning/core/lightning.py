@@ -1782,9 +1782,7 @@ class LightningModule(
             example_inputs = self._apply_batch_transfer_handler(example_inputs)
             torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
         else:
-            raise ValueError(
-                f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}"
-            )
+            raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}")
 
         self.train(mode)
 
