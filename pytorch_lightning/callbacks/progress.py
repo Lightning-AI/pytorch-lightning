@@ -20,7 +20,6 @@ Use or override one of the progress bar callbacks.
 """
 import importlib
 import sys
-from numbers import Number
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -42,11 +41,11 @@ class tqdm(_tqdm):
     prevent the progress bar from flickering
     """
     @staticmethod
-    def format_num(n: Number) -> str:
+    def format_num(n) -> str:
         """ Add additional padding to the formatted numbers """
         should_be_padded = isinstance(n, (float, str))
         if not isinstance(n, str):
-            n = _tqdm.format_num(n)
+            n = super(_tqdm, _tqdm).format_num(n)
         if should_be_padded and 'e' not in n:
             if '.' not in n:
                 n += '.'
