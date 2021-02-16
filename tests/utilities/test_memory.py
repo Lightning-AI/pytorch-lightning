@@ -17,12 +17,12 @@ from pytorch_lightning.utilities.memory import recursive_detach
 
 
 def test_recursive_detach():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     x = {"foo": torch.tensor(0, device=device), "bar": {"baz": torch.tensor(1.0, device=device, requires_grad=True)}}
     y = recursive_detach(x, to_cpu=True)
 
-    assert x["foo"].device == device
-    assert x["bar"]["baz"].device == device
+    assert x["foo"].device.type == device
+    assert x["bar"]["baz"].device.type == device
     assert x["bar"]["baz"].requires_grad
 
     assert y["foo"].device.type == "cpu"
