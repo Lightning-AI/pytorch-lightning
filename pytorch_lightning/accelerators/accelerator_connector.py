@@ -300,7 +300,11 @@ class BackendConnector(object):
 
             self.amp_type = AMPType(self.amp_type)
             if self.amp_type == AMPType.NATIVE:
-                if not _NATIVE_AMP_AVAILABLE:
+                if self.on_cpu:
+                    raise MisconfigurationException(
+                        "You have asked for native AMP on CPU, but AMP is only available on GPU."
+                    )
+                elif not _NATIVE_AMP_AVAILABLE:
                     msg = "You have asked for native AMP but your PyTorch version does not support it." \
                           " Consider upgrading with `pip install torch>=1.6`."
                     if _APEX_AVAILABLE:
@@ -309,10 +313,6 @@ class BackendConnector(object):
                         rank_zero_warn(msg)
                     else:
                         raise MisconfigurationException(msg)
-                elif self.on_cpu:
-                    raise MisconfigurationException(
-                        "You have asked for native AMP on CPU, but AMP is only available on GPU."
-                    )
                 else:
                     log.info("Using native 16bit precision.")
                     if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
