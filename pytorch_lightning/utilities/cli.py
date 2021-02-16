@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import importlib
 import os
 from typing import Any, Dict, Type, Union
 
@@ -20,8 +18,10 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.trainer import Trainer
+from pytorch_lightning.utilities import _module_available
 
-if importlib.util.find_spec("jsonargparse") is not None:
+_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
+if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser
 else:
     ArgumentParser = object
@@ -30,22 +30,20 @@ else:
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning"""
 
-    def __init__(
-        self,
-        *args,
-        parse_as_dict: bool = True,
-        **kwargs
-    ):
+    def __init__(self, *args, parse_as_dict: bool = True, **kwargs):
         """Initialize argument parser that supports configuration file input
 
         For full details of accepted arguments see `ArgumentParser.__init__
         <https://omni-us.github.io/jsonargparse/#jsonargparse.core.ArgumentParser.__init__>`_.
         """
+        if not _JSONARGPARSE_AVAILABLE:
+            raise ModuleNotFoundError(
+                '`jsonargparse` is not installed but it is required for the CLI.'
+                ' Install it with `pip install jsonargparse[signatures]`.'
+            )
         super().__init__(*args, parse_as_dict=parse_as_dict, **kwargs)
         self.add_argument(
-            '--config',
-            action=ActionConfigFile,
-            help='Path to a configuration file in json or yaml format.'
+            '--config', action=ActionConfigFile, help='Path to a configuration file in json or yaml format.'
         )
 
     def add_lightning_class_args(
@@ -81,6 +79,7 @@ class SaveConfigCallback(Callback):
 
 
 class LightningCLI:
+
     def __init__(
         self,
         model_class: Type[LightningModule],
@@ -146,11 +145,7 @@ class LightningCLI:
         self.subclass_mode_model = subclass_mode_model
         self.subclass_mode_data = subclass_mode_data
         self.parser_kwargs = {} if parser_kwargs is None else parser_kwargs
-        self.parser_kwargs.update({
-            'description': description,
-            'env_prefix': env_prefix,
-            'default_env': env_parse
-        })
+        self.parser_kwargs.update({'description': description, 'env_prefix': env_prefix, 'default_env': env_parse})
 
         self.init_parser()
         self.add_arguments_to_parser(self.parser)
