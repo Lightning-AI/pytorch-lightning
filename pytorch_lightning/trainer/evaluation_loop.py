@@ -286,7 +286,7 @@ class EvaluationLoop(object):
         def _convert_to_numpy(v):
             return v.cpu().numpy()
 
-        results = apply_to_collection(results, torch.Tensor, _convert_to_numpy)
+        results = apply_to_collection(results, _convert_to_numpy, dtype=torch.Tensor)
 
         return results, None
 

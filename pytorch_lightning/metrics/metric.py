@@ -175,8 +175,8 @@ class Metric(nn.Module, ABC):
         input_dict = {attr: getattr(self, attr) for attr in self._reductions.keys()}
         output_dict = apply_to_collection(
             input_dict,
-            torch.Tensor,
             dist_sync_fn,
+            dtype=torch.Tensor,
             group=self.process_group,
         )
 

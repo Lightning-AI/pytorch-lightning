@@ -212,11 +212,11 @@ class TrainerDataLoadingMixin(ABC):
 
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
-            self.train_dataloader, DataLoader, self.auto_add_sampler, shuffle=True
+            self.train_dataloader, self.auto_add_sampler, dtype=DataLoader, shuffle=True
         )
 
         # check the workers recursively
-        apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, 'train dataloader')
+        apply_to_collection(self.train_dataloader, self._worker_check, 'train dataloader', dtype=DataLoader)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self._multiple_trainloader_mode)

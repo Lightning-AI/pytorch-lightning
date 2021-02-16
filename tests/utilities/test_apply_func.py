@@ -43,7 +43,7 @@ def test_recursive_application_to_collection():
         'g': 24.
     }
 
-    reduced = apply_to_collection(to_reduce, (torch.Tensor, numbers.Number, np.ndarray), lambda x: x * 2)
+    reduced = apply_to_collection(to_reduce, lambda x: x * 2, dtype=(torch.Tensor, numbers.Number, np.ndarray))
 
     assert isinstance(reduced, dict), ' Type Consistency of dict not preserved'
     assert all([x in reduced for x in to_reduce.keys()]), 'Not all entries of the dict were preserved'

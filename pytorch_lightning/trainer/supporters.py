@@ -295,7 +295,7 @@ class CombinedDataset(object):
 
         # extract the lengths
         all_lengths = apply_to_collection(
-            datasets, (Dataset, Iterable, type(None)), get_len, wrong_dtype=(Sequence, Mapping)
+            datasets, get_len, dtype=(Dataset, Iterable, type(None)), wrong_dtype=(Sequence, Mapping)
         )
 
         compute_func = CombinedDataset.COMPUTE_FUNCS[mode]
@@ -351,7 +351,7 @@ class CombinedLoader(object):
         self.loaders = loaders
 
         datasets = apply_to_collection(
-            self.loaders, Iterable, getattr, 'dataset', None, wrong_dtype=(Sequence, Mapping)
+            self.loaders, getattr, 'dataset', None, dtype=Iterable, wrong_dtype=(Sequence, Mapping)
         )
         # could be multiple datasets, but use self.dataset to follow the name convention in DataLoader
         self.dataset = CombinedDataset(datasets, mode)
@@ -367,7 +367,7 @@ class CombinedLoader(object):
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
         """Return a collections of samplers extracting from loaders."""
-        return apply_to_collection(self.loaders, Iterable, getattr, 'sampler', None, wrong_dtype=(Sequence, Mapping))
+        return apply_to_collection(self.loaders, getattr, 'sampler', None, dtype=Iterable, wrong_dtype=(Sequence, Mapping))
 
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
@@ -377,7 +377,7 @@ class CombinedLoader(object):
             the wrapped loaders
 
         """
-        all_lengths = apply_to_collection(self.loaders, Iterable, get_len, wrong_dtype=(Sequence, Mapping))
+        all_lengths = apply_to_collection(self.loaders, get_len, dtype=Iterable, wrong_dtype=(Sequence, Mapping))
 
         if isinstance(all_lengths, (int, float)):
             length = all_lengths
@@ -419,7 +419,7 @@ class CombinedLoader(object):
             length: the minimum length of loaders
 
         """
-        all_lengths = apply_to_collection(loaders, Iterable, get_len, wrong_dtype=(Sequence, Mapping))
+        all_lengths = apply_to_collection(loaders, get_len, dtype=Iterable, wrong_dtype=(Sequence, Mapping))
 
         if isinstance(all_lengths, (int, float)):
             return all_lengths
@@ -481,7 +481,7 @@ class CombinedLoaderIterator(object):
             Any: a collections of batch data
 
         """
-        return apply_to_collection(loader_iters, Iterator, next)
+        return apply_to_collection(loader_iters, next, dtype=Iterator)
 
     @staticmethod
     def create_loader_iters(
@@ -498,7 +498,7 @@ class CombinedLoaderIterator(object):
 
         """
         # dataloaders are Iterable but not Sequences. Need this to specifically exclude sequences
-        return apply_to_collection(loaders, Iterable, iter, wrong_dtype=(Sequence, Mapping))
+        return apply_to_collection(loaders, iter, dtype=Iterable, wrong_dtype=(Sequence, Mapping))
 
 
 def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable):

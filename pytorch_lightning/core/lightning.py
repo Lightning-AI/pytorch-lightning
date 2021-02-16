@@ -449,7 +449,7 @@ class LightningModule(
 
         data = convert_to_tensors(data, device=self.device)
         all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
-        return apply_to_collection(data, torch.Tensor, all_gather)
+        return apply_to_collection(data, all_gather, dtype=torch.Tensor)
 
     def forward(self, *args, **kwargs):
         r"""
