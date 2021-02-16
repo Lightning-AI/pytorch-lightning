@@ -37,8 +37,9 @@ _PAD_SIZE = 5
 
 
 class tqdm(_tqdm):
-    """ Custom tqdm progressbar where we append 0 to floating points/strings to
-        prevent the progress bar from flickering
+    """
+    Custom tqdm progressbar where we append 0 to floating points/strings to
+    prevent the progress bar from flickering
     """
     @staticmethod
     def format_num(n: Number) -> str:
