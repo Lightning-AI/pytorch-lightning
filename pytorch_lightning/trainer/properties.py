@@ -375,7 +375,7 @@ class TrainerProperties(ABC):
     def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
         # Necessary to rewrap optimizers to lightning
         self._lightning_optimizers = None
-        
+
         self.accelerator.optimizers = new_optims
 
     @property
