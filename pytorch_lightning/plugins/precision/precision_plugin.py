@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Any, Generator, Sequence, Tuple, Union
+from typing import Any, Callable, Generator, Sequence, Tuple, Union
 
 import torch
+from torch.nn import Module
 from torch.optim import Optimizer
 
 from pytorch_lightning.core import LightningModule
@@ -28,7 +29,7 @@ class PrecisionPlugin(Plugin):
     EPSILON = 1e-6
     precision = 32
 
-    def master_params(self, optimizer: torch.optim.Optimizer) -> Generator[torch.Tensor, None, None]:
+    def master_params(self, optimizer: Optimizer) -> Generator[torch.Tensor, None, None]:
         """The master params of the model. Returns the plain model params here.
         Maybe different in other precision plugins.
 
@@ -37,8 +38,8 @@ class PrecisionPlugin(Plugin):
             for p in group["params"]:
                 yield p
 
-    def connect(self, model: torch.nn.Module, optimizers: Sequence,
-                lr_schedulers: Sequence) -> Tuple[torch.nn.Module, Sequence, Sequence]:
+    def connect(self, model: Module, optimizers: Sequence,
+                lr_schedulers: Sequence) -> Tuple[Module, Sequence, Sequence]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
@@ -46,7 +47,7 @@ class PrecisionPlugin(Plugin):
         self,
         model: LightningModule,
         closure_loss: torch.Tensor,
-        optimizer: torch.optim.Optimizer,
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
@@ -74,6 +75,15 @@ class PrecisionPlugin(Plugin):
         closure_loss = closure_loss.detach()
 
         return closure_loss
+
+    def pre_optimizer_step(
+        self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, closure: Callable, **kwargs
+    ) -> bool:
+        """Hook to do something before each optimizer step."""
+        return True
+
+    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
+        """Hook to do something after each optimizer step."""
 
     def clip_gradients(self, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = float(2.0)) -> None:
         """Clips the gradients to a specific value"""

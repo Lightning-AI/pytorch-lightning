@@ -275,7 +275,7 @@ class LightningModule(
                     f"Logged key: {name} should not contain information about dataloader_idx."
                 )
 
-            accelerator = self.trainer.accelerator_backend
+            training_type_plugin = self.trainer.training_type_plugin
 
             self._results.log(
                 name,
@@ -291,7 +291,7 @@ class LightningModule(
                 sync_dist,
                 sync_dist_op,
                 sync_dist_group,
-                accelerator.sync_tensor,
+                training_type_plugin.reduce,
                 self._current_dataloader_idx,
                 self.device,
             )
@@ -1042,6 +1042,32 @@ class LightningModule(
         """
         return self(batch)
 
+    def configure_callbacks(self):
+        """
+        Configure model-specific callbacks.
+        When the model gets attached, e.g., when ``.fit()`` or ``.test()`` gets called,
+        the list returned here will be merged with the list of callbacks passed to the Trainer's ``callbacks`` argument.
+        If a callback returned here has the same type as one or several callbacks already present in
+        the Trainer's callbacks list, it will take priority and replace them.
+        In addition, Lightning will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        callbacks run last.
+
+        Return:
+            A list of callbacks which will extend the list of callbacks in the Trainer.
+
+        Example::
+
+            def configure_callbacks(self):
+                early_stop = EarlyStopping(monitor"val_acc", mode="max")
+                checkpoint = ModelCheckpoint(monitor="val_loss")
+                return [early_stop, checkpoint]
+
+        Note:
+            Certain callback methods like :meth:`~pytorch_lightning.callbacks.base.Callback.on_init_start`
+            will never be invoked on the new callbacks returned here.
+        """
+        return []
+
     def configure_optimizers(self):
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
@@ -1347,7 +1373,7 @@ class LightningModule(
         """
         if not isinstance(optimizer, LightningOptimizer):
             # wraps into LightingOptimizer only for running step
-            optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+            optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, optimizer_idx)
         optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):

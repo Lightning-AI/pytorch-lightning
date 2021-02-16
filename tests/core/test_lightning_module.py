@@ -175,11 +175,11 @@ def test_params_groups_and_state_are_accessible(tmpdir):
 
         def optimizer_step(
             self,
-            current_epoch,
-            batch_nb,
+            epoch,
+            batch_idx,
             optimizer,
             optimizer_idx,
-            closure,
+            optimizer_closure,
             on_tpu=False,
             using_native_amp=False,
             using_lbfgs=False
@@ -190,7 +190,7 @@ def test_params_groups_and_state_are_accessible(tmpdir):
                 for pg in optimizer.param_groups:
                     pg['lr'] = lr_scale * 0.01
 
-            optimizer.step(closure=closure)
+            optimizer.step(closure=optimizer_closure)
 
     model = TestModel()
     model.training_epoch_end = None

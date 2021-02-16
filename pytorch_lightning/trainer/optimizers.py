@@ -117,6 +117,12 @@ class TrainerOptimizersMixin(ABC):
                     raise MisconfigurationException(
                         'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
                     )
+                if 'interval' in scheduler and scheduler['interval'] not in ('step', 'epoch'):
+                    raise MisconfigurationException(
+                        f'The "interval" key in lr scheduler dict must be "step" or "epoch"'
+                        f' but is "{scheduler["interval"]}"'
+                    )
+
                 scheduler['reduce_on_plateau'] = isinstance(
                     scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau
                 )
@@ -144,26 +150,6 @@ class TrainerOptimizersMixin(ABC):
             else:
                 raise ValueError(f'The provided lr scheduler "{scheduler}" is invalid')
         return lr_schedulers
-
-    def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
-        # Reinitialize optimizer.step properties added by schedulers
-        for scheduler in schedulers:
-            scheduler = scheduler['scheduler']
-            state = None
-
-            for optimizer in optimizers:
-                # check that we dont mix users optimizers and schedulers
-                if scheduler.optimizer == optimizer:
-                    # Find the mro belonging to the base lr scheduler class
-                    for i, mro in enumerate(scheduler.__class__.__mro__):
-                        if mro in (optim.lr_scheduler._LRScheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                            state = scheduler.state_dict()
-                            scheduler.__class__.__mro__[i].__init__(scheduler, optimizer)
-                            scheduler.load_state_dict(state)
-                            break
-
-                if state is not None:
-                    break
 
 
 class _MockOptimizer(Optimizer):
