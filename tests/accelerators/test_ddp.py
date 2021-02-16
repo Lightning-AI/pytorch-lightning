@@ -16,7 +16,7 @@ import os
 import pytest
 import torch
 
-from tests.accelerators.legacy import ddp_model, DDPLauncher
+from tests.accelerators import ddp_model, DDPLauncher
 from tests.utilities.distributed import call_training_script
 
 
@@ -70,30 +70,6 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):
     model_outs = result['result']
     for out in model_outs:
         assert out['test_acc'] > 0.90
-
-
-# START: test_cli ddp test
-@pytest.mark.skipif(os.getenv("PL_IN_LAUNCHER", '0') == '1', reason="test runs only in DDPLauncher")
-def internal_test_cli(tmpdir, args=None):
-    """
-    This test verify we can call function using test_cli name
-    """
-
-    return 1
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_cli(tmpdir):
-    DDPLauncher.run_from_cmd_line("--max_epochs 1 --gpus 2 --accelerator ddp", internal_test_cli, tmpdir)
-    # load the results of the script
-    result_path = os.path.join(tmpdir, 'ddp.result')
-    result = torch.load(result_path)
-    # verify the file wrote the expected outputs
-    assert result['status'] == 'complete'
-    assert str(result['result']) == '1'
-
-
-# END: test_cli ddp test
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")

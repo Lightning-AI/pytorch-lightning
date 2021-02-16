@@ -19,11 +19,12 @@ clean:
 	rm -rf ./docs/source/api
 
 test: clean
+	# Review the CONTRIBUTING docmentation for other ways to test.
 	pip install -r requirements/devel.txt
 	# install APEX, see https://github.com/NVIDIA/apex#linux
 
-	# use this to run tests
-	python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v --flake8
+	# run tests with coverage
+	python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v
 	python -m coverage report
 
 docs: clean
