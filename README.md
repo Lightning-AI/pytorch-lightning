@@ -137,7 +137,7 @@ pip install pytorch-lightning
   conda install pytorch-lightning -c conda-forge
   ```
 
-  #### Install stable/nightly - future 1.1.x
+  #### Install stable - future 1.1.x
 
   the actual status of 1.1 [stable] is following:
 
@@ -156,7 +156,7 @@ pip install pytorch-lightning
 
   Install future release from the source (no guarantees)
   ```bash
-  pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master
+  pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip
   ```
   or nightly from testing PyPI
   ```bash
