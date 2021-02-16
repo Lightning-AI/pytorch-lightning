@@ -164,6 +164,7 @@ class SequentialModelRPCManual(LightningModule):
         self.manual_backward(loss, opt)
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
         opt.step()
+        opt.zero_grad()
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
 
     def validation_step(self, batch, batch_idx):

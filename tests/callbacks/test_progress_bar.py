@@ -21,7 +21,6 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
 
 
@@ -83,7 +82,7 @@ def test_progress_bar_misconfiguration():
 def test_progress_bar_totals(tmpdir):
     """Test that the progress finishes with the correct total steps processed."""
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -133,7 +132,7 @@ def test_progress_bar_totals(tmpdir):
 
 
 def test_progress_bar_fast_dev_run(tmpdir):
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -167,7 +166,7 @@ def test_progress_bar_fast_dev_run(tmpdir):
 def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     class CurrentProgressBar(ProgressBar):
 
@@ -235,7 +234,7 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
         def on_validation_epoch_end(self, trainer, pl_module):
             self.val_progress_bar_total += trainer.progress_bar_callback.val_progress_bar.total
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     progress_bar = CurrentProgressBar()
 
     trainer = Trainer(

@@ -64,7 +64,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             should_accumulate: whether to accumulate gradients or not
 
         """
-        closure_loss = amp.scale_loss(closure_loss, optimizer)
+        closure_loss = amp.scale_loss(closure_loss, model.trainer.optimizers if optimizer is None else optimizer)
 
         # enter apex context
         context = closure_loss

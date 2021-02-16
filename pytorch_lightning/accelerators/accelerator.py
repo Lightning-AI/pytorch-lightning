@@ -238,7 +238,7 @@ class Accelerator(object):
         self,
         closure_loss: torch.Tensor,
         optimizer: Optimizer,
-        opt_idx: int,
+        optimizer_idx: int,
         should_accumulate: bool,
         *args,
         **kwargs,
@@ -247,17 +247,15 @@ class Accelerator(object):
 
         Args:
             closure_loss: a tensor holding the loss value to backpropagate
-            optimizer: the optimizer to do the step later on.
-            opt_idx: the index of the optimizer
             should_accumulate: whether to accumulate gradients
         """
-        self.training_type_plugin.pre_backward(closure_loss, should_accumulate, optimizer, opt_idx)
+        self.training_type_plugin.pre_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
 
         output = self.precision_plugin.backward(
-            self.lightning_module, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
+            self.lightning_module, closure_loss, optimizer, optimizer_idx, should_accumulate, *args, **kwargs
         )
 
-        self.training_type_plugin.post_backward(closure_loss, should_accumulate, optimizer, opt_idx)
+        self.training_type_plugin.post_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
 
         return output
 
