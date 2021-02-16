@@ -112,13 +112,6 @@ jobs:
         pip list
       shell: bash
 
-    - name: Install DeepSpeed
-      # todo: This is a temporary fix to install DeepSpeed outside of the extras.txt package for CI.
-      if: runner.os != 'windows'
-      run: |
-        pip install git+https://github.com/microsoft/DeepSpeed.git@ec8b1cb
-      shell: bash
-
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows'
       env:
