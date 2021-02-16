@@ -87,43 +87,19 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
 @pytest.mark.parametrize(
     ['cli_args', 'expected'],
     [
-        ('--auto_lr_find=True --auto_scale_batch_size=power', {
-            'auto_lr_find': True,
-            'auto_scale_batch_size': 'power'
-        }),
+        ('--auto_lr_find=True --auto_scale_batch_size=power', {'auto_lr_find': True, 'auto_scale_batch_size': 'power'}),
         (
-            '--auto_lr_find any_string --auto_scale_batch_size ON', {
-                'auto_lr_find': 'any_string',
-                'auto_scale_batch_size': True
-            }
+            '--auto_lr_find any_string --auto_scale_batch_size ON',
+            {'auto_lr_find': 'any_string', 'auto_scale_batch_size': True},
         ),
-        ('--auto_lr_find=Yes --auto_scale_batch_size=On', {
-            'auto_lr_find': True,
-            'auto_scale_batch_size': True
-        }),
-        ('--auto_lr_find Off --auto_scale_batch_size No', {
-            'auto_lr_find': False,
-            'auto_scale_batch_size': False
-        }),
-        ('--auto_lr_find TRUE --auto_scale_batch_size FALSE', {
-            'auto_lr_find': True,
-            'auto_scale_batch_size': False
-        }),
-        ('--tpu_cores=8', {
-            'tpu_cores': 8
-        }),
-        ('--tpu_cores=1,', {
-            'tpu_cores': '1,'
-        }),
-        ('--limit_train_batches=100', {
-            'limit_train_batches': 100
-        }),
-        ('--limit_train_batches 0.8', {
-            'limit_train_batches': 0.8
-        }),
-        ('--weights_summary=null', {
-            'weights_summary': None
-        }),
+        ('--auto_lr_find=Yes --auto_scale_batch_size=On', {'auto_lr_find': True, 'auto_scale_batch_size': True}),
+        ('--auto_lr_find Off --auto_scale_batch_size No', {'auto_lr_find': False, 'auto_scale_batch_size': False}),
+        ('--auto_lr_find TRUE --auto_scale_batch_size FALSE', {'auto_lr_find': True, 'auto_scale_batch_size': False}),
+        ('--tpu_cores=8', {'tpu_cores': 8}),
+        ('--tpu_cores=1,', {'tpu_cores': '1,'}),
+        ('--limit_train_batches=100', {'limit_train_batches': 100}),
+        ('--limit_train_batches 0.8', {'limit_train_batches': 0.8}),
+        ('--weights_summary=null', {'weights_summary': None}),
         (
             "",
             {
@@ -138,9 +114,9 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                 "truncated_bptt_steps": None,
                 "resume_from_checkpoint": None,
                 "profiler": None,
-            }
+            },
         ),
-    ]
+    ],
 )
 def test_parse_args_parsing(cli_args, expected):
     """Test parsing simple types and None optionals not modified."""
@@ -156,20 +132,14 @@ def test_parse_args_parsing(cli_args, expected):
         assert Trainer.from_argparse_args(args)
 
 
-@pytest.mark.parametrize(['cli_args', 'expected', 'instantiate'], [
-    (['--gpus', '[0, 2]'], {
-        'gpus': [0, 2]
-    }, False),
-    (['--tpu_cores=[1,3]'], {
-        'tpu_cores': [1, 3]
-    }, False),
-    (['--accumulate_grad_batches={"5":3,"10":20}'], {
-        'accumulate_grad_batches': {
-            5: 3,
-            10: 20
-        }
-    }, True),
-])
+@pytest.mark.parametrize(
+    ['cli_args', 'expected', 'instantiate'],
+    [
+        (['--gpus', '[0, 2]'], {'gpus': [0, 2]}, False),
+        (['--tpu_cores=[1,3]'], {'tpu_cores': [1, 3]}, False),
+        (['--accumulate_grad_batches={"5":3,"10":20}'], {'accumulate_grad_batches': {5: 3, 10: 20}}, True),
+    ],
+)
 def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
     """Test parsing complex types."""
     parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
@@ -183,11 +153,14 @@ def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
         assert Trainer.from_argparse_args(args)
 
 
-@pytest.mark.parametrize(['cli_args', 'expected_gpu'], [
-    ('--gpus 1', [0]),
-    ('--gpus 0,', [0]),
-    ('--gpus 0,1', [0, 1]),
-])
+@pytest.mark.parametrize(
+    ['cli_args', 'expected_gpu'],
+    [
+        ('--gpus 1', [0]),
+        ('--gpus 0,', [0]),
+        ('--gpus 0,1', [0, 1]),
+    ],
+)
 def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
@@ -203,24 +176,17 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
 
 @pytest.mark.skipif(
     sys.version_info < (3, 7),
-    reason="signature inspection while mocking is not working in Python < 3.7 despite autospec"
+    reason="signature inspection while mocking is not working in Python < 3.7 despite autospec",
 )
-@pytest.mark.parametrize(['cli_args', 'extra_args'], [
-    ({}, {}),
-    ({
-        'logger': False
-    }, {}),
-    ({
-        'logger': False
-    }, {
-        'logger': True
-    }),
-    ({
-        'logger': False
-    }, {
-        'checkpoint_callback': True
-    }),
-])
+@pytest.mark.parametrize(
+    ['cli_args', 'extra_args'],
+    [
+        ({}, {}),
+        ({'logger': False}, {}),
+        ({'logger': False}, {'logger': True}),
+        ({'logger': False}, {'checkpoint_callback': True}),
+    ],
+)
 def test_init_from_argparse_args(cli_args, extra_args):
     unknown_args = dict(unknown_arg=0)
 
@@ -236,13 +202,16 @@ def test_init_from_argparse_args(cli_args, extra_args):
         Trainer.from_argparse_args(Namespace(**cli_args), **extra_args, **unknown_args)
 
 
-@pytest.mark.parametrize(['cli_args', 'expected_model', 'expected_trainer'], [
-    (['--model.model_param=7', '--trainer.limit_train_batches=100'], {
-        'model_param': 7
-    }, {
-        'limit_train_batches': 100
-    }),
-])
+@pytest.mark.parametrize(
+    ['cli_args', 'expected_model', 'expected_trainer'],
+    [
+        (
+            ['--model.model_param=7', '--trainer.limit_train_batches=100'],
+            {'model_param': 7},
+            {'limit_train_batches': 100},
+        ),
+    ],
+)
 def test_lightning_cli(cli_args, expected_model, expected_trainer, monkeypatch):
     """Test that LightningCLI correctly instantiates model, trainer and calls fit."""
 
@@ -267,7 +236,6 @@ def test_lightning_cli(cli_args, expected_model, expected_trainer, monkeypatch):
     monkeypatch.setattr(SaveConfigCallback, 'on_train_start', on_train_start)
 
     class TestModel(LightningModule):
-
         def __init__(self, model_param: int):
             super().__init__()
             self.model_param = model_param
@@ -310,9 +278,7 @@ def test_lightning_cli_config_and_subclass_mode(tmpdir):
         },
         'data': {
             'class_path': 'tests.helpers.BoringDataModule',
-            'init_args': {
-                'data_dir': str(tmpdir)
-            },
+            'init_args': {'data_dir': str(tmpdir)},
         },
         'trainer': {
             'default_root_dir': str(tmpdir),
