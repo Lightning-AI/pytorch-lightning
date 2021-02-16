@@ -34,6 +34,9 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 class ModelCheckpoint(Callback):
@@ -184,9 +187,6 @@ class ModelCheckpoint(Callback):
         self.last_model_path = ""
         self.save_function = None
         self.warned_result_obj = False
-
-        if save_top_k is None and monitor is not None:
-            self.save_top_k = 1
 
         if prefix:
             rank_zero_warn(
@@ -460,16 +460,22 @@ class ModelCheckpoint(Callback):
 
     def _add_backward_monitor_support(self, trainer):
         metrics = trainer.logger_connector.callback_metrics
+        deprecation_warning = False
 
-        # backward compatibility... need to deprecate
         if self.monitor is None and 'val_loss' in metrics:
             self.monitor = 'val_loss'
-
-        if self.monitor is None and 'checkpoint_on' in metrics:
-            self.monitor = 'checkpoint_on'
+            deprecation_warning = True
 
         if self.save_top_k is None and self.monitor is not None:
+            # TODO: Remove `Optional` from `save_top_k` when this is deleted in v1.4
             self.save_top_k = 1
+
+        if deprecation_warning:
+            warning_cache.warn(
+                f"Relying on `self.log('val_loss', ...)` to set the ModelCheckpoint monitor is deprecated in v1.2"
+                " and will be removed in v1.4. Please, create your own `mc = ModelCheckpoint(monitor='your_monitor')`"
+                " and use it as `Trainer(callbacks=[mc])`.", DeprecationWarning
+            )
 
     def _validate_monitor_key(self, trainer):
         metrics = trainer.logger_connector.callback_metrics
