@@ -672,33 +672,65 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 .. _deep_speed:
 
-DeepSpeed [EXPERIMENTAL]
-^^^^^^^^^^^^^^^^^^^^^^^^
+DeepSpeed
+^^^^^^^^^
 
 .. note::
-    The DeepSpeed plugin is experimental and the API is subject to change. Please create an `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_ if you run into any issues.
+    The DeepSpeed plugin is in beta and the API is subject to change. Please create an `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_ if you run into any issues.
 
 `DeepSpeed <https://github.com/microsoft/DeepSpeed>`_ offers additional CUDA deep learning training optimizations, similar to `FairScale <https://github.com/facebookresearch/fairscale>`_. DeepSpeed offers lower level training optimizations, and useful efficient optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_.
-Using the plugin, we were able to **train model sizes of 10 Billion+ parameters and above**, with a lot of useful information in this `issue <https://github.com/huggingface/transformers/issues/9996>`_ and DeepSpeed `docs <https://www.deepspeed.ai/tutorials/megatron/>`_.
+Using the plugin, we were able to **train model sizes of 10 Billion+ parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and DeepSpeed `docs <https://www.deepspeed.ai/tutorials/megatron/>`_.
 We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models), and where sacrificing flexibility as a tradeoff is acceptable. In addition, we recommend trying :ref:`sharded` first before trying DeepSpeed's further optimizations.
 
 To use DeepSpeed, you first need to install DeepSpeed using the commands below.
 
 .. code-block:: bash
 
-    pip install mpi4py deepspeed
+    pip install deepspeed mpi4py
 
 If you run into an issue with the install or later in training, ensure that the CUDA version of the pytorch you've installed matches your locally installed CUDA (you can see which one has been recognized by running ``nvcc --version``).
 Additionally if you run into any issues installing m4py, ensure you have openmpi installed using ``sudo apt install libopenmpi-dev`` or ``brew install mpich`` before running ``pip install mpi4py``.
 
-Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tutorials/zero-offload/>`_. ZeRO-Offload leverages the host CPU to offload optimizer memory/computation, reducing the overall memory consumption.
-For even more speed benefit, they offer an optimized CPU version of ADAM to run the offloaded computation, which is faster than the standard PyTorch implementation.
+ZeRO-Offload
+""""""""""""
 
-DeepSpeed requires that the optimizers and schedulers are defined within a config file.
-We've included the config to enable ZeRO-Offload, as well as set the bucket sizes to reasonable defaults for low VRAM GPUs (less than 7GB).
+Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tutorials/zero-offload/>`_. ZeRO-Offload leverages the host CPU to offload optimizer memory/computation, reducing the overall memory consumption.
+For even more speed benefit, they offer an optimized CPU version of ADAM to run the offloaded computation, which is faster than the standard PyTorch implementation. By default we enable ZeRO-Offload.
 
 .. note::
-    To use ZeRO-Offload to train large models, you must use ``precision=16`` or set precision via `the DeepSpeed config. <https://www.deepspeed.ai/docs/config-json/#fp16-training-options>`_.
+    To use ZeRO-Offload, you must use ``precision=16`` or set precision via `the DeepSpeed config. <https://www.deepspeed.ai/docs/config-json/#fp16-training-options>`_.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins='deepspeed', precision=16)
+    trainer.fit(model)
+
+
+This can also be done via the command line using a Pytorch Lightning script:
+
+.. code-block:: bash
+
+    python train.py --plugins deepspeed --precision 16 --gpus 4
+
+.. note::
+    We suggest tuning the ``allgather_bucket_size`` parameter and ``reduce_bucket_size`` parameter to find optimum parameters based on your model size.
+    These control how large a buffer we limit the model to using when reducing gradients/gathering updated parameters. Smaller values will result in less memory, but tradeoff with speed.
+
+    DeepSpeed allocates a reduce buffer size `multiplied by 4.5x <https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/runtime/zero/stage2.py#L1594-L1607>`_ so take that into consideration when tweaking the parameters.
+
+    The plugin sets a reasonable default of ``2e8``, which should work for most low VRAM GPUs (less than ``7GB``), allocating roughly ``3.6GB`` of VRAM as buffer. Higher VRAM GPUs should aim for values around 5e8.
+
+
+Custom DeepSpeed Config
+"""""""""""""""""""""""
+
+DeepSpeed allows to use custom optimizers and schedulers that are defined within a config file. This allows you to enable Optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_.
+
+.. note::
+    All plugin default parameters will be ignored when a config object is passed.
     All compatible arguments can be seen in the `DeepSpeed docs <https://www.deepspeed.ai/docs/config-json/>`_.
 
 .. code-block:: python
@@ -756,15 +788,8 @@ You can use also use an environment variable via your Pytorch Lightning script:
 
 .. code-block:: bash
 
-    DEEPSPEED_CONFIG_PATH=/path/to/deepspeed_config.json python train.py plugins=deepspeed
+    DEEPSPEED_CONFIG_PATH=/path/to/deepspeed_config.json python train.py --plugins deepspeed
 
-
-.. note::
-    We suggest tuning the ``allgather_bucket_size`` parameter and ``reduce_bucket_size`` parameter to find optimum parameters based on your model size. Larger values will be more efficient in terms of throughput time, but will require more memory.
-
-    DeepSpeed allocates a reduce buffer size `multiplied by 4.5x <https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/runtime/zero/stage2.py#L1594-L1607>`_ so take that into consideration when tweaking the parameters.
-
-    As reference, a reduce buffer size of 2e8 means you'll allocate roughly 3.6GB of VRAM for the buffer.
 
 ----------
 

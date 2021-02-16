@@ -17,7 +17,7 @@ import logging
 import os
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
@@ -66,28 +66,95 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def __init__(
         self,
+        zero_optimization: bool = True,
+        stage: int = 2,
+        cpu_offload: bool = True,
+        contiguous_gradients: bool = True,
+        overlap_comm: bool = True,
+        allgather_partitions: bool = True,
+        reduce_scatter: bool = True,
+        allgather_bucket_size: int = 2e8,
+        reduce_bucket_size: int = 2e8,
+        zero_allow_untested_optimizer: bool = True,
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
         num_nodes: int = 1,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
     ) -> None:
+        """
+
+        Provides capabilities to run training using the DeepSpeed library,
+        with training optimizations for large billion parameter models.
+        `For more information: https://www.deepspeed.ai/`.
+
+        .. warning:: ``DeepSpeedPlugin`` is in beta and subject to change.
+
+        Defaults have been set to enable ZeRO-Offload and some have been taken from the link below.
+        These defaults have been set generally, but may require tuning for optimum performance based on your model size.
+        `For more information: https://www.deepspeed.ai/docs/config-json/#zero-optimizations-for-fp16-training`.
+
+        Arguments:
+
+            zero_optimization: Enable ZERO optimization. This is only compatible with precision=16. (default: True)
+
+            stage: Different stages of the ZeRO Optimizer. 0 is disabled,
+                1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning (default: 2)
+
+            cpu_offload: Enable offloading optimizer memory and computation to CPU (default: True)
+
+            contiguous_gradients: Copies gradients to a continuous buffer as they are produced.
+                Avoids memory fragmentation during backwards. Useful when training large models.(default: True)
+
+            overlap_comm: Overlap the reduction(synchronization) of gradients with the backwards computation.
+                This is a speed optimization when training across multiple GPUs/machines. (default: True)
+
+            allgather_partitions: All gather updated parameters at the end of training step,
+                instead of using a series of broadcast collectives (default: True)
+
+            reduce_scatter: Use reduce/scatter instead of allreduce to average gradients (default:True)
+
+            allgather_bucket_size: Number of elements to allgather at once.
+                Used to limit the memory required for larger model sizes, with a tradeoff with speed. (default: 2e8)
+
+            reduce_bucket_size: Number of elements to reduce at once.
+                Used to limit the memory required for larger model sizes, with a tradeoff with speed (default: 2e8)
+
+            zero_allow_untested_optimizer: Allow untested optimizers to be used with ZERO. Currently only Adam is a
+                supported Optimizer (default: True)
+
+            config: Pass in a deepspeed formatted config dict,
+                or path to a deepspeed config: https://www.deepspeed.ai/docs/config-json.
+                All defaults will be ignored if a config is passed in. (Default: ``None``)
+
+            logging_level: Set logging level for deepspeed. (Default: ``logging.WARN``)
+
+        """
         super().__init__(
             parallel_devices=parallel_devices, num_nodes=num_nodes, cluster_environment=cluster_environment
         )
         self.config = self._load_config(config)
+        if self.config is None:
+            # User has not overridden config, set defaults
+            self.config = self._create_default_config(
+                zero_optimization,
+                zero_allow_untested_optimizer,
+                stage=stage,
+                cpu_offload=cpu_offload,
+                contiguous_gradients=contiguous_gradients,
+                overlap_comm=overlap_comm,
+                allgather_partitions=allgather_partitions,
+                reduce_scatter=reduce_scatter,
+                allgather_bucket_size=allgather_bucket_size,
+                reduce_bucket_size=reduce_bucket_size
+            )
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
 
     def _load_config(self, config):
-        if config is None:
-            if self.DEEPSPEED_ENV_VAR not in os.environ:
-                raise MisconfigurationException(
-                    "You did not pass a DeepSpeed config object or path for DeepSpeed. This can be passed"
-                    " via instantiating the `DeepSpeedPlugin` object, or by the DEEPSPEED_CONFIG_PATH env variable."
-                    " See: https://pytorch-lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed"
-                )
-            config = os.environ.get(self.DEEPSPEED_ENV_VAR)
+        if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
+            rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
+            config = os.environ[self.DEEPSPEED_ENV_VAR]
         if isinstance(config, str) or isinstance(config, Path):
             if os.path.exists(config):
                 with open(config) as f:
@@ -133,7 +200,7 @@ class DeepSpeedPlugin(DDPPlugin):
             raise MisconfigurationException(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
             )
-        scheduler = schedulers[0]['scheduler'] if len(schedulers) > 1 else None
+        scheduler = schedulers[0]['scheduler'] if len(schedulers) == 1 else None
         optimizer = optimizers[0]
         return optimizer, scheduler, optimizer_frequencies
 
@@ -145,7 +212,6 @@ class DeepSpeedPlugin(DDPPlugin):
                 "Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
-
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         model, optimizer, _, lr_scheduler = deepspeed.initialize(
             args=SimpleNamespace(local_rank=self.local_rank),
@@ -207,7 +273,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self.model.step(**kwargs)
 
     def _format_config(self):
-        if not self.config:
+        if self.config is None:
             raise MisconfigurationException(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
                 " See: https://pytorch-lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed"
@@ -241,3 +307,12 @@ class DeepSpeedPlugin(DDPPlugin):
                     "enabled": True,
                     "opt_level": amp_level,
                 }
+        if "zero_optimization" in self.config and not ("amp" in self.config or "fp16" in self.config):
+            raise MisconfigurationException("To use DeepSpeed ZeRO Optimization, you must set precision=16.")
+
+    def _create_default_config(
+        self, zero_optimization: bool, zero_allow_untested_optimizer: bool, **zero_kwargs
+    ) -> Dict:
+        if zero_optimization:
+            return {"zero_allow_untested_optimizer": zero_allow_untested_optimizer, "zero_optimization": zero_kwargs}
+        return {}
