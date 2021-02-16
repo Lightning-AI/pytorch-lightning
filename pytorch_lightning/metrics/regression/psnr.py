@@ -31,8 +31,8 @@ class PSNR(Metric):
 
     Args:
         data_range:
-            the range of the data. If `None`, it is determined from the data (max - min). `data_range` must be given
-            when `dim` is not `None`. default: `None`
+            the range of the data. If None, it is determined from the data (max - min).
+            The ``data_range`` must be given when ``dim`` is not None.
         base: a base of a logarithm to use (default: 10)
         reduction: a method to reduce metric score over labels.
 
@@ -41,8 +41,8 @@ class PSNR(Metric):
             - ``'none'``: no reduction will be applied
 
         dim:
-            Dimensions to reduce PSNR scores over, provided as either a integer or a list of integers. Default is
-            `None` meaning scores will be reduced across all dimensions and all batches. default: `None`
+            Dimensions to reduce PSNR scores over, provided as either an integer or a list of integers. Default is
+            None meaning scores will be reduced across all dimensions and all batches.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -79,7 +79,7 @@ class PSNR(Metric):
         )
 
         if dim is None and reduction != 'elementwise_mean':
-            utilities.rank_zero_warn(f'The `reduction={reduction}` will not have any effect when `dim` is `None`.')
+            utilities.rank_zero_warn(f'The `reduction={reduction}` will not have any effect when `dim` is None.')
 
         if dim is None:
             self.add_state("sum_squared_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
@@ -92,7 +92,7 @@ class PSNR(Metric):
             if dim is not None:
                 # Maybe we could use `torch.amax(target, dim=dim) - torch.amin(target, dim=dim)` in PyTorch 1.7 to
                 # calculate `data_range` in the future.
-                raise ValueError("`data_range` must be given when `dim` is not `None`.")
+                raise ValueError("The `data_range` must be given when `dim` is not None.")
 
             self.data_range = None
             self.add_state("min_target", default=torch.tensor(0.0), dist_reduce_fx=torch.min)

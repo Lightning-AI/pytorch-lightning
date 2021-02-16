@@ -69,8 +69,8 @@ def psnr(
         preds: estimated signal
         target: groun truth signal
         data_range:
-            the range of the data. If `None`, it is determined from the data (max - min). `data_range` must be given
-            when `dim` is not `None`. (default: `None`)
+            the range of the data. If None, it is determined from the data (max - min). ``data_range`` must be given
+            when ``dim`` is not None.
         base: a base of a logarithm to use (default: 10)
         reduction: a method to reduce metric score over labels.
 
@@ -79,8 +79,8 @@ def psnr(
             - ``'none'``: no reduction will be applied
 
         dim:
-            Dimensions to reduce PSNR scores over, provided as either a integer or a list of integers. Default is
-            `None` meaning scores will be reduced across all dimensions. (default: `None`)
+            Dimensions to reduce PSNR scores over provided as either an integer or a list of integers. Default is
+            None meaning scores will be reduced across all dimensions.
     Return:
         Tensor with PSNR score
 
@@ -99,7 +99,7 @@ def psnr(
         if dim is not None:
             # Maybe we could use `torch.amax(target, dim=dim) - torch.amin(target, dim=dim)` in PyTorch 1.7 to calculate
             # `data_range` in the future.
-            raise ValueError("`data_range` must be given when `dim` is not `None`.")
+            raise ValueError("The `data_range` must be given when `dim` is not None.")
 
         data_range = target.max() - target.min()
     else:
