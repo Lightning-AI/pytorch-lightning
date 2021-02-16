@@ -266,6 +266,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed forward cache ([#5895](https://github.com/PyTorchLightning/pytorch-lightning/pull/5895))
 
 
+- Fixed recursive detach of tensors to CPU ([#6007](https://github.com/PyTorchLightning/pytorch-lightning/pull/6007))
+
+
 - Fixed passing wrong strings for scheduler interval doesn't throw an error ([#5923](https://github.com/PyTorchLightning/pytorch-lightning/pull/5923))
 
 
