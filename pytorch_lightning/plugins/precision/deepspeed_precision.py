@@ -5,6 +5,10 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
@@ -36,9 +40,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         *args,
         **kwargs,
     ):
+        if is_overridden('backward', lightning_module):
+            warning_cache.warn(
+                "Overridden backward hook in the LightningModule will be ignored since DeepSpeed handles"
+                "backward logic outside of the LightningModule"
+            )
         # todo: hack around for deepspeed engine to call backward
-        # Means that the lightning module backward function is never called
-        # This is an issue if the user overrides the backwards function
         deepspeed_engine = lightning_module.trainer.model
         deepspeed_engine.backward(closure_loss, **kwargs)
         # once backward has been applied, release graph

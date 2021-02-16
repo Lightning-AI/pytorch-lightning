@@ -4,6 +4,8 @@ import platform
 
 import pytest
 import torch
+from torch import Tensor
+from torch.optim import Optimizer
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
@@ -215,6 +217,30 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
     with pytest.raises(
         MisconfigurationException, match='To use DeepSpeed ZeRO Optimization, you must set precision=16.'
     ):
+        trainer.fit(model)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+def test_warn_deepspeed_override_backward(tmpdir):
+    """
+        Test to ensure that if the backward hook in the LightningModule is overridden, we throw a warning.
+    """
+
+    class TestModel(BoringModel):
+
+        def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
+            return loss.backward()
+
+    model = TestModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        plugins='deepspeed',
+        precision=16,
+        gpus=1,
+    )
+    with pytest.warns(UserWarning, match='Overridden backward hook in the LightningModule will be ignored'):
         trainer.fit(model)
 
 
