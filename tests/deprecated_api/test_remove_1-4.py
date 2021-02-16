@@ -222,6 +222,7 @@ def test_v1_4_0_deprecated_checkpoint_on(tmpdir):
     warning_cache.clear()
 
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             self.log("val_loss", -batch_idx)
             return super().training_step(batch, batch_idx)
