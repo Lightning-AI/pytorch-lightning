@@ -269,6 +269,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed passing wrong strings for scheduler interval doesn't throw an error ([#5923](https://github.com/PyTorchLightning/pytorch-lightning/pull/5923))
 
 
+- Fixed missing `process_dataloder` call for `TPUSpawn` ([#6015](https://github.com/PyTorchLightning/pytorch-lightning/pull/6015))
+
+
 ## [1.1.8] - 2021-02-08
 
 ### Fixed
