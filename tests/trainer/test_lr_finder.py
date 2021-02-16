@@ -21,7 +21,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
-from tests.helpers.datamodules import TrialMNISTDataModule
+from tests.helpers.datamodules import MNISTDataModule
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -179,8 +179,7 @@ def test_call_to_trainer_method(tmpdir, optimizer):
 def test_datamodule_parameter(tmpdir):
     """ Test that the datamodule parameter works """
 
-    # trial datamodule
-    dm = TrialMNISTDataModule(tmpdir)
+    dm = MNISTDataModule(tmpdir)
 
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
