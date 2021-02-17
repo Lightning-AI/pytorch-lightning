@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from typing import Dict, Iterable, Union
+from typing import Dict, Iterable, Optional, Union
 
 import torch
 
@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 class LoggerConnector:
 
-    def __init__(self, trainer, log_gpu_memory: bool):
+    def __init__(self, trainer, log_gpu_memory: Optional[str] = None):
         self.trainer = trainer
         self.log_gpu_memory = log_gpu_memory
         self._callback_metrics = MetricsHolder()

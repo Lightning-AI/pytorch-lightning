@@ -140,7 +140,7 @@ class TrainLoop:
         # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
         # It might be related to xla tensors blocked when moving the cpu
         # kill loggers
-        if self.trainer.logger is not None and self.trainer.training_type_plugin.should_finalize:
+        if self.trainer.logger is not None:
             self.trainer.logger.finalize("success")
 
         # summarize profile results
@@ -502,7 +502,7 @@ class TrainLoop:
 
     def run_training_epoch(self):
         # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.trainer.training_type_plugin.process_dataloader(self.trainer.train_dataloader)
+        train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
 
         # track epoch output
         epoch_output = [[] for _ in range(self.num_optimizers)]
@@ -768,24 +768,23 @@ class TrainLoop:
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
-            if result is None:
-                if self.automatic_optimization:
-                    self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
-                return None
-
             if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
                 # backward pass
-                with self.trainer.profiler.profile("model_backward"):
-                    self.backward(result, optimizer, opt_idx)
+                if result is not None:
+                    with self.trainer.profiler.profile("model_backward"):
+                        self.backward(result, optimizer, opt_idx)
 
-                # hook - call this hook only
-                # when gradients have finished to accumulate
-                if not self.should_accumulate():
-                    self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+                    # hook - call this hook only
+                    # when gradients have finished to accumulate
+                    if not self.should_accumulate():
+                        self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
-                # check if loss or model weights are nan
-                if self.trainer.terminate_on_nan:
-                    self.trainer.detect_nan_tensors(result.loss)
+                    # check if loss or model weights are nan
+                    if self.trainer.terminate_on_nan:
+                        self.trainer.detect_nan_tensors(result.loss)
+
+                else:
+                    self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
 
                 if len(self.trainer.optimizers) > 1:
                     # revert back to previous state

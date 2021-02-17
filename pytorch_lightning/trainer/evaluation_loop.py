@@ -318,6 +318,8 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
+        self.trainer.call_hook('on_epoch_end')
+
     def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.running_sanity_check:
             return
