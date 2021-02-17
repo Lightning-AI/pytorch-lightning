@@ -32,15 +32,22 @@ class CallbackConnector:
         self.trainer = trainer
 
     def on_trainer_init(
-        self, callbacks, checkpoint_callback, progress_bar_refresh_rate, process_position, default_root_dir,
-        weights_save_path, resume_from_checkpoint, use_swa,
+        self,
+        callbacks,
+        checkpoint_callback,
+        progress_bar_refresh_rate,
+        process_position,
+        default_root_dir,
+        weights_save_path,
+        resume_from_checkpoint,
+        use_stochastic_weight_averaging,
     ):
         self.trainer.resume_from_checkpoint = resume_from_checkpoint
 
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
-        self.trainer._use_swa = use_swa
+        self.trainer._use_stochastic_weight_averaging = use_stochastic_weight_averaging
 
         # init callbacks
         if isinstance(callbacks, Callback):

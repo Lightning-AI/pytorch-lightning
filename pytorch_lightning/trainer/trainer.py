@@ -138,7 +138,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         enable_pl_optimizer: bool = None,  # todo: remove in v1.3
         multiple_trainloader_mode: str = 'max_size_cycle',
-        use_swa: bool = False
+        use_stochastic_weight_averaging: bool = False
     ):
         r"""
         Customize every aspect of training via flags
@@ -298,8 +298,8 @@ class Trainer(
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
 
-            use_swa: Whether to activate Stochastic Weight Averaging (SWA). For an explanation on SWA, please take a look
-                `<https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`.
+            use_stochastic_weight_averaging: Whether to activate Stochastic Weight Averaging (SWA). For an explanation on SWA,
+                please take a look `<https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`.
 
         """
         super().__init__()
@@ -338,7 +338,7 @@ class Trainer(
         # Declare attributes to be set in callback_connector on_trainer_init
         self.callback_connector.on_trainer_init(
             callbacks, checkpoint_callback, progress_bar_refresh_rate, process_position, default_root_dir,
-            weights_save_path, resume_from_checkpoint, use_swa
+            weights_save_path, resume_from_checkpoint, use_stochastic_weight_averaging
         )
 
         # hook
