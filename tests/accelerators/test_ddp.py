@@ -90,6 +90,7 @@ def test_cli_to_pass(tmpdir, args=None):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
 def test_torch_distributed_backend_env_variables(tmpdir):
     """
     This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError.
