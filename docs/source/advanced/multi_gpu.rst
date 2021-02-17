@@ -244,7 +244,7 @@ Select torch distributed backend
 --------------------------------
 
 By default, Lightning will select the ``nccl`` backend over ``gloo`` when running on GPUs.
-Find more information about PyTorch's supported backends `here <https://pytorch.org/docs/stable/distributed.html>`_.
+Find more information about PyTorch's supported backends `here <https://pytorch.org/docs/stable/distributed.html>`__.
 
 Lightning exposes an environment variable ``PL_TORCH_DISTRIBUTED_BACKEND`` for the user to change the backend.
 
