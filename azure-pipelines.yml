@@ -19,9 +19,6 @@ jobs:
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: 2
 
-    variables:
-      PATH: "$PATH:/home/AzDevOps_azpcontainer/:local/bin:"
-
     pool: dsvm-spot-pool
 
     #strategy:
@@ -79,14 +76,15 @@ jobs:
         ls -l legacy/checkpoints/
       displayName: 'Get legacy checkpoints'
 
-    - bash: |
-        # FIXME: move it after standard
-        sh tests/special_tests.sh
-      displayName: 'Testing: special'
-
     - script: |
         python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
       displayName: 'Testing: standard'
+
+    - bash: |
+        # Required for Ninja binary for building extensions, which is installed at this location
+        export PATH=$PATH:/home/AzDevOps_azpcontainer/.local/bin
+        sh tests/special_tests.sh
+      displayName: 'Testing: special'
 
     - bash: |
         python -m coverage report
