@@ -63,11 +63,6 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.accelerator
 
     @property
-    def accelerator_backend(self) -> Accelerator:
-        # for backward compatibility
-        return self.accelerator
-
-    @property
     def distributed_backend(self) -> Optional[str]:
         # for backward compatibility
         return self.accelerator_connector.distributed_backend

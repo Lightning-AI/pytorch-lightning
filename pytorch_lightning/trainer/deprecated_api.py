@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
@@ -22,7 +23,16 @@ class DeprecatedDistDeviceAttributes:
     _device_type: DeviceType
     _running_stage: RunningStage
     num_gpus: int
+    accelerator: Accelerator
     accelerator_connector: AcceleratorConnector
+
+    @property
+    def accelerator_backend(self) -> Accelerator:
+        rank_zero_warn(
+            "The `Trainer.accelerator_backend` attribute is deprecated in favor of `Trainer.accelerator`"
+            " since 1.2 and will be removed in 1.4."
+        )
+        return self.accelerator
 
     @property
     def on_cpu(self) -> bool:
