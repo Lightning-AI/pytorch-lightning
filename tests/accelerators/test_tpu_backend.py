@@ -19,12 +19,11 @@ from torch import nn
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
-from tests.base import SimpleModule
-from tests.base.boring_model import BoringModel
-from tests.base.develop_utils import pl_multi_process_test
+from tests.helpers.boring_model import BoringModel
+from tests.helpers.utils import pl_multi_process_test
 
 
-class WeightSharingModule(SimpleModule):
+class WeightSharingModule(BoringModel):
 
     def __init__(self):
         super().__init__()
