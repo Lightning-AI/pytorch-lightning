@@ -1,6 +1,5 @@
 import json
 import os
-import platform
 
 import pytest
 import torch
@@ -13,8 +12,6 @@ from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _DEEPSPEED_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
-
-PRETEND_N_OF_GPUS = 1
 
 
 @pytest.fixture
@@ -94,7 +91,7 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
     config_path = os.path.join(tmpdir, 'temp.json')
     with open(config_path, 'w') as f:
         f.write(json.dumps(deepspeed_config))
-    monkeypatch.setenv("DEEPSPEED_CONFIG_PATH", config_path)
+    monkeypatch.setenv("PL_DEEPSPEED_CONFIG_PATH", config_path)
 
     class CB(Callback):
 
@@ -116,35 +113,18 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
         trainer.fit(model)
 
 
+@pytest.mark.parametrize(
+    "amp_backend", [
+        pytest.param("native", marks=pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")),
+        pytest.param("apex", marks=pytest.mark.skipif(not _APEX_AVAILABLE, reason="Requires Apex")),
+    ]
+)
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
-def test_deepspeed_amp_choice(tmpdir):
+def test_deepspeed_precision_choice(amp_backend, tmpdir):
     """
-        Test to ensure precision plugin is also correctly chosen. DeepSpeed handles precision via
-        Custom DeepSpeedPrecisionPlugin
-    """
-
-    class CB(Callback):
-
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.training_type_plugin, DeepSpeedPlugin)
-            assert isinstance(trainer.accelerator_backend.precision_plugin, DeepSpeedPrecisionPlugin)
-            assert trainer.accelerator_backend.precision_plugin.precision == 16
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, plugins='deepspeed', callbacks=[CB()], amp_backend='native', precision=16)
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@pytest.mark.skipif(not _APEX_AVAILABLE, reason="Requires Apex")
-def test_deepspeed_apex_choice(tmpdir):
-    """
-        Test to ensure precision plugin is also correctly chosen. DeepSpeed handles precision via
-        Custom DeepSpeedPrecisionPlugin
+        Test to ensure precision plugin is also correctly chosen.
+        DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
     """
 
     class CB(Callback):
@@ -156,7 +136,7 @@ def test_deepspeed_apex_choice(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, plugins='deepspeed', callbacks=[CB()], amp_backend='apex', precision=16)
+    trainer = Trainer(fast_dev_run=True, plugins='deepspeed', callbacks=[CB()], amp_backend=amp_backend, precision=16)
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -182,7 +162,7 @@ def test_deepspeed_with_env_path(tmpdir, monkeypatch, deepspeed_config):
     config_path = os.path.join(tmpdir, 'temp.json')
     with open(config_path, 'w') as f:
         f.write(json.dumps(deepspeed_config))
-    monkeypatch.setenv("DEEPSPEED_CONFIG_PATH", config_path)
+    monkeypatch.setenv("PL_DEEPSPEED_CONFIG_PATH", config_path)
     plugin = DeepSpeedPlugin()
     assert plugin.config == deepspeed_config
 
@@ -197,8 +177,6 @@ def test_deepspeed_defaults(tmpdir):
     assert isinstance(plugin.config["zero_optimization"], dict)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 def test_invalid_deepspeed_defaults_no_precision(tmpdir):
     """
@@ -208,7 +186,6 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         plugins='deepspeed',
-        gpus=1,
     )
     with pytest.raises(
         MisconfigurationException, match='To use DeepSpeed ZeRO Optimization, you must set precision=16.'
@@ -217,7 +194,6 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 def test_warn_deepspeed_override_backward(tmpdir):
     """
@@ -240,11 +216,10 @@ def test_warn_deepspeed_override_backward(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 def test_deepspeed_run_configure_optimizers(tmpdir):
     """
-        Test to end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
+        Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
         whilst using configure_optimizers for optimizers and schedulers.
     """
 
@@ -276,7 +251,6 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 def test_deepspeed_config(tmpdir, deepspeed_config):
     """
@@ -313,7 +287,6 @@ def test_deepspeed_config(tmpdir, deepspeed_config):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(

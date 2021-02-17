@@ -803,7 +803,7 @@ You can use also use an environment variable via your Pytorch Lightning script:
 
 .. code-block:: bash
 
-    DEEPSPEED_CONFIG_PATH=/path/to/deepspeed_config.json python train.py --plugins deepspeed
+    PL_DEEPSPEED_CONFIG_PATH=/path/to/deepspeed_config.json python train.py --plugins deepspeed
 
 
 ----------

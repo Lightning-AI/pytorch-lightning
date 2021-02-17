@@ -34,8 +34,6 @@ from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
-else:
-    deepspeed = None
 
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
@@ -61,7 +59,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
 class DeepSpeedPlugin(DDPPlugin):
     distributed_backend = "deepspeed"
-    DEEPSPEED_ENV_VAR = "DEEPSPEED_CONFIG_PATH"
+    DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
     def __init__(
         self,
@@ -95,7 +93,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         Arguments:
 
-            zero_optimization: Enable ZERO optimization. This is only compatible with precision=16. (default: True)
+            zero_optimization: Enable ZeRO optimization. This is only compatible with precision=16. (default: True)
 
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning (default: 2)
@@ -103,9 +101,9 @@ class DeepSpeedPlugin(DDPPlugin):
             cpu_offload: Enable offloading optimizer memory and computation to CPU (default: True)
 
             contiguous_gradients: Copies gradients to a continuous buffer as they are produced.
-                Avoids memory fragmentation during backwards. Useful when training large models.(default: True)
+                Avoids memory fragmentation during backwards. Useful when training large models. (default: True)
 
-            overlap_comm: Overlap the reduction(synchronization) of gradients with the backwards computation.
+            overlap_comm: Overlap the reduction (synchronization) of gradients with the backwards computation.
                 This is a speed optimization when training across multiple GPUs/machines. (default: True)
 
             allgather_partitions: All gather updated parameters at the end of training step,
@@ -129,6 +127,11 @@ class DeepSpeedPlugin(DDPPlugin):
             logging_level: Set logging level for deepspeed. (Default: ``logging.WARN``)
 
         """
+        if not _DEEPSPEED_AVAILABLE:
+            raise MisconfigurationException(
+                "To use the DeepSpeed plugin, you must have DeepSpeed installed."
+                " pip install deepspeed mpi4py"
+            )
         super().__init__(
             parallel_devices=parallel_devices, num_nodes=num_nodes, cluster_environment=cluster_environment
         )
@@ -164,7 +167,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 )
         return config
 
-    def pre_training(self):
+    def pre_dispatch(self):
         self.set_world_ranks()
         self.init_ddp_connection(self.global_rank, self.world_size)
 
