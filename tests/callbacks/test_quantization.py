@@ -80,6 +80,7 @@ def test_quantize_torchscript(tmpdir):
     tsmodel(tsmodel.quant(batch[0]))
 
 
+@pytest.mark.skipif(**_SKIPIF_ARGS_NO_PT_QUANT)
 def test_quantization_exceptions(tmpdir):
     """Test wrong fuse layers"""
     with pytest.raises(MisconfigurationException, match='Unsupported qconfig'):
