@@ -51,7 +51,7 @@ class TrainerDataLoadingMixin(ABC):
     limit_val_batches: Union[int, float]
     limit_test_batches: Union[int, float]
     replace_sampler_ddp: bool
-    accelerator_backend: Accelerator
+    accelerator: Accelerator
     num_nodes: int
     num_processes: int
     distributed_backend: Optional[str]

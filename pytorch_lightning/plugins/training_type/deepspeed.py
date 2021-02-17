@@ -186,7 +186,7 @@ class DeepSpeedPlugin(DDPPlugin):
             self._format_config()
             self._config_initialized = True
 
-        precision = self.lightning_module.trainer.accelerator_backend.precision
+        precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
         if self.lightning_module.trainer.training:

@@ -532,10 +532,10 @@ class Trainer(
 
         self._set_running_stage(None, model)
 
-        return self.accelerator_backend.results or 1
+        return self.accelerator.results or 1
 
     def pre_dispatch(self):
-        self.accelerator_backend.pre_dispatch()
+        self.accelerator.pre_dispatch()
 
     def post_dispatch(self):
         self.accelerator.post_dispatch()
@@ -543,13 +543,13 @@ class Trainer(
 
     def dispatch(self):
         if self.testing:
-            self.accelerator_backend.start_testing(self)
+            self.accelerator.start_testing(self)
 
         elif self.predicting:
-            self.accelerator_backend.start_predicting(self)
+            self.accelerator.start_predicting(self)
 
         else:
-            self.accelerator_backend.start_training(self)
+            self.accelerator.start_training(self)
 
     def train_or_test_or_predict(self):
         if self.testing:
@@ -946,7 +946,7 @@ class Trainer(
                 )
                 return {}
             if not self._device_type == DeviceType.TPU:
-                self.accelerator_backend.barrier()
+                self.accelerator.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
