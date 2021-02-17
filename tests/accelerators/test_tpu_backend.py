@@ -79,7 +79,7 @@ def test_if_test_works_after_train(tmpdir):
     model = BoringModel()
     trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
-    assert trainer.test() == 1
+    assert trainer.test(model) == 1
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
