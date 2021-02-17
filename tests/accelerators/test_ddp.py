@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import platform
 from unittest.mock import patch
 
 import pytest
@@ -88,6 +89,7 @@ def test_cli_to_pass(tmpdir, args=None):
     return '1'
 
 
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_torch_distributed_backend_env_variables(tmpdir):
     """
     This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError.
