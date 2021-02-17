@@ -180,8 +180,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if not isinstance(output, torch.Tensor):
             output = torch.tensor(output, device=self.device)
 
-        if (isinstance(reduce_op, ReduceOp) and ReduceOp != ReduceOp.SUM) \
-           or isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg"):
+        _valid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
+        if (isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM) or _valid_reduce_op_str:
             raise MisconfigurationException(
                 "Currently, TPUSpawn TrainingTypePlugin only support `sum`, `mean`, `avg` reduce operation."
             )
