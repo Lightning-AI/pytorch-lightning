@@ -707,6 +707,7 @@ Additionally if you run into any issues installing m4py, ensure you have openmpi
 
 .. note::
     Currently ``resume_from_checkpoint`` and manual optimization are not supported.
+    DeepSpeed only supports single optimizer, single scheduler.
 
 ZeRO-Offload
 """"""""""""
