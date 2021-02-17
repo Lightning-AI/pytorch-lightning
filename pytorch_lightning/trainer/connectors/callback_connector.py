@@ -33,7 +33,7 @@ class CallbackConnector:
 
     def on_trainer_init(
         self, callbacks, checkpoint_callback, progress_bar_refresh_rate, process_position, default_root_dir,
-        weights_save_path, resume_from_checkpoint, use_swa
+        weights_save_path, resume_from_checkpoint, use_swa,
     ):
         self.trainer.resume_from_checkpoint = resume_from_checkpoint
 
