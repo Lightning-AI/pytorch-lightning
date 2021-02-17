@@ -21,7 +21,6 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
@@ -29,6 +28,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import TrainerState
@@ -138,7 +138,7 @@ class TrainerProperties(ABC):
         else:
             dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
 
-        dirpath = self.training_type_plugin.broadcast(dirpath)
+        dirpath = self.accelerator_backend.broadcast(dirpath)
         return dirpath
 
     @property
@@ -365,7 +365,7 @@ class TrainerProperties(ABC):
 
     @property
     def lightning_module(self) -> LightningModule:
-        return self.training_type_plugin.lightning_module
+        return self.accelerator_backend.lightning_module
 
     @property
     def optimizers(self) -> Optional[List[Optimizer]]:
