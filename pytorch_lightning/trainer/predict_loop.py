@@ -74,7 +74,7 @@ class PredictLoop(object):
         model_ref = self.trainer.get_model()
 
         model_ref._current_fx_name = "predict"
-        predictions = self.trainer.accelerator_backend.predict(args)
+        predictions = self.trainer.accelerator.predict(args)
         self._predictions[dataloader_idx].append(predictions)
         self.trainer._progress_bar_callback.on_predict_batch_end(
             self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx

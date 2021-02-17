@@ -172,7 +172,7 @@ def test_transfer_batch_hook(model_getter_mock):
     trainer = Trainer(gpus=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     model_getter_mock.return_value = model
-    batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
+    batch_gpu = trainer.accelerator.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
     assert model.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected

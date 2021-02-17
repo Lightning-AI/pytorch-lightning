@@ -290,8 +290,8 @@ class TrainLoop:
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator_backend.training_step(args)
-                self.trainer.accelerator_backend.post_training_step()
+                training_step_output = self.trainer.accelerator.training_step(args)
+                self.trainer.accelerator.post_training_step()
 
             self.trainer.logger_connector.cache_logged_metrics()
 
@@ -468,14 +468,14 @@ class TrainLoop:
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
-        self.trainer.accelerator_backend.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
+        self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
     def track_and_norm_grad(self, optimizer):
         # track gradient norms
         grad_norm_dic = self._track_gradient_norm()
 
         # clip gradients
-        self.trainer.accelerator_backend.clip_gradients(optimizer, self.trainer.gradient_clip_val)
+        self.trainer.accelerator.clip_gradients(optimizer, self.trainer.gradient_clip_val)
         self._cur_grad_norm_dict = grad_norm_dic
 
     def _track_gradient_norm(self):
@@ -800,9 +800,9 @@ class TrainLoop:
 
         # backward can be called manually in the training loop
         if isinstance(result, torch.Tensor):
-            self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, should_accumulate, *args, **kwargs)
+            self.trainer.accelerator.backward(result, optimizer, opt_idx, should_accumulate, *args, **kwargs)
         else:
-            result.closure_loss = self.trainer.accelerator_backend.backward(
+            result.closure_loss = self.trainer.accelerator.backward(
                 result.closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
             )
 

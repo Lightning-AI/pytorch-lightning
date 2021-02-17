@@ -88,7 +88,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             trainer.progress_bar_callback.disable()
 
         self.model_to_device()
-        trainer.accelerator_backend.setup_optimizers(trainer)
+        trainer.accelerator.setup_optimizers(trainer)
         trainer.precision_plugin.connect(self._model, None, None)
 
         # replace trainer save_checkpoint to use `xm.save`

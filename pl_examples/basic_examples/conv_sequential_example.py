@@ -222,6 +222,6 @@ if __name__ == "__main__":
     trainer.fit(model, cifar10_dm)
     trainer.test(model, datamodule=cifar10_dm)
 
-    if trainer.accelerator_backend.rpc_enabled:
+    if trainer.accelerator.rpc_enabled:
         # Called at the end of trainer to ensure all processes are killed
         trainer.training_type_plugin.exit_rpc_process()

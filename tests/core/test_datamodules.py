@@ -452,7 +452,7 @@ def test_dm_transfer_batch_to_device(get_module_mock):
     if is_overridden('transfer_batch_to_device', dm):
         model.transfer_batch_to_device = dm.transfer_batch_to_device
 
-    batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
+    batch_gpu = trainer.accelerator.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
     assert dm.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected

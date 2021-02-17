@@ -132,7 +132,7 @@ class LightningOptimizer:
         model = trainer.get_model()
 
         with trainer.profiler.profile(profiler_name):
-            trainer.accelerator_backend.optimizer_step(optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
+            trainer.accelerator.optimizer_step(optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
 
         if self._trainer.train_loop.automatic_optimization:
             trainer.train_loop.on_before_zero_grad(optimizer)

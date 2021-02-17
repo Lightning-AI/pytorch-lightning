@@ -468,7 +468,7 @@ class Trainer(
         # ----------------------------
         self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
-        self.accelerator_backend.setup(self, model)
+        self.accelerator.setup(self, model)
         self.setup_trainer(model)
 
         # ----------------------------
@@ -540,7 +540,7 @@ class Trainer(
     def post_dispatch(self):
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
-        self.accelerator_backend.teardown()
+        self.accelerator.teardown()
 
     def dispatch(self):
         if self.testing:
@@ -1107,8 +1107,8 @@ class Trainer(
 
             # if the PL module doesn't have the hook then call the accelerator
             # used to auto-reduce things for the user with Results obj
-            elif hasattr(self.accelerator_backend, hook_name):
-                accelerator_hook = getattr(self.accelerator_backend, hook_name)
+            elif hasattr(self.accelerator, hook_name):
+                accelerator_hook = getattr(self.accelerator, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
         if not skip:

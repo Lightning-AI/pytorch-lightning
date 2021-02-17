@@ -219,8 +219,7 @@ class CheckpointConnector:
 
         model.on_hpc_save(checkpoint)
 
-        if self.trainer.accelerator_backend:
-            checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
+        checkpoint = self.trainer.accelerator.on_save(checkpoint)
 
         # do the actual save
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
@@ -286,7 +285,7 @@ class CheckpointConnector:
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
                 # Rely on accelerator to dump optimizer state
-                optimizer_state = self.trainer.accelerator_backend.optimizer_state(optimizer)
+                optimizer_state = self.trainer.accelerator.optimizer_state(optimizer)
                 optimizer_states.append(optimizer_state)
 
             checkpoint['optimizer_states'] = optimizer_states
