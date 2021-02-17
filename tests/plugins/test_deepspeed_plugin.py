@@ -240,14 +240,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 
     trainer.fit(model)
 
-    checkpoint_path = os.path.join(tmpdir, 'model.pt')
-    trainer.save_checkpoint(checkpoint_path)
-    saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
-    model = model.cpu().float()
-
-    # Assert model parameters are identical after loading
-    for orig_param, trained_model_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(orig_param, trained_model_param)
+    _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
@@ -277,13 +270,7 @@ def test_deepspeed_config(tmpdir, deepspeed_config):
     trainer.fit(model)
     trainer.test(model)
 
-    checkpoint_path = os.path.join(tmpdir, 'model.pt')
-    trainer.save_checkpoint(checkpoint_path)
-    saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
-    model = model.cpu()
-    # Assert model parameters are identical after loading
-    for orig_param, trained_model_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(orig_param, trained_model_param)
+    _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
@@ -306,6 +293,10 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     trainer.fit(model)
     trainer.test(model)
 
+    _assert_save_model_is_equal(model, tmpdir, trainer)
+
+
+def _assert_save_model_is_equal(model, tmpdir, trainer):
     checkpoint_path = os.path.join(tmpdir, 'model.pt')
     trainer.save_checkpoint(checkpoint_path)
     # carry out the check only on rank 0
