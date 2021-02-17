@@ -63,7 +63,7 @@ jobs:
 
     - bash: |
         # Temporary fix till DeepSpeed release
-        pip install deepspeed mpi4py
+        pip install deepspeed@git+https://github.com/microsoft/DeepSpeed@ec8b1cb
       displayName: 'Install DeepSpeed'
 
     - script: |
