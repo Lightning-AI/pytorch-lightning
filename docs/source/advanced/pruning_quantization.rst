@@ -94,7 +94,7 @@ To quantize your model, specify TODO(borda).
 	        return x
 
 	qcb = QuantizationAwareTraining(
-	    # specification of quant estimation quaity
+	    # specification of quant estimation quality
 	    observer_type='histogram',
 	    # specify which layers shall be merged together to increase efficiency
 	    modules_to_fuse=[(f'layer_{i}', f'layer_{i}a') for i in range(2)]
