@@ -325,9 +325,9 @@ class RPCSequentialPlugin(RPCPlugin):
             # Initialize optimizer step on main process
             self.worker_optimizer_step(model=self.lightning_module, opt_idx=optimizer_idx, **kwargs)
 
-    def post_training(self):
+    def post_training_step(self):
         if self.main_rpc_process:
-            super().post_training()
+            super().post_training_step()
 
     def start_training(self, trainer: 'Trainer') -> None:
         if self.main_rpc_process:

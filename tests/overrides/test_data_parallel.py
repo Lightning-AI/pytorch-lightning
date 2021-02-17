@@ -39,7 +39,7 @@ def test_lightning_wrapper_module_methods(wrapper_class):
     wrapped_module(batch, batch_idx)
     pl_module.validation_step.assert_called_with(batch, batch_idx)
 
-    pl_module.running_stage = None
+    pl_module.running_stage = RunningStage.PREDICTING
     wrapped_module(batch)
     pl_module.predict.assert_called_with(batch)
 
