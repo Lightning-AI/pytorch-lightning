@@ -236,7 +236,9 @@ class ModelPruning(Callback):
 
     @staticmethod
     def _wrap_pruning_fn(pruning_fn, **kwargs):
-        return partial(pruning_fn, **kwargs)
+        fn = partial(pruning_fn, **kwargs)
+        fn.__name__ = pruning_fn.__name__
+        return fn
 
     def make_pruning_permanent(self):
         """ Makes ``parameters_to_prune`` current pruning permanent. """
