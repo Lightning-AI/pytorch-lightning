@@ -22,7 +22,6 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -33,6 +32,7 @@ from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -484,7 +484,7 @@ class Trainer(
         #                         trainer.dispatch                          ||  LIGHTNING
         #                                |                                  ||
         #    start_training or start_testing or start_predicting call       ||  FLOW
-        #               from `accelerator.training_type_plugin`             ||
+        #                        from `accelerator`                         ||
         #                                |                                  ||  DIRECTION
         #             run_train or run_test or run_predict call             ||
         #                           from `trainer`                          ||
@@ -532,26 +532,24 @@ class Trainer(
 
         self._set_running_stage(None, model)
 
-        return self.training_type_plugin.results or 1
+        return self.accelerator_backend.results or 1
 
     def pre_dispatch(self):
-        self.training_type_plugin.pre_dispatch()
-        self.precision_plugin.pre_dispatch()
+        self.accelerator_backend.pre_dispatch()
 
     def post_dispatch(self):
-        self.training_type_plugin.post_dispatch()
-        self.precision_plugin.post_dispatch()
+        self.accelerator_backend.post_dispatch()
         self.accelerator_backend.teardown()
 
     def dispatch(self):
         if self.testing:
-            self.training_type_plugin.start_testing(self)
+            self.accelerator_backend.start_testing(self)
 
         elif self.predicting:
-            self.training_type_plugin.start_predicting(self)
+            self.accelerator_backend.start_predicting(self)
 
         else:
-            self.training_type_plugin.start_training(self)
+            self.accelerator_backend.start_training(self)
 
     def train_or_test_or_predict(self):
         if self.testing:
@@ -575,7 +573,7 @@ class Trainer(
 
     def _pre_training_routine(self):
         # wait for all to join if on distributed
-        self.accelerator.training_type_plugin.barrier("setup_training")
+        self.accelerator.barrier("setup_training")
 
         # register auto-resubmit when on SLURM
         self.slurm_connector.register_slurm_signal_handlers()
@@ -948,7 +946,7 @@ class Trainer(
                 )
                 return {}
             if not self._device_type == DeviceType.TPU:
-                self.training_type_plugin.barrier()
+                self.accelerator_backend.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])

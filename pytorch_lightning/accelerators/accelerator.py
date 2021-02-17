@@ -76,6 +76,25 @@ class Accelerator(object):
         self.setup_optimizers(trainer)
         self.connect_precision_plugin(self.precision_plugin)
 
+    def start_training(self, trainer: 'Trainer'):
+        self.training_type_plugin.start_training(trainer)
+
+    def start_testing(self, trainer: 'Trainer'):
+        self.training_type_plugin.start_testing(trainer)
+
+    def start_predicting(self, trainer: 'Trainer'):
+        self.training_type_plugin.start_predicting(trainer)
+
+    def pre_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
+        self.training_type_plugin.pre_dispatch()
+        self.precision_plugin.pre_dispatch()
+
+    def post_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
+        self.training_type_plugin.post_dispatch()
+        self.precision_plugin.post_dispatch()
+
     @property
     def model(self) -> torch.nn.Module:
         """Returns the model. This can also be a wrapped LightningModule.
@@ -224,23 +243,6 @@ class Accelerator(object):
         """
         return self.training_type_plugin.validation_step_end(output)
 
-    def predict(self, args):
-        """The prediction step.
-
-        Args:
-            args: the arguments for the models predict step. Can consist of the following:
-                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                batch_idx (int): Integer displaying index of this batch
-                optimizer_idx (int): When using multiple optimizers, this argument will also be present.
-                hiddens(:class:`~torch.Tensor`): Passed in if
-                    :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
-
-        """
-        batch = self.to_device(args[0])
-        args[0] = batch
-        return self.training_type_plugin.predict(*args)
-
     def backward(
         self,
         closure_loss: torch.Tensor,
@@ -380,6 +382,10 @@ class Accelerator(object):
     def barrier(self, name: Optional[str] = None) -> None:
         self.training_type_plugin.barrier(name=name)
 
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        """Broadcasts an object to all processes"""
+        return self.training_type_plugin.broadcast(obj, src)
+
     def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
         """
         Function to gather a tensor from several distributed processes
@@ -399,3 +405,12 @@ class Accelerator(object):
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
         """
         return self.training_type_plugin.process_dataloader(dataloader)
+
+    @property
+    def results(self) -> Any:
+        """
+        The results of the last training/testing run will be cached here.
+        In distributed training, we make sure to transfer the results to the appropriate master process.
+        """
+        # TODO: improve these docs
+        return self.training_type_plugin.results
