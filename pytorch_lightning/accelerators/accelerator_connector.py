@@ -557,15 +557,7 @@ class BackendConnector(object):
             import sys
             if 'IPython' in sys.modules:
                 from IPython import get_ipython
-                in_ipython = False
-                in_ipython_kernel = False
-                ip = get_ipython()
-                in_ipython = ip is not None
-
-                if in_ipython:
-                    in_ipython_kernel = getattr(ip, 'kernel', None) is not None
-
-                if in_ipython_kernel:
+                if get_ipython() is not None:
                     raise MisconfigurationException(
                         f"Selected distributed backend {self._distrib_type} not compatible with IPython environment"
                         f"Run your code as a script, or choose one of compatible backends {self.ipython_compatible_distrib_types} as accelerator backend"
