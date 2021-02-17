@@ -298,9 +298,8 @@ class Trainer(
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
 
-            stochastic_weight_avg: Whether to activate Stochastic Weight Averaging (SWA).
-                For an explanation on SWA, please take a look at:
-                `<https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`.
+            stochastic_weight_avg: Whether to `Stochastic Weight Averaging (SWA)
+                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>_`
 
         """
         super().__init__()

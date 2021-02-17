@@ -159,8 +159,8 @@ def test_swa_raises():
         StochasticWeightAveraging(swa_epoch_start=5, swa_lrs=[0.2, 1])
 
 
-@pytest.mark.parametrize('use_callbacks', [False, True])
 @pytest.mark.parametrize('stochastic_weight_avg', [False, True])
+@pytest.mark.parametrize('use_callbacks', [False, True])
 @pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_6, reason="SWA available from PyTorch 1.6.0")
 def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks, stochastic_weight_avg):
     """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer"""
