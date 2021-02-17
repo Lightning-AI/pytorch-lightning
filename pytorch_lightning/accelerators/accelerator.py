@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import (
@@ -388,3 +389,11 @@ class Accelerator(object):
             A tensor of shape (world_size, batch, ...)
         """
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+
+    def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Wraps the dataloader if necessary
+
+        Args:
+            dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
+        """
+        return self.training_type_plugin.process_dataloader(dataloader)

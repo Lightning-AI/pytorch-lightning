@@ -155,3 +155,5 @@ cifar-10-batches-py
 # ctags
 tags
 data
+MNIST
+runs

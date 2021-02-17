@@ -22,8 +22,9 @@ from pytorch_lightning.metrics import Accuracy, MeanSquaredError
 class ClassificationModel(LightningModule):
 
     def __init__(self, lr=0.01):
-        self.lr = lr
         super().__init__()
+
+        self.lr = lr
         for i in range(3):
             setattr(self, f"layer_{i}", nn.Linear(32, 32))
             setattr(self, f"layer_{i}a", torch.nn.ReLU())

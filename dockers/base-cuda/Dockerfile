@@ -49,6 +49,7 @@ RUN apt-get update -qq && \
         unzip \
         ca-certificates \
         software-properties-common \
+        libopenmpi-dev \
     && \
 
 # Install python

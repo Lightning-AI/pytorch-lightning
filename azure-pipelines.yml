@@ -51,6 +51,7 @@ jobs:
       displayName: 'Image info & NVIDIA'
 
     - bash: |
+        export GIT_TERMINAL_PROMPT=1
         #sudo apt-get install -y cmake
         # python -m pip install "pip==20.1"
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
