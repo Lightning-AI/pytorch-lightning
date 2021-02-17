@@ -28,15 +28,19 @@ To enable pruning during training in Lightning, simply pass in the :class:`~pyto
 
 This callback supports multiple pruning functions: pass any `torch.nn.utils.prune <https://pytorch.org/docs/stable/nn.html#utilities>`_ function as a string to select which weights to prune (`random_unstructured <https://pytorch.org/docs/stable/generated/torch.nn.utils.prune.random_unstructured.html#torch.nn.utils.prune.random_unstructured>`_, `RandomStructured <https://pytorch.org/docs/stable/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured>`_, etc) or implement your own by subclassing `BasePruningMethod <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html#extending-torch-nn-utils-prune-with-custom-pruning-functions>`_.
 
-TODO: what do you have to set?
-
 You can also set the pruning percentage, perform iterative pruning, apply the `lottery ticket hypothesis <https://arxiv.org/pdf/1803.03635.pdf>`_ and more!
 
 .. code-block:: python
 
     from pytorch_lightning.callbacks import ModelPruning
 
+	# the amount can be a float between 0 and 1
+	trainer = Trainer(callbacks=[ModelPruning("l1_unstructured", amount=0.5)])
+
+	# or
+
     def compute_amount(epoch):
+		# the sum of all returned values need to be smaller than 1
         if epoch == 10:
             return 0.5
 
@@ -44,8 +48,9 @@ You can also set the pruning percentage, perform iterative pruning, apply the `l
             return 0.25
 
         elif 75 < epoch < 99 :
-            return 0.01         
+            return 0.01
 
+	# the amount can be also be a callable
     trainer = Trainer(callbacks=[ModelPruning("l1_unstructured", amount=compute_amount)])
 
 
@@ -56,7 +61,7 @@ Quantization
 .. warning ::
      Quantization is in beta and subject to change.
 
-Model quantization is another performance optimization technique that allows speeding up inference and decreasing memory requirements by performing computations and storing tensors at lower bitwidths (such as INT8 or FLOAT16) than floating-point precision. Moreover smaller models also speed up model loading. 
+Model quantization is another performance optimization technique that allows speeding up inference and decreasing memory requirements by performing computations and storing tensors at lower bitwidths (such as INT8 or FLOAT16) than floating-point precision. Moreover smaller models also speed up model loading.
 
 Quantization Aware Training (QAT) mimics the effects of quantization during training: all computations are carried out in floating points while training, simulating the effects of ints, and weights and activations are quantized into lower precision only once training is completed.
 
