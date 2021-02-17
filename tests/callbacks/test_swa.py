@@ -160,8 +160,8 @@ def test_swa_raises():
 
 
 @pytest.mark.parametrize('callbacks', [StochasticWeightAveraging(swa_lrs=1e-3), None])
-def test_trainer_and_use_stochastic_weight_averaging(tmpdir, callbacks):
-    """Test to ensure SWA Callback is injected when `use_stochastic_weight_averaging` is provided to the Trainer"""
+def test_trainer_and_stochastic_weight_avg(tmpdir, callbacks):
+    """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer"""
 
     class TestModel(BoringModel):
 
@@ -173,7 +173,7 @@ def test_trainer_and_use_stochastic_weight_averaging(tmpdir, callbacks):
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=callbacks,
-        use_stochastic_weight_averaging=True,
+        stochastic_weight_avg=True,
         limit_train_batches=4,
         limit_val_batches=4,
         max_epochs=10,

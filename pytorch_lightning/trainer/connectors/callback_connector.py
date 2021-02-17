@@ -40,14 +40,14 @@ class CallbackConnector:
         default_root_dir,
         weights_save_path,
         resume_from_checkpoint,
-        use_stochastic_weight_averaging,
+        stochastic_weight_avg,
     ):
         self.trainer.resume_from_checkpoint = resume_from_checkpoint
 
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
-        self.trainer._use_stochastic_weight_averaging = use_stochastic_weight_averaging
+        self.trainer._stochastic_weight_avg = stochastic_weight_avg
 
         # init callbacks
         if isinstance(callbacks, Callback):
