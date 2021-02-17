@@ -77,8 +77,6 @@ jobs:
       displayName: 'Testing: standard'
 
     - bash: |
-        # Required for Ninja binary for building extensions, which is installed at this location
-        export PATH=$PATH:/home/AzDevOps_azpcontainer/.local/bin
         sh tests/special_tests.sh
       displayName: 'Testing: special'
 
