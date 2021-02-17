@@ -63,7 +63,10 @@ jobs:
 
     - bash: |
         # Temporary fix till DeepSpeed release
-        DS_BUILD_OPS=1 pip install deepspeed@git+https://github.com/microsoft/DeepSpeed@ec8b1cb
+        pip install deepspeed@git+https://github.com/microsoft/DeepSpeed@ec8b1cb
+        # Update path to find ninja installation
+        export PATH=$PATH:/home/AzDevOps_azpcontainer/.local/bin
+        echo $PATH
       displayName: 'Install DeepSpeed'
 
     - script: |
