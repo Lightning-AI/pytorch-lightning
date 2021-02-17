@@ -161,15 +161,22 @@ def test_swa_raises():
 
 @pytest.mark.parametrize('callbacks', [StochasticWeightAveraging(swa_lrs=1e-3), None])
 def test_trainer_and_use_swa(tmpdir, callbacks):
-    """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
-    model = BoringModel()
+    """Test to ensure SWA Callback is injected when `use_swa` is provided to the Trainer"""
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            return optimizer
+
+    model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=callbacks,
         use_swa=True,
         limit_train_batches=4,
         limit_val_batches=4,
-        max_epochs=1,
+        max_epochs=10,
     )
     trainer.fit(model)
     assert trainer.callbacks[0]._swa_lrs == (0.05 if callbacks is None else 1e-3)

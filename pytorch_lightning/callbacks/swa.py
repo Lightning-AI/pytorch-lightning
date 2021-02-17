@@ -156,7 +156,9 @@ class StochasticWeightAveraging(Callback):
             self._average_model = self._average_model.to(self._device or pl_module.device)
 
             optimizers = trainer.optimizers
-            lr_scheduler = trainer.lr_schedulers[0]["scheduler"]
+
+            for param_group in optimizers[0].param_groups:
+                param_group["initial_lr"] = self._swa_lrs if isinstance(self._swa_lrs, float) else self._swa_lrs[0]
 
             self._swa_scheduler = SWALR(
                 optimizers[0],
@@ -166,8 +168,20 @@ class StochasticWeightAveraging(Callback):
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1
             )
 
-            rank_zero_warn(f"Swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
-            trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
+            if trainer.lr_schedulers:
+                lr_scheduler = trainer.lr_schedulers[0]["scheduler"]
+                rank_zero_warn(f"Swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
+                trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
+            else:
+                trainer.lr_schedulers.append({
+                    'scheduler': self._swa_scheduler,
+                    'name': None,  # no custom name
+                    'interval': 'epoch',  # after epoch is over
+                    'frequency': 1,  # every epoch/batch
+                    'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
+                    'monitor': None,  # value to monitor for ReduceLROnPlateau
+                    'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
+                })
 
             self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
 
