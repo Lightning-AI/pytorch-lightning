@@ -398,7 +398,7 @@ class TrainerDataLoadingMixin(ABC):
         dataloader = dataloader_fx()
         dataloader = self._flatten_dl_only(dataloader)
 
-        self.training_type_plugin.barrier('get_dataloaders')
+        self.accelerator.barrier('get_dataloaders')
         return dataloader
 
     def _flatten_dl_only(self, dataloaders):

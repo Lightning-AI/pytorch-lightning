@@ -62,6 +62,11 @@ jobs:
         pip list
       displayName: 'Install dependencies'
 
+    - bash: |
+        # Temporary fix till DeepSpeed release, move this into CUDA image
+        pip install deepspeed@git+https://github.com/microsoft/DeepSpeed@ec8b1cb
+      displayName: 'Install DeepSpeed'
+
     - script: |
         python tests/collect_env_details.py
       displayName: 'Env details'
@@ -76,7 +81,9 @@ jobs:
         python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
       displayName: 'Testing: standard'
 
-    - script: |
+    - bash: |
+        # Required for Ninja binary for building extensions, which is installed at this location
+        export PATH=$PATH:/home/AzDevOps_azpcontainer/.local/bin
         sh tests/special_tests.sh
       displayName: 'Testing: special'
 

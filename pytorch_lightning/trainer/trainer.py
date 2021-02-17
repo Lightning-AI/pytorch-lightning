@@ -22,16 +22,17 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -130,7 +131,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        plugins: Optional[Union[str, list]] = None,
+        plugins: Optional[Union[Plugin, str, list]] = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
@@ -308,7 +309,7 @@ class Trainer(
         self.data_connector = DataConnector(self)
         self.optimizer_connector = OptimizerConnector(self)
 
-        self.accelerator_connector = BackendConnector(
+        self.accelerator_connector = AcceleratorConnector(
             num_processes, tpu_cores, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm, benchmark,
             replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
@@ -483,7 +484,7 @@ class Trainer(
         #                         trainer.dispatch                          ||  LIGHTNING
         #                                |                                  ||
         #    start_training or start_testing or start_predicting call       ||  FLOW
-        #               from `accelerator.training_type_plugin`             ||
+        #                        from `accelerator`                         ||
         #                                |                                  ||  DIRECTION
         #             run_train or run_test or run_predict call             ||
         #                           from `trainer`                          ||
@@ -531,26 +532,24 @@ class Trainer(
 
         self._set_running_stage(None, model)
 
-        return self.training_type_plugin.results or 1
+        return self.accelerator_backend.results or 1
 
     def pre_dispatch(self):
-        self.training_type_plugin.pre_dispatch()
-        self.precision_plugin.pre_dispatch()
+        self.accelerator_backend.pre_dispatch()
 
     def post_dispatch(self):
-        self.training_type_plugin.post_dispatch()
-        self.precision_plugin.post_dispatch()
+        self.accelerator.post_dispatch()
         self.accelerator.teardown()
 
     def dispatch(self):
         if self.testing:
-            self.training_type_plugin.start_testing(self)
+            self.accelerator_backend.start_testing(self)
 
         elif self.predicting:
-            self.training_type_plugin.start_predicting(self)
+            self.accelerator_backend.start_predicting(self)
 
         else:
-            self.training_type_plugin.start_training(self)
+            self.accelerator_backend.start_training(self)
 
     def train_or_test_or_predict(self):
         if self.testing:
@@ -574,7 +573,7 @@ class Trainer(
 
     def _pre_training_routine(self):
         # wait for all to join if on distributed
-        self.accelerator.training_type_plugin.barrier("setup_training")
+        self.accelerator.barrier("setup_training")
 
         # register auto-resubmit when on SLURM
         self.slurm_connector.register_slurm_signal_handlers()
@@ -711,7 +710,7 @@ class Trainer(
         for dataloader_idx, dataloader in enumerate(dataloaders):
             # bookkeeping
             dl_outputs = []
-            dataloader = self.training_type_plugin.process_dataloader(dataloader)
+            dataloader = self.accelerator.process_dataloader(dataloader)
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
 
             for batch_idx, batch in enumerate(dataloader):
@@ -823,7 +822,7 @@ class Trainer(
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
-            dataloader = self.training_type_plugin.process_dataloader(dataloader)
+            dataloader = self.accelerator.process_dataloader(dataloader)
             dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
 
             for batch_idx, batch in enumerate(dataloader):
@@ -947,7 +946,7 @@ class Trainer(
                 )
                 return {}
             if not self._device_type == DeviceType.TPU:
-                self.training_type_plugin.barrier()
+                self.accelerator_backend.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
