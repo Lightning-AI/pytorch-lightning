@@ -55,7 +55,7 @@ from torchvision.datasets.utils import download_and_extract_archive
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import _logger as log
-from pytorch_lightning import LightningDataModule, seed_everything
+from pytorch_lightning import LightningDataModule
 from pytorch_lightning.callbacks.finetuning import BaseFinetuning
 from pytorch_lightning.utilities import rank_zero_info
 
@@ -148,7 +148,7 @@ class CatDogImageDataModule(LightningDataModule):
     def add_model_specific_args(parent_parser):
         parser = argparse.ArgumentParser(parents=[parent_parser])
         parser.add_argument(
-            "--num-workers", default=2, type=int, metavar="W", help="number of CPU workers", dest="num_workers"
+            "--num-workers", default=0, type=int, metavar="W", help="number of CPU workers", dest="num_workers"
         )
         parser.add_argument(
             "--batch-size", default=8, type=int, metavar="W", help="number of sample in a batch", dest="batch_size"
@@ -164,12 +164,13 @@ class TransferLearningModel(pl.LightningModule):
     def __init__(
         self,
         backbone: str = "resnet50",
+        train_bn: bool = True,
         milestones: tuple = (5, 10),
         batch_size: int = 32,
         lr: float = 1e-2,
         lr_scheduler_gamma: float = 1e-1,
         num_workers: int = 6,
-        **_,
+        **kwargs,
     ) -> None:
         """
         Args:
@@ -177,6 +178,7 @@ class TransferLearningModel(pl.LightningModule):
         """
         super().__init__()
         self.backbone = backbone
+        self.train_bn = train_bn
         self.milestones = milestones
         self.batch_size = batch_size
         self.lr = lr
@@ -274,23 +276,10 @@ class TransferLearningModel(pl.LightningModule):
             help="Name (as in ``torchvision.models``) of the feature extractor",
         )
         parser.add_argument(
-            "--epochs", default=5, type=int, metavar="N", help="total number of epochs", dest="nb_epochs"
-        )
-        parser.add_argument(
-            "--limit_train_batches",
-            default=1.0,
-            type=float,
-            help="How much of training dataset to check (floats = percent, int = num_batches)"
-        )
-        parser.add_argument(
-            "--limit_val_batches",
-            default=1.0,
-            type=float,
-            help="How much of validation dataset to check (floats = percent, int = num_batches)"
+            "--epochs", default=15, type=int, metavar="N", help="total number of epochs", dest="nb_epochs"
         )
         parser.add_argument("--batch-size", default=8, type=int, metavar="B", help="batch size", dest="batch_size")
         parser.add_argument("--gpus", type=int, default=0, help="number of gpus to use")
-        parser.add_argument("--tpu_cores", type=int, default=None, help="number of tpu cores to use")
         parser.add_argument(
             "--lr", "--learning-rate", default=1e-3, type=float, metavar="LR", help="initial learning rate", dest="lr"
         )
@@ -311,7 +300,7 @@ class TransferLearningModel(pl.LightningModule):
             dest="train_bn",
         )
         parser.add_argument(
-            "--milestones", default=[5, 10], type=list, metavar="M", help="List of two epochs milestones"
+            "--milestones", default=[2, 4], type=list, metavar="M", help="List of two epochs milestones"
         )
         return parser
 
@@ -326,19 +315,17 @@ def main(args: argparse.Namespace) -> None:
         For the sake of the example, the images dataset will be downloaded
         to a temporary directory.
     """
-    seed_everything(42)
 
     datamodule = CatDogImageDataModule(
         dl_path=os.path.join(args.root_data_path, 'data'), batch_size=args.batch_size, num_workers=args.num_workers
     )
     model = TransferLearningModel(**vars(args))
-    finetuning_callback = MilestonesFinetuning(milestones=args.milestones, train_bn=args.train_bn)
+    finetuning_callback = MilestonesFinetuning(milestones=args.milestones)
 
     trainer = pl.Trainer(
         weights_summary=None,
         progress_bar_refresh_rate=1,
         num_sanity_val_steps=0,
-        tpu_cores=args.tpu_cores,
         gpus=args.gpus,
         max_epochs=args.nb_epochs,
         callbacks=[finetuning_callback]

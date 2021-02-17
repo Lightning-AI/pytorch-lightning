@@ -10,7 +10,8 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
 if _TPU_AVAILABLE:
@@ -175,12 +176,27 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         should_stop = int(stop.item()) == self.world_size
         return should_stop
 
-    def reduce(self, output, group: Optional[Any] = None, reduce_op: str = None):
+    def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, torch.Tensor):
             output = torch.tensor(output, device=self.device)
+
+        if (isinstance(reduce_op, ReduceOp) and ReduceOp != ReduceOp.SUM) \
+           or isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg"):
+            raise MisconfigurationException(
+                "Currently, TPUSpawn TrainingTypePlugin only support `sum`, `mean`, `avg` reduce operation."
+            )
+
+        divide_by_world_size = False
+
         output = xm.mesh_reduce('reduce', output, sum)
-        if isinstance(reduce_op, str) and reduce_op.lower() == "mean":
-            output /= self.world_size
+
+        if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
+            divide_by_world_size = True
+        # sync all processes before reduction
+
+        if divide_by_world_size:
+            output = output / self.world_size
+
         return output
 
     def post_dispatch(self) -> None:
