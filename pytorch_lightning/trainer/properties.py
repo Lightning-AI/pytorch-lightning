@@ -21,7 +21,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
@@ -51,7 +51,7 @@ class TrainerProperties(ABC):
     _state: TrainerState
     _weights_save_path: str
 
-    accelerator_connector: BackendConnector
+    accelerator_connector: AcceleratorConnector
     callbacks: List[Callback]
     checkpoint_connector: CheckpointConnector
     limit_val_batches: int
