@@ -29,7 +29,7 @@ This callback suports multiple pruning functions: pass any `torch.nn.utils.prune
 
 TODO: what do you have to set?
 
-You can also set the pruning percentage, perform iterative pruning, apply the <lottery ticket hypothesis <https://arxiv.org/pdf/1803.03635.pdf>`_ and more!
+You can also set the pruning percentage, perform iterative pruning, apply the `lottery ticket hypothesis <https://arxiv.org/pdf/1803.03635.pdf>`_ and more!
 
 .. code-block:: python
 
@@ -82,13 +82,22 @@ To quantize your model, specify TODO(borda).
 			# specification of quant estimation quaity
 			observer_type='histogram',
 			# specify which layers shall be merged together to increase efficiency
-			modules_to_fuse=[(f'layer_{i}', f'layer_{i}a') for i in range(2)],
+			modules_to_fuse=[(f'layer_{i}', f'layer_{i}a') for i in range(2)]
+			# make the model torchanble
+			input_compatible=False,
 	)
 
 	trainer = Trainer(callbacks=[qcb])
-	trainer.fit(model, ...)
+	qmodel = RegressionModel()
+	trainer.fit(qmodel, ...)
 
- You can also make your model compatible with all original input/outputs, in such case the model is wrapped in a shell with entry/exit layers.
+	batch = iter(my_dataloader()).next()
+	qmodel(qmodel.quant(batch[0]))
 
- TODO(borda): add code example
+	tsmodel = qmodel.to_torchscript()
+	tsmodel(tsmodel.quant(batch[0]))
+
+You can also set `input_compatible=True` to make your model compatible with all original input/outputs, in such case the model is wrapped in a shell with entry/exit layers.
+
+TODO(borda): add code example
 
