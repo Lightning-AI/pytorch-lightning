@@ -42,6 +42,7 @@ def test_deepspeed_plugin_string(tmpdir):
 
     trainer = Trainer(
         fast_dev_run=True,
+        default_root_dir=tmpdir,
         plugins='deepspeed',
     )
 
@@ -57,6 +58,7 @@ def test_deepspeed_plugin(tmpdir):
 
     trainer = Trainer(
         fast_dev_run=True,
+        default_root_dir=tmpdir,
         plugins=[DeepSpeedPlugin()],
     )
 
@@ -76,6 +78,7 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
 
     trainer = Trainer(
         fast_dev_run=True,
+        default_root_dir=tmpdir,
         plugins='deepspeed',
     )
 
@@ -99,7 +102,9 @@ def test_deepspeed_precision_choice(amp_backend, tmpdir):
         DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
     """
 
-    trainer = Trainer(fast_dev_run=True, plugins='deepspeed', amp_backend=amp_backend, precision=16)
+    trainer = Trainer(
+        fast_dev_run=True, default_root_dir=tmpdir, plugins='deepspeed', amp_backend=amp_backend, precision=16
+    )
 
     assert isinstance(trainer.accelerator_backend.training_type_plugin, DeepSpeedPlugin)
     assert isinstance(trainer.accelerator_backend.precision_plugin, DeepSpeedPrecisionPlugin)
@@ -149,6 +154,7 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
+        default_root_dir=tmpdir,
         plugins='deepspeed',
     )
     with pytest.raises(
@@ -175,6 +181,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
     model = TestModel()
     trainer = Trainer(
         fast_dev_run=True,
+        default_root_dir=tmpdir,
         plugins=DeepSpeedPlugin(zero_optimization=False),
         gpus=1,
     )
@@ -204,6 +211,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
     model = TestModel()
     trainer = Trainer(
         plugins=DeepSpeedPlugin(zero_optimization=False),
+        default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
     )
@@ -236,6 +244,7 @@ def test_deepspeed_config(tmpdir, deepspeed_config):
     model = TestModel()
     trainer = Trainer(
         plugins=[DeepSpeedPlugin(config=deepspeed_config)],
+        default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
     )
@@ -259,6 +268,7 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     model = BoringModel()
     trainer = Trainer(
         plugins=[DeepSpeedPlugin(zero_optimization=False)],
+        default_root_dir=tmpdir,
         gpus=2,
         fast_dev_run=True,
         precision=16,
