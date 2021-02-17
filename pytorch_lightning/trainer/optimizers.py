@@ -21,7 +21,7 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import _DEFAULT_SCHEDULER_CONFIG, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -98,15 +98,7 @@ class TrainerOptimizersMixin(ABC):
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information
         lr_schedulers = []
-        default_config = {
-            'scheduler': None,
-            'name': None,  # no custom name
-            'interval': 'epoch',  # after epoch is over
-            'frequency': 1,  # every epoch/batch
-            'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
-            'monitor': monitor,  # value to monitor for ReduceLROnPlateau
-            'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
-        }
+        default_config = _DEFAULT_SCHEDULER_CONFIG
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 # check provided keys

@@ -23,7 +23,7 @@ from torch import nn
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
+from pytorch_lightning.utilities import _DEFAULT_SCHEDULER_CONFIG, _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_6:
@@ -173,15 +173,9 @@ class StochasticWeightAveraging(Callback):
                 rank_zero_warn(f"Swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
                 trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
             else:
-                trainer.lr_schedulers.append({
-                    'scheduler': self._swa_scheduler,
-                    'name': None,  # no custom name
-                    'interval': 'epoch',  # after epoch is over
-                    'frequency': 1,  # every epoch/batch
-                    'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
-                    'monitor': None,  # value to monitor for ReduceLROnPlateau
-                    'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
-                })
+                _scheduler_config = deepcopy(_DEFAULT_SCHEDULER_CONFIG)
+                _scheduler_config["scheduler"] = self._swa_scheduler
+                trainer.lr_schedulers.append(_scheduler_config)
 
             self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
 
