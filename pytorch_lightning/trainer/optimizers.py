@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
 
 import torch
 from torch import optim
@@ -21,7 +21,7 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities import _get_default_scheduler_config, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -177,3 +177,15 @@ def _validate_scheduler_optimizer(optimizers, lr_schedulers):
         raise MisconfigurationException(
             "Some schedulers are attatched with an optimizer that wasn't returned from `configure_optimizers`."
         )
+
+
+def _get_default_scheduler_config() -> Dict[str, Any]:
+    return {
+        'scheduler': None,
+        'name': None,  # no custom name
+        'interval': 'epoch',  # after epoch is over
+        'frequency': 1,  # every epoch/batch
+        'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
+        'monitor': None,  # value to monitor for ReduceLROnPlateau
+        'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
+    }

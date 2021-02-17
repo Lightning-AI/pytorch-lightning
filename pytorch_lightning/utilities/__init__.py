@@ -53,14 +53,3 @@ FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
 FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
 
-
-def _get_default_scheduler_config():
-    return {
-        'scheduler': None,
-        'name': None,  # no custom name
-        'interval': 'epoch',  # after epoch is over
-        'frequency': 1,  # every epoch/batch
-        'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
-        'monitor': None,  # value to monitor for ReduceLROnPlateau
-        'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
-    }

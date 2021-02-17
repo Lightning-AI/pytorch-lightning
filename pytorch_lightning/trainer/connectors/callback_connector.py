@@ -19,7 +19,6 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
     ProgressBar,
     ProgressBarBase,
-    StochasticWeightAveraging,
 )
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
@@ -91,6 +90,7 @@ class CallbackConnector:
         if not self.trainer._stochastic_weight_avg:
             return
 
+        from pytorch_lightning.callbacks.swa import StochasticWeightAveraging
         existing_swa = [cb for cb in self.trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks

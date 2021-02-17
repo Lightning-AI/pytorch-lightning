@@ -37,7 +37,6 @@ __all__ = [
     'ModelPruning',
     'ProgressBar',
     'ProgressBarBase',
-    'ModelPruning',
     'QuantizationAwareTraining',
     'StochasticWeightAveraging',
 ]
