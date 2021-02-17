@@ -32,7 +32,7 @@ class TrainerGetModel(BoringModel):
 
 def test_get_model(tmpdir):
     """
-    Tests that :meth:`trainer.get_model` extracts the model correctly
+    Tests that `trainer.lightning_module` extracts the model correctly
     """
 
     model = TrainerGetModel()
@@ -50,7 +50,7 @@ def test_get_model(tmpdir):
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_get_model_ddp_cpu(tmpdir):
     """
-    Tests that :meth:`trainer.get_model` extracts the model correctly when using ddp on cpu
+    Tests that `trainer.lightning_module` extracts the model correctly when using ddp on cpu
     """
 
     model = TrainerGetModel()
@@ -70,7 +70,7 @@ def test_get_model_ddp_cpu(tmpdir):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_get_model_gpu(tmpdir):
     """
-    Tests that :meth:`trainer.get_model` extracts the model correctly when using GPU
+    Tests that `trainer.lightning_module` extracts the model correctly when using GPU
     """
 
     model = TrainerGetModel()
@@ -91,7 +91,7 @@ def test_get_model_gpu(tmpdir):
 @DDPLauncher.run("--accelerator [accelerator]", max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
 def test_get_model_ddp_gpu(tmpdir, args=None):
     """
-    Tests that :meth:`trainer.get_model` extracts the model correctly when using GPU + ddp accelerators
+    Tests that `trainer.lightning_module` extracts the model correctly when using GPU + ddp accelerators
     """
 
     model = TrainerGetModel()

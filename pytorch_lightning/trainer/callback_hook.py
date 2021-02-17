@@ -14,8 +14,9 @@
 
 from abc import ABC
 from copy import deepcopy
-from typing import Callable, List
+from typing import List
 
+from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks import Callback
 
 
@@ -24,7 +25,7 @@ class TrainerCallbackHookMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     # the proper values/initialisation should be done in child class
     callbacks: List[Callback] = []
-    get_model: Callable
+    lightning_module: LightningModule
 
     def on_before_accelerator_backend_setup(self, model):
         """Called in the beginning of fit and test"""

@@ -353,7 +353,6 @@ class TrainerProperties(ABC):
         self.accelerator.model = model
 
     def get_model(self) -> LightningModule:
-        # TODO: rename this to lightning_module (see training type plugin)
         # backward compatible
         return self.lightning_module
 

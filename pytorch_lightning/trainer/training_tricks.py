@@ -29,12 +29,9 @@ class TrainerTrainingTricksMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     default_root_dir: str
-    progress_bar_callback:...
+    lightning_module: LightningModule
+    progress_bar_callback: ...
     on_gpu: bool
-
-    @abstractmethod
-    def get_model(self) -> LightningModule:
-        """Warning: this is just empty shell for code implemented in other class."""
 
     def print_nan_gradients(self) -> None:
         model = self.lightning_module

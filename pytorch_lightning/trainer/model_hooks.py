@@ -20,6 +20,8 @@ from pytorch_lightning.core.lightning import LightningModule
 
 class TrainerModelHooksMixin(ABC):
 
+    lightning_module: LightningModule
+
     def is_function_implemented(self, f_name, model=None):
         if model is None:
             model = self.lightning_module
@@ -30,7 +32,3 @@ class TrainerModelHooksMixin(ABC):
         model = self.lightning_module
         f_op = getattr(model, f_name, None)
         return arg_name in inspect.signature(f_op).parameters
-
-    @abstractmethod
-    def get_model(self) -> LightningModule:
-        """Warning: this is just empty shell for code implemented in other class."""
