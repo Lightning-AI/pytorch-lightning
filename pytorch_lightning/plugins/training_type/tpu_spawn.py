@@ -233,11 +233,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo: precision pluging is call in accelerator setup and should be moved
         if 'XLA_USE_BF16' in os.environ:
             del os.environ["XLA_USE_BF16"]
-        self._close_logger()
+        self._close_logger(trainer)
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def start_testing(self, trainer) -> None:
-        self._close_logger()
+        self._close_logger(trainer)
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def start_predicting(self, trainer) -> None:
