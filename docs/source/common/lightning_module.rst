@@ -841,7 +841,7 @@ The current step (does not reset each epoch)
 
 hparams
 ~~~~~~~
-After calling ``save_hyperparameters`` anything passed to init() is available via hparams.
+After calling ``save_hyperparameters`` anything passed to ``__init__()`` is available via the ``hparams`` attribute.
 
 .. code-block:: python
 
@@ -934,7 +934,7 @@ True if using TPUs
 
 automatic_optimization
 ~~~~~~~~~~~~~~~~~~~~~~
-When set to False, Lightning does not automate the optimization process. This means you are responsible for your own
+When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for your own
 optimizer behavior
 
 .. code-block:: python
@@ -952,7 +952,7 @@ optimizer behavior
         opt.zero_grad()
 
 This is not recommended when using a single optimizer, instead it's recommended when using 2+ optimizers
-AND you are an expert user. Most useful for research like RL, sparse coding and GAN research.
+AND you are an expert user. Most useful for research like reinforcement learning, sparse coding and GAN research.
 
 In the multi-optimizer case, ignore the optimizer_idx flag and use the optimizers directly
 

@@ -258,7 +258,7 @@ Manual optimization
 However, for certain research like GANs, reinforcement learning, or something with multiple optimizers
 or an inner loop, you can turn off automatic optimization and fully control the training loop yourself.
 
-Turn off automatic optimization and you own the train loop!
+Turn off automatic optimization and you control the train loop!
 
 .. code-block:: python
 
