@@ -20,7 +20,9 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.base.datamodules import TrialMNISTDataModule
+from tests.helpers import BoringModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -74,8 +76,9 @@ def test_trainer_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
-                          'accumulate_grad_batches', 'checkpoint_callback']
+    changed_attributes = [
+        'callbacks', 'logger', 'max_steps', 'auto_lr_find', 'accumulate_grad_batches', 'checkpoint_callback'
+    ]
     attributes_before = {}
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
@@ -178,12 +181,10 @@ def test_datamodule_parameter(tmpdir):
     """ Test that the datamodule parameter works """
 
     # trial datamodule
-    dm = TrialMNISTDataModule(tmpdir)
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-
-    before_lr = hparams.get('learning_rate')
+    before_lr = model.lr
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -192,7 +193,7 @@ def test_datamodule_parameter(tmpdir):
 
     lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
     after_lr = lrfinder.suggestion()
-    model.learning_rate = after_lr
+    model.lr = after_lr
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
@@ -265,3 +266,10 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
     assert before_lr == after_lr, \
         'Learning rate was altered because of non-finite loss values'
+
+
+def test_lr_finder_fails_fast_on_bad_config(tmpdir):
+    """ Test that tune fails if the model does not have a lr BEFORE running lr find """
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, auto_lr_find=True)
+    with pytest.raises(MisconfigurationException, match='should have one of these fields'):
+        trainer.tune(BoringModel())

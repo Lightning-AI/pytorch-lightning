@@ -9,7 +9,6 @@ on:
 #      - master
 
 env:
-  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
   GKE_CLUSTER: lightning-cluster
   GKE_ZONE: us-central1-a
   IMAGE: gcr.io/${{ secrets.GKE_PROJECT }}/tpu-testing-image
@@ -113,6 +112,7 @@ jobs:
         cat xx00 && \
         echo "Done with log retrieval attempt." && \
         gcloud container images delete "$IMAGE:$IMAGETAG" --force-delete-tags && \
+        echo "Status code: $status_code"
         exit $status_code
       shell: bash
 

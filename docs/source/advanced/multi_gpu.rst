@@ -239,6 +239,20 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
     to be in "exclusive mode", such that only one process at a time can access them.
     For more details see the :doc:`trainer guide <../common/trainer>`.
 
+
+Select torch distributed backend
+--------------------------------
+
+By default, Lightning will select the ``nccl`` backend over ``gloo`` when running on GPUs.
+Find more information about PyTorch's supported backends `here <https://pytorch.org/docs/stable/distributed.html>`__.
+
+Lightning exposes an environment variable ``PL_TORCH_DISTRIBUTED_BACKEND`` for the user to change the backend.
+
+.. code-block:: bash
+
+   PL_TORCH_DISTRIBUTED_BACKEND=gloo python train.py ...
+
+
 ----------
 
 Distributed modes
@@ -283,8 +297,6 @@ Distributed Data Parallel
 2. Each GPU gets visibility into a subset of the overall dataset. It will only ever see that subset.
 
 3. Each process inits the model.
-
-.. note:: Make sure to set the random seed before the instantiation of a ``Trainer()`` so that each model initializes with the same weights.
 
 4. Each process performs a full forward and backward pass in parallel.
 
@@ -362,7 +374,7 @@ project module) you can use the following method:
 .. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
-    trainer = Trainer(gpus=8, accelerator='ddp')
+    trainer = Trainer(gpus=8, accelerator='ddp_spawn')
 
 We STRONGLY discourage this use because it has limitations (due to Python and PyTorch):
 
@@ -580,9 +592,9 @@ Below are the possible configurations we support.
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.legacy.ddp_plugin.DDPPlugin.init_ddp_connection`.
+If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.init_ddp_connection`.
 
-If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.legacy.ddp_plugin.DDPPlugin.configure_ddp`.
+If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.configure_ddp`.
 
 
 ----------
@@ -679,20 +691,20 @@ In addition, we use Gradient Checkpointing to reduce GPU memory requirements fur
 
 Reference: https://arxiv.org/abs/1811.06965
 
-.. note:: DDPSequentialPlugin is currently supported only for Pytorch 1.6.
+.. note:: RPCSequentialPlugin is currently supported only for Pytorch 1.6.
 
 To get started, install FairScale using the command below. We install a specific branch which contains PyTorch related fixes for Sequential Parallelism.
 
 .. code-block:: bash
 
-     pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.1.0.zip
+     pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.2.0.zip
 
 To use Sequential Model Parallelism, you must define a  :class:`nn.Sequential <torch.nn.Sequential>` module that defines the layers you wish to parallelize across GPUs.
 This should be kept within the ``sequential_module`` variable within your ``LightningModule`` like below.
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins.legacy.ddp_sequential_plugin import DDPSequentialPlugin
+    from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequentialPlugin
     from pytorch_lightning import LightningModule
 
     class MyModel(LightningModule):
@@ -702,7 +714,7 @@ This should be kept within the ``sequential_module`` variable within your ``Ligh
 
     # Split my module across 4 gpus, one layer each
     model = MyModel()
-    plugin = DDPSequentialPlugin(balance=[1, 1, 1, 1])
+    plugin = RPCSequentialPlugin(balance=[1, 1, 1, 1])
     trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
     trainer.fit(model)
 

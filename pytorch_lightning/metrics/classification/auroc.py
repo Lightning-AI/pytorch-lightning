@@ -29,10 +29,10 @@ class AUROC(Metric):
 
     Forward accepts
 
-    - ``preds`` (float tensor): ``(N, )`` (binary) or ``(N, C, ...)`` (multilabel/multiclass)
-      where C is the number of classes
+    - ``preds`` (float tensor): ``(N, ...)`` (binary) or ``(N, C, ...)`` (multiclass) tensor
+      with probabilities, where C is the number of classes.
 
-    - ``target`` (long tensor): ``(N, ...)`` or ``(N, C, ...)``
+    - ``target`` (long tensor): ``(N, ...)`` or ``(N, C, ...)`` with integer labels
 
     For non-binary input, if the ``preds`` and ``target`` tensor have the same
     size the input will be interpretated as multilabel and if ``preds`` have one

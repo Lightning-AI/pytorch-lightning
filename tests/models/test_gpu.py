@@ -18,13 +18,12 @@ import pytest
 import torch
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.legacy.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 PRETEND_N_OF_GPUS = 16
 
@@ -65,14 +64,20 @@ def test_single_gpu_model(tmpdir, gpus):
 
 @pytest.fixture
 def mocked_device_count(monkeypatch):
+
     def device_count():
         return PRETEND_N_OF_GPUS
 
+    def is_available():
+        return True
+
+    monkeypatch.setattr(torch.cuda, 'is_available', is_available)
     monkeypatch.setattr(torch.cuda, 'device_count', device_count)
 
 
 @pytest.fixture
 def mocked_device_count_0(monkeypatch):
+
     def device_count():
         return 0
 
@@ -161,6 +166,7 @@ def test_determine_root_gpu_device(gpus, expected_root_gpu):
     pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
     pytest.param([0], [0]),
     pytest.param([1, 3], [1, 3]),
+    pytest.param((1, 3), [1, 3]),
     pytest.param('0', [0]),
     pytest.param('3', [3]),
     pytest.param('1, 3', [1, 3]),
@@ -180,7 +186,6 @@ def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
     pytest.param([-1]),
     pytest.param([None]),
     pytest.param(['0']),
-    pytest.param((0, 1)),
 ])
 def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
     with pytest.raises(MisconfigurationException):
@@ -210,7 +215,6 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_batch_parse():
     trainer = Trainer(gpus=1)
-    trainer.accelerator_backend = GPUAccelerator(trainer)
 
     # non-transferrable types
     primitive_objects = [None, {}, [], 1.0, "x", [None, 2], {"x": (1, 2), "y": None}]
@@ -242,8 +246,7 @@ def test_single_gpu_batch_parse():
     assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
 
     # tuple of tensor list and list of tensor dict
-    batch = ([torch.rand(2, 3) for _ in range(2)],
-             [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
+    batch = ([torch.rand(2, 3) for _ in range(2)], [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
     batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
 
@@ -262,6 +265,7 @@ def test_single_gpu_batch_parse():
 
     # non-Tensor that has `.to()` defined
     class CustomBatchType:
+
         def __init__(self):
             self.a = torch.rand(2, 2)
 
@@ -273,23 +277,20 @@ def test_single_gpu_batch_parse():
     assert batch.a.type() == 'torch.cuda.FloatTensor'
 
     # torchtext.data.Batch
-    samples = [
-        {'text': 'PyTorch Lightning is awesome!', 'label': 0},
-        {'text': 'Please make it work with torchtext', 'label': 1}
-    ]
+    samples = [{
+        'text': 'PyTorch Lightning is awesome!',
+        'label': 0
+    }, {
+        'text': 'Please make it work with torchtext',
+        'label': 1
+    }]
 
     text_field = Field()
     label_field = LabelField()
-    fields = {
-        'text': ('text', text_field),
-        'label': ('label', label_field)
-    }
+    fields = {'text': ('text', text_field), 'label': ('label', label_field)}
 
     examples = [Example.fromdict(sample, fields) for sample in samples]
-    dataset = Dataset(
-        examples=examples,
-        fields=fields.values()
-    )
+    dataset = Dataset(examples=examples, fields=fields.values())
 
     # Batch runs field.process() that numericalizes tokens, but it requires to build dictionary first
     text_field.build_vocab(dataset)
@@ -306,7 +307,6 @@ def test_single_gpu_batch_parse():
 def test_non_blocking():
     """ Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects. """
     trainer = Trainer()
-    trainer.accelerator_backend = GPUAccelerator(trainer)
 
     batch = torch.zeros(2, 3)
     with patch.object(batch, 'to', wraps=batch.to) as mocked:

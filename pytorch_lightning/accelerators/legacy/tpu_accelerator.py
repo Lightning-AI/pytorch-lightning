@@ -225,9 +225,11 @@ class TPUAccelerator(Accelerator):
         if trainer.precision == 16:
             os.environ['XLA_USE_BF16'] = str(1)
 
-        log.info(f'INIT TPU local core: {trainer.tpu_local_core_rank},'
-                 f' global rank: {trainer.tpu_global_core_rank}'
-                 f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
+        log.info(
+            f'INIT TPU local core: {trainer.tpu_local_core_rank},'
+            f' global rank: {trainer.tpu_global_core_rank}'
+            f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}'
+        )
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         # do backward pass
@@ -338,10 +340,12 @@ class TPUAccelerator(Accelerator):
         obj = torch.load(buffer)
         return obj
 
-    def sync_tensor(self,
-                    tensor: Union[torch.Tensor],
-                    group: Optional[Any] = None,
-                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+    def sync_tensor(
+        self,
+        tensor: Union[torch.Tensor],
+        group: Optional[Any] = None,
+        reduce_op: Optional[Union[ReduceOp, str]] = None
+    ) -> torch.Tensor:
         return tensor
 
     @property

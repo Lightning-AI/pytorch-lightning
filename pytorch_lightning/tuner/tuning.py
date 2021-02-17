@@ -20,7 +20,7 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
-from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
+from pytorch_lightning.tuner.lr_finder import lr_find
 
 
 class Tuner:
@@ -53,17 +53,17 @@ class Tuner:
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
-            self.internal_find_lr(model)
+            self.lr_find(model, update_attr=True)
 
     def scale_batch_size(
-            self,
-            model,
-            mode: str = 'power',
-            steps_per_trial: int = 3,
-            init_val: int = 2,
-            max_trials: int = 25,
-            batch_arg_name: str = 'batch_size',
-            **fit_kwargs
+        self,
+        model,
+        mode: str = 'power',
+        steps_per_trial: int = 3,
+        init_val: int = 2,
+        max_trials: int = 25,
+        batch_arg_name: str = 'batch_size',
+        **fit_kwargs
     ):
         r"""
         Will iteratively try to find the largest batch size for a given model
@@ -92,10 +92,10 @@ class Tuner:
                 It is expected that the user has provided a model or datamodule that has a hyperparameter
                 with that name. We will look for this attribute name in the following places
 
-                - `model`
-                - `model.hparams`
-                - `model.datamodule`
-                - `trainer.datamodule` (the datamodule passed to the tune method)
+                - ``model``
+                - ``model.hparams``
+                - ``model.datamodule``
+                - ``trainer.datamodule`` (the datamodule passed to the tune method)
 
             **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
                 or datamodule.
@@ -113,16 +113,17 @@ class Tuner:
         )
 
     def lr_find(
-            self,
-            model: LightningModule,
-            train_dataloader: Optional[DataLoader] = None,
-            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-            min_lr: float = 1e-8,
-            max_lr: float = 1,
-            num_training: int = 100,
-            mode: str = 'exponential',
-            early_stop_threshold: float = 4.0,
-            datamodule: Optional[LightningDataModule] = None
+        self,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        min_lr: float = 1e-8,
+        max_lr: float = 1,
+        num_training: int = 100,
+        mode: str = 'exponential',
+        early_stop_threshold: float = 4.0,
+        datamodule: Optional[LightningDataModule] = None,
+        update_attr: bool = False,
     ):
         return lr_find(
             self.trainer,
@@ -135,10 +136,8 @@ class Tuner:
             mode,
             early_stop_threshold,
             datamodule,
+            update_attr,
         )
-
-    def internal_find_lr(self, model: LightningModule):
-        return _run_lr_finder_internally(self.trainer, model)
 
     def pick_multiple_gpus(self, num_gpus: int):
         return pick_multiple_gpus(num_gpus)

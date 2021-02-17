@@ -39,6 +39,12 @@ To access TPUs, there are three main ways.
 
 ----------------
 
+Kaggle TPUs
+-----------
+For starting Kaggle projects with TPUs, refer to this `kernel <https://www.kaggle.com/pytorchlightning/pytorch-on-tpu-with-pytorch-lightning>`_.
+
+---------
+
 Colab TPUs
 ----------
 Colab is like a jupyter notebook with a free GPU or TPU
@@ -58,8 +64,8 @@ To get a TPU on colab, follow these steps:
 
    .. code-block::
 
-    !curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
-    !python pytorch-xla-env-setup.py --version nightly --apt-packages libomp5 libopenblas-dev
+        !curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
+        !python pytorch-xla-env-setup.py --version 1.7 --apt-packages libomp5 libopenblas-dev
 
 5. Once the above is done, install PyTorch Lightning (v 0.7.0+).
 

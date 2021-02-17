@@ -13,6 +13,7 @@
 # limitations under the License.
 import collections
 import os
+from copy import deepcopy
 from unittest import mock
 from unittest.mock import ANY, call, patch
 
@@ -22,8 +23,9 @@ import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import _APEX_AVAILABLE
-from tests.base.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -31,6 +33,7 @@ def test_multiple_optimizers_manual(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
 
         def __init__(self):
@@ -97,7 +100,13 @@ def test_multiple_optimizers_manual_return(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
@@ -136,10 +145,6 @@ def test_multiple_optimizers_manual_return(tmpdir):
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
 
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
-
     model = TestModel()
     model.val_dataloader = None
 
@@ -164,7 +169,13 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
@@ -204,10 +215,6 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
 
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
-
     model = TestModel()
     model.val_dataloader = None
 
@@ -237,7 +244,13 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
@@ -274,10 +287,6 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
 
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
-
     model = TestModel()
     model.val_dataloader = None
 
@@ -306,7 +315,13 @@ def test_multiple_optimizers_manual_apex(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
@@ -330,8 +345,8 @@ def test_multiple_optimizers_manual_apex(tmpdir):
 
             # ensure we forward the correct params to the optimizer
             # without retain_graph we can't do multiple backward passes
-            self.manual_backward(loss_2, opt_b, retain_graph=True)
-            self.manual_backward(loss_2, opt_a, retain_graph=True)
+            self.manual_backward(loss_2, retain_graph=True)
+            self.manual_backward(loss_2)
 
             assert self.layer.weight.grad is not None
             opt_b.step()
@@ -346,10 +361,6 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
-
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
 
     model = TestModel()
     model.val_dataloader = None
@@ -380,6 +391,10 @@ class ManualOptimizationExtendedModel(BoringModel):
     called = collections.defaultdict(int)
     detach = False
 
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
     @property
     def should_update(self):
         return self.count % 2 == 0
@@ -401,6 +416,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
             self.manual_backward(loss, opt)
             opt.step()
+            opt.zero_grad()
 
         return loss.detach() if self.detach else loss
 
@@ -428,10 +444,6 @@ class ManualOptimizationExtendedModel(BoringModel):
         assert self.called["training_step"] == 10
         assert self.called["on_train_batch_start"] == 10
         assert self.called["on_train_batch_end"] == 10
-
-    @property
-    def automatic_optimization(self) -> bool:
-        return False
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -504,6 +516,10 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         called = collections.defaultdict(int)
         detach = False
 
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
         @property
         def should_update(self):
             return self.count % 2 == 0
@@ -532,7 +548,9 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             if self.should_update:
 
                 self.manual_backward(loss, opt)
-                opt.step()
+                if self.should_have_updated:
+                    opt.step()
+                    opt.zero_grad()
 
             return loss.detach() if self.detach else loss
 
@@ -551,14 +569,10 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
                         assert torch.sum(self.layer.weight.grad) != 0
             self.count += 1
 
-        def on_train_end(self):
+        def on_train_epoch_end(self, *_, **__):
             assert self.called["training_step"] == 20
             assert self.called["on_train_batch_start"] == 20
             assert self.called["on_train_batch_end"] == 20
-
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
 
     model = ExtendedModel()
     model.training_step_end = None
@@ -584,9 +598,14 @@ def test_multiple_optimizers_step(tmpdir):
     """
     Tests that `step` works with several optimizers
     """
+
     class TestModel(BoringModel):
 
         called = False
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
 
         def on_after_backward(self):
             self.called = True
@@ -620,6 +639,7 @@ def test_multiple_optimizers_step(tmpdir):
 
             assert self.layer.weight.grad is not None
             opt_b.step()
+            opt_b.zero_grad()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -629,10 +649,6 @@ def test_multiple_optimizers_step(tmpdir):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
-
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
 
     model = TestModel()
     model.val_dataloader = None
@@ -657,15 +673,19 @@ def test_multiple_optimizers_step(tmpdir):
     assert model.called
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_step_with_optimizer_closure(tmpdir):
     """
     Tests that `step` works with optimizer_closure
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
 
         _losses = []
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx):
             # manual
@@ -702,6 +722,7 @@ def test_step_with_optimizer_closure(tmpdir):
             weight_before = self.layer.weight.clone()
 
             opt.step(closure=optimizer_closure)
+            opt.zero_grad()
 
             weight_after = self.layer.weight.clone()
             assert not torch.equal(weight_before, weight_after)
@@ -713,10 +734,6 @@ def test_step_with_optimizer_closure(tmpdir):
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer
-
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
 
     model = TestModel()
     model.val_dataloader = None
@@ -737,13 +754,18 @@ def test_step_with_optimizer_closure(tmpdir):
     assert trainer.logger_connector.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     """
     Tests that `step` works with optimizer_closure and accumulated_grad
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
         def training_step(self, batch, batch_idx):
             # manual
             opt = self.optimizers()
@@ -756,7 +778,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx # noqa E225
+                    retain_graph = num_backward != backward_idx  # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
             weight_before = self.layer.weight.clone()
@@ -777,10 +799,6 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer
 
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
-
     model = TestModel()
     model.val_dataloader = None
     model.training_epoch_end = None
@@ -799,14 +817,19 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     """
     Tests that `step` works with optimizer_closure and extra arguments
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
         def training_step(self, batch, batch_idx):
             # manual
             opt = self.optimizers()
@@ -819,10 +842,11 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx # noqa E225
+                    retain_graph = num_backward != backward_idx  # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
             opt.step(closure=optimizer_closure)
+            opt.zero_grad()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -831,10 +855,6 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer
-
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
 
     model = TestModel()
     model.val_dataloader = None
@@ -855,15 +875,20 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     step_mock.assert_has_calls(expected_calls)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
         def training_step(self, batch, batch_idx, optimizer_idx):
 
             # emulate gans training
@@ -891,14 +916,16 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
                 self.manual_backward(loss_dis, opt_dis)
 
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
-            opt_gen.step(closure=gen_closure, make_optimizer_step=(batch_idx % 2 == 0), optim='sgd')
+            gen_closure()
+            if batch_idx % 2 == 0:
+                opt_gen.step(closure=gen_closure, optim='sgd')
+                opt_gen.zero_grad()
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
-            if batch_idx % 4 == 0 :
-                # Note: Set make_optimizer_step to True or it will use by default
-                # Trainer(accumulate_grad_batches=x)
-                opt_dis.step(closure=dis_closure, make_optimizer_step=True)
+            if batch_idx % 4 == 0:
+                opt_dis.step(closure=dis_closure)
+                opt_dis.zero_grad()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -908,10 +935,6 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             optimizer_gen = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
             return [optimizer_gen, optimizer_dis]
-
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
 
     model = TestModel()
     model.val_dataloader = None
@@ -934,94 +957,100 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     mock_adam_step.assert_has_calls(expected_calls)
 
 
-@patch("torch.optim.Adam.step")
-@patch("torch.optim.SGD.step")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
-def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_step, mock_adam_step, tmpdir):
-    """
-    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
-    """
-    os.environ['PL_DEV_DEBUG'] = '1'
+class TestManualOptimizationDDPCallack(Callback):
 
-    class TestModel(BoringModel):
+    def on_train_end(self, trainer, pl_module):
 
-        def loss_ones(self, batch, prediction):
-            # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-            return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
+        opt_a, opt_b = pl_module.optimizers()
+        assert opt_a._total_optimizer_step_calls == 4
+        assert opt_b._total_optimizer_step_calls == 2
 
-        def loss_zeros(self, batch, prediction):
-            # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-            return torch.nn.functional.mse_loss(prediction, torch.zeros_like(prediction))
 
-        def manual_sync_grad(self) -> bool:
-            torch_distrib.all_reduce(self.layer.weight.grad.data, async_op=False)
-            return True
+class TesManualOptimizationDDPModel(BoringModel):
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
 
-            # emulate gans training
-            opt_gen, opt_dis = self.optimizers()
+    def loss_ones(self, batch, prediction):
+        # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
+        return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
 
-            # Note: Be careful, don't log on the same key in self.log in both closure
-            # as they will be aggregated together on epoch_end
+    def loss_zeros(self, batch, prediction):
+        # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
+        return torch.nn.functional.mse_loss(prediction, torch.zeros_like(prediction))
 
-            world_size = torch_distrib.get_world_size(torch_distrib.group.WORLD)
-            assert world_size == 2
+    def manual_sync_grad(self) -> bool:
+        torch_distrib.all_reduce(self.layer.weight.grad.data, async_op=False)
+        return True
 
-            def compute_loss():
-                x = batch[0]
-                x = F.dropout(x, 0.1)
-                predictions = self(x)
-                predictions = F.dropout(predictions, 0.1)
-                loss_ones = self.loss_ones(None, predictions)
-                loss_zeros = self.loss_zeros(None, predictions)
-                return loss_ones, loss_zeros
+    def training_step(self, batch, batch_idx, optimizer_idx):
 
-            def make_manual_backward(loss, opt, retain_graph=False):
-                self.manual_backward(loss, opt, retain_graph=retain_graph)
+        # emulate gans training
+        opt_gen, opt_dis = self.optimizers()
+
+        # Note: Be careful, don't log on the same key in self.log in both closure
+        # as they will be aggregated together on epoch_end
+
+        world_size = torch_distrib.get_world_size(torch_distrib.group.WORLD)
+        assert world_size == 2
+
+        make_gen_optimizer_step = batch_idx % 2 == 1
+        make_dis_optimizer_step = batch_idx % 4 == 0
+
+        def compute_loss():
+            x = batch[0]
+            x = F.dropout(x, 0.1)
+            predictions = self(x)
+            predictions = F.dropout(predictions, 0.1)
+            loss_ones = self.loss_ones(None, predictions)
+            loss_zeros = self.loss_zeros(None, predictions)
+            return loss_ones, loss_zeros
+
+        def make_manual_backward(loss, opt, retain_graph=False, make_optimizer_step=True):
+            self.manual_backward(loss, opt, retain_graph=retain_graph)
+            if make_optimizer_step:
                 grad_clone = self.layer.weight.grad.clone()
                 assert self.manual_sync_grad()
                 self.layer.weight.grad /= world_size
                 assert torch.equal(self.layer.weight.grad, grad_clone)
 
-            def gen_closure():
-                loss_ones_gen, loss_zeros = compute_loss()
-                make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True)
-                make_manual_backward(loss_ones_gen, opt_gen)
+        def gen_closure():
+            loss_ones_gen, loss_zeros = compute_loss()
+            make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
+            make_manual_backward(loss_ones_gen, opt_gen, make_optimizer_step=make_gen_optimizer_step)
 
-            def dis_closure():
-                loss_ones_gen, loss_zeros = compute_loss()
-                make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True)
-                make_manual_backward(loss_ones_gen, opt_dis)
+        def dis_closure():
+            loss_ones_gen, loss_zeros = compute_loss()
+            make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
+            make_manual_backward(loss_ones_gen, opt_dis, make_optimizer_step=make_dis_optimizer_step)
 
-            # this will accumulate gradients for 2 batches and then call opt_gen.step()
-            opt_gen.step(closure=gen_closure, make_optimizer_step=batch_idx % 2 == 0, optim='sgd')
+        # this will accumulate gradients for 2 batches and then call opt_gen.step()
+        if make_gen_optimizer_step:
+            opt_gen.step(closure=gen_closure)
+            opt_gen.zero_grad()
 
-            # update discriminator every 4 baches
-            # therefore, no gradient accumulation for discriminator
-            if batch_idx % 4 == 0 :
-                # Note: Set make_optimizer_step to True or it will use by default
-                # Trainer(accumulate_grad_batches=x)
-                opt_dis.step(closure=dis_closure, make_optimizer_step=True, optim='adam')
+        # update discriminator every 4 baches
+        # therefore, no gradient accumulation for discriminator
+        if make_dis_optimizer_step:
+            opt_dis.step(closure=dis_closure)
 
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
+    def training_epoch_end(self, outputs) -> None:
+        # outputs should be an array with an entry per optimizer
+        assert len(outputs) == 2
 
-        def configure_optimizers(self):
-            optimizer_gen = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
-            return [optimizer_gen, optimizer_dis]
+    def configure_optimizers(self):
+        optimizer_gen = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
+        return [optimizer_gen, optimizer_dis]
 
-        @property
-        def automatic_optimization(self) -> bool:
-            return False
+
+def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizationDDPModel):
 
     seed_everything(42)
 
-    model = TestModel()
+    model = model_cls()
+    model_copy = deepcopy(model)
     model.val_dataloader = None
     model.training_epoch_end = None
 
@@ -1034,12 +1063,97 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
         log_every_n_steps=1,
         accumulate_grad_batches=2,
         gpus=2,
-        accelerator="ddp",
+        accelerator=accelerator,
+        callbacks=[TestManualOptimizationDDPCallack()]
     )
 
     trainer.fit(model)
-    expected_calls = [call(closure=ANY, optim='sgd')] * 4
-    mock_sgd_step.assert_has_calls(expected_calls)
 
-    expected_calls = [call(closure=ANY, optim='adam')] * 2
-    mock_adam_step.assert_has_calls(expected_calls)
+    for param, param_copy in zip(model.parameters(), model_copy.parameters()):
+        assert not torch.equal(param.cpu().data, param_copy.data)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
+def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
+    """
+    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
+    """
+
+    train_manual_optimization(tmpdir, "ddp")
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir):
+    """
+    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
+    """
+
+    train_manual_optimization(tmpdir, "ddp_spawn")
+
+
+class TesManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+
+        # emulate gans training
+        opt_gen, opt_dis = self.optimizers()
+
+        # Note: Be careful, don't log on the same key in self.log in both closure
+        # as they will be aggregated together on epoch_end
+
+        world_size = torch_distrib.get_world_size(torch_distrib.group.WORLD)
+        assert world_size == 2
+
+        make_gen_optimizer_step = batch_idx % 2 == 1
+        make_dis_optimizer_step = batch_idx % 4 == 0
+
+        def compute_loss():
+            x = batch[0]
+            x = F.dropout(x, 0.1)
+            predictions = self(x)
+            predictions = F.dropout(predictions, 0.1)
+            loss_ones = self.loss_ones(None, predictions)
+            loss_zeros = self.loss_zeros(None, predictions)
+            return loss_ones, loss_zeros
+
+        def make_manual_backward(loss, opt, retain_graph=False, make_optimizer_step=True):
+            self.manual_backward(loss, opt, retain_graph=retain_graph)
+            if make_optimizer_step:
+                grad_clone = self.layer.weight.grad.clone()
+                assert self.manual_sync_grad()
+                self.layer.weight.grad /= world_size
+                assert torch.equal(self.layer.weight.grad, grad_clone)
+
+        def gen_closure():
+            loss_ones_gen, loss_zeros = compute_loss()
+            make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
+            make_manual_backward(loss_ones_gen, opt_gen, make_optimizer_step=make_gen_optimizer_step)
+
+        def dis_closure():
+            loss_ones_gen, loss_zeros = compute_loss()
+            make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
+            make_manual_backward(loss_ones_gen, opt_dis, make_optimizer_step=make_dis_optimizer_step)
+
+        # this will accumulate gradients for 2 batches and then call opt_gen.step()
+        with opt_gen.toggle_model(sync_grad=make_gen_optimizer_step):
+            gen_closure()
+            if make_gen_optimizer_step:
+                opt_gen.step()
+                opt_gen.zero_grad()
+
+        with opt_dis.toggle_model(sync_grad=make_dis_optimizer_step):
+            dis_closure()
+            if make_dis_optimizer_step:
+                opt_dis.step()
+                opt_dis.zero_grad()
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
+def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
+    train_manual_optimization(tmpdir, "ddp", model_cls=TesManualOptimizationDDPModelToggleModel)

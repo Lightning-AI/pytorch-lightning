@@ -101,10 +101,11 @@ class TensorRunningAccum(object):
             if self.rotated:
                 return getattr(self.memory, how)()
             else:
-                return getattr(self.memory[: self.current_idx], how)()
+                return getattr(self.memory[:self.current_idx], how)()
 
 
 class Accumulator(object):
+
     def __init__(self):
         self.num_values = 0
         self.total = 0
@@ -119,6 +120,7 @@ class Accumulator(object):
 
 
 class PredictionCollection(object):
+
     def __init__(self, global_rank: int, world_size: int):
         self.global_rank = global_rank
         self.world_size = world_size
@@ -131,9 +133,7 @@ class PredictionCollection(object):
         elif name not in self.predictions[filename]:
             self.predictions[filename][name] = values
         elif isinstance(values, Tensor):
-            self.predictions[filename][name] = torch.cat(
-                (self.predictions[filename][name], values)
-            )
+            self.predictions[filename][name] = torch.cat((self.predictions[filename][name], values))
         elif isinstance(values, list):
             self.predictions[filename][name].extend(values)
 
@@ -161,10 +161,7 @@ class PredictionCollection(object):
             fs.mkdirs(dirpath, exist_ok=True)
 
             # Convert any tensor values to list
-            predictions = {
-                k: v if not isinstance(v, Tensor) else v.tolist()
-                for k, v in predictions.items()
-            }
+            predictions = {k: v if not isinstance(v, Tensor) else v.tolist() for k, v in predictions.items()}
 
             # Check if all features for this file add up to same length
             feature_lens = {k: len(v) for k, v in predictions.items()}
@@ -186,6 +183,7 @@ class CycleIterator(object):
     """
     Iterator for restarting a dataloader if it runs out of samples
     """
+
     def __init__(self, loader: Any, length: Optional[int] = None):
         """
 
@@ -296,8 +294,9 @@ class CombinedDataset(object):
             raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         # extract the lengths
-        all_lengths = apply_to_collection(datasets, (Dataset, Iterable, type(None)), get_len,
-                                          wrong_dtype=(Sequence, Mapping))
+        all_lengths = apply_to_collection(
+            datasets, (Dataset, Iterable, type(None)), get_len, wrong_dtype=(Sequence, Mapping)
+        )
 
         compute_func = CombinedDataset.COMPUTE_FUNCS[mode]
 
@@ -351,8 +350,9 @@ class CombinedLoader(object):
         """
         self.loaders = loaders
 
-        datasets = apply_to_collection(self.loaders, Iterable, getattr, 'dataset', None,
-                                       wrong_dtype=(Sequence, Mapping))
+        datasets = apply_to_collection(
+            self.loaders, Iterable, getattr, 'dataset', None, wrong_dtype=(Sequence, Mapping)
+        )
         # could be multiple datasets, but use self.dataset to follow the name convention in DataLoader
         self.dataset = CombinedDataset(datasets, mode)
 
@@ -367,8 +367,7 @@ class CombinedLoader(object):
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
         """Return a collections of samplers extracting from loaders."""
-        return apply_to_collection(self.loaders, Iterable, getattr, 'sampler', None,
-                                   wrong_dtype=(Sequence, Mapping))
+        return apply_to_collection(self.loaders, Iterable, getattr, 'sampler', None, wrong_dtype=(Sequence, Mapping))
 
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
@@ -378,8 +377,7 @@ class CombinedLoader(object):
             the wrapped loaders
 
         """
-        all_lengths = apply_to_collection(self.loaders, Iterable, get_len,
-                                          wrong_dtype=(Sequence, Mapping))
+        all_lengths = apply_to_collection(self.loaders, Iterable, get_len, wrong_dtype=(Sequence, Mapping))
 
         if isinstance(all_lengths, (int, float)):
             length = all_lengths
@@ -391,13 +389,10 @@ class CombinedLoader(object):
             length = max(all_lengths)
 
         if isinstance(self.loaders, Mapping):
-            self.loaders = type(self.loaders)({k: CycleIterator(v, length=length)
-                                               for k, v in self.loaders.items()})
+            self.loaders = type(self.loaders)({k: CycleIterator(v, length=length) for k, v in self.loaders.items()})
 
         elif isinstance(self.loaders, Sequence):
-            self.loaders = type(self.loaders)([
-                CycleIterator(v, length=length) for v in self.loaders
-            ])
+            self.loaders = type(self.loaders)([CycleIterator(v, length=length) for v in self.loaders])
 
         # dataloaders are iterable but not sequence
         elif isinstance(self.loaders, Iterable):
@@ -424,8 +419,7 @@ class CombinedLoader(object):
             length: the minimum length of loaders
 
         """
-        all_lengths = apply_to_collection(loaders, Iterable, get_len,
-                                          wrong_dtype=(Sequence, Mapping))
+        all_lengths = apply_to_collection(loaders, Iterable, get_len, wrong_dtype=(Sequence, Mapping))
 
         if isinstance(all_lengths, (int, float)):
             return all_lengths
@@ -441,6 +435,7 @@ class CombinedLoaderIterator(object):
     """
     Custom Iterator returning data from multple loaders, and allows sampling in parallel
     """
+
     def __init__(self, loaders: Any):
         """
 

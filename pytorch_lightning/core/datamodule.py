@@ -11,23 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """LightningDataModule for loading DataLoaders with ease."""
 
 import functools
 import inspect
 from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import parsing, rank_zero_only
 
 
 class _DataModuleWrapper(type):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__has_added_checks = False
@@ -35,9 +35,9 @@ class _DataModuleWrapper(type):
     def __call__(cls, *args, **kwargs):
         """A wrapper for LightningDataModule that:
 
-            1. Runs user defined subclass's __init__
-            2. Assures prepare_data() runs on rank 0
-            3. Lets you check prepare_data and setup to see if they've been called
+        1. Runs user defined subclass's __init__
+        2. Assures prepare_data() runs on rank 0
+        3. Lets you check prepare_data and setup to see if they've been called
         """
         if not cls.__has_added_checks:
             cls.__has_added_checks = True
@@ -261,13 +261,16 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
         pass
 
     @abstractmethod
+    def predict_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
+        pass
+
+    @abstractmethod
     def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
         pass
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        r"""Extends existing argparse by default `LightningDataModule` attributes.
-        """
+        r"""Extends existing argparse by default `LightningDataModule` attributes."""
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         added_args = [x.dest for x in parser._actions]
 
@@ -279,9 +282,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
-            at
-            for at in cls.get_init_arguments_and_types()
-            if at[0] not in depr_arg_names
+            at for at in cls.get_init_arguments_and_types() if at[0] not in depr_arg_names
         ):
             arg_types = [at for at in allowed_types if at in arg_types]
             if not arg_types:
@@ -340,9 +341,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
 
         # we only want to pass in valid DataModule args, the rest may be user specific
         valid_kwargs = inspect.signature(cls.__init__).parameters
-        datamodule_kwargs = dict(
-            (name, params[name]) for name in valid_kwargs if name in params
-        )
+        datamodule_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
         datamodule_kwargs.update(**kwargs)
 
         return cls(**datamodule_kwargs)
@@ -363,8 +362,65 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
             try:
                 arg_types = tuple(arg_type.__args__)
             except AttributeError:
-                arg_types = (arg_type,)
+                arg_types = (arg_type, )
 
             name_type_default.append((arg, arg_types, arg_default))
 
         return name_type_default
+
+    @classmethod
+    def from_datasets(
+        cls,
+        train_dataset: Optional[Union[Dataset, Sequence[Dataset], Mapping[str, Dataset]]] = None,
+        val_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
+        test_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
+        batch_size: int = 1,
+        num_workers: int = 0,
+    ):
+        r"""
+        Create an instance from torch.utils.data.Dataset.
+
+        Args:
+            train_dataset: (optional) Dataset to be used for train_dataloader()
+            val_dataset: (optional) Dataset or list of Dataset to be used for val_dataloader()
+            test_dataset: (optional) Dataset or list of Dataset to be used for test_dataloader()
+            batch_size: Batch size to use for each dataloader. Default is 1.
+            num_workers: Number of subprocesses to use for data loading. 0 means that the
+                data will be loaded in the main process. Number of CPUs available.
+
+        """
+
+        def dataloader(ds, shuffle=False):
+            return DataLoader(
+                ds,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                num_workers=num_workers,
+                pin_memory=True,
+            )
+
+        def train_dataloader():
+            if isinstance(train_dataset, Mapping):
+                return {key: dataloader(ds, shuffle=True) for key, ds in train_dataset.items()}
+            if isinstance(train_dataset, Sequence):
+                return [dataloader(ds, shuffle=True) for ds in train_dataset]
+            return dataloader(train_dataset, shuffle=True)
+
+        def val_dataloader():
+            if isinstance(val_dataset, Sequence):
+                return [dataloader(ds) for ds in val_dataset]
+            return dataloader(val_dataset)
+
+        def test_dataloader():
+            if isinstance(test_dataset, Sequence):
+                return [dataloader(ds) for ds in test_dataset]
+            return dataloader(test_dataset)
+
+        datamodule = cls()
+        if train_dataset is not None:
+            datamodule.train_dataloader = train_dataloader
+        if val_dataset is not None:
+            datamodule.val_dataloader = val_dataloader
+        if test_dataset is not None:
+            datamodule.test_dataloader = test_dataloader
+        return datamodule

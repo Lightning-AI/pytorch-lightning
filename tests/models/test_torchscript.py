@@ -16,9 +16,9 @@ from distutils.version import LooseVersion
 import pytest
 import torch
 
-from tests.base import BoringModel
-from tests.base.datamodules import TrialMNISTDataModule
-from tests.base.models import BasicGAN, ParityModuleRNN
+from tests.helpers import BoringModel
+from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
+from tests.helpers.datamodules import TrialMNISTDataModule
 
 
 @pytest.mark.parametrize("modelclass", [
@@ -82,10 +82,7 @@ def test_torchscript_input_output_trace():
     assert torch.allclose(script_output, model_output)
 
 
-@pytest.mark.parametrize("device", [
-    torch.device("cpu"),
-    torch.device("cuda", 0)
-])
+@pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 def test_torchscript_device(device):
     """ Test that scripted module is on the correct device. """
@@ -116,18 +113,15 @@ def test_torchscript_retain_training_state():
     ParityModuleRNN,
     BasicGAN,
 ])
-def test_torchscript_properties(modelclass):
+def test_torchscript_properties(tmpdir, modelclass):
     """ Test that scripted LightningModule has unnecessary methods removed. """
     model = modelclass()
-    model.datamodule = TrialMNISTDataModule()
+    model.datamodule = TrialMNISTDataModule(tmpdir)
     script = model.to_torchscript()
     assert not hasattr(script, "datamodule")
     assert not hasattr(model, "batch_size") or hasattr(script, "batch_size")
     assert not hasattr(model, "learning_rate") or hasattr(script, "learning_rate")
-
-    if LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
-        # only on torch >= 1.4 do these unused methods get removed
-        assert not callable(getattr(script, "training_step", None))
+    assert not callable(getattr(script, "training_step", None))
 
 
 @pytest.mark.parametrize("modelclass", [

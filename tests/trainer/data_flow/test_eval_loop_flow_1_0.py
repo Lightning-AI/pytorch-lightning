@@ -22,7 +22,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.deterministic_model import DeterministicModel
+from tests.helpers.deterministic_model import DeterministicModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -32,6 +32,7 @@ def test__eval_step__flow(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -76,6 +77,7 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -125,6 +127,7 @@ def test__eval_step__epoch_end__flow(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
@@ -184,6 +187,7 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
     """
 
     class TestModel(DeterministicModel):
+
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx

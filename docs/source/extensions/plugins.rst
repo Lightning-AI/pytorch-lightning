@@ -4,31 +4,4 @@ Plugins
 
 Plugins allow custom integrations to the internals of the Trainer such as a custom amp or ddp implementation.
 
-For example, to customize your own DistributedDataParallel you could do something like this:
-
-.. code-block:: python
-
-    class MyDDP(DDPPlugin):
-        ...
-
-    # use your own ddp algorithm
-    my_ddp = MyDDP()
-    trainer = Trainer(plugins=[my_ddp])
-
-**********
-ApexPlugin
-**********
-
-.. autoclass:: pytorch_lightning.plugins.legacy.apex.ApexPlugin
-
-***************
-NativeAMPPlugin
-***************
-
-.. autoclass:: pytorch_lightning.plugins.legacy.native_amp.NativeAMPPlugin
-
-*********
-DDPPlugin
-*********
-
-.. autoclass:: pytorch_lightning.plugins.legacy.ddp_plugin.DDPPlugin
+**For help setting up custom plugin/accelerator please reach out to us at support@pytorchlightning.ai**

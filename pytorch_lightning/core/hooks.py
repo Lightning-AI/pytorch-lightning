@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Various hooks to be used in the Lightning code."""
 
 from typing import Any, Dict, List, Optional, Union
@@ -25,6 +24,7 @@ from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 
 class ModelHooks:
     """Hooks to be used in LightningModule."""
+
     def setup(self, stage: str) -> None:
         """
         Called at the beginning of fit and test.
@@ -204,17 +204,23 @@ class ModelHooks:
         """
         # do something when the batch ends
 
+    def on_test_model_train(self) -> None:
+        """
+        Sets the model to train during the test loop
+        """
+        self.train()
+
     def on_test_model_eval(self) -> None:
         """
         Sets the model to eval during the test loop
         """
         self.eval()
 
-    def on_test_model_train(self) -> None:
+    def on_predict_model_eval(self) -> None:
         """
-        Sets the model to train during the test loop
+        Sets the model to eval during the predict loop
         """
-        self.train()
+        self.eval()
 
     def on_epoch_start(self) -> None:
         """
@@ -305,12 +311,10 @@ class ModelHooks:
             def on_after_backward(self):
                 # example to inspect gradient information in tensorboard
                 if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
-                    params = self.state_dict()
-                    for k, v in params.items():
-                        grads = v
-                        name = k
-                        self.logger.experiment.add_histogram(tag=name, values=grads,
-                                                             global_step=self.trainer.global_step)
+                    for k, v in self.named_parameters():
+                        self.logger.experiment.add_histogram(
+                            tag=k, values=v.grad, global_step=self.trainer.global_step
+                        )
 
         """
 
@@ -333,6 +337,7 @@ class ModelHooks:
 
 class DataHooks:
     """Hooks to be used with LightningDataModule."""
+
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
@@ -422,9 +427,7 @@ class DataHooks:
                 return loader
 
         """
-        rank_zero_warn(
-            "`train_dataloader` must be implemented to be used with the Lightning Trainer"
-        )
+        rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
         r"""
@@ -537,6 +540,31 @@ class DataHooks:
             will have an argument ``dataloader_idx`` which matches the order here.
         """
 
+    def predict_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+        r"""
+        Implement one or multiple PyTorch DataLoaders for prediction.
+
+        It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
+
+        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
+        - ...
+        - :meth:`prepare_data`
+        - :meth:`train_dataloader`
+        - :meth:`val_dataloader`
+        - :meth:`test_dataloader`
+
+        Note:
+            Lightning adds the correct sampler for distributed and arbitrary hardware
+            There is no need to set it yourself.
+
+        Return:
+            Single or multiple PyTorch DataLoaders.
+
+        Note:
+            In the case where you return multiple prediction dataloaders, the :meth:`predict`
+            will have an argument ``dataloader_idx`` which matches the order here.
+        """
+
     def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
@@ -590,6 +618,7 @@ class DataHooks:
 
 class CheckpointHooks:
     """Hooks to be used with Checkpointing."""
+
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         r"""
         Called by Lightning to restore your model.

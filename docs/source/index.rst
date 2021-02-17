@@ -113,6 +113,7 @@ PyTorch Lightning Documentation
    advanced/training_tricks
    advanced/transfer_learning
    advanced/tpu
+   advanced/cluster
    common/test_set
    common/production_inference
 

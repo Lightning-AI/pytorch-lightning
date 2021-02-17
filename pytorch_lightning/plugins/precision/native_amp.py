@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Generator
+from typing import Callable, Generator
 
 import torch
+from torch.optim import LBFGS, Optimizer
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
@@ -33,25 +34,11 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.backend = AMPType.NATIVE
         self.scaler = torch.cuda.amp.GradScaler()
 
-    def pre_optimizer_step(self, optimizer: torch.optim.Optimizer, optimizer_idx: int) -> None:
-        """always called before the optimizer step.
-        Checks that the optimizer is not LBFGS, as this one is not supported by native amp
-        """
-        if isinstance(optimizer, torch.optim.LBFGS):
-            raise MisconfigurationException(
-                f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
-                " To request, please file a Github issue in PyTorch and tag @mcarilli"
-            )
-
-    def post_optimizer_step(self, optimizer: torch.optim.Optimizer, optimizer_idx: int) -> None:
-        """Updates the GradScaler"""
-        self.scaler.update()
-
     def backward(
         self,
         model: LightningModule,
         closure_loss: torch.Tensor,
-        optimizer: torch.optim.Optimizer,
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args,
@@ -69,15 +56,37 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         """
         closure_loss = self.scaler.scale(closure_loss)
 
-        automatic_optimization = model.automatic_optimization
-
         closure_loss = super().backward(model, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs)
 
         # unscale gradient to allow analyze within `on_after_backward`
-        if not should_accumulate and automatic_optimization:
+        if not should_accumulate and model.automatic_optimization:
             self.scaler.unscale_(optimizer)
 
         return closure_loss
+
+    def pre_optimizer_step(
+        self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs
+    ) -> bool:
+        """always called before the optimizer step.
+        Checks that the optimizer is not LBFGS, as this one is not supported by native amp
+        """
+        if isinstance(optimizer, LBFGS):
+            raise MisconfigurationException(
+                f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
+                " To request, please file a Github issue in PyTorch and tag @mcarilli"
+            )
+        lambda_closure()
+
+        if not pl_module.automatic_optimization:
+            self.scaler.unscale_(optimizer)
+            pl_module.trainer.call_hook("on_after_backward")
+
+        return False
+
+    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
+        """Updates the GradScaler"""
+        self.scaler.step(optimizer)
+        self.scaler.update()
 
     @contextmanager
     def train_step_context(self) -> Generator[autocast, None, None]:

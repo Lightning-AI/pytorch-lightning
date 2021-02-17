@@ -128,7 +128,10 @@ So you can run it like so:
 
     if __name__ == '__main__':
         parser = ArgumentParser()
-        parser = Trainer.add_argparse_args(parser)
+        parser = Trainer.add_argparse_args(
+            # group the Trainer arguments together
+            parser.add_argument_group(title="pl.Trainer args")
+        )
         args = parser.parse_args()
 
         main(args)
@@ -515,7 +518,9 @@ callbacks
 
 |
 
-Add a list of :class:`~pytorch_lightning.callbacks.Callback`.
+Add a list of :class:`~pytorch_lightning.callbacks.Callback`. Callbacks run sequentially in the order defined here
+with the exception of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
+after all others to ensure all states are saved to the checkpoints.
 
 .. code-block:: python
 
@@ -532,6 +537,14 @@ Example::
             print("Training is started!")
         def on_train_end(self, trainer, pl_module):
             print("Training is done.")
+
+
+Model-specific callbacks can also be added inside the ``LightningModule`` through
+:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
+Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
+the trainer callbacks should there be two or more of the same type.
+:class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
+
 
 check_val_every_n_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -1176,13 +1189,13 @@ If used on TPU will use torch.bfloat16 but tensor printing
 will still show torch.float32.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
     # default used by the Trainer
     trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16)
+    trainer = Trainer(precision=16, gpus=1)
 
 Example::
 
