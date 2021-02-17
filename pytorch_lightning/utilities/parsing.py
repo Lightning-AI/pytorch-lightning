@@ -198,7 +198,7 @@ class AttributeDict(Dict):
 
 def _lightning_get_all_attr_holders(model, attribute):
     """
-    Special attribute finding for lightning. Gets all of the objects or dicts that holds attribute.
+    Special attribute finding for Lightning. Gets all of the objects or dicts that holds attribute.
     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule.
     """
     trainer = getattr(model, 'trainer', None)
