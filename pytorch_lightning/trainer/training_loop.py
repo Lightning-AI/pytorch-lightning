@@ -26,7 +26,7 @@ from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -342,13 +342,6 @@ class TrainLoop:
             return None, None
 
         # -----------------------------------------
-        # process result return (DEPRECATE in 1.0)
-        # -----------------------------------------
-        if isinstance(training_step_output, Result):
-            training_step_output_for_epoch_end = self._process_result(training_step_output, split_batch)
-            return training_step_output_for_epoch_end, training_step_output
-
-        # -----------------------------------------
         # process hybrid (1.0)
         # -----------------------------------------
         # no need for these checks in 1.0.0
@@ -412,29 +405,6 @@ class TrainLoop:
         training_step_output = result
 
         return training_step_output_for_epoch_end, training_step_output
-
-    def _process_result(self, training_step_output, split_batch):
-        training_step_output.track_batch_size(len(split_batch))
-        m = """
-        TrainResult and EvalResult were deprecated in 0.9.1 and support will drop in 1.0.0.
-        Use self.log and .write from the LightningModule to log metrics and write predictions.
-        training_step can now only return a scalar (for the loss) or a dictionary with anything you want.
-
-        Option 1:
-        return loss
-
-        Option 2:
-        return {'loss': loss, 'anything_else': ...}
-
-        Option 3:
-        return {'loss': loss, 'hiddens': hiddens, 'anything_else': ...}
-            """
-        rank_zero_warn(m)
-
-        training_step_output_for_epoch_end = copy(training_step_output)
-        training_step_output_for_epoch_end.detach()
-
-        return training_step_output_for_epoch_end
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.get_model()
