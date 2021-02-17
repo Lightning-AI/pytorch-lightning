@@ -111,7 +111,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `PL_TORCH_DISTRIBUTED_BACKEND` env variable to select backend ([#5981](https://github.com/PyTorchLightning/pytorch-lightning/pull/5981))
 
 
-- Added `Trainer(use_swa=True)` ([#6038](https://github.com/PyTorchLightning/pytorch-lightning/pull/6038))
+- Added `Trainer` flag to activate Stochastic Weight Averaging (SWA) `Trainer(use_swa=True)` ([#6038](https://github.com/PyTorchLightning/pytorch-lightning/pull/6038))
 
 
 ### Changed
