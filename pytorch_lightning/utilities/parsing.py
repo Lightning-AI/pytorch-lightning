@@ -223,7 +223,7 @@ def _lightning_get_all_attr_holders(model, attribute):
 
 def _lightning_get_first_attr_holder(model, attribute):
     """
-    Special attribute finding for lightning.  Gets the object or dict that holds attribute, or None.
+    Special attribute finding for Lightning.  Gets the object or dict that holds attribute, or None.
     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule,
     returns the last one that has it.
     """
@@ -236,7 +236,7 @@ def _lightning_get_first_attr_holder(model, attribute):
 
 def lightning_hasattr(model, attribute):
     """
-    Special hasattr for lightning. Checks for attribute in model namespace,
+    Special hasattr for Lightning. Checks for attribute in model namespace,
     the old hparams namespace/dict, and the datamodule.
     """
     return _lightning_get_first_attr_holder(model, attribute) is not None
@@ -244,7 +244,7 @@ def lightning_hasattr(model, attribute):
 
 def lightning_getattr(model, attribute):
     """
-    Special getattr for lightning. Checks for attribute in model namespace,
+    Special getattr for Lightning. Checks for attribute in model namespace,
     the old hparams namespace/dict, and the datamodule.
 
     Raises:
@@ -266,7 +266,7 @@ def lightning_getattr(model, attribute):
 
 def lightning_setattr(model, attribute, value):
     """
-    Special setattr for lightning. Checks for attribute in model namespace
+    Special setattr for Lightning. Checks for attribute in model namespace
     and the old hparams namespace/dict.
     Will also set the attribute on datamodule, if it exists.
 
