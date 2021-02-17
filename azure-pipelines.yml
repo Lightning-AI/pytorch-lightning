@@ -65,7 +65,6 @@ jobs:
         # Temporary fix till DeepSpeed release
         pip install deepspeed@git+https://github.com/microsoft/DeepSpeed@ec8b1cb
         # Update path to find ninja installation
-        ln -s /home/AzDevOps_azpcontainer/.local/bin/ninja /usr/bin/ninja
         export PATH=$PATH:/home/AzDevOps_azpcontainer/.local/bin
         echo $PATH
         whereis ninja
@@ -82,13 +81,14 @@ jobs:
         ls -l legacy/checkpoints/
       displayName: 'Get legacy checkpoints'
 
+    - bash: |
+        which ninja
+        sh tests/special_tests.sh
+      displayName: 'Testing: special'
+
     - script: |
         python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
       displayName: 'Testing: standard'
-
-    - script: |
-        sh tests/special_tests.sh
-      displayName: 'Testing: special'
 
     - bash: |
         python -m coverage report
