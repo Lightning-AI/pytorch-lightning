@@ -823,7 +823,7 @@ class Trainer(
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
-            dataloader = self.accelerator_backend.process_dataloader(dataloader)
+            dataloader = self.training_type_plugin.process_dataloader(dataloader)
             dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
 
             for batch_idx, batch in enumerate(dataloader):
