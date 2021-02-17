@@ -71,7 +71,7 @@ class MilestonesFinetuning(BaseFinetuning):
         self.train_bn = train_bn
 
     def freeze_before_training(self, pl_module: pl.LightningModule):
-        self.freeze(modules=pl_module.feature_extractor, train_bn=False)
+        self.freeze(modules=pl_module.feature_extractor, train_bn=self.train_bn)
 
     def finetune_function(self, pl_module: pl.LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
         if epoch == self.milestones[0]:
@@ -164,13 +164,12 @@ class TransferLearningModel(pl.LightningModule):
     def __init__(
         self,
         backbone: str = "resnet50",
-        train_bn: bool = True,
         milestones: tuple = (5, 10),
         batch_size: int = 32,
         lr: float = 1e-2,
         lr_scheduler_gamma: float = 1e-1,
         num_workers: int = 6,
-        **kwargs,
+        **_,
     ) -> None:
         """
         Args:
@@ -178,7 +177,6 @@ class TransferLearningModel(pl.LightningModule):
         """
         super().__init__()
         self.backbone = backbone
-        self.train_bn = train_bn
         self.milestones = milestones
         self.batch_size = batch_size
         self.lr = lr
@@ -334,7 +332,7 @@ def main(args: argparse.Namespace) -> None:
         dl_path=os.path.join(args.root_data_path, 'data'), batch_size=args.batch_size, num_workers=args.num_workers
     )
     model = TransferLearningModel(**vars(args))
-    finetuning_callback = MilestonesFinetuning(milestones=args.milestones)
+    finetuning_callback = MilestonesFinetuning(milestones=args.milestones, train_bn=args.train_bn)
 
     trainer = pl.Trainer(
         weights_summary=None,
