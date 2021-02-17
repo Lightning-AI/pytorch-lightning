@@ -20,13 +20,13 @@ Pruning
 
      Pruning is in beta and subject to change.
 
-Pruning is focussing on eliminating some of the model weights to reduce the model size and increase inference performance. Pruning has been shown to achieve significant efficiency improvements while minimizing the drop in model performance (prediction quality).
+Pruning is a technique which focuses on eliminating some of the model weights to reduce the model size and decrease inference requirements. Pruning has been shown to achieve significant efficiency improvements while minimizing the drop in model performance (prediction quality).
 
 Pruning your model is recommended for cloud endpoint, on edge device, or mobile deployment.
 
-To enable pruning during training in Lightning, simply pass in the :class:`~pytorch_lightning.callbacks.ModelPruning` callback to the Lighting Trainer (using native PyTorch pruning implementation under the hood).
+To enable pruning during training in Lightning, simply pass in the :class:`~pytorch_lightning.callbacks.ModelPruning` callback to the Lightning Trainer. PyTorch's native pruning implementation is used under the hood.
 
-This callback suports multiple pruning functions: pass any `torch.nn.utils.prune <https://pytorch.org/docs/stable/nn.html#utilities>`_ function as a string to select which weights to pruned (`random_unstructured <https://pytorch.org/docs/stable/generated/torch.nn.utils.prune.random_unstructured.html#torch.nn.utils.prune.random_unstructured>`_, `RandomStructured <https://pytorch.org/docs/stable/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured>`_, etc) or implement your own by subclassing `BasePruningMethod <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html#extending-torch-nn-utils-prune-with-custom-pruning-functions>`_.
+This callback supports multiple pruning functions: pass any `torch.nn.utils.prune <https://pytorch.org/docs/stable/nn.html#utilities>`_ function as a string to select which weights to prune (`random_unstructured <https://pytorch.org/docs/stable/generated/torch.nn.utils.prune.random_unstructured.html#torch.nn.utils.prune.random_unstructured>`_, `RandomStructured <https://pytorch.org/docs/stable/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured>`_, etc) or implement your own by subclassing `BasePruningMethod <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html#extending-torch-nn-utils-prune-with-custom-pruning-functions>`_.
 
 TODO: what do you have to set?
 
@@ -34,10 +34,19 @@ You can also set the pruning percentage, perform iterative pruning, apply the `l
 
 .. code-block:: python
 
+    from pytorch_lightning.callbacks import ModelPruning
 
-	from pytorch_lightning.callbacks import ModelPruning
+    def compute_amount(epoch):
+        if epoch == 10:
+            return 0.5
 
-	trainer = Trainer(callbacks=[ModelPruning("random_unstructured")])
+        elif epoch == 50:
+            return 0.25
+
+        elif 75 < epoch < 99 :
+            return 0.01         
+
+    trainer = Trainer(callbacks=[ModelPruning("l1_unstructured", amount=compute_amount)])
 
 
 ************
