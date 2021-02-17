@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import torch
 from torch import Tensor
@@ -30,7 +30,7 @@ class TrainerTrainingTricksMixin(ABC):
     #  the proper values/initialisation should be done in child class
     default_root_dir: str
     lightning_module: LightningModule
-    progress_bar_callback: ...
+    progress_bar_callback:...
     on_gpu: bool
 
     def print_nan_gradients(self) -> None:

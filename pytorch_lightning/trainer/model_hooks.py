@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import inspect
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from pytorch_lightning.core.lightning import LightningModule
 

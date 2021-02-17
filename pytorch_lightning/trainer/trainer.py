@@ -678,7 +678,9 @@ class Trainer(
     def run_evaluation(self, max_batches=None, on_epoch=False):
 
         # used to know if we are logging for val, test + reset cached results
-        self._set_running_stage(RunningStage.TESTING if self.testing else RunningStage.EVALUATING, self.lightning_module)
+        self._set_running_stage(
+            RunningStage.TESTING if self.testing else RunningStage.EVALUATING, self.lightning_module
+        )
         self.logger_connector.reset()
 
         # bookkeeping
