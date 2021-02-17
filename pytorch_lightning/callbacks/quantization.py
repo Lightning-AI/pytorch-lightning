@@ -128,10 +128,10 @@ class QuantizationAwareTraining(Callback):
             input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
                 but break compatibility to torchscript
         """
-        _valid_gconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
-        if not isinstance(qconfig, QConfig) and not _valid_gconf_str:
+        _valid_qconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
+        if not isinstance(qconfig, QConfig) and not _valid_qconf_str:
             raise MisconfigurationException(
-                f"Unsupported qconfig: f{qconfig}.\n Try one of defaults: {torch.backends.quantized.supported_engines}"
+                f"Unsupported qconfig: f{qconfig}.\nTry one of defaults: {torch.backends.quantized.supported_engines}"
             )
         self._qconfig = qconfig
 
