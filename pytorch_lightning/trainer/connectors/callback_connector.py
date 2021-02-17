@@ -14,7 +14,13 @@
 import os
 from typing import List, Union
 
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import (
+    Callback,
+    ModelCheckpoint,
+    ProgressBar,
+    ProgressBarBase,
+    StochasticWeightAveraging,
+)
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -26,20 +32,15 @@ class CallbackConnector:
         self.trainer = trainer
 
     def on_trainer_init(
-        self,
-        callbacks,
-        checkpoint_callback,
-        progress_bar_refresh_rate,
-        process_position,
-        default_root_dir,
-        weights_save_path,
-        resume_from_checkpoint,
+        self, callbacks, checkpoint_callback, progress_bar_refresh_rate, process_position, default_root_dir,
+        weights_save_path, resume_from_checkpoint, use_swa
     ):
         self.trainer.resume_from_checkpoint = resume_from_checkpoint
 
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
+        self.trainer._use_swa = use_swa
 
         # init callbacks
         if isinstance(callbacks, Callback):
@@ -49,6 +50,9 @@ class CallbackConnector:
         # configure checkpoint callback
         # pass through the required args to figure out defaults
         self.configure_checkpoint_callbacks(checkpoint_callback)
+
+        # configure swa callback
+        self.configure_swa_callbacks()
 
         # init progress bar
         self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
@@ -75,6 +79,14 @@ class CallbackConnector:
 
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
             self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None, mode='min'))
+
+    def configure_swa_callbacks(self):
+        for cb in self.trainer.callbacks:
+            if isinstance(cb, StochasticWeightAveraging):
+                return
+
+        # default learning rate is taking from PyTorch blogpost on SWA.
+        self.trainer.callbacks = [StochasticWeightAveraging(swa_lrs=0.05)] + self.trainer.callbacks
 
     def configure_progress_bar(self, refresh_rate=None, process_position=0):
         if os.getenv('COLAB_GPU') and refresh_rate is None:

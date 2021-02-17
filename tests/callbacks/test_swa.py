@@ -157,3 +157,19 @@ def test_swa_raises():
         StochasticWeightAveraging(swa_epoch_start=-1, swa_lrs=0.1)
     with pytest.raises(MisconfigurationException, match="positive float or a list of positive float"):
         StochasticWeightAveraging(swa_epoch_start=5, swa_lrs=[0.2, 1])
+
+
+@pytest.mark.parametrize('callbacks', [StochasticWeightAveraging(swa_lrs=1e-3), None])
+def test_trainer_and_use_swa(tmpdir, callbacks):
+    """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=callbacks,
+        use_swa=True,
+        limit_train_batches=4,
+        limit_val_batches=4,
+        max_epochs=1,
+    )
+    trainer.fit(model)
+    assert trainer.callbacks[0]._swa_lrs == (0.05 if callbacks is None else 1e-3)
