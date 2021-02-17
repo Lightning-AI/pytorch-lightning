@@ -92,8 +92,9 @@ class CallbackConnector:
             if isinstance(cb, StochasticWeightAveraging):
                 return
 
-        # default learning rate is taking from PyTorch blogpost on SWA.
-        self.trainer.callbacks = [StochasticWeightAveraging(swa_lrs=0.05)] + self.trainer.callbacks
+        if self.trainer._stochastic_weight_avg:
+            # default learning rate is taking from PyTorch blogpost on SWA.
+            self.trainer.callbacks = [StochasticWeightAveraging(swa_lrs=0.05)] + self.trainer.callbacks
 
     def configure_progress_bar(self, refresh_rate=None, process_position=0):
         if os.getenv('COLAB_GPU') and refresh_rate is None:
