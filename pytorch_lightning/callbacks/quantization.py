@@ -130,7 +130,9 @@ class QuantizationAwareTraining(Callback):
         """
         _valid_gconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
         if not isinstance(qconfig, QConfig) and not _valid_gconf_str:
-            raise MisconfigurationException(f"Unsupported qconfig: f{qconfig}.")
+            raise MisconfigurationException(
+                f"Unsupported qconfig: f{qconfig}.\n Try one of defaults: {torch.backends.quantized.supported_engines}"
+            )
         self._qconfig = qconfig
 
         if observer_type not in self.OBSERVER_TYPES:
