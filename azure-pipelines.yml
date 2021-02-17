@@ -82,6 +82,7 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - bash: |
+        export PATH=$PATH:/home/AzDevOps_azpcontainer/.local/bin
         which ninja
         sh tests/special_tests.sh
       displayName: 'Testing: special'
