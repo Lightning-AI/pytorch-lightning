@@ -59,7 +59,7 @@ class CallbackConnector:
         self.configure_checkpoint_callbacks(checkpoint_callback)
 
         # configure swa callback
-        self.configure_swa_callbacks()
+        self._configure_swa_callbacks()
 
         # init progress bar
         self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
@@ -87,7 +87,7 @@ class CallbackConnector:
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
             self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None, mode='min'))
 
-    def configure_swa_callbacks(self):
+    def _configure_swa_callbacks(self):
         if not self.trainer._stochastic_weight_avg:
             return
 
