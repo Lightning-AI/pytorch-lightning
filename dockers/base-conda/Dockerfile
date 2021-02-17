@@ -42,6 +42,7 @@ RUN apt-get update -qq && \
         curl \
         unzip \
         ca-certificates \
+        libopenmpi-dev \
     && \
 
 # Install conda and python.

@@ -288,8 +288,8 @@ class MockedUpdateProgressBars(ProgressBar):
         bar = super().init_validation_tqdm()
         return self._mock_bar_update(bar)
 
-    def init_test_tqdm(self, trainer=None):
-        bar = super().init_test_tqdm(trainer=trainer)
+    def init_test_tqdm(self):
+        bar = super().init_test_tqdm()
         return self._mock_bar_update(bar)
 
 
