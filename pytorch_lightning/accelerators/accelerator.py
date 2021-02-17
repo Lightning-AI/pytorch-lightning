@@ -314,7 +314,7 @@ class Accelerator(object):
             trainer: the Trainer, these optimizers should be connected to
             model: the model to be optimized by the created optimizers
         """
-        if trainer.testing is True:
+        if trainer.testing:
             return
         optimizers, lr_schedulers, optimizer_frequencies = self.training_type_plugin.init_optimizers(
             trainer=trainer, model=self.lightning_module

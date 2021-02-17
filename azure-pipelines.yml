@@ -62,7 +62,7 @@ jobs:
       displayName: 'Install dependencies'
 
     - bash: |
-        # Temporary fix till DeepSpeed release
+        # Temporary fix till DeepSpeed release, move this into CUDA image
         pip install deepspeed@git+https://github.com/microsoft/DeepSpeed@ec8b1cb
       displayName: 'Install DeepSpeed'
 
