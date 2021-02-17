@@ -191,7 +191,10 @@ def test_is_picklable(tmpdir):
 
 
 def test_clean_namespace(tmpdir):
+    # See the full list of picklable types at
+    # https://docs.python.org/3/library/pickle.html#pickle-picklable
     class UnpicklableClass:
+        # Only classes defined at the top level of a module are picklable.
         pass
 
     test_case = {
