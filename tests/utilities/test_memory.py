@@ -11,18 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.distributed import rank_zero_warn
+import torch
+
+from pytorch_lightning.utilities.memory import recursive_detach
 
 
-class WarningCache:
+def test_recursive_detach():
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    x = {"foo": torch.tensor(0, device=device), "bar": {"baz": torch.tensor(1.0, device=device, requires_grad=True)}}
+    y = recursive_detach(x, to_cpu=True)
 
-    def __init__(self):
-        self.warnings = set()
+    assert x["foo"].device.type == device
+    assert x["bar"]["baz"].device.type == device
+    assert x["bar"]["baz"].requires_grad
 
-    def warn(self, m, *args, **kwargs):
-        if m not in self.warnings:
-            self.warnings.add(m)
-            rank_zero_warn(m, *args, **kwargs)
-
-    def clear(self):
-        self.warnings.clear()
+    assert y["foo"].device.type == "cpu"
+    assert y["bar"]["baz"].device.type == "cpu"
+    assert not y["bar"]["baz"].requires_grad

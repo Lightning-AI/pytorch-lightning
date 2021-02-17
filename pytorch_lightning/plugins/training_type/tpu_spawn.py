@@ -10,7 +10,8 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
 if _TPU_AVAILABLE:
@@ -45,10 +46,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @property
     def distributed_sampler_kwargs(self) -> dict:
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
-
-    @property
-    def should_finalize(self):
-        return self.world_size == 1
 
     @property
     def is_distributed(self):
@@ -95,10 +92,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         trainer.save_checkpoint = self.save_checkpoint
         self.barrier()
 
-        if trainer.testing:
-            results = trainer.run_test()
-        else:
-            results = trainer.train()
+        results = trainer.train_or_test_or_predict()
 
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
@@ -182,7 +176,25 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         should_stop = int(stop.item()) == self.world_size
         return should_stop
 
-    def post_training(self) -> None:
+    def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
+        if not isinstance(output, torch.Tensor):
+            output = torch.tensor(output, device=self.device)
+
+        _invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
+        _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
+        if _invalid_reduce_op or _invalid_reduce_op_str:
+            raise MisconfigurationException(
+                "Currently, TPUSpawn TrainingTypePlugin only support `sum`, `mean`, `avg` reduce operation."
+            )
+
+        output = xm.mesh_reduce('reduce', output, sum)
+
+        if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
+            output = output / self.world_size
+
+        return output
+
+    def post_dispatch(self) -> None:
         # TODO: Check if trainer references can be resolved otherwise
         model = self.lightning_module
 
@@ -216,6 +228,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         self._model = model
 
+    def _close_logger(self, trainer) -> None:
+        if hasattr(trainer, "logger"):
+            trainer.logger.finalize("success")
+
     @property
     def xmp_spawn_kwargs(self):
         return {
@@ -228,9 +244,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo: precision pluging is call in accelerator setup and should be moved
         if 'XLA_USE_BF16' in os.environ:
             del os.environ["XLA_USE_BF16"]
+        self._close_logger(trainer)
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def start_testing(self, trainer) -> None:
+        self._close_logger(trainer)
+        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+
+    def start_predicting(self, trainer) -> None:
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def training_step(self, *args, **kwargs):
