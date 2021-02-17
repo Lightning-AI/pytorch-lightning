@@ -47,10 +47,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
     @property
-    def should_finalize(self):
-        return self.world_size == 1
-
-    @property
     def is_distributed(self):
         return self.world_size != 1
 
@@ -179,6 +175,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         should_stop = int(stop.item()) == self.world_size
         return should_stop
 
+    def reduce(self, output, group: Optional[Any] = None, reduce_op: str = None):
+        if not isinstance(output, torch.Tensor):
+            output = torch.tensor(output, device=self.device)
+        output = xm.mesh_reduce('reduce', output, sum)
+        if isinstance(reduce_op, str) and reduce_op.lower() == "mean":
+            output /= self.world_size
+        return output
+
     def post_dispatch(self) -> None:
         # TODO: Check if trainer references can be resolved otherwise
         model = self.lightning_module
@@ -213,6 +217,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         self._model = model
 
+    def _close_logger(self, trainer) -> None:
+        if hasattr(trainer, "logger"):
+            trainer.logger.close()
+
     @property
     def xmp_spawn_kwargs(self):
         return {
@@ -225,9 +233,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo: precision pluging is call in accelerator setup and should be moved
         if 'XLA_USE_BF16' in os.environ:
             del os.environ["XLA_USE_BF16"]
+        self._close_logger()
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def start_testing(self, trainer) -> None:
+        self._close_logger()
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def start_predicting(self, trainer) -> None:

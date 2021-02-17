@@ -388,3 +388,11 @@ class Accelerator(object):
             A tensor of shape (world_size, batch, ...)
         """
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+
+    def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Wraps the dataloader if necessary
+
+        Args:
+            dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
+        """
+        return self.training_type_plugin.process_dataloader(dataloader)

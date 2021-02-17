@@ -36,10 +36,6 @@ class TrainingTypePlugin(Plugin, ABC):
         self.global_rank = 0
 
     @property
-    def should_finalize(self):
-        return True
-
-    @property
     @abstractmethod
     def on_gpu(self) -> bool:
         """Returns whether the current process is done on GPU"""
