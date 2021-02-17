@@ -10,18 +10,19 @@
 Pruning and Quantization
 ########################
 
-Pruning and Quantization are tecniques to compress models for deployment, allowing memory and energy reduction without significant accuracy losses.
+Pruning and Quantization are techniques to compress model size for deployment, allowing inference speed up and energy saving without significant accuracy losses.
 
 *******
 Pruning
 *******
 
-.. warning ::
+.. warning::
+
      Pruning is in beta and subject to change.
 
-Pruning is a technique to optimize model memory, hardware, and energy requirements by eliminating some of the model weights. Pruning has been shown to achieve significant efficiency improvements while minimizing the drop in performance. The pruned model is smaller in size, more memory-efficient requires less energy and memory, and is faster to run with minimal accuracy drop.
+Pruning is focussing on eliminating some of the model weights to reduce the model size and increase inference performance. Pruning has been shown to achieve significant efficiency improvements while minimizing the drop in model performance (prediction quality).
 
-TODO: when is it recomended?
+Pruning your model is recommended for cloud endpoint, on edge device, or mobile deployment.
 
 To enable pruning during training in Lightning, simply pass in the :class:`~pytorch_lightning.callbacks.ModelPruning` callback to the Lighting Trainer (using native PyTorch pruning implementation under the hood).
 
@@ -46,11 +47,11 @@ Quantization
 .. warning ::
      Quantization is in beta and subject to change.
 
-Model quantization is another performance optimization technique allows speeding up inference and decreasing memory requirements by performing computations and storing tensors at lower bitwidths (such as INT8 or FLOAT16) than floating point precision. Quantization not only reduces the model size, but also speeds up loading since operations on fixpoint are faster than on floating-point. 
+Model quantization is another performance optimization technique that allows speeding up inference and decreasing memory requirements by performing computations and storing tensors at lower bitwidths (such as INT8 or FLOAT16) than floating-point precision. Moreover smaller models also speed up model loading. 
 
 Quantization Aware Training (QAT) mimics the effects of quantization during training: all computations are carried out in floating points while training, simulating the effects of ints, and weights and activations are quantized into lower precision only once training is completed.
 
-TODO: when is it recomended?
+Quantization is useful when serving large models on machines with limited memory or when there's a need to switch between models where each model has to be loaded from the drive.
 
 Lightning includes :class:`~pytorch_lightning.callbacks.QuantizationAwareTraining` callback (using PyTorch native quantization, read more `here <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_), which allows creating fully quantized models (compatible with torchscript).
 
@@ -79,12 +80,12 @@ To quantize your model, specify TODO(borda).
 	        return x
 
 	qcb = QuantizationAwareTraining(
-			# specification of quant estimation quaity
-			observer_type='histogram',
-			# specify which layers shall be merged together to increase efficiency
-			modules_to_fuse=[(f'layer_{i}', f'layer_{i}a') for i in range(2)]
-			# make the model torchanble
-			input_compatible=False,
+	    # specification of quant estimation quaity
+	    observer_type='histogram',
+	    # specify which layers shall be merged together to increase efficiency
+	    modules_to_fuse=[(f'layer_{i}', f'layer_{i}a') for i in range(2)]
+	    # make the model torchanble
+	    input_compatible=False,
 	)
 
 	trainer = Trainer(callbacks=[qcb])
@@ -99,5 +100,7 @@ To quantize your model, specify TODO(borda).
 
 You can also set `input_compatible=True` to make your model compatible with all original input/outputs, in such case the model is wrapped in a shell with entry/exit layers.
 
-TODO(borda): add code example
+.. code-block:: python
 
+        batch = iter(my_dataloader()).next()
+        qmodel(batch[0])
