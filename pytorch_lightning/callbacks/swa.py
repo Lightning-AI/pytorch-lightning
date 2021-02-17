@@ -161,8 +161,6 @@ class StochasticWeightAveraging(Callback):
 
             optimizers = trainer.optimizers
 
-            initial_lr = 0.05
-
             for param_group in optimizers[0].param_groups:
                 if self._swa_lrs is None:
                     initial_lr = param_group["lr"]
