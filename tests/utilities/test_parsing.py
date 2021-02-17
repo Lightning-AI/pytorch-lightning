@@ -13,9 +13,20 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning.utilities.parsing import (AttributeDict, clean_namespace, flatten_dict, is_picklable,
-                                                 lightning_getattr, lightning_hasattr, lightning_setattr, str_to_bool,
-                                                 str_to_bool_or_str)
+from pytorch_lightning.utilities.parsing import (
+    AttributeDict,
+    clean_namespace,
+    flatten_dict,
+    is_picklable,
+    lightning_getattr,
+    lightning_hasattr,
+    lightning_setattr,
+    str_to_bool,
+    str_to_bool_or_str,
+)
+
+
+unpicklable_function = lambda: None
 
 
 def _get_test_cases():
@@ -169,10 +180,6 @@ def test_is_picklable(tmpdir):
         # Only classes defined at the top level of a module are picklable.
         pass
 
-    def unpicklable_function():
-        # Only functions defined at the top level of a module are picklable.
-        pass
-
     true_cases = [None, True, 123, "str", (123, "str"), max]
     false_cases = [unpicklable_function, UnpicklableClass]
 
@@ -185,9 +192,6 @@ def test_is_picklable(tmpdir):
 
 def test_clean_namespace(tmpdir):
     class UnpicklableClass:
-        pass
-
-    def unpicklable_function():
         pass
 
     test_case = {
