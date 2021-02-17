@@ -87,6 +87,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `LightningModule.configure_callbacks` to enable the definition of model-specific callbacks ([#5621](https://github.com/PyTorchLightning/pytorch-lightning/pull/5621))
 
 
+- Added `dim` to `PSNR` metric for mean-squared-error reduction ([#5957](https://github.com/PyTorchLightning/pytorch-lightning/pull/5957))
+
+
 - Added promxial policy optimization template to pl_examples ([#5394](https://github.com/PyTorchLightning/pytorch-lightning/pull/5394))
 
 
@@ -193,6 +196,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Refactored `EpochResultStore` ([#5522](https://github.com/PyTorchLightning/pytorch-lightning/pull/5522))
 
 
+- Update `lr_finder` to check for attribute if not running `fast_dev_run` ([#5990](https://github.com/PyTorchLightning/pytorch-lightning/pull/5990))
+
+
 - LightningOptimizer manual optimizer is more flexible and expose `toggle_model` ([#5771](https://github.com/PyTorchLightning/pytorch-lightning/pull/5771))
 
 
@@ -216,6 +222,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * `model_utils` >> `model_helpers`
     * `warning_utils` >> `warnings`
     * `xla_device_utils` >> `xla_device`
+
+
+- Deprecated using `'val_loss'` to set the `ModelCheckpoint` monitor ([#6012](https://github.com/PyTorchLightning/pytorch-lightning/pull/6012))
 
 
 ### Removed
