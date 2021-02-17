@@ -124,15 +124,15 @@ class HorovodPlugin(ParallelPlugin):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
         """
         Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
             tensor: the tensor to sync and reduce
             group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to 'sum'.
-                Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
+                Can also be a string 'sum' to calculate the sum during reduction.
 
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
@@ -143,10 +143,10 @@ class HorovodPlugin(ParallelPlugin):
                 "Unset `group`."
             )
 
-        if reduce_op is None or reduce_op == "sum":
-            reduce_op = hvd.Sum
-        elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
+        if reduce_op in (None, "avg", "mean"):
             reduce_op = hvd.Average
+        elif reduce_op == "sum":
+            reduce_op = hvd.Sum
         else:
             raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
 

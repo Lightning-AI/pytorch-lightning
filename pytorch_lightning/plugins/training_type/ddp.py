@@ -278,21 +278,21 @@ class DDPPlugin(ParallelPlugin):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
         """
         Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
             tensor: the tensor to sync and reduce
             group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to 'sum'.
-                Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
+                Can also be a string 'sum' to calculate the sum during reduction.
 
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, torch.Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op)
+            tensor = sync_ddp_if_available(tensor, group, reduce_op=(reduce_op or "mean"))
         return tensor
 
     def training_step(self, *args, **kwargs):
