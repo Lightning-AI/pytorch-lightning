@@ -88,11 +88,9 @@ def test_cli_to_pass(tmpdir, args=None):
     return '1'
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
-@mock.patch.dict(os.environ, {"TORCH_DISTRIBUTED_BACKEND": "undefined"})
+@mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined"})
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2", "LOCAL_RANK": "10", "NODE_RANK": "0"})
+@mock.patch('torch.cuda.device_count', return_value=2)
 def test_torch_distributed_backend_env_variables(tmpdir):
     """
     This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError.
@@ -104,5 +102,6 @@ def test_torch_distributed_backend_env_variables(tmpdir):
             fast_dev_run=True,
             accelerator="ddp",
             gpus=2,
+            logger=False,
         )
         trainer.fit(model)

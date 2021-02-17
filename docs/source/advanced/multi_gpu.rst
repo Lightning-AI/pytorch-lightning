@@ -240,17 +240,17 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
     For more details see the :doc:`trainer guide <../common/trainer>`.
 
 
-Select Torch Distributed Backend
+Select torch distributed backend
 --------------------------------
 
 By default, Lightning will choose `nccl` backend over `gloo` when running on GPUs.
 Find more information on [PyTorch supported backends](https://pytorch.org/docs/stable/distributed.html).
 
-Lightning exposes an environment variable ``TORCH_DISTRIBUTED_BACKEND`` for the user to change the backend.
+Lightning exposes an environment variable ``PL_TORCH_DISTRIBUTED_BACKEND`` for the user to change the backend.
 
 .. code-block:: bash
 
-   TORCH_DISTRIBUTED_BACKEND=gloo python train.py ...
+   PL_TORCH_DISTRIBUTED_BACKEND=gloo python train.py ...
 
 
 ----------

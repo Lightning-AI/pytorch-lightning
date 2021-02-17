@@ -22,9 +22,9 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
-from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
@@ -86,10 +86,9 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     @property
     def torch_distributed_backend(self):
-        torch_backend = os.getenv("TORCH_DISTRIBUTED_BACKEND")
+        torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
         if torch_backend is None:
-            torch_backend = "nccl" if self.on_gpu else "gloo"      
-        rank_zero_info(f"torch.distributed backend is {torch_backend}.")
+            torch_backend = "nccl" if self.on_gpu else "gloo"
         return torch_backend
 
     @staticmethod
