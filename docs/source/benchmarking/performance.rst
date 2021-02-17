@@ -155,13 +155,13 @@ Most UNIX-based operating systems provide direct access to tmpfs through a mount
 
 0.  Increase shared memory if necessary. Refer to the documentation of your OS how to do this.
 
-1.  Copy training data to shared memory
+1.  Copy training data to shared memory:
 
     .. code-block:: bash
 
         cp -r /path/to/data/on/disk /dev/shm/
 
-2.  Refer to the new data root in your script or command line arguments
+2.  Refer to the new data root in your script or command line arguments:
 
     .. code-block:: python
 
