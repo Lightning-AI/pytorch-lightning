@@ -691,6 +691,9 @@ To use DeepSpeed, you first need to install DeepSpeed using the commands below.
 If you run into an issue with the install or later in training, ensure that the CUDA version of the pytorch you've installed matches your locally installed CUDA (you can see which one has been recognized by running ``nvcc --version``).
 Additionally if you run into any issues installing m4py, ensure you have openmpi installed using ``sudo apt install libopenmpi-dev`` or ``brew install mpich`` before running ``pip install mpi4py``.
 
+.. note::
+    Currently ``resume_from_checkpoint`` and manual optimization are not supported.
+
 ZeRO-Offload
 """"""""""""
 
