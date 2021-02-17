@@ -61,6 +61,11 @@ jobs:
         pip list
       displayName: 'Install dependencies'
 
+    - bash: |
+        # Temporary fix till DeepSpeed release
+        pip install deepspeed mpi4py
+      displayName: 'Install DeepSpeed'
+
     - script: |
         python tests/collect_env_details.py
       displayName: 'Env details'
