@@ -219,7 +219,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def _close_logger(self, trainer) -> None:
         if hasattr(trainer, "logger"):
-            trainer.logger.finalize()
+            trainer.logger.finalize("success")
 
     @property
     def xmp_spawn_kwargs(self):
