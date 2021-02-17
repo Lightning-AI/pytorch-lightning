@@ -16,8 +16,8 @@ from abc import ABC
 from copy import deepcopy
 from typing import List
 
-from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.core.lightning import LightningModule
 
 
 class TrainerCallbackHookMixin(ABC):
