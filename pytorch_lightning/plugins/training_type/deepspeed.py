@@ -42,7 +42,6 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
     def __init__(self, pl_module: LightningModule, precision: int):
         super().__init__(pl_module)
-        self.module = pl_module
         self.precision = precision
 
     def forward(self, *inputs, **kwargs):
