@@ -816,7 +816,7 @@ We support taking the config as a json formatted file:
     trainer.fit(model)
 
 
-You can use also use an environment variable via your Pytorch Lightning script:
+You can use also use an environment variable via your PyTorch Lightning script:
 
 .. code-block:: bash
 
