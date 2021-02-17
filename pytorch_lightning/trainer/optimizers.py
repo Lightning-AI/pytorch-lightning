@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
+from copy import deepcopy
 from typing import List, Optional, Tuple
 
 import torch
@@ -98,7 +99,7 @@ class TrainerOptimizersMixin(ABC):
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information
         lr_schedulers = []
-        default_config = _DEFAULT_SCHEDULER_CONFIG
+        default_config = deepcopy(_DEFAULT_SCHEDULER_CONFIG)
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 # check provided keys

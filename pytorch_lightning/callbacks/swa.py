@@ -96,8 +96,10 @@ class StochasticWeightAveraging(Callback):
             raise MisconfigurationException(err_msg)
 
         if (
-            not isinstance(swa_lrs, (float, list)) or isinstance(swa_lrs, float) and swa_lrs <= 0
-            or isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)
+            swa_lrs is not None and (
+                not isinstance(swa_lrs, (float, list)) or isinstance(swa_lrs, float) and swa_lrs <= 0
+                or isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)
+            )
         ):
             raise MisconfigurationException("The `swa_lrs` should be a positive float or a list of positive float.")
 
@@ -157,12 +159,25 @@ class StochasticWeightAveraging(Callback):
 
             optimizers = trainer.optimizers
 
+            initial_lr = 0.05
+
             for param_group in optimizers[0].param_groups:
-                param_group["initial_lr"] = self._swa_lrs if isinstance(self._swa_lrs, float) else self._swa_lrs[0]
+                if self._swa_lrs is None:
+                    initial_lr = param_group["lr"]
+
+                elif isinstance(self._swa_lrs, float):
+                    initial_lr = self._swa_lrs
+
+                else:
+                    initial_lr = self._swa_lrs[0]
+
+                param_group["initial_lr"] = initial_lr
+
+            self._swa_lrs = initial_lr
 
             self._swa_scheduler = SWALR(
                 optimizers[0],
-                swa_lr=self._swa_lrs,
+                swa_lr=initial_lr,
                 anneal_epochs=self._annealing_epochs,
                 anneal_strategy=self._annealing_strategy,
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1
