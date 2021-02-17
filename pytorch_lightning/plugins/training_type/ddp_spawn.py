@@ -110,6 +110,9 @@ class DDPSpawnPlugin(ParallelPlugin):
     def start_testing(self, trainer):
         mp.spawn(self.new_process, **self.mp_spawn_kwargs)
 
+    def start_predicting(self, trainer):
+        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+
     def new_process(self, process_idx, trainer, mp_queue):
         self.mp_queue = mp_queue
 
@@ -128,7 +131,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # where to store ip_table
         self.init_ddp_connection(self.global_rank, self.world_size)
 
-        # TODO: we moved it to the trainer.fit after calling pre_training
+        # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
         # self.trainer.call_setup_hook(self.model)
 
@@ -153,15 +156,12 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         self.barrier()
 
-        if trainer.testing:
-            results = trainer.run_test()
-        else:
-            results = trainer.train()
+        results = trainer.train_or_test_or_predict()
 
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
-    def post_training(self):
+    def post_dispatch(self):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()

@@ -33,11 +33,11 @@ class Plugin(ABC):
         Will be called by the accelerator.
         """
 
-    def pre_training(self) -> None:
-        """Hook to do something before the training starts."""
+    def pre_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
 
-    def post_training(self) -> None:
-        """Hook to do something after the training finishes."""
+    def post_dispatch(self) -> None:
+        """Hook to do something after the training/evaluation/prediction finishes."""
 
     @contextlib.contextmanager
     def train_step_context(self) -> Generator:
@@ -52,4 +52,9 @@ class Plugin(ABC):
     @contextlib.contextmanager
     def test_step_context(self) -> Generator:
         """A contextmanager for the teststep"""
+        yield
+
+    @contextlib.contextmanager
+    def predict_context(self) -> Generator:
+        """A contextmanager for the predict step"""
         yield
