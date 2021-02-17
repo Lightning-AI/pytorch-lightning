@@ -29,6 +29,8 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.utils import pl_multi_process_test
+from pytorch_lightning.utilities.distributed import ReduceOp
+
 
 if _TPU_AVAILABLE:
     import torch_xla
@@ -324,3 +326,25 @@ def test_tpu_cores_with_argparse(cli_args, expected):
     for k, v in expected.items():
         assert getattr(args, k) == v
     assert Trainer.from_argparse_args(args)
+
+
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
+def test_tpu_reduce():
+    """Test passing tpu_cores in command line"""
+    
+    def test_reduce(rank):
+        trainer = Trainer(tpu_cores=8)
+        reduce_ops = ["mean", "AVG", "undefined", "sum", ReduceOp.SUM, ReduceOp.MAX]
+        for reduce_op in reduce_ops:
+            if reduce_op == "undefined" or reduce_op == ReduceOp.MAX:
+                with pytest.raises(MisconfigurationException, match="TPUSpawn TrainingTypePlugin only support"):  
+                    result = trainer.training_type_plugin.reduce(1, reduce_op)
+            else:
+                result = trainer.training_type_plugin.reduce(1, reduce_op)
+            if isinstance(reduce_op, str) and reduce_op.lower() in ("mean", "avg"):
+                assert result.item() == 1
+            else:
+                assert result.item() == 8
+
+    xmp.spawn(test_reduce, nprocs=8, start_method='fork')
