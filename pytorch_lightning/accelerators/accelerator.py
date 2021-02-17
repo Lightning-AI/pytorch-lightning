@@ -418,5 +418,4 @@ class Accelerator(object):
         The results of the last training/testing run will be cached within the training type plugin.
         In distributed training, we make sure to transfer the results to the appropriate master process.
         """
-        # TODO: improve these docs
         return self.training_type_plugin.results
