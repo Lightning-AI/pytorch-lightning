@@ -88,11 +88,11 @@ class CallbackConnector:
             self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None, mode='min'))
 
     def configure_swa_callbacks(self):
-        for cb in self.trainer.callbacks:
-            if isinstance(cb, StochasticWeightAveraging):
-                return
+        if not self.trainer._stochastic_weight_avg:
+            return
 
-        if self.trainer._stochastic_weight_avg:
+        existing_swa = [cb for cb in self.trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]
+        if not existing_swa:
             # default learning rate is taking from PyTorch blogpost on SWA.
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
