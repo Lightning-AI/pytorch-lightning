@@ -288,6 +288,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed missing `process_dataloader` call for `TPUSpawn` when in distributed mode ([#6015](https://github.com/PyTorchLightning/pytorch-lightning/pull/6015))
 
 
+- Fixed synchrnization issues with TPUs Training ([#6027](https://github.com/PyTorchLightning/pytorch-lightning/pull/6027))
+
+
 ## [1.1.8] - 2021-02-08
 
 ### Fixed
