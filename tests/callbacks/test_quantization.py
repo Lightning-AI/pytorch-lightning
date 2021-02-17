@@ -77,7 +77,7 @@ def test_quantize_torchscript(tmpdir):
     qmodel(qmodel.quant(batch[0]))
 
     tsmodel = qmodel.to_torchscript()
-    tsmodel(qmodel.quant(batch[0]))
+    tsmodel(tsmodel.quant(batch[0]))
 
 
 def test_quantization_exceptions(tmpdir):
