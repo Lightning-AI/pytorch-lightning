@@ -538,6 +538,7 @@ class Trainer(
 
     def post_dispatch(self):
         self.accelerator_backend.post_dispatch()
+        self.accelerator_backend.teardown()
 
     def dispatch(self):
         if self.testing:

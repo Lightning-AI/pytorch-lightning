@@ -94,7 +94,6 @@ class Accelerator(object):
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
-        self.teardown()
 
     @property
     def model(self) -> torch.nn.Module:
