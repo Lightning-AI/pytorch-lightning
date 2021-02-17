@@ -41,22 +41,13 @@ def test_deepspeed_plugin_string(tmpdir):
         Test to ensure that the plugin can be passed via string, and parallel devices is correctly set.
     """
 
-    class CB(Callback):
-
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.training_type_plugin, DeepSpeedPlugin)
-            assert trainer.accelerator_backend.training_type_plugin.parallel_devices == [torch.device('cpu')]
-            raise SystemExit()
-
-    model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
         plugins='deepspeed',
-        callbacks=[CB()],
     )
 
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    assert isinstance(trainer.accelerator_backend.training_type_plugin, DeepSpeedPlugin)
+    assert trainer.accelerator_backend.training_type_plugin.parallel_devices == [torch.device('cpu')]
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
@@ -65,22 +56,13 @@ def test_deepspeed_plugin(tmpdir):
         Test to ensure that the plugin can be passed directly, and parallel devices is correctly set.
     """
 
-    class CB(Callback):
-
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.training_type_plugin, DeepSpeedPlugin)
-            assert trainer.accelerator_backend.training_type_plugin.parallel_devices == [torch.device('cpu')]
-            raise SystemExit()
-
-    model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
         plugins=[DeepSpeedPlugin()],
-        callbacks=[CB()],
     )
 
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    assert isinstance(trainer.accelerator_backend.training_type_plugin, DeepSpeedPlugin)
+    assert trainer.accelerator_backend.training_type_plugin.parallel_devices == [torch.device('cpu')]
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
@@ -93,24 +75,15 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
         f.write(json.dumps(deepspeed_config))
     monkeypatch.setenv("PL_DEEPSPEED_CONFIG_PATH", config_path)
 
-    class CB(Callback):
-
-        def on_fit_start(self, trainer, pl_module):
-            plugin = trainer.accelerator_backend.training_type_plugin
-            assert isinstance(plugin, DeepSpeedPlugin)
-            assert plugin.parallel_devices == [torch.device('cpu')]
-            assert plugin.config == deepspeed_config
-            raise SystemExit()
-
-    model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
         plugins='deepspeed',
-        callbacks=[CB()],
     )
 
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    plugin = trainer.accelerator_backend.training_type_plugin
+    assert isinstance(plugin, DeepSpeedPlugin)
+    assert plugin.parallel_devices == [torch.device('cpu')]
+    assert plugin.config == deepspeed_config
 
 
 @pytest.mark.parametrize(
@@ -127,19 +100,11 @@ def test_deepspeed_precision_choice(amp_backend, tmpdir):
         DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
     """
 
-    class CB(Callback):
+    trainer = Trainer(fast_dev_run=True, plugins='deepspeed', amp_backend=amp_backend, precision=16)
 
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.training_type_plugin, DeepSpeedPlugin)
-            assert isinstance(trainer.accelerator_backend.precision_plugin, DeepSpeedPrecisionPlugin)
-            assert trainer.accelerator_backend.precision_plugin.precision == 16
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, plugins='deepspeed', callbacks=[CB()], amp_backend=amp_backend, precision=16)
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    assert isinstance(trainer.accelerator_backend.training_type_plugin, DeepSpeedPlugin)
+    assert isinstance(trainer.accelerator_backend.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert trainer.accelerator_backend.precision_plugin.precision == 16
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
