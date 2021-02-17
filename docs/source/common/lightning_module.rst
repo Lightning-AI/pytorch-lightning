@@ -841,7 +841,7 @@ The current step (does not reset each epoch)
 
 hparams
 ~~~~~~~
-After calling `save_hyperparameters` anything passed to init() is available via hparams.
+After calling ``save_hyperparameters`` anything passed to init() is available via hparams.
 
 .. code-block:: python
 
@@ -932,9 +932,93 @@ True if using TPUs
 
 --------------
 
+automatic_optimization
+~~~~~~~~~~~~~~~~~~~~~~
+When set to False, Lightning does not automate the optimization process. This means you are responsible for your own
+optimizer behavior
+
+.. code-block:: python
+
+    def __init__(self):
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        opt = self.optimizers(use_pl_optimizer=True)
+
+        loss = ...
+        self.manual_backward(loss, opt)
+        opt.step()
+        opt.zero_grad()
+
+This is not recommended when using a single optimizer, instead it's recommended when using 2+ optimizers
+AND you are an expert user. Most useful for research like RL, sparse coding and GAN research.
+
+In the multi-optimizer case, ignore the optimizer_idx flag and use the optimizers directly
+
+.. code-block:: python
+
+    def __init__(self):
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
+
+        gen_loss = ...
+        self.manual_backward(gen_loss, opt_a)
+        opt_a.step()
+        opt_a.zero_grad()
+
+        disc_loss = ...
+        self.manual_backward(disc_loss, opt_b)
+        opt_b.step()
+        opt_b.zero_grad()
+
+--------------
+
+example_input_array
+~~~~~~~~~~~~~~~~~~~
+Set and access example_input_array which is basically a single batch.
+
+.. code-block:: python
+
+    def __init__(self):
+        self.example_input_array = ...
+
+    def training_step(...):
+        res = self(self.example_input_array)
+
+--------------
+
+datamodule
+~~~~~~~~~~
+Set or access your datamodule.
+
+.. code-block:: python
+
+    def __init__(self):
+        self.datamodule = LitDataModule(...)
+
+    def configure_optimizers(self):
+        train_len = len(self.datamodule.train_dataloader())
+
+--------------
+
+model_size
+~~~~~~~~~~
+Get the model file size.
+
+.. code-block:: python
+
+    def training_step(...):
+        model_size = self.model_size
+
+--------------
+
 Hooks
 ^^^^^
-This is the pseudocode to describe how all the hooks are called during a call to `.fit()`
+This is the pseudocode to describe how all the hooks are called during a call to ``.fit()``.
 
 .. code-block:: python
 

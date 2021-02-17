@@ -72,7 +72,7 @@ Lightning is rigurously tested across multiple GPUs, TPUs CPUs and against major
 
 <details>
   <summary>Current build statuses</summary>
-  
+
   <center>
 
   | System / PyTorch ver. | 1.4 (min. req.)* | 1.5 | 1.6 | 1.7 (latest) | 1.8 (nightly) |
@@ -93,9 +93,9 @@ Lightning is rigurously tested across multiple GPUs, TPUs CPUs and against major
 
 <details>
   <summary>Bleeding edge build status (1.2)</summary>
-  
+
   <center>
-  
+
   ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
   ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
   ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.2-dev&event=push)
@@ -121,13 +121,13 @@ pip install pytorch-lightning
     <!-- following section will be skipped from PyPI description -->
 
   #### Install with optional dependencies
-  
+
   ```bash
   pip install pytorch-lightning['extra']
   ```
-  
+
   #### Conda
-  
+
   ```bash
   conda install pytorch-lightning -c conda-forge
   ```
@@ -229,7 +229,7 @@ Here are some examples:
 
 <details>
   <summary>Highlighted feature code snippets</summary>
-  
+
   ```python
   # 8 GPUs
   # no code changes needed
@@ -240,58 +240,58 @@ Here are some examples:
   ```
 
   <summary>Train on TPUs without code changes</summary>
-  
+
   ```python
   # no code changes needed
   trainer = Trainer(tpu_cores=8)
    ```
 
   <summary>16-bit precision</summary>
-  
+
   ```python
   # no code changes needed
   trainer = Trainer(precision=16)
    ```
 
   <summary>Experiment managers</summary>
-  
+
   ```python
   from pytorch_lightning import loggers
-  
+
   # tensorboard
   trainer = Trainer(logger=TensorBoardLogger('logs/'))
-  
+
   # weights and biases
   trainer = Trainer(logger=loggers.WandbLogger())
-  
+
   # comet
   trainer = Trainer(logger=loggers.CometLogger())
-  
+
   # mlflow
   trainer = Trainer(logger=loggers.MLFlowLogger())
-  
+
   # neptune
   trainer = Trainer(logger=loggers.NeptuneLogger())
-  
+
   # ... and dozens more
    ```
 
   <summary>EarlyStopping</summary>
-  
+
   ```python
   es = EarlyStopping(monitor='val_loss')
   trainer = Trainer(callbacks=[es])
    ```
 
   <summary>Checkpointing</summary>
-  
+
   ```python
   checkpointing = ModelCheckpoint(monitor='val_loss')
   trainer = Trainer(callbacks=[checkpointing])
    ```
 
   <summary>Export to torchscript (JIT) (production use)</summary>
-  
+
   ```python
   # torchscript
   autoencoder = LitAutoEncoder()
@@ -299,7 +299,7 @@ Here are some examples:
    ```
 
   <summary>Export to ONNX (production use)</summary>
-  
+
   ```python
   # onnx
   with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
@@ -315,6 +315,10 @@ For complex/professional level work, you have optional full control of the train
 
 ```python
 class LitAutoEncoder(pl.LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
     def training_step(self, batch, batch_idx, optimizer_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
         (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
