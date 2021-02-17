@@ -954,7 +954,7 @@ optimizer behavior
 This is not recommended when using a single optimizer, instead it's recommended when using 2+ optimizers
 AND you are an expert user. Most useful for research like reinforcement learning, sparse coding and GAN research.
 
-In the multi-optimizer case, ignore the optimizer_idx flag and use the optimizers directly
+In the multi-optimizer case, ignore the ``optimizer_idx`` argument and use the optimizers directly
 
 .. code-block:: python
 
@@ -1007,7 +1007,7 @@ Set or access your datamodule.
 
 model_size
 ~~~~~~~~~~
-Get the model file size using ``self.model_size`` inside LightningModule.
+Get the model file size (in megabytes) using ``self.model_size`` inside LightningModule.
 
 --------------
 
