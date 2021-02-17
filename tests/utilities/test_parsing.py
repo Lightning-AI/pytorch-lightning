@@ -21,6 +21,7 @@ from pytorch_lightning.utilities.parsing import (
     lightning_getattr,
     lightning_hasattr,
     lightning_setattr,
+    parse_class_init_keys,
     str_to_bool,
     str_to_bool_or_str,
 )
@@ -208,6 +209,14 @@ def test_clean_namespace(tmpdir):
     clean_namespace(test_case)
 
     assert test_case == {"1": None, "2": True, "3": 123}
+
+
+def test_parse_class_init_keys(tmpdir):
+    class Class:
+        def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
+            pass
+
+    assert parse_class_init_keys(Class) == ("self", "my_args", "my_kwargs")
 
 
 def test_AttributeDict(tmpdir):
