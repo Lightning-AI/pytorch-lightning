@@ -217,7 +217,7 @@ class DDPPlugin(ParallelPlugin):
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
             torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
 
-    def pre_training(self):
+    def pre_dispatch(self):
         # TODO: check if needed
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
@@ -234,7 +234,7 @@ class DDPPlugin(ParallelPlugin):
         # where to store ip_table
         self.init_ddp_connection(self.global_rank, self.world_size)
 
-        # TODO: we moved it to the trainer.fit after calling pre_training
+        # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
         # self.trainer.call_setup_hook(self.model)
 
@@ -259,7 +259,7 @@ class DDPPlugin(ParallelPlugin):
 
         self.barrier()
 
-    def post_training(self):
+    def post_dispatch(self):
         if "WORLD_SIZE" in os.environ:
             del os.environ["WORLD_SIZE"]
 
