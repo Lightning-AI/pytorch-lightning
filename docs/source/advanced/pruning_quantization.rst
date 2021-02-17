@@ -20,9 +20,9 @@ Pruning
 
      Pruning is in beta and subject to change.
 
-Pruning is a technique which focuses on eliminating some of the model weights to reduce the model size and decrease inference requirements. Pruning has been shown to achieve significant efficiency improvements while minimizing the drop in model performance (prediction quality).
+Pruning is a technique which focuses on eliminating some of the model weights to reduce the model size and decrease inference requirements.
 
-Pruning your model is recommended for cloud endpoints, deploying models on edge devices, or mobile inference (among others).
+Pruning has been shown to achieve significant efficiency improvements while minimizing the drop in model performance (prediction quality). Model pruning is recommended for cloud endpoints, deploying models on edge devices, or mobile inference (among others).
 
 To enable pruning during training in Lightning, simply pass in the :class:`~pytorch_lightning.callbacks.ModelPruning` callback to the Lightning Trainer. PyTorch's native pruning implementation is used under the hood.
 
