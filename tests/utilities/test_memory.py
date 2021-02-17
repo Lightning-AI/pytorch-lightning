@@ -11,24 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import torch
+
+from pytorch_lightning.utilities.memory import recursive_detach
 
 
-class ClusterEnvironment:
+def test_recursive_detach():
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    x = {"foo": torch.tensor(0, device=device), "bar": {"baz": torch.tensor(1.0, device=device, requires_grad=True)}}
+    y = recursive_detach(x, to_cpu=True)
 
-    def __init__(self):
-        self._world_size = None
+    assert x["foo"].device.type == device
+    assert x["bar"]["baz"].device.type == device
+    assert x["bar"]["baz"].requires_grad
 
-    def master_address(self):
-        pass
-
-    def master_port(self):
-        pass
-
-    def world_size(self) -> int:
-        return self._world_size
-
-    def local_rank(self) -> int:
-        pass
-
-    def node_rank(self) -> int:
-        pass
+    assert y["foo"].device.type == "cpu"
+    assert y["bar"]["baz"].device.type == "cpu"
+    assert not y["bar"]["baz"].requires_grad

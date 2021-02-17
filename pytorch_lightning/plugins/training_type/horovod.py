@@ -50,7 +50,7 @@ class HorovodPlugin(ParallelPlugin):
 
         self.model_to_device()
 
-    def pre_training(self):
+    def pre_dispatch(self):
 
         def _unpack_lightning_optimizer(opt):
             return opt._optimizer if isinstance(opt, LightningOptimizer) else opt
@@ -95,16 +95,22 @@ class HorovodPlugin(ParallelPlugin):
                 stack.enter_context(optimizer.skip_synchronize())
 
             # set up training routine
-            self._results = trainer.train()
+            self._results = trainer.run_train()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
 
     def start_testing(self, trainer):
         with ExitStack() as stack:
-            # set up training routine
-            # self.trainer.train_loop.setup_training(self.trainer.model)
             self._results = trainer.run_test()
+
+        # Make sure all workers have finished training before returning to the user
+        hvd.join()
+
+    def start_predicting(self, trainer):
+        with ExitStack() as stack:
+            # set up training routine
+            self._results = trainer.run_predict()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
@@ -115,9 +121,6 @@ class HorovodPlugin(ParallelPlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         obj = hvd.broadcast_object(obj, src)
         return obj
-
-    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
-        optimizer.synchronize()
 
     def model_to_device(self):
         if self.on_gpu:
@@ -158,3 +161,8 @@ class HorovodPlugin(ParallelPlugin):
         gathered = hvd.allgather(result)
         gathered_result = list(gathered.split(1, dim=0))
         return gathered_result
+
+    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+        # synchronize all horovod optimizers.
+        for optimizer in self.lightning_module.trainer.optimizers:
+            optimizer.synchronize()

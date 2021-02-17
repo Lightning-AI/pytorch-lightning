@@ -148,13 +148,7 @@ class TrainLoop:
             self.trainer.profiler.describe()
 
         # give accelerators a chance to finish
-        self.trainer.accelerator_backend.on_train_end()
-
-        # clear mem
-        if self.trainer._device_type == DeviceType.GPU:
-            model = self.trainer.get_model()
-            model.cpu()
-            torch.cuda.empty_cache()
+        self.trainer.accelerator.on_train_end()
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
@@ -508,7 +502,7 @@ class TrainLoop:
 
     def run_training_epoch(self):
         # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.trainer.accelerator_backend.process_dataloader(self.trainer.train_dataloader)
+        train_dataloader = self.trainer.training_type_plugin.process_dataloader(self.trainer.train_dataloader)
 
         # track epoch output
         epoch_output = [[] for _ in range(self.num_optimizers)]
@@ -553,7 +547,7 @@ class TrainLoop:
                 self.trainer.run_evaluation()
 
                 # reset stage to train
-                self.trainer._set_wide_running_stage(RunningStage.TRAINING)
+                self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -600,7 +594,7 @@ class TrainLoop:
             self.trainer.run_evaluation(on_epoch=True)
 
             # reset stage to train
-            self.trainer._set_wide_running_stage(RunningStage.TRAINING)
+            self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
 
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval

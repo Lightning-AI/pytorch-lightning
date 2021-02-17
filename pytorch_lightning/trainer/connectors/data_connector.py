@@ -90,7 +90,14 @@ class DataConnector(object):
                 'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
             )
 
-    def attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
+    def attach_dataloaders(
+        self,
+        model,
+        train_dataloader=None,
+        val_dataloaders=None,
+        test_dataloaders=None,
+        predict_dataloaders=None
+    ):
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloader is not None:
@@ -101,6 +108,9 @@ class DataConnector(object):
 
         if test_dataloaders is not None:
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
+
+        if predict_dataloaders is not None:
+            model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
     def attach_datamodule(self, model, datamodule: Optional[LightningDataModule], stage: str) -> None:
         # Todo: required argument `stage` is not used
@@ -118,6 +128,8 @@ class DataConnector(object):
                 model.val_dataloader = datamodule.val_dataloader
             if is_overridden('test_dataloader', datamodule):
                 model.test_dataloader = datamodule.test_dataloader
+            if is_overridden('predict_dataloader', datamodule):
+                model.predict_dataloader = datamodule.predict_dataloader
 
             # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
             if is_overridden('transfer_batch_to_device', datamodule):
