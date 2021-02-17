@@ -215,3 +215,19 @@ def test_v1_4_0_deprecated_manual_optimization_optimizer(tmpdir):
         match="`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4"
     ):
         trainer.fit(model)
+
+
+def test_v1_4_0_deprecated_checkpoint_on(tmpdir):
+    from pytorch_lightning.callbacks.model_checkpoint import warning_cache
+    warning_cache.clear()
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log("val_loss", -batch_idx)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=True, max_epochs=1)
+
+    with pytest.warns(DeprecationWarning, match=r"Relying on.*is deprecated in v1.2 and will be removed in v1.4"):
+        trainer.fit(TestModel())

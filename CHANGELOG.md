@@ -218,6 +218,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * `xla_device_utils` >> `xla_device`
 
 
+- Deprecated using `'val_loss'` to set the `ModelCheckpoint` monitor ([#6012](https://github.com/PyTorchLightning/pytorch-lightning/pull/6012))
+
+
 ### Removed
 
 - Removed deprecated checkpoint argument `filepath` ([#5321](https://github.com/PyTorchLightning/pytorch-lightning/pull/5321))
