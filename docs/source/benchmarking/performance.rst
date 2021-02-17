@@ -165,4 +165,4 @@ Most UNIX-based operating systems provide direct access to tmpfs through a mount
 
     .. code-block:: python
 
-        datamodule = MNISTDataModule(data_root="/dev/shm/MNIST")
+        datamodule = MyDataModule(data_root="/dev/shm/my_data")
