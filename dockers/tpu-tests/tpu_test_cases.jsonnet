@@ -25,6 +25,12 @@ local tputests = base.BaseTest {
           pytorch_lightning/utilities/xla_device_utils.py \
           tests/accelerators/test_tpu_backend.py \
           tests/models/test_tpu.py
+      # Takes too long
+      # python pl_examples/domain_templates/computer_vision_fine_tuning.py \
+      #  --tpu_cores 8 \
+      #  --epochs 15 \
+      #  --limit_train_batches 8 \
+      #  --limit_val_batches 8
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml

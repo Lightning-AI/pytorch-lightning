@@ -71,7 +71,7 @@ class MilestonesFinetuning(BaseFinetuning):
         self.train_bn = train_bn
 
     def freeze_before_training(self, pl_module: pl.LightningModule):
-        self.freeze(modules=pl_module.feature_extractor, train_bn=self.train_bn)
+        self.freeze(modules=pl_module.feature_extractor, train_bn=False)
 
     def finetune_function(self, pl_module: pl.LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
         if epoch == self.milestones[0]:
@@ -278,6 +278,18 @@ class TransferLearningModel(pl.LightningModule):
         parser.add_argument(
             "--epochs", default=5, type=int, metavar="N", help="total number of epochs", dest="nb_epochs"
         )
+        parser.add_argument(
+            "--limit_train_batches",
+            default=1.0,
+            type=float,
+            help="How much of training dataset to check (floats = percent, int = num_batches)"
+        )
+        parser.add_argument(
+            "--limit_val_batches",
+            default=1.0,
+            type=float,
+            help="How much of validation dataset to check (floats = percent, int = num_batches)"
+        )
         parser.add_argument("--batch-size", default=8, type=int, metavar="B", help="batch size", dest="batch_size")
         parser.add_argument("--gpus", type=int, default=0, help="number of gpus to use")
         parser.add_argument("--tpu_cores", type=int, default=None, help="number of tpu cores to use")
@@ -301,7 +313,7 @@ class TransferLearningModel(pl.LightningModule):
             dest="train_bn",
         )
         parser.add_argument(
-            "--milestones", default=[2, 4], type=list, metavar="M", help="List of two epochs milestones"
+            "--milestones", default=[5, 10], type=list, metavar="M", help="List of two epochs milestones"
         )
         return parser
 
@@ -335,9 +347,6 @@ def main(args: argparse.Namespace) -> None:
     )
 
     trainer.fit(model, datamodule=datamodule)
-
-    if args.nb_epochs >= 5:
-        assert trainer.callbacks_metrics["val_acc"] > 0.7
 
 
 def get_args() -> argparse.Namespace:
