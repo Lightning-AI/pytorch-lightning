@@ -62,11 +62,6 @@ jobs:
         pip list
       displayName: 'Install dependencies'
 
-    - bash: |
-        # Temporary fix till DeepSpeed release, move this into CUDA image
-        pip install deepspeed@git+https://github.com/microsoft/DeepSpeed@ec8b1cb
-      displayName: 'Install DeepSpeed'
-
     - script: |
         python tests/collect_env_details.py
       displayName: 'Env details'
