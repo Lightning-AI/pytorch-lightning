@@ -67,7 +67,7 @@ Quantization Aware Training (QAT) mimics the effects of quantization during trai
 
 Quantization is useful when serving large models on machines with limited memory or when there's a need to switch between models where each model has to be loaded from the drive.
 
-Lightning includes :class:`~pytorch_lightning.callbacks.QuantizationAwareTraining` callback (using PyTorch native quantization, read more `here <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_), which allows creating fully quantized models (compatible with torchscript).
+Lightning includes :class:`~pytorch_lightning.callbacks.QuantizationAwareTraining` callback (using PyTorch's native quantization, read more `here <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`__), which allows creating fully quantized models (compatible with torchscript).
 
 To quantize your model, specify TODO(borda).
 
