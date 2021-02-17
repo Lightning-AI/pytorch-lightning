@@ -34,23 +34,23 @@ You can also set the pruning percentage, perform iterative pruning, apply the `l
 
     from pytorch_lightning.callbacks import ModelPruning
 
-	# the amount can be a float between 0 and 1
-	trainer = Trainer(callbacks=[ModelPruning("l1_unstructured", amount=0.5)])
+    # the amount can be a float between 0 and 1
+    trainer = Trainer(callbacks=[ModelPruning("l1_unstructured", amount=0.5)])
 
-	# or
+    # or
 
     def compute_amount(epoch):
-		# the sum of all returned values need to be smaller than 1
+        # the sum of all returned values need to be smaller than 1
         if epoch == 10:
             return 0.5
 
         elif epoch == 50:
             return 0.25
 
-        elif 75 < epoch < 99 :
+       elif 75 < epoch < 99 :
             return 0.01
 
-	# the amount can be also be a callable
+    # the amount can be also be a callable
     trainer = Trainer(callbacks=[ModelPruning("l1_unstructured", amount=compute_amount)])
 
 
