@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest import mock
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -88,20 +88,21 @@ def test_cli_to_pass(tmpdir, args=None):
     return '1'
 
 
-@mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined"})
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2", "LOCAL_RANK": "10", "NODE_RANK": "0"})
-@mock.patch('torch.cuda.device_count', return_value=2)
 def test_torch_distributed_backend_env_variables(tmpdir):
     """
     This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError.
     """
-    with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
-            accelerator="ddp",
-            gpus=2,
-            logger=False,
-        )
-        trainer.fit(model)
+    _environ = {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined", "CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}
+    with patch.dict(os.environ, _environ), \
+         patch('torch.cuda.device_count', return_value=2):
+
+        with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
+            model = BoringModel()
+            trainer = Trainer(
+                default_root_dir=tmpdir,
+                fast_dev_run=True,
+                accelerator="ddp",
+                gpus=2,
+                logger=False,
+            )
+            trainer.fit(model)
