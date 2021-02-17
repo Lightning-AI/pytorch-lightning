@@ -23,7 +23,7 @@ from torch import nn
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import _DEFAULT_SCHEDULER_CONFIG, _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
+from pytorch_lightning.utilities import _get_default_scheduler_config, _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_6:
@@ -188,7 +188,7 @@ class StochasticWeightAveraging(Callback):
                 rank_zero_warn(f"Swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
                 trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
             else:
-                _scheduler_config = deepcopy(_DEFAULT_SCHEDULER_CONFIG)
+                _scheduler_config = _get_default_scheduler_config()
                 _scheduler_config["scheduler"] = self._swa_scheduler
                 trainer.lr_schedulers.append(_scheduler_config)
 

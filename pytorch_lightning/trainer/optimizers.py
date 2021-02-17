@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from abc import ABC
-from copy import deepcopy
 from typing import List, Optional, Tuple
 
 import torch
@@ -22,7 +21,7 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities import _DEFAULT_SCHEDULER_CONFIG, rank_zero_warn
+from pytorch_lightning.utilities import _get_default_scheduler_config, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -99,7 +98,7 @@ class TrainerOptimizersMixin(ABC):
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information
         lr_schedulers = []
-        default_config = deepcopy(_DEFAULT_SCHEDULER_CONFIG)
+        default_config = _get_default_scheduler_config()
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 # check provided keys
