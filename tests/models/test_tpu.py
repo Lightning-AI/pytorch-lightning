@@ -26,11 +26,10 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.utils import pl_multi_process_test
-from pytorch_lightning.utilities.distributed import ReduceOp
-
 
 if _TPU_AVAILABLE:
     import torch_xla
@@ -331,14 +330,15 @@ def test_tpu_cores_with_argparse(cli_args, expected):
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_tpu_reduce():
-    """Test passing tpu_cores in command line"""
-    
+    """Test tpu spawn reduce operation """
+
     def test_reduce(rank):
         trainer = Trainer(tpu_cores=8)
+        # faster this way
         reduce_ops = ["mean", "AVG", "undefined", "sum", ReduceOp.SUM, ReduceOp.MAX]
         for reduce_op in reduce_ops:
             if reduce_op == "undefined" or reduce_op == ReduceOp.MAX:
-                with pytest.raises(MisconfigurationException, match="TPUSpawn TrainingTypePlugin only support"):  
+                with pytest.raises(MisconfigurationException, match="TPUSpawn TrainingTypePlugin only support"):
                     result = trainer.training_type_plugin.reduce(1, reduce_op)
             else:
                 result = trainer.training_type_plugin.reduce(1, reduce_op)
