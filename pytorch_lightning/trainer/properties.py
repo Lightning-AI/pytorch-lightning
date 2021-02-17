@@ -21,7 +21,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
