@@ -24,10 +24,10 @@ from tests.helpers.boring_model import BoringModel
 class TrainerGetModel(BoringModel):
 
     def on_fit_start(self):
-        assert self == self.trainer.get_model()
+        assert self == self.trainer.lightning_module
 
     def on_fit_end(self):
-        assert self == self.trainer.get_model()
+        assert self == self.trainer.lightning_module
 
 
 def test_get_model(tmpdir):

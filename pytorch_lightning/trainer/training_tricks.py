@@ -37,13 +37,13 @@ class TrainerTrainingTricksMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def print_nan_gradients(self) -> None:
-        model = self.get_model()
+        model = self.lightning_module
         for param in model.parameters():
             if (param.grad is not None) and torch.isnan(param.grad.float()).any():
                 log.info(param, param.grad)
 
     def detect_nan_tensors(self, loss: Tensor) -> None:
-        model = self.get_model()
+        model = self.lightning_module
 
         # check if loss is nan
         if not torch.isfinite(loss).all():

@@ -474,7 +474,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
         trainer.current_epoch = i
         trainer.global_step = i
         trainer.logger_connector.callback_metrics = {"checkpoint_on": torch.tensor(loss)}
-        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
+        checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
 
     file_lists = set(os.listdir(tmpdir))
 
@@ -1420,11 +1420,11 @@ def test_trainer_setup_call(tmpdir):
 
     trainer.fit(model)
     assert trainer.stage == "fit"
-    assert trainer.get_model().stage == "fit"
+    assert trainer.lightning_module.stage == "fit"
 
     trainer.test(ckpt_path=None)
     assert trainer.stage == "test"
-    assert trainer.get_model().stage == "test"
+    assert trainer.lightning_module.stage == "test"
 
 
 @pytest.mark.parametrize(

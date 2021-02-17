@@ -22,12 +22,12 @@ class TrainerModelHooksMixin(ABC):
 
     def is_function_implemented(self, f_name, model=None):
         if model is None:
-            model = self.get_model()
+            model = self.lightning_module
         f_op = getattr(model, f_name, None)
         return callable(f_op)
 
     def has_arg(self, f_name, arg_name):
-        model = self.get_model()
+        model = self.lightning_module
         f_op = getattr(model, f_name, None)
         return arg_name in inspect.signature(f_op).parameters
 
