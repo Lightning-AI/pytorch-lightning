@@ -985,9 +985,11 @@ Set and access example_input_array which is basically a single batch.
 
     def __init__(self):
         self.example_input_array = ...
+        self.generator = ...
 
-    def training_step(...):
-        res = self(self.example_input_array)
+    def on_train_epoch_end(...):
+        # generate some images using the example_input_array
+        gen_images = self.generator(self.example_input_array)
 
 --------------
 
@@ -997,22 +999,15 @@ Set or access your datamodule.
 
 .. code-block:: python
 
-    def __init__(self):
-        self.datamodule = LitDataModule(...)
-
     def configure_optimizers(self):
-        train_len = len(self.datamodule.train_dataloader())
+        num_training_samples = len(self.datamodule.train_dataloader())
+        ...
 
 --------------
 
 model_size
 ~~~~~~~~~~
-Get the model file size.
-
-.. code-block:: python
-
-    def training_step(...):
-        model_size = self.model_size
+Get the model file size using ``self.model_size`` inside LightningModule.
 
 --------------
 
