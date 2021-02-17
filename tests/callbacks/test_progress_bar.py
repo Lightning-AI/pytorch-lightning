@@ -374,14 +374,10 @@ def test_tensor_to_float_conversion(tmpdir):
     assert actual.endswith("foo=0.123, bar={'baz': tensor([1])}")
 
 
-@pytest.mark.parametrize("input_num, expected", [
-    [1, '1'],
-    [1.0, '1.000'],
-    [0.1, '0.100'],
-    [1e-3, '0.001'],
-    [1e-5, '1e-5'],
-    ['1.0', '1.000']
-])
+@pytest.mark.parametrize(
+    "input_num, expected", [[1, '1'], [1.0, '1.000'], [0.1, '0.100'], [1e-3, '0.001'], [1e-5, '1e-5'], ['1.0', '1.000'],
+                            ['10000', '10000'], ['abc', 'abc']]
+)
 def test_tqdm_format_num(input_num, expected):
     """ Check that the specialized tqdm.format_num appends 0 to floats and strings """
     assert tqdm.format_num(input_num) == expected

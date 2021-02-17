@@ -40,6 +40,7 @@ class tqdm(_tqdm):
     Custom tqdm progressbar where we append 0 to floating points/strings to
     prevent the progress bar from flickering
     """
+
     @staticmethod
     def format_num(n) -> str:
         """ Add additional padding to the formatted numbers """
@@ -47,7 +48,11 @@ class tqdm(_tqdm):
         if not isinstance(n, str):
             n = _tqdm.format_num(n)
         if should_be_padded and 'e' not in n:
-            if '.' not in n:
+            if '.' not in n and len(n) < _PAD_SIZE:
+                try:
+                    _n = float(n)
+                except ValueError:
+                    return n
                 n += '.'
             n += "0" * (_PAD_SIZE - len(n))
         return n
