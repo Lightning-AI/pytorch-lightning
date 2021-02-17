@@ -557,7 +557,8 @@ class ModelCheckpoint(Callback):
         # when `val_loss` is being logged and no ModelCheckpoint is being provided
         # `val_loss` will be selected for monitor and need to be reduced to
         # prevent processes divergence
-        # Todo: Move this logic to logger_connector
+        # TODO: Move this logic to logger_connector. This also needs to be fixed for any
+        # other monitor logged value which aren't produced from a Metric.
         if self.monitor == "val_loss":
             current = trainer.training_type_plugin.reduce(current, reduce_op="mean")
 
