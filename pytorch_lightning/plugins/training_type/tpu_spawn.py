@@ -186,15 +186,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 "Currently, TPUSpawn TrainingTypePlugin only support `sum`, `mean`, `avg` reduce operation."
             )
 
-        divide_by_world_size = False
-
         output = xm.mesh_reduce('reduce', output, sum)
 
         if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
-            divide_by_world_size = True
-        # sync all processes before reduction
-
-        if divide_by_world_size:
             output = output / self.world_size
 
         return output
