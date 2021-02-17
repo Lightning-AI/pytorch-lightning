@@ -352,10 +352,6 @@ class TrainerProperties(ABC):
         """
         self.accelerator.model = model
 
-    def get_model(self) -> LightningModule:
-        # backward compatible
-        return self.lightning_module
-
     @property
     def lightning_optimizers(self) -> List[LightningOptimizer]:
         if self._lightning_optimizers is None:
