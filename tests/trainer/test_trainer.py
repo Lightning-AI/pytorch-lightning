@@ -567,7 +567,8 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
     )
     trainer.fit(model)
 
-    assert model.num_epochs_end_seen == 1 + 2 + 2  # val_sanity, 2 for train, 2 for val
+    # `on_epoch_end` will be called once for val_sanity, twice for train, twice for val
+    assert model.num_epochs_end_seen == 1 + 2 + 2
     assert model.num_batches_seen == trainer.num_training_batches * 2
     assert model.num_on_load_checkpoint_called == 0
 
