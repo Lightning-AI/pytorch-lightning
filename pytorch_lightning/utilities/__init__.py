@@ -52,4 +52,3 @@ _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
 FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
-
