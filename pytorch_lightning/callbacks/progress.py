@@ -50,7 +50,7 @@ class tqdm(_tqdm):
         if should_be_padded and 'e' not in n:
             if '.' not in n and len(n) < _PAD_SIZE:
                 try:
-                    _n = float(n)
+                    _ = float(n)
                 except ValueError:
                     return n
                 n += '.'
