@@ -140,7 +140,7 @@ class TrainLoop:
         # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
         # It might be related to xla tensors blocked when moving the cpu
         # kill loggers
-        if self.trainer.logger is not None and self.trainer.training_type_plugin.should_finalize:
+        if self.trainer.logger is not None:
             self.trainer.logger.finalize("success")
 
         # summarize profile results
@@ -502,7 +502,7 @@ class TrainLoop:
 
     def run_training_epoch(self):
         # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.trainer.training_type_plugin.process_dataloader(self.trainer.train_dataloader)
+        train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
 
         # track epoch output
         epoch_output = [[] for _ in range(self.num_optimizers)]

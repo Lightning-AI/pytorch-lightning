@@ -63,7 +63,7 @@ if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 
-class BackendConnector(object):
+class AcceleratorConnector(object):
 
     def __init__(
         self,

@@ -239,6 +239,20 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
     to be in "exclusive mode", such that only one process at a time can access them.
     For more details see the :doc:`trainer guide <../common/trainer>`.
 
+
+Select torch distributed backend
+--------------------------------
+
+By default, Lightning will select the ``nccl`` backend over ``gloo`` when running on GPUs.
+Find more information about PyTorch's supported backends `here <https://pytorch.org/docs/stable/distributed.html>`__.
+
+Lightning exposes an environment variable ``PL_TORCH_DISTRIBUTED_BACKEND`` for the user to change the backend.
+
+.. code-block:: bash
+
+   PL_TORCH_DISTRIBUTED_BACKEND=gloo python train.py ...
+
+
 ----------
 
 Distributed modes

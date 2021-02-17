@@ -96,7 +96,7 @@ class DataConnector(object):
         train_dataloader=None,
         val_dataloaders=None,
         test_dataloaders=None,
-        predict_dataloaders=None
+        predict_dataloaders=None,
     ):
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations

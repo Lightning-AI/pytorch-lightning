@@ -159,6 +159,8 @@ class DDPPlugin(ParallelPlugin):
             if _HYDRA_AVAILABLE:
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
+                    os_cwd = f'"{os.getcwd()}"'
+                    command += [f'hydra.run.dir={os_cwd}', f'hydra.job.name=train_ddp_process_{local_rank}']
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.interactive_ddp_procs.append(proc)
 
@@ -209,11 +211,10 @@ class DDPPlugin(ParallelPlugin):
         os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
-        torch_backend = "nccl" if self.on_gpu else "gloo"
 
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
+            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
     def pre_dispatch(self):
         # TODO: check if needed

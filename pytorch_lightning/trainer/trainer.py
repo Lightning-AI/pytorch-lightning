@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -309,7 +309,7 @@ class Trainer(
         self.data_connector = DataConnector(self)
         self.optimizer_connector = OptimizerConnector(self)
 
-        self.accelerator_connector = BackendConnector(
+        self.accelerator_connector = AcceleratorConnector(
             num_processes, tpu_cores, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm, benchmark,
             replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
@@ -712,7 +712,7 @@ class Trainer(
         for dataloader_idx, dataloader in enumerate(dataloaders):
             # bookkeeping
             dl_outputs = []
-            dataloader = self.training_type_plugin.process_dataloader(dataloader)
+            dataloader = self.accelerator.process_dataloader(dataloader)
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
 
             for batch_idx, batch in enumerate(dataloader):
@@ -824,7 +824,7 @@ class Trainer(
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
-            dataloader = self.training_type_plugin.process_dataloader(dataloader)
+            dataloader = self.accelerator.process_dataloader(dataloader)
             dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
 
             for batch_idx, batch in enumerate(dataloader):
