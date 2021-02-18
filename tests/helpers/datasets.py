@@ -168,7 +168,7 @@ class TrialMNIST(MNIST):
 
         self.cache_folder_name = f"digits-{'-'.join(str(d) for d in self.digits)}_nb-{self.num_samples}"
 
-        super().__init__(**kwargs)
+        super().__init__(normalize=(0.5, 1.0), **kwargs)
 
     @staticmethod
     def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor, num_samples: int, digits: Sequence):
