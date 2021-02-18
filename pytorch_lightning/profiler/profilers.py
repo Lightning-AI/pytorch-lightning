@@ -409,8 +409,10 @@ class LegacyPyTorchProfiler(BaseProfiler):
         and `TensorBoardLogger` log_dir in the profiler.
         """
         self.local_rank = local_rank
-        # if the user didn't `path_to_export_trace`,
+
+        # if the user didn't `path_to_export_trace`,
         # set it as TensorBoardLogger log_dir if exists
+
         if self.path_to_export_trace is None:
             self.path_to_export_trace = log_dir
 
