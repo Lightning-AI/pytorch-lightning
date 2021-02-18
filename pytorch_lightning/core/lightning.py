@@ -19,6 +19,7 @@ import inspect
 import os
 import re
 import tempfile
+import types
 import uuid
 from abc import ABC
 from argparse import Namespace
@@ -1571,7 +1572,9 @@ class LightningModule(
             parents_arguments.update(args)
         return self_arguments, parents_arguments
 
-    def save_hyperparameters(self, *args, ignore: Optional[Union[List[str], str]] = None, frame=None) -> None:
+    def save_hyperparameters(
+        self, *args, ignore: Optional[Union[List[str], str]] = None, frame: Optional[types.FrameType] = None
+    ) -> None:
         """Save all model arguments.
 
         Args:
@@ -1579,6 +1582,7 @@ class LightningModule(
                 or string names or arguments from class `__init__`
             ignore: an argument or a list of arguments from class `__init__`
                 to be ignored
+            frame: a frame object. Default is None
 
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
