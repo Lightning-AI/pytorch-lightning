@@ -155,14 +155,12 @@ class TestTubeLogger(LightningLoggerBase):
                 input_array = model.example_input_array
 
             if input_array is not None:
-                self.experiment.add_graph(
-                    model, model.transfer_batch_to_device(model.example_input_array, model.device)
-                )
+                self.experiment.add_graph(model, model._apply_batch_transfer_handler(input_array))
             else:
                 rank_zero_warn(
-                    'Could not log computational graph since the'
-                    ' `model.example_input_array` attribute is not set'
-                    ' or `input_array` was not given', UserWarning
+                    'Could not log computational graph since neither the'
+                    ' `model.example_input_array` attribute is set nor'
+                    ' `input_array` was given', UserWarning
                 )
 
     @rank_zero_only
@@ -197,15 +195,15 @@ class TestTubeLogger(LightningLoggerBase):
     def name(self) -> str:
         if self._experiment is None:
             return self._name
-        else:
-            return self.experiment.name
+
+        return self.experiment.name
 
     @property
     def version(self) -> int:
         if self._experiment is None:
             return self._version
-        else:
-            return self.experiment.version
+
+        return self.experiment.version
 
     # Test tube experiments are not pickleable, so we need to override a few
     # methods to get DDP working. See

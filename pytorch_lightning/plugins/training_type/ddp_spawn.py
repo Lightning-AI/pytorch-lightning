@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 import re
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -46,11 +46,11 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        parallel_devices,
-        num_nodes=1,
+        parallel_devices: Optional[List[torch.device]] = None,
+        num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
         sync_batchnorm: bool = False,
-        **kwargs: Dict[str, Any],
+        **kwargs: Union[Any, Dict[str, Any]],
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.num_nodes = num_nodes
@@ -194,11 +194,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
-        torch_backend = "nccl" if self.on_gpu else "gloo"
 
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
+            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":

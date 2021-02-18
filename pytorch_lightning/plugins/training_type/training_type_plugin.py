@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.nn import Module
@@ -34,10 +34,6 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = None
         self._results = None
         self.global_rank = 0
-
-    @property
-    def should_finalize(self):
-        return True
 
     @property
     @abstractmethod
@@ -156,3 +152,9 @@ class TrainingTypePlugin(Plugin, ABC):
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
         """
         return dataloader
+
+    def init_optimizers(self, trainer: "Trainer", model: LightningModule):
+        return trainer.init_optimizers(model)
+
+    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
+        optimizer.step(closure=lambda_closure, **kwargs)
