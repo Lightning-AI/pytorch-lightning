@@ -63,11 +63,6 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.accelerator
 
     @property
-    def accelerator_backend(self) -> Accelerator:
-        # for backward compatibility
-        return self.accelerator
-
-    @property
     def distributed_backend(self) -> Optional[str]:
         # for backward compatibility
         return self.accelerator_connector.distributed_backend
@@ -138,7 +133,7 @@ class TrainerProperties(ABC):
         else:
             dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
 
-        dirpath = self.accelerator_backend.broadcast(dirpath)
+        dirpath = self.accelerator.broadcast(dirpath)
         return dirpath
 
     @property
@@ -360,7 +355,7 @@ class TrainerProperties(ABC):
 
     @property
     def lightning_module(self) -> LightningModule:
-        return self.accelerator_backend.lightning_module
+        return self.accelerator.lightning_module
 
     @property
     def optimizers(self) -> Optional[List[Optimizer]]:

@@ -45,7 +45,7 @@ from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConn
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import DeprecatedDistDeviceAttributes, DeprecatedModelAttributes
+from pytorch_lightning.trainer.deprecated_api import DeprecatedDistDeviceAttributes, DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -80,7 +80,7 @@ class Trainer(
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     DeprecatedDistDeviceAttributes,
-    DeprecatedModelAttributes,
+    DeprecatedTrainerAttributes,
 ):
 
     @overwrite_by_env_vars
@@ -470,7 +470,7 @@ class Trainer(
         # ----------------------------
         self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
-        self.accelerator_backend.setup(self, model)
+        self.accelerator.setup(self, model)
         self.setup_trainer(model)
 
         # ----------------------------
@@ -533,24 +533,24 @@ class Trainer(
 
         self._set_running_stage(None, model)
 
-        return self.accelerator_backend.results or 1
+        return self.accelerator.results or 1
 
     def pre_dispatch(self):
-        self.accelerator_backend.pre_dispatch()
+        self.accelerator.pre_dispatch()
 
     def post_dispatch(self):
-        self.accelerator_backend.post_dispatch()
-        self.accelerator_backend.teardown()
+        self.accelerator.post_dispatch()
+        self.accelerator.teardown()
 
     def dispatch(self):
         if self.testing:
-            self.accelerator_backend.start_testing(self)
+            self.accelerator.start_testing(self)
 
         elif self.predicting:
-            self.accelerator_backend.start_predicting(self)
+            self.accelerator.start_predicting(self)
 
         else:
-            self.accelerator_backend.start_training(self)
+            self.accelerator.start_training(self)
 
     def train_or_test_or_predict(self):
         if self.testing:
@@ -949,7 +949,7 @@ class Trainer(
                 )
                 return {}
             if not self._device_type == DeviceType.TPU:
-                self.accelerator_backend.barrier()
+                self.accelerator.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
@@ -1109,8 +1109,8 @@ class Trainer(
 
             # if the PL module doesn't have the hook then call the accelerator
             # used to auto-reduce things for the user with Results obj
-            elif hasattr(self.accelerator_backend, hook_name):
-                accelerator_hook = getattr(self.accelerator_backend, hook_name)
+            elif hasattr(self.accelerator, hook_name):
+                accelerator_hook = getattr(self.accelerator, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
         if not skip:

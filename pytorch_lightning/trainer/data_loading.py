@@ -51,7 +51,7 @@ class TrainerDataLoadingMixin(ABC):
     limit_val_batches: Union[int, float]
     limit_test_batches: Union[int, float]
     replace_sampler_ddp: bool
-    accelerator_backend: Accelerator
+    accelerator: Accelerator
     num_nodes: int
     num_processes: int
     distributed_backend: Optional[str]
@@ -398,8 +398,7 @@ class TrainerDataLoadingMixin(ABC):
         dataloader = dataloader_fx()
         dataloader = self._flatten_dl_only(dataloader)
 
-        if self.accelerator_backend is not None:
-            self.accelerator_backend.barrier('get_dataloaders')
+        self.accelerator.barrier('get_dataloaders')
         return dataloader
 
     def _flatten_dl_only(self, dataloaders):

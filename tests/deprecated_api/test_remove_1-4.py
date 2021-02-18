@@ -30,6 +30,13 @@ from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 
 
+def test_v1_4_0_deprecated_trainer_attributes():
+    with pytest.deprecated_call(match="will be removed in v1.4."):
+        trainer = Trainer()
+        _ = trainer.accelerator_backend
+    assert trainer.accelerator == trainer.accelerator_backend
+
+
 def test_v1_4_0_deprecated_trainer_methods():
     with pytest.deprecated_call(match='will be removed in v1.4'):
         trainer = Trainer()
