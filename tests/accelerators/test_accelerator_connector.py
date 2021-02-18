@@ -13,7 +13,9 @@
 # limitations under the License
 
 import os
+import sys
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -25,6 +27,7 @@ from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPSpawnPlugin, PrecisionPlugin, SingleDevicePlugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
@@ -378,3 +381,17 @@ def test_dist_backend_accelerator_mapping(device_count_mock):
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+
+@mock.patch.dict(sys.modules, {"IPython": Mock()})
+@mock.patch("IPython.get_ipython")
+@mock.patch('torch.cuda.device_count', return_value=2)
+def test_ipython_incompatible_backend_error(device_count_mock, ipython_mock):
+    with pytest.raises(MisconfigurationException, match="backend ddp is not compatible"):
+        Trainer(accelerator="ddp", gpus=2)
+
+    with pytest.raises(MisconfigurationException, match="backend ddp is not compatible"):
+        Trainer(accelerator="ddp_cpu", num_processes=2)
+
+    with pytest.raises(MisconfigurationException, match="backend ddp2 is not compatible"):
+        Trainer(accelerator="ddp2", gpus=2)
