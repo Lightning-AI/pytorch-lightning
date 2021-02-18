@@ -32,6 +32,8 @@ from pytorch_lightning.plugins import (
     DDPShardedPlugin,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
+    DeepSpeedPlugin,
+    DeepSpeedPrecisionPlugin,
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
@@ -62,7 +64,7 @@ if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 
-class BackendConnector(object):
+class AcceleratorConnector(object):
 
     def __init__(
         self,
@@ -149,7 +151,9 @@ class BackendConnector(object):
 
         self.replace_sampler_ddp = replace_sampler_ddp
 
-    def handle_given_plugins(self, plugins: Optional[Sequence]):
+    def handle_given_plugins(
+        self, plugins: Optional[Union[ClusterEnvironment, TrainingTypePlugin, PrecisionPlugin, Sequence]]
+    ):
         plugins = plugins if plugins is not None else []
 
         if isinstance(plugins, str):
@@ -248,7 +252,7 @@ class BackendConnector(object):
     def use_ddp(self) -> bool:
         return self._distrib_type in (
             DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED,
-            DistributedType.DDP_SHARDED_SPAWN
+            DistributedType.DDP_SHARDED_SPAWN, DistributedType.DEEPSPEED
         )
 
     @property
@@ -258,6 +262,10 @@ class BackendConnector(object):
     @property
     def use_horovod(self) -> bool:
         return self._distrib_type == DistributedType.HOROVOD
+
+    @property
+    def use_deepspeed(self) -> bool:
+        return self._distrib_type == DistributedType.DEEPSPEED
 
     @property
     def is_distributed(self) -> bool:
@@ -295,58 +303,64 @@ class BackendConnector(object):
         return te_flags_passed
 
     def select_precision_plugin(self) -> PrecisionPlugin:
+        # set precision type
+        self.amp_type = AMPType.from_str(self.amp_type)
+
+        if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
+            return DeepSpeedPrecisionPlugin(self.precision)
+
         if self.precision == 32:
-            self.amp_type = None
             return PrecisionPlugin()
 
         elif self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 
-            if self.amp_type == "native":
-                if not _NATIVE_AMP_AVAILABLE:
-                    rank_zero_warn(
-                        "You have asked for native AMP but your PyTorch version does not support it."
-                        " Consider upgrading with `pip install torch>=1.6`."
-                        " We will attempt to use NVIDIA Apex for this session."
-                    )
-                    if not _APEX_AVAILABLE and self.on_cpu:
-                        raise MisconfigurationException(
-                            "You have asked for native AMP on CPU, but AMP is only available on GPU."
-                        )
-                    self.amp_type = "apex"
-                elif self.on_cpu:
+            if self.amp_type == AMPType.NATIVE:
+                if self.on_cpu:
                     raise MisconfigurationException(
                         "You have asked for native AMP on CPU, but AMP is only available on GPU."
                     )
+                elif not _NATIVE_AMP_AVAILABLE:
+                    msg = "You have asked for native AMP but your PyTorch version does not support it." \
+                          " Consider upgrading with `pip install torch>=1.6`."
+                    if _APEX_AVAILABLE:
+                        self.amp_type = AMPType.APEX
+                        msg += " We will attempt to use NVIDIA Apex for this session."
+                        rank_zero_warn(msg)
+                    else:
+                        raise MisconfigurationException(msg)
                 else:
                     log.info("Using native 16bit precision.")
                     if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
                         return ShardedNativeMixedPrecisionPlugin()
-                    self.amp_type = AMPType.NATIVE
                     return NativeMixedPrecisionPlugin()
 
-            if self.amp_type == "apex":
+            if self.amp_type == AMPType.APEX:
                 if not _APEX_AVAILABLE:
-                    rank_zero_warn(
+                    raise MisconfigurationException(
                         "You have asked for Apex AMP but you have not installed it yet."
                         " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
                     )
-                else:
-                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
-                        raise MisconfigurationException(
-                            "Sharded Plugin is not supported with Apex AMP, "
-                            "please using native AMP for 16-bit precision."
-                        )
-                    log.info("Using APEX 16bit precision.")
-                    self.amp_type = AMPType.APEX
-                    return ApexMixedPrecisionPlugin(self.amp_level)
-        else:
-            raise NotImplementedError("We only support precisions 32 and 16!")
+                if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
+                    raise MisconfigurationException(
+                        "Sharded Plugin is not supported with Apex AMP,"
+                        " please using native AMP for 16-bit precision."
+                    )
+                log.info("Using APEX 16bit precision.")
+                return ApexMixedPrecisionPlugin(self.amp_level)
+
+        raise NotImplementedError("We only support precisions 32 and 16!")
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
             plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+        elif self.use_ddp and self.use_deepspeed:
+            plugin = DeepSpeedPlugin(
+                num_nodes=self.num_nodes,
+                cluster_environment=self.select_cluster_environment(),
+                parallel_devices=self.parallel_devices
+            )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
