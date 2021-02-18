@@ -164,7 +164,7 @@ def test_hash():
 
     a1 = A()
     a2 = A()
-    assert hash(a1) == hash(a2)
+    assert hash(a1) != hash(a2)
 
     b1 = B()
     b2 = B()
@@ -173,6 +173,11 @@ def test_hash():
     b1.x.append(torch.tensor(5))
     assert isinstance(hash(b1), int)  # <- check that nothing crashes
     assert isinstance(b1.x, list) and len(b1.x) == 1
+    b2.x.append(torch.tensor(5))
+    # Sanity:
+    assert isinstance(b2.x, list) and len(b2.x) == 1
+    # Now that they have tensor contents, they should have different hashes:
+    assert hash(b1) != hash(b2)
 
 
 def test_forward():
