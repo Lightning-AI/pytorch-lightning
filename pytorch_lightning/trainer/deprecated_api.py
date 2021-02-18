@@ -133,6 +133,9 @@ class DeprecatedDistDeviceAttributes:
         if val:
             self.accelerator_connector._device_type = DeviceType.GPU
 
+
+class DeprecatedModelAttributes:
+
     def get_model(self) -> LightningModule:
         rank_zero_warn(
             "The use of `Trainer.get_model()` is deprecated in favor of `Trainer.lightning_module`"
