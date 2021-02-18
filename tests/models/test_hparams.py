@@ -697,25 +697,24 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
         _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)
 
 
-def test_ignore_argument_str_hparams(tmpdir):
+@pytest.mark.parametrize("ignore", ("arg2", ("arg2", "arg3")))
+def test_ignore_args_list_hparams(tmpdir, ignore):
     """
-    Tests that a model can take regular args and assign &
-    ignore the argument that is mentioned.
+    Tests that args can be ignored in save_hyperparameters
     """
 
-    # define model
     class LocalModel(BoringModel):
 
-        def __init__(self, test_arg, test_arg2, test_arg3):
+        def __init__(self, arg1, arg2, arg3):
             super().__init__()
-            self.save_hyperparameters(ignore="test_arg2")
+            self.save_hyperparameters(ignore=ignore)
 
-    model = LocalModel(test_arg=14, test_arg2=90, test_arg3=50)
+    model = LocalModel(arg1=14, arg2=90, arg3=50)
 
     # test proper property assignments
-    assert model.hparams.test_arg == 14
-    assert model.hparams.test_arg3 == 50
-    assert "test_arg2" not in model.hparams
+    assert model.hparams.arg1 == 14
+    for arg in ignore:
+        assert arg not in model.hparams
 
     # verify we can train
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
@@ -725,46 +724,10 @@ def test_ignore_argument_str_hparams(tmpdir):
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path)
     assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
-    assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["test_arg"] == 14
+    assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["arg1"] == 14
 
     # verify that model loads correctly
-    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123)
-    assert model.hparams.test_arg == 14
-    assert "test_arg2" not in model.hparams  # test_arg2 is not registered in class init
-
-
-def test_ignore_args_list_hparams(tmpdir):
-    """
-    Tests that a model can take regular args and assign &
-    ignore the list of args that are mentioned.
-    """
-
-    # define model
-    class LocalModel(BoringModel):
-
-        def __init__(self, test_arg, test_arg2, test_arg3):
-            super().__init__()
-            self.save_hyperparameters(ignore=["test_arg2", "test_arg3"])
-
-    model = LocalModel(test_arg=14, test_arg2=90, test_arg3=50)
-
-    # test proper property assignments
-    assert model.hparams.test_arg == 14
-    assert "test_arg2" not in model.hparams
-    assert "test_arg3" not in model.hparams
-
-    # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
-    trainer.fit(model)
-
-    # make sure the raw checkpoint saved the properties
-    raw_checkpoint_path = _raw_checkpoint_path(trainer)
-    raw_checkpoint = torch.load(raw_checkpoint_path)
-    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
-    assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["test_arg"] == 14
-
-    # verify that model loads correctly
-    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123, test_arg3=100)
-    assert model.hparams.test_arg == 14
-    assert "test_arg2" not in model.hparams
-    assert "test_arg3" not in model.hparams
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, arg2=123, arg3=100)
+    assert model.hparams.arg1 == 14
+    for arg in ignore:
+        assert arg not in model.hparams
