@@ -26,7 +26,7 @@ from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -140,7 +140,7 @@ class TrainLoop:
         # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
         # It might be related to xla tensors blocked when moving the cpu
         # kill loggers
-        if self.trainer.logger is not None and self.trainer.training_type_plugin.should_finalize:
+        if self.trainer.logger is not None:
             self.trainer.logger.finalize("success")
 
         # summarize profile results
@@ -342,13 +342,6 @@ class TrainLoop:
             return None, None
 
         # -----------------------------------------
-        # process result return (DEPRECATE in 1.0)
-        # -----------------------------------------
-        if isinstance(training_step_output, Result):
-            training_step_output_for_epoch_end = self._process_result(training_step_output, split_batch)
-            return training_step_output_for_epoch_end, training_step_output
-
-        # -----------------------------------------
         # process hybrid (1.0)
         # -----------------------------------------
         # no need for these checks in 1.0.0
@@ -412,29 +405,6 @@ class TrainLoop:
         training_step_output = result
 
         return training_step_output_for_epoch_end, training_step_output
-
-    def _process_result(self, training_step_output, split_batch):
-        training_step_output.track_batch_size(len(split_batch))
-        m = """
-        TrainResult and EvalResult were deprecated in 0.9.1 and support will drop in 1.0.0.
-        Use self.log and .write from the LightningModule to log metrics and write predictions.
-        training_step can now only return a scalar (for the loss) or a dictionary with anything you want.
-
-        Option 1:
-        return loss
-
-        Option 2:
-        return {'loss': loss, 'anything_else': ...}
-
-        Option 3:
-        return {'loss': loss, 'hiddens': hiddens, 'anything_else': ...}
-            """
-        rank_zero_warn(m)
-
-        training_step_output_for_epoch_end = copy(training_step_output)
-        training_step_output_for_epoch_end.detach()
-
-        return training_step_output_for_epoch_end
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.get_model()
@@ -502,7 +472,7 @@ class TrainLoop:
 
     def run_training_epoch(self):
         # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.trainer.accelerator_backend.process_dataloader(self.trainer.train_dataloader)
+        train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
 
         # track epoch output
         epoch_output = [[] for _ in range(self.num_optimizers)]
@@ -547,7 +517,7 @@ class TrainLoop:
                 self.trainer.run_evaluation()
 
                 # reset stage to train
-                self.trainer._set_wide_running_stage(RunningStage.TRAINING)
+                self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -594,7 +564,7 @@ class TrainLoop:
             self.trainer.run_evaluation(on_epoch=True)
 
             # reset stage to train
-            self.trainer._set_wide_running_stage(RunningStage.TRAINING)
+            self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
 
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
@@ -768,24 +738,23 @@ class TrainLoop:
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
-            if result is None:
-                if self.automatic_optimization:
-                    self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
-                return None
-
             if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
                 # backward pass
-                with self.trainer.profiler.profile("model_backward"):
-                    self.backward(result, optimizer, opt_idx)
+                if result is not None:
+                    with self.trainer.profiler.profile("model_backward"):
+                        self.backward(result, optimizer, opt_idx)
 
-                # hook - call this hook only
-                # when gradients have finished to accumulate
-                if not self.should_accumulate():
-                    self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+                    # hook - call this hook only
+                    # when gradients have finished to accumulate
+                    if not self.should_accumulate():
+                        self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
-                # check if loss or model weights are nan
-                if self.trainer.terminate_on_nan:
-                    self.trainer.detect_nan_tensors(result.loss)
+                    # check if loss or model weights are nan
+                    if self.trainer.terminate_on_nan:
+                        self.trainer.detect_nan_tensors(result.loss)
+
+                else:
+                    self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
 
                 if len(self.trainer.optimizers) > 1:
                     # revert back to previous state

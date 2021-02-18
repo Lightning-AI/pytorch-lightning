@@ -60,21 +60,6 @@ def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
     )
 
 
-def _run_lr_finder_internally(trainer, model: LightningModule):
-    """ Call lr finder internally during Trainer.fit() """
-    lr_attr_name = _determine_lr_attr_name(trainer, model)
-    lr_finder = lr_find(trainer, model)
-    if lr_finder is None:
-        return
-
-    lr = lr_finder.suggestion()
-
-    # TODO: log lr.results to self.logger
-    lightning_setattr(model, lr_attr_name, lr)
-
-    log.info(f'Learning rate set to {lr}')
-
-
 def lr_find(
     trainer,
     model: LightningModule,
@@ -86,16 +71,17 @@ def lr_find(
     mode: str = 'exponential',
     early_stop_threshold: float = 4.0,
     datamodule: Optional[LightningDataModule] = None,
+    update_attr: bool = False,
 ):
     r"""
-    `lr_find` enables the user to do a range test of good initial learning rates,
+    ``lr_find`` enables the user to do a range test of good initial learning rates,
     to reduce the amount of guesswork in picking a good starting learning rate.
 
     Args:
         model: Model to do range testing for
 
         train_dataloader: A PyTorch
-            `DataLoader` with training samples. If the model has
+            ``DataLoader`` with training samples. If the model has
             a predefined train_dataloader method, this will be skipped.
 
         min_lr: minimum learning rate to investigate
@@ -104,19 +90,21 @@ def lr_find(
 
         num_training: number of learning rates to test
 
-        mode: search strategy, either 'linear' or 'exponential'. If set to
-            'linear' the learning rate will be searched by linearly increasing
-            after each batch. If set to 'exponential', will increase learning
-            rate exponentially.
+        mode: Search strategy to update learning rate after each batch:
+
+            - ``'exponential'`` (default): Will increase the learning rate exponentially.
+            - ``'linear'``: Will increase the learning rate linearly.
 
         early_stop_threshold: threshold for stopping the search. If the
             loss at any point is larger than early_stop_threshold*best_loss
             then the search is stopped. To disable, set to None.
 
-        datamodule: An optional `LightningDataModule` which holds the training
-            and validation dataloader(s). Note that the `train_dataloader` and
-            `val_dataloaders` parameters cannot be used at the same time as
-            this parameter, or a `MisconfigurationException` will be raised.
+        datamodule: An optional ``LightningDataModule`` which holds the training
+            and validation dataloader(s). Note that the ``train_dataloader`` and
+            ``val_dataloaders`` parameters cannot be used at the same time as
+            this parameter, or a ``MisconfigurationException`` will be raised.
+
+        update_attr: Whether to update the learning rate attribute or not.
 
 
     Example::
@@ -143,6 +131,10 @@ def lr_find(
     if trainer.fast_dev_run:
         rank_zero_warn('Skipping learning rate finder since fast_dev_run is enabled.', UserWarning)
         return
+
+    # Determine lr attr
+    if update_attr:
+        lr_attr_name = _determine_lr_attr_name(trainer, model)
 
     save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp_model.ckpt')
 
@@ -199,6 +191,14 @@ def lr_find(
     __lr_finder_restore_params(trainer, model)
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.enable()
+
+    # Update lr attr if required
+    if update_attr:
+        lr = lr_finder.suggestion()
+
+        # TODO: log lr.results to self.logger
+        lightning_setattr(model, lr_attr_name, lr)
+        log.info(f'Learning rate set to {lr}')
 
     return lr_finder
 
