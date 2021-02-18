@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import os
+import sys
+
 from typing import List, Optional, Sequence, Union
 
 import torch
@@ -554,7 +556,6 @@ class BackendConnector(object):
             return
         else:
             # check ipython env
-            import sys
             if 'IPython' in sys.modules:
                 from IPython import get_ipython
                 if get_ipython() is not None:
