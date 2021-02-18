@@ -43,16 +43,18 @@ norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ 
 
 Stochastic Weight Averaging
 ---------------------------
-Stochastic Weight Averaging (SWA) is a training method where
-the weights of the model are averaged on the N last epochs of the training.
+Stochastic Weight Averaging (SWA) can make your models generalize better at virtually no additional cost.
+This can be used with both non-trained and trained models. The SWA procedure smooths the loss landscape thus making
+it harder to end up in a local minimum during optimization.
 
-See this link for an in-depth explanation: <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>
+For a more detailed explanation of SWA and how it works,
+read `this <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>__` post by the PyTorch team.
 
 .. seealso:: :class:`~pytorch_lightning.callbacks.StochasticWeightAveraging`
 
 .. testcode::
 
-    # activate SWA from Trainer directly.
+    # Enable Stochastic Weight Averaging
     trainer = Trainer(stochastic_weight_avg=True)
 
 ----------
