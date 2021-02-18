@@ -1209,3 +1209,15 @@ transfer_batch_to_device
 
 .. automethod:: pytorch_lightning.core.hooks.DataHooks.transfer_batch_to_device
     :noindex:
+
+on_before_batch_transfer
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_before_batch_transfer
+    :noindex:
+
+on_after_batch_transfer
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_after_batch_transfer
+    :noindex:
