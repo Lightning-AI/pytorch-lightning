@@ -160,13 +160,13 @@ def test_apply_batch_transfer_handler(model_getter_mock):
         on_before_batch_transfer_hook_rank = None
         on_after_batch_transfer_hook_rank = None
 
-        def on_before_batch_transfer(self, batch):
+        def on_before_batch_transfer(self, batch, dataloader_idx):
             self.on_before_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.samples += 1
             return batch
 
-        def on_after_batch_transfer(self, batch):
+        def on_after_batch_transfer(self, batch, dataloader_idx):
             assert batch.samples.device == batch.targets.device == expected_device
             self.on_after_batch_transfer_hook_rank = self.rank
             self.rank += 1
