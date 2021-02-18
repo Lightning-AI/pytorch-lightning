@@ -1573,7 +1573,7 @@ class LightningModule(
         return self_arguments, parents_arguments
 
     def save_hyperparameters(
-        self, *args, ignore: Optional[Union[List[str], str]] = None, frame: Optional[types.FrameType] = None
+        self, *args, ignore: Optional[Union[Sequence[str], str]] = None, frame: Optional[types.FrameType] = None
     ) -> None:
         """Save model arguments to ``hparams`` attribute.
 
