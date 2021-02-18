@@ -24,16 +24,7 @@ class DeprecatedDistDeviceAttributes:
     _device_type: DeviceType
     _running_stage: RunningStage
     num_gpus: int
-    accelerator: Accelerator
     accelerator_connector: AcceleratorConnector
-
-    @property
-    def accelerator_backend(self) -> Accelerator:
-        rank_zero_warn(
-            "The `Trainer.accelerator_backend` attribute is deprecated in favor of `Trainer.accelerator`"
-            " since 1.2 and will be removed in v1.4.", DeprecationWarning
-        )
-        return self.accelerator
 
     @property
     def on_cpu(self) -> bool:
@@ -143,9 +134,18 @@ class DeprecatedDistDeviceAttributes:
             self.accelerator_connector._device_type = DeviceType.GPU
 
 
-class DeprecatedModelAttributes:
+class DeprecatedTrainerAttributes:
 
+    accelerator: Accelerator
     lightning_module = LightningModule
+
+    @property
+    def accelerator_backend(self) -> Accelerator:
+        rank_zero_warn(
+            "The `Trainer.accelerator_backend` attribute is deprecated in favor of `Trainer.accelerator`"
+            " since 1.2 and will be removed in v1.4.", DeprecationWarning
+        )
+        return self.accelerator
 
     def get_model(self) -> LightningModule:
         rank_zero_warn(
