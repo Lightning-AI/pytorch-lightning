@@ -31,8 +31,7 @@ class DeprecatedDistDeviceAttributes:
     def accelerator_backend(self) -> Accelerator:
         rank_zero_warn(
             "The `Trainer.accelerator_backend` attribute is deprecated in favor of `Trainer.accelerator`"
-            " since 1.2 and will be removed in v1.4.",
-            DeprecationWarning
+            " since 1.2 and will be removed in v1.4.", DeprecationWarning
         )
         return self.accelerator
 
