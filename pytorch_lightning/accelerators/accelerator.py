@@ -11,21 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Iterable, Optional, Union
 
 import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.plugins.precision import (
-    ApexMixedPrecisionPlugin,
-    MixedPrecisionPlugin,
-    NativeMixedPrecisionPlugin,
-    PrecisionPlugin,
-)
+from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
-from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
@@ -64,7 +58,7 @@ class Accelerator(object):
         self.lr_schedulers = None
         self.optimizer_frequencies = None
 
-    def setup(self, trainer: "Trainer", model: LightningModule) -> None:
+    def setup(self, trainer, model: LightningModule) -> None:
         """
         Connects the plugins to the training process, creates optimizers
 
@@ -76,13 +70,13 @@ class Accelerator(object):
         self.setup_optimizers(trainer)
         self.connect_precision_plugin(self.precision_plugin)
 
-    def start_training(self, trainer: 'Trainer'):
+    def start_training(self, trainer):
         self.training_type_plugin.start_training(trainer)
 
-    def start_testing(self, trainer: 'Trainer'):
+    def start_testing(self, trainer):
         self.training_type_plugin.start_testing(trainer)
 
-    def start_predicting(self, trainer: 'Trainer'):
+    def start_predicting(self, trainer):
         self.training_type_plugin.start_predicting(trainer)
 
     def pre_dispatch(self) -> None:
@@ -310,7 +304,7 @@ class Accelerator(object):
         """Hook to do something at the end of the training"""
         pass
 
-    def setup_optimizers(self, trainer: "Trainer"):
+    def setup_optimizers(self, trainer):
         """creates optimizers and schedulers
 
         Args:

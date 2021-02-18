@@ -329,11 +329,11 @@ class RPCSequentialPlugin(RPCPlugin):
         if self.main_rpc_process:
             super().post_training_step()
 
-    def start_training(self, trainer: 'Trainer') -> None:
+    def start_training(self, trainer) -> None:
         if self.main_rpc_process:
             super().start_training(trainer)
 
-    def start_testing(self, trainer: 'Trainer') -> None:
+    def start_testing(self, trainer) -> None:
         if self.main_rpc_process:
             super().start_testing(trainer)
 
