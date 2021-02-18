@@ -16,11 +16,12 @@ from unittest import mock
 from unittest.mock import call, Mock
 
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks.progress import tqdm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
 
 
@@ -82,7 +83,7 @@ def test_progress_bar_misconfiguration():
 def test_progress_bar_totals(tmpdir):
     """Test that the progress finishes with the correct total steps processed."""
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -132,7 +133,7 @@ def test_progress_bar_totals(tmpdir):
 
 
 def test_progress_bar_fast_dev_run(tmpdir):
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -144,8 +145,6 @@ def test_progress_bar_fast_dev_run(tmpdir):
     progress_bar = trainer.progress_bar_callback
     assert 1 == progress_bar.total_train_batches
     # total val batches are known only after val dataloaders have reloaded
-
-    trainer.fit(model)
 
     assert 1 == progress_bar.total_val_batches
     assert 1 == progress_bar.train_batch_idx
@@ -168,7 +167,7 @@ def test_progress_bar_fast_dev_run(tmpdir):
 def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     class CurrentProgressBar(ProgressBar):
 
@@ -236,7 +235,7 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
         def on_validation_epoch_end(self, trainer, pl_module):
             self.val_progress_bar_total += trainer.progress_bar_callback.val_progress_bar.total
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     progress_bar = CurrentProgressBar()
 
     trainer = Trainer(
@@ -290,8 +289,8 @@ class MockedUpdateProgressBars(ProgressBar):
         bar = super().init_validation_tqdm()
         return self._mock_bar_update(bar)
 
-    def init_test_tqdm(self, trainer=None):
-        bar = super().init_test_tqdm(trainer=trainer)
+    def init_test_tqdm(self):
+        bar = super().init_test_tqdm()
         return self._mock_bar_update(bar)
 
 
@@ -349,3 +348,36 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches, refresh_rate, tes
     )
     trainer.test(model)
     progress_bar.test_progress_bar.update.assert_has_calls([call(delta) for delta in test_deltas])
+
+
+def test_tensor_to_float_conversion(tmpdir):
+    """Check tensor gets converted to float"""
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo', torch.tensor(0.123), prog_bar=True)
+            self.log('bar', {"baz": torch.tensor([1])}, prog_bar=True)
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.fit(TestModel())
+
+    pbar = trainer.progress_bar_callback.main_progress_bar
+    actual = str(pbar.postfix)
+    assert actual.endswith("foo=0.123, bar={'baz': tensor([1])}")
+
+
+@pytest.mark.parametrize(
+    "input_num, expected", [[1, '1'], [1.0, '1.000'], [0.1, '0.100'], [1e-3, '0.001'], [1e-5, '1e-5'], ['1.0', '1.000'],
+                            ['10000', '10000'], ['abc', 'abc']]
+)
+def test_tqdm_format_num(input_num, expected):
+    """ Check that the specialized tqdm.format_num appends 0 to floats and strings """
+    assert tqdm.format_num(input_num) == expected

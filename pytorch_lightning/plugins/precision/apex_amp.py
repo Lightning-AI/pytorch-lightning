@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
 import torch
 from torch.optim import Optimizer
@@ -38,6 +38,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         """Connects the precision plugin to the training process,
         configures apex and reinits the schedulers
         """
+        if model.device.type != "cuda":
+            return model, optimizers, lr_schedulers
         model, optimizers = self.configure_apex(amp, model, optimizers, self.amp_level)
         self.reinit_scheduler_properties(optimizers, lr_schedulers)
         return model, optimizers, lr_schedulers
@@ -62,7 +64,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             should_accumulate: whether to accumulate gradients or not
 
         """
-        closure_loss = amp.scale_loss(closure_loss, optimizer)
+        closure_loss = amp.scale_loss(closure_loss, model.trainer.optimizers if optimizer is None else optimizer)
 
         # enter apex context
         context = closure_loss
@@ -71,7 +73,11 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         # do backward pass
         # TODO: not entirely sure, why we need this
         if model is not None and isinstance(model, LightningModule):
-            model.backward(closure_loss, optimizer, opt_idx)
+            model.backward(closure_loss, optimizer, opt_idx, **kwargs)
+
+            # TODO: avoid dev_debugger and track these calls with mock
+            model.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
+
         else:
             closure_loss.backward(*args, **kwargs)
 
@@ -125,22 +131,35 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         """Reinitializes schedulers with correct properties"""
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
-            scheduler = scheduler["scheduler"]
+            scheduler = scheduler['scheduler']
+            state = None
 
             for optimizer in optimizers:
-                state = None
-                idx = 0
-
                 # check that we dont mix users optimizers and schedulers
                 if scheduler.optimizer == optimizer:
                     # Find the mro belonging to the base lr scheduler class
                     for i, mro in enumerate(scheduler.__class__.__mro__):
                         if mro in (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                            idx = i
                             state = scheduler.state_dict()
-                        else:
-                            state = None
+                            scheduler.__class__.__mro__[i].__init__(scheduler, optimizer)
+                            scheduler.load_state_dict(state)
+                            break
 
-                scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
                 if state is not None:
-                    scheduler.load_state_dict(state)
+                    break
+
+    def pre_optimizer_step(
+        self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs
+    ) -> bool:
+        """
+        always called before the optimizer step.
+        """
+        # apex amp does not support closures.
+        lambda_closure()
+
+        if not pl_module.automatic_optimization:
+            pl_module.trainer.call_hook("on_after_backward")
+
+        optimizer.step()
+
+        return False

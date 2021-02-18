@@ -23,7 +23,7 @@ class ConfusionMatrix(Metric):
     """
     Computes the `confusion matrix
     <https://scikit-learn.org/stable/modules/model_evaluation.html#confusion-matrix>`_.  Works with binary,
-    multiclass, and multilabel data.  Accepts logits from a model output or
+    multiclass, and multilabel data.  Accepts probabilities from a model output or
     integer class values in prediction.  Works with multi-dimensional preds and
     target.
 
@@ -35,8 +35,8 @@ class ConfusionMatrix(Metric):
     - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
     - ``target`` (long tensor): ``(N, ...)``
 
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument
+    to convert into integer labels. This is the case for binary and multi-label probabilities.
 
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
@@ -44,13 +44,13 @@ class ConfusionMatrix(Metric):
         num_classes: Number of classes in the dataset.
         normalize: Normalization mode for confusion matrix. Choose from
 
-            - ``None``: no normalization (default)
+            - ``None`` or ``'none'``: no normalization (default)
             - ``'true'``: normalization over the targets (most commonly used)
             - ``'pred'``: normalization over the predictions
             - ``'all'``: normalization over the whole matrix
 
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
+            Threshold value for binary or multi-label probabilites. default: 0.5
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -90,7 +90,7 @@ class ConfusionMatrix(Metric):
         self.normalize = normalize
         self.threshold = threshold
 
-        allowed_normalize = ('true', 'pred', 'all', None)
+        allowed_normalize = ('true', 'pred', 'all', 'none', None)
         assert self.normalize in allowed_normalize, \
             f"Argument average needs to one of the following: {allowed_normalize}"
 

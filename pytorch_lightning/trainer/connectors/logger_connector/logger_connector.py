@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from typing import Any, Dict, Iterable, Union
+from typing import Dict, Iterable, Optional, Union
 
 import torch
 
@@ -32,12 +32,13 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 class LoggerConnector:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer, log_gpu_memory: Optional[str] = None):
         self.trainer = trainer
+        self.log_gpu_memory = log_gpu_memory
         self._callback_metrics = MetricsHolder()
         self._evaluation_callback_metrics = MetricsHolder(to_float=True)
         self._logged_metrics = MetricsHolder()
-        self._progress_bar_metrics = MetricsHolder()
+        self._progress_bar_metrics = MetricsHolder(to_float=True)
         self.eval_loop_results = []
         self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in RunningStage}
         self._cached_results[None] = EpochResultStore(trainer, None)
@@ -88,7 +89,7 @@ class LoggerConnector:
         )
         return metrics_holder.metrics
 
-    def set_metrics(self, key: str, val: Any) -> None:
+    def set_metrics(self, key: str, val: Dict) -> None:
         metrics_holder = getattr(self, f"_{key}", None)
         metrics_holder.reset(val)
 
@@ -218,8 +219,8 @@ class LoggerConnector:
                 and global_step for the rest.
         """
         # add gpu memory
-        if self.trainer._device_type == DeviceType.GPU and self.trainer.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.trainer.log_gpu_memory)
+        if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
+            mem_map = memory.get_memory_profile(self.log_gpu_memory)
             metrics.update(mem_map)
 
         # add norms

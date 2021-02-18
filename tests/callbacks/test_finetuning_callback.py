@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning
+from pytorch_lightning.callbacks.base import Callback
 from tests.helpers import BoringModel, RandomDataset
 
 
@@ -137,7 +138,7 @@ def test_finetuning_callback_warning(tmpdir):
 
 
 def test_freeze_unfreeze_function(tmpdir):
-    """Test freeze properly set requieres_grad on the modules"""
+    """Test freeze properly sets requires_grad on the modules"""
 
     seed_everything(42)
 
@@ -215,3 +216,31 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
             assert torch.equal(optimizer.param_groups[2]["params"][0], model.backbone[2].weight)
             assert torch.equal(optimizer.param_groups[2]["params"][1], model.backbone[3].weight)
             assert torch.equal(optimizer.param_groups[2]["params"][2], model.backbone[4].weight)
+
+
+def test_on_before_accelerator_backend_setup(tmpdir):
+    """
+    `on_before_accelerator_backend_setup` hook is used by finetuning callbacks to freeze the model before
+    before configure_optimizers function call.
+    """
+
+    class TestCallback(Callback):
+
+        def on_before_accelerator_backend_setup(self, trainer, pl_module):
+            pl_module.on_before_accelerator_backend_setup_called = True
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.on_before_accelerator_backend_setup_called = False
+
+        def configure_optimizers(self):
+            assert self.on_before_accelerator_backend_setup_called
+            return super().configure_optimizers()
+
+    model = TestModel()
+    callback = TestCallback()
+
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[callback], fast_dev_run=True)
+    trainer.fit(model)

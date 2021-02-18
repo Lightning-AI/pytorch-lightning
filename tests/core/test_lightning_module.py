@@ -175,11 +175,11 @@ def test_params_groups_and_state_are_accessible(tmpdir):
 
         def optimizer_step(
             self,
-            current_epoch,
-            batch_nb,
+            epoch,
+            batch_idx,
             optimizer,
             optimizer_idx,
-            closure,
+            optimizer_closure,
             on_tpu=False,
             using_native_amp=False,
             using_lbfgs=False
@@ -190,7 +190,7 @@ def test_params_groups_and_state_are_accessible(tmpdir):
                 for pg in optimizer.param_groups:
                     pg['lr'] = lr_scale * 0.01
 
-            optimizer.step(closure=closure)
+            optimizer.step(closure=optimizer_closure)
 
     model = TestModel()
     model.training_epoch_end = None
@@ -385,7 +385,9 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             optimizer.step(closure=closure)
 
         def training_step(self, batch, batch_idx, optimizer_idx=None):
-            return super().training_step(batch, batch_idx)
+            loss = super().training_step(batch, batch_idx)
+            # make sure the model is untoggle when returning None
+            return loss if batch_idx % 2 == 0 else None
 
         @staticmethod
         def combine_generators(gen_1, gen_2):

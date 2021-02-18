@@ -22,10 +22,11 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -47,6 +48,7 @@ class TrainLoop:
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
         self._multiple_trainloader_mode = multiple_trainloader_mode
+        self._skip_backward = False
         self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
 
     def on_trainer_init(
@@ -73,7 +75,7 @@ class TrainLoop:
 
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.trainer.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
-        # If neither max_epochs or max_steps is set, then use existing default of min_epochs = 1
+        # If neither min_epochs or min_steps is set, then use existing default of min_epochs = 1
         self.trainer.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
         self.trainer.max_steps = max_steps
         self.trainer.min_steps = min_steps
@@ -95,17 +97,11 @@ class TrainLoop:
         return num_optimizers
 
     def should_skip_training(self):
+        should_by_max_steps = self.trainer.max_steps is not None and self.trainer.global_step >= self.trainer.max_steps
         should_by_epoch = self.trainer.max_epochs is not None and self.trainer.current_epoch >= self.trainer.max_epochs
-        return should_by_epoch or self.trainer.num_training_batches == 0
+        return should_by_max_steps or should_by_epoch or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
-        # clear cache before training
-        if self.trainer._device_type == DeviceType.GPU and self.trainer.root_gpu is not None:
-            # use context because of:
-            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
-            with torch.cuda.device(f"cuda:{self.trainer.root_gpu}"):
-                torch.cuda.empty_cache()
-
         # hook
         self.trainer.call_hook("on_train_start")
 
@@ -113,9 +109,6 @@ class TrainLoop:
         self.trainer.profile_connector.on_train_start(self.trainer)
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
-        # bind logger and other properties
-        self.trainer.model_connector.copy_trainer_model_properties(model)
-
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -128,32 +121,6 @@ class TrainLoop:
 
         # attach model log function to callback
         self.trainer.callback_connector.attach_model_logging_functions(model)
-
-    def setup_training(self):
-        """
-        Sanity check a few things before starting actual training.
-        """
-        # --------------------------
-        # Pre-train
-        # --------------------------
-        ref_model = self.trainer.get_model()
-
-        # on pretrain routine start
-        self.trainer.on_pretrain_routine_start(ref_model)
-        if self.trainer.is_function_implemented("on_pretrain_routine_start"):
-            ref_model.on_pretrain_routine_start()
-
-        # print model summary
-        if self.trainer.is_global_zero:
-            ref_model.summarize(mode=self.trainer.weights_summary)
-
-        # restore training state and model weights before hpc is called
-        self.trainer.checkpoint_connector.restore_weights()
-
-        # on pretrain routine end
-        self.trainer.on_pretrain_routine_end(ref_model)
-        if self.trainer.is_function_implemented("on_pretrain_routine_end"):
-            ref_model.on_pretrain_routine_end()
 
     def on_train_end(self):
         if self._teardown_already_run:
@@ -170,6 +137,8 @@ class TrainLoop:
         # hook
         self.trainer.call_hook("on_train_end")
 
+        # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
+        # It might be related to xla tensors blocked when moving the cpu
         # kill loggers
         if self.trainer.logger is not None:
             self.trainer.logger.finalize("success")
@@ -179,13 +148,7 @@ class TrainLoop:
             self.trainer.profiler.describe()
 
         # give accelerators a chance to finish
-        self.trainer.accelerator_backend.on_train_end()
-
-        # clear mem
-        if self.trainer._device_type == DeviceType.GPU:
-            model = self.trainer.get_model()
-            model.cpu()
-            torch.cuda.empty_cache()
+        self.trainer.accelerator.on_train_end()
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
@@ -328,6 +291,8 @@ class TrainLoop:
             model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator_backend.training_step(args)
+                self.trainer.accelerator_backend.post_training_step()
+
             self.trainer.logger_connector.cache_logged_metrics()
 
             self._check_training_step_output(training_step_output)
@@ -375,13 +340,6 @@ class TrainLoop:
         # enable validation_step return None
         if training_step_output_for_epoch_end is None:
             return None, None
-
-        # -----------------------------------------
-        # process result return (DEPRECATE in 1.0)
-        # -----------------------------------------
-        if isinstance(training_step_output, Result):
-            training_step_output_for_epoch_end = self._process_result(training_step_output, split_batch)
-            return training_step_output_for_epoch_end, training_step_output
 
         # -----------------------------------------
         # process hybrid (1.0)
@@ -448,29 +406,6 @@ class TrainLoop:
 
         return training_step_output_for_epoch_end, training_step_output
 
-    def _process_result(self, training_step_output, split_batch):
-        training_step_output.track_batch_size(len(split_batch))
-        m = """
-        TrainResult and EvalResult were deprecated in 0.9.1 and support will drop in 1.0.0.
-        Use self.log and .write from the LightningModule to log metrics and write predictions.
-        training_step can now only return a scalar (for the loss) or a dictionary with anything you want.
-
-        Option 1:
-        return loss
-
-        Option 2:
-        return {'loss': loss, 'anything_else': ...}
-
-        Option 3:
-        return {'loss': loss, 'hiddens': hiddens, 'anything_else': ...}
-            """
-        rank_zero_warn(m)
-
-        training_step_output_for_epoch_end = copy(training_step_output)
-        training_step_output_for_epoch_end.detach()
-
-        return training_step_output_for_epoch_end
-
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.get_model()
 
@@ -502,12 +437,15 @@ class TrainLoop:
     def on_before_zero_grad(self, optimizer):
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 
+    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
+        self.trainer.accelerator_backend.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
+
     def track_and_norm_grad(self, optimizer):
         # track gradient norms
         grad_norm_dic = self._track_gradient_norm()
 
         # clip gradients
-        self.trainer.accelerator_backend.clip_gradients(optimizer)
+        self.trainer.accelerator_backend.clip_gradients(optimizer, self.trainer.gradient_clip_val)
         self._cur_grad_norm_dict = grad_norm_dic
 
     def _track_gradient_norm(self):
@@ -534,7 +472,7 @@ class TrainLoop:
 
     def run_training_epoch(self):
         # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.trainer.accelerator_backend.process_dataloader(self.trainer.train_dataloader)
+        train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
 
         # track epoch output
         epoch_output = [[] for _ in range(self.num_optimizers)]
@@ -579,7 +517,7 @@ class TrainLoop:
                 self.trainer.run_evaluation()
 
                 # reset stage to train
-                self.trainer._set_wide_running_stage(RunningStage.TRAINING)
+                self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -626,7 +564,7 @@ class TrainLoop:
             self.trainer.run_evaluation(on_epoch=True)
 
             # reset stage to train
-            self.trainer._set_wide_running_stage(RunningStage.TRAINING)
+            self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
 
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
@@ -741,7 +679,7 @@ class TrainLoop:
         return result
 
     @contextmanager
-    def block_ddp_sync_behaviour(self):
+    def block_ddp_sync_behaviour(self, should_block_sync: bool = False):
         """
         automatic_optimization = True
         Blocks ddp sync gradients behaviour on backwards pass.
@@ -755,8 +693,12 @@ class TrainLoop:
             context manager with sync behaviour off
 
         """
-        if self.trainer.accelerator_backend is not None and self.automatic_optimization:
-            yield self.trainer.accelerator_backend.block_ddp_plugin_sync_behaviour()
+        if (
+            isinstance(self.trainer.training_type_plugin, ParallelPlugin)
+            and (self.automatic_optimization or should_block_sync)
+        ):
+            with self.trainer.training_type_plugin.block_backward_sync():
+                yield None
         else:
             yield None
 
@@ -796,23 +738,23 @@ class TrainLoop:
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
-            if result is None:
-                self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
-                return None
-
-            if self.trainer.train_loop.automatic_optimization:
+            if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
                 # backward pass
-                with self.trainer.profiler.profile("model_backward"):
-                    self.backward(result, optimizer, opt_idx)
+                if result is not None:
+                    with self.trainer.profiler.profile("model_backward"):
+                        self.backward(result, optimizer, opt_idx)
 
-                # hook - call this hook only
-                # when gradients have finished to accumulate
-                if not self.should_accumulate():
-                    self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+                    # hook - call this hook only
+                    # when gradients have finished to accumulate
+                    if not self.should_accumulate():
+                        self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
-                # check if loss or model weights are nan
-                if self.trainer.terminate_on_nan:
-                    self.trainer.detect_nan_tensors(result.loss)
+                    # check if loss or model weights are nan
+                    if self.trainer.terminate_on_nan:
+                        self.trainer.detect_nan_tensors(result.loss)
+
+                else:
+                    self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
 
                 if len(self.trainer.optimizers) > 1:
                     # revert back to previous state
@@ -823,12 +765,14 @@ class TrainLoop:
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
         self.trainer.dev_debugger.track_event("backward_call")
 
+        should_accumulate = self.should_accumulate()
+
         # backward can be called manually in the training loop
         if isinstance(result, torch.Tensor):
-            self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, *args, **kwargs)
+            self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, should_accumulate, *args, **kwargs)
         else:
             result.closure_loss = self.trainer.accelerator_backend.backward(
-                result.closure_loss, optimizer, opt_idx, *args, **kwargs
+                result.closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
             )
 
         if not self.should_accumulate():

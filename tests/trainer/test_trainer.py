@@ -540,12 +540,12 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
 
     class TestModel(BoringModel):
         # Model that tracks epochs and batches seen
-        num_epochs_seen = 0
+        num_epochs_end_seen = 0
         num_batches_seen = 0
         num_on_load_checkpoint_called = 0
 
         def on_epoch_end(self):
-            self.num_epochs_seen += 1
+            self.num_epochs_end_seen += 1
 
         def on_train_batch_start(self, *_):
             self.num_batches_seen += 1
@@ -567,7 +567,8 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
     )
     trainer.fit(model)
 
-    assert model.num_epochs_seen == 2
+    # `on_epoch_end` will be called once for val_sanity, twice for train, twice for val
+    assert model.num_epochs_end_seen == 1 + 2 + 2
     assert model.num_batches_seen == trainer.num_training_batches * 2
     assert model.num_on_load_checkpoint_called == 0
 
@@ -1498,6 +1499,9 @@ class TestLightningDataModule(LightningDataModule):
     def test_dataloader(self):
         return self._dataloaders
 
+    def predict_dataloader(self):
+        return self._dataloaders
+
 
 def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=True):
 
@@ -1515,7 +1519,6 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
         gpus=gpus,
         num_processes=num_processes,
         plugins=plugins,
-        num_sanity_val_steps=0
     )
     if datamodule:
         results = trainer.predict(model, datamodule=datamodule)
@@ -1529,9 +1532,6 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
     assert results[0][0].shape == torch.Size([1, 2])
 
 
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
 @pytest.mark.parametrize('datamodule', [False, True])
 def test_trainer_predict_cpu(tmpdir, datamodule):
     predict(tmpdir, None, None, 1, datamodule=datamodule)
@@ -1550,23 +1550,31 @@ def test_trainer_predict_dp(tmpdir, num_gpus):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-@pytest.mark.parametrize('plugins', [None, "ddp_sharded"])
-def test_trainer_predict_ddp(tmpdir, plugins):
-    predict(tmpdir, "ddp", 2, None, plugins=plugins)
+def test_trainer_predict_ddp(tmpdir):
+    predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_trainer_predict_ddp_spawn(tmpdir):
     predict(tmpdir, "ddp_spawn", 2, None)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, None, 1, None)
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
 
@@ -1731,3 +1739,73 @@ def test_disabled_training_for_insufficient_limit_train_batches(
     assert trainer.current_epoch == current_epoch
     assert model.training_step_invoked == should_train, f"`training_step` {error_string}"
     assert model.training_epoch_end_invoked == should_train, f"`training_epoch_end` {error_string}"
+
+
+@pytest.mark.parametrize(["max_steps", "max_epochs", "global_step"], [(10, 5, 10), (20, None, 20)])
+def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epochs, global_step):
+    """
+    Ensure that the training loop is bound by `max_steps` and
+    `max_epochs` for repeated calls of `trainer.fit`, and
+    disabled if the limit is reached
+    """
+
+    dataset_len = 200
+    batch_size = 10
+
+    train_data = DataLoader(RandomDataset(32, dataset_len), batch_size=batch_size)
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=max_steps,
+        max_epochs=max_epochs,
+    )
+    trainer.fit(model, train_data)
+    assert trainer.global_step == global_step
+    trainer.fit(model, train_data)
+    assert trainer.global_step == global_step
+
+
+def test_trainer_access_in_configure_optimizers(tmpdir):
+    """
+    Verify that the configure optimizer function can reference the trainer.
+    """
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            assert self.trainer is not None, "Expect to have access to the trainer within `configure_optimizers`"
+
+    train_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer.fit(model, train_data)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_setup_hook_move_to_device_correctly(tmpdir):
+    """
+    Verify that if a user defines a layer in the setup hook function, this is moved to the correct device.
+    """
+
+    class TestModel(BoringModel):
+
+        def setup(self, stage: str) -> None:
+            self.new_layer = torch.nn.Linear(2, 2)
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            # will crash if not moved to correct device
+            output = self.new_layer(output)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
+    # fake data
+    train_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    # model
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
+    trainer.fit(model, train_data)

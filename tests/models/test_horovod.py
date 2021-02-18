@@ -26,13 +26,12 @@ from sklearn.metrics import accuracy_score
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.legacy.horovod_accelerator import HorovodAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _NATIVE_AMP_AVAILABLE
-from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
-from tests.helpers.boring_model import BoringModel
 
 if _HOROVOD_AVAILABLE:
     import horovod
@@ -173,22 +172,17 @@ def test_horovod_amp(tmpdir):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_horovod_transfer_batch_to_gpu(tmpdir):
 
-    class TestTrainingStepModel(EvalModelTemplate):
+    class TestTrainingStepModel(BoringModel):
 
         def training_step(self, batch, *args, **kwargs):
-            x, y = batch
-            assert str(x.device) != 'cpu'
-            assert str(y.device) != 'cpu'
+            assert str(batch.device) != 'cpu'
             return super(TestTrainingStepModel, self).training_step(batch, *args, **kwargs)
 
         def validation_step(self, batch, *args, **kwargs):
-            x, y = batch
-            assert str(x.device) != 'cpu'
-            assert str(y.device) != 'cpu'
+            assert str(batch.device) != 'cpu'
             return super(TestTrainingStepModel, self).validation_step(batch, *args, **kwargs)
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = TestTrainingStepModel(**hparams)
+    model = TestTrainingStepModel()
 
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -205,7 +199,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_horovod_multi_optimizer(tmpdir):
-    model = BasicGAN(**EvalModelTemplate.get_default_hparams())
+    model = BasicGAN()
 
     # fit model
     trainer = Trainer(
@@ -309,13 +303,13 @@ def test_accuracy_metric_horovod():
             accelerator='horovod',
         )
 
-        accelerator_backend = trainer.accelerator_connector.select_accelerator()
-        assert isinstance(accelerator_backend, HorovodAccelerator)
+        assert isinstance(trainer.accelerator_backend, CPUAccelerator)
+        # TODO: test that we selected the correct training_type_plugin based on horovod flags
 
         metric = Accuracy(
             compute_on_step=True,
             dist_sync_on_step=True,
-            dist_sync_fn=accelerator_backend.gather_all_tensors,
+            dist_sync_fn=trainer.training_type_plugin.gather_all_tensors,
             threshold=threshold
         )
 
@@ -342,8 +336,7 @@ def test_accuracy_metric_horovod():
 
 # @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 # def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
-#     hparams = EvalModelTemplate.get_default_hparams()
-#     model = EvalModelTemplate(**hparams)
+#     model = BoringModel()
 #     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 #
 #     num_workers = 8

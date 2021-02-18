@@ -34,6 +34,9 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 class ModelCheckpoint(Callback):
@@ -115,6 +118,14 @@ class ModelCheckpoint(Callback):
         For example, you can change the default last checkpoint name by doing
         ``checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"``
 
+    Raises:
+        MisconfigurationException:
+            If ``save_top_k`` is neither ``None`` nor more than or equal to ``-1``,
+            if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``, or
+            if ``mode`` is none of ``"min"``, ``"max"``, and ``"auto"``.
+        ValueError:
+            If ``trainer.save_checkpoint`` is ``None``.
+
     Example::
 
         >>> from pytorch_lightning import Trainer
@@ -176,9 +187,6 @@ class ModelCheckpoint(Callback):
         self.last_model_path = ""
         self.save_function = None
         self.warned_result_obj = False
-
-        if save_top_k is None and monitor is not None:
-            self.save_top_k = 1
 
         if prefix:
             rank_zero_warn(
@@ -439,7 +447,7 @@ class ModelCheckpoint(Callback):
                 if isinstance(trainer.logger.version, str) else f"version_{trainer.logger.version}"
             )
 
-            version, name = trainer.accelerator_backend.broadcast((version, trainer.logger.name))
+            version, name = trainer.training_type_plugin.broadcast((version, trainer.logger.name))
 
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
@@ -452,16 +460,22 @@ class ModelCheckpoint(Callback):
 
     def _add_backward_monitor_support(self, trainer):
         metrics = trainer.logger_connector.callback_metrics
+        deprecation_warning = False
 
-        # backward compatibility... need to deprecate
         if self.monitor is None and 'val_loss' in metrics:
             self.monitor = 'val_loss'
-
-        if self.monitor is None and 'checkpoint_on' in metrics:
-            self.monitor = 'checkpoint_on'
+            deprecation_warning = True
 
         if self.save_top_k is None and self.monitor is not None:
+            # TODO: Remove `Optional` from `save_top_k` when this is deleted in v1.4
             self.save_top_k = 1
+
+        if deprecation_warning:
+            warning_cache.warn(
+                "Relying on `self.log('val_loss', ...)` to set the ModelCheckpoint monitor is deprecated in v1.2"
+                " and will be removed in v1.4. Please, create your own `mc = ModelCheckpoint(monitor='your_monitor')`"
+                " and use it as `Trainer(callbacks=[mc])`.", DeprecationWarning
+            )
 
     def _validate_monitor_key(self, trainer):
         metrics = trainer.logger_connector.callback_metrics
@@ -520,11 +534,9 @@ class ModelCheckpoint(Callback):
                 trainer,
             )
 
-        accelerator_backend = trainer.accelerator_backend
-
-        if accelerator_backend is not None and accelerator_backend.rpc_enabled:
+        if trainer.training_type_plugin.rpc_enabled:
             # RPCPlugin manages saving all model states
-            accelerator_backend.ddp_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
+            trainer.training_type_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
         else:
             self._save_model(last_filepath, trainer, pl_module)
         if (
@@ -541,6 +553,14 @@ class ModelCheckpoint(Callback):
         current = metrics.get(self.monitor)
         epoch = metrics.get("epoch")
         step = metrics.get("step")
+
+        # when `val_loss` is being logged and no ModelCheckpoint is being provided
+        # `val_loss` will be selected for monitor and need to be reduced to
+        # prevent processes divergence
+        # TODO: Move this logic to logger_connector. This also needs to be fixed for any
+        # other monitor logged value which aren't produced from a Metric.
+        if self.monitor == "val_loss":
+            current = trainer.training_type_plugin.reduce(current, reduce_op="mean")
 
         if self.check_monitor_top_k(current):
             self._update_best_and_save(current, epoch, step, trainer, pl_module, metrics)
@@ -607,6 +627,5 @@ class ModelCheckpoint(Callback):
         the internal state to diverge between ranks.
         """
         exists = self._fs.exists(filepath)
-        if trainer.accelerator_backend is not None:
-            exists = trainer.accelerator_backend.broadcast(exists)
+        exists = trainer.training_type_plugin.broadcast(exists)
         return exists

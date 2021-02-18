@@ -61,6 +61,8 @@ def average_precision(
     Computes the average precision score.
 
     Args:
+        preds: predictions from model (logits or probabilities)
+        target: ground truth values
         num_classes: integer with number of classes. Not nessesary to provide
             for binary problems.
         pos_label: integer determining the positive class. Default is ``None``

@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Iterable, Optional, Union
+from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import (
@@ -26,6 +27,7 @@ from pytorch_lightning.plugins.precision import (
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
 
@@ -71,8 +73,27 @@ class Accelerator(object):
             model: the model to train
         """
         self.connect_training_type_plugin(self.training_type_plugin, model)
-        self.setup_optimizers(trainer, model)
+        self.setup_optimizers(trainer)
         self.connect_precision_plugin(self.precision_plugin)
+
+    def start_training(self, trainer: 'Trainer'):
+        self.training_type_plugin.start_training(trainer)
+
+    def start_testing(self, trainer: 'Trainer'):
+        self.training_type_plugin.start_testing(trainer)
+
+    def start_predicting(self, trainer: 'Trainer'):
+        self.training_type_plugin.start_predicting(trainer)
+
+    def pre_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
+        self.training_type_plugin.pre_dispatch()
+        self.precision_plugin.pre_dispatch()
+
+    def post_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
+        self.training_type_plugin.post_dispatch()
+        self.precision_plugin.post_dispatch()
 
     @property
     def model(self) -> torch.nn.Module:
@@ -138,9 +159,11 @@ class Accelerator(object):
 
         args[0] = batch
 
-        with self.precision_plugin.train_step_context():
-            with self.training_type_plugin.train_step_context():
-                return self.training_type_plugin.training_step(*args)
+        with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
+            return self.training_type_plugin.training_step(*args)
+
+    def post_training_step(self):
+        self.training_type_plugin.post_training_step()
 
     def validation_step(self, args):
         """The actual validation step.
@@ -157,9 +180,8 @@ class Accelerator(object):
 
         args[0] = batch
 
-        with self.precision_plugin.val_step_context():
-            with self.training_type_plugin.val_step_context():
-                return self.training_type_plugin.validation_step(*args)
+        with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
+            return self.training_type_plugin.validation_step(*args)
 
     def test_step(self, args):
         """The actual test step.
@@ -176,9 +198,26 @@ class Accelerator(object):
 
         args[0] = batch
 
-        with self.precision_plugin.test_step_context():
-            with self.training_type_plugin.test_step_context():
-                return self.training_type_plugin.test_step(*args)
+        with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
+            return self.training_type_plugin.test_step(*args)
+
+    def predict(self, args):
+        """The actual predict step.
+
+        Args:
+            args: the arguments for the models predict step. Can consist of the following:
+                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                batch_idx (int): The index of this batch.
+                dataloader_idx (int): The index of the dataloader that produced this batch
+                    (only if multiple predict dataloaders used).
+        """
+        batch = self.to_device(args[0])
+
+        args[0] = batch
+
+        with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
+            return self.training_type_plugin.predict(*args)
 
     def training_step_end(self, output):
         """A hook to do something at the end of the training step
@@ -186,7 +225,7 @@ class Accelerator(object):
         Args:
             output: the output of the training step
         """
-        return output
+        return self.training_type_plugin.training_step_end(output)
 
     def test_step_end(self, output):
         """A hook to do something at the end of the test step
@@ -194,7 +233,7 @@ class Accelerator(object):
         Args:
             output: the output of the test step
         """
-        return output
+        return self.training_type_plugin.test_step_end(output)
 
     def validation_step_end(self, output):
         """A hook to do something at the end of the validation step
@@ -202,23 +241,13 @@ class Accelerator(object):
         Args:
             output: the output of the validation step
         """
-        return output
-
-    def process_dataloader(
-        self, dataloader: Union[Iterable, torch.utils.data.DataLoader]
-    ) -> Union[Iterable, torch.utils.data.DataLoader]:
-        """Wraps the dataloader if necessary
-
-        Args:
-            dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
-        """
-        return dataloader
+        return self.training_type_plugin.validation_step_end(output)
 
     def backward(
         self,
         closure_loss: torch.Tensor,
-        optimizer: torch.optim.Optimizer,
-        opt_idx: int,
+        optimizer: Optimizer,
+        optimizer_idx: int,
         should_accumulate: bool,
         *args,
         **kwargs,
@@ -227,71 +256,44 @@ class Accelerator(object):
 
         Args:
             closure_loss: a tensor holding the loss value to backpropagate
-            optimizer: the optimizer to do the step later on.
-            opt_idx: the index of the optimizer
             should_accumulate: whether to accumulate gradients
         """
+        self.training_type_plugin.pre_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
+
         output = self.precision_plugin.backward(
-            self.lightning_module, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
+            self.lightning_module, closure_loss, optimizer, optimizer_idx, should_accumulate, *args, **kwargs
         )
 
-        # TODO: this is a hack, find a better solution for this (hook?)
-        if isinstance(self.training_type_plugin, HorovodPlugin):
-            optimizer.synchronize()
+        self.training_type_plugin.post_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
 
         return output
 
-    def optimizer_step(
-        self,
-        optimizer: torch.optim.Optimizer,
-        current_epoch: int,
-        batch_idx: int,
-        opt_idx: int,
-        lambda_closure: Callable,
-    ):
+    def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs):
         """performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step
-            current_epoch: current training epoch
-            batch_idx: index of the current batch
             opt_idx: index of the current optimizer
             lambda_closure: closure calculating the loss value
 
         """
-        model_ref = self.lightning_module
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        native_amp = (
-            isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.NATIVE
+        make_optimizer_step = self.precision_plugin.pre_optimizer_step(
+            self.lightning_module, optimizer, opt_idx, lambda_closure, **kwargs
         )
-
-        self.precision_plugin.pre_optimizer_step(optimizer, opt_idx)
-        self.training_type_plugin.pre_optimizer_step(optimizer, opt_idx)
-
-        # model hook
-        res = model_ref.optimizer_step(
-            epoch=current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=lambda_closure,
-            on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=native_amp,
-            using_lbfgs=is_lbfgs,
-        )
-
+        if make_optimizer_step:
+            self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
         self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
-        self.training_type_plugin.post_optimizer_step(optimizer, opt_idx)
-        return res
+        self.training_type_plugin.post_optimizer_step(optimizer, opt_idx, **kwargs)
 
-    def optimizer_zero_grad(
-        self, current_epoch: int, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int
-    ) -> None:
+    def run_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs):
+        self.training_type_plugin.optimizer_step(optimizer, lambda_closure=lambda_closure, **kwargs)
+
+    def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients"""
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
-    def clip_gradients(self, optimizer: torch.optim.Optimizer, clip_val: Union[int, float]) -> None:
+    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """clips all the optimizer parameters to the given value"""
 
         self.precision_plugin.clip_gradients(optimizer, clip_val)
@@ -308,16 +310,18 @@ class Accelerator(object):
         """Hook to do something at the end of the training"""
         pass
 
-    def setup_optimizers(self, trainer: "Trainer", model: LightningModule):
+    def setup_optimizers(self, trainer: "Trainer"):
         """creates optimizers and schedulers
 
         Args:
             trainer: the Trainer, these optimizers should be connected to
             model: the model to be optimized by the created optimizers
         """
-        if trainer.testing is True:
+        if trainer.testing:
             return
-        optimizers, lr_schedulers, optimizer_frequencies = trainer.init_optimizers(model)
+        optimizers, lr_schedulers, optimizer_frequencies = self.training_type_plugin.init_optimizers(
+            trainer=trainer, model=self.lightning_module
+        )
         self.optimizers = optimizers
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
@@ -374,3 +378,39 @@ class Accelerator(object):
 
     def on_save(self, checkpoint):
         return checkpoint
+
+    def barrier(self, name: Optional[str] = None) -> None:
+        self.training_type_plugin.barrier(name=name)
+
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        """Broadcasts an object to all processes"""
+        return self.training_type_plugin.broadcast(obj, src)
+
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        """
+        Function to gather a tensor from several distributed processes
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+
+    def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Wraps the dataloader if necessary
+
+        Args:
+            dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
+        """
+        return self.training_type_plugin.process_dataloader(dataloader)
+
+    @property
+    def results(self) -> Any:
+        """
+        The results of the last training/testing run will be cached here.
+        In distributed training, we make sure to transfer the results to the appropriate master process.
+        """
+        # TODO: improve these docs
+        return self.training_type_plugin.results

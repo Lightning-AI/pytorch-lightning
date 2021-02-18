@@ -21,7 +21,7 @@ from typing import Callable, Iterable, List, Optional, Tuple, Union
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
-from pytorch_lightning.accelerators.legacy.accelerator import Accelerator
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
@@ -62,7 +62,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         is_dataloader = isinstance(dataloader, DataLoader)
-        using_spawn = self.distributed_backend == "ddp_spawn"
+        using_spawn = self.accelerator_connector.distributed_backend == "ddp_spawn"
         if is_dataloader and not on_windows:
             if dataloader.num_workers > 0 and using_spawn:
                 rank_zero_warn(
@@ -97,8 +97,10 @@ class TrainerDataLoadingMixin(ABC):
         if not is_dataloader or is_iterable_ds:
             return dataloader
 
-        need_dist_sampler = self.require_distributed_sampler and not isinstance(dataloader.sampler, DistributedSampler)
-        if self.replace_sampler_ddp and need_dist_sampler:
+        need_dist_sampler = self.accelerator_connector.is_distributed and not isinstance(
+            dataloader.sampler, DistributedSampler
+        )
+        if self.accelerator_connector.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
                     'You seem to have configured a sampler in your DataLoader. This will be replaced '
@@ -195,7 +197,7 @@ class TrainerDataLoadingMixin(ABC):
         """
         self.train_dataloader = self.request_dataloader(model.train_dataloader)
 
-        if (self.overfit_batches > 0):
+        if self.overfit_batches > 0:
             if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
                 rank_zero_warn(
                     'You requested to overfit but enabled training dataloader shuffling.'
@@ -291,7 +293,8 @@ class TrainerDataLoadingMixin(ABC):
             loader = dataloaders[loader_i]
 
             # shuffling in val and test set is bad practice
-            if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
+            modes = ('val', 'test', 'predict')
+            if mode in modes and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
 
                 # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0:
@@ -361,7 +364,7 @@ class TrainerDataLoadingMixin(ABC):
             self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
-        """Resets the validation dataloader and determines the number of batches.
+        """Resets the test dataloader and determines the number of batches.
 
         Args:
             model: The current `LightningModule`
@@ -371,6 +374,17 @@ class TrainerDataLoadingMixin(ABC):
         if has_loader and has_step:
             self.num_test_batches, self.test_dataloaders =\
                 self._reset_eval_dataloader(model, 'test')
+
+    def reset_predict_dataloader(self, model) -> None:
+        """Resets the predict dataloader and determines the number of batches.
+
+        Args:
+            model: The current `LightningModule`
+        """
+        has_loader = is_overridden('predict_dataloader', model)
+        if has_loader:
+            self.num_predict_batches, self.predict_dataloaders =\
+                self._reset_eval_dataloader(model, 'predict')
 
     def request_dataloader(self, dataloader_fx: Callable) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.

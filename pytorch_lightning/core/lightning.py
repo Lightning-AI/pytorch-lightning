@@ -19,6 +19,7 @@ import inspect
 import os
 import re
 import tempfile
+import uuid
 from abc import ABC
 from argparse import Namespace
 from functools import partial
@@ -69,6 +70,7 @@ class LightningModule(
         "global_rank",
         "local_rank",
         "logger",
+        "model_size",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
@@ -273,7 +275,7 @@ class LightningModule(
                     f"Logged key: {name} should not contain information about dataloader_idx."
                 )
 
-            accelerator = self.trainer.accelerator_backend
+            training_type_plugin = self.trainer.training_type_plugin
 
             self._results.log(
                 name,
@@ -289,7 +291,7 @@ class LightningModule(
                 sync_dist,
                 sync_dist_op,
                 sync_dist_group,
-                accelerator.sync_tensor,
+                training_type_plugin.reduce,
                 self._current_dataloader_idx,
                 self.device,
             )
@@ -348,10 +350,46 @@ class LightningModule(
                 tbptt_reduce_fx=tbptt_reduce_fx,
             )
 
-    def write_prediction(self, name, value, filename='predictions.pt'):
+    def write_prediction(
+        self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'
+    ):
+        """
+        Write predictions to disk using ``torch.save``
+
+        Example::
+
+            self.write_prediction('pred', torch.tensor(...), filename='my_predictions.pt')
+
+        Args:
+            name: a string indicating the name to save the predictions under
+            value: the predictions, either a single :class:`~torch.Tensor` or a list of them
+            filename: name of the file to save the predictions to
+
+        Note:
+            when running in distributed mode, calling ``write_prediction`` will create a file for
+            each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
+
+        """
         self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
 
-    def write_prediction_dict(self, predictions_dict, filename='predictions.pt'):
+    def write_prediction_dict(self, predictions_dict: Dict[str, Any], filename: str = 'predictions.pt'):
+        """
+        Write a dictonary of predictions to disk at once using ``torch.save``
+
+        Example::
+
+            pred_dict = {'pred1': torch.tensor(...), 'pred2': torch.tensor(...)}
+            self.write_prediction_dict(pred_dict)
+
+        Args:
+            predictions_dict: dict containing predictions, where each prediction should
+                either be single :class:`~torch.Tensor` or a list of them
+
+        Note:
+            when running in distributed mode, calling ``write_prediction_dict`` will create a file for
+            each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
+
+        """
         for k, v in predictions_dict.items():
             self.write_prediction(k, v, filename)
 
@@ -1004,6 +1042,32 @@ class LightningModule(
         """
         return self(batch)
 
+    def configure_callbacks(self):
+        """
+        Configure model-specific callbacks.
+        When the model gets attached, e.g., when ``.fit()`` or ``.test()`` gets called,
+        the list returned here will be merged with the list of callbacks passed to the Trainer's ``callbacks`` argument.
+        If a callback returned here has the same type as one or several callbacks already present in
+        the Trainer's callbacks list, it will take priority and replace them.
+        In addition, Lightning will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        callbacks run last.
+
+        Return:
+            A list of callbacks which will extend the list of callbacks in the Trainer.
+
+        Example::
+
+            def configure_callbacks(self):
+                early_stop = EarlyStopping(monitor"val_acc", mode="max")
+                checkpoint = ModelCheckpoint(monitor="val_loss")
+                return [early_stop, checkpoint]
+
+        Note:
+            Certain callback methods like :meth:`~pytorch_lightning.callbacks.base.Callback.on_init_start`
+            will never be invoked on the new callbacks returned here.
+        """
+        return []
+
     def configure_optimizers(self):
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
@@ -1122,7 +1186,7 @@ class LightningModule(
         """
         rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
-    def manual_backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
+    def manual_backward(self, loss: Tensor, optimizer: Optional[Optimizer] = None, *args, **kwargs) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -1143,12 +1207,18 @@ class LightningModule(
                 self.manual_backward(loss, opt_a)
                 opt_a.step()
         """
+        if optimizer is not None:
+            rank_zero_warn(
+                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4",
+                DeprecationWarning
+            )
+
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
 
         # backward
         self._running_manual_backward = True
-        self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
+        self.trainer.train_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
         self._running_manual_backward = False
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
@@ -1243,7 +1313,7 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer.
 
-        .. tip:: With `Trainer(enable_pl_optimizer=True)`, you can user `optimizer.step()` directly
+        .. tip:: With ``Trainer(enable_pl_optimizer=True)``, you can use ``optimizer.step()`` directly
          and it will handle zero_grad, accumulated gradients, AMP, TPU and more automatically for you.
 
         Warning:
@@ -1309,7 +1379,7 @@ class LightningModule(
         """
         if not isinstance(optimizer, LightningOptimizer):
             # wraps into LightingOptimizer only for running step
-            optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+            optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, optimizer_idx)
         optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
@@ -1763,3 +1833,12 @@ class LightningModule(
             return "hparams"
 
         return None
+
+    @property
+    def model_size(self) -> float:
+        # todo: think about better way without need to dump model to drive
+        tmp_name = f"{uuid.uuid4().hex}.pt"
+        torch.save(self.state_dict(), tmp_name)
+        size_mb = os.path.getsize(tmp_name) / 1e6
+        os.remove(tmp_name)
+        return size_mb
