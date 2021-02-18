@@ -1640,7 +1640,7 @@ class LightningModule(
         init_args = get_init_args(frame)
         assert init_args, "failed to inspect the self init"
 
-        if ignore:
+        if ignore is not None:
             if isinstance(ignore, str):
                 ignore = [ignore]
             if isinstance(ignore, list):
