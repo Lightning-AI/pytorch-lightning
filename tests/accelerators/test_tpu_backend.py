@@ -79,7 +79,7 @@ def test_if_test_works_after_train(tmpdir):
     model = BoringModel()
     trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
-    assert trainer.test(model) == 1
+    assert len(trainer.test(model)) == 1
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
@@ -119,4 +119,4 @@ def test_if_weights_tied(tmpdir, capsys=None):
         assert result
 
     assert not list(filter(lambda x: 'The model layers do not match' in str(x), warnings.list))
-    assert trainer.test(model) == 1
+    assert len(trainer.test(model)) == 1
