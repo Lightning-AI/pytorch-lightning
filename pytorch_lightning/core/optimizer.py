@@ -101,11 +101,11 @@ class LightningOptimizer:
         return optimizer
 
     def _toggle_model(self):
-        model_ref = self._trainer.get_model()
+        model_ref = self._trainer.lightning_module
         model_ref.toggle_optimizer(self, self._optimizer_idx)
 
     def _untoggle_model(self):
-        model_ref = self._trainer.get_model()
+        model_ref = self._trainer.lightning_module
         model_ref.untoggle_optimizer(self)
 
     @contextmanager
@@ -129,7 +129,7 @@ class LightningOptimizer:
     def __optimizer_step(self, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
         trainer = self._trainer
         optimizer = self._optimizer
-        model = trainer.get_model()
+        model = trainer.lightning_module
 
         with trainer.profiler.profile(profiler_name):
             trainer.accelerator.optimizer_step(optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)

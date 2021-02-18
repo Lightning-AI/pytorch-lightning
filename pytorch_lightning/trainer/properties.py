@@ -240,7 +240,7 @@ class TrainerProperties(ABC):
     @property
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
-        ref_model = self.get_model()
+        ref_model = self.lightning_module
         ref_model = cast(LightningModule, ref_model)
 
         standard_metrics = ref_model.get_progress_bar_dict()
@@ -265,7 +265,7 @@ class TrainerProperties(ABC):
     @property
     def enable_validation(self) -> bool:
         """ Check if we should run validation during training. """
-        model_ref = self.get_model()
+        model_ref = self.lightning_module
         val_loop_enabled = is_overridden('validation_step', model_ref) and self.limit_val_batches > 0
         return val_loop_enabled
 
@@ -346,11 +346,6 @@ class TrainerProperties(ABC):
                 on the backend.
         """
         self.accelerator.model = model
-
-    def get_model(self) -> LightningModule:
-        # TODO: rename this to lightning_module (see training type plugin)
-        # backward compatible
-        return self.lightning_module
 
     @property
     def lightning_optimizers(self) -> List[LightningOptimizer]:

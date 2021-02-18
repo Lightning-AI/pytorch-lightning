@@ -45,7 +45,7 @@ from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConn
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import DeprecatedDistDeviceAttributes
+from pytorch_lightning.trainer.deprecated_api import DeprecatedDistDeviceAttributes, DeprecatedModelAttributes
 from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -80,6 +80,7 @@ class Trainer(
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     DeprecatedDistDeviceAttributes,
+    DeprecatedModelAttributes,
 ):
 
     @overwrite_by_env_vars
@@ -582,7 +583,7 @@ class Trainer(
         # Pre-train
         # --------------------------
         # on pretrain routine start
-        ref_model = self.get_model()
+        ref_model = self.lightning_module
 
         self.on_pretrain_routine_start(ref_model)
         if self.is_function_implemented("on_pretrain_routine_start"):
@@ -610,15 +611,15 @@ class Trainer(
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        self.run_sanity_check(self.get_model())
+        self.run_sanity_check(self.lightning_module)
 
         # set stage for logging
-        self._set_running_stage(RunningStage.TRAINING, self.get_model())
+        self._set_running_stage(RunningStage.TRAINING, self.lightning_module)
 
         self.checkpoint_connector.has_trained = False
 
         # enable train mode
-        model = self.get_model()
+        model = self.lightning_module
         model.train()
         torch.set_grad_enabled(True)
 
@@ -677,7 +678,9 @@ class Trainer(
     def run_evaluation(self, max_batches=None, on_epoch=False):
 
         # used to know if we are logging for val, test + reset cached results
-        self._set_running_stage(RunningStage.TESTING if self.testing else RunningStage.EVALUATING, self.get_model())
+        self._set_running_stage(
+            RunningStage.TESTING if self.testing else RunningStage.EVALUATING, self.lightning_module
+        )
         self.logger_connector.reset()
 
         # bookkeeping
@@ -693,7 +696,7 @@ class Trainer(
         # enable eval mode + no grads
         self.evaluation_loop.on_evaluation_model_eval()
         # ref model
-        model = self.get_model()
+        model = self.lightning_module
         model.zero_grad()
         torch.set_grad_enabled(False)
 
@@ -810,7 +813,7 @@ class Trainer(
             return []
 
         # ref model
-        model = self.get_model()
+        model = self.lightning_module
 
         # enable eval mode + no grads
         self.predict_loop.on_predict_model_eval()
@@ -904,7 +907,7 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
-        self._set_running_stage(RunningStage.TESTING, model or self.get_model())
+        self._set_running_stage(RunningStage.TESTING, model or self.lightning_module)
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -913,7 +916,7 @@ class Trainer(
             )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
+        self.data_connector.attach_datamodule(model or self.lightning_module, datamodule, 'test')
 
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
@@ -921,11 +924,11 @@ class Trainer(
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
         self.teardown('test')
-        self._set_running_stage(None, model or self.get_model())
+        self._set_running_stage(None, model or self.lightning_module)
         return results
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
-        model = self.get_model()
+        model = self.lightning_module
 
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
@@ -961,7 +964,7 @@ class Trainer(
 
         # teardown
         if self.is_function_implemented('teardown'):
-            model_ref = self.get_model()
+            model_ref = self.lightning_module
             model_ref.teardown('test')
 
         return results
@@ -1011,7 +1014,7 @@ class Trainer(
         # --------------------
         # If you supply a datamodule you can't supply dataloaders
 
-        model = model or self.get_model()
+        model = model or self.lightning_module
 
         self._set_running_stage(RunningStage.PREDICTING, model)
 
@@ -1072,7 +1075,7 @@ class Trainer(
         # on_before_zero_grad is called within training_step
         if "batch_start" in hook_name or "on_before_zero_grad" in hook_name:
             return True
-        model_ref = self.get_model()
+        model_ref = self.lightning_module
         if model_ref is not None:
             # used to track current hook name called
             model_ref._results = Result()
@@ -1080,7 +1083,7 @@ class Trainer(
         return False
 
     def _cache_logged_metrics(self):
-        model_ref = self.get_model()
+        model_ref = self.lightning_module
         if model_ref is not None:
             # capture logging for this hook
             self.logger_connector.cache_logged_metrics()
@@ -1099,7 +1102,7 @@ class Trainer(
 
             # next call hook in lightningModule
             output = None
-            model_ref = self.get_model()
+            model_ref = self.lightning_module
             if is_overridden(hook_name, model_ref):
                 hook_fx = getattr(model_ref, hook_name)
                 output = hook_fx(*args, **kwargs)

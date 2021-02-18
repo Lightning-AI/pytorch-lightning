@@ -25,7 +25,7 @@ class ModelConnector:
         self.trainer = trainer
 
     def copy_trainer_model_properties(self, model):
-        ref_model = self._get_reference_model(model)
+        ref_model = self.trainer.lightning_module or model
 
         automatic_optimization = ref_model.automatic_optimization and self.trainer.train_loop.automatic_optimization
         self.trainer.train_loop.automatic_optimization = automatic_optimization
@@ -37,11 +37,3 @@ class ModelConnector:
             m.use_amp = self.trainer.amp_backend is not None
             m.testing = self.trainer.testing
             m.precision = self.trainer.precision
-
-    def get_model(self):
-        return self._get_reference_model(self.trainer.model)
-
-    def _get_reference_model(self, model):
-        if self.trainer.accelerator.lightning_module:
-            return self.trainer.accelerator.lightning_module
-        return model
