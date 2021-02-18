@@ -319,6 +319,9 @@ Override to alter or apply augmentations to your batch before it is transferred 
             return batch
 
 
+.. warning::
+    The hook signature will change once the dataloader_idx is supported as an argument.
+
 .. note:: This hook only runs on single GPU training and DDP (no data-parallel).
 
 
@@ -333,6 +336,9 @@ Override to alter or apply augmentations to your batch after it is transferred t
             batch['x'] = gpu_transforms(batch['x'])
             return batch
 
+
+.. warning::
+    The hook signature will change once the dataloader_idx is supported as an argument.
 
 .. note::
     This hook only runs on single GPU training and DDP (no data-parallel). This hook

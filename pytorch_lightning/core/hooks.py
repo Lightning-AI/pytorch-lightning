@@ -620,6 +620,8 @@ class DataHooks:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
+        .. warning:: The hook signature will change once the dataloader_idx is supported as an argument.
+
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
 
@@ -644,6 +646,8 @@ class DataHooks:
     def on_after_batch_transfer(self, batch):
         """
         Override to alter or apply batch augmentations to your batch after it is transferred to the device.
+
+        .. warning:: The hook signature will change once the dataloader_idx is supported as an argument.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
