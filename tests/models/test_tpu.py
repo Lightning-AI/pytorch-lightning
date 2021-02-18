@@ -226,8 +226,16 @@ def test_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, tpu_cores=8,)
-    trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader(),)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        tpu_cores=8,
+    )
+    trainer.fit(
+        model,
+        train_dataloader=model.train_dataloader(),
+        val_dataloaders=model.val_dataloader(),
+    )
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 

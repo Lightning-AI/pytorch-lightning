@@ -33,18 +33,18 @@ def run_model_test_without_loggers(
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
-    pretrained_model = load_model_from_checkpoint(
+    model2 = load_model_from_checkpoint(
         trainer.logger, trainer.checkpoint_callback.best_model_path, type(model)
     )
 
     # test new model accuracy
-    test_loaders = model.test_dataloader() if not data else data.test_dataloader()
+    test_loaders = model2.test_dataloader() if not data else data.test_dataloader()
     if not isinstance(test_loaders, list):
         test_loaders = [test_loaders]
 
-    if not isinstance(model, BoringModel):
+    if not isinstance(model2, BoringModel):
         for dataloader in test_loaders:
-            run_prediction_eval_model_template(model, dataloader, min_acc=min_acc)
+            run_prediction_eval_model_template(model2, dataloader, min_acc=min_acc)
 
 
 def run_model_test(
