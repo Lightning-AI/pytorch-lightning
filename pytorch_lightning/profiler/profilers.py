@@ -22,16 +22,19 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import numpy as np
 import torch
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_only
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if _TORCH_GREATER_EQUAL_1_8:
+    from torch.profiler import ProfilerActivity, tensorboard_trace_handler
 
 
 class BaseProfiler(ABC):
@@ -287,7 +290,7 @@ class AdvancedProfiler(BaseProfiler):
             self.output_file.close()
 
 
-class PyTorchProfiler(BaseProfiler):
+class LegacyPyTorchProfiler(BaseProfiler):
 
     PROFILED_FUNCTIONS = ("training_step_and_backward", "validation_step", "test_step")
     AVAILABLE_SORT_KEYS = (
@@ -543,3 +546,64 @@ class PyTorchProfiler(BaseProfiler):
         """Close profiler's stream."""
         if self.output_file:
             self.output_file.close()
+
+
+class PyTorchProfiler(LegacyPyTorchProfiler):
+
+    def __init__(
+        self,
+        output_filename: Optional[str] = None,
+        enabled: bool = True,
+        use_cpu: bool = True,
+        use_cuda: bool = False,
+        activities: Optional[List['ProfilerActivity']] = None,
+        schedule: Optional[Callable] = None,
+        on_trace_ready: Optional[Callable] = None,
+        record_shapes: bool = False,
+        profile_memory: bool = False,
+        with_stack: bool = False,
+        with_flops: bool = False,
+        row_limit: int = 20,
+        sort_by_key: Optional[str] = None,
+        profiled_functions: Optional[List] = None,
+        local_rank: Optional[int] = None,
+    ):
+
+        os.environ["USE_KINETO"] = '1'
+
+        self.sort_by_key = sort_by_key
+
+        if isinstance(self.sort_by_key, str) and self.sort_by_key not in self.AVAILABLE_SORT_KEYS:
+            raise MisconfigurationException(
+                f"Found sort_by_key: {self.sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
+            )
+
+        self.output_filename = output_filename
+        self.enabled = enabled
+        self.use_cpu = use_cpu
+        self.use_cuda = use_cuda
+        self.activities = activities or [ProfilerActivity.CPU] * use_cpu + [ProfilerActivity.CUDA] * use_cuda
+        self.schedule = schedule
+        self.on_trace_ready = on_trace_ready
+        self.record_shapes = record_shapes
+        self.profile_memory = profile_memory
+        self.with_stack = with_stack
+        self.with_flops = with_flops
+        self.profiled_functions = profiled_functions
+        self.local_rank = local_rank
+
+        self.profiled_actions = {}
+        self.context_names = {}
+        self.running_stack = []
+        self.profiler = None
+
+        self.output_fname = output_filename
+        self.output_file = None
+        if local_rank is not None:
+            super().on_train_start(local_rank=local_rank)
+            import pdb
+            pdb.set_trace()
+            self.on_train_start = super(LegacyPyTorchProfiler, self).on_train_start
+
+    def _start(self, action_name: str) -> None:
+        self._create_profiler(action_name, torch.profiler.profile)

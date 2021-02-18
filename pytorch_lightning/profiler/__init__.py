@@ -197,10 +197,18 @@ To visualize the profiled operation, you can either:
 from pytorch_lightning.profiler.profilers import (
     AdvancedProfiler,
     BaseProfiler,
+    LegacyPyTorchProfiler,
     PassThroughProfiler,
     PyTorchProfiler,
     SimpleProfiler,
 )
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
+
+if not _TORCH_GREATER_EQUAL_1_8:
+
+    class PyTorchProfiler(LegacyPyTorchProfiler):
+        pass
+
 
 __all__ = [
     'BaseProfiler',
