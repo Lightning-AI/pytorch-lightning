@@ -64,7 +64,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Added `ModelPruning` Callback ([#5618](https://github.com/PyTorchLightning/pytorch-lightning/pull/5618),
-    [#5825](https://github.com/PyTorchLightning/pytorch-lightning/pull/5825))
+    [#5825](https://github.com/PyTorchLightning/pytorch-lightning/pull/5825),
+    [#6045](https://github.com/PyTorchLightning/pytorch-lightning/pull/6045))
 
 
 - Added `PyTorchProfiler` ([#5560](https://github.com/PyTorchLightning/pytorch-lightning/pull/5560))
@@ -85,13 +86,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `PredictLoop` object ([#5752](https://github.com/PyTorchLightning/pytorch-lightning/pull/5752))
 
 
-- Added `QuantizationAwareTraining` callback ([#5706](https://github.com/PyTorchLightning/pytorch-lightning/pull/5706))
+- Added `QuantizationAwareTraining` callback ([#5706](https://github.com/PyTorchLightning/pytorch-lightning/pull/5706),
+    [#6040](https://github.com/PyTorchLightning/pytorch-lightning/pull/6040))
 
 
 - Added `LightningModule.configure_callbacks` to enable the definition of model-specific callbacks ([#5621](https://github.com/PyTorchLightning/pytorch-lightning/pull/5621))
 
 
-- Added `dim` to `PSNR` metric for mean-squared-error reduction ([#5957](https://github.com/PyTorchLightning/pytorch-lightning/pull/5957))
+- Added `dim` to `PSNR` metric for mean-squared-error reduction ([#5957](https://github.com/PyTorchLightning/pytorch-lightning/pull/5957),
+    [#5957](https://github.com/PyTorchLightning/pytorch-lightning/pull/5957))
 
 
 - Added promxial policy optimization template to pl_examples ([#5394](https://github.com/PyTorchLightning/pytorch-lightning/pull/5394))
@@ -116,6 +119,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Added `Trainer` flag to activate Stochastic Weight Averaging (SWA) `Trainer(stochastic_weight_avg=True)` ([#6038](https://github.com/PyTorchLightning/pytorch-lightning/pull/6038))
+
+
+- Added DeepSpeed integration ([#5954](https://github.com/PyTorchLightning/pytorch-lightning/pull/5954),
+    [#6042](https://github.com/PyTorchLightning/pytorch-lightning/pull/6042))
 
 
 ### Changed
@@ -170,6 +177,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Added Plugins for TPU training ([#5719](https://github.com/PyTorchLightning/pytorch-lightning/pull/5719))
     * Added RPC and Sharded plugins ([#5732](https://github.com/PyTorchLightning/pytorch-lightning/pull/5732))
     * Added missing `LightningModule`-wrapper logic to new plugins and accelerator ([#5734](https://github.com/PyTorchLightning/pytorch-lightning/pull/5734))
+    * Moved device-specific teardown logic from training loop to accelerator (#5973)
+    * Moved accelerator_connector.py to the connectors subfolder (#6033)
+    * Trainer only references accelerator (#6039)
+    * Made parallel devices optional across all plugins (#6051)
+    * Cleaning ([#5948](https://github.com/PyTorchLightning/pytorch-lightning/pull/5948),
+        [#5949](https://github.com/PyTorchLightning/pytorch-lightning/pull/5949),
+        [#5950](https://github.com/PyTorchLightning/pytorch-lightning/pull/5950))
 
 
 - Enabled `self.log` in callbacks ([#5094](https://github.com/PyTorchLightning/pytorch-lightning/pull/5094))
@@ -210,6 +224,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - LightningOptimizer manual optimizer is more flexible and expose `toggle_model` ([#5771](https://github.com/PyTorchLightning/pytorch-lightning/pull/5771))
+
+
+- `MlflowLogger` limit parameter value length to 250 char (#5893)
+
+
+- Re-introduced fix for Hydra directory sync with multiple process (#5993)
 
 
 
@@ -319,6 +339,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed synchronization issues with TPU training ([#6027](https://github.com/PyTorchLightning/pytorch-lightning/pull/6027))
 
+
+- Fixed `hparams.yaml` saved twice when using `TensorBoardLogger` (#5953)
+
+
+- Fixed basic examples ([#5912](https://github.com/PyTorchLightning/pytorch-lightning/pull/5912),
+    [#5985](https://github.com/PyTorchLightning/pytorch-lightning/pull/5985))
+
+
+- Fixed `fairscale` compatible with PT 1.8 (#5996)
+
+
+- Ensured `process_dataloader` is called when `tpu_cores > 1` to use Parallel DataLoader (#6015)
+
+
+- Attempted SLURM auto resume call when non-shell call fails (#6002)
+
+
+- Fixed wrapping optimizers upon assignment (#6006)
+
+
+- Fixed allowing hashing of metrics with lists in their state (#5939)
 
 
 ## [1.1.8] - 2021-02-08
