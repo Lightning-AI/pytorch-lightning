@@ -177,10 +177,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Added Plugins for TPU training ([#5719](https://github.com/PyTorchLightning/pytorch-lightning/pull/5719))
     * Added RPC and Sharded plugins ([#5732](https://github.com/PyTorchLightning/pytorch-lightning/pull/5732))
     * Added missing `LightningModule`-wrapper logic to new plugins and accelerator ([#5734](https://github.com/PyTorchLightning/pytorch-lightning/pull/5734))
-    * Moved device-specific teardown logic from training loop to accelerator (#5973)
-    * Moved accelerator_connector.py to the connectors subfolder (#6033)
-    * Trainer only references accelerator (#6039)
-    * Made parallel devices optional across all plugins (#6051)
+    * Moved device-specific teardown logic from training loop to accelerator ([#5973](https://github.com/PyTorchLightning/pytorch-lightning/pull/5973))
+    * Moved accelerator_connector.py to the connectors subfolder ([#6033](https://github.com/PyTorchLightning/pytorch-lightning/pull/6033))
+    * Trainer only references accelerator ([#6039](https://github.com/PyTorchLightning/pytorch-lightning/pull/6039))
+    * Made parallel devices optional across all plugins ([#6051](https://github.com/PyTorchLightning/pytorch-lightning/pull/6051))
     * Cleaning ([#5948](https://github.com/PyTorchLightning/pytorch-lightning/pull/5948),
         [#5949](https://github.com/PyTorchLightning/pytorch-lightning/pull/5949),
         [#5950](https://github.com/PyTorchLightning/pytorch-lightning/pull/5950))
@@ -226,10 +226,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - LightningOptimizer manual optimizer is more flexible and expose `toggle_model` ([#5771](https://github.com/PyTorchLightning/pytorch-lightning/pull/5771))
 
 
-- `MlflowLogger` limit parameter value length to 250 char (#5893)
+- `MlflowLogger` limit parameter value length to 250 char ([#5893](https://github.com/PyTorchLightning/pytorch-lightning/pull/5893))
 
 
-- Re-introduced fix for Hydra directory sync with multiple process (#5993)
+- Re-introduced fix for Hydra directory sync with multiple process ([#5993](https://github.com/PyTorchLightning/pytorch-lightning/pull/5993))
 
 
 
@@ -340,26 +340,26 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed synchronization issues with TPU training ([#6027](https://github.com/PyTorchLightning/pytorch-lightning/pull/6027))
 
 
-- Fixed `hparams.yaml` saved twice when using `TensorBoardLogger` (#5953)
+- Fixed `hparams.yaml` saved twice when using `TensorBoardLogger` ([#5953](https://github.com/PyTorchLightning/pytorch-lightning/pull/5953))
 
 
 - Fixed basic examples ([#5912](https://github.com/PyTorchLightning/pytorch-lightning/pull/5912),
     [#5985](https://github.com/PyTorchLightning/pytorch-lightning/pull/5985))
 
 
-- Fixed `fairscale` compatible with PT 1.8 (#5996)
+- Fixed `fairscale` compatible with PT 1.8 ([#5996](https://github.com/PyTorchLightning/pytorch-lightning/pull/5996))
 
 
-- Ensured `process_dataloader` is called when `tpu_cores > 1` to use Parallel DataLoader (#6015)
+- Ensured `process_dataloader` is called when `tpu_cores > 1` to use Parallel DataLoader ([#6015](https://github.com/PyTorchLightning/pytorch-lightning/pull/6015))
 
 
-- Attempted SLURM auto resume call when non-shell call fails (#6002)
+- Attempted SLURM auto resume call when non-shell call fails ([#6002](https://github.com/PyTorchLightning/pytorch-lightning/pull/6002))
 
 
-- Fixed wrapping optimizers upon assignment (#6006)
+- Fixed wrapping optimizers upon assignment ([#6006](https://github.com/PyTorchLightning/pytorch-lightning/pull/6006))
 
 
-- Fixed allowing hashing of metrics with lists in their state (#5939)
+- Fixed allowing hashing of metrics with lists in their state ([#5939](https://github.com/PyTorchLightning/pytorch-lightning/pull/5939))
 
 
 ## [1.1.8] - 2021-02-08
