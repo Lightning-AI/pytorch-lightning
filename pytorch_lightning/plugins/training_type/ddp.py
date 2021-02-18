@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 from time import sleep
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -58,11 +58,11 @@ class DDPPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        parallel_devices,
-        num_nodes=1,
+        parallel_devices: Optional[List[torch.device]] = None,
+        num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
-        sync_batchnorm=False,
-        **kwargs: Dict[str, Any],
+        sync_batchnorm: bool = False,
+        **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.interactive_ddp_procs = []

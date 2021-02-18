@@ -423,7 +423,8 @@ def test_full_loop_dp(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
-def test_dm_transfer_batch_to_device(get_module_mock):
+def test_dm_apply_batch_transfer_handler(get_module_mock):
+    expected_device = torch.device('cuda', 0)
 
     class CustomBatch:
 
@@ -432,14 +433,30 @@ def test_dm_transfer_batch_to_device(get_module_mock):
             self.targets = data[1]
 
     class CurrentTestDM(LightningDataModule):
+        rank = 0
+        transfer_batch_to_device_hook_rank = None
+        on_before_batch_transfer_hook_rank = None
+        on_after_batch_transfer_hook_rank = None
 
-        hook_called = False
+        def on_before_batch_transfer(self, batch):
+            self.on_before_batch_transfer_hook_rank = self.rank
+            self.rank += 1
+            batch.samples += 1
+            return batch
 
-        def transfer_batch_to_device(self, data, device):
-            self.hook_called = True
-            data.samples = data.samples.to(device)
-            data.targets = data.targets.to(device)
-            return data
+        def on_after_batch_transfer(self, batch):
+            assert batch.samples.device == batch.targets.device == expected_device
+            self.on_after_batch_transfer_hook_rank = self.rank
+            self.rank += 1
+            batch.targets *= 2
+            return batch
+
+        def transfer_batch_to_device(self, batch, device):
+            self.transfer_batch_to_device_hook_rank = self.rank
+            self.rank += 1
+            batch.samples = batch.samples.to(device)
+            batch.targets = batch.targets.to(device)
+            return batch
 
     dm = CurrentTestDM()
     model = BoringModel()
@@ -452,10 +469,18 @@ def test_dm_transfer_batch_to_device(get_module_mock):
     if is_overridden('transfer_batch_to_device', dm):
         model.transfer_batch_to_device = dm.transfer_batch_to_device
 
-    batch_gpu = trainer.accelerator.batch_to_device(batch, torch.device('cuda:0'))
-    expected = torch.device('cuda', 0)
-    assert dm.hook_called
-    assert batch_gpu.samples.device == batch_gpu.targets.device == expected
+    model.on_before_batch_transfer = dm.on_before_batch_transfer
+    model.transfer_batch_to_device = dm.transfer_batch_to_device
+    model.on_after_batch_transfer = dm.on_after_batch_transfer
+
+    batch_gpu = trainer.accelerator.batch_to_device(batch, expected_device)
+
+    assert dm.on_before_batch_transfer_hook_rank == 0
+    assert dm.transfer_batch_to_device_hook_rank == 1
+    assert dm.on_after_batch_transfer_hook_rank == 2
+    assert batch_gpu.samples.device == batch_gpu.targets.device == expected_device
+    assert torch.allclose(batch_gpu.samples.cpu(), torch.ones(5, 32))
+    assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
 def test_dm_reload_dataloaders_every_epoch(tmpdir):

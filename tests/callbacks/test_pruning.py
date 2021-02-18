@@ -76,7 +76,8 @@ def train_with_pruning_callback(
         "pruning_fn": pruning_fn,
         "amount": 0.3,
         "use_global_unstructured": use_global_unstructured,
-        "use_lottery_ticket_hypothesis": use_lottery_ticket_hypothesis
+        "use_lottery_ticket_hypothesis": use_lottery_ticket_hypothesis,
+        "verbose": 1,
     }
     if parameters_to_prune:
         pruning_kwargs["parameters_to_prune"] = [(model.layer.mlp_1, "weight"), (model.layer.mlp_2, "weight")]
