@@ -63,7 +63,7 @@ Quantization
 
 Model quantization is another performance optimization technique that allows speeding up inference and decreasing memory requirements by performing computations and storing tensors at lower bitwidths (such as INT8 or FLOAT16) than floating-point precision. Moreover, smaller models also speed up model loading.
 
-Quantization Aware Training (QAT) mimics the effects of quantization during training: all computations are carried out in floating points while training, simulating the effects of ints, and weights and activations are quantized into lower precision only once training is completed.
+Quantization Aware Training (QAT) mimics the effects of quantization during training: all computations are carried out in floating points while training, fake_quant simulats the effects of ints, and weights and activations are quantized into lower precision only once training is completed.
 
 Quantization is useful when serving large models on machines with limited memory or when there's a need to switch between models where each model has to be loaded from the drive.
 
