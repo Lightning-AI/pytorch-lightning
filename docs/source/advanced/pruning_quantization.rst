@@ -65,7 +65,7 @@ Model quantization is another performance optimization technique that allows spe
 
 Quantization Aware Training (QAT) mimics the effects of quantization during training: all computations are carried out in floating points while training, fake_quant simulats the effects of ints, and weights and activations are quantized into lower precision only once training is completed.
 
-Quantization is useful when it is required to serve large models on machines with limited memory, or when there's a need to switch between models and reducing the IO time is important i.e monolingual speech recognition models across multiple languages.
+Quantization is useful when it is required to serve large models on machines with limited memory, or when there's a need to switch between models and reducing the IO time is important i.e switching between monolingual speech recognition models across multiple languages.
 
 Lightning includes :class:`~pytorch_lightning.callbacks.QuantizationAwareTraining` callback (using PyTorch's native quantization, read more `here <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`__), which allows creating fully quantized models (compatible with torchscript).
 
