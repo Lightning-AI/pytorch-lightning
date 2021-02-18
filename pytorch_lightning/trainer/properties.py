@@ -63,11 +63,6 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.accelerator
 
     @property
-    def accelerator_backend(self) -> Accelerator:
-        # for backward compatibility
-        return self.accelerator
-
-    @property
     def distributed_backend(self) -> Optional[str]:
         # for backward compatibility
         return self.accelerator_connector.distributed_backend
@@ -138,7 +133,7 @@ class TrainerProperties(ABC):
         else:
             dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
 
-        dirpath = self.accelerator_backend.broadcast(dirpath)
+        dirpath = self.accelerator.broadcast(dirpath)
         return dirpath
 
     @property
@@ -245,7 +240,7 @@ class TrainerProperties(ABC):
     @property
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
-        ref_model = self.get_model()
+        ref_model = self.lightning_module
         ref_model = cast(LightningModule, ref_model)
 
         standard_metrics = ref_model.get_progress_bar_dict()
@@ -270,7 +265,7 @@ class TrainerProperties(ABC):
     @property
     def enable_validation(self) -> bool:
         """ Check if we should run validation during training. """
-        model_ref = self.get_model()
+        model_ref = self.lightning_module
         val_loop_enabled = is_overridden('validation_step', model_ref) and self.limit_val_batches > 0
         return val_loop_enabled
 
@@ -352,11 +347,6 @@ class TrainerProperties(ABC):
         """
         self.accelerator.model = model
 
-    def get_model(self) -> LightningModule:
-        # TODO: rename this to lightning_module (see training type plugin)
-        # backward compatible
-        return self.lightning_module
-
     @property
     def lightning_optimizers(self) -> List[LightningOptimizer]:
         if self._lightning_optimizers is None:
@@ -365,7 +355,7 @@ class TrainerProperties(ABC):
 
     @property
     def lightning_module(self) -> LightningModule:
-        return self.accelerator_backend.lightning_module
+        return self.accelerator.lightning_module
 
     @property
     def optimizers(self) -> Optional[List[Optimizer]]:

@@ -63,6 +63,12 @@ class StochasticWeightAveraging(Callback):
 
         .. warning:: ``StochasticWeightAveraging`` is currently not supported for multiple optimizers/schedulers.
 
+        SWA can easily be activated directly from the Trainer as follow:
+
+        .. code-block:: python
+
+            Trainer(stochastic_weight_avg=True)
+
         Arguments:
 
             swa_epoch_start: If provided as int, the procedure will start from
