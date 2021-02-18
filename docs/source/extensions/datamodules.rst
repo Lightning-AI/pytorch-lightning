@@ -183,7 +183,7 @@ To define a DataModule define 5 methods:
 
 prepare_data
 ^^^^^^^^^^^^
-Use this method to do things that might write to disk or that need to be done only from a single GPU in distributed
+Use this method to do things that might write to disk or that need to be done only from a single process in distributed
 settings.
 
 - download
@@ -199,7 +199,7 @@ settings.
             MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
 
 
-.. warning:: ``prepare_data`` is called from a single GPU. Do not use it to assign state (``self.x = y``).
+.. warning:: ``prepare_data`` is called from a single process (e.g. GPU 0). Do not use it to assign state (`self.x = y`).
 
 
 setup
@@ -243,12 +243,12 @@ There are also data operations you might want to perform on every GPU. Use setup
                 self.dims = getattr(self, 'dims', self.mnist_test[0][0].shape)
 
 
-.. warning:: `setup` is called from every GPU. Setting state here is okay.
+.. warning:: `setup` is called from every process. Setting state here is okay.
 
 
 train_dataloader
 ^^^^^^^^^^^^^^^^
-Use this method to generate the train dataloader.  Usually you just wrap the dataset you defined in ``setup``.
+Use this method to generate the train dataloader. Usually you just wrap the dataset you defined in ``setup``.
 
 .. code-block:: python
 
@@ -262,7 +262,7 @@ Use this method to generate the train dataloader.  Usually you just wrap the dat
 
 val_dataloader
 ^^^^^^^^^^^^^^
-Use this method to generate the val dataloader.  Usually you just wrap the dataset you defined in ``setup``.
+Use this method to generate the val dataloader. Usually you just wrap the dataset you defined in ``setup``.
 
 .. code-block:: python
 
