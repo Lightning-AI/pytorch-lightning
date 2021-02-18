@@ -616,24 +616,25 @@ class DataHooks:
         device = device or self.device
         return move_data_to_device(batch, device)
 
-    def on_before_batch_transfer(self, batch):
+    def on_before_batch_transfer(self, batch, dataloader_idx):
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
-        .. warning:: The hook signature will change once the dataloader_idx is supported as an argument.
+        .. warning:: dataloader_idx always returns 0, and will be updated to support the true idx in the future.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
+            dataloader_idx: DataLoader idx for batch (Default: 0)
 
         Returns:
             A batch of data
 
         Example::
 
-            def on_before_batch_transfer(self, batch):
+            def on_before_batch_transfer(self, batch, dataloader_idx):
                 batch['x'] = transforms(batch['x'])
                 return batch
 
@@ -643,24 +644,25 @@ class DataHooks:
         """
         return batch
 
-    def on_after_batch_transfer(self, batch):
+    def on_after_batch_transfer(self, batch, dataloader_idx):
         """
         Override to alter or apply batch augmentations to your batch after it is transferred to the device.
 
-        .. warning:: The hook signature will change once the dataloader_idx is supported as an argument.
+        .. warning:: dataloader_idx always returns 0, and will be updated to support the true idx in the future.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
+            dataloader_idx: DataLoader idx for batch (Default: 0)
 
         Returns:
             A batch of data
 
         Example::
 
-            def on_after_batch_transfer(self, batch):
+            def on_after_batch_transfer(self, batch, dataloader_idx):
                 batch['x'] = gpu_transforms(batch['x'])
                 return batch
 

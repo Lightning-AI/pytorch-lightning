@@ -314,13 +314,13 @@ Override to alter or apply augmentations to your batch before it is transferred 
 .. testcode::
 
     class MNISTDataModule(LightningDataModule):
-        def on_before_batch_transfer(self, batch):
+        def on_before_batch_transfer(self, batch, dataloader_idx):
             batch['x'] = transforms(batch['x'])
             return batch
 
 
 .. warning::
-    The hook signature will change once the dataloader_idx is supported as an argument.
+    Currently dataloader_idx always returns 0 and will be updated to support the true idx in the future.
 
 .. note:: This hook only runs on single GPU training and DDP (no data-parallel).
 
@@ -332,13 +332,13 @@ Override to alter or apply augmentations to your batch after it is transferred t
 .. testcode::
 
     class MNISTDataModule(LightningDataModule):
-        def on_after_batch_transfer(self, batch):
+        def on_after_batch_transfer(self, batch, dataloader_idx):
             batch['x'] = gpu_transforms(batch['x'])
             return batch
 
 
 .. warning::
-    The hook signature will change once the dataloader_idx is supported as an argument.
+    Currently dataloader_idx always returns 0 and will be updated to support the true idx in the future.
 
 .. note::
     This hook only runs on single GPU training and DDP (no data-parallel). This hook
