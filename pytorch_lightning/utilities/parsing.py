@@ -196,9 +196,11 @@ class AttributeDict(Dict):
         return out
 
 
-def lightning_get_all_attr_holders(model, attribute):
-    """ Special attribute finding for lightning.  Gets all of the objects or dicts that holds attribute.
-            Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule. """
+def _lightning_get_all_attr_holders(model, attribute):
+    """
+    Special attribute finding for Lightning. Gets all of the objects or dicts that holds attribute.
+    Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule.
+    """
     trainer = getattr(model, 'trainer', None)
 
     holders = []
@@ -219,13 +221,13 @@ def lightning_get_all_attr_holders(model, attribute):
     return holders
 
 
-def lightning_get_first_attr_holder(model, attribute):
+def _lightning_get_first_attr_holder(model, attribute):
     """
-    Special attribute finding for lightning.  Gets the object or dict that holds attribute, or None.
-     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule,
-     returns the last one that has it.
-     """
-    holders = lightning_get_all_attr_holders(model, attribute)
+    Special attribute finding for Lightning.  Gets the object or dict that holds attribute, or None.
+    Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule,
+    returns the last one that has it.
+    """
+    holders = _lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:
         return None
     # using the last holder to preserve backwards compatibility
@@ -233,17 +235,26 @@ def lightning_get_first_attr_holder(model, attribute):
 
 
 def lightning_hasattr(model, attribute):
-    """ Special hasattr for lightning. Checks for attribute in model namespace,
-        the old hparams namespace/dict, and the datamodule. """
-    return lightning_get_first_attr_holder(model, attribute) is not None
+    """
+    Special hasattr for Lightning. Checks for attribute in model namespace,
+    the old hparams namespace/dict, and the datamodule.
+    """
+    return _lightning_get_first_attr_holder(model, attribute) is not None
 
 
 def lightning_getattr(model, attribute):
-    """ Special getattr for lightning. Checks for attribute in model namespace,
-        the old hparams namespace/dict, and the datamodule. """
-    holder = lightning_get_first_attr_holder(model, attribute)
+    """
+    Special getattr for Lightning. Checks for attribute in model namespace,
+    the old hparams namespace/dict, and the datamodule.
+
+    Raises:
+        AttributeError:
+            If ``model`` doesn't have ``attribute`` in any of
+            model namespace, the hparams namespace/dict, and the datamodule.
+    """
+    holder = _lightning_get_first_attr_holder(model, attribute)
     if holder is None:
-        raise ValueError(
+        raise AttributeError(
             f'{attribute} is neither stored in the model namespace'
             ' nor the `hparams` namespace/dict, nor the datamodule.'
         )
@@ -254,13 +265,19 @@ def lightning_getattr(model, attribute):
 
 
 def lightning_setattr(model, attribute, value):
-    """ Special setattr for lightning. Checks for attribute in model namespace
-        and the old hparams namespace/dict.
-        Will also set the attribute on datamodule, if it exists.
     """
-    holders = lightning_get_all_attr_holders(model, attribute)
+    Special setattr for Lightning. Checks for attribute in model namespace
+    and the old hparams namespace/dict.
+    Will also set the attribute on datamodule, if it exists.
+
+    Raises:
+        AttributeError:
+            If ``model`` doesn't have ``attribute`` in any of
+            model namespace, the hparams namespace/dict, and the datamodule.
+    """
+    holders = _lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:
-        raise ValueError(
+        raise AttributeError(
             f'{attribute} is neither stored in the model namespace'
             ' nor the `hparams` namespace/dict, nor the datamodule.'
         )
