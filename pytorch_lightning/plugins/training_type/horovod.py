@@ -28,7 +28,7 @@ if _HOROVOD_AVAILABLE:
 
 class HorovodPlugin(ParallelPlugin):
 
-    def __init__(self, parallel_devices: List[torch.device]):
+    def __init__(self, parallel_devices: Optional[List[torch.device]] = None):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
     @property

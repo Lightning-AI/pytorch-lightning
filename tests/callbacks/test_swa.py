@@ -111,7 +111,7 @@ def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_proc
     trainer.fit(model)
 
     # check the model is the expected
-    assert trainer.get_model() == model
+    assert trainer.lightning_module == model
 
 
 @pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_6, reason="SWA available from PyTorch 1.6.0")

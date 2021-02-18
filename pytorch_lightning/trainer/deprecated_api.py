@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
@@ -130,3 +131,15 @@ class DeprecatedDistDeviceAttributes:
         )
         if val:
             self.accelerator_connector._device_type = DeviceType.GPU
+
+
+class DeprecatedModelAttributes:
+
+    lightning_module = LightningModule
+
+    def get_model(self) -> LightningModule:
+        rank_zero_warn(
+            "The use of `Trainer.get_model()` is deprecated in favor of `Trainer.lightning_module`"
+            " and will be removed in v1.4.", DeprecationWarning
+        )
+        return self.lightning_module

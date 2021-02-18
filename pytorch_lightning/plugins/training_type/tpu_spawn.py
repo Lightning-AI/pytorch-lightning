@@ -1,7 +1,7 @@
 import io
 import os
 import re
-from typing import Any, Dict, Iterable, Optional, Sequence, Union
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -26,7 +26,12 @@ else:
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
 
-    def __init__(self, parallel_devices: Sequence[int], num_nodes: int = 1, **kwargs: Dict[str, Any]) -> None:
+    def __init__(
+        self,
+        parallel_devices: Optional[List[torch.device]] = None,
+        num_nodes: int = 1,
+        **kwargs: Dict[str, Any]
+    ) -> None:
         super().__init__(
             parallel_devices, num_nodes=num_nodes, cluster_environment=None, sync_batchnorm=False, **kwargs
         )

@@ -31,7 +31,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     def __init__(
         self,
-        parallel_devices: List[torch.device],
+        parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
     ):
         super().__init__()

@@ -109,7 +109,7 @@ The test loop will not be used until you call.
 
     trainer.test()
 
-.. tip:: .test() loads the best checkpoint automatically
+.. tip:: ``.test()`` loads the best checkpoint automatically
 
 --------
 
