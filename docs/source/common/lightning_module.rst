@@ -942,7 +942,6 @@ When set to ``False``, Lightning does not automate the optimization process. Thi
         self.automatic_optimization = False
 
     def training_step(self, batch, batch_idx):
-        # access your optimizers with use_pl_optimizer=False. Default is True
         opt = self.optimizers(use_pl_optimizer=True)
 
         loss = ...
