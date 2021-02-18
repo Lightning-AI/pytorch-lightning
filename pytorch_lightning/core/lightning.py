@@ -1571,12 +1571,14 @@ class LightningModule(
             parents_arguments.update(args)
         return self_arguments, parents_arguments
 
-    def save_hyperparameters(self, *args, ignore: Optional[Union[List, str]] = None, frame=None) -> None:
+    def save_hyperparameters(self, *args, ignore: Optional[Union[List[str], str]] = None, frame=None) -> None:
         """Save all model arguments.
 
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
-             or string names or arguments from class `__init__`
+                or string names or arguments from class `__init__`
+            ignore: an argument or a list of arguments from class `__init__`
+                to be ignored
 
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
