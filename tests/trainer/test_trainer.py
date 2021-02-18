@@ -1605,7 +1605,7 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-@pytest.mark.parametrize("use_output_filename", [False, True])
+@pytest.mark.parametrize("use_output_filename", [True])
 def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
 
@@ -1622,6 +1622,41 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
         profiler=profiler,
         accelerator="ddp",
         gpus=2,
+        logger=TensorBoardLogger(tmpdir)
+    )
+    trainer.fit(model)
+
+    enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
+
+    if enabled:
+        assert len(profiler.summary()) > 0
+        assert set(profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
+    else:
+        assert profiler.summary() is None
+        assert set(profiler.profiled_actions.keys()) == set()
+
+    if use_output_filename:
+        profiler.describe()
+        data = Path(profiler.output_fname).read_text()
+        assert len(data) > 0
+
+@pytest.mark.parametrize("use_output_filename", [True])
+def test_pytorch_profiler_trainer(tmpdir, use_output_filename):
+    """Ensure that the profiler can be given to the training and default step are properly recorded. """
+
+    if use_output_filename:
+        output_filename = os.path.join(tmpdir, "profiler.txt")
+    else:
+        output_filename = None
+
+    profiler = PyTorchProfiler(output_filename=output_filename)
+
+    model = BoringModel()
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=4,
+        limit_val_batches=4,
+        profiler=profiler,
     )
     trainer.fit(model)
 
@@ -1644,7 +1679,7 @@ def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
     pytorch_profiler = PyTorchProfiler(
-        profiled_functions=["a", "b", "c"], use_cuda=False, output_filename=os.path.join(tmpdir, "profiler.txt")
+        profiled_functions=["a", "b", "c"], use_cuda=True, output_filename=os.path.join(tmpdir, "profiler.txt")
     )
 
     with pytorch_profiler.profile("a"):

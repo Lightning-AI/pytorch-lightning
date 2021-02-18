@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
-
 import cProfile
 import inspect
 import io
@@ -22,7 +21,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, Union, Dict
 
 import numpy as np
 import torch
@@ -102,9 +101,9 @@ class BaseProfiler(ABC):
     def summary(self) -> str:
         """Create profiler summary in text format."""
 
-    def on_train_start(self, local_rank: Optional[int] = None):
+    def on_train_start(self, local_rank: Optional[int] = None, dir_path: str = None):
         self.local_rank = local_rank
-
+        self.dir_path = dir_path
 
 class PassThroughProfiler(BaseProfiler):
     """
@@ -327,56 +326,36 @@ class LegacyPyTorchProfiler(BaseProfiler):
         """
         This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
         different operators inside your model - both on the CPU and GPU
-
         Args:
-
             output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished. When using ``ddp``,
                 each rank will stream the profiled operation to their own file
                 with the extension ``_{rank}.txt``
-
             enabled: Setting this to False makes this context manager a no-op.
-
             use_cuda: Enables timing of CUDA events as well using the cudaEvent API.
                 Adds approximately 4us of overhead to each tensor operation.
-
             record_shapes: If shapes recording is set, information about input dimensions will be collected.
-
             profile_memory: Whether to report memory usage, default: True (Introduced in PyTorch 1.6.0)
-
             group_by_input_shapes: Include operator input shapes and group calls by shape.
-
             with_stack: record source information (file and line number) for the ops (Introduced in PyTorch 1.7.0)
-
             use_kineto: experimental support for Kineto profiler (Introduced in PyTorch 1.8.0)
-
             use_cpu: use_kineto=True and can be used to lower the overhead
                 for GPU-only profiling (Introduced in PyTorch 1.8.0)
-
             emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
                 Run::
-
                     nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
-
                 To visualize, you can either use::
-
                     nvvp trace_name.prof
                     torch.autograd.profiler.load_nvprof(path)
-
             export_to_chrome: Wether to export the sequence of profiled operators for Chrome.
                 It will generate a ``.json`` file which can be read by Chrome.
-
             path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
                 By default, it will be save where the file being is being run.
-
             row_limit: Limit the number of rows in a table, `0` is a special value that
                 removes the limit completely.
-
             sort_by_key: Keys to sort out profiled table
-
             profiled_functions: list of profiled functions which will create a context manager on.
                 Any other will be pass through.
-
             local_rank: When running in distributed setting, local_rank is used for each process
                 to write to their own file if `output_fname` is provided.
         """
@@ -419,9 +398,11 @@ class LegacyPyTorchProfiler(BaseProfiler):
             self.on_train_start(local_rank=local_rank)
             self.on_train_start = super().on_train_start
 
-    def on_train_start(self, local_rank: Optional[str] = None):
+    def on_train_start(self, local_rank: Optional[str] = None, dir_path: str = None):
         self.local_rank = local_rank
-
+        if self.path_to_export_trace is None:
+            self.path_to_export_trace = dir_path
+        
         # when logging to `log.info`, only perform profiling on rank 0
         if local_rank != 0 and self.output_fname is None:
             self.wrap_functions_into_rank_zero_only()
@@ -472,14 +453,19 @@ class LegacyPyTorchProfiler(BaseProfiler):
             pr = pr.__enter__()
         self.profiler = pr
 
-    def _stop(self, action_name: str) -> None:
+    @property
+    def function_events(self):
+        return self.profiler.function_events
+
+    def _stop(self, action_name: str, from_stop: bool = False) -> None:
         if self.profiler is None:
             return
 
         self.profiler.__exit__(exc_type=None, exc_val=None, exc_tb=None)
 
-        function_events = self.profiler.function_events
-        self.profiler = None
+        function_events = self.function_events
+        if not from_stop:
+            self.profiler = None
         for name in self.running_stack:
             if name not in self.profiled_actions:
                 self.profiled_actions[name] = function_events
@@ -494,7 +480,13 @@ class LegacyPyTorchProfiler(BaseProfiler):
             raise ValueError(  # pragma: no-cover
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
-        self._stop(action_name)
+        self._stop(action_name, from_stop = True)
+        
+        if _TORCH_GREATER_EQUAL_1_8:
+            if self.export_to_flame_graph and self.path_to_export_trace is not None:
+                self.profiler.export_stacks(os.path.join(self.path_to_export_trace, "stack.txt"), self.metric)
+        
+        self.profiler = None
         self.running_stack.pop()
         # restore running profiler
         if len(self.running_stack) > 0:
@@ -555,17 +547,22 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
         output_filename: Optional[str] = None,
         enabled: bool = True,
         use_cpu: bool = True,
-        use_cuda: bool = False,
+        use_cuda: bool = True,
         activities: Optional[List['ProfilerActivity']] = None,
-        schedule: Optional[Callable] = None,
+        schedule: Optional[Union[Dict[str, Callable], Callable]] = None,
         on_trace_ready: Optional[Callable] = None,
         record_shapes: bool = False,
         profile_memory: bool = False,
         with_stack: bool = False,
         with_flops: bool = False,
         row_limit: int = 20,
+        export_to_tensorboard: bool = True,
+        export_to_flame_graph: bool = True,
+        metric: str = "self_cpu_time_total",
+        group_by_input_shapes: bool = False,
         sort_by_key: Optional[str] = None,
         profiled_functions: Optional[List] = None,
+        path_to_export_trace: str = None,
         local_rank: Optional[int] = None,
     ):
 
@@ -582,15 +579,21 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
         self.enabled = enabled
         self.use_cpu = use_cpu
         self.use_cuda = use_cuda
+        self.profiled_functions = profiled_functions or self.PROFILED_FUNCTIONS
         self.activities = activities or [ProfilerActivity.CPU] * use_cpu + [ProfilerActivity.CUDA] * use_cuda
-        self.schedule = schedule
+        self.schedules = {k: schedule for k in self.profiled_functions}
         self.on_trace_ready = on_trace_ready
         self.record_shapes = record_shapes
+        self.row_limit = row_limit
+        self.export_to_tensorboard = export_to_tensorboard
+        self.export_to_flame_graph = export_to_flame_graph
+        self.metric = metric
         self.profile_memory = profile_memory
-        self.with_stack = with_stack
+        self.with_stack = True if export_to_flame_graph else with_stack
         self.with_flops = with_flops
-        self.profiled_functions = profiled_functions
         self.local_rank = local_rank
+        self.path_to_export_trace = path_to_export_trace
+        self.group_by_input_shapes = group_by_input_shapes
 
         self.profiled_actions = {}
         self.context_names = {}
@@ -601,9 +604,49 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
         self.output_file = None
         if local_rank is not None:
             super().on_train_start(local_rank=local_rank)
-            import pdb
-            pdb.set_trace()
             self.on_train_start = super(LegacyPyTorchProfiler, self).on_train_start
 
+    def summary(self) -> str:
+        recorded_stats = {}
+        output_string = ''
+        local_rank = '0' if self.local_rank is None else self.local_rank
+
+        if not self.enabled:
+            return output_string
+
+        for action_name, function_events in self.profiled_actions.items():
+
+            # next line is a workaround for a pytorch issue (fixed on master, still present
+            # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
+            # parent event for detach`
+            function_events.populate_cpu_children = lambda: None
+
+            if self.export_to_tensorboard:
+                tensorboard_trace_handler(self.path_to_export_trace, local_rank)(function_events)
+
+            data = function_events.key_averages(group_by_input_shapes=self.group_by_input_shapes)
+            table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
+            recorded_stats[action_name] = table
+
+        # log to standard out
+        output_string = f"{os.linesep}Profiler Report{os.linesep}"
+        for action, stats in recorded_stats.items():
+            output_string += (f"{os.linesep}Profile stats for: {action} rank: {local_rank} {os.linesep}{stats}")
+
+        return output_string
+
+    @property
+    def function_events(self):
+        return self.profiler.events()
+
+    def stop(self, action_name: str) -> None:
+        if action_name in self.schedules:
+            schedule = self.schedules[action_name]
+            if schedule:
+                schedule.step()
+        super().stop(action_name)
+
     def _start(self, action_name: str) -> None:
+        if action_name in self.schedules:
+            self.schedule = self.schedules[action_name]
         self._create_profiler(action_name, torch.profiler.profile)
