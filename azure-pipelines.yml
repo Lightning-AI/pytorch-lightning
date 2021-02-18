@@ -4,8 +4,8 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
 trigger:
-  trigger:
-    tags:
+  tags:
+    include:
       - '*'
   branches:
     include:
