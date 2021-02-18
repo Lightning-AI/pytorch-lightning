@@ -565,12 +565,10 @@ class DataHooks:
             will have an argument ``dataloader_idx`` which matches the order here.
         """
 
-    def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx=0) -> Any:
+    def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
         wrapped in a custom data structure.
-
-        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true ``idx`` in the future.
 
         The data types listed below (and any arbitrary nesting of them) are supported out of the box:
 
@@ -596,20 +594,19 @@ class DataHooks:
         Args:
             batch: A batch of data that needs to be transferred to a new device.
             device: The target device as defined in PyTorch.
-            dataloader_idx: DataLoader idx for batch
 
         Returns:
             A reference to the data on the new device.
 
         Example::
 
-            def transfer_batch_to_device(self, batch, device, dataloader_idx):
+            def transfer_batch_to_device(self, batch, device):
                 if isinstance(batch, CustomBatch):
                     # move all tensors in your custom data structure to the device
                     batch.samples = batch.samples.to(device)
                     batch.targets = batch.targets.to(device)
                 else:
-                    batch = super().transfer_batch_to_device(data, device, dataloader_idx)
+                    batch = super().transfer_batch_to_device(data, device)
                 return batch
 
         See Also:
