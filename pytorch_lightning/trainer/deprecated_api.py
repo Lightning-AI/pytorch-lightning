@@ -24,7 +24,6 @@ class DeprecatedDistDeviceAttributes:
     _running_stage: RunningStage
     num_gpus: int
     accelerator_connector: AcceleratorConnector
-    lightning_module = LightningModule
 
     @property
     def on_cpu(self) -> bool:
@@ -136,10 +135,11 @@ class DeprecatedDistDeviceAttributes:
 
 class DeprecatedModelAttributes:
 
+    lightning_module = LightningModule
+
     def get_model(self) -> LightningModule:
         rank_zero_warn(
             "The use of `Trainer.get_model()` is deprecated in favor of `Trainer.lightning_module`"
-            " and will be removed in v1.4.",
-            DeprecationWarning,
+            " and will be removed in v1.4.", DeprecationWarning
         )
         return self.lightning_module
