@@ -934,8 +934,7 @@ True if using TPUs
 
 automatic_optimization
 ~~~~~~~~~~~~~~~~~~~~~~
-When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for your own
-optimizer behavior
+When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling your optimizers. However, we do take care of precision and any accelerators used.
 
 .. code-block:: python
 
@@ -951,8 +950,7 @@ optimizer behavior
         opt.step()
         opt.zero_grad()
 
-This is not recommended when using a single optimizer, instead it's recommended when using 2+ optimizers
-AND you are an expert user. Most useful for research like reinforcement learning, sparse coding and GAN research.
+This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter. Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
 
 In the multi-optimizer case, ignore the ``optimizer_idx`` argument and use the optimizers directly
 
