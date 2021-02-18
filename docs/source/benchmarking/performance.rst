@@ -135,8 +135,34 @@ Refer to the :doc:`distributed computing guide for more details <../advanced/mul
 
 
 Sequential Model Parallelism with Checkpointing
----------------------------------------------------------------------
+-----------------------------------------------
 PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
 Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
 
 For more information, refer to :ref:`sequential-parallelism`.
+
+
+Preload Data Into RAM
+---------------------
+
+When your training or preprocessing requires many operations to be performed on entire dataset(s) it can
+sometimes be beneficial to store all data in RAM given there is enough space.
+However, loading all data at the beginning of the training script has the disadvantage that it can take a long
+time and hence it slows down the development process. Another downside is that in multiprocessing (e.g. DDP)
+the data would get copied in each process.
+One can overcome these problems by copying the data into RAM in advance.
+Most UNIX-based operating systems provide direct access to tmpfs through a mount point typically named ``/dev/shm``.
+
+0.  Increase shared memory if necessary. Refer to the documentation of your OS how to do this.
+
+1.  Copy training data to shared memory:
+
+    .. code-block:: bash
+
+        cp -r /path/to/data/on/disk /dev/shm/
+
+2.  Refer to the new data root in your script or command line arguments:
+
+    .. code-block:: python
+
+        datamodule = MyDataModule(data_root="/dev/shm/my_data")

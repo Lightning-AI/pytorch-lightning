@@ -42,7 +42,7 @@ class RPCSequentialPlugin(RPCPlugin):
 
     def __init__(
         self,
-        balance: List[int],
+        balance: Optional[List[int]] = None,
         microbatches: int = 8,
         checkpoint: str = 'except_last',
         balance_mode: str = "balance_by_size",
@@ -325,9 +325,9 @@ class RPCSequentialPlugin(RPCPlugin):
             # Initialize optimizer step on main process
             self.worker_optimizer_step(model=self.lightning_module, opt_idx=optimizer_idx, **kwargs)
 
-    def post_training(self):
+    def post_training_step(self):
         if self.main_rpc_process:
-            super().post_training()
+            super().post_training_step()
 
     def start_training(self, trainer) -> None:
         if self.main_rpc_process:
