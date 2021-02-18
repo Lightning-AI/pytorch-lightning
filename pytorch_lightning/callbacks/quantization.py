@@ -109,7 +109,7 @@ class QuantizationAwareTraining(Callback):
 
                 - 'fbgemm' for server inference.
                 - 'qnnpack' for mobile inference.
-                -  a custom `torch.quantization.QConfig <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.  # noqa: E501
+                -  a custom `torch.quantization.QConfig <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
 
             observer_type: allows switching between ``MovingAverageMinMaxObserver`` as "average" (default)
                 and ``HistogramObserver`` as "histogram" which is more computationally expensive.
@@ -136,7 +136,7 @@ class QuantizationAwareTraining(Callback):
             input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
                 but break compatibility to torchscript.
 
-        """
+        """  # noqa: E501
         _valid_qconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
         if not isinstance(qconfig, QConfig) and not _valid_qconf_str:
             raise MisconfigurationException(
