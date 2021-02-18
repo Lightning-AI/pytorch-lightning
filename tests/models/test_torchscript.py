@@ -18,7 +18,7 @@ import torch
 
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
-from tests.helpers.datamodules import TrialMNISTDataModule
+from tests.helpers.datamodules import MNISTDataModule
 
 
 @pytest.mark.parametrize("modelclass", [
@@ -116,7 +116,7 @@ def test_torchscript_retain_training_state():
 def test_torchscript_properties(tmpdir, modelclass):
     """ Test that scripted LightningModule has unnecessary methods removed. """
     model = modelclass()
-    model.datamodule = TrialMNISTDataModule(tmpdir)
+    model.datamodule = MNISTDataModule(tmpdir)
     script = model.to_torchscript()
     assert not hasattr(script, "datamodule")
     assert not hasattr(model, "batch_size") or hasattr(script, "batch_size")

@@ -180,7 +180,6 @@ def test_call_to_trainer_method(tmpdir, optimizer):
 def test_datamodule_parameter(tmpdir):
     """ Test that the datamodule parameter works """
 
-    # trial datamodule
     dm = ClassifDataModule()
     model = ClassificationModel()
 
