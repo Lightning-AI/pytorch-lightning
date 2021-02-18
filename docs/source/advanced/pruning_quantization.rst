@@ -28,16 +28,16 @@ To enable pruning during training in Lightning, simply pass in the :class:`~pyto
 
 This callback supports multiple pruning functions: pass any `torch.nn.utils.prune <https://pytorch.org/docs/stable/nn.html#utilities>`_ function as a string to select which weights to prune (`random_unstructured <https://pytorch.org/docs/stable/generated/torch.nn.utils.prune.random_unstructured.html#torch.nn.utils.prune.random_unstructured>`_, `RandomStructured <https://pytorch.org/docs/stable/generated/torch.nn.utils.prune.RandomStructured.html#torch.nn.utils.prune.RandomStructured>`_, etc) or implement your own by subclassing `BasePruningMethod <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html#extending-torch-nn-utils-prune-with-custom-pruning-functions>`_.
 
-You can also set the pruning percentage, perform iterative pruning, apply the `lottery ticket hypothesis <https://arxiv.org/pdf/1803.03635.pdf>`_ and more!
-
 .. code-block:: python
 
     from pytorch_lightning.callbacks import ModelPruning
 
-    # the amount can be a float between 0 and 1
+    # set the amount to be the fraction of parameters to prune
     trainer = Trainer(callbacks=[ModelPruning("l1_unstructured", amount=0.5)])
 
-    # or
+You can also perform iterative pruning, apply the `lottery ticket hypothesis <https://arxiv.org/pdf/1803.03635.pdf>`_ and more!
+
+.. code-block:: python
 
     def compute_amount(epoch):
         # the sum of all returned values need to be smaller than 1
@@ -69,8 +69,6 @@ Quantization is useful when serving large models on machines with limited memory
 
 Lightning includes :class:`~pytorch_lightning.callbacks.QuantizationAwareTraining` callback (using PyTorch's native quantization, read more `here <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`__), which allows creating fully quantized models (compatible with torchscript).
 
-To quantize your model, specify TODO(borda).
-
 .. code-block:: python
 
 	from pytorch_lightning.callbacks import QuantizationAwareTraining
@@ -85,7 +83,7 @@ To quantize your model, specify TODO(borda).
 	        self.layer_1a = torch.nn.ReLU()
 	        self.layer_end = nn.Linear(64, 1)
 
-			def forward(self, x):
+	    def forward(self, x):
 	        x = self.layer_0(x)
 	        x = self.layer_0a(x)
 	        x = self.layer_1(x)
@@ -93,16 +91,7 @@ To quantize your model, specify TODO(borda).
 	        x = self.layer_end(x)
 	        return x
 
-	qcb = QuantizationAwareTraining(
-	    # specification of quant estimation quality
-	    observer_type='histogram',
-	    # specify which layers shall be merged together to increase efficiency
-	    modules_to_fuse=[(f'layer_{i}', f'layer_{i}a') for i in range(2)]
-	    # make the model torchanble
-	    input_compatible=False,
-	)
-
-	trainer = Trainer(callbacks=[qcb])
+	trainer = Trainer(callbacks=[QuantizationAwareTraining()])
 	qmodel = RegressionModel()
 	trainer.fit(qmodel, ...)
 
@@ -112,9 +101,19 @@ To quantize your model, specify TODO(borda).
 	tsmodel = qmodel.to_torchscript()
 	tsmodel(tsmodel.quant(batch[0]))
 
-You can also set `input_compatible=True` to make your model compatible with all original input/outputs, in such case the model is wrapped in a shell with entry/exit layers.
+You can further customize the callback:
 
 .. code-block:: python
 
-        batch = iter(my_dataloader()).next()
-        qmodel(batch[0])
+
+	qcb = QuantizationAwareTraining(
+	    # specification of quant estimation quality
+	    observer_type='histogram',
+	    # specify which layers shall be merged together to increase efficiency
+	    modules_to_fuse=[(f'layer_{i}', f'layer_{i}a') for i in range(2)]
+	    # make your model compatible with all original input/outputs, in such case the model is wrapped in a shell with entry/exit layers.
+	    input_compatible=True
+	)
+
+    batch = iter(my_dataloader()).next()
+    qmodel(batch[0])
