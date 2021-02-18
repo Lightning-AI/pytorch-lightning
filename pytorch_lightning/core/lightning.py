@@ -1579,8 +1579,8 @@ class LightningModule(
 
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
-                or string names or arguments from class `__init__`
-            ignore: an argument or a list of arguments from class `__init__`
+                or string names or arguments from class ``__init__``
+            ignore: an argument or a list of arguments from class ``__init__``
                 to be ignored
             frame: a frame object. Default is None
 
@@ -1627,7 +1627,7 @@ class LightningModule(
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
         ...         # pass argument(s) to ignore as a string or in a list
-        ...         self.save_hyperparameters(ignore="arg2")
+        ...         self.save_hyperparameters(ignore='arg2')
         ...     def forward(self, *args, **kwargs):
         ...         ...
         >>> model = ManuallyArgsModel(1, 'abc', 3.14)
