@@ -1575,7 +1575,7 @@ class LightningModule(
     def save_hyperparameters(
         self, *args, ignore: Optional[Union[List[str], str]] = None, frame: Optional[types.FrameType] = None
     ) -> None:
-        """Save all model arguments.
+        """Save model arguments to ``hparams`` attribute.
 
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
