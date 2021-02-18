@@ -1643,7 +1643,7 @@ class LightningModule(
         if ignore is not None:
             if isinstance(ignore, str):
                 ignore = [ignore]
-            if isinstance(ignore, list):
+            if isinstance(ignore, (list, tuple)):
                 ignore = [arg for arg in ignore if isinstance(arg, str)]
             init_args = {k: v for k, v in init_args.items() if k not in ignore}
 
