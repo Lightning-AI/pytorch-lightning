@@ -70,13 +70,13 @@ class Accelerator(object):
         self.setup_optimizers(trainer)
         self.connect_precision_plugin(self.precision_plugin)
 
-    def start_training(self, trainer: 'Trainer'):
+    def start_training(self, trainer):
         self.training_type_plugin.start_training(trainer)
 
-    def start_testing(self, trainer: 'Trainer'):
+    def start_testing(self, trainer):
         self.training_type_plugin.start_testing(trainer)
 
-    def start_predicting(self, trainer: 'Trainer'):
+    def start_predicting(self, trainer):
         self.training_type_plugin.start_predicting(trainer)
 
     def pre_dispatch(self) -> None:
