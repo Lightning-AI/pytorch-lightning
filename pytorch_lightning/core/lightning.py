@@ -179,6 +179,12 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
+    def _apply_batch_transfer_handler(self, batch: Any, device: Optional[torch.device] = None):
+        batch = self.on_before_batch_transfer(batch)
+        batch = self.transfer_batch_to_device(batch, device)
+        batch = self.on_after_batch_transfer(batch)
+        return batch
+
     def print(self, *args, **kwargs) -> None:
         r"""
         Prints only from process 0. Use this in any distributed mode to log only once.
@@ -1186,7 +1192,7 @@ class LightningModule(
         """
         rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
-    def manual_backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
+    def manual_backward(self, loss: Tensor, optimizer: Optional[Optimizer] = None, *args, **kwargs) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -1207,12 +1213,18 @@ class LightningModule(
                 self.manual_backward(loss, opt_a)
                 opt_a.step()
         """
+        if optimizer is not None:
+            rank_zero_warn(
+                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4",
+                DeprecationWarning
+            )
+
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
 
         # backward
         self._running_manual_backward = True
-        self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
+        self.trainer.train_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
         self._running_manual_backward = False
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
@@ -1307,7 +1319,7 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer.
 
-        .. tip:: With `Trainer(enable_pl_optimizer=True)`, you can user `optimizer.step()` directly
+        .. tip:: With ``Trainer(enable_pl_optimizer=True)``, you can use ``optimizer.step()`` directly
          and it will handle zero_grad, accumulated gradients, AMP, TPU and more automatically for you.
 
         Warning:
@@ -1691,7 +1703,7 @@ class LightningModule(
                 )
             input_sample = self.example_input_array
 
-        input_sample = self.transfer_batch_to_device(input_sample)
+        input_sample = self._apply_batch_transfer_handler(input_sample)
 
         if "example_outputs" not in kwargs:
             self.eval()
@@ -1762,18 +1774,15 @@ class LightningModule(
                 if self.example_input_array is None:
                     raise ValueError(
                         'Choosing method=`trace` requires either `example_inputs`'
-                        ' or `model.example_input_array` to be defined'
+                        ' or `model.example_input_array` to be defined.'
                     )
                 example_inputs = self.example_input_array
 
             # automatically send example inputs to the right device and use trace
-            example_inputs = self.transfer_batch_to_device(example_inputs)
+            example_inputs = self._apply_batch_transfer_handler(example_inputs)
             torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
         else:
-            raise ValueError(
-                "The 'method' parameter only supports 'script' or 'trace',"
-                f" but value given was: {method}"
-            )
+            raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}")
 
         self.train(mode)
 

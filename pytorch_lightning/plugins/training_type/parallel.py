@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
+import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from typing import List, Optional
@@ -21,9 +22,9 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
@@ -31,7 +32,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     def __init__(
         self,
-        parallel_devices: List[torch.device],
+        parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
     ):
         super().__init__()
@@ -82,6 +83,13 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         should_stop = self.reduce(should_stop, reduce_op=ReduceOp.SUM)
         should_stop = bool(should_stop == self.world_size)
         return should_stop
+
+    @property
+    def torch_distributed_backend(self):
+        torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
+        if torch_backend is None:
+            torch_backend = "nccl" if self.on_gpu else "gloo"
+        return torch_backend
 
     @staticmethod
     def configure_sync_batchnorm(model: LightningModule) -> LightningModule:

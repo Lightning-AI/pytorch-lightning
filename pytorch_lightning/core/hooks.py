@@ -204,17 +204,23 @@ class ModelHooks:
         """
         # do something when the batch ends
 
+    def on_test_model_train(self) -> None:
+        """
+        Sets the model to train during the test loop
+        """
+        self.train()
+
     def on_test_model_eval(self) -> None:
         """
         Sets the model to eval during the test loop
         """
         self.eval()
 
-    def on_test_model_train(self) -> None:
+    def on_predict_model_eval(self) -> None:
         """
-        Sets the model to train during the test loop
+        Sets the model to eval during the predict loop
         """
-        self.train()
+        self.eval()
 
     def on_epoch_start(self) -> None:
         """
@@ -312,9 +318,25 @@ class ModelHooks:
 
         """
 
+    def on_post_move_to_device(self) -> None:
+        """
+        Called in the ``parameter_validation`` decorator after :meth:`~pytorch_lightning.core.LightningModule.to`
+        is called. This is a good place to tie weights between modules after moving them to a device. Can be
+        used when training models with weight sharing properties on TPU.
+
+        Addresses the handling of shared weights on TPU:
+        https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks
+
+        Example::
+
+            def on_post_move_to_device(self):
+                self.decoder.weight = self.encoder.weight
+
+        """
+
 
 class DataHooks:
-    """Hooks to be used with LightningDataModule."""
+    """Hooks to be used for data related stuff."""
 
     def prepare_data(self) -> None:
         """
@@ -518,6 +540,31 @@ class DataHooks:
             will have an argument ``dataloader_idx`` which matches the order here.
         """
 
+    def predict_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+        r"""
+        Implement one or multiple PyTorch DataLoaders for prediction.
+
+        It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
+
+        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
+        - ...
+        - :meth:`prepare_data`
+        - :meth:`train_dataloader`
+        - :meth:`val_dataloader`
+        - :meth:`test_dataloader`
+
+        Note:
+            Lightning adds the correct sampler for distributed and arbitrary hardware
+            There is no need to set it yourself.
+
+        Return:
+            Single or multiple PyTorch DataLoaders.
+
+        Note:
+            In the case where you return multiple prediction dataloaders, the :meth:`predict`
+            will have an argument ``dataloader_idx`` which matches the order here.
+        """
+
     def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
@@ -533,16 +580,16 @@ class DataHooks:
 
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 
-        Example::
+        Note:
+            This hook should only transfer the data and not modify it, nor should it move the data to
+            any other device than the one passed in as argument (unless you know what you are doing).
 
-            def transfer_batch_to_device(self, batch, device)
-                if isinstance(batch, CustomBatch):
-                    # move all tensors in your custom data structure to the device
-                    batch.samples = batch.samples.to(device)
-                    batch.targets = batch.targets.to(device)
-                else:
-                    batch = super().transfer_batch_to_device(data, device)
-                return batch
+        Note:
+            This hook only runs on single GPU training and DDP (no data-parallel).
+            If you need multi-GPU support for your custom batch objects, you need to define your custom
+            :class:`~torch.nn.parallel.DistributedDataParallel` or
+            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
+            override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
 
         Args:
             batch: A batch of data that needs to be transferred to a new device.
@@ -551,22 +598,73 @@ class DataHooks:
         Returns:
             A reference to the data on the new device.
 
-        Note:
-            This hook should only transfer the data and not modify it, nor should it move the data to
-            any other device than the one passed in as argument (unless you know what you are doing).
+        Example::
 
-        Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
-            If you need multi-GPU support for your custom batch objects in ``dp`` or ``ddp2``,
-            you need to define your custom :class:`~torch.nn.parallel.DistributedDataParallel` or
-            override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
+            def transfer_batch_to_device(self, batch, device):
+                if isinstance(batch, CustomBatch):
+                    # move all tensors in your custom data structure to the device
+                    batch.samples = batch.samples.to(device)
+                    batch.targets = batch.targets.to(device)
+                else:
+                    batch = super().transfer_batch_to_device(data, device)
+                return batch
 
         See Also:
-            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
-            - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
+            - :meth:`move_data_to_device`
+            - :meth:`apply_to_collection`
         """
         device = device or self.device
         return move_data_to_device(batch, device)
+
+    def on_before_batch_transfer(self, batch):
+        """
+        Override to alter or apply batch augmentations to your batch before it is transferred to the device.
+
+        Note:
+            This hook only runs on single GPU training and DDP (no data-parallel).
+
+        Args:
+            batch: A batch of data that needs to be altered or augmented.
+
+        Returns:
+            A batch of data
+
+        Example::
+
+            def on_before_batch_transfer(self, batch):
+                batch['x'] = transforms(batch['x'])
+                return batch
+
+        See Also:
+            - :meth:`on_after_batch_transfer`
+            - :meth:`transfer_batch_to_device`
+        """
+        return batch
+
+    def on_after_batch_transfer(self, batch):
+        """
+        Override to alter or apply batch augmentations to your batch after it is transferred to the device.
+
+        Note:
+            This hook only runs on single GPU training and DDP (no data-parallel).
+
+        Args:
+            batch: A batch of data that needs to be altered or augmented.
+
+        Returns:
+            A batch of data
+
+        Example::
+
+            def on_after_batch_transfer(self, batch):
+                batch['x'] = gpu_transforms(batch['x'])
+                return batch
+
+        See Also:
+            - :meth:`on_before_batch_transfer`
+            - :meth:`transfer_batch_to_device`
+        """
+        return batch
 
 
 class CheckpointHooks:
@@ -579,7 +677,6 @@ class CheckpointHooks:
 
         Args:
             checkpoint: Loaded checkpoint
-
 
         Example::
 

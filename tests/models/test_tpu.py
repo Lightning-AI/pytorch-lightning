@@ -26,6 +26,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.utils import pl_multi_process_test
@@ -264,9 +265,6 @@ def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
 @pl_multi_process_test
 def test_broadcast_on_tpu():
     """ Checks if an object from the master process is broadcasted to other processes correctly"""
@@ -327,3 +325,26 @@ def test_tpu_cores_with_argparse(cli_args, expected):
     for k, v in expected.items():
         assert getattr(args, k) == v
     assert Trainer.from_argparse_args(args)
+
+
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
+def test_tpu_reduce():
+    """Test tpu spawn reduce operation """
+
+    def test_reduce(rank):
+        trainer = Trainer(tpu_cores=8)
+        # faster this way
+        reduce_ops = ["mean", "AVG", "undefined", "sum", ReduceOp.SUM, ReduceOp.MAX]
+        for reduce_op in reduce_ops:
+            if reduce_op == "undefined" or reduce_op == ReduceOp.MAX:
+                with pytest.raises(MisconfigurationException, match="TPUSpawn TrainingTypePlugin only support"):
+                    result = trainer.training_type_plugin.reduce(1, reduce_op)
+            else:
+                result = trainer.training_type_plugin.reduce(1, reduce_op)
+            if isinstance(reduce_op, str) and reduce_op.lower() in ("mean", "avg"):
+                assert result.item() == 1
+            else:
+                assert result.item() == 8
+
+    xmp.spawn(test_reduce, nprocs=8, start_method='fork')

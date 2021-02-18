@@ -16,7 +16,7 @@ Scale your models, not the boilerplate.**
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
   <a href="#grid-ai">Grid AI</a> •
-  <a href="#licence">Licence</a>
+  <a href="#license">License</a>
 </p>
 
 <!-- DO NOT ADD CONDA DOWNLOADS... README CHANGES MUST BE APPROVED BY EDEN OR WILL -->
@@ -115,41 +115,51 @@ Simple installation from PyPI
 pip install pytorch-lightning
 ```
 
+<!-- following section will be skipped from PyPI description -->
 <details>
   <summary>Other installation options</summary>
     <!-- following section will be skipped from PyPI description -->
-  
-  #### Install with optional dependencies (CPU)
-  
-  ```bash
-  pip install pytorch-lightning['cpu-extra']
-  ```
 
-  #### Install with optional dependencies (GPU, TPU)
+  #### Install with optional dependencies
   
   ```bash
   pip install pytorch-lightning['extra']
   ```
   
   #### Conda
+  
   ```bash
   conda install pytorch-lightning -c conda-forge
   ```
 
+  #### Install stable - future 1.1.x
+
+  the actual status of 1.1 [stable] is following:
+
+  ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.1.x&event=push)
+  ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.1.x&event=push)
+  ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.1.x&event=push)
+  ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.1.x&event=push)
+  ![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.1.x&event=push)
+
+  Install future release from the source
+  ```bash
+  pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.1.x --upgrade
+  ```
+
   #### Install bleeding-edge - future 1.2
 
-  Install future release from the source (no guarantees)
+  Install nightly from the source (no guarantees)
   ```bash
-  pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.2-dev --upgrade
+  pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip
   ```
-  or nightly from testing PyPI
+
+  or from testing PyPI
   ```bash
   pip install -iU https://test.pypi.org/simple/ pytorch-lightning
   ```
-
-  <!-- end skipping PyPI description -->
 </details>
-
+<!-- end skipping PyPI description -->
 
 ### Step 1: Add these imports
 
@@ -369,8 +379,8 @@ class LitAutoEncoder(pl.LightningModule):
 ## Community
 
 The lightning community is maintained by
-- [16 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, Ph.D. students from top AI labs.
-- 280+ community contributors.
+- [16 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
+- 400+ community contributors.
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 
@@ -414,12 +424,12 @@ Please observe the Apache 2.0 license that is listed in this repository. In addi
 the Lightning framework is Patent Pending.
 
 ## BibTeX
-If you want to cite the framework feel free to use this (but only if you loved it 😊):
+If you want to cite the framework feel free to use this (but only if you loved it 😊) or [zendo](https://zenodo.org/record/3828935#.YC45Lc9Khqs):
 
 ```bibtex
 @article{falcon2019pytorch,
   title={PyTorch Lightning},
-  author={Falcon, WA},
+  author={Falcon, WA and .al},
   journal={GitHub. Note: https://github.com/PyTorchLightning/pytorch-lightning},
   volume={3},
   year={2019}

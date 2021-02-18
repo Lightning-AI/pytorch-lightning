@@ -51,6 +51,7 @@ jobs:
       displayName: 'Image info & NVIDIA'
 
     - bash: |
+        export GIT_TERMINAL_PROMPT=1
         #sudo apt-get install -y cmake
         # python -m pip install "pip==20.1"
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
@@ -75,7 +76,7 @@ jobs:
         python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
       displayName: 'Testing: standard'
 
-    - script: |
+    - bash: |
         sh tests/special_tests.sh
       displayName: 'Testing: special'
 
@@ -88,3 +89,9 @@ jobs:
     - script: |
         python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
       displayName: 'Testing: extended'
+
+    - script: |
+        python setup.py install --user --quiet
+        bash pl_examples/run_ddp-example.sh
+        pip uninstall -y pytorch-lightning
+      displayName: 'Examples'
