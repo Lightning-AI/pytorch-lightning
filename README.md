@@ -429,7 +429,7 @@ If you want to cite the framework feel free to use this (but only if you loved i
 ```bibtex
 @article{falcon2019pytorch,
   title={PyTorch Lightning},
-  author={Falcon, WA and others},
+  author={Falcon, WA and .al},
   journal={GitHub. Note: https://github.com/PyTorchLightning/pytorch-lightning},
   volume={3},
   year={2019}
