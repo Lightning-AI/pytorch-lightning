@@ -182,7 +182,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         default_root_dir=tmpdir,
-        plugins=DeepSpeedPlugin(zero_optimization=False),
+        plugins=DeepSpeedPlugin(),
         gpus=1,
     )
     with pytest.warns(UserWarning, match='Overridden backward hook in the LightningModule will be ignored'):
@@ -210,7 +210,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        plugins=DeepSpeedPlugin(zero_optimization=False),
+        plugins=DeepSpeedPlugin(),
         default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
@@ -267,7 +267,7 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     """
     model = BoringModel()
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(zero_optimization=False)],
+        plugins=[DeepSpeedPlugin()],
         default_root_dir=tmpdir,
         gpus=2,
         fast_dev_run=True,
@@ -285,8 +285,8 @@ def _assert_save_model_is_equal(model, tmpdir, trainer):
     # carry out the check only on rank 0
     if trainer.global_rank == 0:
         saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
-        saved_model = saved_model.float()
-        model = model.float().cpu()
+        saved_model = saved_model.half()  # model is loaded in float32 as default, move it to float16
+        model = model.cpu()
         # Assert model parameters are identical after loading
         for orig_param, trained_model_param in zip(model.parameters(), saved_model.parameters()):
             assert torch.equal(orig_param, trained_model_param)

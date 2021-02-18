@@ -49,6 +49,9 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
         return super().forward(*inputs, **kwargs)
 
+    def half(self):
+        self.module.half()
+
     @staticmethod
     def batch_to(data):
         return data.half()
