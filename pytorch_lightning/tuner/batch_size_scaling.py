@@ -268,7 +268,7 @@ def _adjust_batch_size(
         The new batch size for the next trial and a bool that signals whether the
         new value is different than the previous batch size.
     """
-    model = trainer.get_model()
+    model = trainer.lightning_module
     batch_size = lightning_getattr(model, batch_arg_name)
     new_size = value if value is not None else int(batch_size * factor)
     if desc:
