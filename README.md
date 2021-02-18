@@ -427,7 +427,7 @@ the Lightning framework is Patent Pending.
 If you want to cite the framework feel free to use this (but only if you loved it 😊) or [zendo](https://zenodo.org/record/3828935#.YC45Lc9Khqs):
 
 ```bibtex
-@article{falcon2019pytorchlightning,
+@article{falcon2019pytorch,
   title={PyTorch Lightning},
   author={Falcon, WA and others},
   journal={GitHub. Note: https://github.com/PyTorchLightning/pytorch-lightning},
