@@ -1571,7 +1571,7 @@ class LightningModule(
             parents_arguments.update(args)
         return self_arguments, parents_arguments
 
-    def save_hyperparameters(self, *args, frame=None) -> None:
+    def save_hyperparameters(self, *args, ignore: Optional[Union[List, str]] = None, frame=None) -> None:
         """Save all model arguments.
 
         Args:
@@ -1615,11 +1615,31 @@ class LightningModule(
         "p1": 1
         "p2": abc
         "p3": 3.14
+
+        >>> class ManuallyArgsModel(LightningModule):
+        ...     def __init__(self, arg1, arg2, arg3):
+        ...         super().__init__()
+        ...         # pass argument(s) to ignore as a string or in a list
+        ...         self.save_hyperparameters(ignore="arg2")
+        ...     def forward(self, *args, **kwargs):
+        ...         ...
+        >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+        >>> model.hparams
+        "arg1": 1
+        "arg3": 3.14
         """
         if not frame:
             frame = inspect.currentframe().f_back
         init_args = get_init_args(frame)
         assert init_args, "failed to inspect the self init"
+
+        if ignore:
+            if isinstance(ignore, str):
+                ignore = [ignore]
+            if isinstance(ignore, list):
+                ignore = [arg for arg in ignore if isinstance(arg, str)]
+            init_args = {k: v for k, v in init_args.items() if k not in ignore}
+
         if not args:
             # take all arguments
             hp = init_args

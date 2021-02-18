@@ -695,3 +695,76 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
         )
         trainer.fit(model)
         _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)
+
+
+def test_ignore_argument_str_hparams(tmpdir):
+    """
+    Tests that a model can take regular args and assign &
+    ignore the argument that is mentioned.
+    """
+
+    # define model
+    class LocalModel(BoringModel):
+
+        def __init__(self, test_arg, test_arg2, test_arg3):
+            super().__init__()
+            self.save_hyperparameters(ignore="test_arg2")
+
+    model = LocalModel(test_arg=14, test_arg2=90, test_arg3=50)
+
+    # test proper property assignments
+    assert model.hparams.test_arg == 14
+    assert model.hparams.test_arg3 == 50
+    assert "test_arg2" not in model.hparams
+
+    # verify we can train
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
+    trainer.fit(model)
+
+    # make sure the raw checkpoint saved the properties
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    raw_checkpoint = torch.load(raw_checkpoint_path)
+    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
+    assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["test_arg"] == 14
+
+    # verify that model loads correctly
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123)
+    assert model.hparams.test_arg == 14
+    assert "test_arg2" not in model.hparams  # test_arg2 is not registered in class init
+
+
+def test_ignore_args_list_hparams(tmpdir):
+    """
+    Tests that a model can take regular args and assign &
+    ignore the list of args that are mentioned.
+    """
+
+    # define model
+    class LocalModel(BoringModel):
+
+        def __init__(self, test_arg, test_arg2, test_arg3):
+            super().__init__()
+            self.save_hyperparameters(ignore=["test_arg2", "test_arg3"])
+
+    model = LocalModel(test_arg=14, test_arg2=90, test_arg3=50)
+
+    # test proper property assignments
+    assert model.hparams.test_arg == 14
+    assert "test_arg2" not in model.hparams
+    assert "test_arg3" not in model.hparams
+
+    # verify we can train
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
+    trainer.fit(model)
+
+    # make sure the raw checkpoint saved the properties
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    raw_checkpoint = torch.load(raw_checkpoint_path)
+    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
+    assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["test_arg"] == 14
+
+    # verify that model loads correctly
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123, test_arg3=100)
+    assert model.hparams.test_arg == 14
+    assert "test_arg2" not in model.hparams
+    assert "test_arg3" not in model.hparams
