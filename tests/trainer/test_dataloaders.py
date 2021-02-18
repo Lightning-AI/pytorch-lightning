@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import platform
-from distutils.version import LooseVersion
 from unittest import mock
 from unittest.mock import patch
 
@@ -702,10 +701,6 @@ def test_warning_with_few_workers_multi_loader(mock, tmpdir, ckpt_path):
         trainer.test(**test_options)
 
 
-@pytest.mark.xfail(
-    LooseVersion(torch.__version__) < LooseVersion("1.4.0"),
-    reason="IterableDataset with __len__ before 1.4 raises",
-)
 def test_warning_with_iterable_dataset_and_len(tmpdir):
     """ Tests that a warning message is shown when an IterableDataset defines `__len__`. """
     model = EvalModelTemplate()

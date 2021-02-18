@@ -17,6 +17,8 @@ from typing import Optional, Union
 import torch
 from torch.nn import Module
 
+from pytorch_lightning.core.decorators import parameter_validation
+
 
 class DeviceDtypeModuleMixin(Module):
     __jit_unused_properties__ = ['device', 'dtype']
@@ -50,6 +52,7 @@ class DeviceDtypeModuleMixin(Module):
         # Necessary to avoid infinite recursion
         raise RuntimeError('Cannot set the device explicitly. Please use module.to(new_device).')
 
+    @parameter_validation
     def to(self, *args, **kwargs) -> Module:
         """Moves and/or casts the parameters and buffers.
 
@@ -86,6 +89,9 @@ class DeviceDtypeModuleMixin(Module):
             ...     def __init__(self, weight: torch.Tensor):
             ...         super().__init__()
             ...         self.register_buffer('weight', weight)
+            ...
+            ...     def on_post_move_to_device(self):
+            ...         pass
             >>> _ = torch.manual_seed(0)
             >>> module = ExampleModule(torch.rand(3, 4))
             >>> module.weight #doctest: +ELLIPSIS
