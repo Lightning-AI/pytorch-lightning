@@ -1,7 +1,7 @@
 import io
 import os
 import re
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp

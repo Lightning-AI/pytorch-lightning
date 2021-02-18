@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from contextlib import suppress
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 import torch
 
