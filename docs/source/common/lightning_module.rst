@@ -963,14 +963,14 @@ In the multi-optimizer case, ignore the ``optimizer_idx`` argument and use the o
         (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
 
         gen_loss = ...
+        opt_a.zero_grad()
         self.manual_backward(gen_loss, opt_a)
         opt_a.step()
-        opt_a.zero_grad()
 
         disc_loss = ...
+        opt_b.zero_grad()
         self.manual_backward(disc_loss, opt_b)
         opt_b.step()
-        opt_b.zero_grad()
 
 --------------
 
