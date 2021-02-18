@@ -154,16 +154,7 @@ class EvaluationLoop(object):
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
 
-        if self.trainer._predicting:
-            model_ref._current_fx_name = "predict"
-            predictions = self.trainer.accelerator_backend.predict(args)
-            self._predictions[dataloader_idx].append(predictions)
-            self.trainer._progress_bar_callback.on_test_batch_end(
-                self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
-            )
-            return
-
-        elif self.testing:
+        if self.testing:
             model_ref._current_fx_name = "test_step"
             with self.trainer.profiler.profile("test_step"):
                 output = self.trainer.accelerator_backend.test_step(args)
@@ -326,6 +317,8 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
+
+        self.trainer.call_hook('on_epoch_end')
 
     def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.running_sanity_check:

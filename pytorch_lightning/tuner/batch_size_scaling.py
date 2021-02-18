@@ -63,10 +63,10 @@ def scale_batch_size(
             It is expected that the user has provided a model or datamodule that has a hyperparameter
             with that name. We will look for this attribute name in the following places
 
-            - `model`
-            - `model.hparams`
-            - `model.datamodule`
-            - `trainer.datamodule` (the datamodule passed to the tune method)
+            - ``model``
+            - ``model.hparams``
+            - ``model.datamodule``
+            - ``trainer.datamodule`` (the datamodule passed to the tune method)
 
         **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
             or datamodule.

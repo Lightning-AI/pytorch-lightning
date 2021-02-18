@@ -23,7 +23,7 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import _DALI_AVAILABLE, _TORCHVISION_AVAILABLE, cli_lightning_logo
+from pl_examples import _DALI_AVAILABLE, _DATASETS_PATH, _TORCHVISION_AVAILABLE, cli_lightning_logo
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
@@ -192,8 +192,8 @@ def cli_main():
     # ------------
     # data
     # ------------
-    dataset = MNIST('', train=True, download=True, transform=transforms.ToTensor())
-    mnist_test = MNIST('', train=False, download=True, transform=transforms.ToTensor())
+    dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
+    mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
     mnist_train, mnist_val = random_split(dataset, [55000, 5000])
 
     eii_train = ExternalMNISTInputIterator(mnist_train, args.batch_size)
