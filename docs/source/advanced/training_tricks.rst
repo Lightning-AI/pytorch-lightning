@@ -48,9 +48,9 @@ This can be used with both non-trained and trained models. The SWA procedure smo
 it harder to end up in a local minimum during optimization.
 
 For a more detailed explanation of SWA and how it works,
-read `this <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>__` post by the PyTorch team.
+read `this <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`__ post by the PyTorch team.
 
-.. seealso:: :class:`~pytorch_lightning.callbacks.StochasticWeightAveraging`
+.. seealso:: :class:`~pytorch_lightning.callbacks.StochasticWeightAveraging` (Callback)
 
 .. testcode::
 
