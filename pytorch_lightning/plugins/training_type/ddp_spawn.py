@@ -50,7 +50,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
         sync_batchnorm: bool = False,
-        **kwargs: Dict[str, Any],
+        **kwargs: Union[Any, Dict[str, Any]],
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.num_nodes = num_nodes

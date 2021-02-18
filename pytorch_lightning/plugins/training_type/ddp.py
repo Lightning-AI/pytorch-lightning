@@ -62,7 +62,7 @@ class DDPPlugin(ParallelPlugin):
         num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
         sync_batchnorm: bool = False,
-        **kwargs: Dict[str, Any],
+        **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.interactive_ddp_procs = []
