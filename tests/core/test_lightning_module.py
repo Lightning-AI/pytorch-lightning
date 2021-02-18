@@ -385,7 +385,9 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             optimizer.step(closure=closure)
 
         def training_step(self, batch, batch_idx, optimizer_idx=None):
-            return super().training_step(batch, batch_idx)
+            loss = super().training_step(batch, batch_idx)
+            # make sure the model is untoggle when returning None
+            return loss if batch_idx % 2 == 0 else None
 
         @staticmethod
         def combine_generators(gen_1, gen_2):
