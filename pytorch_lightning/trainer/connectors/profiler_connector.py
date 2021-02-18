@@ -13,7 +13,8 @@
 # limitations under the License
 
 from typing import Union
-from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
+
+from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -67,6 +68,8 @@ class ProfilerConnector:
             for logger in trainer.logger._logger_iterable:
                 if isinstance(logger, TensorBoardLogger):
                     dir_path = logger.log_dir
+
         elif isinstance(trainer.logger, TensorBoardLogger):
-              dir_path = trainer.logger.log_dir
+            dir_path = trainer.logger.log_dir
+
         self.trainer.profiler.on_train_start(local_rank=local_rank, dir_path=dir_path)

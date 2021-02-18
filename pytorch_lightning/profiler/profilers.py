@@ -21,7 +21,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Callable, List, Optional, Union, Dict
+from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -104,6 +104,7 @@ class BaseProfiler(ABC):
     def on_train_start(self, local_rank: Optional[int] = None, dir_path: str = None):
         self.local_rank = local_rank
         self.dir_path = dir_path
+
 
 class PassThroughProfiler(BaseProfiler):
     """
@@ -402,7 +403,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
         self.local_rank = local_rank
         if self.path_to_export_trace is None:
             self.path_to_export_trace = dir_path
-        
+
         # when logging to `log.info`, only perform profiling on rank 0
         if local_rank != 0 and self.output_fname is None:
             self.wrap_functions_into_rank_zero_only()
@@ -480,12 +481,12 @@ class LegacyPyTorchProfiler(BaseProfiler):
             raise ValueError(  # pragma: no-cover
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
-        self._stop(action_name, from_stop = True)
-        
+        self._stop(action_name, from_stop=True)
+
         if _TORCH_GREATER_EQUAL_1_8:
             if self.export_to_flame_graph and self.path_to_export_trace is not None:
                 self.profiler.export_stacks(os.path.join(self.path_to_export_trace, "stack.txt"), self.metric)
-        
+
         self.profiler = None
         self.running_stack.pop()
         # restore running profiler

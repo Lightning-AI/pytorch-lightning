@@ -1617,13 +1617,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
     profiler = PyTorchProfiler(output_filename=output_filename)
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        profiler=profiler,
-        accelerator="ddp",
-        gpus=2,
-        logger=TensorBoardLogger(tmpdir)
-    )
+    trainer = Trainer(fast_dev_run=True, profiler=profiler, accelerator="ddp", gpus=2, logger=TensorBoardLogger(tmpdir))
     trainer.fit(model)
 
     enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
@@ -1639,6 +1633,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
         profiler.describe()
         data = Path(profiler.output_fname).read_text()
         assert len(data) > 0
+
 
 @pytest.mark.parametrize("use_output_filename", [True])
 def test_pytorch_profiler_trainer(tmpdir, use_output_filename):
