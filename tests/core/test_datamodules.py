@@ -451,7 +451,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
             batch.targets *= 2
             return batch
 
-        def transfer_batch_to_device(self, batch, device):
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
             self.transfer_batch_to_device_hook_rank = self.rank
             self.rank += 1
             batch.samples = batch.samples.to(device)

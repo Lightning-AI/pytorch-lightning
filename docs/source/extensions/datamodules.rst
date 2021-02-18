@@ -297,12 +297,15 @@ Override to define how you want to move an arbitrary batch to a device.
 .. testcode::
 
     class MNISTDataModule(LightningDataModule):
-        def transfer_batch_to_device(self, batch, device):
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
             x = batch['x']
             x = CustomDataWrapper(x)
             batch['x'] = x.to(device)
             return batch
 
+
+.. warning::
+    Currently dataloader_idx always returns 0 and will be updated to support the true idx in the future.
 
 .. note:: This hook only runs on single GPU training and DDP (no data-parallel).
 
