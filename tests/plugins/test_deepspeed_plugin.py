@@ -1,5 +1,6 @@
 import json
 import os
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -8,9 +9,26 @@ from torch.optim import Optimizer
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
+from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _DEEPSPEED_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
+
+
+@patch.object(BoringModel, 'to')
+def test_deepspeed_wrapper(mocked_to, tmpdir):
+    """
+        Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves types and device correctly.
+    """
+
+    model = BoringModel()
+    module = LightningDeepSpeedModule(model, precision=16)
+
+    module.half()
+    assert model.dtype == torch.half
+
+    module.to('cuda')
+    assert mocked_to.called, "LightningDeepSpeedModule did not call LightningModule `to` hook when transferring device"
 
 
 @pytest.fixture
@@ -285,7 +303,8 @@ def _assert_save_model_is_equal(model, tmpdir, trainer):
     # carry out the check only on rank 0
     if trainer.global_rank == 0:
         saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
-        saved_model = saved_model.half()  # model is loaded in float32 as default, move it to float16
+        if model.dtype == torch.half:
+            saved_model = saved_model.half()  # model is loaded in float32 as default, move it to float16
         model = model.cpu()
         # Assert model parameters are identical after loading
         for orig_param, trained_model_param in zip(model.parameters(), saved_model.parameters()):
