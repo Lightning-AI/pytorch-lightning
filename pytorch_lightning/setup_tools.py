@@ -67,7 +67,7 @@ def _load_readme_description(path_dir: str, homepage: str = __homepage__, versio
     text = text.replace('badge.svg?branch=master&event=push', f'badge.svg?tag={version}')
     # Azure...
     text = text.replace('?branchName=master', f'?branchName=refs%2Ftags%2F{version}')
-    text = re.sub(r'\?definitionId=\d+&branchName=master', f'?definitionId=1&branchName=refs%2Ftags%2F{version}', text)
+    text = re.sub(r'\?definitionId=\d+&branchName=master', f'?definitionId=2&branchName=refs%2Ftags%2F{version}', text)
 
     skip_begin = r'<!-- following section will be skipped from PyPI description -->'
     skip_end = r'<!-- end skipping PyPI description -->'
