@@ -305,13 +305,7 @@ class DeepSpeedPlugin(DDPPlugin):
         precision = self.lightning_module.trainer.accelerator_connector.precision
         if precision == 16:
             if "amp" not in self.config and amp_type == AMPType.NATIVE:
-                self.config["fp16"] = {
-                    "enabled": True,
-                    "loss_scale": 0,
-                    "loss_scale_window": 1000,
-                    "hysteresis": 2,
-                    "min_loss_scale": 1
-                }
+                self.config["fp16"] = {"enabled": True}
             elif "apex" not in self.config and amp_type == AMPType.APEX:
                 self.config["amp"] = {
                     "enabled": True,
