@@ -25,7 +25,7 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -1573,7 +1573,7 @@ class LightningModule(
         return self_arguments, parents_arguments
 
     def save_hyperparameters(
-        self, *args, ignore: Optional[Union[List[str], str]] = None, frame: Optional[types.FrameType] = None
+        self, *args, ignore: Optional[Union[Sequence[str], str]] = None, frame: Optional[types.FrameType] = None
     ) -> None:
         """Save model arguments to ``hparams`` attribute.
 
@@ -1640,10 +1640,10 @@ class LightningModule(
         init_args = get_init_args(frame)
         assert init_args, "failed to inspect the self init"
 
-        if ignore:
+        if ignore is not None:
             if isinstance(ignore, str):
                 ignore = [ignore]
-            if isinstance(ignore, list):
+            if isinstance(ignore, (list, tuple)):
                 ignore = [arg for arg in ignore if isinstance(arg, str)]
             init_args = {k: v for k, v in init_args.items() if k not in ignore}
 
