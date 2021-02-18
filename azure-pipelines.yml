@@ -4,10 +4,14 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
 trigger:
+  trigger:
+    tags:
+      - '*'
   branches:
     include:
       - master
       - release/*
+      - refs/tags/*
 pr:
   - master
   - release/*
