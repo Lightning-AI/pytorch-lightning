@@ -841,7 +841,8 @@ The current step (does not reset each epoch)
 
 hparams
 ~~~~~~~
-After calling ``save_hyperparameters`` anything passed to ``__init__()`` is available via the ``hparams`` attribute.
+The arguments saved by calling ``save_hyperparameters`` passed through ``__init__()``
+ could be accessed by the ``hparams`` attribute.
 
 .. code-block:: python
 
