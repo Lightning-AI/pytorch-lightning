@@ -20,10 +20,14 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests import _SKIPIF_ARGS_NO_PT_QUANT, _SKIPIF_ARGS_PT_LE_1_4
+from tests import _SKIPIF_ARGS_NO_PT_QUANT, _SKIPIF_ARGS_PT_LE_1_4, _TORCH_QUANTIZE_AVAILABLE
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.simple_models import RegressionModel
 
+
+if _TORCH_QUANTIZE_AVAILABLE:
+    _QCONFIG_OPTIONS = [eg for eg in torch.backends.quantized.supported_engines if eg != 'none']
+    DEFAULT_QCONFIG = 'fbgemm' if 'fbgemm' in _QCONFIG_OPTIONS else _QCONFIG_OPTIONS[0]
 
 @pytest.mark.parametrize(
     "observe", ['average', pytest.param('histogram', marks=pytest.mark.skipif(**_SKIPIF_ARGS_PT_LE_1_4))]
@@ -48,7 +52,7 @@ def test_quantization(tmpdir, observe, fuse):
     org_score = torch.mean(torch.tensor([mean_relative_error(model(x), y) for x, y in dm.test_dataloader()]))
 
     fusing_layers = [(f'layer_{i}', f'layer_{i}a') for i in range(3)] if fuse else None
-    qcb = QuantizationAwareTraining(observer_type=observe, modules_to_fuse=fusing_layers)
+    qcb = QuantizationAwareTraining(qconfig=DEFAULT_QCONFIG, observer_type=observe, modules_to_fuse=fusing_layers)
     trainer = Trainer(callbacks=[qcb], **trainer_args)
     trainer.fit(qmodel, datamodule=dm)
 
@@ -69,7 +73,7 @@ def test_quantize_torchscript(tmpdir):
     """Test converting to torchscipt """
     dm = RegressDataModule()
     qmodel = RegressionModel()
-    qcb = QuantizationAwareTraining(input_compatible=False)
+    qcb = QuantizationAwareTraining(qconfig=DEFAULT_QCONFIG, input_compatible=False)
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(qmodel, datamodule=dm)
 
@@ -87,16 +91,16 @@ def test_quantization_exceptions(tmpdir):
         QuantizationAwareTraining(qconfig=['abc'])
 
     with pytest.raises(MisconfigurationException, match='Unsupported observer type'):
-        QuantizationAwareTraining(observer_type='abc')
+        QuantizationAwareTraining(qconfig=DEFAULT_QCONFIG, observer_type='abc')
 
     with pytest.raises(MisconfigurationException, match='Unsupported `collect_quantization`'):
-        QuantizationAwareTraining(collect_quantization='abc')
+        QuantizationAwareTraining(qconfig=DEFAULT_QCONFIG, collect_quantization='abc')
 
     with pytest.raises(MisconfigurationException, match='Unsupported `collect_quantization`'):
-        QuantizationAwareTraining(collect_quantization=1.2)
+        QuantizationAwareTraining(qconfig=DEFAULT_QCONFIG, collect_quantization=1.2)
 
     fusing_layers = [(f'layers.mlp_{i}', f'layers.NONE-mlp_{i}a') for i in range(3)]
-    qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
+    qcb = QuantizationAwareTraining(qconfig=DEFAULT_QCONFIG, modules_to_fuse=fusing_layers)
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     with pytest.raises(MisconfigurationException, match='one or more of them is not your model attributes'):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
@@ -128,7 +132,7 @@ def test_quantization_triggers(tmpdir, trigger_fn, expected_count):
     """Test  how many times the quant is called"""
     dm = RegressDataModule()
     qmodel = RegressionModel()
-    qcb = QuantizationAwareTraining(collect_quantization=trigger_fn)
+    qcb = QuantizationAwareTraining(qconfig=DEFAULT_QCONFIG, collect_quantization=trigger_fn)
     trainer = Trainer(
         callbacks=[qcb],
         default_root_dir=tmpdir,
