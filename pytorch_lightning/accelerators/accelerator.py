@@ -387,7 +387,7 @@ class Accelerator(object):
 
         Args:
             obj: Object to broadcast to all process, usually a tensor or collection of tensors.
-            src: The source rank of which the object will be broadcast from (Default: 0)
+            src: The source rank of which the object will be broadcast from
         """
         return self.training_type_plugin.broadcast(obj, src)
 
