@@ -101,9 +101,13 @@ class BaseProfiler(ABC):
     def summary(self) -> str:
         """Create profiler summary in text format."""
 
-    def on_train_start(self, local_rank: Optional[int] = None, dir_path: str = None):
+    def on_train_start(self, local_rank: Optional[int] = None, log_dir: str = None):
+        """
+        This function is used by the Trainer to inject local_rank with `DDP`
+        and `TensorBoardLogger` log_dir in the profiler.
+        """
         self.local_rank = local_rank
-        self.dir_path = dir_path
+        self.log_dir = log_dir
 
 
 class PassThroughProfiler(BaseProfiler):
@@ -399,10 +403,16 @@ class LegacyPyTorchProfiler(BaseProfiler):
             self.on_train_start(local_rank=local_rank)
             self.on_train_start = super().on_train_start
 
-    def on_train_start(self, local_rank: Optional[str] = None, dir_path: str = None):
+    def on_train_start(self, local_rank: Optional[str] = None, log_dir: str = None):
+        """
+        This function is used by the Trainer to inject local_rank with `DDP`
+        and `TensorBoardLogger` log_dir in the profiler.
+        """
         self.local_rank = local_rank
+        # if the user didn't `path_to_export_trace`,
+        # set it as TensorBoardLogger log_dir if exists
         if self.path_to_export_trace is None:
-            self.path_to_export_trace = dir_path
+            self.path_to_export_trace = log_dir
 
         # when logging to `log.info`, only perform profiling on rank 0
         if local_rank != 0 and self.output_fname is None:
@@ -458,14 +468,14 @@ class LegacyPyTorchProfiler(BaseProfiler):
     def function_events(self):
         return self.profiler.function_events
 
-    def _stop(self, action_name: str, from_stop: bool = False) -> None:
+    def _stop(self, action_name: str, triggered_by_stop_function: bool = False) -> None:
         if self.profiler is None:
             return
 
         self.profiler.__exit__(exc_type=None, exc_val=None, exc_tb=None)
 
         function_events = self.function_events
-        if not from_stop:
+        if not triggered_by_stop_function:
             self.profiler = None
         for name in self.running_stack:
             if name not in self.profiled_actions:
@@ -481,7 +491,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
             raise ValueError(  # pragma: no-cover
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
-        self._stop(action_name, from_stop=True)
+        self._stop(action_name, triggered_by_stop_function=True)
 
         if _TORCH_GREATER_EQUAL_1_8:
             if self.export_to_flame_graph and self.path_to_export_trace is not None:

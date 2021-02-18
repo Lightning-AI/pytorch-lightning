@@ -63,13 +63,13 @@ class ProfilerConnector:
 
     def on_train_start(self, trainer):
         local_rank = trainer.local_rank if trainer.world_size > 1 else None
-        dir_path = None
+        log_dir = None
         if isinstance(trainer.logger, LoggerCollection):
             for logger in trainer.logger._logger_iterable:
                 if isinstance(logger, TensorBoardLogger):
-                    dir_path = logger.log_dir
+                    log_dir = logger.log_dir
 
         elif isinstance(trainer.logger, TensorBoardLogger):
-            dir_path = trainer.logger.log_dir
+            log_dir = trainer.logger.log_dir
 
-        self.trainer.profiler.on_train_start(local_rank=local_rank, dir_path=dir_path)
+        self.trainer.profiler.on_train_start(local_rank=local_rank, log_dir=log_dir)
