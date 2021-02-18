@@ -1583,9 +1583,8 @@ class LightningModule(
             ignore: an argument or a list of arguments from class `__init__`
                 to be ignored
             frame: a frame object. Default is None
-        
-        Example::
 
+        Example::
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
