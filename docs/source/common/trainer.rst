@@ -130,7 +130,9 @@ So you can run it like so:
         parser = ArgumentParser()
         parser = Trainer.add_argparse_args(
             # group the Trainer arguments together
-            parser.add_argument_group(title="pl.Trainer args")
+            parser.add_argument_group(title="pl.Trainer args"),
+            # add it to the origianl parser
+            inplace=True,
         )
         args = parser.parse_args()
 

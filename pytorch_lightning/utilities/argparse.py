@@ -135,7 +135,7 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
     return name_type_default
 
 
-def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
+def add_argparse_args(cls, parent_parser: ArgumentParser, *, inplace=False) -> ArgumentParser:
     r"""Extends existing argparse by default `Trainer` attributes.
 
     Args:
@@ -143,21 +143,36 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
         parent_parser:
             The custom cli arguments parser, which will be extended by
             the Trainer default arguments.
+        inplace:
+            By default, this is False, and creates a new ArgumentParser connected to
+            ``parent_parser``.
+            If True, then this will add the arguments directly to the passed ``parent_parser``
+            instance. (Use this when using `add_argument_group()`.)
 
     Only arguments of the allowed types (str, float, int, bool) will
     extend the `parent_parser`.
 
     Examples:
+
+        # Option 1: Default usage.
         >>> import argparse
         >>> from pytorch_lightning import Trainer
         >>> parser = argparse.ArgumentParser()
         >>> parser = Trainer.add_argparse_args(parser)
         >>> args = parser.parse_args([])
+
+        # Option 2: Using add_argument_group().
+        >>> parser = argparse.ArgumentParser()
+        >>> parser = Trainer.add_argparse_args(parser.add_argument_group("pl.Trainer"), inplace=True)
+        >>> args = parser.parse_args([])
     """
-    parser = ArgumentParser(
-        parents=[parent_parser],
-        add_help=False,
-    )
+    if inplace:
+        parser = parent_parser
+    else:
+        parser = ArgumentParser(
+            parents=[parent_parser],
+            add_help=False,
+        )
 
     blacklist = ['kwargs']
     depr_arg_names = cls.get_deprecated_arg_names() + blacklist

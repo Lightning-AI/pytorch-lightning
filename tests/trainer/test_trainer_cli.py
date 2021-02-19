@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+import io
 import pickle
 from argparse import ArgumentParser, Namespace
 from unittest import mock
@@ -70,9 +71,32 @@ def test_add_argparse_args_redefined(cli_args):
 def test_add_argparse_via_argument_group(cli_args):
     """Simple test ensuring that passing an argument group still works"""
     parser = ArgumentParser(add_help=False)
-    parser = Trainer.add_argparse_args(parser.add_argument_group(title="pl.Trainer args"))
+    parser = Trainer.add_argparse_args(
+        parser.add_argument_group(title="pl.Trainer args"),
+        inplace=True,
+    )
     args = parser.parse_args(cli_args)
     assert Trainer.from_argparse_args(args)
+
+
+def test_add_argparse_help_for_inplace_argument_group():
+    """Simple test ensuring that help text is organized when using
+    `add_argument_group()` with `inplace`."""
+    parser = ArgumentParser()
+    parser_main = parser.add_argument_group("main")
+    parser_main.add_argument("--my_custom_arg_plz", type=str)
+    Trainer.add_argparse_args(
+        parser.add_argument_group("pl.Trainer"),
+        inplace=True,
+    )
+    help_str_buffer = io.StringIO()
+    parser.print_help(file=help_str_buffer)
+    help_str_buffer.seek(0)
+    help_str = help_str_buffer.read()
+    assert "main:" in help_str
+    assert "--my_custom_arg_plz" in help_str
+    assert "pl.Trainer:" in help_str
+    assert "--logger" in help_str
 
 
 def test_get_init_arguments_and_types():
