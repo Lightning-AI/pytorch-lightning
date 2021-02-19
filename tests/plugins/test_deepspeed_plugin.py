@@ -75,6 +75,11 @@ def deepspeed_config():
     }
 
 
+@pytest.fixture
+def deepspeed_zero_config(deepspeed_config):
+    return {**deepspeed_config, 'zero_allow_untested_optimizer': True, 'zero_optimization': {'stage': 2}}
+
+
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 def test_deepspeed_plugin_string(tmpdir):
     """
@@ -266,7 +271,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_deepspeed_config(tmpdir, deepspeed_config):
+def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     """
         Test to ensure deepspeed works correctly when passed a DeepSpeed config object including optimizers/schedulers
         and saves the model weights to load correctly.
@@ -275,15 +280,18 @@ def test_deepspeed_config(tmpdir, deepspeed_config):
     class TestModel(BoringModel):
 
         def on_train_start(self) -> None:
-            import deepspeed
-            assert isinstance(self.trainer.optimizers[0], torch.optim.SGD)
+            from deepspeed.runtime.lr_schedules import WarmupLR
+            from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer
+
+            assert isinstance(self.trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
+            assert isinstance(self.trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert self.trainer.lr_schedulers == []  # DeepSpeed manages LR scheduler internally
-            assert isinstance(self.trainer.model.optimizer, torch.optim.SGD)
-            assert isinstance(self.trainer.model.lr_scheduler, deepspeed.runtime.lr_schedules.WarmupLR)
+            # Ensure DeepSpeed engine has initialized with our optimizer/lr_scheduler
+            assert isinstance(self.trainer.model.lr_scheduler, WarmupLR)
 
     model = TestModel()
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(config=deepspeed_config)],
+        plugins=[DeepSpeedPlugin(config=deepspeed_zero_config)],
         default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
