@@ -23,8 +23,8 @@ local tputests = base.BaseTest {
       git clone https://github.com/PyTorchLightning/pytorch-lightning.git
       cd pytorch-lightning
       echo $PWD
-      git fetch --all
-      git checkout {SHA}
+      git ls-remote --refs origin
+      git fetch origin pull/{PR_NUMBER}/head:pr/{PR_NUMBER} && git checkout pr/{PR_NUMBER}
 
       # drop horovod as it is not needed
       python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
