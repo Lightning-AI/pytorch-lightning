@@ -25,7 +25,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 warning_cache = WarningCache()
 
 
-class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
+class _LightningModuleWrapperBase(torch.nn.Module):
 
     def __init__(self, pl_module: LightningModule):
         """

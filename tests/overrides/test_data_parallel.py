@@ -153,16 +153,3 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
     wrapped_model = LightningParallelModule(model)
     output = wrapped_model(batch, batch_idx)
     assert output["python scalar"] == torch.tensor([12.3], device=device)
-
-
-@pytest.mark.parametrize("wrapper_class", [
-    LightningParallelModule,
-    LightningDistributedModule,
-])
-def test_dtype_device_access(wrapper_class):
-    """ Test that device and dtype attributes are accessible through the wrapper. """
-    model = BoringModel()
-    assert model.dtype == torch.float32
-    wrapped_model = wrapper_class(model)
-    wrapped_model.half()
-    assert model.dtype == torch.float16
