@@ -25,7 +25,7 @@ local tputests = base.BaseTest {
       cd pytorch-lightning
       echo $PWD
       git ls-remote --refs origin
-      git fetch origin pull/{PR_NUMBER}/head:pr/{PR_NUMBER} && git checkout pr/{PR_NUMBER}
+      git fetch origin "refs/pull/{PR_NUMBER}/head:pr/{PR_NUMBER}" && git checkout "pr/{PR_NUMBER}"
 
       # drop horovod as it is not needed
       python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
