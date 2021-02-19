@@ -838,7 +838,7 @@ class TrainLoop:
         # enable not needing to add opt_idx to training_step
         args = [batch, batch_idx]
 
-        if len(self.trainer.optimizers) > 1 and not self.automatic_optimization:
+        if len(self.trainer.optimizers) > 1 and self.automatic_optimization:
             if self.trainer.has_arg("training_step", "optimizer_idx"):
                 args.append(opt_idx)
             else:

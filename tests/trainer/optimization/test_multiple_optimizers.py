@@ -119,7 +119,7 @@ def test_multiple_optimizers_manual(tmpdir):
             super().__init__()
             self.automatic_optimization = False
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
+        def training_step(self, batch, batch_idx):
             self.training_step_called = True
 
             # manual optimization

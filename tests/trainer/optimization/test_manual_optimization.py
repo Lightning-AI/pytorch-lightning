@@ -40,7 +40,7 @@ def test_multiple_optimizers_manual(tmpdir):
             super().__init__()
             self.automatic_optimization = False
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
+        def training_step(self, batch, batch_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
             loss_1 = self.step(batch[0])
@@ -107,7 +107,7 @@ def test_multiple_optimizers_manual_return(tmpdir):
             super().__init__()
             self.automatic_optimization = False
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
+        def training_step(self, batch, batch_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
             loss_1 = self.step(batch[0])
@@ -176,7 +176,7 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
             super().__init__()
             self.automatic_optimization = False
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
+        def training_step(self, batch, batch_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
             loss_1 = self.step(batch[0])
@@ -251,7 +251,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
             super().__init__()
             self.automatic_optimization = False
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
+        def training_step(self, batch, batch_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
             loss_1 = self.step(batch[0])
@@ -321,7 +321,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             super().__init__()
             self.automatic_optimization = False
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
+        def training_step(self, batch, batch_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
             x = batch[0]
@@ -610,7 +610,7 @@ def test_multiple_optimizers_step(tmpdir):
             if not (torch.isinf(norm) or torch.isnan(norm)):
                 assert norm.item() < 100, norm.item()
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
+        def training_step(self, batch, batch_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
             x = batch[0]
@@ -886,7 +886,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             super().__init__()
             self.automatic_optimization = False
 
-        def training_step(self, batch, batch_idx, optimizer_idx):
+        def training_step(self, batch, batch_idx):
 
             # emulate gans training
             opt_gen, opt_dis = self.optimizers()
@@ -981,7 +981,7 @@ class TesManualOptimizationDDPModel(BoringModel):
         torch_distrib.all_reduce(self.layer.weight.grad.data, async_op=False)
         return True
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx):
 
         # emulate gans training
         opt_gen, opt_dis = self.optimizers()
