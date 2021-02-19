@@ -27,6 +27,19 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
+class AMPTestModel(BoringModel):
+
+    def forward(*args, **kwargs):
+        assert torch.is_autocast_enabled()
+        super().forward(*args, **kwargs)
+
+    def training_step(self, batch, batch_idx):
+        output = super().training_step(batch, batch_idx)
+        loss = output["loss"]
+        assert loss.dtype == torch.float16
+        return output
+
+
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_amp_single_gpu_dp(tmpdir):
@@ -41,7 +54,7 @@ def test_amp_single_gpu_dp(tmpdir):
         precision=16,
     )
 
-    model = BoringModel()
+    model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
@@ -60,7 +73,7 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
         precision=16,
     )
 
-    model = BoringModel()
+    model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
     assert torch.is_autocast_enabled()
@@ -81,7 +94,7 @@ def test_amp_multi_gpu_dp(tmpdir):
         precision=16,
     )
 
-    model = BoringModel()
+    model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
@@ -100,7 +113,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
         precision=16,
     )
 
-    model = BoringModel()
+    model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
     assert torch.is_autocast_enabled()
@@ -122,7 +135,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     # simulate setting slurm flags
     tutils.set_random_master_port()
 
-    model = BoringModel()
+    model = AMPTestModel()
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
