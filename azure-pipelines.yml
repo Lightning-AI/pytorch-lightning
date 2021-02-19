@@ -9,9 +9,7 @@ trigger:
       - '*'
   branches:
     include:
-      - master
-      - release/*
-      - refs/tags/*
+      - never-ever-run-
 pr:
   - master
   - release/*
