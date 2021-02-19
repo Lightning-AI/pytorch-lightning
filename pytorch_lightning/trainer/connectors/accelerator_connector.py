@@ -565,7 +565,7 @@ class AcceleratorConnector(object):
         Raises a `MisconfigurationException` if the accelerator and/or plugin is not compatible with IPython
         and code is run in an IPython kernel.
         """
-        if self._distrib_type in DistributedType.ipython_compatible_types():
+        if self._distrib_type.is_ipython_compatible():
             return
         # check ipython env
         if _module_available("IPython"):
