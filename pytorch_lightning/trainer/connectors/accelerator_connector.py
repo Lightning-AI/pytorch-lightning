@@ -116,10 +116,11 @@ class AcceleratorConnector(object):
 
         self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
 
-        self.set_distributed_mode()
-        self.configure_slurm_ddp()
-
         self.handle_given_plugins(plugins)
+        if not self._distrib_type:
+            self.set_distributed_mode()
+
+        self.configure_slurm_ddp()
 
         self.accelerator = self.select_accelerator()
 
