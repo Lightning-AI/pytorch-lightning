@@ -474,7 +474,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
         trainer.current_epoch = i
         trainer.global_step = i
         trainer.logger_connector.callback_metrics = {"checkpoint_on": torch.tensor(loss)}
-        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
+        checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
 
     file_lists = set(os.listdir(tmpdir))
 
@@ -540,12 +540,12 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
 
     class TestModel(BoringModel):
         # Model that tracks epochs and batches seen
-        num_epochs_seen = 0
+        num_epochs_end_seen = 0
         num_batches_seen = 0
         num_on_load_checkpoint_called = 0
 
         def on_epoch_end(self):
-            self.num_epochs_seen += 1
+            self.num_epochs_end_seen += 1
 
         def on_train_batch_start(self, *_):
             self.num_batches_seen += 1
@@ -567,7 +567,8 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
     )
     trainer.fit(model)
 
-    assert model.num_epochs_seen == 2
+    # `on_epoch_end` will be called once for val_sanity, twice for train, twice for val
+    assert model.num_epochs_end_seen == 1 + 2 + 2
     assert model.num_batches_seen == trainer.num_training_batches * 2
     assert model.num_on_load_checkpoint_called == 0
 
@@ -1420,11 +1421,11 @@ def test_trainer_setup_call(tmpdir):
 
     trainer.fit(model)
     assert trainer.stage == "fit"
-    assert trainer.get_model().stage == "fit"
+    assert trainer.lightning_module.stage == "fit"
 
     trainer.test(ckpt_path=None)
     assert trainer.stage == "test"
-    assert trainer.get_model().stage == "test"
+    assert trainer.lightning_module.stage == "test"
 
 
 @pytest.mark.parametrize(
@@ -1498,6 +1499,9 @@ class TestLightningDataModule(LightningDataModule):
     def test_dataloader(self):
         return self._dataloaders
 
+    def predict_dataloader(self):
+        return self._dataloaders
+
 
 def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=True):
 
@@ -1515,7 +1519,6 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
         gpus=gpus,
         num_processes=num_processes,
         plugins=plugins,
-        num_sanity_val_steps=0
     )
     if datamodule:
         results = trainer.predict(model, datamodule=datamodule)
@@ -1529,9 +1532,6 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
     assert results[0][0].shape == torch.Size([1, 2])
 
 
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
 @pytest.mark.parametrize('datamodule', [False, True])
 def test_trainer_predict_cpu(tmpdir, datamodule):
     predict(tmpdir, None, None, 1, datamodule=datamodule)

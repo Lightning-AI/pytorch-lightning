@@ -50,9 +50,9 @@ def test_rpc_sequential_plugin_manual(tmpdir, args=None):
     if torch_distrib.is_initialized() and torch_distrib.get_rank() == 0:
         assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
-    if trainer.accelerator_backend.rpc_enabled:
+    if trainer.accelerator.rpc_enabled:
         # Called at the end of trainer to ensure all processes are killed
-        trainer.accelerator_backend.training_type_plugin.exit_rpc_process()
+        trainer.accelerator.training_type_plugin.exit_rpc_process()
 
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
@@ -104,9 +104,9 @@ def test_rpc_sequential_plugin_automatic(tmpdir, args=None):
     if torch_distrib.is_initialized() and torch_distrib.get_rank() == 0:
         assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
-    if trainer.accelerator_backend.rpc_enabled:
+    if trainer.accelerator.rpc_enabled:
         # Called at the end of trainer to ensure all processes are killed
-        trainer.accelerator_backend.training_type_plugin.exit_rpc_process()
+        trainer.accelerator.training_type_plugin.exit_rpc_process()
 
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
@@ -132,9 +132,9 @@ def test_rpc_sequential_plugin_with_wrong_balance(tmpdir, args=None):
     ):
         trainer.fit(model)
 
-    if trainer.accelerator_backend.rpc_enabled:
+    if trainer.accelerator.rpc_enabled:
         # Called at the end of trainer to ensure all processes are killed
-        trainer.accelerator_backend.training_type_plugin.exit_rpc_process()
+        trainer.accelerator.training_type_plugin.exit_rpc_process()
 
 
 class SequentialModelRPCManual(LightningModule):
@@ -164,6 +164,7 @@ class SequentialModelRPCManual(LightningModule):
         self.manual_backward(loss, opt)
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
         opt.step()
+        opt.zero_grad()
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
 
     def validation_step(self, batch, batch_idx):

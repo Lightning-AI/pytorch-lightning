@@ -19,10 +19,10 @@ class WarningCache:
     def __init__(self):
         self.warnings = set()
 
-    def warn(self, m):
+    def warn(self, m, *args, **kwargs):
         if m not in self.warnings:
             self.warnings.add(m)
-            rank_zero_warn(m)
+            rank_zero_warn(m, *args, **kwargs)
 
     def clear(self):
         self.warnings.clear()

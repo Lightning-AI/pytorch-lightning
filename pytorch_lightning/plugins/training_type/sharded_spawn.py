@@ -1,7 +1,6 @@
 from typing import Optional
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 

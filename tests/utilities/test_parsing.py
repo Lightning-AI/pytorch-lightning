@@ -89,8 +89,8 @@ def _get_test_cases():
 
 
 def test_lightning_hasattr(tmpdir):
-    """ Test that the lightning_hasattr works in all cases"""
-    model1, model2, model3, model4, model5, model6, model7 = _get_test_cases()
+    """Test that the lightning_hasattr works in all cases"""
+    model1, model2, model3, model4, model5, model6, model7 = models = _get_test_cases()
     assert lightning_hasattr(model1, 'learning_rate'), \
         'lightning_hasattr failed to find namespace variable'
     assert lightning_hasattr(model2, 'learning_rate'), \
@@ -106,9 +106,12 @@ def test_lightning_hasattr(tmpdir):
     assert lightning_hasattr(model7, 'batch_size'), \
         'lightning_hasattr failed to find batch_size in hparams w/ datamodule present'
 
+    for m in models:
+        assert not lightning_hasattr(m, "this_attr_not_exist")
+
 
 def test_lightning_getattr(tmpdir):
-    """ Test that the lightning_getattr works in all cases"""
+    """Test that the lightning_getattr works in all cases"""
     models = _get_test_cases()
     for i, m in enumerate(models[:3]):
         value = lightning_getattr(m, 'learning_rate')
@@ -122,9 +125,16 @@ def test_lightning_getattr(tmpdir):
     assert lightning_getattr(model7, 'batch_size') == 8, \
         'batch_size not correctly extracted'
 
+    for m in models:
+        with pytest.raises(
+                AttributeError,
+                match="is neither stored in the model namespace nor the `hparams` namespace/dict, nor the datamodule."
+        ):
+            lightning_getattr(m, "this_attr_not_exist")
+
 
 def test_lightning_setattr(tmpdir):
-    """ Test that the lightning_setattr works in all cases"""
+    """Test that the lightning_setattr works in all cases"""
     models = _get_test_cases()
     for m in models[:3]:
         lightning_setattr(m, 'learning_rate', 10)
@@ -141,6 +151,13 @@ def test_lightning_setattr(tmpdir):
         'batch_size not correctly set'
     assert lightning_getattr(model7, 'batch_size') == 128, \
         'batch_size not correctly set'
+
+    for m in models:
+        with pytest.raises(
+                AttributeError,
+                match="is neither stored in the model namespace nor the `hparams` namespace/dict, nor the datamodule."
+        ):
+            lightning_setattr(m, "this_attr_not_exist", None)
 
 
 def test_str_to_bool_or_str(tmpdir):

@@ -40,7 +40,14 @@ class SLURMConnector:
 
             # requeue job
             log.info(f'requeing job {job_id}...')
-            result = call(cmd)
+            try:
+                result = call(cmd)
+            except FileNotFoundError:
+                # This can occur if a subprocess call to `scontrol` is run outside a shell context
+                # Re-attempt call (now with shell context). If any error is raised, propagate to user.
+                # When running a shell command, it should be passed as a single string.
+                joint_cmd = [str(x) for x in cmd]
+                result = call(' '.join(joint_cmd), shell=True)
 
             # print result text
             if result == 0:

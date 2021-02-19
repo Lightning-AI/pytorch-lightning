@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List
+from typing import List, Optional
 
 import torch
 from torch.nn import DataParallel
@@ -23,7 +23,7 @@ from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 
 class DataParallelPlugin(ParallelPlugin):
 
-    def __init__(self, parallel_devices: List[torch.device]):
+    def __init__(self, parallel_devices: Optional[List[torch.device]]):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
     def setup(self, model):
