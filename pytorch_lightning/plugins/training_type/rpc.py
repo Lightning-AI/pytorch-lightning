@@ -13,11 +13,10 @@
 # limitations under the License.
 import os
 from contextlib import suppress
-from typing import Optional, Sequence
+from typing import List, Optional
 
 import torch
 
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _RPC_AVAILABLE
@@ -42,7 +41,7 @@ class RPCPlugin(DDPPlugin):
     def __init__(
         self,
         rpc_timeout_sec: float = DEFAULT_RPC_TIMEOUT_SEC,
-        parallel_devices: Sequence[int] = (),
+        parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         sync_batchnorm: Optional[bool] = None,

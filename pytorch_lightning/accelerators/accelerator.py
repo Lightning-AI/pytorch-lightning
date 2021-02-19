@@ -11,21 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Iterable, Optional, Union
 
 import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.plugins.precision import (
-    ApexMixedPrecisionPlugin,
-    MixedPrecisionPlugin,
-    NativeMixedPrecisionPlugin,
-    PrecisionPlugin,
-)
+from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
-from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
@@ -64,7 +58,7 @@ class Accelerator(object):
         self.lr_schedulers = None
         self.optimizer_frequencies = None
 
-    def setup(self, trainer: "Trainer", model: LightningModule) -> None:
+    def setup(self, trainer, model: LightningModule) -> None:
         """
         Connects the plugins to the training process, creates optimizers
 
@@ -76,13 +70,13 @@ class Accelerator(object):
         self.setup_optimizers(trainer)
         self.connect_precision_plugin(self.precision_plugin)
 
-    def start_training(self, trainer: 'Trainer'):
+    def start_training(self, trainer):
         self.training_type_plugin.start_training(trainer)
 
-    def start_testing(self, trainer: 'Trainer'):
+    def start_testing(self, trainer):
         self.training_type_plugin.start_testing(trainer)
 
-    def start_predicting(self, trainer: 'Trainer'):
+    def start_predicting(self, trainer):
         self.training_type_plugin.start_predicting(trainer)
 
     def pre_dispatch(self) -> None:
@@ -125,7 +119,7 @@ class Accelerator(object):
         """
         pass
 
-    def batch_to_device(self, batch: Any, device: torch.device) -> Any:
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """Moves the batch to the correct device.
         The returned batch is of the same type as the input batch, just having all tensors on the correct device.
 
@@ -134,8 +128,10 @@ class Accelerator(object):
             device: The target device
         """
         model = self.lightning_module
+
         if model is not None:
-            return model.transfer_batch_to_device(batch, device)
+            return model._apply_batch_transfer_handler(batch, device)
+
         return move_data_to_device(batch, device)
 
     def on_train_start(self):
@@ -155,9 +151,7 @@ class Accelerator(object):
                     :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         """
-        batch = self.to_device(args[0])
-
-        args[0] = batch
+        args[0] = self.to_device(args[0])
 
         with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
             return self.training_type_plugin.training_step(*args)
@@ -310,7 +304,7 @@ class Accelerator(object):
         """Hook to do something at the end of the training"""
         pass
 
-    def setup_optimizers(self, trainer: "Trainer"):
+    def setup_optimizers(self, trainer):
         """creates optimizers and schedulers
 
         Args:
@@ -383,12 +377,18 @@ class Accelerator(object):
         self.training_type_plugin.barrier(name=name)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        """Broadcasts an object to all processes"""
+        """Broadcasts an object to all processes, such that the src object is broadcast to all other ranks if needed.
+
+        Args:
+            obj: Object to broadcast to all process, usually a tensor or collection of tensors.
+            src: The source rank of which the object will be broadcast from
+        """
         return self.training_type_plugin.broadcast(obj, src)
 
     def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
         """
-        Function to gather a tensor from several distributed processes
+        Function to gather a tensor from several distributed processes.
+
         Args:
             tensor: tensor of shape (batch, ...)
             group: the process group to gather results from. Defaults to all processes (world)
@@ -409,8 +409,7 @@ class Accelerator(object):
     @property
     def results(self) -> Any:
         """
-        The results of the last training/testing run will be cached here.
+        The results of the last training/testing run will be cached within the training type plugin.
         In distributed training, we make sure to transfer the results to the appropriate master process.
         """
-        # TODO: improve these docs
         return self.training_type_plugin.results

@@ -46,8 +46,8 @@ def test_deepspeed_plugin_string(tmpdir):
         plugins='deepspeed',
     )
 
-    assert isinstance(trainer.accelerator_backend.training_type_plugin, DeepSpeedPlugin)
-    assert trainer.accelerator_backend.training_type_plugin.parallel_devices == [torch.device('cpu')]
+    assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
+    assert trainer.accelerator.training_type_plugin.parallel_devices == [torch.device('cpu')]
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
@@ -62,8 +62,8 @@ def test_deepspeed_plugin(tmpdir):
         plugins=[DeepSpeedPlugin()],
     )
 
-    assert isinstance(trainer.accelerator_backend.training_type_plugin, DeepSpeedPlugin)
-    assert trainer.accelerator_backend.training_type_plugin.parallel_devices == [torch.device('cpu')]
+    assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
+    assert trainer.accelerator.training_type_plugin.parallel_devices == [torch.device('cpu')]
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
@@ -82,7 +82,7 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
         plugins='deepspeed',
     )
 
-    plugin = trainer.accelerator_backend.training_type_plugin
+    plugin = trainer.accelerator.training_type_plugin
     assert isinstance(plugin, DeepSpeedPlugin)
     assert plugin.parallel_devices == [torch.device('cpu')]
     assert plugin.config == deepspeed_config
@@ -106,9 +106,9 @@ def test_deepspeed_precision_choice(amp_backend, tmpdir):
         fast_dev_run=True, default_root_dir=tmpdir, plugins='deepspeed', amp_backend=amp_backend, precision=16
     )
 
-    assert isinstance(trainer.accelerator_backend.training_type_plugin, DeepSpeedPlugin)
-    assert isinstance(trainer.accelerator_backend.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.accelerator_backend.precision_plugin.precision == 16
+    assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
+    assert isinstance(trainer.accelerator.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert trainer.accelerator.precision_plugin.precision == 16
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")

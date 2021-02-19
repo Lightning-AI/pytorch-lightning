@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 import re
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -46,11 +46,11 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        parallel_devices,
-        num_nodes=1,
+        parallel_devices: Optional[List[torch.device]] = None,
+        num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
         sync_batchnorm: bool = False,
-        **kwargs: Dict[str, Any],
+        **kwargs: Union[Any, Dict[str, Any]],
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.num_nodes = num_nodes

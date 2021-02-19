@@ -1,14 +1,13 @@
 from typing import Any, Union
 
 import torch
-from torch._C import device
 
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 
 
 class SingleDevicePlugin(TrainingTypePlugin):
 
-    def __init__(self, device: torch.device) -> bool:
+    def __init__(self, device: torch.device):
         super().__init__()
         self.device: torch.device = device
 
