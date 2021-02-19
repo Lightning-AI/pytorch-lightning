@@ -229,8 +229,8 @@ def test_accumulation_and_early_stopping(tmpdir):
 def test_suggestion_parameters_work(tmpdir):
     """ Test that default skipping does not alter results in basic case """
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     # logger file to get meta
     trainer = Trainer(
@@ -238,12 +238,11 @@ def test_suggestion_parameters_work(tmpdir):
         max_epochs=3,
     )
 
-    lrfinder = trainer.tuner.lr_find(model)
+    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
     lr1 = lrfinder.suggestion(skip_begin=10)  # default
-    lr2 = lrfinder.suggestion(skip_begin=80)  # way too high, should have an impact
+    lr2 = lrfinder.suggestion(skip_begin=150)  # way too high, should have an impact
 
-    assert lr1 != lr2, \
-        'Skipping parameter did not influence learning rate'
+    assert lr1 != lr2, 'Skipping parameter did not influence learning rate'
 
 
 def test_suggestion_with_non_finite_values(tmpdir):
