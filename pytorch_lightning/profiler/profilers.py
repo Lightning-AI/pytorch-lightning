@@ -33,9 +33,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_8:
-    from torch.profiler import ProfilerActivity, tensorboard_trace_handler, ProfilerAction
-    import torch.autograd.profiler as prof
-
+    from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
 
 class BaseProfiler(ABC):
@@ -498,8 +496,8 @@ class LegacyPyTorchProfiler(BaseProfiler):
             raise ValueError(  # pragma: no-cover
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
-        self._stop(action_name, from_stop = True)
-        
+        self._stop(action_name, triggered_by_stop_function=True)
+
         self.profiler = None
         self.running_stack.pop()
         # restore running profiler
@@ -554,7 +552,6 @@ class LegacyPyTorchProfiler(BaseProfiler):
             self.output_file.close()
 
 
-
 class LightningProfiler(torch.profiler.profile):
 
     def step(self, prev_action, current_action):
@@ -607,6 +604,7 @@ class LightningProfiler(torch.profiler.profile):
                     self.on_trace_ready(self)
                 self._start_warmup()
                 self._start_trace()
+
 
 class PyTorchProfiler(LegacyPyTorchProfiler):
 
@@ -692,8 +690,7 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
             # next line is a workaround for a pytorch issue (fixed on master, still present
             # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
             # parent event for detach`
-            #function_events.populate_cpu_children = lambda: None
-
+            # function_events.populate_cpu_children = lambda: None
             if self.export_to_tensorboard and self.path_to_export_trace is not None:
                 tensorboard_trace_handler(self.path_to_export_trace, local_rank)(function_events)
 
@@ -727,8 +724,8 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
 
-        self._stop(action_name, from_stop = True)
-        
+        self._stop(action_name, triggered_by_stop_function=True)
+
         schedule = self.get_schedule(action_name)
         if schedule is not None:
             self.schedules_num_steps[action_name] += 1
@@ -743,7 +740,7 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
 
         if has_recorded and can_export and has_profiler:
             self.profiler.export_stacks(os.path.join(self.path_to_export_trace, "stack.txt"), self.metric)
-        
+
         self.profiler = None
         self.running_stack.pop()
 
