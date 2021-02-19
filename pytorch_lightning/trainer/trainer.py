@@ -59,7 +59,6 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
-from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
