@@ -131,7 +131,7 @@ def test_model_checkpoint_correct_score_and_checkpoint(tmpdir, validation_step, 
         assert mc_specific_data['current_score'] == score
 
         lr_scheduler_specific_data = chk['lr_schedulers'][0]
-        assert lr_scheduler_specific_data['_step_count'] == epoch + 1
+        assert lr_scheduler_specific_data['_step_count'] == epoch + 2
         assert lr_scheduler_specific_data['_last_lr'][0], 4 == 0.2 * (0.1**(epoch + 1))
 
 

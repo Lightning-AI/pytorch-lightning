@@ -666,7 +666,7 @@ class Trainer(
             # hook
             self.train_loop.on_train_end()
 
-    def run_evaluation(self, max_batches=None):
+    def run_evaluation(self, max_batches=None, on_epoch=False):
 
         # used to know if we are logging for val, test + reset cached results
         self._running_stage = RunningStage.TESTING if self.testing else RunningStage.EVALUATING
@@ -738,6 +738,10 @@ class Trainer(
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
+
+        # update epoch-level lr_schedulers
+        if on_epoch:
+            self.optimizer_connector.update_learning_rates(interval='epoch')
 
         # hook
         self.evaluation_loop.on_evaluation_end()

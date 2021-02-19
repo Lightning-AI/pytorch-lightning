@@ -516,10 +516,10 @@ class TrainLoop:
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.run_evaluation()
+                val_loop_called = True
 
                 # reset stage to train
                 self.trainer._running_stage = RunningStage.TRAINING
-                val_loop_called = True
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -562,15 +562,15 @@ class TrainLoop:
         )
 
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
+
+        if val_loop_called:
+            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+
         if should_check_val:
-            self.trainer.run_evaluation()
+            self.trainer.run_evaluation(on_epoch=True)
 
             # reset stage to train
             self.trainer._running_stage = RunningStage.TRAINING
-
-        if should_check_val or val_loop_called:
-            # update epoch level lr_schedulers
-            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
