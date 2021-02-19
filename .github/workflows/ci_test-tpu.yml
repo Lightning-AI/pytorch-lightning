@@ -95,6 +95,7 @@ jobs:
         gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
       shell: bash
 
+
     - name: Deploy the job on the kubernetes cluster
       env:
         XLA_VER: ${{ matrix.xla-version }}
