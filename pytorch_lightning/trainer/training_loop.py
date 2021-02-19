@@ -562,24 +562,22 @@ class TrainLoop:
         )
 
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
+        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
+        should_train_only = self.trainer.disable_validation or should_skip_eval
 
-        if val_loop_called:
+        # update epoch level lr_schedulers if no val loop outside train loop is triggered
+        if (val_loop_called and not should_check_val) or should_train_only:
             self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+
+        if should_train_only:
+            self.check_checkpoint_callback(True)
+            self.check_early_stopping_callback(True)
 
         if should_check_val:
             self.trainer.run_evaluation(on_epoch=True)
 
             # reset stage to train
             self.trainer._running_stage = RunningStage.TRAINING
-
-        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
-        should_train_only = self.trainer.disable_validation or should_skip_eval
-
-        if should_train_only:
-            # update epoch level lr_schedulers
-            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
-            self.check_checkpoint_callback(True)
-            self.check_early_stopping_callback(True)
 
         # increment the global step once
         # progress global step according to grads progress
@@ -826,7 +824,7 @@ class TrainLoop:
         is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         can_check_val = self.trainer.enable_validation and is_val_check_epoch
         is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
-        epoch_end_val_check = self.trainer.val_check_batch == self.trainer.num_training_batches
+        epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
 
         should_check_val = ((is_val_check_batch and epoch_end_val_check) or self.trainer.should_stop
                             or is_last_batch_for_infinite_dataset

@@ -57,7 +57,7 @@ class LogInTwoMethods(BoringModel):
     [('base', "base", 'val_log'), ('base', "base", 'train_log_epoch'), (None, "base", 'train_log_epoch'),
      ("base", None, 'train_log_epoch')],
 )
-def test_model_checkpoint_correct_score_and_checkpoint(tmpdir, validation_step, val_dataloaders, monitor):
+def test_model_checkpoint_score_and_ckpt(tmpdir, validation_step, val_dataloaders, monitor):
     """
     Test that when a model checkpoint is saved, it saves with
     the correct score appended to ckpt_path and checkpoint data
@@ -74,22 +74,15 @@ def test_model_checkpoint_correct_score_and_checkpoint(tmpdir, validation_step, 
             self.val_logs = torch.randn(max_epochs, limit_val_batches)
 
         def training_step(self, batch, batch_idx):
-            out = super().training_step(batch, batch_idx)
             log_value = self.train_log_epochs[self.current_epoch, batch_idx]
             self.log('train_log', log_value, on_epoch=True)
-            return out
+            return super().training_step(batch, batch_idx)
 
         def validation_step(self, batch, batch_idx):
-            out = super().validation_step(batch, batch_idx)
             log_value = self.val_logs[self.current_epoch, batch_idx]
             self.log('val_log', log_value)
             self.log('epoch', self.current_epoch, on_epoch=True)
-            return out
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.2)
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
-            return [optimizer], [lr_scheduler]
+            return super().validation_step(batch, batch_idx)
 
     filename = '{' + f'{monitor}' + ':.4f}-{epoch}'
     checkpoint = ModelCheckpoint(dirpath=tmpdir, filename=filename, monitor=monitor, save_top_k=-1)
@@ -114,6 +107,7 @@ def test_model_checkpoint_correct_score_and_checkpoint(tmpdir, validation_step, 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
     scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
     assert len(ckpt_files) == len(scores) == max_epochs
+    assert len(trainer.dev_debugger.saved_lr_scheduler_updates) == max_epochs
 
     for epoch in range(max_epochs):
         score = scores[epoch]
@@ -132,7 +126,90 @@ def test_model_checkpoint_correct_score_and_checkpoint(tmpdir, validation_step, 
 
         lr_scheduler_specific_data = chk['lr_schedulers'][0]
         assert lr_scheduler_specific_data['_step_count'] == epoch + 2
-        assert lr_scheduler_specific_data['_last_lr'][0], 4 == 0.2 * (0.1**(epoch + 1))
+        assert lr_scheduler_specific_data['_last_lr'][0] == 0.1 * (0.1**(epoch + 1))
+
+
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+@pytest.mark.parametrize(
+    "val_check_interval,lr_sched_step_count_inc",
+    [
+        (0.25, 1),
+        (0.33, 0),
+    ],
+)
+def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_interval, lr_sched_step_count_inc):
+    """
+    Test that when a model checkpoint is saved, it saves with the correct
+    score appended to ckpt_path and checkpoint data with val_check_interval
+    """
+    max_epochs = 3
+    limit_train_batches = 12
+    limit_val_batches = 7
+    monitor = 'val_log'
+    per_epoch_steps = int(limit_train_batches * val_check_interval)
+    per_epoch_call_count = limit_train_batches // per_epoch_steps
+
+    class CustomBoringModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.val_logs = torch.randn(per_epoch_call_count * max_epochs, limit_val_batches)
+            self.val_loop_count = 0
+
+        def validation_step(self, batch, batch_idx):
+            log_value = self.val_logs[self.val_loop_count, batch_idx]
+            self.log('val_log', log_value)
+            self.log('epoch', self.current_epoch, on_epoch=True)
+            return super().validation_step(batch, batch_idx)
+
+        def validation_epoch_end(self, outputs):
+            self.val_loop_count += 1
+            super().validation_epoch_end(outputs)
+
+    filename = '{' + f'{monitor}' + ':.4f}-{epoch}'
+    checkpoint = ModelCheckpoint(dirpath=tmpdir, filename=filename, monitor=monitor, save_top_k=-1)
+
+    model = CustomBoringModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint],
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=limit_val_batches,
+        max_epochs=max_epochs,
+        val_check_interval=val_check_interval,
+        progress_bar_refresh_rate=0,
+        num_sanity_val_steps=0,
+    )
+    trainer.fit(model)
+
+    ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
+    scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
+    assert len(ckpt_files) == len(scores) == per_epoch_call_count * max_epochs
+    assert len(trainer.dev_debugger.saved_lr_scheduler_updates) == max_epochs
+
+    for epoch in range(max_epochs):
+        for ix in range(per_epoch_call_count):
+            global_ix = ix + per_epoch_call_count * epoch
+            score = scores[global_ix]
+            expected_score = getattr(model, f'{monitor}s')[global_ix].mean().item()
+            expected_filename = f'{monitor}={score:.4f}-epoch={epoch}.ckpt'
+            assert math.isclose(score, expected_score, rel_tol=1e-4)
+
+            chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
+            assert chk['epoch'] == epoch + 1
+            assert chk['global_step'] == per_epoch_steps * (global_ix + 1)
+
+            mc_specific_data = chk['callbacks'][type(checkpoint)]
+            assert mc_specific_data['dirpath'] == checkpoint.dirpath
+            assert mc_specific_data['monitor'] == monitor
+            assert mc_specific_data['current_score'] == score
+
+            lr_scheduler_specific_data = chk['lr_schedulers'][0]
+
+            did_update = 1 if ix + 1 == per_epoch_call_count else 0
+            assert lr_scheduler_specific_data['_step_count'] == epoch + 1 + did_update
+            assert lr_scheduler_specific_data['_last_lr'][0] == 0.1 * (0.1**(epoch + did_update))
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
