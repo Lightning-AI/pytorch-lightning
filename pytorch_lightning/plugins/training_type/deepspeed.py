@@ -29,6 +29,7 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
@@ -37,7 +38,7 @@ if _DEEPSPEED_AVAILABLE:
     import deepspeed
 
 
-class LightningDeepSpeedModule(_LightningModuleWrapperBase):
+class LightningDeepSpeedModule(_LightningModuleWrapperBase, DeviceDtypeModuleMixin):
 
     def __init__(self, pl_module: LightningModule, precision: int):
         super().__init__(pl_module)
@@ -49,12 +50,6 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
         return super().forward(*inputs, **kwargs)
 
-    def half(self):
-        self.module.half()
-
-    def to(self, *args, **kwargs):
-        self.module.to(*args, **kwargs)
-
     @staticmethod
     def batch_to(data):
         return data.half()
@@ -62,6 +57,9 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
     def _move_float_tensors_to_half(self, batch: Any):
         batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
         return batch
+
+    def on_post_move_to_device(self):
+        pass
 
 
 class DeepSpeedPlugin(DDPPlugin):

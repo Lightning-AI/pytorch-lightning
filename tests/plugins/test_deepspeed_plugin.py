@@ -15,8 +15,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
-@patch.object(BoringModel, 'to')
-def test_deepspeed_wrapper(mocked_to, tmpdir):
+def test_lightning_module_base_wrapper(tmpdir):
     """
         Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves types and device correctly.
     """
@@ -25,10 +24,12 @@ def test_deepspeed_wrapper(mocked_to, tmpdir):
     module = LightningDeepSpeedModule(model, precision=16)
 
     module.half()
+    assert module.dtype == torch.half
     assert model.dtype == torch.half
 
-    module.to('cuda')
-    assert mocked_to.called, "LightningDeepSpeedModule did not call LightningModule `to` hook when transferring device"
+    module.to(torch.double)
+    assert module.dtype == torch.double
+    assert model.dtype == torch.double
 
 
 @pytest.fixture
