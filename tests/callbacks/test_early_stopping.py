@@ -39,11 +39,11 @@ class EarlyStoppingTestRestore(EarlyStopping):
 
     def on_train_start(self, trainer, pl_module):
         if self.expected_state:
-            assert self.on_save_checkpoint(trainer, pl_module) == self.expected_state
+            assert self.on_save_checkpoint(trainer, pl_module, {}) == self.expected_state
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
-        self.saved_states.append(self.on_save_checkpoint(trainer, pl_module).copy())
+        self.saved_states.append(self.on_save_checkpoint(trainer, pl_module, {}).copy())
 
 
 def test_resume_early_stopping_from_checkpoint(tmpdir):
