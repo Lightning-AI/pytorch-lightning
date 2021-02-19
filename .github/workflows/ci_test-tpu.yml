@@ -33,6 +33,7 @@ jobs:
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
 
+    steps:
     - name: Setup gcloud CLI
       uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       with:
@@ -41,7 +42,6 @@ jobs:
         project_id: ${{ secrets.GKE_PROJECT }}
         export_default_credentials: true
 
-    steps:
     - name: Checkout Pytorch Lightning
       uses: actions/checkout@v2
       with:
