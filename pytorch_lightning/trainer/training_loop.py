@@ -561,7 +561,7 @@ class TrainLoop:
 
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         if should_check_val:
-            self.trainer.run_evaluation(on_epoch=True)
+            self.trainer.run_evaluation()
 
             # reset stage to train
             self.trainer._running_stage = RunningStage.TRAINING
@@ -569,9 +569,10 @@ class TrainLoop:
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
 
+        # update epoch level lr_schedulers
+        self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+
         if should_train_only:
-            # update epoch level lr_schedulers
-            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
             self.check_checkpoint_callback(True)
             self.check_early_stopping_callback(True)
 
