@@ -24,6 +24,9 @@ import torch.nn as nn
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 _WANDB_AVAILABLE = _module_available("wandb")
 
@@ -90,6 +93,7 @@ class WandbLogger(LightningLoggerBase):
         log_model: Optional[bool] = False,
         experiment=None,
         prefix: Optional[str] = '',
+        sync_step: Optional[bool] = None
         **kwargs
     ):
         if wandb is None:
@@ -103,6 +107,13 @@ class WandbLogger(LightningLoggerBase):
                 f'Providing log_model={log_model} and offline={offline} is an invalid configuration'
                 ' since model checkpoints cannot be uploaded in offline mode.\n'
                 'Hint: Set `offline=False` to log your model.'
+            )
+        
+        if sync_step is not None:
+            # TODO: remove sync_step option in v1.3
+            warning_cache.warn(
+                "`WandbLogger(sync_step=True)` is deprecated in v1.2 and will be removed in v1.3."
+                " Metrics are now logged separatelty and automatically synchronized." , DeprecationWarning
             )
 
         super().__init__()
