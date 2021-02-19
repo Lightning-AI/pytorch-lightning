@@ -14,7 +14,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
-def test_lightning_module_base_wrapper(tmpdir):
+def test_deepspeed_lightning_module(tmpdir):
     """
         Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves types and device correctly.
     """
@@ -25,6 +25,11 @@ def test_lightning_module_base_wrapper(tmpdir):
     module.half()
     assert module.dtype == torch.half
     assert model.dtype == torch.half
+
+    x = torch.randn((1, 32), dtype=torch.float)
+    out = module(x)
+
+    assert out.dtype == torch.half
 
     module.to(torch.double)
     assert module.dtype == torch.double
