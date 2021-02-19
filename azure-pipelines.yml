@@ -68,6 +68,7 @@ jobs:
 
     - script: |
         python tests/collect_env_details.py
+        python -c "import torch ; assert torch.cuda.device_count() >= 2"
       displayName: 'Env details'
 
     - bash: |
