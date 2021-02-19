@@ -28,7 +28,7 @@ class PredictLoop(object):
 
     def get_predict_dataloaders(self, max_batches):
         # select dataloaders
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
         self.trainer.reset_predict_dataloader(model)
         dataloaders = self.trainer.predict_dataloaders
         if max_batches is None:
@@ -40,7 +40,7 @@ class PredictLoop(object):
         return dataloaders is None or not sum(max_batches)
 
     def on_predict_model_eval(self, *_, **__):
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
         model_ref.on_predict_model_eval()
 
     def setup(self, model, max_batches, dataloaders):
@@ -55,7 +55,7 @@ class PredictLoop(object):
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
         self._predictions = [[] for _ in range(self.num_dataloaders)]
 
-        self.trainer._progress_bar_callback.on_predict_start(self.trainer, self.trainer.get_model())
+        self.trainer._progress_bar_callback.on_predict_start(self.trainer, self.trainer.lightning_module)
 
     def _get_num_dataloaders(self, dataloaders):
         # case where user does:
@@ -71,10 +71,10 @@ class PredictLoop(object):
         if self.num_dataloaders:
             args.append(dataloader_idx)
 
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
 
         model_ref._current_fx_name = "predict"
-        predictions = self.trainer.accelerator_backend.predict(args)
+        predictions = self.trainer.accelerator.predict(args)
         self._predictions[dataloader_idx].append(predictions)
         self.trainer._progress_bar_callback.on_predict_batch_end(
             self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
@@ -82,7 +82,7 @@ class PredictLoop(object):
         return
 
     def on_predict_epoch_end(self):
-        self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.get_model())
+        self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.lightning_module)
 
         results = self._predictions
 

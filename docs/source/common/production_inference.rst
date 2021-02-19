@@ -9,7 +9,7 @@ Exporting to ONNX
 -----------------
 PyTorch Lightning provides a handy function to quickly export your model to ONNX format, which allows the model to be independent of PyTorch and run on an ONNX Runtime.
 
-To export your model to ONNX format call the `to_onnx` function on your Lightning Module with the filepath and input_sample.
+To export your model to ONNX format call the ``to_onnx`` function on your Lightning Module with the filepath and input_sample.
 
 .. code-block:: python
 
@@ -18,7 +18,7 @@ To export your model to ONNX format call the `to_onnx` function on your Lightnin
     input_sample = torch.randn((1, 64))
     model.to_onnx(filepath, input_sample, export_params=True)
 
-You can also skip passing the input sample if the `example_input_array` property is specified in your LightningModule.
+You can also skip passing the input sample if the ` example_input_array ` property is specified in your LightningModule.
 
 Once you have the exported model, you can run it on your ONNX runtime in the following way:
 

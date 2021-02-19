@@ -405,7 +405,7 @@ class AcceleratorConnector(object):
         return plugin
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
-        # necessary for RPC, when user has to provide balance
+        # necessary for when the user has passed in a plugin
         if hasattr(training_type, 'parallel_devices') and not getattr(training_type, 'parallel_devices'):
             training_type.parallel_devices = self.parallel_devices
             if hasattr(training_type, 'num_processes'):

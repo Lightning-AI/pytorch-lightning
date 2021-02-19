@@ -271,7 +271,7 @@ def test_broadcast_on_tpu():
 
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
-        assert isinstance(trainer.accelerator_backend, TPUAccelerator)
+        assert isinstance(trainer.accelerator, TPUAccelerator)
         assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
         obj = ("ver_0.5", "logger_name", rank)
         result = trainer.training_type_plugin.broadcast(obj)
