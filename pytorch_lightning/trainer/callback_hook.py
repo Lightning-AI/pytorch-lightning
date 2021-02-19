@@ -14,7 +14,7 @@
 
 from abc import ABC
 from copy import deepcopy
-from typing import List
+from typing import List, Dict, Any, Type
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
@@ -197,14 +197,13 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_keyboard_interrupt(self, self.lightning_module)
 
-    def on_save_checkpoint(self):
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[Type, dict]:
         """Called when saving a model checkpoint."""
         callback_states = {}
         for callback in self.callbacks:
-            callback_class = type(callback)
-            state = callback.on_save_checkpoint(self, self.lightning_module)
+            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[callback_class] = state
+                callback_states[type(callback)] = state
         return callback_states
 
     def on_load_checkpoint(self, checkpoint):
