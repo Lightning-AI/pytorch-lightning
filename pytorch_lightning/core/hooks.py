@@ -415,6 +415,7 @@ class DataHooks:
             There is no need to set it yourself.
 
         Example::
+
             # single dataloader
             def train_dataloader(self):
                 transform = transforms.Compose([transforms.ToTensor(),
