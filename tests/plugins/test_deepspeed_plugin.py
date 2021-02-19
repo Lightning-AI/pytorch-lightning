@@ -216,17 +216,21 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
     class TestModel(BoringModel):
 
         def on_train_start(self) -> None:
-            assert isinstance(self.trainer.optimizers[0], torch.optim.SGD)
+            from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer
+
+            assert isinstance(self.trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
+            assert isinstance(self.trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert self.trainer.lr_schedulers == []  # DeepSpeed manages LR scheduler internally
             # Ensure DeepSpeed engine has initialized with our optimizer/lr_scheduler
             assert isinstance(self.trainer.model.lr_scheduler, torch.optim.lr_scheduler.StepLR)
 
     model = TestModel()
     trainer = Trainer(
-        plugins=DeepSpeedPlugin(zero_optimization=False),  # disable ZeRO so our optimizers are not wrapped
+        plugins=DeepSpeedPlugin(),  # disable ZeRO so our optimizers are not wrapped
         default_root_dir=tmpdir,
         gpus=1,
-        fast_dev_run=True
+        fast_dev_run=True,
+        precision=16
     )
 
     trainer.fit(model)
