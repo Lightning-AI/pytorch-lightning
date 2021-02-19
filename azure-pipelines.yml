@@ -10,9 +10,6 @@ trigger:
   branches:
     include:
       - never-ever-run-
-pr:
-  - master
-  - release/*
 
 jobs:
   - job: pytest
