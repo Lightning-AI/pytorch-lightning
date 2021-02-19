@@ -574,7 +574,7 @@ class AcceleratorConnector(object):
                 raise MisconfigurationException(
                     f"Selected distributed backend {self._distrib_type} is not compatible with IPython environment."
                     f" Run your code as a script, or choose one of the compatible backends:"
-                    f" {', '.join(self.ipython_compatible_distrib_types)}"
+                    f" {', '.join(DistributedType.ipython_compatible_types())}"
                 )
 
     def check_horovod(self):
