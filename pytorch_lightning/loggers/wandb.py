@@ -93,7 +93,7 @@ class WandbLogger(LightningLoggerBase):
         log_model: Optional[bool] = False,
         experiment=None,
         prefix: Optional[str] = '',
-        sync_step: Optional[bool] = None
+        sync_step: Optional[bool] = None,
         **kwargs
     ):
         if wandb is None:
