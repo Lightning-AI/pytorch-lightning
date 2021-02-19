@@ -29,11 +29,8 @@ from tests.helpers import BoringModel
 
 class AMPTestModel(BoringModel):
 
-    def forward(self, *args, **kwargs):
-        assert torch.is_autocast_enabled()
-        return super().forward(*args, **kwargs)
-
     def training_step(self, batch, batch_idx):
+        assert torch.is_autocast_enabled()
         output = super().training_step(batch, batch_idx)
         loss = output["loss"]
         assert loss.dtype == torch.float16
