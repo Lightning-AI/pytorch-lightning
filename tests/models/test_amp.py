@@ -31,10 +31,10 @@ class AMPTestModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
         assert torch.is_autocast_enabled()
-        output = super().training_step(batch, batch_idx)
-        loss = output["loss"]
-        assert loss.dtype == torch.float16
-        return output
+        output = self(batch)
+        assert output.dtype == torch.float16
+        loss = self.loss(batch, output)
+        return {"loss": loss}
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
@@ -66,7 +66,7 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
-        accelerator='ddp_spawn',
+        # accelerator='ddp_spawn',
         precision=16,
     )
 
