@@ -1583,8 +1583,8 @@ class LightningModule(
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
                 or string names or arguments from class ``__init__``
-            ignore: an argument or a list of arguments from class ``__init__``
-                to be ignored
+            ignore: an argument name or a list of argument names from
+                class ``__init__`` to be ignored
             frame: a frame object. Default is None
 
         Example::
