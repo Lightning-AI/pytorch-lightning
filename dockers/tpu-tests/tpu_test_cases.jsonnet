@@ -10,10 +10,10 @@ local tputests = base.BaseTest {
 
   timeout: 900, # 15 minutes, in seconds.
 
-  image: pytorchlightning/pytorch_lightning:base-xla-py3.6-torch${PYTORCH_VERSION}
+  image: pytorchlightning/pytorch_lightning:base-xla-py3.6-torch{PYTORCH_VERSION}
 
   tpuSettings+: {
-    softwareVersion: 'pytorch-${PYTORCH_VERSION}',
+    softwareVersion: 'pytorch-{PYTORCH_VERSION}',
   },
   accelerator: tpus.v3_8,
 
@@ -24,7 +24,7 @@ local tputests = base.BaseTest {
       cd pytorch-lightning
       echo $PWD
       git fetch --all
-      git checkout %(SHA)s
+      git checkout {SHA}
 
       # drop horovod as it is not needed
       python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \

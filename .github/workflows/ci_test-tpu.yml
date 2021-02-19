@@ -4,6 +4,8 @@ name: TPU tests
 #  1. Setup gcloud CLI
 #  2. Checkout Pytorch Lightning
 #  3. Set up Python
+#  4. Get Current Sha Commit
+
 
 on:
   push:
@@ -21,7 +23,7 @@ env:
   CHECK_SPEEP: 5
 
 jobs:
-  setup-build-publish-deploy:
+  setup-deploy:
     name: tpu-testing-job
     runs-on: ubuntu-20.04
     strategy:
@@ -97,7 +99,7 @@ jobs:
       env:
         XLA_VER: ${{ matrix.xla-version }}
       run: |-
-        python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; ttt = open(fname).read().replace('${PYTORCH_VERSION}', '$XLA_VER') ; open(fname, 'w').write(ttt)"
+        python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; ttt = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER').replace('{SHA}', '${{ steps.vars.outputs.SHA }}') ; open(fname, 'w').write(ttt)"
         job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -) && \
         job_name=${job_name#job.batch/} && \
         job_name=${job_name% created} && \
