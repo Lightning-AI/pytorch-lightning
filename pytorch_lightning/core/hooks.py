@@ -383,7 +383,7 @@ class DataHooks:
             model.test_dataloader()
         """
 
-    def train_dataloader(self) -> DataLoader:
+    def train_dataloader(self) -> Any:
         """
         Implement one or more PyTorch DataLoaders for training.
 
