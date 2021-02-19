@@ -202,9 +202,6 @@ class TrainerCallbackHookMixin(ABC):
     @staticmethod
     def __is_old_signature(fn: Callable) -> bool:
         parameters = list(signature(fn).parameters)
-        if len(parameters) == 1 and parameters[0] == "args":
-            # *args
-            return False
         if len(parameters) == 2 and parameters[1] != "args":
             return True
         return False
