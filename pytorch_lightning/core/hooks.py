@@ -385,10 +385,12 @@ class DataHooks:
 
     def train_dataloader(self) -> DataLoader:
         """
-        Implement a PyTorch DataLoader for training.
+        Implement one or more PyTorch DataLoaders for training.
 
         Return:
-            Single PyTorch :class:`~torch.utils.data.DataLoader`.
+            Either a single PyTorch :class:`~torch.utils.data.DataLoader` or an collection of these
+            (list, dict, nested lists and dicts). In the case of multiple dataloaders, please see
+            this :ref:`page <multiple-training-dataloaders>`
 
         The dataloader you return will not be called every epoch unless you set
         :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
@@ -413,7 +415,7 @@ class DataHooks:
             There is no need to set it yourself.
 
         Example::
-
+            # single dataloader
             def train_dataloader(self):
                 transform = transforms.Compose([transforms.ToTensor(),
                                                 transforms.Normalize((0.5,), (1.0,))])
@@ -425,6 +427,22 @@ class DataHooks:
                     shuffle=True
                 )
                 return loader
+
+            # multiple dataloaders, return as list
+            def train_dataloader(self):
+                mnist = MNIST(...)
+                cifar = CIFAR(...)
+                # each batch will be a list of tensors: [batch_mnist, batch_cifar]
+                return [torch.utils.data.DataLoader(dataset=mnist, batch_size=self.batch_size, shuffle=True),
+                        torch.utils.data.DataLoader(dataset=cifar, batch_size=self.batch_size, shuffle=True)]
+
+            # multiple dataloader, return as dict
+            def train_dataloader(self):
+                mnist = MNIST(...)
+                cifar = CIFAR(...)
+                # each batch will be a dict of tensors: {'mnist': batch_mnist, 'cifar': batch_cifar}
+                return {'mnist': torch.utils.data.DataLoader(dataset=mnist, batch_size=self.batch_size, shuffle=True),
+                        'cifar': torch.utils.data.DataLoader(dataset=cifar, batch_size=self.batch_size, shuffle=True)]
 
         """
         rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
