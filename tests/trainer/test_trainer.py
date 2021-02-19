@@ -33,7 +33,7 @@ from pytorch_lightning import Callback, LightningDataModule, LightningModule, Tr
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
+from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
@@ -1617,13 +1617,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
     profiler = PyTorchProfiler(output_filename=output_filename)
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        profiler=profiler,
-        accelerator="ddp",
-        gpus=2,
-        logger=TensorBoardLogger(tmpdir)
-    )
+    trainer = Trainer(fast_dev_run=True, profiler=profiler, accelerator="ddp", gpus=2, logger=TensorBoardLogger(tmpdir))
     trainer.fit(model)
 
     enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
@@ -1640,6 +1634,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
         data = Path(profiler.output_fname).read_text()
         assert len(data) > 0
 
+
 @pytest.mark.parametrize("use_output_filename", [True])
 def test_pytorch_profiler_trainer(tmpdir, use_output_filename):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
@@ -1654,8 +1649,8 @@ def test_pytorch_profiler_trainer(tmpdir, use_output_filename):
     model = BoringModel()
     trainer = Trainer(
         max_epochs=1,
-        limit_train_batches=4,
-        limit_val_batches=4,
+        limit_train_batches=1,
+        limit_val_batches=1,
         profiler=profiler,
     )
     trainer.fit(model)
@@ -1679,7 +1674,9 @@ def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
     pytorch_profiler = PyTorchProfiler(
-        profiled_functions=["a", "b", "c"], use_cuda=True, output_filename=os.path.join(tmpdir, "profiler.txt")
+        profiled_functions=["a", "b", "c"],
+        use_cuda=torch.cuda.is_available(),
+        output_filename=os.path.join(tmpdir, "profiler.txt")
     )
 
     with pytorch_profiler.profile("a"):

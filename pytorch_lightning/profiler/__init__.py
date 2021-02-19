@@ -206,7 +206,7 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
 
 if not _TORCH_GREATER_EQUAL_1_8:
 
-    class PyTorchProfiler(LegacyPyTorchProfiler):
+    class PyTorchProfiler(LegacyPyTorchProfiler):  # noqa F811
         pass
 
 
