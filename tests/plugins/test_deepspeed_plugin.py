@@ -26,7 +26,25 @@ def test_deepspeed_lightning_module(tmpdir):
     assert module.dtype == torch.half
     assert model.dtype == torch.half
 
-    x = torch.randn((1, 32), dtype=torch.float)
+    module.to(torch.double)
+    assert module.dtype == torch.double
+    assert model.dtype == torch.double
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+def test_deepspeed_lightning_module_precision(tmpdir):
+    """
+        Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision 16.
+    """
+
+    model = BoringModel()
+    module = LightningDeepSpeedModule(model, precision=16)
+
+    module.cuda().half()
+    assert module.dtype == torch.half
+    assert model.dtype == torch.half
+
+    x = torch.randn((1, 32), dtype=torch.float).cuda()
     out = module(x)
 
     assert out.dtype == torch.half
