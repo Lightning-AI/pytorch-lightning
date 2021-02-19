@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed incorrect yield logic for the amp autocast context manager ([#6080](https://github.com/PyTorchLightning/pytorch-lightning/pull/6080))
+- Prevent `WandbLogger` from dropping values ([#5931](https://github.com/PyTorchLightning/pytorch-lightning/pull/5931))
 
 
 ## [1.2.0] - 2021-02-18
@@ -171,8 +172,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Attempted SLURM auto resume call when non-shell call fails ([#6002](https://github.com/PyTorchLightning/pytorch-lightning/pull/6002))
 - Fixed wrapping optimizers upon assignment ([#6006](https://github.com/PyTorchLightning/pytorch-lightning/pull/6006))
 - Fixed allowing hashing of metrics with lists in their state ([#5939](https://github.com/PyTorchLightning/pytorch-lightning/pull/5939))
-
-- Prevent `WandbLogger` from dropping values ([#5931](https://github.com/PyTorchLightning/pytorch-lightning/pull/5931))
 
 
 ## [1.1.8] - 2021-02-08
