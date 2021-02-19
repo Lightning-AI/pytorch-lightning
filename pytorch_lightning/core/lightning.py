@@ -1600,6 +1600,7 @@ class LightningModule(
         >>> class AutomaticArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
+        ...         # equivalent automatic
         ...         self.save_hyperparameters()
         ...     def forward(self, *args, **kwargs):
         ...         ...
