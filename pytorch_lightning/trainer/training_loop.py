@@ -310,7 +310,7 @@ class TrainLoop:
         closure_loss = None
         untouched_loss = None
 
-        if self.trainer.train_loop.automatic_optimization:
+        if self.automatic_optimization:
             # accumulate loss
             # (if accumulate_grad_batches = 1 no effect)
             if is_result_obj:
@@ -838,14 +838,14 @@ class TrainLoop:
         # enable not needing to add opt_idx to training_step
         args = [batch, batch_idx]
 
-        if len(self.trainer.optimizers) > 1:
+        if len(self.trainer.optimizers) > 1 and not self.automatic_optimization:
             if self.trainer.has_arg("training_step", "optimizer_idx"):
                 args.append(opt_idx)
             else:
                 num_opts = len(self.trainer.optimizers)
                 raise ValueError(
-                    f"Your LightningModule defines {num_opts} optimizers but "
-                    f'training_step is missing the "optimizer_idx" argument.'
+                    f"Your LightningModule defines {num_opts} optimizers but"
+                    f' training_step is missing the "optimizer_idx" argument.'
                 )
 
         # pass hiddens if using tbptt
