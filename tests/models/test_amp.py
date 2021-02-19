@@ -63,7 +63,7 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
     model = BoringModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
-
+    assert torch.is_autocast_enabled()
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
@@ -103,7 +103,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
     model = BoringModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
-
+    assert torch.is_autocast_enabled()
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
@@ -152,6 +152,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24]') == 'abc23'
     generated = trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24, 45-40, 40]')
     assert generated == 'abc23'
+    assert torch.is_autocast_enabled()
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test is restricted only on CPU")
