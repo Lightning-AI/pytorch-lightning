@@ -4,7 +4,15 @@ name: TPU tests
 #  1. Setup gcloud CLI
 #  2. Checkout Pytorch Lightning
 #  3. Set up Python
-#  4. Get Current Sha Commit
+#  4. Set up Python 3.7
+#  5. Get Current PR Number
+#  6. Checkout ml-testing-accelerators
+#  7. Install jsonnet
+#  8. Get Cluster Credentials
+#  9. Deploy the job on the kubernetes cluster
+#  10. Statistics
+#  11. Upload coverage results
+#  12. Upload coverage to Codecov
 
 on:
   push: {}
@@ -52,7 +60,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Get Current Sha Commit
+    - name: Get Current PR Number
       id: vars
       shell: bash
       run: |
@@ -68,12 +76,6 @@ jobs:
       with:
         python-version: 3.7
 
-    - name: Checkout Pytorch Lightning
-      uses: actions/checkout@v2
-      with:
-        repository: PyTorchLightning/pytorch-lightning
-        ref: ${{ github.event.pull_request.head.sha }}
-
     - name: Checkout ml-testing-accelerators
       uses: actions/checkout@v2
       with:
@@ -88,10 +90,10 @@ jobs:
 
     # Get the GKE credentials so we can deploy to the cluster
     # Use either zone or region depending on cluster setup.
-    - run: |-
+    - name: Get Cluster Credentials
+      run: |-
         gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
       shell: bash
-
 
     - name: Deploy the job on the kubernetes cluster
       env:
