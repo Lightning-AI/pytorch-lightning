@@ -33,7 +33,9 @@ from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_8:
-    from torch.profiler import ProfilerActivity, tensorboard_trace_handler
+    from torch.profiler import ProfilerActivity, tensorboard_trace_handler, ProfilerAction
+    import torch.autograd.profiler as prof
+
 
 
 class BaseProfiler(ABC):
@@ -430,6 +432,8 @@ class LegacyPyTorchProfiler(BaseProfiler):
         if action_name not in self.profiled_functions:
             return
 
+        print("START", action_name, self.running_stack)
+
         if len(self.running_stack) > 0:
             self._stop(self.running_stack[-1])
         self.running_stack.append(action_name)
@@ -466,11 +470,12 @@ class LegacyPyTorchProfiler(BaseProfiler):
         function_events = self.function_events
         if not from_stop:
             self.profiler = None
-        for name in self.running_stack:
-            if name not in self.profiled_actions:
-                self.profiled_actions[name] = function_events
-            else:
-                self.profiled_actions[name] += function_events
+        if function_events is not None:
+            for name in self.running_stack:
+                if name not in self.profiled_actions:
+                    self.profiled_actions[name] = function_events
+                else:
+                    self.profiled_actions[name] += function_events
 
     def stop(self, action_name: str) -> None:
         if action_name not in self.profiled_functions:
@@ -481,10 +486,6 @@ class LegacyPyTorchProfiler(BaseProfiler):
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
         self._stop(action_name, from_stop = True)
-        
-        if _TORCH_GREATER_EQUAL_1_8:
-            if self.export_to_flame_graph and self.path_to_export_trace is not None:
-                self.profiler.export_stacks(os.path.join(self.path_to_export_trace, "stack.txt"), self.metric)
         
         self.profiler = None
         self.running_stack.pop()
@@ -540,6 +541,60 @@ class LegacyPyTorchProfiler(BaseProfiler):
             self.output_file.close()
 
 
+
+class LightningProfiler(torch.profiler.profile):
+
+    def step(self, prev_action, current_action):
+        """
+        Signals the profiler that the next profiling step has started.
+        """
+        if self.record_steps and self.step_rec_fn:
+            self.step_rec_fn.__exit__(None, None, None)
+
+        if current_action == ProfilerAction.NONE:
+            if prev_action == ProfilerAction.NONE:
+                pass
+            elif prev_action == ProfilerAction.WARMUP:
+                rank_zero_warn("Incorrect schedule: WARMUP followed by NONE")
+                self._start_trace()
+                self._stop_trace()
+            elif prev_action == ProfilerAction.RECORD:
+                rank_zero_warn("Incorrect schedule: RECORD followed by NONE")
+                self._stop_trace()
+            else:
+                assert prev_action == ProfilerAction.RECORD_AND_SAVE
+                pass
+        elif current_action == ProfilerAction.WARMUP:
+            if prev_action == ProfilerAction.NONE:
+                self._start_warmup()
+            elif prev_action == ProfilerAction.WARMUP:
+                pass
+            elif prev_action == ProfilerAction.RECORD:
+                rank_zero_warn("Incorrect schedule: RECORD followed by WARMUP")
+                self._stop_trace()
+            else:
+                assert prev_action == ProfilerAction.RECORD_AND_SAVE
+                self._stop_trace()
+                if self.on_trace_ready:
+                    self.on_trace_ready(self)
+                self._start_warmup()
+        elif current_action in \
+                [ProfilerAction.RECORD, ProfilerAction.RECORD_AND_SAVE]:
+            if prev_action == ProfilerAction.NONE:
+                self._start_warmup()
+                self._start_trace()
+            elif prev_action == ProfilerAction.WARMUP:
+                pass
+            elif prev_action == ProfilerAction.RECORD:
+                pass
+            else:
+                assert prev_action == ProfilerAction.RECORD_AND_SAVE
+                self._stop_trace()
+                if self.on_trace_ready:
+                    self.on_trace_ready(self)
+                self._start_warmup()
+                self._start_trace()
+
 class PyTorchProfiler(LegacyPyTorchProfiler):
 
     def __init__(
@@ -549,12 +604,12 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
         use_cpu: bool = True,
         use_cuda: bool = True,
         activities: Optional[List['ProfilerActivity']] = None,
-        schedule: Optional[Union[Dict[str, Callable], Callable]] = None,
+        schedule: Optional[Union[Dict[str, Callable], Callable]] = torch.profiler.schedule(wait=2, warmup=1, active=5),
         on_trace_ready: Optional[Callable] = None,
         record_shapes: bool = False,
         profile_memory: bool = False,
         with_stack: bool = False,
-        with_flops: bool = False,
+        with_flops: bool = True,
         row_limit: int = 20,
         export_to_tensorboard: bool = True,
         export_to_flame_graph: bool = True,
@@ -582,6 +637,8 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
         self.profiled_functions = profiled_functions or self.PROFILED_FUNCTIONS
         self.activities = activities or [ProfilerActivity.CPU] * use_cpu + [ProfilerActivity.CUDA] * use_cuda
         self.schedules = {k: schedule for k in self.profiled_functions}
+        self.schedules_num_steps = {k: 0 for k in self.profiled_functions}
+        self.schedules_actions = {k: [ProfilerAction.NONE] for k in self.profiled_functions}
         self.on_trace_ready = on_trace_ready
         self.record_shapes = record_shapes
         self.row_limit = row_limit
@@ -616,12 +673,15 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
 
         for action_name, function_events in self.profiled_actions.items():
 
+            if function_events is None:
+                continue
+
             # next line is a workaround for a pytorch issue (fixed on master, still present
             # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
             # parent event for detach`
-            function_events.populate_cpu_children = lambda: None
+            #function_events.populate_cpu_children = lambda: None
 
-            if self.export_to_tensorboard:
+            if self.export_to_tensorboard and self.path_to_export_trace is not None:
                 tensorboard_trace_handler(self.path_to_export_trace, local_rank)(function_events)
 
             data = function_events.key_averages(group_by_input_shapes=self.group_by_input_shapes)
@@ -637,16 +697,66 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
 
     @property
     def function_events(self):
-        return self.profiler.events()
+        try:
+            return self.profiler.events()
+        except AssertionError:
+            return None
+
+    def get_schedule(self, action):
+        return self.schedules[action]
 
     def stop(self, action_name: str) -> None:
-        if action_name in self.schedules:
-            schedule = self.schedules[action_name]
-            if schedule:
-                schedule.step()
-        super().stop(action_name)
+        if action_name not in self.profiled_functions:
+            return
+
+        if len(self.running_stack) == 0 or self.running_stack[-1] != action_name:
+            raise ValueError(  # pragma: no-cover
+                f"Attempting to stop recording an action ({action_name}) which was never started."
+            )
+
+        self._stop(action_name, from_stop = True)
+        
+        schedule = self.get_schedule(action_name)
+        if schedule is not None:
+            self.schedules_num_steps[action_name] += 1
+            num_step = self.schedules_num_steps[action_name]
+            prev_action = schedule(num_step - 1)
+            current_action = schedule(num_step)
+            self.profiler.step(prev_action, current_action)
+
+        has_recorded = self.profiler.current_action in [ProfilerAction.RECORD, ProfilerAction.RECORD_AND_SAVE]
+        can_export = self.export_to_flame_graph and self.path_to_export_trace is not None
+        has_profiler = self.profiler.profiler is not None
+
+        if has_recorded and can_export and has_profiler:
+            self.profiler.export_stacks(os.path.join(self.path_to_export_trace, "stack.txt"), self.metric)
+        
+        self.profiler = None
+        self.running_stack.pop()
+
+        # restore running profiler
+        if len(self.running_stack) > 0:
+            self._start(self.running_stack[-1])
+
+    def _create_profiler(self, action_name, profiler, enter=True):
+        init_args = inspect.signature(profiler.__init__).parameters
+        profiler_args = {k: v for k, v in vars(self).items() if k in init_args}
+        pr = profiler(**profiler_args)
+        schedule = self.get_schedule(action_name)
+        if schedule is not None:
+            num_step = self.schedules_num_steps[action_name]
+            pr.current_action = schedule(num_step)
+        if enter:
+            pr = pr.__enter__()
+        self.profiler = pr
 
     def _start(self, action_name: str) -> None:
         if action_name in self.schedules:
             self.schedule = self.schedules[action_name]
-        self._create_profiler(action_name, torch.profiler.profile)
+        self._create_profiler(action_name, LightningProfiler)
+
+    def __del__(self):
+        """Close profiler's stream."""
+        del os.environ["USE_KINETO"]
+        if self.output_file:
+            self.output_file.close()
