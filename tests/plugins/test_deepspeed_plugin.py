@@ -223,7 +223,12 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
             assert isinstance(self.trainer.model.lr_scheduler, torch.optim.lr_scheduler.StepLR)
 
     model = TestModel()
-    trainer = Trainer(plugins=DeepSpeedPlugin(), default_root_dir=tmpdir, gpus=1, fast_dev_run=True, precision=16)
+    trainer = Trainer(
+        plugins=DeepSpeedPlugin(zero_optimization=False),  # disable ZeRO so our optimizers are not wrapped
+        default_root_dir=tmpdir,
+        gpus=1,
+        fast_dev_run=True
+    )
 
     trainer.fit(model)
 
