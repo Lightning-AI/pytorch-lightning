@@ -117,7 +117,7 @@ class AcceleratorConnector(object):
         self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
 
         self.handle_given_plugins(plugins)
-        if not self._distrib_type:
+        if self._distrib_type is None:
             self.set_distributed_mode()
 
         self.configure_slurm_ddp()
@@ -197,7 +197,6 @@ class AcceleratorConnector(object):
                 )
 
         self._training_type_plugin = training_type
-        self._training_type_plugin = self.training_type_plugin
         self._precision_plugin = precision
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
