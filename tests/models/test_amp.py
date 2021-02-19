@@ -29,9 +29,9 @@ from tests.helpers import BoringModel
 
 class AMPTestModel(BoringModel):
 
-    def forward(*args, **kwargs):
+    def forward(self, *args, **kwargs):
         assert torch.is_autocast_enabled()
-        super().forward(*args, **kwargs)
+        return super().forward(*args, **kwargs)
 
     def training_step(self, batch, batch_idx):
         output = super().training_step(batch, batch_idx)
