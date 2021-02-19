@@ -66,7 +66,7 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
-        # accelerator='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
     )
 
