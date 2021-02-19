@@ -336,7 +336,7 @@ class ModelHooks:
 
 
 class DataHooks:
-    """Hooks to be used with LightningDataModule."""
+    """Hooks to be used for data related stuff."""
 
     def prepare_data(self) -> None:
         """
@@ -580,16 +580,16 @@ class DataHooks:
 
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 
-        Example::
+        Note:
+            This hook should only transfer the data and not modify it, nor should it move the data to
+            any other device than the one passed in as argument (unless you know what you are doing).
 
-            def transfer_batch_to_device(self, batch, device)
-                if isinstance(batch, CustomBatch):
-                    # move all tensors in your custom data structure to the device
-                    batch.samples = batch.samples.to(device)
-                    batch.targets = batch.targets.to(device)
-                else:
-                    batch = super().transfer_batch_to_device(data, device)
-                return batch
+        Note:
+            This hook only runs on single GPU training and DDP (no data-parallel).
+            If you need multi-GPU support for your custom batch objects, you need to define your custom
+            :class:`~torch.nn.parallel.DistributedDataParallel` or
+            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
+            override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
 
         Args:
             batch: A batch of data that needs to be transferred to a new device.
@@ -598,22 +598,79 @@ class DataHooks:
         Returns:
             A reference to the data on the new device.
 
-        Note:
-            This hook should only transfer the data and not modify it, nor should it move the data to
-            any other device than the one passed in as argument (unless you know what you are doing).
+        Example::
 
-        Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
-            If you need multi-GPU support for your custom batch objects in ``dp`` or ``ddp2``,
-            you need to define your custom :class:`~torch.nn.parallel.DistributedDataParallel` or
-            override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
+            def transfer_batch_to_device(self, batch, device):
+                if isinstance(batch, CustomBatch):
+                    # move all tensors in your custom data structure to the device
+                    batch.samples = batch.samples.to(device)
+                    batch.targets = batch.targets.to(device)
+                else:
+                    batch = super().transfer_batch_to_device(data, device)
+                return batch
 
         See Also:
-            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
-            - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
+            - :meth:`move_data_to_device`
+            - :meth:`apply_to_collection`
         """
         device = device or self.device
         return move_data_to_device(batch, device)
+
+    def on_before_batch_transfer(self, batch, dataloader_idx):
+        """
+        Override to alter or apply batch augmentations to your batch before it is transferred to the device.
+
+        .. warning:: dataloader_idx always returns 0, and will be updated to support the true idx in the future.
+
+        Note:
+            This hook only runs on single GPU training and DDP (no data-parallel).
+
+        Args:
+            batch: A batch of data that needs to be altered or augmented.
+            dataloader_idx: DataLoader idx for batch
+
+        Returns:
+            A batch of data
+
+        Example::
+
+            def on_before_batch_transfer(self, batch, dataloader_idx):
+                batch['x'] = transforms(batch['x'])
+                return batch
+
+        See Also:
+            - :meth:`on_after_batch_transfer`
+            - :meth:`transfer_batch_to_device`
+        """
+        return batch
+
+    def on_after_batch_transfer(self, batch, dataloader_idx):
+        """
+        Override to alter or apply batch augmentations to your batch after it is transferred to the device.
+
+        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true ``idx`` in the future.
+
+        Note:
+            This hook only runs on single GPU training and DDP (no data-parallel).
+
+        Args:
+            batch: A batch of data that needs to be altered or augmented.
+            dataloader_idx: DataLoader idx for batch (Default: 0)
+
+        Returns:
+            A batch of data
+
+        Example::
+
+            def on_after_batch_transfer(self, batch, dataloader_idx):
+                batch['x'] = gpu_transforms(batch['x'])
+                return batch
+
+        See Also:
+            - :meth:`on_before_batch_transfer`
+            - :meth:`transfer_batch_to_device`
+        """
+        return batch
 
 
 class CheckpointHooks:
@@ -626,7 +683,6 @@ class CheckpointHooks:
 
         Args:
             checkpoint: Loaded checkpoint
-
 
         Example::
 

@@ -28,7 +28,7 @@ if _HOROVOD_AVAILABLE:
 
 class HorovodPlugin(ParallelPlugin):
 
-    def __init__(self, parallel_devices: List[torch.device]):
+    def __init__(self, parallel_devices: Optional[List[torch.device]] = None):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
     @property
@@ -101,14 +101,14 @@ class HorovodPlugin(ParallelPlugin):
         hvd.join()
 
     def start_testing(self, trainer):
-        with ExitStack() as stack:
+        with ExitStack():
             self._results = trainer.run_test()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
 
     def start_predicting(self, trainer):
-        with ExitStack() as stack:
+        with ExitStack():
             # set up training routine
             self._results = trainer.run_predict()
 

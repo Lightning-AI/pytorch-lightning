@@ -14,7 +14,6 @@
 
 import os
 import sys
-
 from typing import List, Optional, Sequence, Union
 
 import torch
@@ -407,7 +406,7 @@ class AcceleratorConnector(object):
         return plugin
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
-        # necessary for RPC, when user has to provide balance
+        # necessary for when the user has passed in a plugin
         if hasattr(training_type, 'parallel_devices') and not getattr(training_type, 'parallel_devices'):
             training_type.parallel_devices = self.parallel_devices
             if hasattr(training_type, 'num_processes'):
@@ -562,18 +561,21 @@ class AcceleratorConnector(object):
             self.num_processes = hvd.local_size()
 
     def check_ipython_compatibility(self):
-        """Raises a `MisconfigurationException` if the accelerator is not compatible with IPython and code is run in an IPython kernel."""
+        """
+        Raises a `MisconfigurationException` if the accelerator and/or plugin is not compatible with IPython
+        and code is run in an IPython kernel.
+        """
         if self._distrib_type in DistributedType.ipython_compatible_types():
             return
-        else:
-            # check ipython env
-            if 'IPython' in sys.modules:
-                from IPython import get_ipython
-                if get_ipython() is not None:
-                    raise MisconfigurationException(
-                        f"Selected distributed backend {self._distrib_type} not compatible with IPython environment"
-                        f"Run your code as a script, or choose one of compatible backends {self.ipython_compatible_distrib_types} as accelerator backend"
-                    )
+        # check ipython env
+        if "IPython" in sys.modules:
+            from IPython import get_ipython
+            if get_ipython() is not None:
+                raise MisconfigurationException(
+                    f"Selected distributed backend {self._distrib_type} is not compatible with IPython environment."
+                    f" Run your code as a script, or choose one of the compatible backends:"
+                    f" {', '.join(self.ipython_compatible_distrib_types)}"
+                )
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""

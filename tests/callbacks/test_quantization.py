@@ -73,9 +73,14 @@ def test_quantize_torchscript(tmpdir):
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(qmodel, datamodule=dm)
 
-    qmodel.to_torchscript()
+    batch = iter(dm.test_dataloader()).next()
+    qmodel(qmodel.quant(batch[0]))
+
+    tsmodel = qmodel.to_torchscript()
+    tsmodel(tsmodel.quant(batch[0]))
 
 
+@pytest.mark.skipif(**_SKIPIF_ARGS_NO_PT_QUANT)
 def test_quantization_exceptions(tmpdir):
     """Test wrong fuse layers"""
     with pytest.raises(MisconfigurationException, match='Unsupported qconfig'):

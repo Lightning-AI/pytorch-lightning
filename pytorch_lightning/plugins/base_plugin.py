@@ -13,9 +13,8 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Generator, Optional, overload, Sequence, Tuple
+from typing import Generator, Optional, Sequence, Tuple
 
-import torch
 from torch.nn import Module
 
 

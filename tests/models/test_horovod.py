@@ -303,7 +303,7 @@ def test_accuracy_metric_horovod():
             accelerator='horovod',
         )
 
-        assert isinstance(trainer.accelerator_backend, CPUAccelerator)
+        assert isinstance(trainer.accelerator, CPUAccelerator)
         # TODO: test that we selected the correct training_type_plugin based on horovod flags
 
         metric = Accuracy(

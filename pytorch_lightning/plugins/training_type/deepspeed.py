@@ -26,6 +26,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
@@ -185,7 +186,7 @@ class DeepSpeedPlugin(DDPPlugin):
             self._format_config()
             self._config_initialized = True
 
-        precision = self.lightning_module.trainer.accelerator_backend.precision
+        precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
         if self.lightning_module.trainer.training:
@@ -240,16 +241,8 @@ class DeepSpeedPlugin(DDPPlugin):
         )
 
     def configure_scheduler(self, lr_scheduler):
-        # this duplicates the defaults from init_optimizers
-        scheduler = {
-            'scheduler': lr_scheduler,
-            'name': None,  # no custom name
-            'interval': 'epoch',  # after epoch is over
-            'frequency': 1,  # every epoch/batch
-            'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
-            'monitor': None,  # value to monitor for ReduceLROnPlateau
-            'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
-        }
+        scheduler = _get_default_scheduler_config()
+        scheduler["scheduler"] = lr_scheduler
         return [scheduler]
 
     @property
@@ -263,7 +256,7 @@ class DeepSpeedPlugin(DDPPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def init_optimizers(self, trainer: "Trainer", model: LightningModule) -> Tuple[List, List, List]:
+    def init_optimizers(self, trainer, model: LightningModule) -> Tuple[List, List, List]:
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
