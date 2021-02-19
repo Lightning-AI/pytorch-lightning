@@ -560,7 +560,7 @@ class TrainLoop:
         self.trainer.logger_connector.log_train_epoch_end_metrics(
             epoch_output, self.checkpoint_accumulator, self.early_stopping_accumulator, self.num_optimizers
         )
-                
+
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         if should_check_val:
             self.trainer.run_evaluation()
