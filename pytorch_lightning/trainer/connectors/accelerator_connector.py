@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import sys
 from typing import List, Optional, Sequence, Union
 
 import torch
@@ -55,6 +54,7 @@ from pytorch_lightning.utilities import (
     DeviceType,
     DistributedType,
     rank_zero_only,
+    _module_available,
 )
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -568,7 +568,7 @@ class AcceleratorConnector(object):
         if self._distrib_type in DistributedType.ipython_compatible_types():
             return
         # check ipython env
-        if "IPython" in sys.modules:
+        if _module_available("IPython"):
             from IPython import get_ipython
             if get_ipython() is not None:
                 raise MisconfigurationException(
