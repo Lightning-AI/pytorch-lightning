@@ -198,12 +198,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
             return loss.backward()
 
     model = TestModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        default_root_dir=tmpdir,
-        plugins=DeepSpeedPlugin(),
-        gpus=1,
-    )
+    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, plugins=DeepSpeedPlugin(), gpus=1, precision=16)
     with pytest.warns(UserWarning, match='Overridden backward hook in the LightningModule will be ignored'):
         trainer.fit(model)
 
@@ -228,12 +223,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
             assert isinstance(self.trainer.model.lr_scheduler, torch.optim.lr_scheduler.StepLR)
 
     model = TestModel()
-    trainer = Trainer(
-        plugins=DeepSpeedPlugin(),
-        default_root_dir=tmpdir,
-        gpus=1,
-        fast_dev_run=True,
-    )
+    trainer = Trainer(plugins=DeepSpeedPlugin(), default_root_dir=tmpdir, gpus=1, fast_dev_run=True, precision=16)
 
     trainer.fit(model)
 
@@ -266,6 +256,7 @@ def test_deepspeed_config(tmpdir, deepspeed_config):
         default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
+        precision=16
     )
 
     trainer.fit(model)
