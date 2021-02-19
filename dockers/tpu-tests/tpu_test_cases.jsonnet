@@ -11,6 +11,7 @@ local tputests = base.BaseTest {
   timeout: 900, # 15 minutes, in seconds.
 
   image: 'pytorchlightning/pytorch_lightning:base-xla-py3.6-torch{PYTORCH_VERSION}',
+  imageTag: '{PR_NUMBER}-{PYTORCH_VERSION}',
 
   tpuSettings+: {
     softwareVersion: 'pytorch-{PYTORCH_VERSION}',
