@@ -88,6 +88,27 @@ For more details please have a look at :attr:`~pytorch_lightning.trainer.trainer
 
             return loaders
 
+Furthermore, lightning also supports that nested lists and dicts (or an combination) can
+be returned 
+
+.. testcode::
+
+    class LitModel(LightningModule):
+
+        def train_dataloader(self):
+
+            loader_a = torch.utils.data.DataLoader(range(8), batch_size=4)
+            loader_b = torch.utils.data.DataLoader(range(16), batch_size=4)
+            loader_c = torch.utils.data.DataLoader(range(32), batch_size=4)
+            loader_c = torch.utils.data.DataLoader(range(64), batch_size=4)
+
+            # pass loaders as a nested dict. This will create batches like this:
+            # {'loader_a_b': {'a': batch from loader a, 'b': batch from loader b},
+            #  'loader_c_d': {'c': batch from loader c, 'd': batch from loader d}}
+            loaders = {'loaders_a_b': {'a': loader_a, 'b': loader_b}
+                       'loaders_c_d': {'c': loader_c, 'd': loader_d}}
+            return loaders
+
 ----------
 
 Test/Val dataloaders
