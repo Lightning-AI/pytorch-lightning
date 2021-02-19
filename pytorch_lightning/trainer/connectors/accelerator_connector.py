@@ -86,9 +86,6 @@ class AcceleratorConnector(object):
         # initialization
         self._device_type = DeviceType.CPU
         self._distrib_type = None
-        self.ipython_compatible_distrib_types = [
-            DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN
-        ]
 
         self.num_processes = num_processes
         self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
@@ -566,7 +563,7 @@ class AcceleratorConnector(object):
 
     def check_ipython_compatibility(self):
         """Raises a `MisconfigurationException` if the accelerator is not compatible with IPython and code is run in an IPython kernel."""
-        if self._distrib_type in self.ipython_compatible_distrib_types:
+        if self._distrib_type in DistributedType.ipython_compatible_types():
             return
         else:
             # check ipython env

@@ -58,6 +58,12 @@ class DistributedType(LightningEnum):
     >>> DistributedType.DDP2 in ('ddp2', )
     True
     """
+
+    @staticmethod
+    def ipython_compatible_types() -> list:
+        """Returns a list containing ipython compatible DistributeTypes"""
+        return [DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN]
+
     DP = 'dp'
     DDP = 'ddp'
     DDP2 = 'ddp2'
