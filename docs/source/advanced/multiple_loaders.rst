@@ -16,6 +16,8 @@ Lightning supports multiple dataloaders in a few ways.
 
 ----------
 
+.. _multiple-training-dataloaders:
+
 Multiple training dataloaders
 -----------------------------
 For training, the usual way to use multiple dataloaders is to create a ``DataLoader`` class

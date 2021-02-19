@@ -15,7 +15,7 @@
 import warnings
 from itertools import count
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -425,7 +425,7 @@ class Trainer(
     def fit(
         self,
         model: LightningModule,
-        train_dataloader: Optional[DataLoader] = None,
+        train_dataloader: Any = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
     ):
@@ -437,8 +437,9 @@ class Trainer(
 
             model: Model to fit.
 
-            train_dataloader: A Pytorch DataLoader with training samples. If the model has
-                a predefined train_dataloader method this will be skipped.
+            train_dataloader: Either a single Pytorch Dataloader or an collection of these
+                (list, dict, nested lists and dicts). In the case of multiple dataloaders, please
+                see this :ref:`page <multiple-training-dataloaders>`
 
             val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloaders method this will be skipped
