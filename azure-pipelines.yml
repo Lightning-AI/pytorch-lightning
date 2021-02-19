@@ -68,7 +68,7 @@ jobs:
 
     - script: |
         python tests/collect_env_details.py
-        python -c "import torch ; assert torch.cuda.device_count() >= 2"
+        python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
       displayName: 'Env details'
 
     - bash: |
