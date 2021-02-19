@@ -480,6 +480,7 @@ class TrainLoop:
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
         should_check_val = False
+        val_loop_called = False
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
@@ -518,6 +519,7 @@ class TrainLoop:
 
                 # reset stage to train
                 self.trainer._running_stage = RunningStage.TRAINING
+                val_loop_called = True
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -558,7 +560,7 @@ class TrainLoop:
         self.trainer.logger_connector.log_train_epoch_end_metrics(
             epoch_output, self.checkpoint_accumulator, self.early_stopping_accumulator, self.num_optimizers
         )
-
+                
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         if should_check_val:
             self.trainer.run_evaluation()
@@ -566,13 +568,16 @@ class TrainLoop:
             # reset stage to train
             self.trainer._running_stage = RunningStage.TRAINING
 
+        if should_check_val or val_loop_called:
+            # update epoch level lr_schedulers
+            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
 
-        # update epoch level lr_schedulers
-        self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
-
         if should_train_only:
+            # update epoch level lr_schedulers
+            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
             self.check_checkpoint_callback(True)
             self.check_early_stopping_callback(True)
 
