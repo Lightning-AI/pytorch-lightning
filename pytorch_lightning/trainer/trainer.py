@@ -883,20 +883,16 @@ class Trainer(
             # Attach datamodule to get setup/prepare_data added to model before the call to it below
             self.data_connector.attach_datamodule(model or self.lightning_module, datamodule)
 
-        # attach dataloaders
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
-
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
         else:
-            results = self.__test_using_ckpt_weights(ckpt_path, test_dataloaders)
+            results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
         self.teardown('test')
         self._running_stage = None
         return results
 
-    def __test_using_ckpt_weights(self, ckpt_path):
+    def __test_using_best_weights(self, ckpt_path, test_dataloaders):
         model = self.lightning_module
 
         # if user requests the best checkpoint but we don't have it, error
@@ -923,6 +919,10 @@ class Trainer(
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
 
+        # attach dataloaders
+        if test_dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+
         # run tests
         self.tested_ckpt_path = ckpt_path
         results = self.fit(model)
@@ -934,7 +934,11 @@ class Trainer(
 
         return results
 
-    def __test_given_model(self, model):
+    def __test_given_model(self, model, test_dataloaders):
+
+        # attach dataloaders
+        if test_dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
         # run test
         # sets up testing so we short circuit to eval
