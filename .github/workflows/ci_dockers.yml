@@ -45,11 +45,16 @@ jobs:
 
   build-XLA:
     runs-on: ubuntu-20.04
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
         python_version: [3.7]
-        xla_version: [1.6, 1.7, "nightly"]
+        xla_version: [1.6, 1.7]
+        experimental: [ false ]
+        include:
+          - xla_version: "nightly"
+            experimental: true
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -70,6 +75,7 @@ jobs:
 
   build-cuda:
     runs-on: ubuntu-20.04
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
@@ -77,12 +83,16 @@ jobs:
           # todo: see notes in Dockerfile
           - python_version: 3.6
             pytorch_version: 1.4
+            experimental: false
           - python_version: 3.7
             pytorch_version: 1.6
+            experimental: false
           - python_version: 3.8
             pytorch_version: 1.7
-          #- python_version: 3.9
-          #  pytorch_version: 1.8
+            experimental: false
+          - python_version: 3.9
+            pytorch_version: 1.8
+            experimental: true
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -110,16 +120,20 @@ jobs:
 
   build-conda:
     runs-on: ubuntu-20.04
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - python_version: 3.6
             pytorch_version: 1.4
+            experimental: false
           - python_version: 3.7
             pytorch_version: 1.7
+            experimental: false
           - python_version: 3.7
             pytorch_version: 1.8
+            experimental: true
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -147,6 +161,7 @@ jobs:
 
   build-nvidia:
     runs-on: ubuntu-20.04
+    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v2

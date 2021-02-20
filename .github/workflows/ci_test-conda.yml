@@ -16,7 +16,12 @@ jobs:
       matrix:
         # os: [ubuntu-20.04]
         python-version: [3.7]
-        pytorch-version: [1.4, 1.5, 1.6, 1.7, 1.8]
+        pytorch-version: [1.4, 1.5, 1.6, 1.7]
+        experimental: [ false ]
+        include:
+          - python-version: 3.8
+            pytorch-version: 1.8
+            experimental: true
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 35
@@ -47,6 +52,7 @@ jobs:
         ls -l checkpoints/
 
     - name: Tests
+      continue-on-error: ${{ matrix.experimental }}
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
         python -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
