@@ -585,7 +585,6 @@ class DataHooks:
             any other device than the one passed in as argument (unless you know what you are doing).
 
         Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
             If you need multi-GPU support for your custom batch objects, you need to define your custom
             :class:`~torch.nn.parallel.DistributedDataParallel` or
             :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
@@ -609,6 +608,10 @@ class DataHooks:
                     batch = super().transfer_batch_to_device(data, device)
                 return batch
 
+        Raises:
+            MisconfigurationException:
+                If using data-parallel(``accelerator='dp'``) in ``Trainer``.
+
         See Also:
             - :meth:`move_data_to_device`
             - :meth:`apply_to_collection`
@@ -622,9 +625,6 @@ class DataHooks:
 
         .. warning:: dataloader_idx always returns 0, and will be updated to support the true idx in the future.
 
-        Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
-
         Args:
             batch: A batch of data that needs to be altered or augmented.
             dataloader_idx: DataLoader idx for batch
@@ -637,6 +637,9 @@ class DataHooks:
             def on_before_batch_transfer(self, batch, dataloader_idx):
                 batch['x'] = transforms(batch['x'])
                 return batch
+        Raises:
+            MisconfigurationException:
+                If using data-parallel(``accelerator='dp'``) in ``Trainer``.
 
         See Also:
             - :meth:`on_after_batch_transfer`
@@ -650,9 +653,6 @@ class DataHooks:
 
         .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true ``idx`` in the future.
 
-        Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
-
         Args:
             batch: A batch of data that needs to be altered or augmented.
             dataloader_idx: DataLoader idx for batch (Default: 0)
@@ -665,6 +665,10 @@ class DataHooks:
             def on_after_batch_transfer(self, batch, dataloader_idx):
                 batch['x'] = gpu_transforms(batch['x'])
                 return batch
+
+        Raises:
+            MisconfigurationException:
+                If using data-parallel(``accelerator='dp'``) in ``Trainer``.
 
         See Also:
             - :meth:`on_before_batch_transfer`
