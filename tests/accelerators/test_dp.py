@@ -19,7 +19,6 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
-from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
@@ -76,7 +75,8 @@ def test_dp_test(tmpdir):
     import os
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
-    model = EvalModelTemplate()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -85,14 +85,14 @@ def test_dp_test(tmpdir):
         gpus=[0, 1],
         accelerator='dp',
     )
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path
-    results = trainer.test()
+    results = trainer.test(datamodule=dm)
     assert 'test_acc' in results[0]
 
     old_weights = model.c_d1.weight.clone().detach().cpu()
 
-    results = trainer.test(model)
+    results = trainer.test(model, datamodule=dm)
     assert 'test_acc' in results[0]
 
     # make sure weights didn't change
