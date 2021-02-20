@@ -1088,9 +1088,9 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir
     train_manual_optimization(tmpdir, "ddp_spawn")
 
 
-class TesManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
+class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx):
 
         # emulate gans training
         opt_gen, opt_dis = self.optimizers()
@@ -1147,4 +1147,4 @@ class TesManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
 
 @RunIf(min_gpus=2, special=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
-    train_manual_optimization(tmpdir, "ddp", model_cls=TesManualOptimizationDDPModelToggleModel)
+    train_manual_optimization(tmpdir, "ddp", model_cls=TestManualOptimizationDDPModelToggleModel)
