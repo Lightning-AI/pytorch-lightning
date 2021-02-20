@@ -121,22 +121,20 @@ class DataConnector(object):
         if datamodule:
 
             # Override loader hooks
-            if is_overridden('train_dataloader', datamodule):
-                model.train_dataloader = datamodule.train_dataloader
-            if is_overridden('val_dataloader', datamodule):
-                model.val_dataloader = datamodule.val_dataloader
-            if is_overridden('test_dataloader', datamodule):
-                model.test_dataloader = datamodule.test_dataloader
-            if is_overridden('predict_dataloader', datamodule):
-                model.predict_dataloader = datamodule.predict_dataloader
+            dl_methods = ['train_dataloader', 'val_dataloader', 'test_dataloader', 'predict_dataloader']
+            for method in dl_methods:
+                if is_overridden(method, datamodule):
+                    setattr(model, method, getattr(datamodule, method))
 
             # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
-            if is_overridden('on_before_batch_transfer', datamodule):
-                model.on_before_batch_transfer = datamodule.on_before_batch_transfer
-            if is_overridden('transfer_batch_to_device', datamodule):
-                model.transfer_batch_to_device = datamodule.transfer_batch_to_device
-            if is_overridden('on_after_batch_transfer', datamodule):
-                model.on_after_batch_transfer = datamodule.on_after_batch_transfer
+            batch_transfer_hooks = ['on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer']
+            for hook in batch_transfer_hooks:
+                if is_overridden(hook, datamodule):
+                    setattr(model, hook, getattr(datamodule, hook))
+
+                # Raise Misconfiguration exception since these hooks are not supported in DP mode
+                if self.trainer.accelerator_connector.use_dp and is_overridden(model, hook):
+                    raise MisconfigurationException(f'Overriding `{hook}` is not supported in DP mode.')
 
             self.trainer.datamodule = datamodule
             datamodule.trainer = self.trainer
