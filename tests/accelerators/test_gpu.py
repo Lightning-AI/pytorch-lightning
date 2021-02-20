@@ -11,6 +11,7 @@ from pytorch_lightning.plugins import SingleDevicePlugin, PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 def test_invalid_root_device():
     """ Test that GPU Accelerator has root device on GPU. """
     accelerator = GPUAccelerator(
@@ -32,6 +33,7 @@ def test_root_device_set():
     assert torch.cuda.current_device() == 1
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @mock.patch.dict(os.environ, {"CUDA_DEVICE_ORDER": ""})
 def test_cuda_environment_variables_set():
     """ Test that GPU Accelerator sets NVIDIA environment variables. """
@@ -43,6 +45,7 @@ def test_cuda_environment_variables_set():
     assert os.getenv("CUDA_DEVICE_ORDER") == "PCI_BUS_ID"
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "1, 2", "LOCAL_RANK": "3"})
 def test_cuda_visible_devices_logged(caplog):
     """ Test that GPU Accelerator logs CUDA_VISIBLE_DEVICES env variable. """
