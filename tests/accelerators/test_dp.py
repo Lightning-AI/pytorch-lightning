@@ -175,5 +175,5 @@ def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir):
     trainer = Trainer(**trainer_options)
     model = CustomModel()
 
-    with pytest.raises(MisconfigurationException, match=r'Overriding `on_after_batch_transfer` is not *. in DP'):
+    with pytest.raises(MisconfigurationException, match=r'Overriding `on_after_batch_transfer` is not .* in DP'):
         trainer.fit(model)

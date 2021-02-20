@@ -1,10 +1,11 @@
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
@@ -43,3 +44,11 @@ class GPUAccelerator(Accelerator):
         all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {os.getenv('LOCAL_RANK', 0)} - CUDA_VISIBLE_DEVICES: [{devices}]")
+
+    def to_device(self, batch: Any) -> Any:
+        # no need to transfer batch to device in DP mode
+        # TODO: Add supported to allow batch transfer to device in Lightning for DP mode.
+        if not isinstance(self.training_type_plugin, DataParallelPlugin):
+            batch = super().to_device(batch)
+
+        return batch

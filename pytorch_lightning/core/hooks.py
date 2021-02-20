@@ -581,8 +581,10 @@ class DataHooks:
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 
         Note:
+            This hook only runs on single GPU training and DDP (no data-parallel).
             This hook should only transfer the data and not modify it, nor should it move the data to
             any other device than the one passed in as argument (unless you know what you are doing).
+            Data-Parallel support will come in near future.
 
         Note:
             If you need multi-GPU support for your custom batch objects, you need to define your custom
@@ -623,7 +625,11 @@ class DataHooks:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
-        .. warning:: dataloader_idx always returns 0, and will be updated to support the true idx in the future.
+        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true ``idx`` in the future.
+
+        Note:
+            This hook only runs on single GPU training and DDP (no data-parallel).
+            Data-Parallel support will come in near future.
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
@@ -637,6 +643,7 @@ class DataHooks:
             def on_before_batch_transfer(self, batch, dataloader_idx):
                 batch['x'] = transforms(batch['x'])
                 return batch
+
         Raises:
             MisconfigurationException:
                 If using data-parallel(``accelerator='dp'``) in ``Trainer``.
@@ -652,6 +659,10 @@ class DataHooks:
         Override to alter or apply batch augmentations to your batch after it is transferred to the device.
 
         .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true ``idx`` in the future.
+
+        Note:
+            This hook only runs on single GPU training and DDP (no data-parallel).
+            Data-Parallel support will come in near future.
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
