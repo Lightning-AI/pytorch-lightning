@@ -19,8 +19,20 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def on_gpu(self) -> bool:
         return self.device.type == "cuda" and torch.cuda.is_available()
 
-    def reduce(self, output: Union[Any, torch.Tensor], *args: Any, **kwargs: Any) -> Union[Any, torch.Tensor]:
-        return output
+    def reduce(self, tensor: Union[Any, torch.Tensor], *args: Any, **kwargs: Any) -> Union[Any, torch.Tensor]:
+        """
+        Reduces a tensor from several distributed processes to one aggregated tensor.
+        As this plugin only operates with a single device, the reduction is simply the identity.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            *args: ignored
+            **kwargs: ignored
+
+        Return:
+            the unmodified input as reduction is not needed for single process operation
+        """
+        return tensor
 
     @property
     def root_device(self) -> torch.device:
