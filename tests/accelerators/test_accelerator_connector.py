@@ -23,7 +23,14 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPSpawnPlugin, PrecisionPlugin, SingleDevicePlugin
+from pytorch_lightning.plugins import (
+    DDP2Plugin,
+    DDPPlugin,
+    DDPShardedPlugin,
+    DDPSpawnPlugin,
+    PrecisionPlugin,
+    SingleDevicePlugin,
+)
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from tests.helpers.boring_model import BoringModel
 
@@ -378,3 +385,18 @@ def test_dist_backend_accelerator_mapping(device_count_mock):
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    ["accelerator", "plugin"],
+    [('ddp_spawn', 'ddp_sharded'), (None, 'ddp_sharded')],
+)
+def test_plugin_accelerator_choice(accelerator, plugin):
+    """
+    Ensure that when a plugin and accelerator is passed in, that the plugin takes precedent.
+    """
+    trainer = Trainer(accelerator=accelerator, plugins=plugin, num_processes=2)
+    assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
+
+    trainer = Trainer(plugins=plugin, num_processes=2)
+    assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
