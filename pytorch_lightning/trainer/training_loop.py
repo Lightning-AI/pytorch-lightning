@@ -741,7 +741,7 @@ class TrainLoop:
             if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
                 # backward pass
                 if result is not None:
-                    with self.trainer.profiler.profile("model_backward"):
+                    with self.trainer.profiler.profile("backward"):
                         self.backward(result, optimizer, opt_idx)
 
                     # hook - call this hook only
