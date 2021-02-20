@@ -98,11 +98,11 @@ class DataConnector(object):
         test_dataloaders=None,
         predict_dataloaders=None,
     ):
-        # TODO: should't override user code
+
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
-        # if train_dataloader is not None:
-        #     model.train_dataloader = _PatchDataLoader(train_dataloader)
+        if train_dataloader is not None:
+            model.train_dataloader = _PatchDataLoader(train_dataloader)
 
         if val_dataloaders is not None:
             model.val_dataloader = _PatchDataLoader(val_dataloaders)
@@ -113,9 +113,7 @@ class DataConnector(object):
         if predict_dataloaders is not None:
             model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
-    def attach_datamodule(
-        self, model, datamodule: Optional[LightningDataModule], stage: str
-    ) -> None:
+    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule], stage: str) -> None:
         # Todo: required argument `stage` is not used
 
         # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
@@ -124,6 +122,7 @@ class DataConnector(object):
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
 
+            # TODO: should't override user code
             # Override loader hooks
             # if is_overridden("train_dataloader", datamodule):
             #     model.train_dataloader = datamodule.train_dataloader
