@@ -55,8 +55,15 @@ class TrainingTypePlugin(Plugin, ABC):
         """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
 
     @abstractmethod
-    def reduce(self, output: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
-        """Reduces the given output (e.g. across GPUs/Processes)"""
+    def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
+        """
+        Reduces the given tensor (e.g. across GPUs/processes).
+
+        Args:
+            tensor: the tensor to sync and reduce
+            *args: plugin-specific positional arguments
+            **kwargs: plugin-specific keyword arguments
+        """
 
     @abstractmethod
     def barrier(self, name: Optional[str] = None) -> None:
