@@ -540,12 +540,49 @@ def test_dm_init_from_datasets(tmpdir):
     assert dm.val_dataloader() is None
     assert dm.test_dataloader() is None
 
-    dm = LightningDataModule.from_datasets(train_ds, valid_ds, test_ds, batch_size=4, num_workers=0)
+    dm = LightningDataModule.from_datasets(
+        train_ds, valid_ds, test_ds, batch_size=4, num_workers=0
+    )
     assert torch.all(next(iter(dm.val_dataloader())) == torch.ones(4))
     assert torch.all(next(iter(dm.test_dataloader())) == torch.ones(4))
 
-    dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0)
+    dm = LightningDataModule.from_datasets(
+        train_ds, valid_dss, test_dss, batch_size=4, num_workers=0
+    )
     assert torch.all(next(iter(dm.val_dataloader()[0])) == torch.ones(4))
     assert torch.all(next(iter(dm.val_dataloader()[1])) == torch.ones(4))
     assert torch.all(next(iter(dm.test_dataloader()[0])) == torch.ones(4))
     assert torch.all(next(iter(dm.test_dataloader()[1])) == torch.ones(4))
+
+
+def test_datamodule_patch_training_stage(tmpdir):
+    """
+    Check that `Trainer` doesn't alter user module. More specific, it shouldn't add datamodules as
+    train/val/test dataloaders
+    """
+    reset_seed()
+
+    dm = ClassifDataModule()
+    model = ClassificationModel()
+
+    assert model.train_dataloader() is None
+
+    model.validation_step = None
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        weights_summary=None,
+    )
+
+    # fit model
+    result = trainer.fit(model, datamodule=dm)
+    assert (
+        trainer.state == TrainerState.FINISHED
+    ), f"Training failed with {trainer.state}"
+    assert result
+    assert trainer.callback_metrics["train_loss"] < 1.0
+
+    assert model.train_dataloader() is None

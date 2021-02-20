@@ -98,10 +98,11 @@ class DataConnector(object):
         test_dataloaders=None,
         predict_dataloaders=None,
     ):
+        # TODO: should't override user code
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
-        if train_dataloader is not None:
-            model.train_dataloader = _PatchDataLoader(train_dataloader)
+        # if train_dataloader is not None:
+        #     model.train_dataloader = _PatchDataLoader(train_dataloader)
 
         if val_dataloaders is not None:
             model.val_dataloader = _PatchDataLoader(val_dataloaders)
@@ -112,31 +113,33 @@ class DataConnector(object):
         if predict_dataloaders is not None:
             model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
-    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule], stage: str) -> None:
+    def attach_datamodule(
+        self, model, datamodule: Optional[LightningDataModule], stage: str
+    ) -> None:
         # Todo: required argument `stage` is not used
 
         # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
-        datamodule = datamodule or getattr(model, 'datamodule', None)
+        datamodule = datamodule or getattr(model, "datamodule", None)
 
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
 
             # Override loader hooks
-            if is_overridden('train_dataloader', datamodule):
-                model.train_dataloader = datamodule.train_dataloader
-            if is_overridden('val_dataloader', datamodule):
+            # if is_overridden("train_dataloader", datamodule):
+            #     model.train_dataloader = datamodule.train_dataloader
+            if is_overridden("val_dataloader", datamodule):
                 model.val_dataloader = datamodule.val_dataloader
-            if is_overridden('test_dataloader', datamodule):
+            if is_overridden("test_dataloader", datamodule):
                 model.test_dataloader = datamodule.test_dataloader
-            if is_overridden('predict_dataloader', datamodule):
+            if is_overridden("predict_dataloader", datamodule):
                 model.predict_dataloader = datamodule.predict_dataloader
 
             # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
-            if is_overridden('on_before_batch_transfer', datamodule):
+            if is_overridden("on_before_batch_transfer", datamodule):
                 model.on_before_batch_transfer = datamodule.on_before_batch_transfer
-            if is_overridden('transfer_batch_to_device', datamodule):
+            if is_overridden("transfer_batch_to_device", datamodule):
                 model.transfer_batch_to_device = datamodule.transfer_batch_to_device
-            if is_overridden('on_after_batch_transfer', datamodule):
+            if is_overridden("on_after_batch_transfer", datamodule):
                 model.on_after_batch_transfer = datamodule.on_after_batch_transfer
 
             self.trainer.datamodule = datamodule

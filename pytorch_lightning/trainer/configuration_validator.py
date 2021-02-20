@@ -37,6 +37,20 @@ class ConfigValidator(object):
             # check test loop configuration
             self.__verify_eval_loop_configuration(model, 'test')
 
+    def __verify_train_dataloader(self, model):
+        if self.trainer.datamodule:
+            has_train_dataloader = is_overridden(
+                'train_dataloader', self.trainer.datamodule
+            )
+        else:
+            has_train_dataloader = is_overridden('train_dataloader', model)
+
+        if not has_train_dataloader:
+            raise MisconfigurationException(
+                'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
+                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
+            )
+
     def __verify_train_loop_configuration(self, model):
         # -----------------------------------
         # verify model has a training step
@@ -51,12 +65,7 @@ class ConfigValidator(object):
         # -----------------------------------
         # verify model has a train dataloader
         # -----------------------------------
-        has_train_dataloader = is_overridden('train_dataloader', model)
-        if not has_train_dataloader:
-            raise MisconfigurationException(
-                'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
-            )
+        self.__verify_train_dataloader(model)
 
         # -----------------------------------
         # verify model has optimizer
