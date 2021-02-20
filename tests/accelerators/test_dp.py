@@ -163,7 +163,7 @@ def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir):
     trainer = Trainer(**trainer_options)
     model = CustomModel()
     model.transfer_batch_to_device = BoringModel().transfer_batch_to_device
-    model.on_before_batch_transfer_hook_rank = model.transform_hook
+    model.on_before_batch_transfer = model.transform_hook
 
     with pytest.raises(MisconfigurationException, match='Overriding `on_before_batch_transfer` is not *. in DP'):
         trainer.fit(model)
