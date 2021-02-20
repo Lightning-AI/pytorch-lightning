@@ -131,10 +131,7 @@ class GAN(LightningModule):
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser, inplace=False):
-        if inplace:
-            parser = parent_parser
-        else:
-            parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        parser = parent_parser if inplace else ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
         parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
         parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of second order momentum of gradient")
