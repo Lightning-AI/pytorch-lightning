@@ -195,6 +195,13 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The current `LightningModule`
         """
+
+        # TODO - what if we pass `train_dataloader` as input, instead of model?
+        if self.datamodule:
+            train_dataloader = self.datamodule.train_dataloader
+        else:
+            train_dataloader = model.train_dataloader
+
         self.train_dataloader = self.request_dataloader(model.train_dataloader)
 
         if self.overfit_batches > 0:
