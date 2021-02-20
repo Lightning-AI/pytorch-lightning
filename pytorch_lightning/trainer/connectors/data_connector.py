@@ -133,7 +133,7 @@ class DataConnector(object):
                     setattr(model, hook, getattr(datamodule, hook))
 
                 # Raise Misconfiguration exception since these hooks are not supported in DP mode
-                if self.trainer.accelerator_connector.use_dp and is_overridden(model, hook):
+                if self.trainer.accelerator_connector.use_dp and is_overridden(hook, model):
                     raise MisconfigurationException(f'Overriding `{hook}` is not supported in DP mode.')
 
             self.trainer.datamodule = datamodule
