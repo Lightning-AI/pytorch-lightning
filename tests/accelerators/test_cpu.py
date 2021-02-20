@@ -4,7 +4,8 @@ import pytest
 import torch
 
 from pytorch_lightning.accelerators import CPUAccelerator
-from pytorch_lightning.plugins import SingleDevicePlugin, PrecisionPlugin, NativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import SingleDevicePlugin, PrecisionPlugin
+from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -26,7 +27,7 @@ def test_unsupported_precision_plugins():
     model = Mock()
     accelerator = CPUAccelerator(
         training_type_plugin=SingleDevicePlugin(torch.device("cpu")),
-        precision_plugin=NativeMixedPrecisionPlugin()
+        precision_plugin=MixedPrecisionPlugin()
     )
     with pytest.raises(MisconfigurationException, match=r"amp \+ cpu is not supported."):
         accelerator.setup(trainer=trainer, model=model)
