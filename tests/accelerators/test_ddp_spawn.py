@@ -20,6 +20,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.states import TrainerState
+from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
@@ -71,7 +72,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_master_port()
 
-    model = BoringModel()
+    model = EvalModelTemplate()
     fit_options = dict(train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
     trainer = Trainer(
