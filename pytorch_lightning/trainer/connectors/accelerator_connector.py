@@ -116,14 +116,10 @@ class AcceleratorConnector(object):
 
         self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
 
-        self.handle_given_plugins(plugins)
-        if self._distrib_type is None:
-            self.set_distributed_mode()
-
+        self.set_distributed_mode()
         self.configure_slurm_ddp()
 
-        # set cluster env after slurm is configured if using slurm
-        self._cluster_environment = self.select_cluster_environment()
+        self.handle_given_plugins(plugins)
 
         self.accelerator = self.select_accelerator()
 
@@ -167,6 +163,9 @@ class AcceleratorConnector(object):
 
         for plug in plugins:
             if isinstance(plug, str):
+                # Reset the distributed type as the user has overridden training type
+                # via the plugins argument
+                self._distrib_type = None
                 self.set_distributed_mode(plug)
 
             elif isinstance(plug, TrainingTypePlugin):
@@ -201,7 +200,7 @@ class AcceleratorConnector(object):
 
         self._training_type_plugin = training_type
         self._precision_plugin = precision
-        self._cluster_environment = cluster_environment
+        self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
