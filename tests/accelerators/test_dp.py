@@ -137,11 +137,7 @@ def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir):
     class CustomModel(BoringModel):
 
         def transfer_batch_to_device(self, batch, device):
-            batch = batch.cuda()
-            return batch
-
-        def transform_hook(self, batch, dataloader_idx):
-            batch += 1
+            batch = batch.to(device)
             return batch
 
     tutils.set_random_master_port()
@@ -152,27 +148,32 @@ def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir):
         accelerator='dp',
     )
 
-    # Override transfer_batch_to_device hook only
     trainer = Trainer(**trainer_options)
     model = CustomModel()
 
     with pytest.raises(MisconfigurationException, match=r'Overriding `transfer_batch_to_device` is not .* in DP'):
         trainer.fit(model)
 
-    # Override on_before_batch_transfer hook only
+    class CustomModel(BoringModel):
+
+        def on_before_batch_transfer(self, batch, dataloader_idx):
+            batch += 1
+            return batch
+
     trainer = Trainer(**trainer_options)
     model = CustomModel()
-    model.transfer_batch_to_device = BoringModel().transfer_batch_to_device
-    model.on_before_batch_transfer = model.transform_hook
 
     with pytest.raises(MisconfigurationException, match=r'Overriding `on_before_batch_transfer` is not .* in DP'):
         trainer.fit(model)
 
-    # Override on_after_batch_transfer hook only
+    class CustomModel(BoringModel):
+
+        def on_after_batch_transfer(self, batch, dataloader_idx):
+            batch += 1
+            return batch
+
     trainer = Trainer(**trainer_options)
     model = CustomModel()
-    model.transfer_batch_to_device = BoringModel().transfer_batch_to_device
-    model.on_after_batch_transfer = model.transform_hook
 
     with pytest.raises(MisconfigurationException, match=r'Overriding `on_after_batch_transfer` is not *. in DP'):
         trainer.fit(model)

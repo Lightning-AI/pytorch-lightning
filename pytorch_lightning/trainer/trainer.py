@@ -879,9 +879,8 @@ class Trainer(
                 'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
             )
 
-        if datamodule is not None:
-            # Attach datamodule to get setup/prepare_data added to model before the call to it below
-            self.data_connector.attach_datamodule(model or self.lightning_module, datamodule)
+        # Attach datamodule to get setup/prepare_data added to model before the call to it below
+        self.data_connector.attach_datamodule(model or self.lightning_module, datamodule, 'test')
 
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
@@ -936,7 +935,7 @@ class Trainer(
 
     def __test_given_model(self, model, test_dataloaders):
 
-        # attach dataloaders
+        # attach data
         if test_dataloaders is not None:
             self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
@@ -990,7 +989,7 @@ class Trainer(
 
         if datamodule is not None:
             # Attach datamodule to get setup/prepare_data added to model before the call to it below
-            self.data_connector.attach_datamodule(model, datamodule)
+            self.data_connector.attach_datamodule(model, datamodule, 'predict')
 
         # attach data
         if dataloaders is not None:
