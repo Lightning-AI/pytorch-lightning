@@ -106,8 +106,8 @@ class DataConnector(object):
     ) -> None:
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
-        # if train_dataloader is not None:
-        #     model.train_dataloader = _PatchDataLoader(train_dataloader)
+        if train_dataloader is not None:
+            model.train_dataloader = _PatchDataLoader(train_dataloader)
 
         if val_dataloaders is not None:
             model.val_dataloader = _PatchDataLoader(val_dataloaders)
@@ -129,6 +129,7 @@ class DataConnector(object):
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
 
+            # TODO: should't override user code
             # Override loader hooks
             dl_methods = (
                 "train_dataloader",
