@@ -122,6 +122,9 @@ class AcceleratorConnector(object):
 
         self.configure_slurm_ddp()
 
+        # set cluster env after slurm is configured if using slurm
+        self._cluster_environment = self.select_cluster_environment()
+
         self.accelerator = self.select_accelerator()
 
         # override dist backend when using tpus
@@ -198,7 +201,7 @@ class AcceleratorConnector(object):
 
         self._training_type_plugin = training_type
         self._precision_plugin = precision
-        self._cluster_environment = cluster_environment or self.select_cluster_environment()
+        self._cluster_environment = cluster_environment
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
