@@ -4,10 +4,14 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
 trigger:
+  tags:
+    include:
+      - '*'
   branches:
     include:
       - master
       - release/*
+      - refs/tags/*
 pr:
   - master
   - release/*
@@ -51,6 +55,7 @@ jobs:
       displayName: 'Image info & NVIDIA'
 
     - bash: |
+        export GIT_TERMINAL_PROMPT=1
         #sudo apt-get install -y cmake
         # python -m pip install "pip==20.1"
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
@@ -61,8 +66,9 @@ jobs:
         pip list
       displayName: 'Install dependencies'
 
-    - script: |
+    - bash: |
         python tests/collect_env_details.py
+        python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
       displayName: 'Env details'
 
     - bash: |
@@ -71,11 +77,11 @@ jobs:
         ls -l legacy/checkpoints/
       displayName: 'Get legacy checkpoints'
 
-    - script: |
+    - bash: |
         python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
       displayName: 'Testing: standard'
 
-    - script: |
+    - bash: |
         sh tests/special_tests.sh
       displayName: 'Testing: special'
 
@@ -85,6 +91,12 @@ jobs:
         codecov --token=$(CODECOV_TOKEN) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
       displayName: 'Statistics'
 
-    - script: |
+    - bash: |
         python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
       displayName: 'Testing: extended'
+
+    - bash: |
+        python setup.py install --user --quiet
+        bash pl_examples/run_ddp-example.sh
+        pip uninstall -y pytorch-lightning
+      displayName: 'Examples'

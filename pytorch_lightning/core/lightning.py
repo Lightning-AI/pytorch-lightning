@@ -41,7 +41,6 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
@@ -178,6 +177,12 @@ class LightningModule(
     def logger(self):
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
+
+    def _apply_batch_transfer_handler(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0):
+        batch = self.on_before_batch_transfer(batch, dataloader_idx)
+        batch = self.transfer_batch_to_device(batch, device)
+        batch = self.on_after_batch_transfer(batch, dataloader_idx)
+        return batch
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -442,11 +447,7 @@ class LightningModule(
             the output will also be a collection with tensors of this shape.
         """
         group = group if group is not None else torch.distributed.group.WORLD
-        if self.trainer.accelerator_backend is not None:
-            all_gather = self.trainer.accelerator_backend.all_gather
-        else:
-            all_gather = all_gather_ddp_if_available
-
+        all_gather = self.trainer.accelerator.all_gather
         data = convert_to_tensors(data, device=self.device)
         all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
         return apply_to_collection(data, torch.Tensor, all_gather)
@@ -1042,6 +1043,32 @@ class LightningModule(
         """
         return self(batch)
 
+    def configure_callbacks(self):
+        """
+        Configure model-specific callbacks.
+        When the model gets attached, e.g., when ``.fit()`` or ``.test()`` gets called,
+        the list returned here will be merged with the list of callbacks passed to the Trainer's ``callbacks`` argument.
+        If a callback returned here has the same type as one or several callbacks already present in
+        the Trainer's callbacks list, it will take priority and replace them.
+        In addition, Lightning will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        callbacks run last.
+
+        Return:
+            A list of callbacks which will extend the list of callbacks in the Trainer.
+
+        Example::
+
+            def configure_callbacks(self):
+                early_stop = EarlyStopping(monitor"val_acc", mode="max")
+                checkpoint = ModelCheckpoint(monitor="val_loss")
+                return [early_stop, checkpoint]
+
+        Note:
+            Certain callback methods like :meth:`~pytorch_lightning.callbacks.base.Callback.on_init_start`
+            will never be invoked on the new callbacks returned here.
+        """
+        return []
+
     def configure_optimizers(self):
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
@@ -1160,7 +1187,7 @@ class LightningModule(
         """
         rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
-    def manual_backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
+    def manual_backward(self, loss: Tensor, optimizer: Optional[Optimizer] = None, *args, **kwargs) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -1181,12 +1208,18 @@ class LightningModule(
                 self.manual_backward(loss, opt_a)
                 opt_a.step()
         """
+        if optimizer is not None:
+            rank_zero_warn(
+                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4",
+                DeprecationWarning
+            )
+
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
 
         # backward
         self._running_manual_backward = True
-        self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
+        self.trainer.train_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
         self._running_manual_backward = False
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
@@ -1281,7 +1314,7 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer.
 
-        .. tip:: With `Trainer(enable_pl_optimizer=True)`, you can user `optimizer.step()` directly
+        .. tip:: With ``Trainer(enable_pl_optimizer=True)``, you can use ``optimizer.step()`` directly
          and it will handle zero_grad, accumulated gradients, AMP, TPU and more automatically for you.
 
         Warning:
@@ -1665,7 +1698,7 @@ class LightningModule(
                 )
             input_sample = self.example_input_array
 
-        input_sample = self.transfer_batch_to_device(input_sample)
+        input_sample = self._apply_batch_transfer_handler(input_sample)
 
         if "example_outputs" not in kwargs:
             self.eval()
@@ -1736,18 +1769,15 @@ class LightningModule(
                 if self.example_input_array is None:
                     raise ValueError(
                         'Choosing method=`trace` requires either `example_inputs`'
-                        ' or `model.example_input_array` to be defined'
+                        ' or `model.example_input_array` to be defined.'
                     )
                 example_inputs = self.example_input_array
 
             # automatically send example inputs to the right device and use trace
-            example_inputs = self.transfer_batch_to_device(example_inputs)
+            example_inputs = self._apply_batch_transfer_handler(example_inputs)
             torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
         else:
-            raise ValueError(
-                "The 'method' parameter only supports 'script' or 'trace',"
-                f" but value given was: {method}"
-            )
+            raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}")
 
         self.train(mode)
 

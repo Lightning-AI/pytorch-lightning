@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import platform
+from unittest.mock import patch
 
 import pytest
 import torch
 
-from tests.accelerators.legacy import ddp_model, DDPLauncher
+from pytorch_lightning import Trainer
+from tests.accelerators import ddp_model, DDPLauncher
+from tests.helpers.boring_model import BoringModel
 from tests.utilities.distributed import call_training_script
 
 
@@ -83,3 +87,25 @@ def test_cli_to_pass(tmpdir, args=None):
     This test verify we can call function using test_cli name
     """
     return '1'
+
+
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
+def test_torch_distributed_backend_env_variables(tmpdir):
+    """
+    This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError.
+    """
+    _environ = {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined", "CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}
+    with patch.dict(os.environ, _environ), \
+         patch('torch.cuda.device_count', return_value=2):
+
+        with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
+            model = BoringModel()
+            trainer = Trainer(
+                default_root_dir=tmpdir,
+                fast_dev_run=True,
+                accelerator="ddp",
+                gpus=2,
+                logger=False,
+            )
+            trainer.fit(model)

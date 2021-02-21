@@ -26,6 +26,7 @@ from pytorch_lightning.utilities.enums import AMPType, DeviceType, DistributedTy
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
     _BOLTS_AVAILABLE,
+    _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_PIPE_AVAILABLE,
     _GROUP_AVAILABLE,

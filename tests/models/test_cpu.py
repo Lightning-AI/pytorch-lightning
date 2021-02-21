@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import platform
-from distutils.version import LooseVersion
 
 import pytest
 import torch
@@ -128,8 +127,6 @@ def test_early_stopping_cpu_model(tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif((platform.system() == "Darwin" and LooseVersion(torch.__version__) < LooseVersion("1.3.0")),
-                    reason="Distributed training is not supported on MacOS before Torch 1.3.0")
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
     tutils.set_random_master_port()

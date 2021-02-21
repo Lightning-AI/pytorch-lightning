@@ -318,8 +318,12 @@ class BackboneFinetuning(BaseFinetuning):
         self.verbose = verbose
 
     def on_fit_start(self, trainer, pl_module):
-        if hasattr(pl_module, "backbone") and \
-           (isinstance(pl_module.backbone, Module) or isinstance(pl_module.backbone, Sequential)):
+        """
+        Raises:
+            MisconfigurationException:
+                If LightningModule has no nn.Module `backbone` attribute.
+        """
+        if hasattr(pl_module, "backbone") and isinstance(pl_module.backbone, Module):
             return
         raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
 

@@ -23,9 +23,9 @@ def test_sharded_ddp_choice(tmpdir, accelerator):
 
         def on_fit_start(self, trainer, pl_module):
             if accelerator == 'ddp_sharded':
-                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPShardedPlugin)
+                assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
             elif accelerator == 'ddp_sharded_spawn':
-                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPSpawnShardedPlugin)
+                assert isinstance(trainer.accelerator.training_type_plugin, DDPSpawnShardedPlugin)
             raise SystemExit()
 
     model = BoringModel()
@@ -71,9 +71,9 @@ def test_ddp_choice_sharded_amp(tmpdir, accelerator):
 
         def on_fit_start(self, trainer, pl_module):
             if accelerator == 'ddp_sharded':
-                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPShardedPlugin)
+                assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
             elif accelerator == 'ddp_sharded_spawn':
-                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPSpawnShardedPlugin)
+                assert isinstance(trainer.accelerator.training_type_plugin, DDPSpawnShardedPlugin)
             raise SystemExit()
 
     model = BoringModel()
@@ -182,7 +182,10 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
-        accelerator='ddp_sharded_spawn', num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path,
+        accelerator='ddp_sharded_spawn',
+        num_processes=2,
+        fast_dev_run=True,
+        resume_from_checkpoint=checkpoint_path,
     )
 
     trainer.fit(model)
@@ -212,7 +215,10 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
-        accelerator='ddp_sharded_spawn', fast_dev_run=True, gpus=1, resume_from_checkpoint=checkpoint_path,
+        accelerator='ddp_sharded_spawn',
+        fast_dev_run=True,
+        gpus=1,
+        resume_from_checkpoint=checkpoint_path,
     )
 
     trainer.fit(model)
@@ -240,7 +246,10 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
-        accelerator='ddp_sharded_spawn', num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path,
+        accelerator='ddp_sharded_spawn',
+        num_processes=2,
+        fast_dev_run=True,
+        resume_from_checkpoint=checkpoint_path,
     )
 
     trainer.fit(model)

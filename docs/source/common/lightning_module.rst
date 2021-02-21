@@ -657,6 +657,12 @@ LightningModule API
 Methods
 ^^^^^^^
 
+configure_callbacks
+~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.configure_callbacks
+    :noindex:
+
 configure_optimizers
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -835,7 +841,8 @@ The current step (does not reset each epoch)
 
 hparams
 ~~~~~~~
-After calling `save_hyperparameters` anything passed to init() is available via hparams.
+The arguments saved by calling ``save_hyperparameters`` passed through ``__init__()``
+ could be accessed by the ``hparams`` attribute.
 
 .. code-block:: python
 
@@ -926,9 +933,85 @@ True if using TPUs
 
 --------------
 
+automatic_optimization
+~~~~~~~~~~~~~~~~~~~~~~
+When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling your optimizers. However, we do take care of precision and any accelerators used.
+
+.. code-block:: python
+
+    def __init__(self):
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers(use_pl_optimizer=True)
+
+        loss = ...
+        self.manual_backward(loss, opt)
+        opt.step()
+        opt.zero_grad()
+
+This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter. Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
+
+In the multi-optimizer case, ignore the ``optimizer_idx`` argument and use the optimizers directly
+
+.. code-block:: python
+
+    def __init__(self):
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
+
+        gen_loss = ...
+        opt_a.zero_grad()
+        self.manual_backward(gen_loss, opt_a)
+        opt_a.step()
+
+        disc_loss = ...
+        opt_b.zero_grad()
+        self.manual_backward(disc_loss, opt_b)
+        opt_b.step()
+
+--------------
+
+example_input_array
+~~~~~~~~~~~~~~~~~~~
+Set and access example_input_array which is basically a single batch.
+
+.. code-block:: python
+
+    def __init__(self):
+        self.example_input_array = ...
+        self.generator = ...
+
+    def on_train_epoch_end(...):
+        # generate some images using the example_input_array
+        gen_images = self.generator(self.example_input_array)
+
+--------------
+
+datamodule
+~~~~~~~~~~
+Set or access your datamodule.
+
+.. code-block:: python
+
+    def configure_optimizers(self):
+        num_training_samples = len(self.datamodule.train_dataloader())
+        ...
+
+--------------
+
+model_size
+~~~~~~~~~~
+Get the model file size (in megabytes) using ``self.model_size`` inside LightningModule.
+
+--------------
+
 Hooks
 ^^^^^
-This is the pseudocode to describe how all the hooks are called during a call to `.fit()`
+This is the pseudocode to describe how all the hooks are called during a call to ``.fit()``.
 
 .. code-block:: python
 
@@ -1202,4 +1285,16 @@ transfer_batch_to_device
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.DataHooks.transfer_batch_to_device
+    :noindex:
+
+on_before_batch_transfer
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_before_batch_transfer
+    :noindex:
+
+on_after_batch_transfer
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_after_batch_transfer
     :noindex:
