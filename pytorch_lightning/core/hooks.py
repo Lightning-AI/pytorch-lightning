@@ -433,17 +433,27 @@ class DataHooks:
             def train_dataloader(self):
                 mnist = MNIST(...)
                 cifar = CIFAR(...)
+                mnist_loader = torch.utils.data.DataLoader(
+                    dataset=mnist, batch_size=self.batch_size, shuffle=True
+                )
+                cifar_loader = torch.utils.data.DataLoader(
+                    dataset=cifar, batch_size=self.batch_size, shuffle=True
+                )
                 # each batch will be a list of tensors: [batch_mnist, batch_cifar]
-                return [torch.utils.data.DataLoader(dataset=mnist, batch_size=self.batch_size, shuffle=True),
-                        torch.utils.data.DataLoader(dataset=cifar, batch_size=self.batch_size, shuffle=True)]
+                return [mnist_loader, cifar_loader]
 
             # multiple dataloader, return as dict
             def train_dataloader(self):
                 mnist = MNIST(...)
                 cifar = CIFAR(...)
+                mnist_loader = torch.utils.data.DataLoader(
+                    dataset=mnist, batch_size=self.batch_size, shuffle=True
+                )
+                cifar_loader = torch.utils.data.DataLoader(
+                    dataset=cifar, batch_size=self.batch_size, shuffle=True
+                )
                 # each batch will be a dict of tensors: {'mnist': batch_mnist, 'cifar': batch_cifar}
-                return {'mnist': torch.utils.data.DataLoader(dataset=mnist, batch_size=self.batch_size, shuffle=True),
-                        'cifar': torch.utils.data.DataLoader(dataset=cifar, batch_size=self.batch_size, shuffle=True)}
+                return {'mnist': mnist_loader, 'cifar': cifar_loader}
 
         """
         rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
