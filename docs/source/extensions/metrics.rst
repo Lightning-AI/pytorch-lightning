@@ -23,7 +23,7 @@ provided input.
 .. warning::
     From v1.2 onward ``compute()`` will no longer automatically call ``reset()``,
     and it is up to the user to reset metrics between epochs, except in the case where the
-    metric is directly passed to ``LightningModule``s ``self.log``.
+    metric is directly passed to ``LightningModule``'s ``self.log``.
 
 These metrics work with DDP in PyTorch and PyTorch Lightning by default. When ``.compute()`` is called in
 distributed mode, the internal state of each metric is synced and reduced across each process, so that the
