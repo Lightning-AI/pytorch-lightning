@@ -211,9 +211,6 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
 def test_warn_deepspeed_override_backward(tmpdir):
     """
         Test to ensure that if the backward hook in the LightningModule is overridden, we throw a warning.
@@ -232,9 +229,6 @@ def test_warn_deepspeed_override_backward(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
 def test_deepspeed_run_configure_optimizers(tmpdir):
     """
         Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
@@ -268,9 +262,6 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
 def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     """
         Test to ensure deepspeed works correctly when passed a DeepSpeed config object including optimizers/schedulers
