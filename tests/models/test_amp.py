@@ -18,7 +18,6 @@ import pytest
 import torch
 from torch import optim
 
-import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
@@ -26,6 +25,16 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+
+
+class AMPTestModel(BoringModel):
+
+    def training_step(self, batch, batch_idx):
+        assert torch.is_autocast_enabled()
+        output = self(batch)
+        assert output.dtype == torch.float16
+        loss = self.loss(batch, output)
+        return {"loss": loss}
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
@@ -42,7 +51,7 @@ def test_amp_single_gpu_dp(tmpdir):
         precision=16,
     )
 
-    model = BoringModel()
+    model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
@@ -61,10 +70,9 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
         precision=16,
     )
 
-    model = BoringModel()
+    model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
-
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
@@ -82,7 +90,7 @@ def test_amp_multi_gpu_dp(tmpdir):
         precision=16,
     )
 
-    model = BoringModel()
+    model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
 
@@ -101,10 +109,9 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
         precision=16,
     )
 
-    model = BoringModel()
+    model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
-
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
@@ -123,7 +130,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     # simulate setting slurm flags
     tutils.set_random_master_port()
 
-    model = BoringModel()
+    model = AMPTestModel()
 
     # exp file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -155,21 +162,11 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert generated == 'abc23'
 
 
+@pytest.mark.skipif(torch.cuda.is_available(), reason="test is restricted only on CPU")
 def test_cpu_model_with_amp(tmpdir):
     """Make sure model trains on CPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
-        precision=16,
-    )
-
-    model = BoringModel()
-
     with pytest.raises(MisconfigurationException, match="AMP is only available on GPU"):
-        tpipes.run_model_test(trainer_options, model, on_gpu=False)
+        Trainer(precision=16)
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})

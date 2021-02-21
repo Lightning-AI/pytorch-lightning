@@ -246,7 +246,7 @@ class ModelSummary(object):
         trainer = self._model.trainer
 
         input_ = model.example_input_array
-        input_ = model.transfer_batch_to_device(input_, model.device)
+        input_ = model._apply_batch_transfer_handler(input_, model.device)
 
         if trainer is not None and trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU:
             model.forward = torch.cuda.amp.autocast()(model.forward)
@@ -432,5 +432,5 @@ def get_human_readable_count(number: int) -> str:
     index = num_groups - 1
     if index < 1 or number >= 100:
         return f"{int(number):,d} {labels[index]}"
-    else:
-        return f"{number:,.1f} {labels[index]}"
+
+    return f"{number:,.1f} {labels[index]}"

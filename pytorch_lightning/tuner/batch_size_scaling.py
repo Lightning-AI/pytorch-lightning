@@ -63,10 +63,10 @@ def scale_batch_size(
             It is expected that the user has provided a model or datamodule that has a hyperparameter
             with that name. We will look for this attribute name in the following places
 
-            - `model`
-            - `model.hparams`
-            - `model.datamodule`
-            - `trainer.datamodule` (the datamodule passed to the tune method)
+            - ``model``
+            - ``model.hparams``
+            - ``model.datamodule``
+            - ``trainer.datamodule`` (the datamodule passed to the tune method)
 
         **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
             or datamodule.
@@ -268,7 +268,7 @@ def _adjust_batch_size(
         The new batch size for the next trial and a bool that signals whether the
         new value is different than the previous batch size.
     """
-    model = trainer.get_model()
+    model = trainer.lightning_module
     batch_size = lightning_getattr(model, batch_arg_name)
     new_size = value if value is not None else int(batch_size * factor)
     if desc:

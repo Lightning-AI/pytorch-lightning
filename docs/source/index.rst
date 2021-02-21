@@ -112,6 +112,7 @@ PyTorch Lightning Documentation
    common/single_gpu
    advanced/sequences
    advanced/training_tricks
+   advanced/pruning_quantization
    advanced/transfer_learning
    advanced/tpu
    advanced/cluster
