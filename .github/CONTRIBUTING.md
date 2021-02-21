@@ -324,6 +324,42 @@ python -m pytest tests/..../...py::test_explain_what_is_being_tested --verbose -
 ```
 
 
+#### How to fix PR with mixed base and target branches?
+
+Sometimes you start your PR as a bug-fix but it turns out to be more of a feature (or the other way around).
+Do not panic, the solution is very straightforward and quite simple.
+All you need to do are these two steps in arbitrary order:
+   - Ask someone from Core to change the base/target branch to the correct one
+   - Rebase or cherry-pick your commits onto the correct base branch...
+
+Let's show how to deal with the git...
+the sample case is moving a PR from `master` to `release/1.2-dev` assuming my branch name is `my-branch`
+and the last true master commit is `ccc111` and your first commit is `mmm222`.
+   * **Cherry-picking** way
+     ```bash
+     git checkout my-branch
+     # create a local backup of your branch
+     git checkout -b my-branch-backup
+     # reset your branch to the correct base
+     git reset release/1.2-dev --hard
+     # ACTION: this step is much easier to do with IDE
+     #  so open one and cherry-pick your last commits from `my-branch-backup`
+     #  resolve all eventual conflict as the new base may contain different code
+     # when all done, push back to the open PR
+     git push -f
+     ```
+   * **Rebasing way**, see more about [rebase onto usage](https://womanonrails.com/git-rebase-onto)
+     ```bash
+     git checkout my-branch
+     # rebase your commits on the correct branch
+     git rebase --onto release/1.2-dev ccc111
+     # if there is no collision you shall see just success
+     #  eventually you would need to resolve collision and in such case follow the instruction in terminal
+     # when all done, push back to the open PR
+     git push -f
+     ```
+
+
 ### Bonus Workflow Tip
 
 If you don't want to remember all the commands above every time you want to push some code/setup a Lightning Dev environment on a new VM, you can set up bash aliases for some common commands. You can add these to one of your `~/.bashrc`, `~/.zshrc`, or `~/.bash_aliases` files.
