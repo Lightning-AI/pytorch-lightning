@@ -72,6 +72,7 @@ class TrainLoop:
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
         self.automatic_optimization = automatic_optimization
+        self.trainer.current_val_epoch = 0
 
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.trainer.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
@@ -515,9 +516,13 @@ class TrainLoop:
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.run_evaluation()
-
+                
                 # reset stage to train
                 self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
+
+                # update val epoch schedulers
+                self.trainer.optimizer_connector.update_learning_rates(interval='val')
+                self.current_val_epoch += 1
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)

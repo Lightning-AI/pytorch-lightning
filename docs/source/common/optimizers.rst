@@ -230,8 +230,9 @@ returned as a dict which can contain the following keywords:
 
 * ``scheduler`` (required): the actual scheduler object
 * ``monitor`` (optional): metric to condition
-* ``interval`` (optional): either ``epoch`` (default) for stepping after each epoch ends or ``step`` for stepping
-  after each optimization step
+* ``interval`` (optional): either ``epoch`` (default) for stepping after each epoch ends, ``step`` for stepping
+  after each optimization step or ``val`` for stepping after each time validation is performed (different from ``epoch`` when
+  ``val_check_interval!=1``)
 * ``frequency`` (optional): how many epochs/steps should pass between calls to ``scheduler.step()``. Default is 1,
   corresponding to updating the learning rate after every epoch/step.
 * ``strict`` (optional): if set to ``True`` will enforce that value specified in ``monitor`` is available while trying

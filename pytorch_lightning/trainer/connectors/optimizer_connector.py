@@ -41,8 +41,10 @@ class OptimizerConnector:
             return
 
         for scheduler_idx, lr_scheduler in enumerate(self.trainer.lr_schedulers):
-            current_idx = self.trainer.batch_idx if interval == 'step' else self.trainer.current_epoch
-            current_idx += 1  # account for both batch and epoch starts from 0
+            current_idx = {'step': self.trainer.batch_idx,
+                           'epoch': self.trainer.current_epoch,
+                           'val': self.trainer.current_val_epoch}[interval]
+            current_idx += 1  # account for all counters starts from 0
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
             if lr_scheduler['interval'] == interval and current_idx % lr_scheduler['frequency'] == 0:

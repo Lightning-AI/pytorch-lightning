@@ -109,9 +109,9 @@ class TrainerOptimizersMixin(ABC):
                     raise MisconfigurationException(
                         'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
                     )
-                if 'interval' in scheduler and scheduler['interval'] not in ('step', 'epoch'):
+                if 'interval' in scheduler and scheduler['interval'] not in ('step', 'epoch', 'val'):
                     raise MisconfigurationException(
-                        f'The "interval" key in lr scheduler dict must be "step" or "epoch"'
+                        f'The "interval" key in lr scheduler dict must be "step", "epoch" or "val"'
                         f' but is "{scheduler["interval"]}"'
                     )
 
