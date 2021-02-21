@@ -27,6 +27,9 @@ def assert_environment_unchanged():
     env_backup = os.environ.copy()
     yield
     leaked_vars = [var for var in os.environ.keys() if var not in env_backup.keys()]
+    # restore environment for next test
+    os.environ.clear()
+    os.environ.update(env_backup)
     assert not leaked_vars, f"test is leaking environment variable(s): {', '.join(leaked_vars)}"
 
 
