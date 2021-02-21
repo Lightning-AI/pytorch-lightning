@@ -22,7 +22,7 @@ import torch.multiprocessing as mp
 
 
 @pytest.fixture(scope="function", autouse=True)
-def restore_env_variables():
+def assert_environment_unchanged():
     """ Ensures that environment variables set during the test do not leak out. """
     env_backup = os.environ.copy()
     yield
