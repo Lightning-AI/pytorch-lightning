@@ -437,7 +437,7 @@ class Trainer(
 
             model: Model to fit.
 
-            train_dataloader: Either a single Pytorch Dataloader or an collection of these
+            train_dataloader: Either a single PyTorch DataLoader or a collection of these
                 (list, dict, nested lists and dicts). In the case of multiple dataloaders, please
                 see this :ref:`page <multiple-training-dataloaders>`
 

@@ -88,7 +88,7 @@ For more details please have a look at :attr:`~pytorch_lightning.trainer.trainer
 
             return loaders
 
-Furthermore, lightning also supports that nested lists and dicts (or an combination) can
+Furthermore, Lightning also supports that nested lists and dicts (or a combination) can
 be returned 
 
 .. testcode::
@@ -105,7 +105,7 @@ be returned
             # pass loaders as a nested dict. This will create batches like this:
             # {'loader_a_b': {'a': batch from loader a, 'b': batch from loader b},
             #  'loader_c_d': {'c': batch from loader c, 'd': batch from loader d}}
-            loaders = {'loaders_a_b': {'a': loader_a, 'b': loader_b}
+            loaders = {'loaders_a_b': {'a': loader_a, 'b': loader_b},
                        'loaders_c_d': {'c': loader_c, 'd': loader_d}}
             return loaders
 

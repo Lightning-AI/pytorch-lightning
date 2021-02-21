@@ -443,7 +443,7 @@ class DataHooks:
                 cifar = CIFAR(...)
                 # each batch will be a dict of tensors: {'mnist': batch_mnist, 'cifar': batch_cifar}
                 return {'mnist': torch.utils.data.DataLoader(dataset=mnist, batch_size=self.batch_size, shuffle=True),
-                        'cifar': torch.utils.data.DataLoader(dataset=cifar, batch_size=self.batch_size, shuffle=True)]
+                        'cifar': torch.utils.data.DataLoader(dataset=cifar, batch_size=self.batch_size, shuffle=True)}
 
         """
         rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
