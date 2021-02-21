@@ -31,14 +31,14 @@ class TrainerLoggingMixin(ABC):
     current_epoch: int
     _device_type: DeviceType
     _distrib_type: DistributedType
-    log_gpu_memory:...
+    log_gpu_memory: ...
     logger: Union[LightningLoggerBase, bool]
     global_step: int
     global_rank: int
     default_root_dir: str
     slurm_job_id: int
     num_gpus: int
-    logged_metrics:...
+    logged_metrics: ...
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}

@@ -30,7 +30,7 @@ class TrainerTrainingTricksMixin(ABC):
     #  the proper values/initialisation should be done in child class
     default_root_dir: str
     lightning_module: LightningModule
-    progress_bar_callback:...
+    progress_bar_callback: ...
     on_gpu: bool
 
     def print_nan_gradients(self) -> None:
