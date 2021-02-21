@@ -136,7 +136,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 0.0 results in dynamic loss scaling, otherwise static (Default: 0)
 
             initial_scale_power: Power of the initial dynamic loss scale value. Loss scale is computed
-                by 2^initial_scale_power (Default 32)
+                by ``2^initial_scale_power`` (Default: 32)
 
             loss_scale_window: Window in which to raise/lower the dynamic FP16 loss scaling value (Default: 1000)
 
