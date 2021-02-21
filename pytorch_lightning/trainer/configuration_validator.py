@@ -38,11 +38,13 @@ class ConfigValidator(object):
             self.__verify_eval_loop_configuration(model, 'test')
 
     def __verify_train_dataloader(self, model):
+        # We COMBINE dataloaders and datamodule. Datamodule has precedence
+
+        has_train_dataloader = False
         if self.trainer.datamodule:
-            has_train_dataloader = is_overridden(
-                'train_dataloader', self.trainer.datamodule
-            )
-        else:
+            has_train_dataloader = is_overridden('train_dataloader', self.trainer.datamodule)
+
+        if not has_train_dataloader:
             has_train_dataloader = is_overridden('train_dataloader', model)
 
         if not has_train_dataloader:

@@ -21,6 +21,7 @@ from typing import Callable, Iterable, List, Optional, Tuple, Union
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -196,8 +197,20 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
 
-        # TODO - what if we pass `train_dataloader` as input, instead of model?
+        # TODO - what if we pass `train_dataloader` as input, in
+        model_has_loader = is_overridden('train_dataloader', model)
+        datamodule_has_loader = False
+
         if self.datamodule:
+            datamodule_has_loader = is_overridden('train_dataloader', model)
+
+        if datamodule_has_loader and model_has_loader:
+            log.info(
+                "You implemented `train_dataloader` both in model and datamodule. Please note that datamodule implementation has precedence"
+            )
+
+        # Configuration_validation has already checked that either datamodule or model has overridden train_dataloader
+        if datamodule_has_loader:
             train_dataloader = self.datamodule.train_dataloader
         else:
             train_dataloader = model.train_dataloader
