@@ -8,9 +8,50 @@ from torch.optim import Optimizer
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
+from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _DEEPSPEED_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
+
+
+def test_deepspeed_lightning_module(tmpdir):
+    """
+        Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves types and device correctly.
+    """
+
+    model = BoringModel()
+    module = LightningDeepSpeedModule(model, precision=16)
+
+    module.half()
+    assert module.dtype == torch.half
+    assert model.dtype == torch.half
+
+    module.to(torch.double)
+    assert module.dtype == torch.double
+    assert model.dtype == torch.double
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+def test_deepspeed_lightning_module_precision(tmpdir):
+    """
+        Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision 16.
+    """
+
+    model = BoringModel()
+    module = LightningDeepSpeedModule(model, precision=16)
+
+    module.cuda().half()
+    assert module.dtype == torch.half
+    assert model.dtype == torch.half
+
+    x = torch.randn((1, 32), dtype=torch.float).cuda()
+    out = module(x)
+
+    assert out.dtype == torch.half
+
+    module.to(torch.double)
+    assert module.dtype == torch.double
+    assert model.dtype == torch.double
 
 
 @pytest.fixture
@@ -32,6 +73,11 @@ def deepspeed_config():
             }
         }
     }
+
+
+@pytest.fixture
+def deepspeed_zero_config(deepspeed_config):
+    return {**deepspeed_config, 'zero_allow_untested_optimizer': True, 'zero_optimization': {'stage': 2}}
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
@@ -179,12 +225,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
             return loss.backward()
 
     model = TestModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        default_root_dir=tmpdir,
-        plugins=DeepSpeedPlugin(zero_optimization=False),
-        gpus=1,
-    )
+    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, plugins=DeepSpeedPlugin(), gpus=1, precision=16)
     with pytest.warns(UserWarning, match='Overridden backward hook in the LightningModule will be ignored'):
         trainer.fit(model)
 
@@ -203,17 +244,21 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
     class TestModel(BoringModel):
 
         def on_train_start(self) -> None:
-            assert isinstance(self.trainer.optimizers[0], torch.optim.SGD)
+            from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer
+
+            assert isinstance(self.trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
+            assert isinstance(self.trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert self.trainer.lr_schedulers == []  # DeepSpeed manages LR scheduler internally
             # Ensure DeepSpeed engine has initialized with our optimizer/lr_scheduler
             assert isinstance(self.trainer.model.lr_scheduler, torch.optim.lr_scheduler.StepLR)
 
     model = TestModel()
     trainer = Trainer(
-        plugins=DeepSpeedPlugin(zero_optimization=False),
+        plugins=DeepSpeedPlugin(),  # disable ZeRO so our optimizers are not wrapped
         default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
+        precision=16
     )
 
     trainer.fit(model)
@@ -226,7 +271,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_deepspeed_config(tmpdir, deepspeed_config):
+def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     """
         Test to ensure deepspeed works correctly when passed a DeepSpeed config object including optimizers/schedulers
         and saves the model weights to load correctly.
@@ -235,18 +280,22 @@ def test_deepspeed_config(tmpdir, deepspeed_config):
     class TestModel(BoringModel):
 
         def on_train_start(self) -> None:
-            import deepspeed
-            assert isinstance(self.trainer.optimizers[0], torch.optim.SGD)
+            from deepspeed.runtime.lr_schedules import WarmupLR
+            from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer
+
+            assert isinstance(self.trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
+            assert isinstance(self.trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert self.trainer.lr_schedulers == []  # DeepSpeed manages LR scheduler internally
-            assert isinstance(self.trainer.model.optimizer, torch.optim.SGD)
-            assert isinstance(self.trainer.model.lr_scheduler, deepspeed.runtime.lr_schedules.WarmupLR)
+            # Ensure DeepSpeed engine has initialized with our optimizer/lr_scheduler
+            assert isinstance(self.trainer.model.lr_scheduler, WarmupLR)
 
     model = TestModel()
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(config=deepspeed_config)],
+        plugins=[DeepSpeedPlugin(config=deepspeed_zero_config)],
         default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
+        precision=16
     )
 
     trainer.fit(model)
@@ -267,7 +316,7 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     """
     model = BoringModel()
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(zero_optimization=False)],
+        plugins=[DeepSpeedPlugin()],
         default_root_dir=tmpdir,
         gpus=2,
         fast_dev_run=True,
@@ -285,8 +334,9 @@ def _assert_save_model_is_equal(model, tmpdir, trainer):
     # carry out the check only on rank 0
     if trainer.global_rank == 0:
         saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
-        saved_model = saved_model.float()
-        model = model.float().cpu()
+        if model.dtype == torch.half:
+            saved_model = saved_model.half()  # model is loaded in float32 as default, move it to float16
+        model = model.cpu()
         # Assert model parameters are identical after loading
         for orig_param, trained_model_param in zip(model.parameters(), saved_model.parameters()):
             assert torch.equal(orig_param, trained_model_param)
