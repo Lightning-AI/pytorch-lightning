@@ -81,31 +81,16 @@ def deepspeed_zero_config(deepspeed_config):
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-def test_deepspeed_plugin_string(tmpdir):
+@pytest.mark.parametrize("input", ("deepspeed", DeepSpeedPlugin))
+def test_deepspeed_plugin_string(tmpdir, input):
     """
-        Test to ensure that the plugin can be passed via string, and parallel devices is correctly set.
-    """
-
-    trainer = Trainer(
-        fast_dev_run=True,
-        default_root_dir=tmpdir,
-        plugins='deepspeed',
-    )
-
-    assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
-    assert trainer.accelerator.training_type_plugin.parallel_devices == [torch.device('cpu')]
-
-
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-def test_deepspeed_plugin(tmpdir):
-    """
-        Test to ensure that the plugin can be passed directly, and parallel devices is correctly set.
+        Test to ensure that the plugin can be passed via string or instance, and parallel devices is correctly set.
     """
 
     trainer = Trainer(
         fast_dev_run=True,
         default_root_dir=tmpdir,
-        plugins=[DeepSpeedPlugin()],
+        plugins=input if isinstance(input, str) else input(),
     )
 
     assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
