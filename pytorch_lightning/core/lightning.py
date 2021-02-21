@@ -24,7 +24,7 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -43,6 +43,9 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.states import RunningStage
 
 
 class LightningModule(
@@ -169,7 +172,7 @@ class LightningModule(
         return self._automatic_optimization
 
     @property
-    def running_stage(self):
+    def running_stage(self) -> Optional["RunningStage"]:
         return self.trainer._running_stage if self.trainer else None
 
     @automatic_optimization.setter
