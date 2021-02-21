@@ -304,6 +304,58 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
+@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+def test_deepspeed_custom_precision_params(tmpdir):
+    """
+        Ensure if we modify the FP16 parameters via the DeepSpeedPlugin, the deepspeed config contains these changes.
+    """
+
+    class TestModel(BoringModel):
+
+        def on_train_start(self) -> None:
+            assert self.trainer.training_type_plugin.config['fp16']['loss_scale'] == 10
+            assert self.trainer.training_type_plugin.config['fp16']['initial_scale_power'] == 10
+            assert self.trainer.training_type_plugin.config['fp16']['loss_scale_window'] == 10
+            assert self.trainer.training_type_plugin.config['fp16']['hysteresis'] == 10
+            assert self.trainer.training_type_plugin.config['fp16']['min_loss_scale'] == 10
+            raise SystemExit()
+
+    model = TestModel()
+    trainer = Trainer(
+        plugins=[
+            DeepSpeedPlugin(
+                loss_scale=10, initial_scale_power=10, loss_scale_window=10, hysteresis=10, min_loss_scale=10
+            )
+        ],
+        precision=16,
+        gpus=1
+    )
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
+    """
+        Ensure if we use a config and turn off cpu_offload, that this is set to False within the config.
+    """
+
+    deepspeed_zero_config['zero_optimization']['cpu_offload'] = False
+
+    class TestModel(BoringModel):
+
+        def on_train_start(self) -> None:
+            assert self.trainer.training_type_plugin.config['zero_optimization']['cpu_offload'] is False
+            raise SystemExit()
+
+    model = TestModel()
+    trainer = Trainer(plugins=[DeepSpeedPlugin(config=deepspeed_zero_config)], precision=16, gpus=1)
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
