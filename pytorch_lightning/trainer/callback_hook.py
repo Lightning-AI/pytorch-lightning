@@ -99,7 +99,7 @@ class TrainerCallbackHookMixin(ABC):
             else:
                 rank_zero_warn(
                     "`Callback.on_validation_epoch_end` signature has changed in v1.3."
-                    "`outputs` parameter has been added."
+                    " `outputs` parameter has been added."
                     " Support for the old signature will be removed in v1.5", DeprecationWarning
                 )
                 callback.on_validation_epoch_end(self, self.get_model())
@@ -118,7 +118,7 @@ class TrainerCallbackHookMixin(ABC):
             else:
                 rank_zero_warn(
                     "`Callback.on_test_epoch_end` signature has changed in v1.3."
-                    "`outputs` parameter has been added."
+                    " `outputs` parameter has been added."
                     " Support for the old signature will be removed in v1.5", DeprecationWarning
                 )
                 callback.on_test_epoch_end(self, self.get_model())
