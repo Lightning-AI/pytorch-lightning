@@ -19,8 +19,8 @@ class TPUAccelerator(Accelerator):
     def setup(self, trainer, model):
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException(
-                "amp + tpu is not supported. "
-                "Only bfloats are supported on TPU. Consider using TPUHalfPrecisionPlugin"
+                "amp + tpu is not supported."
+                " Only bfloats are supported on TPU. Consider using TPUHalfPrecisionPlugin"
             )
 
         if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
