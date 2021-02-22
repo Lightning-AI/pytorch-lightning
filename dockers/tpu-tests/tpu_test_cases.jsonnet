@@ -20,21 +20,14 @@ local tputests = base.BaseTest {
 
   command: utils.scriptCommand(
     |||
+      conda activate lightning
       mkdir -p /home/runner/work/pytorch-lightning && cd /home/runner/work/pytorch-lightning
       git clone https://github.com/PyTorchLightning/pytorch-lightning.git
       cd pytorch-lightning
       echo $PWD
       git ls-remote --refs origin
       git fetch origin "refs/pull/{PR_NUMBER}/head:pr/{PR_NUMBER}" && git checkout "pr/{PR_NUMBER}"
-
-      # drop horovod as it is not needed
-      python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
-      # drop fairscale as it is not needed
-      python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
-
-      pip install -e ".[dev]"
-      pip install -r pytorch-lightning/requirements/devel.txt --no-cache-dir
-
+      pip install -e .
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
           pytorch_lightning/utilities/xla_device_utils.py \
           tests/accelerators/test_tpu_backend.py \
