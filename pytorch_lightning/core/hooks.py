@@ -581,16 +581,12 @@ class DataHooks:
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 
         Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
             This hook should only transfer the data and not modify it, nor should it move the data to
             any other device than the one passed in as argument (unless you know what you are doing).
-            Data-Parallel support will come in near future.
 
         Note:
-            If you need multi-GPU support for your custom batch objects, you need to define your custom
-            :class:`~torch.nn.parallel.DistributedDataParallel` or
-            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
-            override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
+            This hook only runs on single GPU training and DDP (no data-parallel).
+            Data-Parallel support will come in near future.
 
         Args:
             batch: A batch of data that needs to be transferred to a new device.
