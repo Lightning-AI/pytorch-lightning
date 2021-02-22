@@ -275,7 +275,7 @@ class RPCSequentialPlugin(RPCPlugin):
             save_layers_on_all_rank_zero_workers, {"gpus_per_model": self.gpus_per_model}, include_self=True
         )
         pl_module.sequential_module = load_sequential_from_saved_layers(self.gpus_per_model)
-        save_model_fn(last_filepath, trainer, pl_module)
+        save_model_fn(last_filepath, trainer)
         pl_module.sequential_module = current_layers
 
     def worker_optimizer_step(self, model: LightningModule, opt_idx: int, *args, **kwargs) -> None:
