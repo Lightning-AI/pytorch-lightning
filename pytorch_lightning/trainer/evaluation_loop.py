@@ -313,10 +313,11 @@ class EvaluationLoop(object):
 
     def on_evaluation_epoch_end(self, *args, **kwargs):
         # call the callback hook
+        outputs = self.outputs
         if self.trainer.testing:
-            self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
+            self.trainer.call_hook('on_test_epoch_end', outputs, *args, **kwargs)
         else:
-            self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
+            self.trainer.call_hook('on_validation_epoch_end', outputs, *args, **kwargs)
 
         self.trainer.call_hook('on_epoch_end')
 

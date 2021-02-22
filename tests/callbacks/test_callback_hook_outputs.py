@@ -71,3 +71,45 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
 
     results = trainer.fit(model)
     assert results
+
+
+def test_on_val_epoch_end_outputs(tmpdir):
+
+    class CB(Callback):
+
+        def on_validation_epoch_end(self, trainer, pl_module, outputs):
+            if trainer.running_sanity_check:
+                assert len(outputs[0]) == trainer.num_sanity_val_batches[0]
+            else:
+                assert len(outputs[0]) == trainer.num_val_batches[0]
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=CB(),
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        weights_summary=None,
+    )
+
+    trainer.fit(model)
+
+
+def test_on_test_epoch_end_outputs(tmpdir):
+
+    class CB(Callback):
+
+        def on_test_epoch_end(self, trainer, pl_module, outputs):
+            assert len(outputs[0]) == trainer.num_test_batches[0]
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=CB(),
+        default_root_dir=tmpdir,
+        weights_summary=None,
+    )
+
+    trainer.test(model)

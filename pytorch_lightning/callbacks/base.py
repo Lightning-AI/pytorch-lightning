@@ -89,7 +89,7 @@ class Callback(abc.ABC):
         """Called when the val epoch begins."""
         pass
 
-    def on_validation_epoch_end(self, trainer, pl_module: LightningModule) -> None:
+    def on_validation_epoch_end(self, trainer, pl_module: LightningModule, outputs: Any) -> None:
         """Called when the val epoch ends."""
         pass
 
@@ -97,7 +97,7 @@ class Callback(abc.ABC):
         """Called when the test epoch begins."""
         pass
 
-    def on_test_epoch_end(self, trainer, pl_module: LightningModule) -> None:
+    def on_test_epoch_end(self, trainer, pl_module: LightningModule, outputs: Any) -> None:
         """Called when the test epoch ends."""
         pass
 

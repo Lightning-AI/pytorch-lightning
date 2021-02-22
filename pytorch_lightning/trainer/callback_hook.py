@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 from abc import ABC
 from copy import deepcopy
 from inspect import signature
@@ -89,20 +90,38 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_validation_epoch_start(self, self.lightning_module)
 
-    def on_validation_epoch_end(self):
+    def on_validation_epoch_end(self, outputs):
         """Called when the epoch ends."""
         for callback in self.callbacks:
-            callback.on_validation_epoch_end(self, self.lightning_module)
+            params = list(inspect.signature(callback.on_validation_epoch_end).parameters)
+            if "outputs" in params:
+                callback.on_validation_epoch_end(self, self.get_model(), outputs)
+            else:
+                rank_zero_warn(
+                    "`Callback.on_validation_epoch_end` signature has changed in v1.3."
+                    "`outputs` parameter has been added."
+                    " Support for the old signature will be removed in v1.5", DeprecationWarning
+                )
+                callback.on_validation_epoch_end(self, self.get_model())
 
     def on_test_epoch_start(self):
         """Called when the epoch begins."""
         for callback in self.callbacks:
             callback.on_test_epoch_start(self, self.lightning_module)
 
-    def on_test_epoch_end(self):
+    def on_test_epoch_end(self, outputs):
         """Called when the epoch ends."""
         for callback in self.callbacks:
-            callback.on_test_epoch_end(self, self.lightning_module)
+            params = list(inspect.signature(callback.on_test_epoch_end).parameters)
+            if "outputs" in params:
+                callback.on_test_epoch_end(self, self.get_model(), outputs)
+            else:
+                rank_zero_warn(
+                    "`Callback.on_test_epoch_end` signature has changed in v1.3."
+                    "`outputs` parameter has been added."
+                    " Support for the old signature will be removed in v1.5", DeprecationWarning
+                )
+                callback.on_test_epoch_end(self, self.get_model())
 
     def on_epoch_start(self):
         """Called when the epoch begins."""
