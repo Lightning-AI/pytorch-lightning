@@ -189,8 +189,8 @@ class LightningModule(
         Prints only from process 0. Use this in any distributed mode to log only once.
 
         Args:
-            *args: The thing to print. Will be passed to Python's built-in print function.
-            **kwargs: Will be passed to Python's built-in print function.
+            *args: The thing to print. The same as for Python's built-in print function.
+            **kwargs: The same as for Python's built-in print function.
 
         Example::
 
@@ -199,7 +199,11 @@ class LightningModule(
 
         """
         if self.trainer.is_global_zero:
-            print(*args, **kwargs)
+            progress_bar = self.trainer.progress_bar_callback
+            if progress_bar is not None and progress_bar.is_enabled:
+                progress_bar.print(*args, **kwargs)
+            else:
+                print(*args, **kwargs)
 
     def log(
         self,
