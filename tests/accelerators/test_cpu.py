@@ -4,9 +4,12 @@ import pytest
 import torch
 
 from pytorch_lightning.accelerators import CPUAccelerator
-from pytorch_lightning.plugins import SingleDevicePlugin, PrecisionPlugin
-from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
+from pytorch_lightning.plugins import SingleDevicePlugin
+from pytorch_lightning.plugins.precision import MixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+
+
 
 
 def test_invalid_root_device():

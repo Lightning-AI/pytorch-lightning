@@ -101,12 +101,19 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.parametrize(
+    ['device'],
+    [
+        pytest.param(None),  # explicitly call without an index to see if the returning device contains an index
+        pytest.param(0),
+        pytest.param(torch.device('cuda', 0)),
+    ]
+)
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_gpu_device_includes_index():
+def test_gpu_cuda_device(device):
     model = TopModule()
 
-    # explicitly call without an index to see if the returning device contains an index (it should!)
-    model.cuda()
+    model.cuda(device)
 
     device = model.device
     assert device.type == 'cuda'
