@@ -425,7 +425,7 @@ class DummyExperiment(object):
 
 
 class DummyLogger(LightningLoggerBase):
-    """ Dummy logger for internal use. Is usefull if we want to disable users
+    """ Dummy logger for internal use. Is useful if we want to disable users
         logger for a feature, but still secure that users code can run """
 
     def __init__(self):
