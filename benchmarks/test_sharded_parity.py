@@ -115,6 +115,28 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
     )
 
 
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
+@DDPLauncher.run("--accelerator ddp --gpus 2  --precision 16")
+def test_ddp_sharded_plugin_clip_gradients(tmpdir, args=None):
+    plugin_parity_test(
+        gpus=args.gpus,
+        precision=args.precision,
+        model_cls=SeedTrainLoaderModel,
+        gradient_clip_val=0.001,
+    )
+    plugin_parity_test(
+        gpus=args.gpus,
+        precision=args.precision,
+        model_cls=SeedTrainLoaderModel,
+        gradient_clip_val=0.001,
+        gradient_clip_algorithm='value',
+    )
+
+
 @pytest.mark.skip(reason="Current issue with multiple optimizers and FairScale.")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
@@ -245,6 +267,8 @@ def plugin_parity_test(
     gpus: int = 0,
     precision: int = 32,
     max_percent_speed_diff: float = 0.1,
+    gradient_clip_val: float = 0,
+    gradient_clip_algorithm: str = 'norm',
 ):
     """
     Ensures that the trained model is identical to the standard DDP implementation.

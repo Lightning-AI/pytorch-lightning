@@ -735,6 +735,19 @@ Gradient clipping value
     # default used by the Trainer
     trainer = Trainer(gradient_clip_val=0.0)
 
+gradient_clip_val
+^^^^^^^^^^^^^^^^^
+
+Gradient clipping algorithm
+
+- Clip gradients by norm or value.
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(gradient_clip_algorithm='norm')
+
+
 limit_train_batches
 ^^^^^^^^^^^^^^^^^^^
 

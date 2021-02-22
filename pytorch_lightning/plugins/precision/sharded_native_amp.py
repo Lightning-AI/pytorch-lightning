@@ -13,10 +13,11 @@
 # limitations under the License.
 from typing import cast, Union
 
+import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE, GradClipAlgorithmType
 
 if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -31,6 +32,18 @@ class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
         super().__init__()
         self.scaler = ShardedGradScaler()
 
-    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = float(2.0)):
-        optimizer = cast(OSS, optimizer)
-        optimizer.clip_grad_norm(clip_val, norm_type=norm_type)
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float],
+        gradient_clip_algorithm: str = GradClipAlgorithmType.NORM,
+        norm_type: float = float(2.0),
+    ):
+        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            parameters = list(self.master_params(optimizer))
+            if isinstance(parameters, torch.Tensor):
+                parameters = [parameters]
+            torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
+        elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
+            optimizer = cast(OSS, optimizer)
+            optimizer.clip_grad_norm(clip_val, norm_type=norm_type)

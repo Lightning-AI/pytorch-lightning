@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -23,6 +24,7 @@ class TrainingTricksConnector:
     def on_trainer_init(
         self,
         gradient_clip_val,
+        gradient_clip_algorithm,
         track_grad_norm,
         accumulate_grad_batches,
         truncated_bptt_steps,
@@ -32,7 +34,11 @@ class TrainingTricksConnector:
         self.trainer.terminate_on_nan = terminate_on_nan
 
         # gradient clipping
+        if gradient_clip_algorithm not in [GradClipAlgorithmType.VALUE, GradClipAlgorithmType.NORM]:
+            raise MisconfigurationException(f"gradient_clip_algorithm should be "
+                                            f"'{GradClipAlgorithmType.VALUE}' or '{GradClipAlgorithmType.NORM}'")
         self.trainer.gradient_clip_val = gradient_clip_val
+        self.trainer.gradient_clip_algorithm = gradient_clip_algorithm
 
         # gradient norm tracking
         if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':

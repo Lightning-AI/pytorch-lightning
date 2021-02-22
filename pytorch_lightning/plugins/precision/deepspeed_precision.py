@@ -5,6 +5,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -54,7 +55,13 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
         return closure_loss
 
-    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = float(2.0)):
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float],
+        gradient_clip_algorithm: str = GradClipAlgorithmType.NORM,
+        norm_type: float = float(2.0),
+    ):
         """
         DeepSpeed handles clipping gradients via the training type plugin.
         """

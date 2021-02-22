@@ -17,6 +17,7 @@ import platform
 import shlex
 import subprocess
 import sys
+from copy import deepcopy
 
 import numpy as np
 import pytest
@@ -66,6 +67,13 @@ def _run_horovod(trainer_options, on_gpu=False):
     assert exit_code == 0
 
 
+def _run_horovod_clip_grad_by_value(trainer_options, on_gpu=False):
+    # clip_grad_by_value test
+    trainer_options_clip_grad_val = deepcopy(trainer_options)
+    trainer_options_clip_grad_val.update({'gradient_clip_algorithm': 'value'})
+    _run_horovod(trainer_options_clip_grad_val, on_gpu)
+
+
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
@@ -81,6 +89,7 @@ def test_horovod_cpu(tmpdir):
         deterministic=True,
     )
     _run_horovod(trainer_options)
+    _run_horovod_clip_grad_by_value(trainer_options)
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
@@ -97,6 +106,7 @@ def test_horovod_cpu_implicit(tmpdir):
         deterministic=True,
     )
     _run_horovod(trainer_options)
+    _run_horovod_clip_grad_by_value(trainer_options)
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
@@ -117,6 +127,7 @@ def test_horovod_multi_gpu(tmpdir):
         accelerator='horovod',
     )
     _run_horovod(trainer_options, on_gpu=True)
+    _run_horovod_clip_grad_by_value(trainer_options, on_gpu=True)
 
 
 @pytest.mark.skip(reason="Horovod has a problem with broadcast when using apex?")
@@ -141,6 +152,7 @@ def test_horovod_apex(tmpdir):
         precision=16,
     )
     _run_horovod(trainer_options, on_gpu=True)
+    _run_horovod_clip_grad_by_value(trainer_options, on_gpu=True)
 
 
 @pytest.mark.skip(reason="Skip till Horovod fixes integration with Native torch.cuda.amp")
@@ -165,6 +177,7 @@ def test_horovod_amp(tmpdir):
         precision=16,
     )
     _run_horovod(trainer_options, on_gpu=True)
+    _run_horovod_clip_grad_by_value(trainer_options, on_gpu=True)
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")

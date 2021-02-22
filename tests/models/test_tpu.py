@@ -221,6 +221,26 @@ def test_tpu_grad_norm(tmpdir):
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
+def test_tpu_clip_grad_by_value(tmpdir):
+    """Test if clip_gradients by value works on TPU."""
+    tutils.reset_seed()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=4,
+        tpu_cores=1,
+        limit_train_batches=4,
+        limit_val_batches=4,
+        gradient_clip_val=0.5,
+        gradient_clip_algorithm='value'
+    )
+
+    model = BoringModel()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
 
