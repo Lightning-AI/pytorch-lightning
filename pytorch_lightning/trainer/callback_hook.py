@@ -103,8 +103,7 @@ class TrainerCallbackHookMixin(ABC):
             outputs: List of outputs on each `val` epoch
         """
         for callback in self.callbacks:
-            params = list(inspect.signature(callback.on_validation_epoch_end).parameters)
-            if "outputs" in params:
+            if self._is_param_in_hook_signature(callback.on_validation_epoch_end, "outputs"):
                 callback.on_validation_epoch_end(self, self.get_model(), outputs)
             else:
                 warning_cache.warn(
@@ -126,8 +125,7 @@ class TrainerCallbackHookMixin(ABC):
             outputs: List of outputs on each `test` epoch
         """
         for callback in self.callbacks:
-            params = list(inspect.signature(callback.on_test_epoch_end).parameters)
-            if "outputs" in params:
+            if self._is_param_in_hook_signature(callback.on_test_epoch_end, "outputs"):
                 callback.on_test_epoch_end(self, self.get_model(), outputs)
             else:
                 warning_cache.warn(
@@ -282,3 +280,10 @@ class TrainerCallbackHookMixin(ABC):
         """
         for callback in self.callbacks:
             callback.on_before_zero_grad(self, self.lightning_module, optimizer)
+
+    @staticmethod
+    def _is_param_in_hook_signature(hook_fx: Callable, param: str) -> bool:
+        hook_params = list(inspect.signature(hook_fx).parameters)
+        if param in hook_params:
+            return True
+        return False
