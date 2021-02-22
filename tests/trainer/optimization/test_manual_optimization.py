@@ -42,7 +42,7 @@ def test_multiple_optimizers_manual(tmpdir):
 
         def training_step(self, batch, batch_idx):
             # manual
-            (opt_a, opt_b) = self.optimizers()
+            opt_a, opt_b = self.optimizers()
             loss_1 = self.step(batch[0])
 
             # make sure there are no grads
@@ -109,7 +109,7 @@ def test_multiple_optimizers_manual_return(tmpdir):
 
         def training_step(self, batch, batch_idx):
             # manual
-            (opt_a, opt_b) = self.optimizers()
+            opt_a, opt_b = self.optimizers()
             loss_1 = self.step(batch[0])
 
             # make sure there are no grads
@@ -178,7 +178,7 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
 
         def training_step(self, batch, batch_idx):
             # manual
-            (opt_a, opt_b) = self.optimizers()
+            opt_a, opt_b = self.optimizers()
             loss_1 = self.step(batch[0])
 
             # make sure there are no grads
@@ -253,7 +253,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
 
         def training_step(self, batch, batch_idx):
             # manual
-            (opt_a, opt_b) = self.optimizers()
+            opt_a, opt_b = self.optimizers()
             loss_1 = self.step(batch[0])
 
             # make sure there are no grads
@@ -323,7 +323,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
 
         def training_step(self, batch, batch_idx):
             # manual
-            (opt_a, opt_b) = self.optimizers()
+            opt_a, opt_b = self.optimizers()
             x = batch[0]
 
             loss_1 = self(x)
@@ -612,7 +612,7 @@ def test_multiple_optimizers_step(tmpdir):
 
         def training_step(self, batch, batch_idx):
             # manual
-            (opt_a, opt_b) = self.optimizers()
+            opt_a, opt_b = self.optimizers()
             x = batch[0]
 
             loss_1 = self(x)
