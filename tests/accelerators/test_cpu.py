@@ -9,9 +9,6 @@ from pytorch_lightning.plugins.precision import MixedPrecisionPlugin, PrecisionP
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-
-
-
 def test_invalid_root_device():
     """ Test that CPU Accelerator has root device on CPU. """
     trainer = Mock()

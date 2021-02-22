@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from pytorch_lightning.accelerators import GPUAccelerator
-from pytorch_lightning.plugins import SingleDevicePlugin, PrecisionPlugin
+from pytorch_lightning.plugins import PrecisionPlugin, SingleDevicePlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
