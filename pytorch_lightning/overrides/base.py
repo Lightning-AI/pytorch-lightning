@@ -51,20 +51,14 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             # it is done manually in ``LightningModule.manual_backward``
             # `require_backward_grad_sync` will be reset in the
             # ddp_plugin ``post_training_step`` hook
-            if not self.module.automatic_optimization:
+            if self.module.automatic_optimization:
                 trainer.model.require_backward_grad_sync = False
-            warn_if_output_is_none(output, "training_step")
-
         elif trainer and trainer.testing:
             output = self.module.test_step(*inputs, **kwargs)
-
         elif trainer and (trainer.sanity_checking or trainer.validating):
             output = self.module.validation_step(*inputs, **kwargs)
-
         elif trainer and trainer.predicting:
             output = self.module.predict(*inputs, **kwargs)
-            warn_if_output_is_none(output, "predict")
-
         else:
             output = self.module(*inputs, **kwargs)
 
