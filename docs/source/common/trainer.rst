@@ -736,9 +736,9 @@ Gradient clipping value
     trainer = Trainer(gradient_clip_val=0.0)
 
 gradient_clip_algorithm
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 .. raw:: html
-    <!-- TODO -->
+    <!--TODO-->
 |
 
 Gradient clipping algorithm
