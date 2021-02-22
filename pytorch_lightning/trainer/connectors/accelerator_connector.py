@@ -164,6 +164,9 @@ class AcceleratorConnector(object):
 
         for plug in plugins:
             if isinstance(plug, str):
+                # Reset the distributed type as the user has overridden training type
+                # via the plugins argument
+                self._distrib_type = None
                 self.set_distributed_mode(plug)
 
             elif isinstance(plug, TrainingTypePlugin):
@@ -197,7 +200,6 @@ class AcceleratorConnector(object):
                 )
 
         self._training_type_plugin = training_type
-        self._training_type_plugin = self.training_type_plugin
         self._precision_plugin = precision
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
