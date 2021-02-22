@@ -21,6 +21,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
@@ -43,6 +44,7 @@ from pytorch_lightning.plugins import (
     TrainingTypePlugin,
 )
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
@@ -230,6 +232,10 @@ class AcceleratorConnector(object):
         return self.tpu_cores is not None
 
     @property
+    def on_ipu(self) -> bool:
+        return self._device_type == DeviceType.IPU
+
+    @property
     def tpu_id(self) -> Optional[int]:
         if self.on_tpu and isinstance(self.tpu_cores, list):
             return self.tpu_cores[0]
@@ -292,7 +298,9 @@ class AcceleratorConnector(object):
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return self.accelerator.root_device.index if not isinstance(self.accelerator, TPUAccelerator) else None
+        return self.accelerator.root_device.index if not isinstance(
+            self.accelerator, (IPUAccelerator, TPUAccelerator)
+        ) else None
 
     @property
     def is_using_torchelastic(self) -> bool:
@@ -302,6 +310,9 @@ class AcceleratorConnector(object):
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
+
+        if self._device_type == DeviceType.IPU:
+            return IPUPrecisionPlugin(self.precision)
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
@@ -401,6 +412,8 @@ class AcceleratorConnector(object):
                 plugin = SingleTPUPlugin(self.tpu_id)
             else:
                 plugin = TPUSpawnPlugin(parallel_devices=list(range(self.tpu_cores)))
+        elif self.on_ipu:
+            plugin = IPUPlugin(mixed_precision=self.precision == 32)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.on_gpu else "cpu"))
@@ -436,6 +449,8 @@ class AcceleratorConnector(object):
             acc_cls = GPUAccelerator
         elif self.on_tpu:
             acc_cls = TPUAccelerator
+        elif self.on_ipu:
+            acc_cls = IPUAccelerator
         else:
             acc_cls = CPUAccelerator
 
@@ -496,6 +511,9 @@ class AcceleratorConnector(object):
         # special case with TPUs
         elif self.distributed_backend == 'tpu':
             self._device_type = DeviceType.TPU
+        # special case with IPUs
+        elif self.distributed_backend == 'ipu':
+            self._device_type = DeviceType.IPU
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)
 
