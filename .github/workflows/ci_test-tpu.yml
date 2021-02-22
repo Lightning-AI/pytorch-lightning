@@ -122,7 +122,7 @@ jobs:
         # First portion is the test logs. Print these to Github Action stdout.
         cat xx00 && \
         echo "Done with log retrieval attempt." && \
-        gcloud container images delete "$IMAGE:$IMAGETAG" --force-delete-tags && \
+        # gcloud container images delete "$IMAGE:$IMAGETAG" --force-delete-tags && \
         echo "Status code: $status_code"
         exit $status_code
       shell: bash
