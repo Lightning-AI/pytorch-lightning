@@ -612,7 +612,7 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel(``accelerator='dp'``) in ``Trainer``.
+                If using data-parallel, ``Trainer(accelerator='dp')``.
 
         See Also:
             - :meth:`move_data_to_device`
@@ -625,7 +625,7 @@ class DataHooks:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
-        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true ``idx`` in the future.
+        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true index in the future.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
@@ -646,7 +646,7 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel(``accelerator='dp'``) in ``Trainer``.
+                If using data-parallel, ``Trainer(accelerator='dp')``.
 
         See Also:
             - :meth:`on_after_batch_transfer`
@@ -679,7 +679,7 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel(``accelerator='dp'``) in ``Trainer``.
+                If using data-parallel, ``Trainer(accelerator='dp')``.
 
         See Also:
             - :meth:`on_before_batch_transfer`

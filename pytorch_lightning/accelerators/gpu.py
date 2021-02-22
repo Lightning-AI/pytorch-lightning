@@ -47,7 +47,7 @@ class GPUAccelerator(Accelerator):
 
     def to_device(self, batch: Any) -> Any:
         # no need to transfer batch to device in DP mode
-        # TODO: Add supported to allow batch transfer to device in Lightning for DP mode.
+        # TODO: Add support to allow batch transfer to device in Lightning for DP mode.
         if not isinstance(self.training_type_plugin, DataParallelPlugin):
             batch = super().to_device(batch)
 
