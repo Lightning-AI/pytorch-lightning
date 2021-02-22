@@ -11,7 +11,6 @@ local tputests = base.BaseTest {
   timeout: 900, # 15 minutes, in seconds.
 
   image: 'pytorchlightning/pytorch_lightning:base-xla-py3.6-torch{PYTORCH_VERSION}',
-  imageTag: '{PR_NUMBER}-{PYTORCH_VERSION}',
 
   tpuSettings+: {
     softwareVersion: 'pytorch-{PYTORCH_VERSION}',
@@ -32,7 +31,7 @@ local tputests = base.BaseTest {
       # drop fairscale as it is not needed
       python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
 
-      pip install -e .
+      pip install -e ".[dev]"
       pip install -r pytorch-lightning/requirements/devel.txt --no-cache-dir
 
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
