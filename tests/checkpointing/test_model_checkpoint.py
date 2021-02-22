@@ -26,6 +26,7 @@ import pytest
 import torch
 import yaml
 from omegaconf import Container, OmegaConf
+from torch import optim
 
 import pytorch_lightning as pl
 import tests.helpers.utils as tutils
@@ -47,8 +48,8 @@ class LogInTwoMethods(BoringModel):
 
     def validation_epoch_end(self, outputs):
         outs = torch.stack([x['x'] for x in outputs]).mean()
-        self.log('epoch', self.current_epoch, on_epoch=True)
-        self.log('val_acc', outs, on_epoch=True)
+        self.log('epoch', self.current_epoch)
+        self.log('val_acc', outs)
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -57,7 +58,8 @@ class LogInTwoMethods(BoringModel):
     [('base', "base", 'val_log'), ('base', "base", 'train_log_epoch'), (None, "base", 'train_log_epoch'),
      ("base", None, 'train_log_epoch')],
 )
-def test_model_checkpoint_score_and_ckpt(tmpdir, validation_step, val_dataloaders, monitor):
+@pytest.mark.parametrize('reduce_lr_on_plateau', [False, True])
+def test_model_checkpoint_score_and_ckpt(tmpdir, validation_step, val_dataloaders, monitor, reduce_lr_on_plateau):
     """
     Test that when a model checkpoint is saved, it saves with
     the correct score appended to ckpt_path and checkpoint data
@@ -65,6 +67,7 @@ def test_model_checkpoint_score_and_ckpt(tmpdir, validation_step, val_dataloader
     max_epochs = 3
     limit_train_batches = 5
     limit_val_batches = 7
+    lr = 1e-1
 
     class CustomBoringModel(BoringModel):
 
@@ -84,6 +87,20 @@ def test_model_checkpoint_score_and_ckpt(tmpdir, validation_step, val_dataloader
             self.log('epoch', self.current_epoch, on_epoch=True)
             return super().validation_step(batch, batch_idx)
 
+        def configure_optimizers(self):
+            optimizer = optim.SGD(self.parameters(), lr=lr)
+
+            if reduce_lr_on_plateau:
+                lr_scheduler = {
+                    'scheduler': optim.lr_scheduler.ReduceLROnPlateau(optimizer),
+                    'monitor': monitor,
+                    'strict': True,
+                }
+            else:
+                lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
+
+            return [optimizer], [lr_scheduler]
+
     filename = '{' + f'{monitor}' + ':.4f}-{epoch}'
     checkpoint = ModelCheckpoint(dirpath=tmpdir, filename=filename, monitor=monitor, save_top_k=-1)
 
@@ -102,12 +119,15 @@ def test_model_checkpoint_score_and_ckpt(tmpdir, validation_step, val_dataloader
         max_epochs=max_epochs,
         progress_bar_refresh_rate=0,
     )
-    trainer.fit(model)
+    results = trainer.fit(model)
+    assert results
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
     scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
+    lr_scheduler_debug = trainer.dev_debugger.saved_lr_scheduler_updates
     assert len(ckpt_files) == len(scores) == max_epochs
-    assert len(trainer.dev_debugger.saved_lr_scheduler_updates) == max_epochs
+    assert len(lr_scheduler_debug) == max_epochs
 
     for epoch in range(max_epochs):
         score = scores[epoch]
@@ -124,20 +144,25 @@ def test_model_checkpoint_score_and_ckpt(tmpdir, validation_step, val_dataloader
         assert mc_specific_data['monitor'] == monitor
         assert mc_specific_data['current_score'] == score
 
-        lr_scheduler_specific_data = chk['lr_schedulers'][0]
-        assert lr_scheduler_specific_data['_step_count'] == epoch + 2
-        assert lr_scheduler_specific_data['_last_lr'][0] == 0.1 * (0.1**(epoch + 1))
+        if not reduce_lr_on_plateau:
+            lr_scheduler_specific_data = chk['lr_schedulers'][0]
+            assert lr_scheduler_specific_data['_step_count'] == epoch + 2
+            assert lr_scheduler_specific_data['_last_lr'][0] == lr * (lr**(epoch + 1))
+
+        assert lr_scheduler_debug[epoch]['monitor_val'] == (score if reduce_lr_on_plateau else None)
+        assert lr_scheduler_debug[epoch]['monitor_key'] == (monitor if reduce_lr_on_plateau else None)
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(
-    "val_check_interval,lr_sched_step_count_inc",
+    "val_check_interval,reduce_lr_on_plateau",
     [
-        (0.25, 1),
-        (0.33, 0),
+        (0.25, True),
+        (0.25, False),
+        (0.33, False),
     ],
 )
-def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_interval, lr_sched_step_count_inc):
+def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_interval, reduce_lr_on_plateau):
     """
     Test that when a model checkpoint is saved, it saves with the correct
     score appended to ckpt_path and checkpoint data with val_check_interval
@@ -145,6 +170,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_in
     max_epochs = 3
     limit_train_batches = 12
     limit_val_batches = 7
+    lr = 1e-1
     monitor = 'val_log'
     per_epoch_steps = int(limit_train_batches * val_check_interval)
     per_epoch_call_count = limit_train_batches // per_epoch_steps
@@ -166,6 +192,20 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_in
             self.val_loop_count += 1
             super().validation_epoch_end(outputs)
 
+        def configure_optimizers(self):
+            optimizer = optim.SGD(self.parameters(), lr=lr)
+
+            if reduce_lr_on_plateau:
+                lr_scheduler = {
+                    'scheduler': optim.lr_scheduler.ReduceLROnPlateau(optimizer),
+                    'monitor': monitor,
+                    'strict': True,
+                }
+            else:
+                lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
+
+            return [optimizer], [lr_scheduler]
+
     filename = '{' + f'{monitor}' + ':.4f}-{epoch}'
     checkpoint = ModelCheckpoint(dirpath=tmpdir, filename=filename, monitor=monitor, save_top_k=-1)
 
@@ -181,12 +221,15 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_in
         progress_bar_refresh_rate=0,
         num_sanity_val_steps=0,
     )
-    trainer.fit(model)
+    results = trainer.fit(model)
+    assert results
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
     scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
+    lr_scheduler_debug = trainer.dev_debugger.saved_lr_scheduler_updates
     assert len(ckpt_files) == len(scores) == per_epoch_call_count * max_epochs
-    assert len(trainer.dev_debugger.saved_lr_scheduler_updates) == max_epochs
+    assert len(lr_scheduler_debug) == max_epochs
 
     for epoch in range(max_epochs):
         for ix in range(per_epoch_call_count):
@@ -205,11 +248,14 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_in
             assert mc_specific_data['monitor'] == monitor
             assert mc_specific_data['current_score'] == score
 
-            lr_scheduler_specific_data = chk['lr_schedulers'][0]
+            if not reduce_lr_on_plateau:
+                lr_scheduler_specific_data = chk['lr_schedulers'][0]
+                did_update = 1 if ix + 1 == per_epoch_call_count else 0
+                assert lr_scheduler_specific_data['_step_count'] == epoch + 1 + did_update
+                assert lr_scheduler_specific_data['_last_lr'][0] == lr * (lr**(epoch + did_update))
 
-            did_update = 1 if ix + 1 == per_epoch_call_count else 0
-            assert lr_scheduler_specific_data['_step_count'] == epoch + 1 + did_update
-            assert lr_scheduler_specific_data['_last_lr'][0] == 0.1 * (0.1**(epoch + did_update))
+        assert lr_scheduler_debug[epoch]['monitor_val'] == (score if reduce_lr_on_plateau else None)
+        assert lr_scheduler_debug[epoch]['monitor_key'] == (monitor if reduce_lr_on_plateau else None)
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
