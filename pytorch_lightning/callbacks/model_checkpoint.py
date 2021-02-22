@@ -564,7 +564,7 @@ class ModelCheckpoint(Callback):
 
         if self.check_monitor_top_k(current):
             self._update_best_and_save(current, epoch, step, trainer, pl_module, metrics)
-        elif self.verbose:
+        elif self.monitor is not None and self.verbose:
             rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
     def _is_valid_monitor_key(self, metrics):

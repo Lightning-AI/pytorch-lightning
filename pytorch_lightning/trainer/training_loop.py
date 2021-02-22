@@ -158,7 +158,7 @@ class TrainLoop:
             if is_last and any(cb.save_last for cb in callbacks):
                 rank_zero_info("Saving latest checkpoint...")
 
-            model = self.trainer.get_model()
+            model = self.trainer.lightning_module
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
@@ -167,7 +167,7 @@ class TrainLoop:
         # TODO bake this logic into the EarlyStopping callback
         if should_update and self.trainer.checkpoint_connector.has_trained:
             callbacks = [c for c in self.trainer.callbacks if isinstance(c, EarlyStopping)]
-            model = self.trainer.get_model()
+            model = self.trainer.lightning_module
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
@@ -177,7 +177,7 @@ class TrainLoop:
         # update training progress in trainer
         self.trainer.current_epoch = epoch
 
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         # reset train dataloader
         if epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
@@ -189,7 +189,7 @@ class TrainLoop:
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
 
         # changing gradient according accumulation_scheduler
-        self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.get_model())
+        self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
         self.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
@@ -229,8 +229,8 @@ class TrainLoop:
             # decide if we need to reduce at the end of the epoch automatically
             auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
             hook_overridden = (
-                is_overridden("training_epoch_end", model=self.trainer.get_model())
-                or is_overridden("on_train_epoch_end", model=self.trainer.get_model())
+                is_overridden("training_epoch_end", model=self.trainer.lightning_module)
+                or is_overridden("on_train_epoch_end", model=self.trainer.lightning_module)
             )
 
             # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
@@ -281,7 +281,7 @@ class TrainLoop:
 
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
@@ -290,8 +290,8 @@ class TrainLoop:
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator_backend.training_step(args)
-                self.trainer.accelerator_backend.post_training_step()
+                training_step_output = self.trainer.accelerator.training_step(args)
+                self.trainer.accelerator.post_training_step()
 
             self.trainer.logger_connector.cache_logged_metrics()
 
@@ -372,7 +372,7 @@ class TrainLoop:
         return training_step_output_for_epoch_end, training_step_output
 
     def _process_training_step_output_1_0(self, training_step_output, split_batch):
-        result = self.trainer.get_model()._results
+        result = self.trainer.lightning_module._results
 
         loss = None
         hiddens = None
@@ -407,7 +407,7 @@ class TrainLoop:
         return training_step_output_for_epoch_end, training_step_output
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
         using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
@@ -438,21 +438,21 @@ class TrainLoop:
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
-        self.trainer.accelerator_backend.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
+        self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
     def track_and_norm_grad(self, optimizer):
         # track gradient norms
         grad_norm_dic = self._track_gradient_norm()
 
         # clip gradients
-        self.trainer.accelerator_backend.clip_gradients(optimizer, self.trainer.gradient_clip_val)
+        self.trainer.accelerator.clip_gradients(optimizer, self.trainer.gradient_clip_val)
         self._cur_grad_norm_dict = grad_norm_dic
 
     def _track_gradient_norm(self):
         grad_norm_dict = {}
         if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0:
             if float(self.trainer.track_grad_norm) > 0:
-                model = self.trainer.get_model()
+                model = self.trainer.lightning_module
                 grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
         return grad_norm_dict
 
@@ -465,7 +465,7 @@ class TrainLoop:
     def tbptt_split_batch(self, batch):
         splits = [batch]
         if self.trainer.truncated_bptt_steps is not None:
-            model_ref = self.trainer.get_model()
+            model_ref = self.trainer.lightning_module
             with self.trainer.profiler.profile("tbptt_split_batch"):
                 splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
         return splits
@@ -517,7 +517,7 @@ class TrainLoop:
                 self.trainer.run_evaluation()
 
                 # reset stage to train
-                self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
+                self.trainer._running_stage = RunningStage.TRAINING
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -564,7 +564,7 @@ class TrainLoop:
             self.trainer.run_evaluation(on_epoch=True)
 
             # reset stage to train
-            self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
+            self.trainer._running_stage = RunningStage.TRAINING
 
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
@@ -758,7 +758,7 @@ class TrainLoop:
 
                 if len(self.trainer.optimizers) > 1:
                     # revert back to previous state
-                    self.trainer.get_model().untoggle_optimizer(opt_idx)
+                    self.trainer.lightning_module.untoggle_optimizer(opt_idx)
 
         return result
 
@@ -769,9 +769,9 @@ class TrainLoop:
 
         # backward can be called manually in the training loop
         if isinstance(result, torch.Tensor):
-            self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, should_accumulate, *args, **kwargs)
+            self.trainer.accelerator.backward(result, optimizer, opt_idx, should_accumulate, *args, **kwargs)
         else:
-            result.closure_loss = self.trainer.accelerator_backend.backward(
+            result.closure_loss = self.trainer.accelerator.backward(
                 result.closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
             )
 
@@ -895,7 +895,7 @@ class TrainLoop:
         # make sure only the gradients of the current optimizer's parameters are calculated
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
         if self.automatic_optimization and len(self.trainer.optimizers) > 1:
-            model = self.trainer.get_model()
+            model = self.trainer.lightning_module
             model.toggle_optimizer(optimizer, opt_idx)
 
         # use to track metrics internally

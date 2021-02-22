@@ -26,6 +26,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
@@ -78,6 +79,11 @@ class DeepSpeedPlugin(DDPPlugin):
         num_nodes: int = 1,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
+        loss_scale: float = 0,
+        initial_scale_power: int = 32,
+        loss_scale_window: int = 1000,
+        hysteresis: int = 2,
+        min_loss_scale: int = 1
     ) -> None:
         """
 
@@ -126,6 +132,18 @@ class DeepSpeedPlugin(DDPPlugin):
 
             logging_level: Set logging level for deepspeed. (Default: ``logging.WARN``)
 
+            loss_scale: Loss scaling value for FP16 training.
+                0.0 results in dynamic loss scaling, otherwise static (Default: 0)
+
+            initial_scale_power: Power of the initial dynamic loss scale value. Loss scale is computed
+                by ``2^initial_scale_power`` (Default: 32)
+
+            loss_scale_window: Window in which to raise/lower the dynamic FP16 loss scaling value (Default: 1000)
+
+            hysteresis: FP16 Delay shift in Dynamic Loss scaling (Default: 2)
+
+            min_loss_scale: The minimum FP16 dynamic loss scaling value (Default: 1000)
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -152,6 +170,13 @@ class DeepSpeedPlugin(DDPPlugin):
             )
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
+
+        # default FP16 parameters.
+        self.loss_scale = loss_scale
+        self.initial_scale_power = initial_scale_power
+        self.loss_scale_window = loss_scale_window
+        self.hysteresis = hysteresis
+        self.min_loss_scale = min_loss_scale
 
     def _load_config(self, config):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
@@ -185,7 +210,7 @@ class DeepSpeedPlugin(DDPPlugin):
             self._format_config()
             self._config_initialized = True
 
-        precision = self.lightning_module.trainer.accelerator_backend.precision
+        precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
         if self.lightning_module.trainer.training:
@@ -240,16 +265,8 @@ class DeepSpeedPlugin(DDPPlugin):
         )
 
     def configure_scheduler(self, lr_scheduler):
-        # this duplicates the defaults from init_optimizers
-        scheduler = {
-            'scheduler': lr_scheduler,
-            'name': None,  # no custom name
-            'interval': 'epoch',  # after epoch is over
-            'frequency': 1,  # every epoch/batch
-            'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
-            'monitor': None,  # value to monitor for ReduceLROnPlateau
-            'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
-        }
+        scheduler = _get_default_scheduler_config()
+        scheduler["scheduler"] = lr_scheduler
         return [scheduler]
 
     @property
@@ -263,7 +280,7 @@ class DeepSpeedPlugin(DDPPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def init_optimizers(self, trainer: "Trainer", model: LightningModule) -> Tuple[List, List, List]:
+    def init_optimizers(self, trainer, model: LightningModule) -> Tuple[List, List, List]:
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
@@ -304,9 +321,19 @@ class DeepSpeedPlugin(DDPPlugin):
         amp_level = self.lightning_module.trainer.accelerator_connector.amp_level
         precision = self.lightning_module.trainer.accelerator_connector.precision
         if precision == 16:
-            if "amp" not in self.config and amp_type == AMPType.NATIVE:
-                self.config["fp16"] = {"enabled": True}
-            elif "apex" not in self.config and amp_type == AMPType.APEX:
+            if "fp16" not in self.config and amp_type == AMPType.NATIVE:
+                # FP16 is a DeepSpeed standalone AMP implementation
+                rank_zero_info("Enabling DeepSpeed FP16.")
+                self.config["fp16"] = {
+                    "enabled": True,
+                    "loss_scale": self.loss_scale,
+                    "initial_scale_power": self.initial_scale_power,
+                    "loss_scale_window": self.loss_scale_window,
+                    "hysteresis": self.hysteresis,
+                    "min_loss_scale": self.min_loss_scale
+                }
+            elif "amp" not in self.config and amp_type == AMPType.APEX:
+                rank_zero_only("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {
                     "enabled": True,
                     "opt_level": amp_level,

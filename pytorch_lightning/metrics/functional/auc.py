@@ -64,7 +64,7 @@ def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = False) -> torch.Tensor
         Tensor containing AUC score (float)
 
     Example:
-
+        >>> from pytorch_lightning.metrics.functional import auc
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> auc(x, y)

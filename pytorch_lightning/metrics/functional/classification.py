@@ -109,7 +109,6 @@ def stat_scores(
         >>> tp, fp, tn, fn, sup = stat_scores(x, y, class_index=1)
         >>> tp, fp, tn, fn, sup
         (tensor(0), tensor(1), tensor(2), tensor(0), tensor(0))
-
     """
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
@@ -679,6 +678,7 @@ def dice_score(
 
     Example:
 
+        >>> from pytorch_lightning.metrics.functional import dice_score
         >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
         ...                      [0.05, 0.85, 0.05, 0.05],
         ...                      [0.05, 0.05, 0.85, 0.05],

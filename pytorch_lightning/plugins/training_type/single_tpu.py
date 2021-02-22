@@ -1,4 +1,3 @@
-import io
 import os
 from typing import Optional, Union
 
@@ -11,7 +10,6 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 
 if _TPU_AVAILABLE:
-    import torch_xla
     import torch_xla.core.xla_model as xm
 
 

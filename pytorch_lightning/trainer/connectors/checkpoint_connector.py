@@ -94,7 +94,7 @@ class CheckpointConnector:
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # acquire the model
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         # restore model and datamodule state
         self.restore_model_state(model, checkpoint)
@@ -214,13 +214,12 @@ class CheckpointConnector:
         filepath = os.path.join(folderpath, f'hpc_ckpt_{ckpt_number}.ckpt')
 
         # give model a chance to do something on hpc_save
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
         checkpoint = self.dump_checkpoint()
 
         model.on_hpc_save(checkpoint)
 
-        if self.trainer.accelerator_backend:
-            checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
+        checkpoint = self.trainer.accelerator.on_save(checkpoint)
 
         # do the actual save
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
@@ -286,7 +285,7 @@ class CheckpointConnector:
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
                 # Rely on accelerator to dump optimizer state
-                optimizer_state = self.trainer.accelerator_backend.optimizer_state(optimizer)
+                optimizer_state = self.trainer.accelerator.optimizer_state(optimizer)
                 optimizer_states.append(optimizer_state)
 
             checkpoint['optimizer_states'] = optimizer_states
@@ -307,7 +306,7 @@ class CheckpointConnector:
                 checkpoint['amp_scaling_state'] = amp.state_dict()
 
         # add the hyper_parameters and state_dict from the model
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         # dump the module_arguments and state_dict from the model
         checkpoint['state_dict'] = model.state_dict()
@@ -339,7 +338,7 @@ class CheckpointConnector:
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # acquire the model
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         # restore model and datamodule state
         self.restore_model_state(model, checkpoint)

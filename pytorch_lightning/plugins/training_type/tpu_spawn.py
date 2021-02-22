@@ -1,7 +1,7 @@
 import io
 import os
 import re
-from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -26,7 +26,12 @@ else:
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
 
-    def __init__(self, parallel_devices: Sequence[int], num_nodes: int = 1, **kwargs: Dict[str, Any]) -> None:
+    def __init__(
+        self,
+        parallel_devices: Optional[List[torch.device]] = None,
+        num_nodes: int = 1,
+        **kwargs: Dict[str, Any]
+    ) -> None:
         super().__init__(
             parallel_devices, num_nodes=num_nodes, cluster_environment=None, sync_batchnorm=False, **kwargs
         )
@@ -85,7 +90,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             trainer.progress_bar_callback.disable()
 
         self.model_to_device()
-        trainer.accelerator_backend.setup_optimizers(trainer)
+        trainer.accelerator.setup_optimizers(trainer)
         trainer.precision_plugin.connect(self._model, None, None)
 
         # replace trainer save_checkpoint to use `xm.save`
@@ -201,7 +206,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
-        results = self.mp_queue.get()
+        self._results = self.mp_queue.get()
 
         # transfer back the best path to the trainer
         if self.lightning_module.trainer.checkpoint_callback is not None:

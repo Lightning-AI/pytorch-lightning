@@ -77,6 +77,7 @@ def average_precision(
 
     Example (binary case):
 
+        >>> from pytorch_lightning.metrics.functional import average_precision
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 1, 1])
         >>> average_precision(pred, target, pos_label=1)
@@ -84,6 +85,7 @@ def average_precision(
 
     Example (multiclass case):
 
+        >>> from pytorch_lightning.metrics.functional import average_precision
         >>> pred = torch.tensor([[0.75, 0.05, 0.05, 0.05, 0.05],
         ...                      [0.05, 0.75, 0.05, 0.05, 0.05],
         ...                      [0.05, 0.05, 0.75, 0.05, 0.05],

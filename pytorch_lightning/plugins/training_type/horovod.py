@@ -28,7 +28,7 @@ if _HOROVOD_AVAILABLE:
 
 class HorovodPlugin(ParallelPlugin):
 
-    def __init__(self, parallel_devices: List[torch.device]):
+    def __init__(self, parallel_devices: Optional[List[torch.device]] = None):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
     @property
@@ -101,14 +101,14 @@ class HorovodPlugin(ParallelPlugin):
         hvd.join()
 
     def start_testing(self, trainer):
-        with ExitStack() as stack:
+        with ExitStack():
             self._results = trainer.run_test()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
 
     def start_predicting(self, trainer):
-        with ExitStack() as stack:
+        with ExitStack():
             # set up training routine
             self._results = trainer.run_predict()
 
@@ -127,23 +127,35 @@ class HorovodPlugin(ParallelPlugin):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
+        """
+        Reduces a tensor from several distributed processes to one aggregated tensor.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            group: the process group to gather results from. Defaults to all processes (world)
+            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
+                Can also be a string 'sum' to calculate the sum during reduction.
+
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
         if group is not None:
             raise ValueError(
                 "Horovod does not support allreduce using a subcommunicator at this time. "
                 "Unset `group`."
             )
 
-        if reduce_op is None or reduce_op == "sum":
-            reduce_op = hvd.Sum
-        elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
+        if reduce_op in (None, "avg", "mean"):
             reduce_op = hvd.Average
+        elif reduce_op == "sum":
+            reduce_op = hvd.Sum
         else:
             raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
 
         # sync all processes before reduction
         hvd.join()
-        return hvd.allreduce(output, op=reduce_op)
+        return hvd.allreduce(tensor, op=reduce_op)
 
     def gather_all_tensors(self, result: Union[torch.Tensor], group: Optional[Any] = None):
         if group is not None:
