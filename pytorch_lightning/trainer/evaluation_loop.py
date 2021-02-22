@@ -324,6 +324,8 @@ class EvaluationLoop(object):
         model_ref = self.trainer.get_model()
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
 
+        self.trainer._reset_result_and_set_hook_fx_name(hook_name)
+
         with self.trainer.profiler.profile(hook_name):
 
             if hasattr(self.trainer, hook_name):
@@ -334,6 +336,8 @@ class EvaluationLoop(object):
                 model_hook_fx = getattr(model_ref, hook_name)
                 model_hook_params = list(inspect.signature(model_hook_fx).parameters)
                 model_hook_fx(outputs) if "outputs" in model_hook_params else model_hook_fx()
+
+        self.trainer._cache_logged_metrics()
 
     def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.sanity_checking:
