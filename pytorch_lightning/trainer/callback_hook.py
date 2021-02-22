@@ -81,7 +81,11 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_train_epoch_start(self, self.lightning_module)
 
     def on_train_epoch_end(self, outputs):
-        """Called when the epoch ends."""
+        """Called when the epoch ends.
+
+        Args:
+            outputs: List of outputs on each `train` epoch
+        """
         for callback in self.callbacks:
             callback.on_train_epoch_end(self, self.lightning_module, outputs)
 
@@ -91,7 +95,11 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_validation_epoch_start(self, self.lightning_module)
 
     def on_validation_epoch_end(self, outputs):
-        """Called when the epoch ends."""
+        """Called when the epoch ends.
+
+        Args:
+            outputs: List of outputs on each `val` epoch
+        """
         for callback in self.callbacks:
             params = list(inspect.signature(callback.on_validation_epoch_end).parameters)
             if "outputs" in params:
@@ -110,7 +118,11 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_test_epoch_start(self, self.lightning_module)
 
     def on_test_epoch_end(self, outputs):
-        """Called when the epoch ends."""
+        """Called when the epoch ends.
+
+        Args:
+            outputs: List of outputs on each `test` epoch
+        """
         for callback in self.callbacks:
             params = list(inspect.signature(callback.on_test_epoch_end).parameters)
             if "outputs" in params:
