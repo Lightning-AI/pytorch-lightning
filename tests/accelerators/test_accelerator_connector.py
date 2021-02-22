@@ -383,10 +383,9 @@ def test_dist_backend_accelerator_mapping(device_count_mock):
         trainer.fit(model)
 
 
-@mock.patch.dict(sys.modules, {"IPython": Mock()})
 @mock.patch("IPython.get_ipython")
 @mock.patch('torch.cuda.device_count', return_value=2)
-def test_ipython_incompatible_backend_error(device_count_mock, ipython_mock):
+def test_ipython_incompatible_backend_error(*_):
     with pytest.raises(MisconfigurationException, match="backend ddp is not compatible"):
         Trainer(accelerator="ddp", gpus=2)
 

@@ -13,14 +13,14 @@
 # limitations under the License.
 """Enumerated utilities"""
 from enum import Enum
-from typing import Union
+from typing import List, Optional, Union
 
 
 class LightningEnum(str, Enum):
     """ Type of any enumerator with allowed comparison to string invariant to cases. """
 
     @classmethod
-    def from_str(cls, value: str) -> 'LightningEnum':
+    def from_str(cls, value: str) -> Optional['LightningEnum']:
         statuses = [status for status in dir(cls) if not status.startswith('_')]
         for st in statuses:
             if st.lower() == value.lower():
@@ -31,7 +31,7 @@ class LightningEnum(str, Enum):
         other = other.value if isinstance(other, Enum) else str(other)
         return self.value.lower() == other.lower()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # re-enable hashtable so it can be used as a dict key or in a set
         # example: set(LightningEnum)
         return hash(self.name)
@@ -60,7 +60,7 @@ class DistributedType(LightningEnum):
     """
 
     @staticmethod
-    def ipython_compatible_types() -> list:
+    def ipython_compatible_types() -> List['DistributedType']:
         """Returns a list containing ipython compatible DistributeTypes"""
         return [DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN]
 
