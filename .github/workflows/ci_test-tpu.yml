@@ -15,16 +15,13 @@ name: TPU tests
 #  12. Upload coverage to Codecov
 
 on:
-  push: {}
-# TODO: temporal disable TPU testing until we find way how to pass credentials to forked PRs
-#  pull_request:
-#    branches:
-#      - master
+  pull_request:
+    branches:
+      - master
 
 env:
   GKE_CLUSTER: lightning-cluster
   GKE_ZONE: us-central1-a
-  IMAGE: gcr.io/${{ secrets.GKE_PROJECT }}/tpu-testing-image
   MAX_CHECKS: 360
   CHECK_SPEEP: 5
 
@@ -35,8 +32,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.7]
-        xla-version: [1.7]
+        python-version: [3.6, 3.7]
+        xla-version: [1.6, 1.7]
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
 
@@ -122,7 +119,6 @@ jobs:
         # First portion is the test logs. Print these to Github Action stdout.
         cat xx00 && \
         echo "Done with log retrieval attempt." && \
-        # gcloud container images delete "$IMAGE:$IMAGETAG" --force-delete-tags && \
         echo "Status code: $status_code"
         exit $status_code
       shell: bash
