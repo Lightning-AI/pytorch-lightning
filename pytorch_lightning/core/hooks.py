@@ -252,7 +252,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_validation_epoch_end(self) -> None:
+    def on_validation_epoch_end(self, outputs: Any) -> None:
         """
         Called in the validation loop at the very end of the epoch.
         """
@@ -264,7 +264,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_test_epoch_end(self) -> None:
+    def on_test_epoch_end(self, outputs: Any) -> None:
         """
         Called in the test loop at the very end of the epoch.
         """
