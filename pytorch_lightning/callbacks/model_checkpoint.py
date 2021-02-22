@@ -510,17 +510,17 @@ class ModelCheckpoint(Callback):
 
     def _get_metric_interpolated_filepath_name(
         self,
-        ckpt_name_metrics: Dict[str, Any],
+        monitor_candidates: Dict[str, Any],
         epoch: int,
         step: int,
         trainer,
         del_filepath: Optional[str] = None,
     ) -> str:
-        filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
+        filepath = self.format_checkpoint_name(epoch, step, monitor_candidates)
 
         version_cnt = self.STARTING_VERSION
         while self.file_exists(filepath, trainer) and filepath != del_filepath:
-            filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=version_cnt)
+            filepath = self.format_checkpoint_name(epoch, step, monitor_candidates, ver=version_cnt)
             version_cnt += 1
 
         return filepath
@@ -530,12 +530,12 @@ class ModelCheckpoint(Callback):
         monitor_candidates.update(step=trainer.global_step, epoch=trainer.current_epoch)
         return monitor_candidates
 
-    def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics: dict):
+    def _save_last_checkpoint(self, trainer, pl_module, monitor_candidates: Dict[str, Any]):
         filepath = self._format_checkpoint_name(
             self.CHECKPOINT_NAME_LAST,
             trainer.current_epoch,
             trainer.global_step,
-            ckpt_name_metrics,
+            monitor_candidates,
             prefix=self.prefix
         )
         filepath = os.path.join(self.dirpath, f"{filepath}{self.FILE_EXTENSION}")
@@ -547,10 +547,10 @@ class ModelCheckpoint(Callback):
 
         self.last_model_path = filepath
 
-    def _save_top_k_checkpoint(self, trainer, pl_module, ckpt_name_metrics):
-        current = ckpt_name_metrics.get(self.monitor)
-        epoch = ckpt_name_metrics.get("epoch")
-        step = ckpt_name_metrics.get("step")
+    def _save_top_k_checkpoint(self, trainer, pl_module, monitor_candidates: Dict[str, Any]):
+        current = monitor_candidates.get(self.monitor)
+        epoch = monitor_candidates.get("epoch")
+        step = monitor_candidates.get("step")
 
         # when `val_loss` is being logged and no ModelCheckpoint is being provided
         # `val_loss` will be selected for monitor and need to be reduced to
@@ -561,13 +561,13 @@ class ModelCheckpoint(Callback):
             current = trainer.training_type_plugin.reduce(current, reduce_op="mean")
 
         if self.check_monitor_top_k(current):
-            self._update_best_and_save(current, epoch, step, trainer, pl_module, ckpt_name_metrics)
+            self._update_best_and_save(current, epoch, step, trainer, pl_module, monitor_candidates)
         elif self.verbose:
             rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
-    def _save_none_monitor_checkpoint(self, trainer, pl_module, ckpt_name_metrics):
+    def _save_none_monitor_checkpoint(self, trainer, pl_module, monitor_candidates: Dict[str, Any]):
         filepath = self._get_metric_interpolated_filepath_name(
-            ckpt_name_metrics,
+            monitor_candidates,
             trainer.current_epoch,
             trainer.global_step,
             trainer,
@@ -588,7 +588,7 @@ class ModelCheckpoint(Callback):
         return self.monitor in metrics or len(metrics) == 0
 
     def _update_best_and_save(
-        self, current: torch.Tensor, epoch: int, step: int, trainer, pl_module, ckpt_name_metrics
+        self, current: torch.Tensor, epoch: int, step: int, trainer, pl_module, monitor_candidates: Dict[str, Any]
     ):
         k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
 
@@ -601,7 +601,7 @@ class ModelCheckpoint(Callback):
         if isinstance(current, torch.Tensor) and torch.isnan(current):
             current = torch.tensor(float('inf' if self.mode == "min" else '-inf'))
 
-        filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, epoch, step, trainer, del_filepath)
+        filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, epoch, step, trainer, del_filepath)
 
         # save the current score
         self.current_score = current
