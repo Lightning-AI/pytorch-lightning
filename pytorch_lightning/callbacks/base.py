@@ -193,6 +193,7 @@ class Callback(abc.ABC):
 
     def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint, use to reload state.
+
         Args:
             callback_state: the callback state returned by ``on_save_checkpoint``.
         """
