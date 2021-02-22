@@ -387,12 +387,12 @@ class ModelPruning(Callback):
 
     def on_train_end(self, trainer, pl_module: LightningModule):
         if self._make_pruning_permanent:
-            rank_zero_debug("`on_train_end`. Pruning permanently...")
+            rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint.")
             self.make_pruning_permanent(pl_module)
 
     def on_save_checkpoint(self, trainer, pl_module: LightningModule, checkpoint: Dict[str, Any]):
         if self._make_pruning_permanent:
-            rank_zero_debug("`on_save_checkpoint`. Pruning permanently...")
+            rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint.")
             prev_device = pl_module.device
             # prune a copy so training can continue with the same buffers
             copy = deepcopy(pl_module.to("cpu"))
