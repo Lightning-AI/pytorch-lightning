@@ -29,6 +29,8 @@ local tputests = base.BaseTest {
       git ls-remote --refs origin
       git fetch origin "refs/pull/{PR_NUMBER}/head:pr/{PR_NUMBER}" && git checkout "pr/{PR_NUMBER}"
       pip install -e .
+      echo $TPU_IP_ADDRESS
+      export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
           pytorch_lightning/utilities/xla_device_utils.py \
           tests/accelerators/test_tpu_backend.py \
