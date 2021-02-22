@@ -94,7 +94,7 @@ class DataConnector(object):
     def _validate_data_hooks(self, model):
         # Raise Misconfiguration exception since these hooks are not supported in DP mode
         # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
-        batch_transfer_hooks = ['on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer']
+        batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
         for hook in batch_transfer_hooks:
             if self.trainer.accelerator_connector.use_dp and is_overridden(hook, model):
                 raise MisconfigurationException(f'Overriding `{hook}` is not supported in DP mode.')
@@ -130,13 +130,13 @@ class DataConnector(object):
         if datamodule:
 
             # Override loader hooks
-            dl_methods = ['train_dataloader', 'val_dataloader', 'test_dataloader', 'predict_dataloader']
+            dl_methods = ('train_dataloader', 'val_dataloader', 'test_dataloader', 'predict_dataloader')
             for method in dl_methods:
                 if is_overridden(method, datamodule):
                     setattr(model, method, getattr(datamodule, method))
 
             # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
-            batch_transfer_hooks = ['on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer']
+            batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
             for hook in batch_transfer_hooks:
                 if is_overridden(hook, datamodule):
                     setattr(model, hook, getattr(datamodule, hook))
