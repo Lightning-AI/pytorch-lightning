@@ -131,7 +131,7 @@ So you can run it like so:
         parser = Trainer.add_argparse_args(
             # group the Trainer arguments together
             parser.add_argument_group(title="pl.Trainer args"),
-            # add it to the origianl parser
+            # add it to the original parser
             inplace=True,
         )
         args = parser.parse_args()
