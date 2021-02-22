@@ -20,7 +20,9 @@ from typing import Any, Callable, Dict, List, Type, Optional
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 class TrainerCallbackHookMixin(ABC):
@@ -105,7 +107,7 @@ class TrainerCallbackHookMixin(ABC):
             if "outputs" in params:
                 callback.on_validation_epoch_end(self, self.get_model(), outputs)
             else:
-                rank_zero_warn(
+                warning_cache.warn(
                     "`Callback.on_validation_epoch_end` signature has changed in v1.3."
                     " `outputs` parameter has been added."
                     " Support for the old signature will be removed in v1.5", DeprecationWarning
@@ -128,7 +130,7 @@ class TrainerCallbackHookMixin(ABC):
             if "outputs" in params:
                 callback.on_test_epoch_end(self, self.get_model(), outputs)
             else:
-                rank_zero_warn(
+                warning_cache.warn(
                     "`Callback.on_test_epoch_end` signature has changed in v1.3."
                     " `outputs` parameter has been added."
                     " Support for the old signature will be removed in v1.5", DeprecationWarning
