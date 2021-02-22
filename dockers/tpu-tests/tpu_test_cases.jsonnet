@@ -20,7 +20,7 @@ local tputests = base.BaseTest {
 
   command: utils.scriptCommand(
     |||
-      conda init bash
+      source ~/.bashrc
       conda activate lightning
       mkdir -p /home/runner/work/pytorch-lightning && cd /home/runner/work/pytorch-lightning
       git clone https://github.com/PyTorchLightning/pytorch-lightning.git
