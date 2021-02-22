@@ -15,9 +15,8 @@ name: TPU tests
 #  12. Upload coverage to Codecov
 
 on:
-  pull_request:
-    branches:
-      - master
+  push:
+    branches: [master, "release/*"]
 
 env:
   GKE_CLUSTER: lightning-cluster

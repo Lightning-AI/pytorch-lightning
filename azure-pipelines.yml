@@ -9,7 +9,12 @@ trigger:
       - '*'
   branches:
     include:
-      - never-ever-run-
+      - master
+      - release/*
+      - refs/tags/*
+pr:
+  - master
+  - release/*
 
 jobs:
   - job: pytest
