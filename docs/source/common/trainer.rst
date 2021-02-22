@@ -735,8 +735,11 @@ Gradient clipping value
     # default used by the Trainer
     trainer = Trainer(gradient_clip_val=0.0)
 
-gradient_clip_val
+gradient_clip_algorithm
 ^^^^^^^^^^^^^^^^^
+.. raw:: html
+    <!-- TODO -->
+|
 
 Gradient clipping algorithm
 
