@@ -649,6 +649,73 @@ def test_model_checkpoint_every_n_epochs_and_no_period(tmpdir, every_n_epochs):
     expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
+def test_ckpt_every_n_steps(tmpdir):
+    """ Tests that the checkpoints are saved every n training steps. """
+
+    model = LogInTwoMethods()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        min_epochs=2,
+        max_epochs=2,
+        progress_bar_refresh_rate=0,
+        checkpoint_callback=ModelCheckpoint(
+            filename="{step}",
+            every_n_epochs=-1,
+            every_n_steps=16,
+            dirpath=tmpdir,
+            save_top_k=-1,
+            save_last=False,
+        ),
+        logger=False,
+    )
+
+    trainer.fit(model)
+    self.assertCountEqual(
+        os.listdir(tmpdir),
+        [
+            "step=15.ckpt",
+            "step=31.ckpt",
+            "step=47.ckpt",
+            "step=63.ckpt",
+            "step=79.ckpt",
+            "step=95.ckpt",
+            "step=111.ckpt",
+            "step=127.ckpt",
+        ],
+    )
+
+def test_ckpt_every_n_steps_and_every_n_epochs(tmpdir):
+    """ Tests that checkpoints are taken every 30 steps and every epochs """
+    model = LogInTwoMethods()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        min_epochs=2,
+        max_epochs=2,
+        progress_bar_refresh_rate=0,
+        checkpoint_callback=ModelCheckpoint(
+            every_n_epochs=1,
+            every_n_steps=30,
+            dirpath=tmpdir,
+            save_top_k=-1,
+            save_last=False,
+        ),
+        logger=False,
+    )
+    trainer.fit(model)
+    self.assertCountEqual(
+        os.listdir(tmpdir),
+        [
+            "epoch=0-step=29.ckpt",
+            "epoch=0-step=59.ckpt",
+            "epoch=0-step=63.ckpt",
+            "epoch=1-step=89.ckpt",
+            "epoch=1-step=119.ckpt",
+            "epoch=1-step=127.ckpt",
+            "epoch=1-step=127-v0.ckpt",
+        ],
+    )
+
 
 def test_model_checkpoint_topk_zero(tmpdir):
     """ Test that no checkpoints are saved when save_top_k=0. """
