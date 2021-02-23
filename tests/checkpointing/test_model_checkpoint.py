@@ -514,6 +514,7 @@ def test_none_monitor_top_k(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
     ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
 
+
 def test_invalid_every_n_epoch(tmpdir):
     """ Test that an exception is raised for every_n_epochs = 0 or < -1. """
     with pytest.raises(
@@ -528,6 +529,7 @@ def test_invalid_every_n_epoch(tmpdir):
     # These should not fail
     ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-1)
     ModelCheckpoint(dirpath=tmpdir, every_n_epochs=3)
+
 
 def test_invalid_every_n_batches(tmpdir):
     """ Test that an exception is raised for every_n_batches = 0 or < -1. """
@@ -613,7 +615,12 @@ def test_model_checkpoint_period(tmpdir, period: int):
 def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
     model = LogInTwoMethods()
     epochs = 5
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=every_n_epochs)
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmpdir,
+        filename='{epoch}',
+        save_top_k=-1,
+        every_n_epochs=every_n_epochs
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
@@ -628,12 +635,19 @@ def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
     # check that the correct ckpts were created
     expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
+
 
 @pytest.mark.parametrize("every_n_epochs", list(range(4)))
 def test_model_checkpoint_every_n_epochs_and_no_period(tmpdir, every_n_epochs):
     model = LogInTwoMethods()
     epochs = 5
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=every_n_epochs, period=None)
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmpdir,
+        filename='{epoch}',
+        save_top_k=-1,
+        every_n_epochs=every_n_epochs,
+        period=None
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
@@ -648,6 +662,7 @@ def test_model_checkpoint_every_n_epochs_and_no_period(tmpdir, every_n_epochs):
     # check that the correct ckpts were created
     expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
+
 
 def test_ckpt_every_n_steps(tmpdir):
     """ Tests that the checkpoints are saved every n training steps. """
@@ -671,19 +686,17 @@ def test_ckpt_every_n_steps(tmpdir):
     )
 
     trainer.fit(model)
-    self.assertCountEqual(
-        os.listdir(tmpdir),
-        [
-            "step=15.ckpt",
-            "step=31.ckpt",
-            "step=47.ckpt",
-            "step=63.ckpt",
-            "step=79.ckpt",
-            "step=95.ckpt",
-            "step=111.ckpt",
-            "step=127.ckpt",
-        ],
-    )
+    expected = [
+        "step=15.ckpt",
+        "step=31.ckpt",
+        "step=47.ckpt",
+        "step=63.ckpt",
+        "step=79.ckpt",
+        "step=95.ckpt",
+        "step=111.ckpt",
+        "step=127.ckpt",
+    ]
+    assert set(os.listdir(tmpdir)) == set(expected)
 
 def test_ckpt_every_n_steps_and_every_n_epochs(tmpdir):
     """ Tests that checkpoints are taken every 30 steps and every epochs """
@@ -703,18 +716,16 @@ def test_ckpt_every_n_steps_and_every_n_epochs(tmpdir):
         logger=False,
     )
     trainer.fit(model)
-    self.assertCountEqual(
-        os.listdir(tmpdir),
-        [
-            "epoch=0-step=29.ckpt",
-            "epoch=0-step=59.ckpt",
-            "epoch=0-step=63.ckpt",
-            "epoch=1-step=89.ckpt",
-            "epoch=1-step=119.ckpt",
-            "epoch=1-step=127.ckpt",
-            "epoch=1-step=127-v0.ckpt",
-        ],
-    )
+    expected = [
+        "epoch=0-step=29.ckpt",
+        "epoch=0-step=59.ckpt",
+        "epoch=0-step=63.ckpt",
+        "epoch=1-step=89.ckpt",
+        "epoch=1-step=119.ckpt",
+        "epoch=1-step=127.ckpt",
+        "epoch=1-step=127-v0.ckpt",
+    ]
+    assert set(os.listdir(tmpdir)) == set(expected)
 
 
 def test_model_checkpoint_topk_zero(tmpdir):

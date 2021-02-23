@@ -98,17 +98,10 @@ class ModelCheckpoint(Callback):
         every_n_epochs: Interval (number of epochs) between checkpoints.
         every_n_batches: Interval (number of batches) between checkpoints.
         period: Interval (number of epochs) between checkpoints.
-<<<<<<< HEAD
-=======
 
             .. warning::
                This argument has been deprecated in v1.3 and will be removed in v1.5.
             Use ``every_n_epochs`` instead.
-        prefix: A string to put at the beginning of checkpoint filename.
-
-            .. warning::
-               This argument has been deprecated in v1.1 and will be removed in v1.3
->>>>>>> add tests
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
