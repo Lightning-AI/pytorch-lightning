@@ -517,13 +517,9 @@ def test_none_monitor_top_k(tmpdir):
 
 def test_invalid_every_n_epoch(tmpdir):
     """ Test that an exception is raised for every_n_epochs = 0 or < -1. """
-    with pytest.raises(
-        MisconfigurationException, match=r'Invalid value for every_n_epochs=0*'
-    ):
+    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_epochs=0*'):
         ModelCheckpoint(dirpath=tmpdir, every_n_epochs=0, period=None)
-    with pytest.raises(
-        MisconfigurationException, match=r'Invalid value for every_n_epochs=-2*'
-    ):
+    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_epochs=-2*'):
         ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-2, period=None)
 
     # These should not fail
@@ -533,13 +529,9 @@ def test_invalid_every_n_epoch(tmpdir):
 
 def test_invalid_every_n_batches(tmpdir):
     """ Test that an exception is raised for every_n_batches = 0 or < -1. """
-    with pytest.raises(
-        MisconfigurationException, match=r'Invalid value for every_n_batches=0*'
-    ):
+    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_batches=0*'):
         ModelCheckpoint(dirpath=tmpdir, every_n_batches=0)
-    with pytest.raises(
-        MisconfigurationException, match=r'Invalid value for every_n_batches=-2*'
-    ):
+    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_batches=-2*'):
         ModelCheckpoint(dirpath=tmpdir, every_n_batches=-2)
 
     # These should not fail
@@ -616,10 +608,7 @@ def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir,
-        filename='{epoch}',
-        save_top_k=-1,
-        every_n_epochs=every_n_epochs
+        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=every_n_epochs
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -642,11 +631,7 @@ def test_model_checkpoint_every_n_epochs_and_no_period(tmpdir, every_n_epochs):
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir,
-        filename='{epoch}',
-        save_top_k=-1,
-        every_n_epochs=every_n_epochs,
-        period=None
+        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=every_n_epochs, period=None
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -697,6 +682,7 @@ def test_ckpt_every_n_batches(tmpdir):
         "step=127.ckpt",
     ]
     assert set(os.listdir(tmpdir)) == set(expected)
+
 
 def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir):
     """ Tests that checkpoints are taken every 30 steps and every epochs """

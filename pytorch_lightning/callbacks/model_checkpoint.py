@@ -204,6 +204,7 @@ class ModelCheckpoint(Callback):
                 ' Please use `every_n_epochs` instead.', DeprecationWarning
             )
             self.every_n_epochs = period
+            self.period = period
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
