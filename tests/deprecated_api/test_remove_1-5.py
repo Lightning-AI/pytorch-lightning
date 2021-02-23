@@ -20,6 +20,7 @@ from torch import optim
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.trainer.callback_hook import warning_cache as hook_warning_cache
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
 
@@ -114,6 +115,7 @@ def test_v1_5_0_model_checkpoint_period(tmpdir):
 
 
 def test_v1_5_0_old_on_validation_epoch_end(tmpdir):
+    hook_warning_cache.clear()
 
     class OldSignature(Callback):
 
@@ -138,6 +140,7 @@ def test_v1_5_0_old_on_validation_epoch_end(tmpdir):
 
 
 def test_v1_5_0_old_on_test_epoch_end(tmpdir):
+    hook_warning_cache.clear()
 
     class OldSignature(Callback):
 
