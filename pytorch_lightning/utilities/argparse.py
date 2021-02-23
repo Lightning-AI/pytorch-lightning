@@ -19,6 +19,8 @@ from typing import Any, Dict, List, Tuple, Union
 
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_str
 
+ArgumentGroup = type(ArgumentParser().add_argument_group("fake"))
+
 
 def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
     """Create an instance from CLI arguments.
@@ -134,7 +136,12 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
     return name_type_default
 
 
-def add_argparse_args(cls, parent_parser: ArgumentParser, *, inplace=False) -> ArgumentParser:
+def add_argparse_args(
+    cls,
+    parent_parser: Union[ArgumentParser, ArgumentGroup],
+    *,
+    inplace=False,
+) -> Union[ArgumentParser, ArgumentGroup]:
     r"""Extends existing argparse by default `Trainer` attributes.
 
     Args:
@@ -160,9 +167,9 @@ def add_argparse_args(cls, parent_parser: ArgumentParser, *, inplace=False) -> A
         >>> parser = Trainer.add_argparse_args(parser)
         >>> args = parser.parse_args([])
 
-        # Option 2: Using add_argument_group().
+        # Option 2: Using add_argument_group(). Warning: Do not use the return value to parse args!
         >>> parser = argparse.ArgumentParser()
-        >>> parser = Trainer.add_argparse_args(parser.add_argument_group("pl.Trainer"), inplace=True)
+        >>> Trainer.add_argparse_args(parser.add_argument_group("pl.Trainer"), inplace=True)
         >>> args = parser.parse_args([])
     """
     if inplace:

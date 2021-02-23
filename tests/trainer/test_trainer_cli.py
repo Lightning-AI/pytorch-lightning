@@ -71,7 +71,7 @@ def test_add_argparse_args_redefined(cli_args):
 def test_add_argparse_via_argument_group(cli_args):
     """Simple test ensuring that passing an argument group still works"""
     parser = ArgumentParser(add_help=False)
-    parser = Trainer.add_argparse_args(
+    Trainer.add_argparse_args(
         parser.add_argument_group(title="pl.Trainer args"),
         inplace=True,
     )
