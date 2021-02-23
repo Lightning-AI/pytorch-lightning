@@ -40,7 +40,6 @@ def test_lightning_wrapper_module_methods(wrapper_class, stage):
         setattr(pl_module.trainer, p, p == prop)
 
     wrapped_module(batch, batch_idx)
-
     getattr(pl_module, step).assert_called_with(batch, batch_idx)
 
 
