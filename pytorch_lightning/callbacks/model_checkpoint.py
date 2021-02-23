@@ -86,18 +86,10 @@ class ModelCheckpoint(Callback):
             if ``save_top_k >= 2`` and the callback is called multiple
             times inside an epoch, the name of the saved file will be
             appended with a version count starting with ``v1``.
-        mode: one of {auto, min, max}.
-            If ``save_top_k != 0``, the decision
-            to overwrite the current save file is made
-            based on either the maximization or the
-            minimization of the monitored quantity. For `val_acc`,
-            this should be `max`, for `val_loss` this should
-            be `min`, etc. In `auto` mode, the direction is
-            automatically inferred from the name of the monitored quantity.
-
-            .. warning::
-               Setting ``mode='auto'`` has been deprecated in v1.1 and will be removed in v1.3.
-
+        mode: one of {min, max}.
+            If ``save_top_k != 0``, the decision to overwrite the current save file is made
+            based on either the maximization or the minimization of the monitored quantity.
+            For `val_acc`, this should be `max`, for `val_loss` this should be `min`, etc.
         save_weights_only: if ``True``, then only the model's weights will be
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
@@ -118,7 +110,7 @@ class ModelCheckpoint(Callback):
         MisconfigurationException:
             If ``save_top_k`` is neither ``None`` nor more than or equal to ``-1``,
             if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``, or
-            if ``mode`` is none of ``"min"``, ``"max"``, and ``"auto"``.
+            if ``mode`` is none of ``"min"``, ``"max"``.
         ValueError:
             If ``trainer.save_checkpoint`` is ``None``.
 
@@ -162,7 +154,7 @@ class ModelCheckpoint(Callback):
         save_last: Optional[bool] = None,
         save_top_k: Optional[int] = None,
         save_weights_only: bool = False,
-        mode: str = "auto",
+        mode: str = "min",
         period: int = 1,
     ):
         super().__init__()
@@ -288,18 +280,8 @@ class ModelCheckpoint(Callback):
             "max": (-torch_inf, "max"),
         }
 
-        if mode not in mode_dict and mode != 'auto':
-            raise MisconfigurationException(f"`mode` can be auto, {', '.join(mode_dict.keys())}, got {mode}")
-
-        # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
-        if mode == 'auto':
-            rank_zero_warn(
-                "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
-                " Default value for mode with be 'min' in v1.3.", DeprecationWarning
-            )
-
-            _condition = monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
-            mode_dict['auto'] = ((-torch_inf, "max") if _condition else (torch_inf, "min"))
+        if mode not in mode_dict:
+            raise MisconfigurationException(f"`mode` can be {', '.join(mode_dict.keys())}, got {mode}")
 
         self.kth_value, self.mode = mode_dict[mode]
 

@@ -21,13 +21,6 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 def test_v1_3_0_deprecated_arguments(tmpdir):
 
-    # Deprecate auto mode
-    with pytest.deprecated_call(match='will be removed in v1.3'):
-        ModelCheckpoint(mode='auto')
-
-    with pytest.deprecated_call(match='will be removed in v1.3'):
-        EarlyStopping(mode='auto')
-
     with pytest.deprecated_call(match="The setter for self.hparams in LightningModule is deprecated"):
 
         class DeprecatedHparamsModel(LightningModule):
