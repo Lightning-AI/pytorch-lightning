@@ -142,6 +142,10 @@ class DataConnector(object):
             self.trainer.datamodule = datamodule
             datamodule.trainer = self.trainer
 
+            # experimental feature for Flash
+            if hasattr(datamodule, "data_pipeline"):
+                model.data_pipeline = datamodule.data_pipeline
+
 
 class _PatchDataLoader(object):
     r"""

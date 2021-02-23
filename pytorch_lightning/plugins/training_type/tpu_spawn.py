@@ -269,7 +269,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return self.lightning_module.test_step(*args, **kwargs)
 
     def predict(self, *args, **kwargs):
-        return self.lightning_module.predict(*args, **kwargs)
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         """Save model/training states as a checkpoint file through state-dump and file-write.
