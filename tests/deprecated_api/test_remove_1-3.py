@@ -15,7 +15,20 @@
 
 import pytest
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
+
+
+def test_v1_3_0_deprecated_arguments(tmpdir):
+
+    with pytest.deprecated_call(match="The setter for self.hparams in LightningModule is deprecated"):
+
+        class DeprecatedHparamsModel(LightningModule):
+
+            def __init__(self, hparams):
+                super().__init__()
+                self.hparams = hparams
+
+        DeprecatedHparamsModel({})
 
 
 def test_v1_3_0_deprecated_arguments(tmpdir):

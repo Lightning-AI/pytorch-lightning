@@ -1806,6 +1806,21 @@ class LightningModule(
         # prevent any change
         return copy.deepcopy(self._hparams_initial)
 
+    @hparams.setter
+    def hparams(self, hp: Union[dict, Namespace, Any]):
+        # TODO: remove this method in v1.3.0.
+        rank_zero_warn(
+            "The setter for self.hparams in LightningModule is deprecated since v1.1.0 and will be"
+            " removed in v1.3.0. Replace the assignment `self.hparams = hparams` with "
+            " `self.save_hyperparameters()`.", DeprecationWarning
+        )
+        hparams_assignment_name = self.__get_hparams_assignment_variable()
+        self._hparams_name = hparams_assignment_name
+        self._set_hparams(hp)
+        # this resolves case when user does not uses `save_hyperparameters` and do hard assignement in init
+        if not hasattr(self, "_hparams_initial"):
+            self._hparams_initial = copy.deepcopy(self._hparams)
+
     def __get_hparams_assignment_variable(self):
         """
         looks at the code of the class to figure out what the user named self.hparams
