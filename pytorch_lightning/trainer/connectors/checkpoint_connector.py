@@ -402,8 +402,7 @@ class CheckpointConnector:
         if self.trainer.is_global_zero:
             # write the checkpoint dictionary on the file
 
-            if self.trainer.training_type_plugin:
-                checkpoint = self.trainer.training_type_plugin.on_save(checkpoint)
+            checkpoint = self.trainer.accelerator.on_save(checkpoint)
             try:
                 atomic_save(checkpoint, filepath)
             except AttributeError as err:

@@ -11,28 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, cast, Union
+from typing import Any, Union
 
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
-
-if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
-    from fairscale.optim import OSS
-    from fairscale.optim.grad_scaler import ShardedGradScaler
+from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 
 
-class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
-    """Mixed Precision for Sharded Training
+class FullShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
+    """Mixed Precision for Full Sharded Training
     """
-
-    def __init__(self):
-        super().__init__()
-        self.scaler = ShardedGradScaler()
 
     def clip_gradients(
         self, model: Any, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = float(2.0)
     ):
-        optimizer = cast(OSS, optimizer)
-        optimizer.clip_grad_norm(clip_val, norm_type=norm_type)
+        # Model manages clipping of gradients
+        model.clip_grad_norm_(clip_val, norm_type)

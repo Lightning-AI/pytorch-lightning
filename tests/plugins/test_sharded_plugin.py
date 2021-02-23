@@ -47,7 +47,7 @@ def test_invalid_apex_sharded(tmpdir):
     """
 
     model = BoringModel()
-    with pytest.raises(MisconfigurationException, match='Sharded Plugin is not supported with Apex AMP'):
+    with pytest.raises(MisconfigurationException, match='Sharded Plugins are not supported with Apex AMP'):
         trainer = Trainer(
             fast_dev_run=True,
             accelerator='ddp_sharded_spawn',

@@ -13,7 +13,7 @@
 # limitations under the License.
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_FULL_SHARDED_AVAILABLE
 
 LightningShardedDataParallel = None
 if _FAIRSCALE_AVAILABLE:
@@ -28,4 +28,23 @@ if _FAIRSCALE_AVAILABLE:
         if isinstance(model, ShardedDataParallel):
             model = model.module
 
+        return unwrap_lightning_module(model)
+
+
+LightningFullShardedDataParallel = None
+if _FAIRSCALE_FULL_SHARDED_AVAILABLE:
+    from fairscale.nn import FlattenParamsWrapper
+    from fairscale.nn.data_parallel import FullyShardedDataParallel
+
+    class LightningFullShardedDataParallel(_LightningModuleWrapperBase):
+        # Just do this for later docstrings
+        pass
+
+    def unwrap_lightning_module_full_sharded(wrapped_model) -> LightningModule:
+        model = wrapped_model
+        if isinstance(model, FullyShardedDataParallel):
+            model = model.module
+        # Additional check if we're using a flattened parameters buffer
+        if isinstance(model, FlattenParamsWrapper):
+            model = model.module
         return unwrap_lightning_module(model)

@@ -26,8 +26,8 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import (
     DDP2Plugin,
     DDPPlugin,
-    DDPShardedPlugin,
     DDPSpawnPlugin,
+    FullShardedPlugin,
     PrecisionPlugin,
     SingleDevicePlugin,
 )
@@ -396,7 +396,7 @@ def test_plugin_accelerator_choice(accelerator, plugin):
     Ensure that when a plugin and accelerator is passed in, that the plugin takes precedent.
     """
     trainer = Trainer(accelerator=accelerator, plugins=plugin, num_processes=2)
-    assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.accelerator.training_type_plugin, FullShardedPlugin)
 
     trainer = Trainer(plugins=plugin, num_processes=2)
-    assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.accelerator.training_type_plugin, FullShardedPlugin)

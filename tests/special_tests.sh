@@ -18,6 +18,7 @@ DEFAULTS="-m coverage run --source pytorch_lightning -a -m pytest --verbose --ca
 python ${DEFAULTS} tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_with_different_frequencies_ddp
 python ${DEFAULTS} tests/models/test_sync_batchnorm.py::test_sync_batchnorm_ddp
 python ${DEFAULTS} tests/plugins/test_deepspeed_plugin.py::test_deepspeed_multigpu
+python ${DEFAULTS} tests/plugins/test_full_sharded_plugin.py::test_full_sharded_plugin_checkpoint_multi_gpu
 python ${DEFAULTS} tests/plugins/test_rpc_plugin.py::test_rpc_function_calls_ddp
 python ${DEFAULTS} tests/plugins/test_rpc_sequential_plugin.py::test_rpc_sequential_plugin_manual
 python ${DEFAULTS} tests/plugins/test_rpc_sequential_plugin.py::test_rpc_sequential_plugin_manual_amp

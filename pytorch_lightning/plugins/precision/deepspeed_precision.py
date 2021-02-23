@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Any, Callable, Union
 
 import torch
 from torch.optim import Optimizer
@@ -54,7 +54,9 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
         return closure_loss
 
-    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = float(2.0)):
+    def clip_gradients(
+        self, model: Any, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = float(2.0)
+    ):
         """
         DeepSpeed handles clipping gradients via the training type plugin.
         """
