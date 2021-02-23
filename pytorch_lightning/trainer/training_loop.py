@@ -422,6 +422,9 @@ class TrainLoop:
         # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
+        # wraps into LightningOptimizer only for running step
+        optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
+
         # model hook
         model_ref.optimizer_step(
             self.trainer.current_epoch,
@@ -760,6 +763,10 @@ class TrainLoop:
                     # revert back to previous state
                     self.trainer.lightning_module.untoggle_optimizer(opt_idx)
 
+                if len(self.trainer.optimizers) > 1:
+                    # revert back to previous state
+                    self.trainer.get_model().untoggle_optimizer(opt_idx)
+
         return result
 
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
@@ -910,3 +917,9 @@ class TrainLoop:
 
         # reset for next set of accumulated grads
         self.accumulated_loss.reset()
+
+    def scale_closure_loss(self, loss: torch.Tensor) -> torch.Tensor:
+        model_ref = self.trainer.get_model()
+        if model_ref._running_manual_backward:
+            loss /= self.trainer.accumulate_grad_batches
+        return loss

@@ -273,6 +273,7 @@ Use this method to generate the val dataloader. Usually you just wrap the datase
         def val_dataloader(self):
             return DataLoader(self.mnist_val, batch_size=64)
 
+.. _datamodule-test-dataloader-label:
 
 .. _datamodule-test-dataloader-label:
 

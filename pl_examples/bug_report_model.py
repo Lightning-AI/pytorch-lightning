@@ -129,7 +129,6 @@ class BoringModel(LightningModule):
 def test_run():
 
     class TestModel(BoringModel):
-
         def on_train_epoch_start(self) -> None:
             print('override any method to prove your bug')
 

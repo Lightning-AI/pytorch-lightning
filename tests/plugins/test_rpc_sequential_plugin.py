@@ -192,6 +192,9 @@ class SequentialModelRPCManual(LightningModule):
 
 
 class SequentialModelRPCAutomatic(SequentialModelRPCManual):
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = True
 
     def __init__(self):
         super().__init__()

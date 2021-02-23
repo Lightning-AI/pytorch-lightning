@@ -84,6 +84,9 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
     """
 
     class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
 
         def __init__(self):
             super().__init__()
@@ -140,6 +143,9 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
     """
 
     class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
 
         def __init__(self):
             super().__init__()

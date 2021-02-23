@@ -554,7 +554,8 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
         callbacks=[ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=0, save_last=save_last)],
         max_epochs=max_epochs,
     )
-    trainer.fit(model)
+    with caplog.at_level(logging.INFO):
+        trainer.fit(model)
     assert caplog.messages.count('Saving latest checkpoint...') == save_last
 
 

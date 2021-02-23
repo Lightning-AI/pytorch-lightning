@@ -15,6 +15,7 @@ import functools
 import os
 import pickle
 from argparse import Namespace
+from copy import deepcopy
 
 import cloudpickle
 import pytest

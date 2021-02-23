@@ -60,6 +60,10 @@ class LightningOptimizer:
         return self._optimizer
 
     @property
+    def optimizer(self):
+        return self._optimizer
+
+    @property
     def defaults(self):
         return self._optimizer.defaults
 

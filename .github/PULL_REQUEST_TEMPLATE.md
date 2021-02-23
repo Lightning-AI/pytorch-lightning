@@ -1,6 +1,11 @@
 ## What does this PR do?
 
 <!--
+IMPORTANT:
+ We separated bug-fix PRs and feature PRs and they shall land in master and release/1.X-dev accordingly.
+ By default all PR are targeted to master which is correct for bug-fixes, but need to be change for features.
+ If you miss it we can still fix it for you, just ping us... :]
+
 Please include a summary of the change and which issue is fixed.
  Please also include relevant motivation and context.
  List any dependencies that are required for this change.

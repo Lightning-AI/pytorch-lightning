@@ -18,12 +18,16 @@ Tests to ensure that the training loop works with a dict (1.0)
 import collections
 import itertools
 import os
+import platform
 from unittest import mock
 
 import numpy as np
 import pytest
 import torch
-from torch.utils.data import Dataset
+from torch.nn import functional as F
+from torch.utils.data import DataLoader, Dataset, random_split
+from torchvision import transforms
+from torchvision.datasets.mnist import MNIST
 
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer

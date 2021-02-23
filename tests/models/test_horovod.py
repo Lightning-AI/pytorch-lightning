@@ -20,8 +20,8 @@ import sys
 
 import numpy as np
 import pytest
-import torch
 from sklearn.metrics import accuracy_score
+import torch
 
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils

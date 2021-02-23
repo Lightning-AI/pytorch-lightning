@@ -18,6 +18,8 @@ from torch.utils.data import DataLoader, Dataset, Subset
 
 from pytorch_lightning import LightningDataModule, LightningModule
 
+from pytorch_lightning import LightningModule
+
 
 class RandomDictDataset(Dataset):
 

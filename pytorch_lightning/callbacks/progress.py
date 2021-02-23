@@ -435,7 +435,7 @@ class ProgressBar(ProgressBarBase):
     def on_test_start(self, trainer, pl_module):
         super().on_test_start(trainer, pl_module)
         self.test_progress_bar = self.init_test_tqdm()
-        self.test_progress_bar.total = convert_inf(self.total_test_batches)
+        reset(self.test_progress_bar, self.total_test_batches)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)

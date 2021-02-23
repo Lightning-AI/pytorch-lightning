@@ -15,6 +15,7 @@
 import ast
 import csv
 import inspect
+import logging
 import os
 from argparse import Namespace
 from copy import deepcopy
@@ -32,6 +33,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
+log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 

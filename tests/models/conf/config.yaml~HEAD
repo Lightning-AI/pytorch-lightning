@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+defaults:
+  - training: default
 
+<<<<<<< HEAD:pytorch_lightning/trainer/ignored_warnings.py:pytorch_lightning/trainer/ignored_warnings.py
 import warnings
 
 
@@ -25,3 +28,6 @@ def ignore_scalar_return_in_dp():
 
 
 ignore_scalar_return_in_dp()
+=======
+log: ${training.log}
+>>>>>>> upstream/master:tests/models/conf/config.yaml:tests/models/conf/config.yaml
