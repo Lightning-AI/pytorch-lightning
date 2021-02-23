@@ -515,30 +515,6 @@ def test_none_monitor_top_k(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
 
 
-def test_invalid_every_n_epoch(tmpdir):
-    """ Test that an exception is raised for every_n_epochs = 0 or < -1. """
-    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_epochs=0*'):
-        ModelCheckpoint(dirpath=tmpdir, every_n_epochs=0, period=None)
-    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_epochs=-2*'):
-        ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-2, period=None)
-
-    # These should not fail
-    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-1, period=None)
-    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=3, period=None)
-
-
-def test_invalid_every_n_batches(tmpdir):
-    """ Test that an exception is raised for every_n_batches = 0 or < -1. """
-    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_batches=0*'):
-        ModelCheckpoint(dirpath=tmpdir, every_n_batches=0)
-    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_batches=-2*'):
-        ModelCheckpoint(dirpath=tmpdir, every_n_batches=-2)
-
-    # These should not fail
-    ModelCheckpoint(dirpath=tmpdir, every_n_batches=-1)
-    ModelCheckpoint(dirpath=tmpdir, every_n_batches=3)
-
-
 def test_none_monitor_save_last(tmpdir):
     """ Test that a warning appears for save_last=True with monitor=None. """
     with pytest.warns(UserWarning, match=r'ModelCheckpoint.*is a redundant.*'):
