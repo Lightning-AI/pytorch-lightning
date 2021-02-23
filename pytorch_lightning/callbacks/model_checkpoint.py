@@ -95,7 +95,20 @@ class ModelCheckpoint(Callback):
         save_weights_only: if ``True``, then only the model's weights will be
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
+        every_n_epochs: Interval (number of epochs) between checkpoints.
+        every_n_batches: Interval (number of batches) between checkpoints.
         period: Interval (number of epochs) between checkpoints.
+<<<<<<< HEAD
+=======
+
+            .. warning::
+               This argument has been deprecated in v1.3 and will be removed in v1.5.
+            Use ``every_n_epochs`` instead.
+        prefix: A string to put at the beginning of checkpoint filename.
+
+            .. warning::
+               This argument has been deprecated in v1.1 and will be removed in v1.3
+>>>>>>> add tests
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -167,10 +180,10 @@ class ModelCheckpoint(Callback):
         save_top_k: Optional[int] = None,
         save_weights_only: bool = False,
         mode: str = "min",
-        period: int = 1,
         auto_insert_metric_name: bool = True
         every_n_epochs: int = 1,
         every_n_batches: int = -1,
+        period: Optional[int] = None,
     ):
         super().__init__()
         self.monitor = monitor
@@ -211,6 +224,9 @@ class ModelCheckpoint(Callback):
         self.save_function = trainer.save_checkpoint
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        """
+        Save a checkpoint during the training loop if configured to do so.
+        """
         if self._should_skip_saving_checkpoint(trainer):
             return
         step = trainer.global_step
@@ -241,14 +257,6 @@ class ModelCheckpoint(Callback):
     def on_load_checkpoint(self, callback_state: Dict[str, Any]):
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
-
-    def _should_skip_saving_checkpoint(self, trainer) -> bool:
-        return (
-            trainer.fast_dev_run # disable checkpointing with fast_dev_run
-            or trainer.running_sanity_check  # don't save anything during sanity check
-            or self.save_top_k == 0 # no models are saved
-            or self._last_global_step_saved == global_step  # already saved at the last step
-        )
 
     def save_checkpoint(self, trainer, pl_module):
         """
@@ -283,13 +291,25 @@ class ModelCheckpoint(Callback):
         # Mode 3: save last checkpoints
         self._save_last_checkpoint(trainer, monitor_candidates)
 
+    def _should_skip_saving_checkpoint(self, trainer) -> bool:
+        return (
+            trainer.fast_dev_run  # disable checkpointing with fast_dev_run
+            or trainer.running_sanity_check  # don't save anything during sanity check
+            or self.save_top_k == 0  # no models are saved
+            or self._last_global_step_saved == global_step  # already saved at the last step
+        )
+
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
             raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
         if self.every_n_epochs == 0 or self.every_n_epochs < -1:
-            raise MisconfigurationException(f'Invalid value for every_n_epochs={self.every_n_epochs}. Must be positive or -1')
+            raise MisconfigurationException(
+                f'Invalid value for every_n_epochs={self.every_n_epochs}. Must be positive or -1'
+            )
         if self.every_n_batches == 0 or self.every_n_batches < -1:
-            raise MisconfigurationException(f'Invalid value for every_n_batches={self.every_n_batches}. Must be positive or -1')
+            raise MisconfigurationException(
+                f'Invalid value for every_n_batches={self.every_n_batches}. Must be positive or -1'
+            )
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
             if self.save_top_k not in (None, -1, 0):

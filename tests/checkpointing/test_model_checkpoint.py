@@ -514,6 +514,36 @@ def test_none_monitor_top_k(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
     ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
 
+def test_invalid_every_n_epoch(tmpdir):
+    """ Test that an exception is raised for every_n_epochs = 0 or < -1. """
+    with pytest.raises(
+        MisconfigurationException, match=r'Invalid value for every_n_epochs=0*'
+    ):
+        ModelCheckpoint(dirpath=tmpdir, every_n_epochs=0)
+    with pytest.raises(
+        MisconfigurationException, match=r'Invalid value for every_n_epochs=-2*'
+    ):
+        ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-2)
+
+    # These should not fail
+    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-1)
+    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=3)
+
+def test_invalid_every_n_batches(tmpdir):
+    """ Test that an exception is raised for every_n_batches = 0 or < -1. """
+    with pytest.raises(
+        MisconfigurationException, match=r'Invalid value for every_n_batches=0*'
+    ):
+        ModelCheckpoint(dirpath=tmpdir, every_n_batches=0)
+    with pytest.raises(
+        MisconfigurationException, match=r'Invalid value for every_n_batches=-2*'
+    ):
+        ModelCheckpoint(dirpath=tmpdir, every_n_batches=-2)
+
+    # These should not fail
+    ModelCheckpoint(dirpath=tmpdir, every_n_batches=-1)
+    ModelCheckpoint(dirpath=tmpdir, every_n_batches=3)
+
 
 def test_none_monitor_save_last(tmpdir):
     """ Test that a warning appears for save_last=True with monitor=None. """
@@ -576,6 +606,47 @@ def test_model_checkpoint_period(tmpdir, period: int):
 
     # check that the correct ckpts were created
     expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % period] if period > 0 else []
+    assert set(os.listdir(tmpdir)) == set(expected)
+
+
+@pytest.mark.parametrize("every_n_epochs", list(range(4)))
+def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
+    model = LogInTwoMethods()
+    epochs = 5
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=every_n_epochs)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint_callback],
+        max_epochs=epochs,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        val_check_interval=1.0,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    # check that the correct ckpts were created
+    expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
+    assert set(os.listdir(tmpdir)) == set(expected)
+
+@pytest.mark.parametrize("every_n_epochs", list(range(4)))
+def test_model_checkpoint_every_n_epochs_and_no_period(tmpdir, every_n_epochs):
+    model = LogInTwoMethods()
+    epochs = 5
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=every_n_epochs, period=None)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint_callback],
+        max_epochs=epochs,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        val_check_interval=1.0,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    # check that the correct ckpts were created
+    expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
