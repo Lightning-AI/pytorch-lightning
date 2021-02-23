@@ -102,10 +102,6 @@ class ModelCheckpoint(Callback):
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
         period: Interval (number of epochs) between checkpoints.
-        prefix: A string to put at the beginning of checkpoint filename.
-
-            .. warning::
-               This argument has been deprecated in v1.1 and will be removed in v1.3
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -168,7 +164,6 @@ class ModelCheckpoint(Callback):
         save_weights_only: bool = False,
         mode: str = "auto",
         period: int = 1,
-        prefix: str = "",
     ):
         super().__init__()
         self.monitor = monitor
@@ -178,7 +173,6 @@ class ModelCheckpoint(Callback):
         self.save_weights_only = save_weights_only
         self.period = period
         self._last_global_step_saved = -1
-        self.prefix = prefix
         self.current_score = None
         self.best_k_models = {}
         self.kth_best_model_path = ""
@@ -187,12 +181,6 @@ class ModelCheckpoint(Callback):
         self.last_model_path = ""
         self.save_function = None
         self.warned_result_obj = False
-
-        if prefix:
-            rank_zero_warn(
-                'Argument `prefix` is deprecated in v1.1 and will be removed in v1.3.'
-                ' Please prepend your prefix in `filename` instead.', DeprecationWarning
-            )
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
@@ -365,7 +353,6 @@ class ModelCheckpoint(Callback):
         epoch: int,
         step: int,
         metrics: Dict[str, Any],
-        prefix: str = "",
     ) -> str:
         if not filename:
             # filename is not set, use default name
@@ -381,9 +368,6 @@ class ModelCheckpoint(Callback):
                 if name not in metrics:
                     metrics[name] = 0
             filename = filename.format(**metrics)
-
-        if prefix:
-            filename = cls.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
 
         return filename
 
@@ -410,7 +394,7 @@ class ModelCheckpoint(Callback):
             'step=0.ckpt'
 
         """
-        filename = self._format_checkpoint_name(self.filename, epoch, step, metrics, prefix=self.prefix)
+        filename = self._format_checkpoint_name(self.filename, epoch, step, metrics)
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
 
@@ -523,7 +507,6 @@ class ModelCheckpoint(Callback):
                 trainer.current_epoch,
                 trainer.global_step,
                 ckpt_name_metrics,
-                prefix=self.prefix
             )
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
         else:
