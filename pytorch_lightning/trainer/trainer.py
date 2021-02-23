@@ -137,7 +137,6 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
-        enable_pl_optimizer: bool = None,  # todo: remove in v1.3
         multiple_trainloader_mode: str = 'max_size_cycle',
         stochastic_weight_avg: bool = False
     ):
@@ -288,11 +287,6 @@ class Trainer(
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
 
-            enable_pl_optimizer: If True, each optimizer will be wrapped by
-                `pytorch_lightning.core.optimizer.LightningOptimizer`. It allows Lightning to
-                handle AMP, TPU, accumulated_gradients, etc.
-                .. warning:: Currently deprecated and it will be removed in v1.3
-
             multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
                 In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
@@ -345,7 +339,7 @@ class Trainer(
         self.on_init_start()
 
         # init optimizer + lr scheduler related flags
-        self.optimizer_connector.on_trainer_init(enable_pl_optimizer)
+        self.optimizer_connector.on_trainer_init()
 
         # init data flags
         self.data_connector.on_trainer_init(

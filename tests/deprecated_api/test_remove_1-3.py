@@ -106,8 +106,3 @@ def test_v1_3_0_deprecated_metrics():
             torch.randint(10, 20, (50, )).float(),
             torch.randint(1, 100, (50, )).float()
         )
-
-
-def test_trainer_enable_pl_optimizer(tmpdir):
-    with pytest.deprecated_call(match='will be removed in v1.3'):
-        Trainer(enable_pl_optimizer=True)
