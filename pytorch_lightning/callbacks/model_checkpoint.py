@@ -209,7 +209,7 @@ class ModelCheckpoint(Callback):
         """
         checkpoints can be saved at the end of the val loop
         """
-        self.save_checkpoint(trainer, pl_module)
+        self.save_checkpoint(trainer)
 
     def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
         return {
@@ -224,12 +224,18 @@ class ModelCheckpoint(Callback):
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
 
-    def save_checkpoint(self, trainer, pl_module):
+    def save_checkpoint(self, trainer, unused: Optional = None):
         """
         Performs the main logic around saving a checkpoint.
         This method runs on all ranks, it is the responsibility of `self.save_function`
         to handle correct behaviour in distributed training, i.e., saving only on rank 0.
         """
+        if unused is not None:
+            rank_zero_warn(
+                "`ModelCheckpoint.save_checkpoint` signature has changed in v1.3. The `pl_module` parameter"
+                " has been removed. Support for the old signature will be removed in v1.5", DeprecationWarning
+            )
+
         epoch = trainer.current_epoch
         global_step = trainer.global_step
 
@@ -257,15 +263,15 @@ class ModelCheckpoint(Callback):
 
         # Mode 1: save the top k checkpoints
         if self.monitor is not None and self.save_top_k != 0:
-            self._save_top_k_checkpoint(trainer, pl_module, monitor_candidates)
+            self._save_top_k_checkpoint(trainer, monitor_candidates)
 
         # Mode 2: save monitor=None checkpoints
         if self.monitor is None and self.save_top_k in (None, -1):
-            self._save_none_monitor_checkpoint(trainer, pl_module, monitor_candidates)
+            self._save_none_monitor_checkpoint(trainer, monitor_candidates)
 
         # Mode 3: save last checkpoints
         if self.save_last:
-            self._save_last_checkpoint(trainer, pl_module, monitor_candidates)
+            self._save_last_checkpoint(trainer, monitor_candidates)
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
@@ -332,12 +338,12 @@ class ModelCheckpoint(Callback):
             self._fs.rm(filepath)
             log.debug(f"Removed checkpoint: {filepath}")
 
-    def _save_model(self, trainer, pl_module, filepath: str):
+    def _save_model(self, trainer, filepath: str):
         if trainer.training_type_plugin.rpc_enabled:
             # RPCPlugin manages saving all model states
             # TODO: the rpc pluging should wrap trainer.save_checkpoint
             # instead of us having to do it here manually
-            trainer.training_type_plugin.rpc_save_model(self._do_save, filepath, trainer, pl_module)
+            trainer.training_type_plugin.rpc_save_model(trainer, self._do_save, filepath)
         else:
             self._do_save(trainer, filepath)
 
@@ -530,7 +536,7 @@ class ModelCheckpoint(Callback):
         monitor_candidates.update(step=trainer.global_step, epoch=trainer.current_epoch)
         return monitor_candidates
 
-    def _save_last_checkpoint(self, trainer, pl_module, monitor_candidates: Dict[str, Any]):
+    def _save_last_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
         filepath = self._format_checkpoint_name(
             self.CHECKPOINT_NAME_LAST,
             trainer.current_epoch,
@@ -540,14 +546,14 @@ class ModelCheckpoint(Callback):
         )
         filepath = os.path.join(self.dirpath, f"{filepath}{self.FILE_EXTENSION}")
 
-        self._save_model(trainer, pl_module, filepath)
+        self._save_model(trainer, filepath)
 
         if self.last_model_path and self.last_model_path != filepath and trainer.is_global_zero:
             self._del_model(self.last_model_path)
 
         self.last_model_path = filepath
 
-    def _save_top_k_checkpoint(self, trainer, pl_module, monitor_candidates: Dict[str, Any]):
+    def _save_top_k_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
         current = monitor_candidates.get(self.monitor)
         epoch = monitor_candidates.get("epoch")
         step = monitor_candidates.get("step")
@@ -561,18 +567,18 @@ class ModelCheckpoint(Callback):
             current = trainer.training_type_plugin.reduce(current, reduce_op="mean")
 
         if self.check_monitor_top_k(current):
-            self._update_best_and_save(current, epoch, step, trainer, pl_module, monitor_candidates)
+            self._update_best_and_save(current, epoch, step, trainer, monitor_candidates)
         elif self.verbose:
             rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
-    def _save_none_monitor_checkpoint(self, trainer, pl_module, monitor_candidates: Dict[str, Any]):
+    def _save_none_monitor_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
         filepath = self._get_metric_interpolated_filepath_name(
             monitor_candidates,
             trainer.current_epoch,
             trainer.global_step,
             trainer,
         )
-        self._save_model(trainer, pl_module, filepath)
+        self._save_model(trainer, filepath)
 
         if (
             self.save_top_k is None
@@ -588,7 +594,7 @@ class ModelCheckpoint(Callback):
         return self.monitor in metrics or len(metrics) == 0
 
     def _update_best_and_save(
-        self, current: torch.Tensor, epoch: int, step: int, trainer, pl_module, monitor_candidates: Dict[str, Any]
+        self, current: torch.Tensor, epoch: int, step: int, trainer, monitor_candidates: Dict[str, Any]
     ):
         k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
 
@@ -622,7 +628,7 @@ class ModelCheckpoint(Callback):
                 f"Epoch {epoch:d}, global step {step:d}: {self.monitor} reached {current:0.5f}"
                 f' (best {self.best_model_score:0.5f}), saving model to "{filepath}" as top {k}'
             )
-        self._save_model(trainer, pl_module, filepath)
+        self._save_model(trainer, filepath)
 
         if del_filepath is not None and filepath != del_filepath:
             self._del_model(del_filepath)
