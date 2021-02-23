@@ -35,9 +35,8 @@ class ProfilerConnector:
     def on_trainer_init(self, profiler: Union[BaseProfiler, str]):
 
         if profiler and not isinstance(profiler, (str, BaseProfiler)):
-            # TODO: Update exception on removal of bool
             raise MisconfigurationException(
-                "Only None, bool, str and subclasses of `BaseProfiler`"
+                "Only None, str, and subclasses of `BaseProfiler`"
                 " are valid values for `Trainer`'s `profiler` parameter."
                 f" Received {profiler} which is of type {type(profiler)}."
             )
