@@ -218,13 +218,10 @@ class ModelCheckpoint(Callback):
         self.save_function = trainer.save_checkpoint
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
-        """
-        Save a checkpoint during the training loop if configured to do so.
-        """
         if self._should_skip_saving_checkpoint(trainer):
             return
         step = trainer.global_step
-        skip_step = self.every_n_batches < 1 or ((step + 1) % self.every_n_batches != 0)
+        skip_step = self.every_n_steps < 1 or ((step + 1) % self.every_n_steps != 0)
         if skip_step:
             return
         self.save_checkpoint(trainer, pl_module)
@@ -251,6 +248,14 @@ class ModelCheckpoint(Callback):
     def on_load_checkpoint(self, callback_state: Dict[str, Any]):
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
+
+    def _should_skip_saving_checkpoint(self, trainer) -> bool:
+        return (
+            trainer.fast_dev_run # disable checkpointing with fast_dev_run
+            or trainer.running_sanity_check  # don't save anything during sanity check
+            or self.save_top_k == 0 # no models are saved
+            or self._last_global_step_saved == global_step  # already saved at the last step
+        )
 
     def save_checkpoint(self, trainer, pl_module):
         """
@@ -296,6 +301,10 @@ class ModelCheckpoint(Callback):
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
             raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
+        if self.every_n_epochs == 0 or self.every_n_epochs < -1:
+            raise MisconfigurationException(f'Invalid value for every_n_epochs={self.every_n_epochs}. Must be positive or -1')
+        if self.every_n_batches == 0 or self.every_n_batches < -1:
+            raise MisconfigurationException(f'Invalid value for every_n_batches={self.every_n_batches}. Must be positive or -1')
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
             if self.save_top_k not in (None, -1, 0):
