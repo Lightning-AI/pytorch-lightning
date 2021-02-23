@@ -65,7 +65,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_optimizer_step(
         self, pl_module: 'LightningModule', optimizer: 'Optimizer', optimizer_idx: int, lambda_closure: Callable,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> bool:
         """always called before the optimizer step.
         Checks that the optimizer is not LBFGS, as this one is not supported by native amp

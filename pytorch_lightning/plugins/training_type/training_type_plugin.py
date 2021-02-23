@@ -37,8 +37,7 @@ class TrainingTypePlugin(Plugin, ABC):
 
     @abstractmethod
     def connect(self, model: 'Module') -> None:
-        """Called by the accelerator to connect it with this plugin
-        """
+        """Called by the accelerator to connect it with this plugin"""
 
     @property
     @abstractmethod
