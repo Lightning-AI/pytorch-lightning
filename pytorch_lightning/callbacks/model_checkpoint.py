@@ -260,18 +260,12 @@ class ModelCheckpoint(Callback):
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
-
         # Mode 1: save the top k checkpoints
-        if self.monitor is not None and self.save_top_k != 0:
-            self._save_top_k_checkpoint(trainer, monitor_candidates)
-
+        self._save_top_k_checkpoint(trainer, monitor_candidates)
         # Mode 2: save monitor=None checkpoints
-        if self.monitor is None and self.save_top_k in (None, -1):
-            self._save_none_monitor_checkpoint(trainer, monitor_candidates)
-
+        self._save_none_monitor_checkpoint(trainer, monitor_candidates)
         # Mode 3: save last checkpoints
-        if self.save_last:
-            self._save_last_checkpoint(trainer, monitor_candidates)
+        self._save_last_checkpoint(trainer, monitor_candidates)
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
@@ -537,6 +531,9 @@ class ModelCheckpoint(Callback):
         return monitor_candidates
 
     def _save_last_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
+        if not self.save_last:
+            return
+
         filepath = self._format_checkpoint_name(
             self.CHECKPOINT_NAME_LAST,
             trainer.current_epoch,
@@ -554,6 +551,9 @@ class ModelCheckpoint(Callback):
         self.last_model_path = filepath
 
     def _save_top_k_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
+        if self.monitor is None or self.save_top_k == 0:
+            return
+
         current = monitor_candidates.get(self.monitor)
         epoch = monitor_candidates.get("epoch")
         step = monitor_candidates.get("step")
@@ -572,6 +572,9 @@ class ModelCheckpoint(Callback):
             rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
     def _save_none_monitor_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
+        if self.monitor is not None:
+            return
+
         filepath = self._get_metric_interpolated_filepath_name(
             monitor_candidates,
             trainer.current_epoch,
