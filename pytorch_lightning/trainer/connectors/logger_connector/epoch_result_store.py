@@ -235,7 +235,7 @@ class EpochResultStore:
         """
         This function provides necessary parameters to properly configure HookResultStore obj
         """
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
         return {
             "batch_idx": self.trainer.batch_idx,
             "fx_name": model_ref._current_hook_fx_name or model_ref._current_fx_name,
@@ -252,7 +252,7 @@ class EpochResultStore:
         """
         This function is used to reset model state at the end of the capture
         """
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
         model_ref._results = Result()
         model_ref._current_hook_fx_name = None
         model_ref._current_fx_name = ''
@@ -263,7 +263,7 @@ class EpochResultStore:
         and store the result object
         """
         with self.trainer.profiler.profile("cache_result"):
-            model_ref = self.trainer.get_model()
+            model_ref = self.trainer.lightning_module
 
             # extract hook results
             hook_result = model_ref._results

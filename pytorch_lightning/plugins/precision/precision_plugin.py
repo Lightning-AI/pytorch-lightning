@@ -24,7 +24,8 @@ from pytorch_lightning.plugins.base_plugin import Plugin
 
 class PrecisionPlugin(Plugin):
     """ Plugin handling the precision-specific parts of the training.
-    The static classattributes EPSILON and precision must be overwritten in child-classes and their default values reflect fp32 training
+    The static classattributes EPSILON and precision must be overwritten in child-classes and their
+    default values reflect fp32 training.
     """
     EPSILON = 1e-6
     precision = 32

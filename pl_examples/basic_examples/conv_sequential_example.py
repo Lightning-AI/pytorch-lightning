@@ -18,7 +18,7 @@ This script splits a convolutional model onto multiple GPUs, whilst using the in
 to balance across your GPUs.
 
 To run:
-python conv_model_sequential_example.py --accelerator ddp --gpus 4 --max_epochs 1  --batch_size 256 --use_ddp_sequential
+python conv_model_sequential_example.py --accelerator ddp --gpus 4 --max_epochs 1  --batch_size 256 --use_rpc_sequential
 """
 import math
 from argparse import ArgumentParser
@@ -32,7 +32,7 @@ import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import Trainer
 from pytorch_lightning.metrics.functional import accuracy
-from pytorch_lightning.plugins.legacy.ddp_sequential_plugin import DDPSequentialPlugin
+from pytorch_lightning.plugins import RPCSequentialPlugin
 from pytorch_lightning.utilities import _BOLTS_AVAILABLE, _FAIRSCALE_PIPE_AVAILABLE
 
 if _BOLTS_AVAILABLE:
@@ -200,20 +200,21 @@ def instantiate_datamodule(args):
 
 if __name__ == "__main__":
     cli_lightning_logo()
-    parser = ArgumentParser(description="Pipe Example")
-    parser.add_argument("--use_ddp_sequential", action="store_true")
-    parser = Trainer.add_argparse_args(parser)
-    parser = pl_bolts.datamodules.CIFAR10DataModule.add_argparse_args(parser)
-    args = parser.parse_args()
 
     assert _BOLTS_AVAILABLE, "Bolts is required for this example, install it via pip install pytorch-lightning-bolts"
     assert _FAIRSCALE_PIPE_AVAILABLE, "FairScale and PyTorch 1.6 is required for this example."
 
+    parser = ArgumentParser(description="Pipe Example")
+    parser.add_argument("--use_rpc_sequential", action="store_true")
+    parser = Trainer.add_argparse_args(parser)
+    parser = pl_bolts.datamodules.CIFAR10DataModule.add_argparse_args(parser)
+    args = parser.parse_args()
+
     cifar10_dm = instantiate_datamodule(args)
 
     plugins = None
-    if args.use_ddp_sequential:
-        plugins = DDPSequentialPlugin()
+    if args.use_rpc_sequential:
+        plugins = RPCSequentialPlugin()
 
     model = LitResnet(batch_size=args.batch_size, manual_optimization=not args.automatic_optimization)
 
@@ -221,6 +222,6 @@ if __name__ == "__main__":
     trainer.fit(model, cifar10_dm)
     trainer.test(model, datamodule=cifar10_dm)
 
-    if trainer.accelerator_backend.rpc_enabled:
+    if trainer.accelerator.rpc_enabled:
         # Called at the end of trainer to ensure all processes are killed
-        trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
+        trainer.training_type_plugin.exit_rpc_process()

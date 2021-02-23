@@ -23,6 +23,7 @@ from torch import nn
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -62,6 +63,12 @@ class StochasticWeightAveraging(Callback):
 
         .. warning:: ``StochasticWeightAveraging`` is currently not supported for multiple optimizers/schedulers.
 
+        SWA can easily be activated directly from the Trainer as follow:
+
+        .. code-block:: python
+
+            Trainer(stochastic_weight_avg=True)
+
         Arguments:
 
             swa_epoch_start: If provided as int, the procedure will start from
@@ -96,8 +103,10 @@ class StochasticWeightAveraging(Callback):
             raise MisconfigurationException(err_msg)
 
         if (
-            not isinstance(swa_lrs, (float, list)) or isinstance(swa_lrs, float) and swa_lrs <= 0
-            or isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)
+            swa_lrs is not None and (
+                not isinstance(swa_lrs, (float, list)) or isinstance(swa_lrs, float) and swa_lrs <= 0
+                or isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)
+            )
         ):
             raise MisconfigurationException("The `swa_lrs` should be a positive float or a list of positive float.")
 
@@ -131,11 +140,13 @@ class StochasticWeightAveraging(Callback):
     def on_before_accelerator_backend_setup(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         # copy the model before moving it to accelerator device.
         self._average_model = deepcopy(pl_module)
+
+    def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         optimizers = trainer.optimizers
         lr_schedulers = trainer.lr_schedulers
 
-        if len(optimizers) > 1:
-            raise MisconfigurationException("SWA currently not supported for more than 1 `optimizer`.")
+        if len(optimizers) != 1:
+            raise MisconfigurationException("SWA currently works with 1 `optimizer`.")
 
         if len(lr_schedulers) > 1:
             raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
@@ -156,18 +167,37 @@ class StochasticWeightAveraging(Callback):
             self._average_model = self._average_model.to(self._device or pl_module.device)
 
             optimizers = trainer.optimizers
-            lr_scheduler = trainer.lr_schedulers[0]["scheduler"]
+
+            for param_group in optimizers[0].param_groups:
+                if self._swa_lrs is None:
+                    initial_lr = param_group["lr"]
+
+                elif isinstance(self._swa_lrs, float):
+                    initial_lr = self._swa_lrs
+
+                else:
+                    initial_lr = self._swa_lrs[0]
+
+                param_group["initial_lr"] = initial_lr
+
+            self._swa_lrs = initial_lr
 
             self._swa_scheduler = SWALR(
                 optimizers[0],
-                swa_lr=self._swa_lrs,
+                swa_lr=initial_lr,
                 anneal_epochs=self._annealing_epochs,
                 anneal_strategy=self._annealing_strategy,
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1
             )
 
-            rank_zero_warn(f"Swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
-            trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
+            if trainer.lr_schedulers:
+                lr_scheduler = trainer.lr_schedulers[0]["scheduler"]
+                rank_zero_warn(f"Swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
+                trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
+            else:
+                _scheduler_config = _get_default_scheduler_config()
+                _scheduler_config["scheduler"] = self._swa_scheduler
+                trainer.lr_schedulers.append(_scheduler_config)
 
             self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
 

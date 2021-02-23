@@ -19,12 +19,13 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 
 
-class _LightningModuleWrapperBase(torch.nn.Module):
+class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 
     def __init__(self, pl_module: LightningModule):
         """
@@ -54,15 +55,26 @@ class _LightningModuleWrapperBase(torch.nn.Module):
             if not self.module.automatic_optimization:
                 self.module.trainer.model.require_backward_grad_sync = False
             warn_if_output_is_none(output, "training_step")
+
         elif running_stage == RunningStage.TESTING:
             output = self.module.test_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "test_step")
+
         elif running_stage == RunningStage.EVALUATING:
             output = self.module.validation_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "validation_step")
-        else:
+
+        elif running_stage == RunningStage.PREDICTING:
             output = self.module.predict(*inputs, **kwargs)
+            warn_if_output_is_none(output, "predict")
+
+        else:
+            output = self.module(*inputs, **kwargs)
+
         return output
+
+    def on_post_move_to_device(self):
+        pass
 
 
 def warn_if_output_is_none(output: Any, method_name: str) -> None:

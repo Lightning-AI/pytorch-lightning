@@ -99,7 +99,8 @@ def roc(
             range [0,num_classes-1]
         sample_weights: sample weights for each data point
 
-    Returns: 3-element tuple containing
+    Returns:
+        3-element tuple containing
 
         fpr:
             tensor with false positive rates.
@@ -112,6 +113,7 @@ def roc(
 
     Example (binary case):
 
+        >>> from pytorch_lightning.metrics.functional import roc
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 1, 1])
         >>> fpr, tpr, thresholds = roc(pred, target, pos_label=1)
@@ -124,6 +126,7 @@ def roc(
 
     Example (multiclass case):
 
+        >>> from pytorch_lightning.metrics.functional import roc
         >>> pred = torch.tensor([[0.75, 0.05, 0.05, 0.05],
         ...                      [0.05, 0.75, 0.05, 0.05],
         ...                      [0.05, 0.05, 0.75, 0.05],
@@ -139,7 +142,6 @@ def roc(
          tensor([1.7500, 0.7500, 0.0500]),
          tensor([1.7500, 0.7500, 0.0500]),
          tensor([1.7500, 0.7500, 0.0500])]
-
     """
     preds, target, num_classes, pos_label = _roc_update(preds, target, num_classes, pos_label)
     return _roc_compute(preds, target, num_classes, pos_label, sample_weights)

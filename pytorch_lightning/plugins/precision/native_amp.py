@@ -79,7 +79,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         if not pl_module.automatic_optimization:
             self.scaler.unscale_(optimizer)
-
             pl_module.trainer.call_hook("on_after_backward")
 
         return False
@@ -92,4 +91,5 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     @contextmanager
     def train_step_context(self) -> Generator[autocast, None, None]:
         """Enable autocast context"""
-        yield torch.cuda.amp.autocast()
+        with torch.cuda.amp.autocast():
+            yield
