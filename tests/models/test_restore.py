@@ -456,7 +456,7 @@ def test_dp_resume(tmpdir):
             dp_model.eval()
             new_trainer._running_stage = RunningStage.EVALUATING
 
-            dataloader = dm.train_dataloader()
+            dataloader = self.train_dataloader()
             tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
             self.on_train_start_called = True
 
