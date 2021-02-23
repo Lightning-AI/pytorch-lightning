@@ -118,12 +118,12 @@ def test_dp_test(tmpdir):
     results = trainer.test(datamodule=dm)
     assert 'test_acc' in results[0]
 
-    old_weights = model.c_d1.weight.clone().detach().cpu()
+    old_weights = model.layer_0.weight.clone().detach().cpu()
 
     results = trainer.test(model, datamodule=dm)
     assert 'test_acc' in results[0]
 
     # make sure weights didn't change
-    new_weights = model.c_d1.weight.clone().detach().cpu()
+    new_weights = model.layer_0.weight.clone().detach().cpu()
 
     assert torch.all(torch.eq(old_weights, new_weights))

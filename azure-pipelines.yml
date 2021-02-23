@@ -77,7 +77,7 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - script: |
-        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
+        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 -k "test_dp_"
       displayName: 'Testing: standard'
 
     - bash: |

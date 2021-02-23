@@ -85,6 +85,28 @@ class GenericValTestLossBoringModel(GenericParentValTestLossBoringModel[int]):
     pass
 
 
+class CustomClassificationModelDP(ClassificationModel):
+
+    def _step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        return {'logits': logits, 'y': y}
+
+    def training_step(self, batch, batch_idx):
+        out = self._step(batch, batch_idx)
+        loss = F.cross_entropy(out['logits'], out['y'])
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx)
+
+    def test_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx)
+
+    def validation_step_end(self, outputs):
+        self.log('val_acc', self.valid_acc(outputs['logits'], outputs['y']))
+
+
 def test_model_properties_resume_from_checkpoint(tmpdir):
     """
     Test that properties like `current_epoch` and `global_step`
@@ -197,27 +219,6 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
 
     tutils.set_random_master_port()
-
-    class CustomClassificationModelDP(ClassificationModel):
-
-        def _step(self, batch, batch_idx):
-            x, y = batch
-            logits = self(x)
-            return {'logits': logits, 'y': y}
-
-        def training_step(self, batch, batch_idx):
-            out = self._step(batch, batch_idx)
-            loss = F.cross_entropy(out['logits'], out['y'])
-            return loss
-
-        def validation_step(self, batch, batch_idx):
-            return self._step(batch, batch_idx)
-
-        def test_step(self, batch, batch_idx):
-            return self._step(batch, batch_idx)
-
-        def validation_step_end(self, outputs):
-            self.log('val_acc', self.valid_acc(outputs['logits'], outputs['y']))
 
     dm = ClassifDataModule()
     model = CustomClassificationModelDP(lr=0.1)
@@ -397,7 +398,8 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
-    model = BoringModel()
+    model = CustomClassificationModelDP(lr=0.1)
+    dm = ClassifDataModule()
 
     trainer_options = dict(max_epochs=1, gpus=2, accelerator='dp', default_root_dir=tmpdir)
 
@@ -415,7 +417,7 @@ def test_dp_resume(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.is_slurm_managing_tasks = True
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
     # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
     real_global_epoch = trainer.current_epoch + 1
@@ -438,7 +440,7 @@ def test_dp_resume(tmpdir):
     trainer_options['max_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
 
-    class CustomModel(BoringModel):
+    class CustomModel(CustomClassificationModelDP):
 
         def __init__(self):
             super().__init__()
@@ -454,7 +456,7 @@ def test_dp_resume(tmpdir):
             dp_model.eval()
             dp_model.module.module.running_stage = RunningStage.EVALUATING
 
-            dataloader = self.train_dataloader()
+            dataloader = dm.train_dataloader()
             tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
             self.on_train_start_called = True
 
@@ -462,7 +464,7 @@ def test_dp_resume(tmpdir):
     model = CustomModel()
 
     # fit new model which should load hpc weights
-    new_trainer.fit(model)
+    new_trainer.fit(model, datamodule=dm)
     assert model.on_train_start_called
 
     # test freeze on gpu
