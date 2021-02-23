@@ -39,7 +39,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed error message for AMP + CPU incompatibility ([#6107](https://github.com/PyTorchLightning/pytorch-lightning/pull/6107))
 
 
-- Expose DeepSpeed loss parameters to allow users to fix loss instability ([#6115](https://github.com/PyTorchLightning/pytorch-lightning/pull/6115)
+- Expose DeepSpeed loss parameters to allow users to fix loss instability ([#6115](https://github.com/PyTorchLightning/pytorch-lightning/pull/6115))
+
+
+- Fixed epoch level schedulers not being called when `val_check_interval < 1.0` ([#6075](https://github.com/PyTorchLightning/pytorch-lightning/pull/6075))
 
 
 ## [1.2.0] - 2021-02-18
@@ -192,8 +195,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Attempted SLURM auto resume call when non-shell call fails ([#6002](https://github.com/PyTorchLightning/pytorch-lightning/pull/6002))
 - Fixed wrapping optimizers upon assignment ([#6006](https://github.com/PyTorchLightning/pytorch-lightning/pull/6006))
 - Fixed allowing hashing of metrics with lists in their state ([#5939](https://github.com/PyTorchLightning/pytorch-lightning/pull/5939))
-
-- Fixed epoch level schedulers not being called when `val_check_interval!=1` ([#6075](https://github.com/PyTorchLightning/pytorch-lightning/pull/6075))
 
 
 ## [1.1.8] - 2021-02-08
