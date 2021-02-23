@@ -13,7 +13,11 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers import BoringModel
+<<<<<<< HEAD
 from tests.helpers.runif import RunIf
+=======
+from tests.helpers.utils import no_warning_call
+>>>>>>> no_warning_call
 
 
 @pytest.mark.parametrize("wrapper_class", [
@@ -36,6 +40,7 @@ def test_lightning_wrapper_module_methods(wrapper_class, stage):
 
     prop, step = stage
     pl_module.trainer.sanity_checking = False
+
     for p in ("training", "testing", "validating", "predicting"):
         setattr(pl_module.trainer, p, p == prop)
 
