@@ -23,7 +23,11 @@ from pytorch_lightning.profiler import (
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-PROFILERS = {"simple": SimpleProfiler, "advanced": AdvancedProfiler, "pytorch": PyTorchProfiler}
+PROFILERS = {
+    "simple": SimpleProfiler,
+    "advanced": AdvancedProfiler,
+    "pytorch": PyTorchProfiler,
+}
 
 
 class ProfilerConnector:
