@@ -250,7 +250,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
-        """Extends existing argparse by default `Trainer` attributes."""
+        """Extends existing argparse by default `LightningDataModule` attributes."""
         return add_argparse_args(cls, parent_parser, **kwargs)
 
     @classmethod
