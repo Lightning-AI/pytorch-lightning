@@ -21,7 +21,11 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         self.precision = precision
 
     def pre_optimizer_step(
-        self, pl_module: 'LightningModule', optimizer: 'Optimizer', optimizer_idx: int, lambda_closure: Callable,
+        self,
+        pl_module: 'LightningModule',
+        optimizer: 'Optimizer',
+        optimizer_idx: int,
+        lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
         deepspeed_engine = pl_module.trainer.model

@@ -152,7 +152,11 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
                     break
 
     def pre_optimizer_step(
-        self, pl_module: LightningModule, optimizer: 'Optimizer', optimizer_idx: int, lambda_closure: Callable,
+        self,
+        pl_module: LightningModule,
+        optimizer: 'Optimizer',
+        optimizer_idx: int,
+        lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
         """

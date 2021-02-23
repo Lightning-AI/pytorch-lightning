@@ -42,8 +42,12 @@ class PrecisionPlugin(Plugin):
             for p in group["params"]:
                 yield p
 
-    def connect(self, model: 'Module', optimizers: Sequence['Optimizer'],
-                lr_schedulers: Sequence[Any],) -> Tuple['Module', Sequence['Optimizer'], Sequence[Any]]:
+    def connect(
+        self,
+        model: 'Module',
+        optimizers: Sequence['Optimizer'],
+        lr_schedulers: Sequence[Any],
+    ) -> Tuple['Module', Sequence['Optimizer'], Sequence[Any]]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
@@ -81,7 +85,11 @@ class PrecisionPlugin(Plugin):
         return closure_loss
 
     def pre_optimizer_step(
-        self, pl_module: 'LightningModule', optimizer: 'Optimizer', optimizer_idx: int, lambda_closure: Callable,
+        self,
+        pl_module: 'LightningModule',
+        optimizer: 'Optimizer',
+        optimizer_idx: int,
+        lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""

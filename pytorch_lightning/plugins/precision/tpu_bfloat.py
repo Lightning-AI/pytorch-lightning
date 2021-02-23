@@ -26,7 +26,11 @@ class TPUHalfPrecisionPlugin(PrecisionPlugin):
 
     precision: int = 16
 
-    def connect(self, model: 'Module', optimizers: Sequence['Optimizer'],
-                lr_schedulers: Sequence[Any],) -> Tuple[Module, Sequence['Optimizer'], Sequence[Any]]:
+    def connect(
+        self,
+        model: 'Module',
+        optimizers: Sequence['Optimizer'],
+        lr_schedulers: Sequence[Any],
+    ) -> Tuple[Module, Sequence['Optimizer'], Sequence[Any]]:
         os.environ["XLA_USE_BF16"] = str(1)
         return super().connect(model=model, optimizers=optimizers, lr_schedulers=lr_schedulers)
