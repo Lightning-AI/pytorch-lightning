@@ -111,3 +111,31 @@ def test_v1_5_0_model_checkpoint_period(tmpdir):
         ModelCheckpoint(dirpath=tmpdir)
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         ModelCheckpoint(dirpath=tmpdir, period=1)
+
+
+def test_v1_5_0_old_callback_on_validation_epoch_end(tmpdir):
+
+    class OldSignature(Callback):
+
+        def on_validation_epoch_end(self, trainer, pl_module):  # noqa
+            ...
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
+
+    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
+        trainer.fit(model)
+
+
+def test_v1_5_0_old_callback_on_validation_epoch_end(tmpdir):
+
+    class OldSignature(Callback):
+
+        def on_test_epoch_end(self, trainer, pl_module):  # noqa
+            ...
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
+
+    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
+        trainer.test(model)
