@@ -19,6 +19,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Removed
 
 
+- Removed passing a `ModelCheckpoint` instance to `Trainer(checkpoint_callback)` ([#6165](https://github.com/PyTorchLightning/pytorch-lightning/pull/6165))
+
+
 ### Fixed
 
 - Fixed incorrect yield logic for the amp autocast context manager ([#6080](https://github.com/PyTorchLightning/pytorch-lightning/pull/6080))
