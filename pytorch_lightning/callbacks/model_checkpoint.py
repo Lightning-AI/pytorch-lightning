@@ -38,6 +38,8 @@ from pytorch_lightning.utilities.warnings import WarningCache
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
+log = logging.getLogger(__name__)
+
 
 class ModelCheckpoint(Callback):
     r"""
@@ -167,6 +169,8 @@ class ModelCheckpoint(Callback):
         mode: str = "min",
         period: int = 1,
         auto_insert_metric_name: bool = True
+        every_n_epochs: int = 1,
+        every_n_batches: int = -1,
     ):
         super().__init__()
         self.monitor = monitor
@@ -174,8 +178,10 @@ class ModelCheckpoint(Callback):
         self.save_last = save_last
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
-        self.period = period
         self.auto_insert_metric_name = auto_insert_metric_name
+        self.period = every_n_epochs
+        self.every_n_epochs = every_n_epochs
+        self.every_n_batches = every_n_batches
         self._last_global_step_saved = -1
         self.current_score = None
         self.best_k_models = {}
@@ -185,6 +191,13 @@ class ModelCheckpoint(Callback):
         self.last_model_path = ""
         self.save_function = None
         self.warned_result_obj = False
+
+        if period is not None:
+            rank_zero_warn(
+                'Argument `period` is deprecated in v1.3 and will be removed in v1.5.'
+                ' Please use `every_n_epochs` instead.', DeprecationWarning
+            )
+            self.every_n_epochs = period
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
@@ -197,11 +210,24 @@ class ModelCheckpoint(Callback):
         self.__resolve_ckpt_dir(trainer)
         self.save_function = trainer.save_checkpoint
 
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+        if self._should_skip_saving_checkpoint(trainer):
+            return
+        step = trainer.global_step
+        skip_step = self.every_n_steps < 1 or ((step + 1) % self.every_n_steps != 0)
+        if skip_step:
+            return
+        self.save_checkpoint(trainer, pl_module)
+
     def on_validation_end(self, trainer, pl_module):
         """
         checkpoints can be saved at the end of the val loop
         """
-        self.save_checkpoint(trainer)
+        if self._should_skip_saving_checkpoint(trainer) or self.every_n_epochs < 0:
+            return
+        epoch = trainer.current_epoch
+        if (epoch + 1) % self.every_n_epochs == 0:
+            self.save_checkpoint(trainer, pl_module)
 
     def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
@@ -216,7 +242,15 @@ class ModelCheckpoint(Callback):
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
 
-    def save_checkpoint(self, trainer, unused: Optional = None):
+    def _should_skip_saving_checkpoint(self, trainer) -> bool:
+        return (
+            trainer.fast_dev_run # disable checkpointing with fast_dev_run
+            or trainer.running_sanity_check  # don't save anything during sanity check
+            or self.save_top_k == 0 # no models are saved
+            or self._last_global_step_saved == global_step  # already saved at the last step
+        )
+
+    def save_checkpoint(self, trainer, pl_module):
         """
         Performs the main logic around saving a checkpoint.
         This method runs on all ranks, it is the responsibility of `self.save_function`
@@ -230,17 +264,6 @@ class ModelCheckpoint(Callback):
 
         epoch = trainer.current_epoch
         global_step = trainer.global_step
-
-        from pytorch_lightning.trainer.states import TrainerState
-        if (
-            trainer.fast_dev_run  # disable checkpointing with fast_dev_run
-            or trainer.state != TrainerState.FITTING  # don't save anything during non-fit
-            or trainer.sanity_checking  # don't save anything during sanity check
-            or self.period < 1  # no models are saved
-            or (epoch + 1) % self.period  # skip epoch
-            or self._last_global_step_saved == global_step  # already saved at the last step
-        ):
-            return
 
         self._add_backward_monitor_support(trainer)
         self._validate_monitor_key(trainer)
@@ -263,6 +286,10 @@ class ModelCheckpoint(Callback):
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
             raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
+        if self.every_n_epochs == 0 or self.every_n_epochs < -1:
+            raise MisconfigurationException(f'Invalid value for every_n_epochs={self.every_n_epochs}. Must be positive or -1')
+        if self.every_n_batches == 0 or self.every_n_batches < -1:
+            raise MisconfigurationException(f'Invalid value for every_n_batches={self.every_n_batches}. Must be positive or -1')
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
             if self.save_top_k not in (None, -1, 0):
