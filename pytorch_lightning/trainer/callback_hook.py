@@ -284,6 +284,6 @@ class TrainerCallbackHookMixin(ABC):
     @staticmethod
     def _is_param_in_hook_signature(hook_fx: Callable, param: str) -> bool:
         hook_params = list(inspect.signature(hook_fx).parameters)
-        if param in hook_params:
+        if "args" in hook_params or param in hook_params:
             return True
         return False

@@ -335,7 +335,7 @@ class EvaluationLoop(object):
             if is_overridden(hook_name, model_ref):
                 model_hook_fx = getattr(model_ref, hook_name)
                 model_hook_params = list(inspect.signature(model_hook_fx).parameters)
-                if "outputs" in model_hook_params:
+                if "args" in model_hook_params or "outputs" in model_hook_params:
                     model_hook_fx(outputs)
                 else:
                     self.warning_cache.warn(
