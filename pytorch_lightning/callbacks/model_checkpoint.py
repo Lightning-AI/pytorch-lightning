@@ -335,7 +335,7 @@ class ModelCheckpoint(Callback):
     def _save_model(self, trainer, filepath: str):
         if trainer.training_type_plugin.rpc_enabled:
             # RPCPlugin manages saving all model states
-            # TODO: the rpc pluging should wrap trainer.save_checkpoint
+            # TODO: the rpc plugin should wrap trainer.save_checkpoint
             # instead of us having to do it here manually
             trainer.training_type_plugin.rpc_save_model(trainer, self._do_save, filepath)
         else:
