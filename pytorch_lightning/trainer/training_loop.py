@@ -734,6 +734,9 @@ class TrainLoop:
         wrap the forward step in a closure so second order methods work
         """
         with self.trainer.profiler.profile("training_step_and_backward"):
+            if self.automatic_optimization and isinstance(optimizer, torch.optim.LBFGS):
+                optimizer.zero_grad()
+
             # lightning module hook
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
