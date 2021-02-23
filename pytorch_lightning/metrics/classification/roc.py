@@ -50,6 +50,7 @@ class ROC(Metric):
 
     Example (binary case):
 
+        >>> from pytorch_lightning.metrics import ROC
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 1, 1])
         >>> roc = ROC(pos_label=1)
@@ -63,6 +64,7 @@ class ROC(Metric):
 
     Example (multiclass case):
 
+        >>> from pytorch_lightning.metrics import ROC
         >>> pred = torch.tensor([[0.75, 0.05, 0.05, 0.05],
         ...                      [0.05, 0.75, 0.05, 0.05],
         ...                      [0.05, 0.05, 0.75, 0.05],
@@ -128,7 +130,8 @@ class ROC(Metric):
         """
         Compute the receiver operating characteristic
 
-        Returns: 3-element tuple containing
+        Returns:
+            3-element tuple containing
 
             fpr:
                 tensor with false positive rates.
@@ -138,7 +141,6 @@ class ROC(Metric):
                 If multiclass, this is a list of such tensors, one for each class.
             thresholds:
                 thresholds used for computing false- and true postive rates
-
         """
         preds = torch.cat(self.preds, dim=0)
         target = torch.cat(self.target, dim=0)

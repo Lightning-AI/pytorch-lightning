@@ -59,7 +59,6 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
-from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -450,7 +449,7 @@ class Trainer(
         # bookkeeping
         # we reuse fit in .test() and .predict(). When already set, it shouldn't be modified.
         if self._running_stage is None:
-            self._set_running_stage(RunningStage.TRAINING, model)
+            self._running_stage = RunningStage.TRAINING
 
         # set local properties on the model
         self.model_connector.copy_trainer_model_properties(model)
@@ -531,7 +530,7 @@ class Trainer(
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
 
-        self._set_running_stage(None, model)
+        self._running_stage = None
 
         return self.accelerator.results or 1
 
@@ -563,14 +562,6 @@ class Trainer(
             results = self.run_train()
 
         return results
-
-    def _set_running_stage(self, stage: LightningEnum, model_ref: LightningModule):
-        """
-        This function is used to set the running_state on both
-        the trainer and the model
-        """
-        model_ref.running_stage = stage
-        self._running_stage = stage
 
     def _pre_training_routine(self):
         # wait for all to join if on distributed
@@ -614,7 +605,7 @@ class Trainer(
         self.run_sanity_check(self.lightning_module)
 
         # set stage for logging
-        self._set_running_stage(RunningStage.TRAINING, self.lightning_module)
+        self._running_stage = RunningStage.TRAINING
 
         self.checkpoint_connector.has_trained = False
 
@@ -678,9 +669,7 @@ class Trainer(
     def run_evaluation(self, max_batches=None, on_epoch=False):
 
         # used to know if we are logging for val, test + reset cached results
-        self._set_running_stage(
-            RunningStage.TESTING if self.testing else RunningStage.EVALUATING, self.lightning_module
-        )
+        self._running_stage = RunningStage.TESTING if self.testing else RunningStage.EVALUATING
         self.logger_connector.reset()
 
         # bookkeeping
@@ -907,7 +896,7 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
-        self._set_running_stage(RunningStage.TESTING, model or self.lightning_module)
+        self._running_stage = RunningStage.TESTING
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -924,7 +913,7 @@ class Trainer(
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
         self.teardown('test')
-        self._set_running_stage(None, model or self.lightning_module)
+        self._running_stage = None
         return results
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
@@ -1016,7 +1005,7 @@ class Trainer(
 
         model = model or self.lightning_module
 
-        self._set_running_stage(RunningStage.PREDICTING, model)
+        self._running_stage = RunningStage.PREDICTING
 
         if dataloaders and datamodule:
             raise MisconfigurationException(
@@ -1033,7 +1022,7 @@ class Trainer(
 
         self.model = model
         results = self.fit(model)
-        self._set_running_stage(None, model)
+        self._running_stage = None
 
         return results
 

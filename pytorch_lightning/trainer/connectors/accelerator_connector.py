@@ -163,6 +163,9 @@ class AcceleratorConnector(object):
 
         for plug in plugins:
             if isinstance(plug, str):
+                # Reset the distributed type as the user has overridden training type
+                # via the plugins argument
+                self._distrib_type = None
                 self.set_distributed_mode(plug)
 
             elif isinstance(plug, TrainingTypePlugin):
@@ -196,7 +199,6 @@ class AcceleratorConnector(object):
                 )
 
         self._training_type_plugin = training_type
-        self._training_type_plugin = self.training_type_plugin
         self._precision_plugin = precision
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
@@ -515,6 +517,9 @@ class AcceleratorConnector(object):
                 rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
                 self._distrib_type = None
 
+        # finished configuring self._distrib_type, check ipython environment
+        self.check_interactive_compatibility()
+
         # for DDP overwrite nb processes by requested GPUs
         if (
             self._device_type == DeviceType.GPU
@@ -555,6 +560,19 @@ class AcceleratorConnector(object):
             self.parallel_device_ids = list(range(hvd.local_size()))
         else:
             self.num_processes = hvd.local_size()
+
+    def check_interactive_compatibility(self):
+        """
+        Raises a `MisconfigurationException` if the accelerator and/or plugin
+        is not compatible with an interactive environment
+        """
+        from pytorch_lightning.utilities import _IS_INTERACTIVE
+        if _IS_INTERACTIVE and self._distrib_type is not None and not self._distrib_type.is_interactive_compatible():
+            raise MisconfigurationException(
+                f"Selected distributed backend {self._distrib_type} is not compatible with an interactive"
+                " environment. Run your code as a script, or choose one of the compatible backends:"
+                f" {', '.join(DistributedType.interactive_compatible_types())}"
+            )
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
