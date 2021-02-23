@@ -127,7 +127,7 @@ def test_v1_5_0_old_callback_on_validation_epoch_end(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_5_0_old_callback_on_validation_epoch_end(tmpdir):
+def test_v1_5_0_old_callback_on_test_epoch_end(tmpdir):
 
     class OldSignature(Callback):
 
