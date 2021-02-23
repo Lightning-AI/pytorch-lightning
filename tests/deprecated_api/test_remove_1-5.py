@@ -113,7 +113,7 @@ def test_v1_5_0_model_checkpoint_period(tmpdir):
         ModelCheckpoint(dirpath=tmpdir, period=1)
 
 
-def test_v1_5_0_old_callback_on_validation_epoch_end(tmpdir):
+def test_v1_5_0_old_on_validation_epoch_end(tmpdir):
 
     class OldSignature(Callback):
 
@@ -126,8 +126,18 @@ def test_v1_5_0_old_callback_on_validation_epoch_end(tmpdir):
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
 
+    class OldSignatureModel(BoringModel):
 
-def test_v1_5_0_old_callback_on_test_epoch_end(tmpdir):
+        def on_validation_epoch_end(self):  # noqa
+            ...
+
+    model = OldSignatureModel()
+
+    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
+        trainer.fit(model)
+
+
+def test_v1_5_0_old_on_test_epoch_end(tmpdir):
 
     class OldSignature(Callback):
 
@@ -136,6 +146,16 @@ def test_v1_5_0_old_callback_on_test_epoch_end(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
+
+    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
+        trainer.test(model)
+
+    class OldSignatureModel(BoringModel):
+
+        def on_test_epoch_end(self):  # noqa
+            ...
+
+    model = OldSignatureModel()
 
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
         trainer.test(model)
