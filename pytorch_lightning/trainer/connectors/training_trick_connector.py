@@ -35,8 +35,9 @@ class TrainingTricksConnector:
 
         # gradient clipping
         if gradient_clip_algorithm not in [GradClipAlgorithmType.VALUE, GradClipAlgorithmType.NORM]:
-            raise MisconfigurationException(f"gradient_clip_algorithm should be "
-                                            f"'{GradClipAlgorithmType.VALUE}' or '{GradClipAlgorithmType.NORM}'")
+            raise MisconfigurationException(
+                f"gradient_clip_algorithm should be '{GradClipAlgorithmType.VALUE}' or '{GradClipAlgorithmType.NORM}'"
+            )
         self.trainer.gradient_clip_val = gradient_clip_val
         self.trainer.gradient_clip_algorithm = gradient_clip_algorithm
 

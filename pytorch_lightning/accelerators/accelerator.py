@@ -288,10 +288,10 @@ class Accelerator(object):
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
     def clip_gradients(
-            self,
-            optimizer: Optimizer,
-            clip_val: Union[int, float],
-            gradient_clip_algorithm: str = GradClipAlgorithmType.NORM,
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float],
+        gradient_clip_algorithm: str = GradClipAlgorithmType.NORM,
     ) -> None:
         """clips all the optimizer parameters to the given value"""
 
