@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 Comet Logger
 ------------
@@ -25,11 +24,12 @@ from typing import Any, Dict, Optional, Union
 import torch
 from torch import is_tensor
 
+from pytorch_lightning import _logger as log
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, _module_available
+from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-log = logging.getLogger(__name__)
 _COMET_AVAILABLE = _module_available("comet_ml")
 
 if _COMET_AVAILABLE:
@@ -311,3 +311,7 @@ class CometLogger(LightningLoggerBase):
         # needed later
         state["_experiment"] = None
         return state
+
+    def log_graph(self, model: LightningModule, input_array=None) -> None:
+        if self._experiment is not None:
+            self._experiment.set_model_graph(model)

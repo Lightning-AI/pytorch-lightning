@@ -19,7 +19,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
 
 
 def _patch_comet_atexit(monkeypatch):
@@ -88,7 +88,10 @@ def test_comet_logger_experiment_name(comet):
 
     # Test api_key given
     with patch('pytorch_lightning.loggers.comet.CometExperiment') as comet_experiment:
-        logger = CometLogger(api_key=api_key, experiment_name=experiment_name,)
+        logger = CometLogger(
+            api_key=api_key,
+            experiment_name=experiment_name,
+        )
         assert logger._experiment is None
 
         _ = logger.experiment
@@ -148,13 +151,13 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
     logger.experiment.id = '1'
     logger.experiment.project_name = 'test'
 
-    model = EvalModelTemplate()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3)
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == (tmpdir / 'test' / "1" / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=2.ckpt'}
     assert trainer.log_dir == logger.save_dir
 
 

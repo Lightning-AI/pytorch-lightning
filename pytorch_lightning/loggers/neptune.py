@@ -11,22 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 Neptune Logger
 --------------
 """
 from argparse import Namespace
-import logging
 from typing import Any, Dict, Iterable, Optional, Union
 
 import torch
 from torch import is_tensor
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, _module_available
+from pytorch_lightning.utilities import _module_available, rank_zero_only
 
-log = logging.getLogger(__name__)
 _NEPTUNE_AVAILABLE = _module_available("neptune")
 
 if _NEPTUNE_AVAILABLE:
@@ -53,7 +50,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     **ONLINE MODE**
 
-    .. code-block:: python
+    .. testcode::
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import NeptuneLogger
@@ -71,7 +68,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     **OFFLINE MODE**
 
-    .. code-block:: python
+    .. testcode::
 
         from pytorch_lightning.loggers import NeptuneLogger
 
@@ -189,8 +186,10 @@ class NeptuneLogger(LightningLoggerBase):
         **kwargs
     ):
         if neptune is None:
-            raise ImportError('You want to use `neptune` logger which is not installed yet,'
-                              ' install it with `pip install neptune-client`.')
+            raise ImportError(
+                'You want to use `neptune` logger which is not installed yet,'
+                ' install it with `pip install neptune-client`.'
+            )
         super().__init__()
         self.api_key = api_key
         self.project_name = project_name
@@ -242,11 +241,7 @@ class NeptuneLogger(LightningLoggerBase):
             self.experiment.set_property(f'param__{key}', val)
 
     @rank_zero_only
-    def log_metrics(
-            self,
-            metrics: Dict[str, Union[torch.Tensor, float]],
-            step: Optional[int] = None
-    ) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
         """
         Log metrics (numeric values) in Neptune experiments.
 
@@ -289,10 +284,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metric(
-            self,
-            metric_name: str,
-            metric_value: Union[torch.Tensor, float, str],
-            step: Optional[int] = None
+        self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None
     ) -> None:
         """
         Log metrics (numeric values) in Neptune experiments.
@@ -323,10 +315,7 @@ class NeptuneLogger(LightningLoggerBase):
         self.experiment.log_text(log_name, text, step=step)
 
     @rank_zero_only
-    def log_image(self,
-                  log_name: str,
-                  image: Union[str, Any],
-                  step: Optional[int] = None) -> None:
+    def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None) -> None:
         """
         Log image data in Neptune experiment
 

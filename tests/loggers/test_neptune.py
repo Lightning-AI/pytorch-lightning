@@ -17,7 +17,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
-from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
@@ -104,7 +104,7 @@ def test_neptune_additional_methods(neptune):
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
     """Verify that neptune experiment was closed after training"""
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     def _run_training(logger):
         logger._experiment = MagicMock()

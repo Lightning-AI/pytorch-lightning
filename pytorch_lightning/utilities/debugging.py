@@ -54,12 +54,12 @@ class InternalDebugger(object):
         self.dataloader_sequence_calls = []
 
     def track_event(
-            self,
-            evt_type: str,
-            evt_value: Any = None,
-            global_rank: Optional[int] = None,
-            local_rank: Optional[int] = None,
-            comment: str = ''
+        self,
+        evt_type: str,
+        evt_value: Any = None,
+        global_rank: Optional[int] = None,
+        local_rank: Optional[int] = None,
+        comment: str = ''
     ) -> None:
         self.events.append({
             "timestamp": time.time(),
@@ -87,6 +87,7 @@ class InternalDebugger(object):
         for dl in dataloaders:
             try:
                 length = len(dl)
+            # todo: specify the possible exception
             except Exception:
                 length = -1
             lengths.append(length)

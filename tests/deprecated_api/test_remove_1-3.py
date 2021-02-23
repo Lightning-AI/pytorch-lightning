@@ -21,10 +21,9 @@ import torch
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.profiler.profilers import PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def test_tbd_remove_in_v1_3_0(tmpdir):
+def test_v1_3_0_deprecated_arguments(tmpdir):
     with pytest.deprecated_call(match='will no longer be supported in v1.3'):
         callback = ModelCheckpoint()
         Trainer(checkpoint_callback=callback, callbacks=[], default_root_dir=tmpdir)
@@ -41,14 +40,17 @@ def test_tbd_remove_in_v1_3_0(tmpdir):
         EarlyStopping(mode='auto')
 
     with pytest.deprecated_call(match="The setter for self.hparams in LightningModule is deprecated"):
+
         class DeprecatedHparamsModel(LightningModule):
+
             def __init__(self, hparams):
                 super().__init__()
                 self.hparams = hparams
+
         DeprecatedHparamsModel({})
 
 
-def test_tbd_remove_in_v1_3_0_metrics():
+def test_v1_3_0_deprecated_metrics():
     from pytorch_lightning.metrics.functional.classification import to_onehot
     with pytest.deprecated_call(match='will be removed in v1.3'):
         to_onehot(torch.tensor([1, 2, 3]))
@@ -72,10 +74,12 @@ def test_tbd_remove_in_v1_3_0_metrics():
     with pytest.deprecated_call(match='will be removed in v1.3'):
         _roc(pred=x_binary, target=y_binary)
 
-    x_multy = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-                            [0.05, 0.85, 0.05, 0.05],
-                            [0.05, 0.05, 0.85, 0.05],
-                            [0.05, 0.05, 0.05, 0.85]])
+    x_multy = torch.tensor([
+        [0.85, 0.05, 0.05, 0.05],
+        [0.05, 0.85, 0.05, 0.05],
+        [0.05, 0.05, 0.85, 0.05],
+        [0.05, 0.05, 0.05, 0.85],
+    ])
     y_multy = torch.tensor([0, 1, 3, 2])
 
     from pytorch_lightning.metrics.functional.classification import multiclass_roc
@@ -100,9 +104,11 @@ def test_tbd_remove_in_v1_3_0_metrics():
 
     from pytorch_lightning.metrics.functional.reduction import class_reduce
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        class_reduce(torch.randint(1, 10, (50,)).float(),
-                     torch.randint(10, 20, (50,)).float(),
-                     torch.randint(1, 100, (50,)).float())
+        class_reduce(
+            torch.randint(1, 10, (50, )).float(),
+            torch.randint(10, 20, (50, )).float(),
+            torch.randint(1, 100, (50, )).float()
+        )
 
 
 # TODO: remove bool from Trainer.profiler param in v1.3.0, update profiler_connector.py
@@ -125,7 +131,7 @@ def test_trainer_profiler_remove_in_v1_3_0(profiler, expected):
         ('--profiler False', False, PassThroughProfiler),
     ],
 )
-def test_trainer_cli_profiler_remove_in_v1_3_0(cli_args, expected_parsed_arg, expected_profiler):
+def test_v1_3_0_trainer_cli_profiler(cli_args, expected_parsed_arg, expected_profiler):
     cli_args = cli_args.split(' ')
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)

@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC, abstractmethod
-import logging
+from abc import ABC
 
 import torch
 from torch import Tensor
@@ -30,27 +29,22 @@ class TrainerTrainingTricksMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     default_root_dir: str
-    progress_bar_callback: ...
+    lightning_module: LightningModule
+    progress_bar_callback:...
     on_gpu: bool
 
-    @abstractmethod
-    def get_model(self) -> LightningModule:
-        """Warning: this is just empty shell for code implemented in other class."""
-
     def print_nan_gradients(self) -> None:
-        model = self.get_model()
+        model = self.lightning_module
         for param in model.parameters():
             if (param.grad is not None) and torch.isnan(param.grad.float()).any():
                 log.info(param, param.grad)
 
     def detect_nan_tensors(self, loss: Tensor) -> None:
-        model = self.get_model()
+        model = self.lightning_module
 
         # check if loss is nan
         if not torch.isfinite(loss).all():
-            raise ValueError(
-                'The loss returned in `training_step` is nan or inf.'
-            )
+            raise ValueError('The loss returned in `training_step` is nan or inf.')
         # check if a network weight is nan
         for name, param in model.named_parameters():
             if not torch.isfinite(param).all():

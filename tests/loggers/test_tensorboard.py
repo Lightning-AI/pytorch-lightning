@@ -22,9 +22,9 @@ import yaml
 from omegaconf import OmegaConf
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import BoringModel, EvalModelTemplate
+from tests.helpers import BoringModel
 
 
 @pytest.mark.skipif(
@@ -32,9 +32,15 @@ from tests.base import BoringModel, EvalModelTemplate
     reason="Minimal PT version is set to 1.5",
 )
 def test_tensorboard_hparams_reload(tmpdir):
-    model = EvalModelTemplate()
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    class CustomModel(BoringModel):
+
+        def __init__(self, b1=0.5, b2=0.999):
+            super().__init__()
+            self.save_hyperparameters()
+
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    model = CustomModel()
     assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
 
@@ -47,7 +53,8 @@ def test_tensorboard_hparams_reload(tmpdir):
         # scalar values to Python the dictionary format
         yaml_params = yaml.safe_load(file)
         assert yaml_params["b1"] == 0.5
-        assert len(yaml_params.keys()) == 10
+        assert yaml_params["b2"] == 0.999
+        assert len(yaml_params.keys()) == 2
 
     # verify artifacts
     assert len(os.listdir(os.path.join(folder_path, "checkpoints"))) == 1
@@ -56,14 +63,8 @@ def test_tensorboard_hparams_reload(tmpdir):
     event_acc = EventAccumulator(folder_path)
     event_acc.Reload()
 
-    data_pt_1_5 = b'\x12\x93\x01"\x0b\n\tdrop_prob"\x0c\n\nbatch_size"\r\n\x0bin_features"\x0f\n\rlearning_rate"' \
-                  b'\x10\n\x0eoptimizer_name"\x0b\n\tdata_root"\x0e\n\x0cout_features"\x0c\n\nhidden_dim"' \
-                  b'\x04\n\x02b1"\x04\n\x02b2*\r\n\x0b\x12\thp_metric'
-    data_pt_1_6 = b'\x12\xa7\x01"\r\n\tdrop_prob \x03"\x0e\n\nbatch_size \x03"\x0f\n\x0bin_features \x03"' \
-                  b'\x11\n\rlearning_rate \x03"\x12\n\x0eoptimizer_name \x01"\r\n\tdata_root \x01"' \
-                  b'\x10\n\x0cout_features \x03"\x0e\n\nhidden_dim \x03"\x06\n\x02b1 \x03"' \
-                  b'\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
-
+    data_pt_1_5 = b'\x12\x1b"\x04\n\x02b1"\x04\n\x02b2*\r\n\x0b\x12\thp_metric'
+    data_pt_1_6 = b'\x12\x1f"\x06\n\x02b1 \x03"\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
     hparams_data = data_pt_1_6 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0") else data_pt_1_5
 
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
@@ -139,7 +140,11 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -154,7 +159,11 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -170,7 +179,11 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         # "namespace": Namespace(foo=Namespace(bar="buzz")),
         # "layer": torch.nn.BatchNorm1d,
@@ -181,27 +194,28 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
     logger.log_hyperparams(hparams, metrics)
 
 
-@pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 28 * 28)])
+@pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
 def test_tensorboard_log_graph(tmpdir, example_input_array):
     """ test that log graph works with both model.example_input_array and
         if array is passed externaly
     """
-    model = EvalModelTemplate()
+    model = BoringModel()
     if example_input_array is not None:
         model.example_input_array = None
+
     logger = TensorBoardLogger(tmpdir, log_graph=True)
     logger.log_graph(model, example_input_array)
 
 
 def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     """ test that log graph throws warning if model.example_input_array is None """
-    model = EvalModelTemplate()
+    model = BoringModel()
     model.example_input_array = None
     logger = TensorBoardLogger(tmpdir, log_graph=True)
     with pytest.warns(
         UserWarning,
         match='Could not log computational graph since the `model.example_input_array`'
-            ' attribute is not set or `input_array` was not given'
+        ' attribute is not set or `input_array` was not given'
     ):
         logger.log_graph(model)
 
@@ -214,6 +228,7 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
     """
     Tests to ensure that tensorboard log properly when accumulated_gradients > 1
     """
+
     class TestModel(BoringModel):
 
         def __init__(self):
@@ -276,3 +291,15 @@ def test_tensorboard_finalize(summary_writer, tmpdir):
     logger.finalize("any")
     summary_writer().flush.assert_called()
     summary_writer().close.assert_called()
+
+
+def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
+    model = BoringModel()
+    logger = TensorBoardLogger(save_dir=tmpdir, default_hp_metric=False)
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
+    assert trainer.log_dir == trainer.logger.log_dir
+    trainer.fit(model)
+
+    hparams_file = "hparams.yaml"
+    assert os.path.isfile(os.path.join(trainer.log_dir, hparams_file))
+    assert not os.path.isfile(os.path.join(tmpdir, hparams_file))

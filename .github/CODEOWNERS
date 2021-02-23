@@ -7,20 +7,16 @@
 # review when someone opens a pull request.
 * @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock
 
-/.github/CODEOWNERS @williamfalcon
-/README.md          @williamfalcon @edenlightning @borda
-/setup.py           @williamfalcon @borda
-
 # CI/CD and configs
-/.github/ @borda @tchaton
-/dockers/ @borda @tchaton
-*.yml     @borda @tchaton
+/.github/       @borda @tchaton
+/dockers/       @borda @tchaton
+*.yml           @borda @tchaton
 
 # Docs
-/docs/                   @edenlightning @tchaton @borda @awaelchli
-/.github/*.md            @edenlightning @williamfalcon @borda
-/.github/ISSUE_TEMPLATE/ @edenlightning @borda @tchaton
-/docs/source/conf.py     @borda @awaelchli
+/docs/                      @edenlightning @tchaton @borda @awaelchli
+/.github/*.md               @edenlightning @williamfalcon @borda
+/.github/ISSUE_TEMPLATE/    @edenlightning @borda @tchaton
+/docs/source/conf.py        @borda @awaelchli
 
 # Packages
 /pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock
@@ -43,11 +39,15 @@
 /docs/source/metrics.rst                @teddykoker @ananyahjha93 @justusschock
 
 # API
-/pytorch_lightning/callbacks/base.py  @williamfalcon
-/pytorch_lightning/core/datamodule.py @williamFalcon
-/pytorch_lightning/trainer/trainer.py @williamfalcon @tchaton
-/pytorch_lightning/core/hooks.py      @williamfalcon
-/pytorch_lightning/core/lightning.py  @williamfalcon @tchaton
+/pytorch_lightning/callbacks/base.py    @williamfalcon
+/pytorch_lightning/core/datamodule.py   @williamFalcon
+/pytorch_lightning/trainer/trainer.py   @williamfalcon @tchaton
+/pytorch_lightning/core/hooks.py        @williamfalcon
+/pytorch_lightning/core/lightning.py    @williamfalcon @tchaton
 
 # Testing
-/tests/base/boring_model.py @williamfalcon @tchaton @borda
+/tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
+
+/.github/CODEOWNERS     @williamfalcon
+/README.md              @williamfalcon @edenlightning @borda
+/setup.py               @williamfalcon @borda

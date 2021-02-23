@@ -108,7 +108,7 @@ Most of the tests in PyTorch Lightning train a trial MNIST model under various t
 To build the documentation locally, simply execute the following commands from project root (only for Unix):
 - `make clean` cleans repo from temp/generated files
 - `make docs` builds documentation under _docs/build/html_
-- `make test` runs all project's tests
+- `make test` runs all project's tests with coverage
 
 ### Original code
 
@@ -119,7 +119,7 @@ In case you adding new dependencies, make sure that they are compatible with the
 ### Coding Style
 
 1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!", name)`.
-2. Black code formatter is used using a `pre-commit` hook.
+2. You can use `pre-commit` to make sure your code style is correct.
 
 ### Documentation
 
@@ -202,7 +202,13 @@ This is useful if you do not test against all required dependency versions.
 **Docker:** Another option is utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
 
 ```bash
-python -m pytest pytorch_lightning tests pl_examples -v --flake8
+python -m pytest pytorch_lightning tests pl_examples -v
+```
+
+You can also run a single test as follows:
+
+```bash
+python -m pytest -v tests/trainer/test_trainer_cli.py::test_default_args
 ```
 
 ### Pull Request
@@ -231,7 +237,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 #### How can I help/contribute?
 
-All types of contributions are welcome - reporting bugs, fixing documentation, adding test cases, solving issues, and preparing bug fixes. 
+All types of contributions are welcome - reporting bugs, fixing documentation, adding test cases, solving issues, and preparing bug fixes.
 To get started with code contributions, look for issues marked with the label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with the label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before coding, make sure that the issue description is clear and comment on the issue so that we can assign it to you (or simply self-assign if you can).
 
 #### Is there a recommendation for branch names?
@@ -317,14 +323,6 @@ run our/your test with
 python -m pytest tests/..../...py::test_explain_what_is_being_tested --verbose --capture=no
 ```
 
-#### How to contribute bugfixes/features?
-
-Currently we have separate streams/branches for bugfixes/features and release from the default branch (`master`).
-Bugfixes should land in this `master` branch and features should land in `release/X.y-dev`.
-This means that when starting your contribution and creating a branch according to question 2) you should start this new branch from master or future release dev branch.
-Later in PR creation also pay attention to properly set the target branch, usually the starting (base) and target branch are the same.
-
-_Note, that this flow may change after the 1.2 release as we will adjust releasing strategy._
 
 #### How to fix PR with mixed base and target branches?
 
@@ -333,7 +331,7 @@ Do not panic, the solution is very straightforward and quite simple.
 All you need to do are these two steps in arbitrary order:
    - Ask someone from Core to change the base/target branch to the correct one
    - Rebase or cherry-pick your commits onto the correct base branch...
-     
+
 Let's show how to deal with the git...
 the sample case is moving a PR from `master` to `release/1.2-dev` assuming my branch name is `my-branch`
 and the last true master commit is `ccc111` and your first commit is `mmm222`.
@@ -348,7 +346,7 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
      #  so open one and cherry-pick your last commits from `my-branch-backup`
      #  resolve all eventual conflict as the new base may contain different code
      # when all done, push back to the open PR
-     git push -f 
+     git push -f
      ```
    * **Rebasing way**, see more about [rebase onto usage](https://womanonrails.com/git-rebase-onto)
      ```bash

@@ -15,26 +15,27 @@ import logging
 import os
 from typing import Optional, Tuple
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_getattr, lightning_setattr
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.data import has_len
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
+from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
 
-log = logging.getLogger(__name__)
 
-
-def scale_batch_size(trainer,
-                     model: LightningModule,
-                     mode: str = 'power',
-                     steps_per_trial: int = 3,
-                     init_val: int = 2,
-                     max_trials: int = 25,
-                     batch_arg_name: str = 'batch_size',
-                     **fit_kwargs):
+def scale_batch_size(
+    trainer,
+    model: LightningModule,
+    mode: str = 'power',
+    steps_per_trial: int = 3,
+    init_val: int = 2,
+    max_trials: int = 25,
+    batch_arg_name: str = 'batch_size',
+    **fit_kwargs
+):
     r"""
     Will iteratively try to find the largest batch size for a given model
     that does not give an out of memory (OOM) error.
@@ -63,10 +64,10 @@ def scale_batch_size(trainer,
             It is expected that the user has provided a model or datamodule that has a hyperparameter
             with that name. We will look for this attribute name in the following places
 
-            - `model`
-            - `model.hparams`
-            - `model.datamodule`
-            - `trainer.datamodule` (the datamodule passed to the tune method)
+            - ``model``
+            - ``model.hparams``
+            - ``model.datamodule``
+            - ``trainer.datamodule`` (the datamodule passed to the tune method)
 
         **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
             or datamodule.
@@ -76,8 +77,7 @@ def scale_batch_size(trainer,
         return
 
     if not lightning_hasattr(model, batch_arg_name):
-        raise MisconfigurationException(
-            f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
+        raise MisconfigurationException(f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
     if hasattr(model, batch_arg_name) and hasattr(model, "hparams") and batch_arg_name in model.hparams:
         rank_zero_warn(
             f'Field `model.{batch_arg_name}` and `model.hparams.{batch_arg_name}` are mutually exclusive!'
@@ -86,9 +86,10 @@ def scale_batch_size(trainer,
         )
 
     if hasattr(model.train_dataloader, 'patch_loader_code'):
-        raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
-                                        ' passed directly to `.fit()`. Please disable the feature or'
-                                        ' incorporate the dataloader into the model.')
+        raise MisconfigurationException(
+            'The batch scaling feature cannot be used with dataloaders passed directly to `.fit()`.'
+            ' Please disable the feature or incorporate the dataloader into the model.'
+        )
 
     # Arguments we adjust during the batch size finder, save for restoring
     __scale_batch_dump_params(trainer)
@@ -117,7 +118,7 @@ def scale_batch_size(trainer,
 
     # Restore initial state of model
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer._device_type == DeviceType.GPU)
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)
@@ -242,11 +243,13 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
     return new_size
 
 
-def _adjust_batch_size(trainer,
-                       batch_arg_name: str = 'batch_size',
-                       factor: float = 1.0,
-                       value: Optional[int] = None,
-                       desc: Optional[str] = None) -> Tuple[int, bool]:
+def _adjust_batch_size(
+    trainer,
+    batch_arg_name: str = 'batch_size',
+    factor: float = 1.0,
+    value: Optional[int] = None,
+    desc: Optional[str] = None
+) -> Tuple[int, bool]:
     """ Helper function for adjusting the batch size.
 
     Args:
@@ -266,7 +269,7 @@ def _adjust_batch_size(trainer,
         The new batch size for the next trial and a bool that signals whether the
         new value is different than the previous batch size.
     """
-    model = trainer.get_model()
+    model = trainer.lightning_module
     batch_size = lightning_getattr(model, batch_arg_name)
     new_size = value if value is not None else int(batch_size * factor)
     if desc:

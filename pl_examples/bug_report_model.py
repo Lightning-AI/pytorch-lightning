@@ -33,6 +33,7 @@ class RandomDataset(Dataset):
     >>> RandomDataset(size=10, length=20)  # doctest: +ELLIPSIS
     <...bug_report_model.RandomDataset object at ...>
     """
+
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -123,6 +124,7 @@ class BoringModel(LightningModule):
 #  opt = "--max_epochs 1 --limit_train_batches 1".split(" ")
 #  parser = ArgumentParser()
 #  args = parser.parse_args(opt)
+
 
 def test_run():
 

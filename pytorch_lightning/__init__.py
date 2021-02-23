@@ -1,12 +1,11 @@
 """Root package info."""
 
-import logging
+import logging as python_logging
 import os
-import sys
 import time
 
 _this_year = time.strftime("%Y")
-__version__ = '1.1.7'
+__version__ = '1.3.0dev'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -42,14 +41,12 @@ _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
 
-# if root logger has handlers, propagate messages up and let root logger process them
-if not _root_logger.hasHandlers():
-    _logger.addHandler(logging.StreamHandler())
-    _logger.propagate = False
+_logger = python_logging.getLogger("lightning")
+_logger.addHandler(python_logging.StreamHandler())
+_logger.setLevel(python_logging.INFO)
 
-
-PACKAGE_ROOT = os.path.dirname(__file__)
-PROJECT_ROOT = os.path.dirname(PACKAGE_ROOT)
+_PACKAGE_ROOT = os.path.dirname(__file__)
+_PROJECT_ROOT = os.path.dirname(_PACKAGE_ROOT)
 
 try:
     # This variable is injected in the __builtins__ by the build

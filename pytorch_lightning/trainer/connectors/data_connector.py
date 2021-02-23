@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Optional, Union
+
+from torch.utils.data import DataLoader
+
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from typing import List, Optional, Union
-from torch.utils.data import DataLoader
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class DataConnector(object):
@@ -34,8 +36,7 @@ class DataConnector(object):
 
     def get_profiled_train_dataloader(self, train_dataloader):
         profiled_dl = self.trainer.profiler.profile_iterable(
-            enumerate(self._with_is_last(train_dataloader)),
-            "get_train_batch"
+            enumerate(self._with_is_last(train_dataloader)), "get_train_batch"
         )
         return profiled_dl
 
@@ -89,7 +90,14 @@ class DataConnector(object):
                 'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
             )
 
-    def attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
+    def attach_dataloaders(
+        self,
+        model,
+        train_dataloader=None,
+        val_dataloaders=None,
+        test_dataloaders=None,
+        predict_dataloaders=None,
+    ):
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloader is not None:
@@ -101,7 +109,11 @@ class DataConnector(object):
         if test_dataloaders is not None:
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
+        if predict_dataloaders is not None:
+            model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
+
     def attach_datamodule(self, model, datamodule: Optional[LightningDataModule], stage: str) -> None:
+        # Todo: required argument `stage` is not used
 
         # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)
@@ -116,10 +128,16 @@ class DataConnector(object):
                 model.val_dataloader = datamodule.val_dataloader
             if is_overridden('test_dataloader', datamodule):
                 model.test_dataloader = datamodule.test_dataloader
+            if is_overridden('predict_dataloader', datamodule):
+                model.predict_dataloader = datamodule.predict_dataloader
 
-            # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
+            # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
+            if is_overridden('on_before_batch_transfer', datamodule):
+                model.on_before_batch_transfer = datamodule.on_before_batch_transfer
             if is_overridden('transfer_batch_to_device', datamodule):
                 model.transfer_batch_to_device = datamodule.transfer_batch_to_device
+            if is_overridden('on_after_batch_transfer', datamodule):
+                model.on_after_batch_transfer = datamodule.on_after_batch_transfer
 
             self.trainer.datamodule = datamodule
             datamodule.trainer = self.trainer

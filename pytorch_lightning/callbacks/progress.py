@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 Progress Bars
 =============
@@ -20,6 +19,8 @@ Use or override one of the progress bar callbacks.
 
 """
 import importlib
+import io
+import os
 import sys
 
 # check if ipywidgets is installed before importing tqdm.auto
@@ -27,11 +28,36 @@ import sys
 from typing import Optional, Union
 
 if importlib.util.find_spec('ipywidgets') is not None:
-    from tqdm.auto import tqdm
+    from tqdm.auto import tqdm as _tqdm
 else:
-    from tqdm import tqdm
+    from tqdm import tqdm as _tqdm
 
 from pytorch_lightning.callbacks import Callback
+
+_PAD_SIZE = 5
+
+
+class tqdm(_tqdm):
+    """
+    Custom tqdm progressbar where we append 0 to floating points/strings to
+    prevent the progress bar from flickering
+    """
+
+    @staticmethod
+    def format_num(n) -> str:
+        """ Add additional padding to the formatted numbers """
+        should_be_padded = isinstance(n, (float, str))
+        if not isinstance(n, str):
+            n = _tqdm.format_num(n)
+        if should_be_padded and 'e' not in n:
+            if '.' not in n and len(n) < _PAD_SIZE:
+                try:
+                    _ = float(n)
+                except ValueError:
+                    return n
+                n += '.'
+            n += "0" * (_PAD_SIZE - len(n))
+        return n
 
 
 class ProgressBarBase(Callback):
@@ -61,12 +87,14 @@ class ProgressBarBase(Callback):
         trainer = Trainer(callbacks=[bar])
 
     """
+
     def __init__(self):
 
         self._trainer = None
         self._train_batch_idx = 0
         self._val_batch_idx = 0
         self._test_batch_idx = 0
+        self._predict_batch_idx = 0
 
     @property
     def trainer(self):
@@ -97,6 +125,14 @@ class ProgressBarBase(Callback):
         return self._test_batch_idx
 
     @property
+    def predict_batch_idx(self) -> int:
+        """
+        The current batch index being processed during predicting.
+        Use this to update your progress bar.
+        """
+        return self._predict_batch_idx
+
+    @property
     def total_train_batches(self) -> int:
         """
         The total number of training batches during training, which may change from epoch to epoch.
@@ -108,7 +144,7 @@ class ProgressBarBase(Callback):
     @property
     def total_val_batches(self) -> int:
         """
-        The total number of training batches during validation, which may change from epoch to epoch.
+        The total number of validation batches during validation, which may change from epoch to epoch.
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         validation dataloader is of infinite size.
         """
@@ -121,11 +157,20 @@ class ProgressBarBase(Callback):
     @property
     def total_test_batches(self) -> int:
         """
-        The total number of training batches during testing, which may change from epoch to epoch.
+        The total number of testing batches during testing, which may change from epoch to epoch.
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         test dataloader is of infinite size.
         """
         return sum(self.trainer.num_test_batches)
+
+    @property
+    def total_predict_batches(self) -> int:
+        """
+        The total number of predicting batches during testing, which may change from epoch to epoch.
+        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
+        predict dataloader is of infinite size.
+        """
+        return sum(self.trainer.num_predict_batches)
 
     def disable(self):
         """
@@ -139,10 +184,16 @@ class ProgressBarBase(Callback):
         """
         You should provide a way to enable the progress bar.
         The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this in e.g. pre-training
-        routines like the :ref:`learning rate finder <lr_finder>` to temporarily enable and
-        disable the main progress bar.
+        routines like the :ref:`learning rate finder <advanced/lr_finder:Learning Rate Finder>`
+        to temporarily enable and disable the main progress bar.
         """
         raise NotImplementedError
+
+    def print(self, *args, **kwargs):
+        """
+        You should provide a way to print without breaking the progress bar.
+        """
+        print(*args, **kwargs)
 
     def on_init_end(self, trainer):
         self._trainer = trainer
@@ -167,6 +218,12 @@ class ProgressBarBase(Callback):
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._test_batch_idx += 1
+
+    def on_predict_start(self, trainer, pl_module):
+        self._predict_batch_idx = 0
+
+    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        self._predict_batch_idx += 1
 
 
 class ProgressBar(ProgressBarBase):
@@ -216,6 +273,7 @@ class ProgressBar(ProgressBarBase):
             :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 
     """
+
     def __init__(self, refresh_rate: int = 1, process_position: int = 0):
         super().__init__()
         self._refresh_rate = refresh_rate
@@ -281,6 +339,20 @@ class ProgressBar(ProgressBarBase):
         )
         return bar
 
+    def init_predict_tqdm(self) -> tqdm:
+        """ Override this to customize the tqdm bar for predicting. """
+        bar = tqdm(
+            desc='Predicting',
+            initial=self.train_batch_idx,
+            position=(2 * self.process_position),
+            disable=self.is_disabled,
+            leave=True,
+            dynamic_ncols=True,
+            file=sys.stdout,
+            smoothing=0,
+        )
+        return bar
+
     def init_validation_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for validation. """
         bar = tqdm(
@@ -296,7 +368,7 @@ class ProgressBar(ProgressBarBase):
     def init_test_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for testing. """
         bar = tqdm(
-            desc='Testing',
+            desc="Testing",
             position=(2 * self.process_position),
             disable=self.is_disabled,
             leave=True,
@@ -373,6 +445,35 @@ class ProgressBar(ProgressBarBase):
     def on_test_end(self, trainer, pl_module):
         super().on_test_end(trainer, pl_module)
         self.test_progress_bar.close()
+
+    def on_predict_start(self, trainer, pl_module):
+        super().on_predict_start(trainer, pl_module)
+        self.predict_progress_bar = self.init_predict_tqdm()
+        self.predict_progress_bar.total = convert_inf(self.total_predict_batches)
+
+    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        if self._should_update(self.predict_batch_idx, self.total_predict_batches):
+            self._update_bar(self.predict_progress_bar)
+
+    def on_predict_end(self, trainer, pl_module):
+        self.predict_progress_bar.close()
+
+    def print(
+        self, *args, sep: str = ' ', end: str = os.linesep, file: Optional[io.TextIOBase] = None, nolock: bool = False
+    ):
+        active_progress_bar = None
+
+        if not self.main_progress_bar.disable:
+            active_progress_bar = self.main_progress_bar
+        elif not self.val_progress_bar.disable:
+            active_progress_bar = self.val_progress_bar
+        elif not self.test_progress_bar.disable:
+            active_progress_bar = self.test_progress_bar
+
+        if active_progress_bar is not None:
+            s = sep.join(map(str, args))
+            active_progress_bar.write(s, end=end, file=file, nolock=nolock)
 
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)

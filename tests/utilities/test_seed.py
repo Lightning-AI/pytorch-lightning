@@ -1,6 +1,6 @@
 import os
-
 from unittest import mock
+
 import pytest
 
 import pytorch_lightning.utilities.seed as seed_utils

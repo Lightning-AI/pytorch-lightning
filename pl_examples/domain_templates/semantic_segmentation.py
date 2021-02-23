@@ -67,8 +67,8 @@ class KITTI(Dataset):
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
 
-    >>> from pl_examples import DATASETS_PATH
-    >>> dataset_path = os.path.join(DATASETS_PATH, "Kitti")
+    >>> from pl_examples import _DATASETS_PATH
+    >>> dataset_path = os.path.join(_DATASETS_PATH, "Kitti")
     >>> _create_synth_kitti_dataset(dataset_path, image_dims=(1024, 512))
     >>> KITTI(dataset_path, 'train')  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     <...semantic_segmentation.KITTI object at ...>
@@ -161,8 +161,8 @@ class SegModel(pl.LightningModule):
 
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
 
-    >>> from pl_examples import DATASETS_PATH
-    >>> dataset_path = os.path.join(DATASETS_PATH, "Kitti")
+    >>> from pl_examples import _DATASETS_PATH
+    >>> dataset_path = os.path.join(_DATASETS_PATH, "Kitti")
     >>> _create_synth_kitti_dataset(dataset_path, image_dims=(1024, 512))
     >>> SegModel(dataset_path)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     SegModel(
@@ -178,15 +178,16 @@ class SegModel(pl.LightningModule):
       )
     )
     """
+
     def __init__(
-            self,
-            data_path: str,
-            batch_size: int = 4,
-            lr: float = 1e-3,
-            num_layers: int = 3,
-            features_start: int = 64,
-            bilinear: bool = False,
-            **kwargs,
+        self,
+        data_path: str,
+        batch_size: int = 4,
+        lr: float = 1e-3,
+        num_layers: int = 3,
+        features_start: int = 64,
+        bilinear: bool = False,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.data_path = data_path
@@ -196,12 +197,12 @@ class SegModel(pl.LightningModule):
         self.features_start = features_start
         self.bilinear = bilinear
 
-        self.net = UNet(num_classes=19, num_layers=self.num_layers,
-                        features_start=self.features_start, bilinear=self.bilinear)
+        self.net = UNet(
+            num_classes=19, num_layers=self.num_layers, features_start=self.features_start, bilinear=self.bilinear
+        )
         self.transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753],
-                                 std=[0.32064945, 0.32098866, 0.32325324])
+            transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753], std=[0.32064945, 0.32098866, 0.32325324])
         ])
         self.trainset = KITTI(self.data_path, split='train', transform=self.transform)
         self.validset = KITTI(self.data_path, split='valid', transform=self.transform)
@@ -250,8 +251,12 @@ class SegModel(pl.LightningModule):
         parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
         parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
         parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
-        parser.add_argument("--bilinear", action='store_true', default=False,
-                            help="whether to use bilinear interpolation or transposed")
+        parser.add_argument(
+            "--bilinear",
+            action='store_true',
+            default=False,
+            help="whether to use bilinear interpolation or transposed"
+        )
         return parser
 
 

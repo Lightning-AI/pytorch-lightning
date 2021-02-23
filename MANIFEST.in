@@ -41,8 +41,8 @@ exclude tests
 # Exclude the documentation files
 recursive-exclude docs *
 exclude docs
-recursive-include docs/source/_images/logos/ *
-recursive-include docs/source/_images/general/ pl_overview* tf_* tutorial_* PTL101_*
+recursive-include docs/source/_static/images/logos/ *
+recursive-include docs/source/_static/images/general/ pl_overview* tf_* tutorial_* PTL101_*
 
 # Include the Requirements
 recursive-include requirements *.txt
@@ -54,6 +54,7 @@ include pyproject.toml
 exclude *.yml
 exclude *.yaml
 exclude *.jsonnet
+exclude .yapfignore
 
 # Exclude pyright config
 exclude .pyrightconfig.json

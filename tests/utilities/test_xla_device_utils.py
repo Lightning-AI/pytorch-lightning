@@ -16,25 +16,25 @@ from unittest.mock import patch
 
 import pytest
 
-import pytorch_lightning.utilities.xla_device_utils as xla_utils
-from pytorch_lightning.utilities import XLA_AVAILABLE, TPU_AVAILABLE
-from tests.base.develop_utils import pl_multi_process_test
+import pytorch_lightning.utilities.xla_device as xla_utils
+from pytorch_lightning.utilities import _TPU_AVAILABLE, _XLA_AVAILABLE
+from tests.helpers.utils import pl_multi_process_test
 
 
-@pytest.mark.skipif(XLA_AVAILABLE, reason="test requires torch_xla to be absent")
+@pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
     """Check tpu_device_exists returns None when torch_xla is not available"""
     assert xla_utils.XLADeviceUtils.tpu_device_exists() is None
 
 
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires torch_xla to be installed")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires torch_xla to be installed")
 @pl_multi_process_test
 def test_tpu_device_presence():
     """Check tpu_device_exists returns True when TPU is available"""
     assert xla_utils.XLADeviceUtils.tpu_device_exists() is True
 
 
-@patch('pytorch_lightning.utilities.xla_device_utils.TPU_CHECK_TIMEOUT', 10)
+@patch('pytorch_lightning.utilities.xla_device.TPU_CHECK_TIMEOUT', 10)
 def test_result_returns_within_timeout_seconds():
     """Check that pl_multi_process returns within 10 seconds"""
     start = time.time()

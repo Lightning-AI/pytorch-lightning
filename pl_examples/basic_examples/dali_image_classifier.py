@@ -23,15 +23,15 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import cli_lightning_logo, DALI_AVAILABLE, TORCHVISION_AVAILABLE
+from pl_examples import _DALI_AVAILABLE, _DATASETS_PATH, _TORCHVISION_AVAILABLE, cli_lightning_logo
 
-if TORCHVISION_AVAILABLE:
+if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
     from torchvision.datasets.mnist import MNIST
 else:
-    from tests.base.datasets import MNIST
+    from tests.helpers.datasets import MNIST
 
-if DALI_AVAILABLE:
+if _DALI_AVAILABLE:
     from nvidia.dali import __version__ as dali_version
     from nvidia.dali import ops
     from nvidia.dali.pipeline import Pipeline
@@ -90,26 +90,35 @@ class ExternalSourcePipeline(Pipeline):
 
 class DALIClassificationLoader(DALIClassificationIterator):
     """
-    This class extends DALI's original DALIClassificationIterator with the __len__() function so that we can call len() on it
+    This class extends DALI's original `DALIClassificationIterator` with the `__len__()` function
+     so that we can call `len()` on it
     """
 
     def __init__(
-            self,
-            pipelines,
-            size=-1,
-            reader_name=None,
-            auto_reset=False,
-            fill_last_batch=True,
-            dynamic_shape=False,
-            last_batch_padded=False,
+        self,
+        pipelines,
+        size=-1,
+        reader_name=None,
+        auto_reset=False,
+        fill_last_batch=True,
+        dynamic_shape=False,
+        last_batch_padded=False,
     ):
         if NEW_DALI_API:
             last_batch_policy = LastBatchPolicy.FILL if fill_last_batch else LastBatchPolicy.DROP
-            super().__init__(pipelines, size, reader_name, auto_reset, dynamic_shape,
-                             last_batch_policy=last_batch_policy, last_batch_padded=last_batch_padded)
+            super().__init__(
+                pipelines,
+                size,
+                reader_name,
+                auto_reset,
+                dynamic_shape,
+                last_batch_policy=last_batch_policy,
+                last_batch_padded=last_batch_padded
+            )
         else:
-            super().__init__(pipelines, size, reader_name, auto_reset, fill_last_batch,
-                             dynamic_shape, last_batch_padded)
+            super().__init__(
+                pipelines, size, reader_name, auto_reset, fill_last_batch, dynamic_shape, last_batch_padded
+            )
         self._fill_last_batch = fill_last_batch
 
     def __len__(self):
@@ -119,6 +128,7 @@ class DALIClassificationLoader(DALIClassificationIterator):
 
 
 class LitClassifier(pl.LightningModule):
+
     def __init__(self, hidden_dim=128, learning_rate=1e-3):
         super().__init__()
         self.save_hyperparameters()
@@ -165,7 +175,7 @@ class LitClassifier(pl.LightningModule):
 
 
 def cli_main():
-    if not DALI_AVAILABLE:
+    if not _DALI_AVAILABLE:
         return
 
     pl.seed_everything(1234)
@@ -182,8 +192,8 @@ def cli_main():
     # ------------
     # data
     # ------------
-    dataset = MNIST('', train=True, download=True, transform=transforms.ToTensor())
-    mnist_test = MNIST('', train=False, download=True, transform=transforms.ToTensor())
+    dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
+    mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
     mnist_train, mnist_val = random_split(dataset, [55000, 5000])
 
     eii_train = ExternalMNISTInputIterator(mnist_train, args.batch_size)
