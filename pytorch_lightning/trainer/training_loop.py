@@ -733,8 +733,10 @@ class TrainLoop:
         """
         wrap the forward step in a closure so second order methods work
         """
+        accumulate_grad_batches_enabled = self.trainer.accumulate_grad_batches > 1
+
         with self.trainer.profiler.profile("training_step_and_backward"):
-            if self.automatic_optimization and isinstance(optimizer, torch.optim.LBFGS):
+            if not accumulate_grad_batches_enabled:
                 optimizer.zero_grad()
 
             # lightning module hook
@@ -762,6 +764,10 @@ class TrainLoop:
                 if len(self.trainer.optimizers) > 1:
                     # revert back to previous state
                     self.trainer.lightning_module.untoggle_optimizer(opt_idx)
+
+            # when the last batch of accumulation
+            if accumulate_grad_batches_enabled and not self.should_accumulate():
+                optimizer.zero_grad()
 
         return result
 
