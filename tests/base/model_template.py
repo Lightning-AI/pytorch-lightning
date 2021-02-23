@@ -111,7 +111,7 @@ class EvalModelTemplate(
         x = self.c_d1_drop(x)
 
         x = self.c_d2(x)
-        logits = F.log_softmax(x, dim=1)
+        logits = F.softmax(x, dim=1)
 
         return logits
 
