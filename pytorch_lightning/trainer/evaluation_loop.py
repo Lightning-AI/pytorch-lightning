@@ -335,7 +335,15 @@ class EvaluationLoop(object):
             if is_overridden(hook_name, model_ref):
                 model_hook_fx = getattr(model_ref, hook_name)
                 model_hook_params = list(inspect.signature(model_hook_fx).parameters)
-                model_hook_fx(outputs) if "outputs" in model_hook_params else model_hook_fx()
+                if "outputs" in model_hook_params:
+                    model_hook_fx(outputs)
+                else:
+                    self.warning_cache.warn(
+                        f"`ModelHooks.{hook_name}` signature has changed in v1.3."
+                        " `outputs` parameter has been added."
+                        " Support for the old signature will be removed in v1.5", DeprecationWarning
+                    )
+                    model_hook_fx()
 
         self.trainer._cache_logged_metrics()
 
