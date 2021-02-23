@@ -664,7 +664,7 @@ def test_model_checkpoint_every_n_epochs_and_no_period(tmpdir, every_n_epochs):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-def test_ckpt_every_n_steps(tmpdir):
+def test_ckpt_every_n_batches(tmpdir):
     """ Tests that the checkpoints are saved every n training steps. """
 
     model = LogInTwoMethods()
@@ -677,7 +677,7 @@ def test_ckpt_every_n_steps(tmpdir):
         checkpoint_callback=ModelCheckpoint(
             filename="{step}",
             every_n_epochs=-1,
-            every_n_steps=16,
+            every_n_batches=16,
             dirpath=tmpdir,
             save_top_k=-1,
             save_last=False,
@@ -698,7 +698,7 @@ def test_ckpt_every_n_steps(tmpdir):
     ]
     assert set(os.listdir(tmpdir)) == set(expected)
 
-def test_ckpt_every_n_steps_and_every_n_epochs(tmpdir):
+def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir):
     """ Tests that checkpoints are taken every 30 steps and every epochs """
     model = LogInTwoMethods()
     trainer = Trainer(
@@ -708,7 +708,7 @@ def test_ckpt_every_n_steps_and_every_n_epochs(tmpdir):
         progress_bar_refresh_rate=0,
         checkpoint_callback=ModelCheckpoint(
             every_n_epochs=1,
-            every_n_steps=30,
+            every_n_batches=30,
             dirpath=tmpdir,
             save_top_k=-1,
             save_last=False,
