@@ -39,7 +39,7 @@ class ProfilerConnector:
 
         if profiler and not isinstance(profiler, (str, BaseProfiler)):
             raise MisconfigurationException(
-                "Only None, str, and subclasses of `BaseProfiler`"
+                "Only None, str and subclasses of `BaseProfiler`"
                 " are valid values for `Trainer`'s `profiler` parameter."
                 f" Received {profiler} which is of type {type(profiler)}."
             )
