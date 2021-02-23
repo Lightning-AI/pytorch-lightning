@@ -531,13 +531,9 @@ def test_invalid_every_n_epoch(tmpdir):
 
 def test_invalid_every_n_batches(tmpdir):
     """ Test that an exception is raised for every_n_batches = 0 or < -1. """
-    with pytest.raises(
-        MisconfigurationException, match=r'Invalid value for every_n_batches=0*'
-    ):
+    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_batches=0*'):
         ModelCheckpoint(dirpath=tmpdir, every_n_batches=0)
-    with pytest.raises(
-        MisconfigurationException, match=r'Invalid value for every_n_batches=-2*'
-    ):
+    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_batches=-2*'):
         ModelCheckpoint(dirpath=tmpdir, every_n_batches=-2)
 
     # These should not fail
