@@ -21,8 +21,7 @@ from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_str
 
 
 def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
-    """
-    Create an instance from CLI arguments.
+    """Create an instance from CLI arguments.
     Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
 
     Args:
