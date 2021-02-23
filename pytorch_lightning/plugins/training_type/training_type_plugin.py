@@ -35,6 +35,11 @@ class TrainingTypePlugin(Plugin, ABC):
         self._results = None
         self.global_rank = 0
 
+    @abstractmethod
+    def connect(self, model: 'Module') -> None:
+        """Called by the accelerator to connect it with this plugin
+        """
+
     @property
     @abstractmethod
     def on_gpu(self) -> bool:

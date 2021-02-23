@@ -13,24 +13,15 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Generator, Optional, Sequence, Tuple
+from typing import Any, Dict, Generator, Optional, overload, Sequence, Tuple, TYPE_CHECKING, Union
 
-from torch.nn import Module
+if TYPE_CHECKING:
+    from torch.nn import Module
+    from torch.optim import Optimizer
 
 
 class Plugin(ABC):
     """Basic Plugin class to derive precision and training type plugins from."""
-
-    @abstractmethod
-    def connect(
-        self,
-        model: Module,
-        *args: Sequence,
-        **kwargs: Sequence,
-    ) -> Optional[Tuple[Module, Sequence, Sequence]]:
-        """Connects the plugin with the accelerator (and thereby with trainer and model).
-        Will be called by the accelerator.
-        """
 
     def pre_dispatch(self) -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
