@@ -98,6 +98,9 @@ def run_model_test(
 @torch.no_grad()
 def run_prediction_eval_model_template(trained_model, dataloader, min_acc=0.50):
     # run prediction on 1 batch
+    trained_model.cpu()
+    trained_model.eval()
+
     batch = next(iter(dataloader))
     x, y = batch
     x = x.flatten(1)

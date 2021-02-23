@@ -452,8 +452,6 @@ def test_dp_resume(tmpdir):
 
             # if model and state loaded correctly, predictions will be good even though we
             # haven't trained with the new loaded model
-            dp_model = new_trainer.model
-            dp_model.eval()
             new_trainer._running_stage = RunningStage.EVALUATING
 
             dataloader = self.train_dataloader()
