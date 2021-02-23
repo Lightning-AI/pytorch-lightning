@@ -60,13 +60,13 @@ class DistributedType(LightningEnum):
     """
 
     @staticmethod
-    def ipython_compatible_types() -> List['DistributedType']:
-        """Returns a list containing ipython compatible DistributeTypes"""
+    def interactive_compatible_types() -> List['DistributedType']:
+        """Returns a list containing interactive compatible DistributeTypes"""
         return [DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN]
 
-    def is_ipython_compatible(self) -> bool:
-        """Returns whether self is ipython compatible"""
-        return self in DistributedType.ipython_compatible_types()
+    def is_interactive_compatible(self) -> bool:
+        """Returns whether self is interactive compatible"""
+        return self in DistributedType.interactive_compatible_types()
 
     DP = 'dp'
     DDP = 'ddp'

@@ -54,7 +54,6 @@ from pytorch_lightning.utilities import (
     DeviceType,
     DistributedType,
     rank_zero_only,
-    _module_available,
 )
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -519,7 +518,7 @@ class AcceleratorConnector(object):
                 self._distrib_type = None
 
         # finished configuring self._distrib_type, check ipython environment
-        self.check_ipython_compatibility()
+        self.check_interactive_compatibility()
 
         # for DDP overwrite nb processes by requested GPUs
         if (
@@ -562,22 +561,18 @@ class AcceleratorConnector(object):
         else:
             self.num_processes = hvd.local_size()
 
-    def check_ipython_compatibility(self):
+    def check_interactive_compatibility(self):
         """
-        Raises a `MisconfigurationException` if the accelerator and/or plugin is not compatible with IPython
-        and code is run in an IPython kernel.
+        Raises a `MisconfigurationException` if the accelerator and/or plugin
+        is not compatible with an interactive environment
         """
-        if self._distrib_type is None or self._distrib_type.is_ipython_compatible():
-            return
-        # check ipython env
-        if _module_available("IPython"):
-            from IPython import get_ipython
-            if get_ipython() is not None:
-                raise MisconfigurationException(
-                    f"Selected distributed backend {self._distrib_type} is not compatible with IPython environment."
-                    f" Run your code as a script, or choose one of the compatible backends:"
-                    f" {', '.join(DistributedType.ipython_compatible_types())}"
-                )
+        from pytorch_lightning.utilities import _IS_INTERACTIVE
+        if _IS_INTERACTIVE and self._distrib_type is not None and not self._distrib_type.is_interactive_compatible():
+            raise MisconfigurationException(
+                f"Selected distributed backend {self._distrib_type} is not compatible with an interactive"
+                " environment. Run your code as a script, or choose one of the compatible backends:"
+                f" {', '.join(DistributedType.interactive_compatible_types())}"
+            )
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""

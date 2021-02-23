@@ -15,7 +15,6 @@
 import os
 import sys
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 import torch
@@ -390,7 +389,7 @@ def test_dist_backend_accelerator_mapping(device_count_mock):
         trainer.fit(model)
 
 
-@mock.patch("IPython.get_ipython")
+@mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_ipython_incompatible_backend_error(*_):
     with pytest.raises(MisconfigurationException, match="backend ddp is not compatible"):
