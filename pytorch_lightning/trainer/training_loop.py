@@ -58,7 +58,6 @@ class TrainLoop:
         max_steps,
         min_steps,
         num_sanity_val_steps,
-        automatic_optimization,
         weights_summary,
     ):
         self.trainer.global_step = 0
@@ -71,7 +70,7 @@ class TrainLoop:
         self.trainer.batch_idx = 0
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
-        self.automatic_optimization = automatic_optimization
+        self.automatic_optimization: bool = ...
 
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.trainer.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs

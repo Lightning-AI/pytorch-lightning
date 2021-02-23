@@ -135,7 +135,6 @@ class Trainer(
         amp_backend: str = 'native',
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
-        automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = 'max_size_cycle',
         stochastic_weight_avg: bool = False
@@ -211,10 +210,6 @@ class Trainer(
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
-
-            automatic_optimization: If False you are responsible for calling .backward, .step, zero_grad
-                in LightningModule. This argument has been moved to LightningModule. It is deprecated
-                here in v1.1 and will be removed in v1.3.
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -350,23 +345,12 @@ class Trainer(
         self.training_tricks_connector.on_trainer_init(
             gradient_clip_val, track_grad_norm, accumulate_grad_batches, truncated_bptt_steps, terminate_on_nan
         )
-
-        # init train loop related flags
-        # TODO: remove in 1.3.0
-        if automatic_optimization is None:
-            automatic_optimization = True
-        else:
-            rank_zero_warn(
-                "Disable automatic optimization with the trainer flag is deprecated and will be removed in v1.3.0!"
-                "Please use the property on the LightningModule for disabling automatic optimization"
-            )
         self.train_loop.on_trainer_init(
             max_epochs,
             min_epochs,
             max_steps,
             min_steps,
             num_sanity_val_steps,
-            automatic_optimization,
             weights_summary,
         )
         self.evaluation_loop.on_trainer_init()
