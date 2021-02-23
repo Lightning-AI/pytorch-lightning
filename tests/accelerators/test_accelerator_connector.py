@@ -32,6 +32,7 @@ from pytorch_lightning.plugins import (
     SingleDevicePlugin,
 )
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
@@ -385,6 +386,19 @@ def test_dist_backend_accelerator_mapping(device_count_mock):
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+
+@mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
+@mock.patch('torch.cuda.device_count', return_value=2)
+def test_ipython_incompatible_backend_error(*_):
+    with pytest.raises(MisconfigurationException, match="backend ddp is not compatible"):
+        Trainer(accelerator="ddp", gpus=2)
+
+    with pytest.raises(MisconfigurationException, match="backend ddp is not compatible"):
+        Trainer(accelerator="ddp_cpu", num_processes=2)
+
+    with pytest.raises(MisconfigurationException, match="backend ddp2 is not compatible"):
+        Trainer(accelerator="ddp2", gpus=2)
 
 
 @pytest.mark.parametrize(
