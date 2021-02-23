@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Removed Trainer argument `profiler` as bool
+- Removed Trainer argument `profiler` as bool ([#6164](https://github.com/PyTorchLightning/pytorch-lightning/pull/6164))
 
 
 ### Fixed
