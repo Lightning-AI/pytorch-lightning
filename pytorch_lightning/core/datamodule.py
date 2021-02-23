@@ -255,7 +255,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
     @classmethod
     def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
-        """Create an instance from CLI arguments.
+        """
+        Create an instance from CLI arguments.
 
         Args:
             args: The parser or namespace to take arguments from. Only known arguments will be
@@ -267,6 +268,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
             parser = ArgumentParser(add_help=False)
             parser = LightningDataModule.add_argparse_args(parser)
             module = LightningDataModule.from_argparse_args(args)
+
         """
         return from_argparse_args(cls, args, **kwargs)
 
