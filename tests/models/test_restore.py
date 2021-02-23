@@ -206,9 +206,8 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
             return {'logits': logits, 'y': y}
 
         def training_step(self, batch, batch_idx):
-            _, y = batch
             out = self._step(batch, batch_idx)
-            loss = F.cross_entropy(out['logits'], y)
+            loss = F.cross_entropy(out['logits'], out['y'])
             return loss
 
         def validation_step(self, batch, batch_idx):
@@ -456,7 +455,7 @@ def test_dp_resume(tmpdir):
             dp_model.module.module.running_stage = RunningStage.EVALUATING
 
             dataloader = self.train_dataloader()
-            tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader, dp=True)
+            tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
             self.on_train_start_called = True
 
     # new model

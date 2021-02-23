@@ -96,19 +96,13 @@ def run_model_test(
 
 
 @torch.no_grad()
-def run_prediction_eval_model_template(trained_model, dataloader, dp=False, min_acc=0.50):
+def run_prediction_eval_model_template(trained_model, dataloader, min_acc=0.50):
     # run prediction on 1 batch
     batch = next(iter(dataloader))
     x, y = batch
-    x = x.view(x.size(0), -1)
+    x = x.flatten(1)
 
-    if dp:
-        output = trained_model(batch, 0)
-        acc = output['val_acc']
-        acc = torch.mean(acc).item()
-
-    else:
-        y_hat = trained_model(x)
-        acc = accuracy(y_hat.cpu(), y.cpu(), top_k=2).item()
+    y_hat = trained_model(x)
+    acc = accuracy(y_hat.cpu(), y.cpu(), top_k=2).item()
 
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
