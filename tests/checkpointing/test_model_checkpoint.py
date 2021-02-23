@@ -520,15 +520,15 @@ def test_invalid_every_n_epoch(tmpdir):
     with pytest.raises(
         MisconfigurationException, match=r'Invalid value for every_n_epochs=0*'
     ):
-        ModelCheckpoint(dirpath=tmpdir, every_n_epochs=0)
+        ModelCheckpoint(dirpath=tmpdir, every_n_epochs=0, period=None)
     with pytest.raises(
         MisconfigurationException, match=r'Invalid value for every_n_epochs=-2*'
     ):
-        ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-2)
+        ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-2, period=None)
 
     # These should not fail
-    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-1)
-    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=3)
+    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-1, period=None)
+    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=3, period=None)
 
 
 def test_invalid_every_n_batches(tmpdir):
