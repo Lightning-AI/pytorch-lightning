@@ -75,6 +75,7 @@ class TensorBoardLogger(LightningLoggerBase):
         save_dir: str,
         name: Optional[str] = "default",
         version: Optional[Union[int, str]] = None,
+        sub_dir: Optional[str] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
         prefix: str = '',
@@ -84,6 +85,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self._save_dir = save_dir
         self._name = name or ''
         self._version = version
+        self._sub_dir = sub_dir
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
@@ -114,12 +116,17 @@ class TensorBoardLogger(LightningLoggerBase):
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, version)
+        sub_dir = self.sub_dir if isinstance(self.sub_dir, str) else ""
+        log_dir = os.path.join(self.root_dir, version, sub_dir)
         return log_dir
 
     @property
     def save_dir(self) -> Optional[str]:
         return self._save_dir
+
+    @property
+    def sub_dir(self) -> Optional[str]:
+        return self._sub_dir
 
     @property
     @rank_zero_experiment

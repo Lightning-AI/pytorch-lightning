@@ -38,7 +38,7 @@ from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
 
-def _get_logger_args(logger_class, save_dir):
+def _get_logger_args(logger_class, save_dir, sub_dir=None):
     logger_args = {}
     if 'save_dir' in inspect.getfullargspec(logger_class).args:
         logger_args.update(save_dir=str(save_dir))
@@ -46,6 +46,9 @@ def _get_logger_args(logger_class, save_dir):
         logger_args.update(offline_mode=True)
     if 'offline' in inspect.getfullargspec(logger_class).args:
         logger_args.update(offline=True)
+    if sub_dir:
+        if "sub_dir" in inspect.getfullargspec(logger_class).args:
+            logger_args.update(sub_dir=str(sub_dir))
     return logger_args
 
 
@@ -228,6 +231,45 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     assert trainer.weights_save_path == weights_save_path
     assert trainer.checkpoint_callback.dirpath == weights_save_path / 'checkpoints'
     assert trainer.default_root_dir == tmpdir
+
+
+def test_loggers_sub_dir_all(tmpdir, monkeypatch):
+    """ Test the combinations of save_dir, weights_save_path and default_root_dir. """
+
+    _test_loggers_sub_dir(tmpdir, TensorBoardLogger)
+
+
+def _test_loggers_sub_dir(tmpdir, logger_class):
+
+    class TestLogger(logger_class):
+        # for this test it does not matter what these attributes are
+        # so we standardize them to make testing easier
+        @property
+        def version(self):
+            return 'version'
+
+        @property
+        def name(self):
+            return 'name'
+
+    model = BoringModel()
+    trainer_args = dict(
+        default_root_dir=tmpdir,
+        max_steps=1,
+    )
+
+    # no sub_dir specified
+    save_dir = tmpdir / 'logs'
+    logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
+    trainer = Trainer(**trainer_args, logger=logger)
+    trainer.fit(model)
+    assert trainer.logger.log_dir[:-1] == save_dir / 'name' / 'version'
+
+    # sub_dir specified
+    logger = TestLogger(**_get_logger_args(TestLogger, save_dir, sub_dir='sub_dir'))
+    trainer = Trainer(**trainer_args, logger=logger)
+    trainer.fit(model)
+    assert trainer.logger.log_dir == save_dir / 'name' / 'version' / 'sub_dir'
 
 
 @pytest.mark.parametrize(
