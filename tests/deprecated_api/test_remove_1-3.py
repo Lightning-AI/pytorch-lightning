@@ -111,38 +111,6 @@ def test_v1_3_0_deprecated_metrics():
         )
 
 
-# TODO: remove bool from Trainer.profiler param in v1.3.0, update profiler_connector.py
-@pytest.mark.parametrize(['profiler', 'expected'], [
-    (True, SimpleProfiler),
-    (False, PassThroughProfiler),
-])
-def test_trainer_profiler_remove_in_v1_3_0(profiler, expected):
-    # remove bool from Trainer.profiler param in v1.3.0, update profiler_connector.py
-    with pytest.deprecated_call(match='will be removed in v1.3'):
-        trainer = Trainer(profiler=profiler)
-        assert isinstance(trainer.profiler, expected)
-
-
-@pytest.mark.parametrize(
-    ['cli_args', 'expected_parsed_arg', 'expected_profiler'],
-    [
-        ('--profiler', True, SimpleProfiler),
-        ('--profiler True', True, SimpleProfiler),
-        ('--profiler False', False, PassThroughProfiler),
-    ],
-)
-def test_v1_3_0_trainer_cli_profiler(cli_args, expected_parsed_arg, expected_profiler):
-    cli_args = cli_args.split(' ')
-    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
-        parser = ArgumentParser(add_help=False)
-        parser = Trainer.add_argparse_args(parent_parser=parser)
-        args = Trainer.parse_argparser(parser)
-
-    assert getattr(args, "profiler") == expected_parsed_arg
-    trainer = Trainer.from_argparse_args(args)
-    assert isinstance(trainer.profiler, expected_profiler)
-
-
 def test_trainer_enable_pl_optimizer(tmpdir):
     with pytest.deprecated_call(match='will be removed in v1.3'):
         Trainer(enable_pl_optimizer=True)

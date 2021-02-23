@@ -122,7 +122,7 @@ class Trainer(
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
-        profiler: Optional[Union[BaseProfiler, bool, str]] = None,
+        profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
         reload_dataloaders_every_epoch: bool = False,
@@ -177,7 +177,7 @@ class Trainer(
 
             checkpoint_callback: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
-                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`. Default: ``True``.
+                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
 
                 .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
                     v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
@@ -226,10 +226,9 @@ class Trainer(
                 Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
                 a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
 
-            profiler: To profile individual steps during training and assist in identifying bottlenecks. Passing bool
-                value is deprecated in v1.1 and will be removed in v1.3.
+            profiler: To profile individual steps during training and assist in identifying bottlenecks.
 
-            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
+            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int).
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
@@ -250,7 +249,7 @@ class Trainer(
             num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
-                Set it to `-1` to run all batches in all validation dataloaders. Default: 2
+                Set it to `-1` to run all batches in all validation dataloaders.
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
 
