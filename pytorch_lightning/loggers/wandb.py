@@ -168,7 +168,7 @@ class WandbLogger(LightningLoggerBase):
 
             # define default x-axis (for latest wandb versions)
             if getattr(self._experiment, "define_metric", None):
-                self._experiment.define_metric("*", step_metric='train/step', step_sync=True)
+                self._experiment.define_metric("*", step_metric=trainer/global_step', step_sync=True)
 
         return self._experiment
 
@@ -188,7 +188,7 @@ class WandbLogger(LightningLoggerBase):
 
         metrics = self._add_prefix(metrics)
         if step is not None:
-            self.experiment.log({**metrics, 'train/step': step})
+            self.experiment.log({**metrics, 'trainer/global_step': step})
         else:
             self.experiment.log(metrics)
 
