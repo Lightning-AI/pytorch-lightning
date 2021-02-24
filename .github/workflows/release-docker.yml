@@ -53,10 +53,10 @@ jobs:
         uses: docker/build-push-action@v1.1.0
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
         with:
-          repository: pytorchlightning/pytorch_lightning
+          repository: nvcr.io/pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: dockers/nvidia/Dockerfile
           build_args: LIGHTNING_VERSION=${{ steps.get_version.outputs.RELEASE_VERSION }}
-          tags: "${{ steps.get_version.outputs.RELEASE_VERSION }}-nvidia,latest-nvidia"
+          tags: "${{ steps.get_version.outputs.RELEASE_VERSION }}-nvidia"
         timeout-minutes: 55

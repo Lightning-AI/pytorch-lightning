@@ -147,5 +147,5 @@ jobs:
         with:
           file: dockers/nvidia/Dockerfile
           push: true
-          tags: pytorchlightning/pytorch_lightning:nvidia
+          tags: nvcr.io/pytorchlightning/pytorch_lightning:nvidia
         timeout-minutes: 55

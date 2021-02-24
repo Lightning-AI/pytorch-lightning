@@ -153,7 +153,7 @@ jobs:
       # https://github.com/docker/setup-buildx-action
       # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
       - uses: docker/setup-buildx-action@v1
-      - name: Build CUDA Docker
+      - name: Build NVIDIA Docker
         uses: docker/build-push-action@v2
         with:
           file: dockers/nvidia/Dockerfile
