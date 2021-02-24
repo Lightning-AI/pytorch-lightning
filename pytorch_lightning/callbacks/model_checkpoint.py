@@ -89,7 +89,7 @@ class ModelCheckpoint(Callback):
         mode: one of {min, max}.
             If ``save_top_k != 0``, the decision to overwrite the current save file is made
             based on either the maximization or the minimization of the monitored quantity.
-            For `val_acc`, this should be `max`, for `val_loss` this should be `min`, etc.
+            For ``'val_acc'``, this should be ``'max'``, for ``'val_loss'`` this should be ``'min'``, etc.
         save_weights_only: if ``True``, then only the model's weights will be
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
@@ -110,7 +110,7 @@ class ModelCheckpoint(Callback):
         MisconfigurationException:
             If ``save_top_k`` is neither ``None`` nor more than or equal to ``-1``,
             if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``, or
-            if ``mode`` is none of ``"min"``, ``"max"``.
+            if ``mode`` is none of ``"min"`` or ``"max"``.
         ValueError:
             If ``trainer.save_checkpoint`` is ``None``.
 

@@ -421,7 +421,7 @@ def test_dp_output_reduce():
 
 
 @pytest.mark.parametrize(
-    ["save_top_k", "save_last", "expected_files"],
+    "save_top_k,save_last,expected_files",
     [
         pytest.param(-1, False, [f"epoch={i}.ckpt" for i in range(5)], id="CASE K=-1  (all)"),
         pytest.param(1, False, {"epoch=4.ckpt"}, id="CASE K=1 (2.5, epoch 4)"),
