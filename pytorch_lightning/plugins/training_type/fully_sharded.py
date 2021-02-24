@@ -18,19 +18,19 @@ import torch
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_FULL_SHARDED_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _FAIRSCALE_AVAILABLE:
+if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
     from pytorch_lightning.overrides.fairscale import (
-        LightningFullShardedDataParallel,
-        unwrap_lightning_module_full_sharded,
+        LightningFullyShardedDataParallel,
+        unwrap_lightning_module_fully_sharded,
     )
 
 
-class FullShardedPlugin(DDPPlugin):
+class FullyShardedPlugin(DDPPlugin):
 
     def __init__(
         self,
@@ -48,55 +48,55 @@ class FullShardedPlugin(DDPPlugin):
     ):
         """
 
-               Provides capabilities to run training using the Full Sharded capabilities provided by FairScale.
+        Provides capabilities to run training using the Full Sharded capabilities provided by FairScale.
 
-               Full Sharded Training shards the entire model across all available GPUs, allowing you to scale model
-               size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
-               at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
-               to ZeRO-Stage 3 but have been modified/adjusted for PyTorch.
+        Full Sharded Training shards the entire model across all available GPUs, allowing you to scale model
+        size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
+        at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
+        to ZeRO-Stage 3 but have been modified/adjusted for PyTorch.
 
-               `For more information: https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html`.
+        `For more information: https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html`.
 
-               .. warning:: ``FullShardedPlugin`` is in beta and subject to change.
+        .. warning:: ``FullyShardedPlugin`` is in beta and subject to change.
 
-               Defaults have been set to enable CPU Offload, but options have been exposed and may require configuration
-               based on your level of memory/speed efficiency.
-               We suggest having a look at this PR for more information.
-               `https://github.com/facebookresearch/fairscale/pull/413`
+        Defaults have been set to enable CPU Offload, but options have been exposed and may require configuration
+        based on your level of memory/speed efficiency.
+        We suggest having a look at this PR for more information.
+        `https://github.com/facebookresearch/fairscale/pull/413`
 
 
-               Many of the helpful doc strings below came from the original FairScale documentation:
-               `https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html`
+        Many of the helpful doc strings below came from the original FairScale documentation:
+        `https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html`
 
-               Arguments:
+        Arguments:
 
-                   cpu_offload: Offload FP32 params to CPU. Only useable in precision=16 mode (default: False).
+           cpu_offload: Offload FP32 params to CPU. Only useable in precision=16 mode (default: False).
 
-                   move_grads_to_cpu: Moves gradient shards to CPU after reducation.
-                        Only disable if using CPU based optimizers (defaults to ``cpu_offload``).
+           move_grads_to_cpu: Moves gradient shards to CPU after reducation.
+                Only disable if using CPU based optimizers (defaults to ``cpu_offload``).
 
-                   flatten_parameters: Flattens parameter into single contiguous tensor for speed efficiency
-                        (default: False).
+           flatten_parameters: Flattens parameter into single contiguous tensor for speed efficiency
+                (default: False).
 
-                   reshard_after_forward: Reshard parameters after the forward pass, which saves memory but slows
-                        down training. Only revelant when nesting FullyShardedDataParallel wrappers inside the model.
-                        (default: False).
+           reshard_after_forward: Reshard parameters after the forward pass, which saves memory but slows
+                down training. Only revelant when nesting FullyShardedDataParallel wrappers inside the model.
+                (default: False).
 
-                   fp32_reduce_scatter: Reduce-Scatter gradients in FP32. Only relevant in mixed precision
-                        (default: None)
+           fp32_reduce_scatter: Reduce-Scatter gradients in FP32. Only relevant in mixed precision
+                (default: None)
 
-                   compute_dtype: dtype for full parameters for computation. Default to torch.float32,
-                        unless using mixed precision, in which case defaults to torch.float16.
+           compute_dtype: dtype for full parameters for computation. Default to torch.float32,
+                unless using mixed precision, in which case defaults to torch.float16.
 
-                   bucket_cap_mb: bucket parameters so that gradient reduction
-                   can potentially overlap with backward computation.
-                   bucket_cap_mb controls the bucket size in MegaBytes (MB).
-                   Buckets are sub-divided based on world_size,
-                   so the max shard size is roughly bucket_cap_mb / world_size.
-                   Values <= 0 disable bucketing. (Default: 25).
+           bucket_cap_mb: bucket parameters so that gradient reduction
+           can potentially overlap with backward computation.
+           bucket_cap_mb controls the bucket size in MegaBytes (MB).
+           Buckets are sub-divided based on world_size,
+           so the max shard size is roughly bucket_cap_mb / world_size.
+           Values <= 0 disable bucketing. (Default: 25).
 
         """
-        if not _FAIRSCALE_FULL_SHARDED_AVAILABLE:
+        if not _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
             raise MisconfigurationException(
                 "Full Sharded Training is not available. Install the latest FairScale via `pip install fairscale -U`"
             )
@@ -115,7 +115,7 @@ class FullShardedPlugin(DDPPlugin):
     def configure_ddp(self):
         precision = self.lightning_module.trainer.precision
         self.model = FullyShardedDataParallel(
-            LightningFullShardedDataParallel(self.model),
+            LightningFullyShardedDataParallel(self.model),
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
@@ -128,7 +128,7 @@ class FullShardedPlugin(DDPPlugin):
 
     @property
     def lightning_module(self) -> LightningModule:
-        return unwrap_lightning_module_full_sharded(self.model)
+        return unwrap_lightning_module_fully_sharded(self.model)
 
     def model_to_device(self):
         if not self.cpu_offload:

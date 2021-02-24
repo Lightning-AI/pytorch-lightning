@@ -18,7 +18,7 @@ from torch.optim import Optimizer
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 
 
-class FullShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
+class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
     """Mixed Precision for Full Sharded Training
     """
 

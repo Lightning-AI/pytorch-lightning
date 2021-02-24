@@ -7,14 +7,14 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins import FullShardedNativeMixedPrecisionPlugin, FullShardedPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_FULL_SHARDED_AVAILABLE, _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.plugins import FullyShardedNativeMixedPrecisionPlugin, FullyShardedPlugin
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_FULLY_SHARDED_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
-@pytest.mark.parametrize(["plugin"], [("full_sharded", )])
-@pytest.mark.skipif(not _FAIRSCALE_FULL_SHARDED_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.parametrize(["plugin"], [("fully_sharded", )])
+@pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
 def test_sharded_ddp_choice(tmpdir, plugin):
     """
         Test to ensure that plugin is correctly chosen
@@ -23,8 +23,8 @@ def test_sharded_ddp_choice(tmpdir, plugin):
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
-            if plugin == 'full_sharded':
-                assert isinstance(trainer.accelerator.training_type_plugin, FullShardedPlugin)
+            if plugin == 'fully_sharded':
+                assert isinstance(trainer.accelerator.training_type_plugin, FullyShardedPlugin)
             raise SystemExit()
 
     model = BoringModel()
@@ -39,7 +39,7 @@ def test_sharded_ddp_choice(tmpdir, plugin):
 
 
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
-@pytest.mark.skipif(not _FAIRSCALE_FULL_SHARDED_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
 def test_invalid_apex_sharded(tmpdir):
     """
         Test to ensure that we raise an error when we try to use apex and sharded
@@ -49,7 +49,7 @@ def test_invalid_apex_sharded(tmpdir):
     with pytest.raises(MisconfigurationException, match='Sharded Plugins are not supported with Apex AMP'):
         trainer = Trainer(
             fast_dev_run=True,
-            plugins='full_sharded',
+            plugins='fully_sharded',
             precision=16,
             amp_backend='apex',
         )
@@ -57,8 +57,8 @@ def test_invalid_apex_sharded(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.parametrize(["plugin"], [("full_sharded", )])
-@pytest.mark.skipif(not _FAIRSCALE_FULL_SHARDED_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.parametrize(["plugin"], [("fully_sharded", )])
+@pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch('torch.cuda.device_count', return_value=1)
@@ -71,9 +71,9 @@ def test_ddp_choice_sharded_amp(device_count_mock, mock_cuda_available, plugin, 
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
-            if plugin == 'full_sharded':
-                assert isinstance(trainer.accelerator.training_type_plugin, FullShardedPlugin)
-            assert isinstance(trainer.accelerator.precision_plugin, FullShardedNativeMixedPrecisionPlugin)
+            if plugin == 'fully_sharded':
+                assert isinstance(trainer.accelerator.training_type_plugin, FullyShardedPlugin)
+            assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
             raise SystemExit()
 
     model = BoringModel()
@@ -91,15 +91,15 @@ def test_ddp_choice_sharded_amp(device_count_mock, mock_cuda_available, plugin, 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires CUDA")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not _FAIRSCALE_FULL_SHARDED_AVAILABLE, reason="Fairscale is not available")
-def test_full_sharded_plugin_checkpoint(tmpdir):
+@pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
+def test_fully_sharded_plugin_checkpoint(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly when using a single GPU.
     """
     model = BoringModel()
     trainer = Trainer(
         gpus=1,
-        plugins='full_sharded',
+        plugins='fully_sharded',
         fast_dev_run=True,
         precision=16,
     )
@@ -111,18 +111,18 @@ def test_full_sharded_plugin_checkpoint(tmpdir):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not _FAIRSCALE_FULL_SHARDED_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-def test_full_sharded_plugin_checkpoint_multi_gpu(tmpdir):
+def test_fully_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly when using multiple GPUs
     """
     model = BoringModel()
     trainer = Trainer(
         gpus=2,
-        plugins='full_sharded',
+        plugins='fully_sharded',
         fast_dev_run=True,
         precision=16,
     )

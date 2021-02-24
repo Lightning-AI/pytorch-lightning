@@ -57,7 +57,7 @@ class RPCSequentialPlugin(RPCPlugin):
         .. _RPCSequentialPlugin: https://arxiv.org/abs/1811.06965
 
         .. warning::
-               This plugin has been deprecated. Please use the ``FullShardedPlugin`` which provides better performance
+               This plugin has been deprecated. Please use the ``FullyShardedPlugin`` which provides better performance
                and scaling without pipelining the model.
 
         Pipeline parallelism comes with with checkpointing to reduce peak
@@ -92,7 +92,7 @@ class RPCSequentialPlugin(RPCPlugin):
             `get_model_parallel_world_size() > 1`
         """
         rank_zero_warn(
-            "RPC Sequential Plugin has been deprecated. Please use the `FullShardedPlugin` "
+            "RPC Sequential Plugin has been deprecated. Please use the `FullyShardedPlugin` "
             "which provides better performance and scaling without pipelining the model."
         )
         self._check_pipe_available()
