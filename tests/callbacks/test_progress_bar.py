@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from unittest import mock
-from unittest.mock import call, Mock
+from unittest.mock import ANY, call, Mock
 
 import pytest
 import torch
@@ -381,3 +382,69 @@ def test_tensor_to_float_conversion(tmpdir):
 def test_tqdm_format_num(input_num, expected):
     """ Check that the specialized tqdm.format_num appends 0 to floats and strings """
     assert tqdm.format_num(input_num) == expected
+
+
+class PrintModel(BoringModel):
+
+    def training_step(self, *args, **kwargs):
+        self.print("training_step", end="")
+        return super().training_step(*args, **kwargs)
+
+    def validation_step(self, *args, **kwargs):
+        self.print("validation_step", file=sys.stderr)
+        return super().validation_step(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        self.print("test_step")
+        return super().test_step(*args, **kwargs)
+
+
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
+def test_progress_bar_print(tqdm_write, tmpdir):
+    """ Test that printing in the LightningModule redirects arguments to the progress bar. """
+    model = PrintModel()
+    bar = ProgressBar()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        max_steps=1,
+        callbacks=[bar],
+    )
+    trainer.fit(model)
+    trainer.test(model)
+    assert tqdm_write.call_count == 3
+    assert tqdm_write.call_args_list == [
+        call("training_step", end="", file=None, nolock=False),
+        call("validation_step", end=os.linesep, file=sys.stderr, nolock=False),
+        call("test_step", end=os.linesep, file=None, nolock=False),
+    ]
+
+
+@mock.patch('builtins.print')
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
+def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
+    """ Test that printing in LightningModule goes through built-in print functin when progress bar is disabled. """
+    model = PrintModel()
+    bar = ProgressBar()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        max_steps=1,
+        callbacks=[bar],
+    )
+    bar.disable()
+    trainer.fit(model)
+    trainer.test(model)
+
+    mock_print.assert_has_calls([
+        call("training_step", end=""),
+        call("validation_step", file=ANY),
+        call("test_step"),
+    ])
+    tqdm_write.assert_not_called()

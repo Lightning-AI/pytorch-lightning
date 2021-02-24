@@ -113,8 +113,8 @@ def test_lightning_getattr(tmpdir):
 
     for m in models:
         with pytest.raises(
-                AttributeError,
-                match="is neither stored in the model namespace nor the `hparams` namespace/dict, nor the datamodule."
+            AttributeError,
+            match="is neither stored in the model namespace nor the `hparams` namespace/dict, nor the datamodule."
         ):
             lightning_getattr(m, "this_attr_not_exist")
 
@@ -140,7 +140,7 @@ def test_lightning_setattr(tmpdir):
 
     for m in models:
         with pytest.raises(
-                AttributeError,
-                match="is neither stored in the model namespace nor the `hparams` namespace/dict, nor the datamodule."
+            AttributeError,
+            match="is neither stored in the model namespace nor the `hparams` namespace/dict, nor the datamodule."
         ):
             lightning_setattr(m, "this_attr_not_exist", None)

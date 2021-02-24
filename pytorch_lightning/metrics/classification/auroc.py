@@ -22,7 +22,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 class AUROC(Metric):
-    r"""Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC)
+    r"""Compute `Area Under the Receiver Operating Characteristic Curve (ROC AUC)
     <https://en.wikipedia.org/wiki/Receiver_operating_characteristic#Further_interpretations>`_.
     Works for both binary, multilabel and multiclass problems. In the case of
     multiclass, the values will be calculated based on a one-vs-the-rest approach.
@@ -39,34 +39,35 @@ class AUROC(Metric):
     dimension more than the ``target`` tensor the input will be interpretated as
     multiclass.
 
-     Args:
-        num_classes: integer with number of classes. Not nessesary to provide
-            for binary problems.
-        pos_label: integer determining the positive class. Default is ``None``
-            which for binary problem is translate to 1. For multiclass problems
-            this argument should not be set as we iteratively change it in the
-            range [0,num_classes-1]
-        average:
-            - ``'macro'`` computes metric for each class and uniformly averages them
-            - ``'weighted'`` computes metric for each class and does a weighted-average,
-              where each class is weighted by their support (accounts for class imbalance)
-            - ``None`` computes and returns the metric per class
-        max_fpr:
-            If not ``None``, calculates standardized partial AUC over the
-            range [0, max_fpr]. Should be a float between 0 and 1.
-        compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step.
-        process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
-        dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When ``None``, DDP
-            will be used to perform the allgather
+    Args:
+       num_classes: integer with number of classes. Not nessesary to provide
+           for binary problems.
+       pos_label: integer determining the positive class. Default is ``None``
+           which for binary problem is translate to 1. For multiclass problems
+           this argument should not be set as we iteratively change it in the
+           range [0,num_classes-1]
+       average:
+           - ``'macro'`` computes metric for each class and uniformly averages them
+           - ``'weighted'`` computes metric for each class and does a weighted-average,
+             where each class is weighted by their support (accounts for class imbalance)
+           - ``None`` computes and returns the metric per class
+       max_fpr:
+           If not ``None``, calculates standardized partial AUC over the
+           range [0, max_fpr]. Should be a float between 0 and 1.
+       compute_on_step:
+           Forward only calls ``update()`` and return None if this is set to False. default: True
+       dist_sync_on_step:
+           Synchronize metric state across processes at each ``forward()``
+           before returning the value at the step.
+       process_group:
+           Specify the process group on which synchronization is called. default: None (which selects the entire world)
+       dist_sync_fn:
+           Callback that performs the allgather operation on the metric state. When ``None``, DDP
+           will be used to perform the allgather
 
     Example (binary case):
 
+        >>> from pytorch_lightning.metrics import AUROC
         >>> preds = torch.tensor([0.13, 0.26, 0.08, 0.19, 0.34])
         >>> target = torch.tensor([0, 0, 1, 1, 1])
         >>> auroc = AUROC(pos_label=1)
@@ -75,6 +76,7 @@ class AUROC(Metric):
 
     Example (multiclass case):
 
+        >>> from pytorch_lightning.metrics import AUROC
         >>> preds = torch.tensor([[0.90, 0.05, 0.05],
         ...                       [0.05, 0.90, 0.05],
         ...                       [0.05, 0.05, 0.90],
