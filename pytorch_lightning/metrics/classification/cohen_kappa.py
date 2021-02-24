@@ -112,6 +112,6 @@ class CohenKappa(Metric):
 
     def compute(self) -> torch.Tensor:
         """
-        Computes confusion matrix
+        Computes cohen kappa score
         """
         return _cohen_kappa_compute(self.confmat, self.weights)
