@@ -25,7 +25,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHTEXT_AVAILABLE
 
 if _TORCHTEXT_AVAILABLE:
-    from torchtext.data import Batch
+    from torchtext.legacy.data import Batch
 else:
     Batch = type(None)
 
