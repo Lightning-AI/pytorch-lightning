@@ -22,37 +22,12 @@ from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_FULL_SH
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
-    from fairscale.nn.data_parallel.fully_sharded_data_parallel import (
-        FullyShardedDataParallel, Parameter, TrainingState)
+    from fairscale.nn.data_parallel import FullyShardedDataParallel
 
     from pytorch_lightning.overrides.fairscale import (
         LightningFullShardedDataParallel,
         unwrap_lightning_module_full_sharded,
     )
-
-
-class LightningFullyShardedDataParallel(FullyShardedDataParallel):
-    def _post_reduction_hook(self, param: Parameter, reduced_grad: torch.Tensor) -> None:
-        """Hook to call on each param after the reduce-scatter."""
-        assert torch.cuda.current_stream() == self._streams["post_backward"]
-        assert param.grad is not None
-        self.assert_state(TrainingState.BACKWARD)
-        param.grad.data = reduced_grad
-        # Cast grad to param's dtype (typically FP32). Note: we do this
-        # before the move_grads_to_cpu step so that this entire hook remains
-        # non-blocking. The downside is a bit more D2H transfer in that case.
-        if self.mixed_precision:
-            param.grad.data = param.grad.data.to(dtype=param.data.dtype)
-        # Optionally move gradients to CPU, typically used if one is running
-        # the optimizer on the CPU.
-        # issues with this part
-
-        # This part needs to be done after unscaling the gradients.
-        #if self.move_grads_to_cpu:
-        #    param._cpu_grad.copy_(param.grad.data, non_blocking=True)
-        #    param.grad.data = param._cpu_grad
-        # Don't let this memory get reused until after the transfers.
-        #reduced_grad.record_stream(torch.cuda.current_stream())    
 
 
 class FullShardedPlugin(DDPPlugin):
@@ -61,14 +36,15 @@ class FullShardedPlugin(DDPPlugin):
         self,
         cpu_offload: bool = True,
         flatten_parameters: bool = False,
-        reshard_after_forward: bool = False,
-        fp32_reduce_scatter: Optional[bool] = False,
+        reshard_after_forward: bool = True,
+        move_grads_to_cpu: Optional[bool] = None,
+        fp32_reduce_scatter: Optional[bool] = None,
         compute_dtype: Optional[torch.dtype] = None,
         bucket_cap_mb: int = 25,
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
-        sync_batchnorm: Optional[bool] = False,
+        sync_batchnorm: Optional[bool] = False
     ):
         """
 
@@ -96,7 +72,7 @@ class FullShardedPlugin(DDPPlugin):
 
                    cpu_offload: Offload FP32 params to CPU. Only useable in precision=16 mode (default: False).
 
-                   move_grads_to_cpu: Moves gradient shards to CPU after reduction.
+                   move_grads_to_cpu: Moves gradient shards to CPU after reducation.
                         Only disable if using CPU based optimizers (defaults to ``cpu_offload``).
 
                    flatten_parameters: Flattens parameter into single contiguous tensor for speed efficiency
@@ -129,6 +105,7 @@ class FullShardedPlugin(DDPPlugin):
             raise MisconfigurationException("Currently sync batch norm is not supported by Full Sharded Training.")
         super().__init__(parallel_devices, num_nodes, cluster_environment, sync_batchnorm=sync_batchnorm)
         self.cpu_offload = cpu_offload
+        self.move_grads_to_cpu = move_grads_to_cpu
         self.flatten_parameters = flatten_parameters
         self.reshard_after_forward = reshard_after_forward
         self.fp32_reduce_scatter = fp32_reduce_scatter
@@ -136,12 +113,11 @@ class FullShardedPlugin(DDPPlugin):
         self.bucket_cap_mb = bucket_cap_mb
 
     def configure_ddp(self):
-        trainer = self.lightning_module.trainer
-        precision = trainer.precision
+        precision = self.lightning_module.trainer.precision
         self.model = FullyShardedDataParallel(
             LightningFullShardedDataParallel(self.model),
             cpu_offload=self.cpu_offload,
-            move_grads_to_cpu=self.cpu_offload,
+            move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
             mixed_precision=precision == "mixed",
             reshard_after_forward=self.reshard_after_forward,
@@ -149,7 +125,6 @@ class FullShardedPlugin(DDPPlugin):
             compute_dtype=self.compute_dtype,
             bucket_cap_mb=self.bucket_cap_mb,
         )
-        trainer.accelerator.setup_optimizers(trainer)
 
     @property
     def lightning_module(self) -> LightningModule:
