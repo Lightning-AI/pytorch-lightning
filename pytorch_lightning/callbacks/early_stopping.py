@@ -40,9 +40,9 @@ class EarlyStopping(Callback):
         patience: number of validation epochs with no improvement
             after which training will be stopped. Default: ``3``.
         verbose: verbosity mode. Default: ``False``.
-        mode: one of ``'min'``, ``'max'``. In ``min`` mode,
+        mode: one of ``'min'``, ``'max'``. In ``'min'`` mode,
             training will stop when the quantity
-            monitored has stopped decreasing; in ``max``
+            monitored has stopped decreasing and in ``'max'``
             mode it will stop when the quantity
             monitored has stopped increasing.
 
@@ -51,7 +51,7 @@ class EarlyStopping(Callback):
 
     Raises:
         MisconfigurationException:
-            If ``mode`` is none of ``"min"``, ``"max"``.
+            If ``mode`` is none of ``"min"`` or ``"max"``.
         RuntimeError:
             If the metric ``monitor`` is not available.
 
