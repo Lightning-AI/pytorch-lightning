@@ -50,12 +50,12 @@ def test_wandb_logger_init(wandb, recwarn):
     logger = WandbLogger()
     logger.log_metrics({'acc': 1.0}, step=3)
     wandb.init.assert_called_once()
-    wandb.init().log.assert_called_once_with({'acc': 1.0, 'train/step': 3})
+    wandb.init().log.assert_called_once_with({'acc': 1.0, 'trainer/global_step': 3})
 
     # continue training on same W&B run and offset step
     logger.finalize('success')
     logger.log_metrics({'acc': 1.0}, step=6)
-    wandb.init().log.assert_called_with({'acc': 1.0, 'train/step': 6})
+    wandb.init().log.assert_called_with({'acc': 1.0, 'trainer/global_step': 6})
 
     # log hyper parameters
     logger.log_hyperparams({'test': None, 'nested': {'a': 1}, 'b': [2, 3, 4]})
