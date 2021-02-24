@@ -61,6 +61,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         # unscale gradient to allow analyze within `on_after_backward`
         if not should_accumulate and model.automatic_optimization:
             self.scaler.unscale_(optimizer)
+            self.move_grad_to_cpu(model.trainer.model)
 
         return closure_loss
 
@@ -87,6 +88,13 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         """Updates the GradScaler"""
         self.scaler.step(optimizer)
         self.scaler.update()
+
+    def move_grad_to_cpu(self, model):
+        if hasattr(model, "cpu_offload"):
+            if model.cpu_offload:
+                for param in model.params:
+                    param._cpu_grad.copy_(param.grad.data, non_blocking=True)
+                    param.grad.data = param._cpu_grad
 
     @contextmanager
     def train_step_context(self) -> Generator[autocast, None, None]:
