@@ -93,7 +93,7 @@ class RPCSequentialPlugin(RPCPlugin):
         """
         rank_zero_warn(
             "RPC Sequential Plugin has been deprecated. Please use the `FullyShardedPlugin` "
-            "which provides better performance and scaling without pipelining the model."
+            "which provides better performance and scaling without pipelining the model.", DeprecationWarning
         )
         self._check_pipe_available()
         super().__init__(rpc_timeout_sec=rpc_timeout_sec, **kwargs)
