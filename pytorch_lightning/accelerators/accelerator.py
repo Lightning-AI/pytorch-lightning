@@ -30,6 +30,9 @@ if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
 
 
+_STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
+
+
 class Accelerator(object):
     """
     The Accelerator Base Class.
@@ -146,7 +149,7 @@ class Accelerator(object):
     def training_step(
         self,
         args: List[Union[Any, int]],
-    ) -> Union[torch.Tensor, Dict[str, torch.Tensor], None]:
+    ) -> _STEP_OUTPUT_TYPE:
         """The actual training step.
 
         Args:
@@ -167,7 +170,7 @@ class Accelerator(object):
     def post_training_step(self) -> None:
         self.training_type_plugin.post_training_step()
 
-    def validation_step(self, args: List[Union[Any, int]]) -> Union[torch.Tensor, Dict[str, torch.Tensor], None]:
+    def validation_step(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
         """The actual validation step.
 
         Args:
@@ -185,7 +188,7 @@ class Accelerator(object):
         with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*args)
 
-    def test_step(self, args: List[Union[Any, int]]) -> Union[torch.Tensor, Dict[str, torch.Tensor], None]:
+    def test_step(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
         """The actual test step.
 
         Args:
@@ -203,7 +206,7 @@ class Accelerator(object):
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
             return self.training_type_plugin.test_step(*args)
 
-    def predict(self, args: List[Union[Any, int]]) -> Union[torch.Tensor, Dict[str, torch.Tensor], None]:
+    def predict(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
         """The actual predict step.
 
         Args:
@@ -222,8 +225,8 @@ class Accelerator(object):
             return self.training_type_plugin.predict(*args)
 
     def training_step_end(
-        self, output: Union[torch.Tensor, Dict[str, torch.Tensor], None]
-    ) -> Union[torch.Tensor, Dict[str, torch.Tensor], None]:
+        self, output: _STEP_OUTPUT_TYPE
+    ) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the training step
 
         Args:
@@ -232,8 +235,8 @@ class Accelerator(object):
         return self.training_type_plugin.training_step_end(output)
 
     def test_step_end(
-        self, output: Union[torch.Tensor, Dict[str, torch.Tensor], None]
-    ) -> Union[torch.Tensor, Dict[str, torch.Tensor], None]:
+        self, output: _STEP_OUTPUT_TYPE
+    ) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the test step
 
         Args:
@@ -242,8 +245,8 @@ class Accelerator(object):
         return self.training_type_plugin.test_step_end(output)
 
     def validation_step_end(
-        self, output: Union[torch.Tensor, Dict[str, torch.Tensor], None]
-    ) -> Union[torch.Tensor, Dict[str, torch.Tensor], None]:
+        self, output: _STEP_OUTPUT_TYPE
+    ) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the validation step
 
         Args:
@@ -308,7 +311,7 @@ class Accelerator(object):
 
         self.precision_plugin.clip_gradients(optimizer, clip_val)
 
-    def on_train_epoch_end(self, outputs: Sequence[Union[torch.Tensor, Dict[str, torch.Tensor], None]]) -> None:
+    def on_train_epoch_end(self, outputs: Sequence[_STEP_OUTPUT_TYPE]) -> None:
         """Hook to do something on the end of an training epoch
 
         Args:
@@ -398,7 +401,7 @@ class Accelerator(object):
         return self.training_type_plugin.broadcast(obj, src)
 
     def all_gather(
-        self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False
+        self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
     ) -> torch.Tensor:
         """
         Function to gather a tensor from several distributed processes.
