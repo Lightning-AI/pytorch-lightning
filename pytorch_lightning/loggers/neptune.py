@@ -174,7 +174,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     Raises:
         ImportError:
-            If required Neptune package is not installed on the device
+            If required Neptune package is not installed on the device.
     """
 
     LOGGER_JOIN_CHAR = '-'

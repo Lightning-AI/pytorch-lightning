@@ -118,9 +118,9 @@ class CometLogger(LightningLoggerBase):
 
     Raises:
         ImportError:
-            If required Comet package is not installed on the device
+            If required Comet package is not installed on the device.
         MisconfigurationException:
-            If neither ``api_key`` nor ``save_dir`` are passed as arguments
+            If neither ``api_key`` nor ``save_dir`` are passed as arguments.
     """
 
     LOGGER_JOIN_CHAR = '-'
