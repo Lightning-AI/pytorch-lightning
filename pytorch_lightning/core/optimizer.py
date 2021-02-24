@@ -136,7 +136,6 @@ class LightningOptimizer:
 
         if self._trainer.train_loop.automatic_optimization:
             trainer.train_loop.on_before_zero_grad(optimizer)
-            model.optimizer_zero_grad(trainer.current_epoch, trainer.batch_idx, optimizer, self._optimizer_idx)
 
     def step(self, *args, closure: Optional[Callable] = None, **kwargs):
         """
