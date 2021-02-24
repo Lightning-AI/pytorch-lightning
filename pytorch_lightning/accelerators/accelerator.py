@@ -311,7 +311,7 @@ class Accelerator(object):
             trainer: the Trainer, these optimizers should be connected to
             model: the model to be optimized by the created optimizers
         """
-        if trainer.testing:
+        if trainer.evaluating:
             return
         optimizers, lr_schedulers, optimizer_frequencies = self.training_type_plugin.init_optimizers(
             trainer=trainer, model=self.lightning_module
@@ -409,7 +409,7 @@ class Accelerator(object):
     @property
     def results(self) -> Any:
         """
-        The results of the last training/testing run will be cached within the training type plugin.
+        The results of the last run will be cached within the training type plugin.
         In distributed training, we make sure to transfer the results to the appropriate master process.
         """
         return self.training_type_plugin.results

@@ -112,10 +112,8 @@ class DataConnector(object):
         if predict_dataloaders is not None:
             model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
-    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule], stage: str) -> None:
-        # Todo: required argument `stage` is not used
-
-        # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
+    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule]) -> None:
+        # We use datamodule if it's been provided, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)
 
         # If we have a datamodule, attach necessary hooks + dataloaders

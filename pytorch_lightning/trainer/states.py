@@ -44,10 +44,13 @@ class RunningStage(LightningEnum):
     True
     """
     TRAINING = 'train'
-    EVALUATING = 'eval'
+    VALIDATING = 'validation'
     TESTING = 'test'
     PREDICTING = 'predict'
     TUNING = 'tune'
+
+    def is_evaluating(self) -> bool:
+        return self in (self.VALIDATING, self.TESTING)
 
 
 def trainer_state(*, entering: Optional[TrainerState] = None, exiting: Optional[TrainerState] = None) -> Callable:

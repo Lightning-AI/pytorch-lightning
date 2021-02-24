@@ -30,12 +30,11 @@ class ConfigValidator(object):
             model: The model to check the configuration.
 
         """
-        if not self.trainer.testing:
+        if not self.trainer.evaluating:
             self.__verify_train_loop_configuration(model)
-            self.__verify_eval_loop_configuration(model, 'validation')
         else:
-            # check test loop configuration
-            self.__verify_eval_loop_configuration(model, 'test')
+            # check evaluation loop configuration
+            self.__verify_eval_loop_configuration(model)
 
     def __verify_train_loop_configuration(self, model):
         # -----------------------------------
@@ -83,18 +82,15 @@ class ConfigValidator(object):
                 ' It ensures optimizer_step or optimizer_zero_grad are called on every batch.'
             )
 
-    def __verify_eval_loop_configuration(self, model, eval_loop_name):
-        step_name = f'{eval_loop_name}_step'
-
-        # map the dataloader name
-        loader_name = f'{eval_loop_name}_dataloader'
-        if eval_loop_name == 'validation':
-            loader_name = 'val_dataloader'
+    def __verify_eval_loop_configuration(self, model):
+        stage = self.trainer._running_stage
+        step_name = f'{stage}_step'
+        loader_name = 'val_dataloader' if self.trainer.validating else f'{stage}_dataloader'
 
         has_loader = is_overridden(loader_name, model)
         has_step = is_overridden(step_name, model)
 
         if has_loader and not has_step:
-            rank_zero_warn(f'you passed in a {loader_name} but have no {step_name}. Skipping {eval_loop_name} loop')
+            rank_zero_warn(f'you passed in a {loader_name} but have no {step_name}. Skipping {stage} loop')
         if has_step and not has_loader:
-            rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {eval_loop_name} loop')
+            rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {stage} loop')

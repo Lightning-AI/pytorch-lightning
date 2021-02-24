@@ -297,11 +297,11 @@ class LoggerConnector:
 
         self.prepare_eval_loop_results()
 
-        # log results of test
-        if self.trainer.testing and self.trainer.is_global_zero and self.trainer.verbose_test:
+        # log results of evaluation
+        if self.trainer.evaluating and self.trainer.is_global_zero and self.trainer.verbose_evaluate:
             print('-' * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
-                print(f'DATALOADER:{result_idx} TEST RESULTS')
+                print(f'DATALOADER:{result_idx} {self.trainer._running_stage.upper()} RESULTS')
                 pprint({
                     k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
                     for k, v in results.items()

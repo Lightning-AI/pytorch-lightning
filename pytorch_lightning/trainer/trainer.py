@@ -872,21 +872,20 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
     ):
         r"""
-
-        Separates from fit to make sure you never run on your test set until you want to.
+        Perform one evaluation epoch over the test set. It's separated from
+        fit to make sure you never run on your test set until you want to.
 
         Args:
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
-                If ``None``, use the weights from the last epoch to test. Default to ``best``.
-
+                If ``None``, use the current weights of the model. Default to ``best``.
             datamodule: A instance of :class:`LightningDataModule`.
 
             model: The model to test.
 
-            test_dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying validation samples.
+            test_dataloaders: Either a single PyTorch DataLoader or a list of them,
+                specifying test samples.
 
-            verbose: If True, prints the test results
+            verbose: If True, prints the test results.
 
         Returns:
             Returns a list of dictionaries, one for each test dataloader containing their respective metrics.
@@ -894,31 +893,32 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        self.verbose_test = verbose
+        self.verbose_evaluate = verbose
 
         self._running_stage = RunningStage.TESTING
 
-        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
+        # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
             raise MisconfigurationException(
                 'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
             )
 
+        model_provided = model is not None
+        model = model or self.lightning_module
+
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.data_connector.attach_datamodule(model or self.lightning_module, datamodule, 'test')
+        self.data_connector.attach_datamodule(model, datamodule, 'test')
+        results = (
+            self.__evaluate_given_model(model, test_dataloaders
+            if model_provided else
+            self.__evaluate_using_best_weights(model, ckpt_path, test_dataloaders)
+        )
 
-        if model is not None:
-            results = self.__test_given_model(model, test_dataloaders)
-        else:
-            results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
-
-        self.teardown('test')
+        self.teardown('test', model=model)
         self._running_stage = None
         return results
 
-    def __test_using_best_weights(self, ckpt_path, test_dataloaders):
-        model = self.lightning_module
-
+    def __evaluate_using_best_weights(self, model, ckpt_path: Optional[str] = None, dataloaders: Union[DataLoader, List[DataLoader]]):
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
             raise MisconfigurationException(
@@ -944,33 +944,32 @@ class Trainer(
             model.load_state_dict(ckpt['state_dict'])
 
         # attach dataloaders
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+        if dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
 
-        # run tests
+        # run test
         self.tested_ckpt_path = ckpt_path
         results = self.fit(model)
 
         # teardown
-        if self.is_function_implemented('teardown'):
-            model_ref = self.lightning_module
-            model_ref.teardown('test')
+        if self.is_function_implemented('teardown', model=model):
+            model.teardown('test')
 
         return results
 
-    def __test_given_model(self, model, test_dataloaders):
+    def __evaluate_given_model(self, model, dataloaders: Union[DataLoader, List[DataLoader]]):
 
         # attach data
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+        if dataloaders is not None:
+            self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
 
         # run test
         # sets up testing so we short circuit to eval
         results = self.fit(model)
 
         # teardown
-        if self.is_function_implemented('teardown'):
-            model.teardown('test')
+        if self.is_function_implemented('teardown', model=model):
+            model.teardown(stage)
 
         return results
 
@@ -1052,11 +1051,17 @@ class Trainer(
 
     def call_setup_hook(self, model):
         # call setup after the ddp process has connected
-        stage_name = 'test' if self.testing else 'fit'
+        stage_name = 'test' if self.evaluating else 'fit'
+
         if self.datamodule is not None:
-            called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
+            called = {
+                'fit': self.datamodule.has_setup_fit,
+                'test': self.datamodule.has_setup_test,
+            }[stage_name]
+
             if not called:
                 self.datamodule.setup(stage_name)
+
         self.setup(model, stage_name)
         model.setup(stage_name)
 
@@ -1151,12 +1156,16 @@ class Trainer(
             self._running_stage = None
 
     @property
-    def evaluating(self) -> bool:
-        return self._running_stage == RunningStage.EVALUATING
+    def validating(self) -> bool:
+        return self._running_stage == RunningStage.VALIDATING
 
-    @evaluating.setter
-    def evaluating(self, val: bool) -> None:
+    @validating.setter
+    def validating(self, val: bool) -> None:
         if val:
-            self._running_stage = RunningStage.EVALUATING
-        elif self.evaluating:
+            self._running_stage = RunningStage.VALIDATING
+        elif self.validating:
             self._running_stage = None
+
+    @property
+    def evaluating(self) -> bool:
+        return self._running_stage and self._running_stage.is_evaluating()

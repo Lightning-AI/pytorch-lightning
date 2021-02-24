@@ -39,11 +39,11 @@ class EvaluationLoop(object):
         self.trainer.val_dataloaders = None
         self.trainer.running_sanity_check = False
 
-        # when .test() is called, it sets this
-        self.trainer.tested_ckpt_path = None
+        # .validate() and .test() set this when they load a checkpoint
+        self.trainer.evaluated_ckpt_path = None
 
-        # when true, prints test results
-        self.trainer.verbose_test = True
+        # when true, print evaluation results in .validate() and .test()
+        self.trainer.verbose_evaluate = True
 
     def get_evaluation_dataloaders(self, max_batches):
         # select dataloaders

@@ -235,6 +235,7 @@ class ModelCheckpoint(Callback):
 
         if (
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
+            or trainer.evaluating  # disable checkpointing during validation and test
             or self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
