@@ -212,7 +212,7 @@ class ModelCheckpoint(Callback):
         ):
             return
 
-        trainer.accelerator_backend.barrier()
+        trainer.accelerator.barrier()
         self._add_backward_monitor_support(trainer)
         self._validate_monitor_key(trainer)
 
