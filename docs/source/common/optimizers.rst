@@ -23,16 +23,15 @@ to manually manage the optimization process. To do so, do the following:
 
 * Override your LightningModule ``automatic_optimization`` property to return ``False``
 * Drop or ignore the optimizer_idx argument
-* Use `self.manual_backward(loss)` instead of `loss.backward()`.
+* Use ``self.manual_backward(loss)`` instead of ``loss.backward()``.
 
-.. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with zero_grad, accumulated_grad_batches, model toggling, etc..
+.. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with ``optimizer.zero_grad()``, gradient accumulation, model toggling, etc..
 
-.. warning:: Before 1.2, ``optimzer.step`` was calling ``zero_grad`` internally. From 1.2, it is left to the users expertize.
+.. warning:: Before 1.2, ``optimzer.step`` was calling ``optimizer.zero_grad()`` internally. From 1.2, it is left to the users expertize.
 
 .. tip:: To perform ``accumulate_grad_batches`` with one optimizer, you can do as such.
 
 .. tip:: ``self.optimizers()`` will return ``LightningOptimizer`` objects. You can access your own optimizer with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to support accelerators and precision for you.
-
 
 .. code-block:: python
 
@@ -41,14 +40,14 @@ to manually manage the optimization process. To do so, do the following:
 
         loss = self.compute_loss(batch)
         self.manual_backward(loss)
-        opt.step()
 
         # accumulate gradient batches
         if batch_idx % 2 == 0:
+            opt.step()
             opt.zero_grad()
 
 
-.. tip:: It is a good practice to provide the optimizer with a ``closure`` function that performs a ``forward`` and ``backward`` pass of your model. It is optional for most optimizers, but makes your code compatible if you switch to an optimizer which requires a closure.
+.. tip:: It is a good practice to provide the optimizer with a ``closure`` function that performs a ``forward`` and ``backward`` pass of your model. It is optional for most optimizers, but makes your code compatible if you switch to an optimizer which requires a closure. See also `the PyTorch docs<https://pytorch.org/docs/stable/optim.html#optimizer-step-closure>`_.
 
 Here is the same example as above using a ``closure``.
 
@@ -71,7 +70,6 @@ Here is the same example as above using a ``closure``.
 .. code-block:: python
 
     # Scenario for a GAN.
-
     def training_step(...):
         opt_gen, opt_dis = self.optimizers()
 
