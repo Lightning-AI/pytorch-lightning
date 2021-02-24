@@ -975,5 +975,5 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
 
 
 def test_model_checkpoint_mode_options():
-    with pytest.raises(MisconfigurationException, match="`mode` can be auto, .* got unknown_option"):
+    with pytest.raises(MisconfigurationException, match="`mode` can be .* but got unknown_option"):
         ModelCheckpoint(mode="unknown_option")

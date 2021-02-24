@@ -281,7 +281,7 @@ class ModelCheckpoint(Callback):
         }
 
         if mode not in mode_dict:
-            raise MisconfigurationException(f"`mode` can be {', '.join(mode_dict.keys())}, got {mode}")
+            raise MisconfigurationException(f"`mode` can be {', '.join(mode_dict.keys())} but got {mode}")
 
         self.kth_value, self.mode = mode_dict[mode]
 
