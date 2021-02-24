@@ -685,7 +685,6 @@ def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir):
         "epoch=1-step=89.ckpt",
         "epoch=1-step=119.ckpt",
         "epoch=1-step=127.ckpt",
-        "epoch=1-step=127-v0.ckpt",
     ]
     assert set(os.listdir(tmpdir)) == set(expected)
 
