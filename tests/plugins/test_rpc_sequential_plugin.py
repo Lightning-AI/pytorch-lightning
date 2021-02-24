@@ -42,7 +42,6 @@ def test_rpc_sequential_plugin_manual(tmpdir, args=None):
         gpus=2,
         distributed_backend="ddp",
         plugins=[RPCSequentialPlugin(balance=[2, 1], rpc_timeout_sec=5 * 60)],
-        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
