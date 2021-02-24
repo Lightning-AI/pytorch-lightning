@@ -23,14 +23,13 @@ from tests.accelerators import ddp_model, DDPLauncher
 from tests.helpers.boring_model import BoringModel
 from tests.utilities.distributed import call_training_script
 
+CLI_ARGS = '--max_epochs 1 --gpus 2 --accelerator ddp'
 
-@pytest.mark.parametrize('cli_args', [
-    pytest.param('--max_epochs 1 --gpus 2 --accelerator ddp'),
-])
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
+def test_multi_gpu_model_ddp_fit_only(tmpdir):
     # call the script
-    std, err = call_training_script(ddp_model, cli_args, 'fit', tmpdir, timeout=120)
+    call_training_script(ddp_model, CLI_ARGS, 'fit', tmpdir, timeout=120)
 
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
@@ -40,13 +39,10 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
     assert result['status'] == 'complete'
 
 
-@pytest.mark.parametrize('cli_args', [
-    pytest.param('--max_epochs 1 --gpus 2 --accelerator ddp'),
-])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model_ddp_test_only(tmpdir, cli_args):
+def test_multi_gpu_model_ddp_test_only(tmpdir):
     # call the script
-    call_training_script(ddp_model, cli_args, 'test', tmpdir)
+    call_training_script(ddp_model, CLI_ARGS, 'test', tmpdir)
 
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
@@ -56,13 +52,10 @@ def test_multi_gpu_model_ddp_test_only(tmpdir, cli_args):
     assert result['status'] == 'complete'
 
 
-@pytest.mark.parametrize('cli_args', [
-    pytest.param('--max_epochs 1 --gpus 2 --accelerator ddp'),
-])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):
+def test_multi_gpu_model_ddp_fit_test(tmpdir):
     # call the script
-    call_training_script(ddp_model, cli_args, 'fit_test', tmpdir, timeout=20)
+    call_training_script(ddp_model, CLI_ARGS, 'fit_test', tmpdir, timeout=20)
 
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
@@ -73,7 +66,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):
 
     model_outs = result['result']
     for out in model_outs:
-        assert out['test_acc'] > 0.90
+        assert out['test_acc'] > 0.7
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
