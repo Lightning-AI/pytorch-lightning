@@ -215,9 +215,9 @@ class SegModel(pl.LightningModule):
         img = img.float()
         mask = mask.long()
         out = self(img)
-        loss_val = F.cross_entropy(out, mask, ignore_index=250)
-        log_dict = {'train_loss': loss_val}
-        return {'loss': loss_val, 'log': log_dict, 'progress_bar': log_dict}
+        loss = F.cross_entropy(out, mask, ignore_index=250)
+        log_dict = {'train_loss': loss}
+        return {'loss': loss, 'log': log_dict, 'progress_bar': log_dict}
 
     def validation_step(self, batch, batch_idx):
         img, mask = batch
