@@ -737,7 +737,7 @@ class TrainLoop:
 
         with self.trainer.profiler.profile("training_step_and_backward"):
             if not accumulate_grad_batches_enabled:
-                optimizer.zero_grad()
+                self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
             # lightning module hook
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
@@ -767,7 +767,7 @@ class TrainLoop:
 
             # when the last batch of accumulation
             if accumulate_grad_batches_enabled and not self.should_accumulate():
-                optimizer.zero_grad()
+                self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
         return result
 
