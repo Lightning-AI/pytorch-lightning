@@ -16,8 +16,8 @@
 import pytest
 
 from pytorch_lightning import Trainer, Callback
-from tests.deprecated_api import no_deprecated_call
 from tests.helpers import BoringModel
+from tests.helpers.utils import no_warning_call
 
 
 def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
@@ -52,5 +52,5 @@ def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
             ...
 
     trainer.callbacks = [NewSignature(), ValidSignature1(), ValidSignature2()]
-    with no_deprecated_call():
+    with no_warning_call(DeprecationWarning):
         trainer.save_checkpoint(filepath)

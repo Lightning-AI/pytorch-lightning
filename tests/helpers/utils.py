@@ -14,6 +14,10 @@
 import functools
 import os
 import traceback
+from contextlib import contextmanager
+from typing import Optional
+
+import pytest
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -111,3 +115,18 @@ def pl_multi_process_test(func):
         assert result == 1, 'expected 1, but returned %s' % result
 
     return wrapper
+
+
+@contextmanager
+def no_warning_call(warning_type, match: Optional[str] = None):
+    with pytest.warns(None) as record:
+        yield
+
+        try:
+            w = record.pop(warning_type)
+            if not ((match and match in w.text) or w):
+                return
+        except AssertionError:
+            # no warning raised
+            return
+        raise AssertionError(f"`{warning_type}` was raised: {w}")
