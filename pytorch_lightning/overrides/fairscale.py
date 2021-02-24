@@ -15,13 +15,14 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 
-LightningShardedDataParallel = None
+
+class LightningShardedDataParallel(_LightningModuleWrapperBase):
+    # Just do this for later docstrings
+    pass
+
+
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
-
-    class LightningShardedDataParallel(_LightningModuleWrapperBase):
-        # Just do this for later docstrings
-        pass
 
     def unwrap_lightning_module_sharded(wrapped_model) -> LightningModule:
         model = wrapped_model
@@ -31,14 +32,14 @@ if _FAIRSCALE_AVAILABLE:
         return unwrap_lightning_module(model)
 
 
-LightningFullyShardedDataParallel = None
+class LightningFullyShardedDataParallel(_LightningModuleWrapperBase):
+    # Just do this for later docstrings
+    pass
+
+
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import FlattenParamsWrapper
     from fairscale.nn.data_parallel import FullyShardedDataParallel
-
-    class LightningFullyShardedDataParallel(_LightningModuleWrapperBase):
-        # Just do this for later docstrings
-        pass
 
     def unwrap_lightning_module_fully_sharded(wrapped_model) -> LightningModule:
         model = wrapped_model

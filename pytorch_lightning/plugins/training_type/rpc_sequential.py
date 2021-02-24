@@ -56,7 +56,7 @@ class RPCSequentialPlugin(RPCPlugin):
 
         .. _RPCSequentialPlugin: https://arxiv.org/abs/1811.06965
 
-        .. warning::
+        .. deprecated::
                This plugin has been deprecated. Please use the ``FullyShardedPlugin`` which provides better performance
                and scaling without pipelining the model.
 

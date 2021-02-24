@@ -13,7 +13,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
-@pytest.mark.parametrize(["plugin"], [("fully_sharded", )])
+@pytest.mark.parametrize(["plugin"], [("ddp_fully_sharded", )])
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
 def test_sharded_ddp_choice(tmpdir, plugin):
     """
@@ -23,7 +23,7 @@ def test_sharded_ddp_choice(tmpdir, plugin):
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
-            if plugin == 'fully_sharded':
+            if plugin == 'ddp_fully_sharded':
                 assert isinstance(trainer.accelerator.training_type_plugin, FullyShardedPlugin)
             raise SystemExit()
 
@@ -49,7 +49,7 @@ def test_invalid_apex_sharded(tmpdir):
     with pytest.raises(MisconfigurationException, match='Sharded Plugins are not supported with Apex AMP'):
         trainer = Trainer(
             fast_dev_run=True,
-            plugins='fully_sharded',
+            plugins='ddp_fully_sharded',
             precision=16,
             amp_backend='apex',
         )
@@ -57,7 +57,7 @@ def test_invalid_apex_sharded(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.parametrize(["plugin"], [("fully_sharded", )])
+@pytest.mark.parametrize(["plugin"], [("ddp_fully_sharded", )])
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
@@ -71,7 +71,7 @@ def test_ddp_choice_sharded_amp(device_count_mock, mock_cuda_available, plugin, 
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
-            if plugin == 'fully_sharded':
+            if plugin == 'ddp_fully_sharded':
                 assert isinstance(trainer.accelerator.training_type_plugin, FullyShardedPlugin)
             assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
             raise SystemExit()
@@ -99,7 +99,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         gpus=1,
-        plugins='fully_sharded',
+        plugins='ddp_fully_sharded',
         fast_dev_run=True,
         precision=16,
     )
