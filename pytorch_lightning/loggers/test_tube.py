@@ -77,7 +77,7 @@ class TestTubeLogger(LightningLoggerBase):
 
     Raises:
         ImportError:
-            If 'test_tube' logger is not installed on the device
+            If reqired TestTube package is not installed on the device
     """
 
     __test__ = False

@@ -63,7 +63,7 @@ class WandbLogger(LightningLoggerBase):
 
     Raises:
         ImportError:
-            If 'wandb' logger is not installed on the device
+            If required WandB package is not installed on the device
         MisconfigurationException:
             If model checkpoints are uploaded in offline mode
 
