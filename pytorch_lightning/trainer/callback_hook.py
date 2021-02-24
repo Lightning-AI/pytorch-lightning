@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect
 from abc import ABC
 from copy import deepcopy
 from inspect import signature
@@ -20,6 +19,7 @@ from typing import Any, Callable, Dict, List, Type, Optional
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -103,7 +103,7 @@ class TrainerCallbackHookMixin(ABC):
             outputs: List of outputs on each ``validation`` epoch
         """
         for callback in self.callbacks:
-            if self._is_param_in_hook_signature(callback.on_validation_epoch_end, "outputs"):
+            if is_param_in_hook_signature(callback.on_validation_epoch_end, "outputs"):
                 callback.on_validation_epoch_end(self, self.lightning_module, outputs)
             else:
                 warning_cache.warn(
@@ -125,7 +125,7 @@ class TrainerCallbackHookMixin(ABC):
             outputs: List of outputs on each ``test`` epoch
         """
         for callback in self.callbacks:
-            if self._is_param_in_hook_signature(callback.on_test_epoch_end, "outputs"):
+            if is_param_in_hook_signature(callback.on_test_epoch_end, "outputs"):
                 callback.on_test_epoch_end(self, self.lightning_module, outputs)
             else:
                 warning_cache.warn(
@@ -280,10 +280,3 @@ class TrainerCallbackHookMixin(ABC):
         """
         for callback in self.callbacks:
             callback.on_before_zero_grad(self, self.lightning_module, optimizer)
-
-    @staticmethod
-    def _is_param_in_hook_signature(hook_fx: Callable, param: str) -> bool:
-        hook_params = list(inspect.signature(hook_fx).parameters)
-        if "args" in hook_params or param in hook_params:
-            return True
-        return False

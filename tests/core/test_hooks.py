@@ -49,6 +49,7 @@ def test_on_test_epoch_end_outputs(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
+        fast_dev_run=2,
         weights_summary=None,
     )
 

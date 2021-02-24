@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 
 import torch
 
@@ -19,6 +18,7 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -334,8 +334,7 @@ class EvaluationLoop(object):
 
             if is_overridden(hook_name, model_ref):
                 model_hook_fx = getattr(model_ref, hook_name)
-                model_hook_params = list(inspect.signature(model_hook_fx).parameters)
-                if "args" in model_hook_params or "outputs" in model_hook_params:
+                if is_param_in_hook_signature(model_hook_fx, "outputs"):
                     model_hook_fx(outputs)
                 else:
                     self.warning_cache.warn(
