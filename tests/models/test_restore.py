@@ -452,7 +452,7 @@ def test_dp_resume(tmpdir):
 
             # if model and state loaded correctly, predictions will be good even though we
             # haven't trained with the new loaded model
-            new_trainer._running_stage = RunningStage.EVALUATING
+            new_trainer._running_stage = RunningStage.VALIDATING
 
             dataloader = self.train_dataloader()
             tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)

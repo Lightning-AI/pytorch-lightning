@@ -218,7 +218,11 @@ class DDPSpawnPlugin(ParallelPlugin):
             # save the last weights
             last_path = None
             # TODO: is there a better way than accessing trainer through model -> trainer?
-            if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+            if (
+                not self.lightning_module.trainer.evaluating
+                and best_model_path is not None
+                and len(best_model_path) > 0
+            ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 atomic_save(self.on_save(self.lightning_module.state_dict()), last_path)
 
@@ -235,7 +239,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # todo, pass also best score
 
         # load last weights
-        if last_path is not None and not self.lightning_module.trainer.testing:
+        if last_path is not None and not self.lightning_module.trainer.evaluating:
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             self.lightning_module.load_state_dict(ckpt)
 

@@ -124,7 +124,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             # save the last weights
             last_path = None
             # TODO: is there a better way than accessing trainer through model -> trainer?
-            if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+            if (
+                not self.lightning_module.trainer.evaluating
+                and best_model_path is not None
+                and len(best_model_path) > 0
+            ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 xm.save(self.lightning_module.state_dict(), last_path)
 
@@ -214,7 +218,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo, pass also bets score
 
         # load last weights
-        if last_path and not self.lightning_module.trainer.testing:
+        if last_path and not self.lightning_module.trainer.evaluating:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
@@ -228,7 +232,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         # load weights if not interrupted
         # TODO: check for trainer reference
-        if on_colab_kaggle() and not model.trainer.testing:
+        if on_colab_kaggle() and not model.trainer.evaluating:
             self.load_spawn_weights(model)
 
         self._model = model

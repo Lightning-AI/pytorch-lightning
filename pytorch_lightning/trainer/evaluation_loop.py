@@ -32,9 +32,9 @@ class EvaluationLoop(object):
         self.num_dataloaders = None
 
     def on_trainer_init(self):
-        self.trainer.num_val_batches = []
         self.trainer.num_sanity_val_batches = []
         self.trainer.num_test_batches = []
+        self.trainer.num_val_batches = []
         self.trainer.test_dataloaders = None
         self.trainer.val_dataloaders = None
         self.trainer.running_sanity_check = False
@@ -46,7 +46,6 @@ class EvaluationLoop(object):
         self.trainer.verbose_evaluate = True
 
     def get_evaluation_dataloaders(self, max_batches):
-        # select dataloaders
         model = self.trainer.lightning_module
 
         # select dataloaders
@@ -154,7 +153,7 @@ class EvaluationLoop(object):
         model_ref = self.trainer.lightning_module
         model_ref._results = Result()
 
-        if self.testing:
+        if self.trainer.testing:
             model_ref._current_fx_name = "test_step"
             with self.trainer.profiler.profile("test_step"):
                 output = self.trainer.accelerator.test_step(args)

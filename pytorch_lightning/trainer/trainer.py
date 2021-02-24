@@ -667,9 +667,8 @@ class Trainer(
             self.train_loop.on_train_end()
 
     def run_evaluation(self, max_batches=None, on_epoch=False):
-
         # used to know if we are logging for val, test + reset cached results
-        self._running_stage = RunningStage.TESTING if self.testing else RunningStage.EVALUATING
+        self._running_stage = RunningStage.TESTING if self.testing else RunningStage.VALIDATING
         self.logger_connector.reset()
 
         # bookkeeping
@@ -907,18 +906,23 @@ class Trainer(
         model = model or self.lightning_module
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.data_connector.attach_datamodule(model, datamodule, 'test')
+        self.data_connector.attach_datamodule(model, datamodule)
         results = (
-            self.__evaluate_given_model(model, test_dataloaders
+            self.__evaluate_given_model(model, dataloaders=test_dataloaders)
             if model_provided else
-            self.__evaluate_using_best_weights(model, ckpt_path, test_dataloaders)
+            self.__evaluate_using_best_weights(model, ckpt_path=ckpt_path, dataloaders=test_dataloaders)
         )
 
-        self.teardown('test', model=model)
+        self.teardown('test')
         self._running_stage = None
         return results
 
-    def __evaluate_using_best_weights(self, model, ckpt_path: Optional[str] = None, dataloaders: Union[DataLoader, List[DataLoader]]):
+    def __evaluate_using_best_weights(
+        self,
+        model,
+        ckpt_path: Optional[str] = None,
+        dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
+    ):
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
             raise MisconfigurationException(
@@ -957,8 +961,7 @@ class Trainer(
 
         return results
 
-    def __evaluate_given_model(self, model, dataloaders: Union[DataLoader, List[DataLoader]]):
-
+    def __evaluate_given_model(self, model, dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None):
         # attach data
         if dataloaders is not None:
             self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
@@ -969,7 +972,7 @@ class Trainer(
 
         # teardown
         if self.is_function_implemented('teardown', model=model):
-            model.teardown(stage)
+            model.teardown('test')
 
         return results
 
@@ -1013,7 +1016,7 @@ class Trainer(
 
         if datamodule is not None:
             # Attach datamodule to get setup/prepare_data added to model before the call to it below
-            self.data_connector.attach_datamodule(model, datamodule, 'predict')
+            self.data_connector.attach_datamodule(model, datamodule)
 
         # attach data
         if dataloaders is not None:
