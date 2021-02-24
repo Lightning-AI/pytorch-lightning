@@ -20,7 +20,9 @@ import pytest
 import torch
 import yaml
 from omegaconf import OmegaConf
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+from tensorboard.backend.event_processing.event_accumulator import (
+    EventAccumulator,
+)
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -32,9 +34,7 @@ from tests.helpers import BoringModel
     reason="Minimal PT version is set to 1.5",
 )
 def test_tensorboard_hparams_reload(tmpdir):
-
     class CustomModel(BoringModel):
-
         def __init__(self, b1=0.5, b2=0.999):
             super().__init__()
             self.save_hyperparameters()
@@ -64,11 +64,23 @@ def test_tensorboard_hparams_reload(tmpdir):
     event_acc.Reload()
 
     data_pt_1_5 = b'\x12\x1b"\x04\n\x02b1"\x04\n\x02b2*\r\n\x0b\x12\thp_metric'
-    data_pt_1_6 = b'\x12\x1f"\x06\n\x02b1 \x03"\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
-    hparams_data = data_pt_1_6 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0") else data_pt_1_5
+    data_pt_1_6 = (
+        b'\x12\x1f"\x06\n\x02b1 \x03"\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
+    )
+    hparams_data = (
+        data_pt_1_6
+        if LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
+        else data_pt_1_5
+    )
 
-    assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
-    assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.content == hparams_data
+    assert (
+        event_acc.summary_metadata["_hparams_/experiment"].plugin_data.plugin_name
+        == "hparams"
+    )
+    assert (
+        event_acc.summary_metadata["_hparams_/experiment"].plugin_data.content
+        == hparams_data
+    )
 
 
 def test_tensorboard_automatic_versioning(tmpdir):
@@ -105,7 +117,9 @@ def test_tensorboard_named_version(tmpdir):
     expected_version = "2020-02-05-162402"
 
     logger = TensorBoardLogger(save_dir=tmpdir, name=name, version=expected_version)
-    logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
+    logger.log_hyperparams(
+        {"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5}
+    )  # Force data to be written
 
     assert logger.version == expected_version
     assert os.listdir(tmpdir / name) == [expected_version]
@@ -116,7 +130,9 @@ def test_tensorboard_named_version(tmpdir):
 def test_tensorboard_no_name(tmpdir, name):
     """Verify that None or empty name works"""
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)
-    logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
+    logger.log_hyperparams(
+        {"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5}
+    )  # Force data to be written
     assert logger.root_dir == tmpdir
     assert os.listdir(tmpdir / "version_0")
 
@@ -133,6 +149,36 @@ def test_tensorboard_log_metrics(tmpdir, step_idx):
     logger.log_metrics(metrics, step_idx)
 
 
+def test_tensorboard_log_sub_dir(tmpdir):
+    """ Test tat log_dir is correctly pointed to sub_dir if a sub_dir is passed. """
+
+    class TestLogger(TensorBoardLogger):
+        # standardizing version and name properties
+        @property
+        def version(self):
+            return "version"
+
+        @property
+        def name(self):
+            return "name"
+
+    model = BoringModel()
+    trainer_args = dict(default_root_dir=tmpdir, max_steps=1,)
+
+    # no sub_dir specified
+    save_dir = tmpdir / "logs"
+    logger = TestLogger(save_dir)
+    trainer = Trainer(**trainer_args, logger=logger)
+    trainer.fit(model)
+    assert trainer.logger.log_dir[:-1] == save_dir / "name" / "version"
+
+    # sub_dir specified
+    logger = TestLogger(save_dir, sub_dir="sub_dir")
+    trainer = Trainer(**trainer_args, logger=logger)
+    trainer.fit(model)
+    assert trainer.logger.log_dir == save_dir / "name" / "version" / "sub_dir"
+
+
 def test_tensorboard_log_hyperparams(tmpdir):
     logger = TensorBoardLogger(tmpdir)
     hparams = {
@@ -140,11 +186,7 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {
-            "a": {
-                "b": "c"
-            }
-        },
+        "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -159,11 +201,7 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {
-            "a": {
-                "b": "c"
-            }
-        },
+        "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -179,11 +217,7 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {
-            "a": {
-                "b": "c"
-            }
-        },
+        "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
         # "namespace": Namespace(foo=Namespace(bar="buzz")),
         # "layer": torch.nn.BatchNorm1d,
@@ -214,23 +248,20 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     logger = TensorBoardLogger(tmpdir, log_graph=True)
     with pytest.warns(
         UserWarning,
-        match='Could not log computational graph since the `model.example_input_array`'
-        ' attribute is not set or `input_array` was not given'
+        match="Could not log computational graph since the `model.example_input_array`"
+        " attribute is not set or `input_array` was not given",
     ):
         logger.log_graph(model)
 
 
-@mock.patch('pytorch_lightning.loggers.TensorBoardLogger.log_metrics')
-@pytest.mark.parametrize('expected', [
-    ([5, 11, 17]),
-])
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@pytest.mark.parametrize("expected", [([5, 11, 17]),])
 def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmpdir):
     """
     Tests to ensure that tensorboard log properly when accumulated_gradients > 1
     """
 
     class TestModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self._count = 0
@@ -239,8 +270,8 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.log('count', self._count, on_step=True, on_epoch=True)
-            self.log('loss', loss, on_step=True, on_epoch=True)
+            self.log("count", self._count, on_step=True, on_epoch=True)
+            self.log("loss", loss, on_step=True, on_epoch=True)
 
             if not self.trainer.train_loop.should_accumulate():
                 if self.trainer.logger_connector.should_update_logs:
@@ -251,11 +282,11 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.log('val_loss', loss, on_step=True, on_epoch=True)
+            self.log("val_loss", loss, on_step=True, on_epoch=True)
             return loss
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=.001)
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.001)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             return [optimizer], [lr_scheduler]
 
@@ -277,14 +308,22 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
     )
     trainer.fit(model)
 
-    mock_count_epochs = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_epoch" in m[2]["metrics"]]
+    mock_count_epochs = [
+        m[2]["step"]
+        for m in mock_log_metrics.mock_calls
+        if "count_epoch" in m[2]["metrics"]
+    ]
     assert mock_count_epochs == expected
 
-    mock_count_steps = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_step" in m[2]["metrics"]]
+    mock_count_steps = [
+        m[2]["step"]
+        for m in mock_log_metrics.mock_calls
+        if "count_step" in m[2]["metrics"]
+    ]
     assert model._indexes == mock_count_steps
 
 
-@mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter')
+@mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter")
 def test_tensorboard_finalize(summary_writer, tmpdir):
     """ Test that the SummaryWriter closes in finalize. """
     logger = TensorBoardLogger(save_dir=tmpdir)
