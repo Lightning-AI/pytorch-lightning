@@ -335,6 +335,7 @@ class ModelCheckpoint(Callback):
         epoch: int,
         step: int,
         metrics: Dict[str, Any],
+        prefix: str = "",
     ) -> str:
         if not filename:
             # filename is not set, use default name
@@ -350,6 +351,9 @@ class ModelCheckpoint(Callback):
                 if name not in metrics:
                     metrics[name] = 0
             filename = filename.format(**metrics)
+
+        if prefix:
+            filename = cls.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
 
         return filename
 
