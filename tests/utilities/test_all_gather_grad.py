@@ -89,7 +89,6 @@ def test_all_gather_collection(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         accumulate_grad_batches=2,
-        enable_pl_optimizer=True,
         gpus=2,
         accelerator="ddp",
     )

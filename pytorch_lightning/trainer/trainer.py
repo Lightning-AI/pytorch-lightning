@@ -122,7 +122,7 @@ class Trainer(
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
-        profiler: Optional[Union[BaseProfiler, bool, str]] = None,
+        profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
         reload_dataloaders_every_epoch: bool = False,
@@ -135,9 +135,7 @@ class Trainer(
         amp_backend: str = 'native',
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
-        automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
-        enable_pl_optimizer: bool = None,  # todo: remove in v1.3
         multiple_trainloader_mode: str = 'max_size_cycle',
         stochastic_weight_avg: bool = False
     ):
@@ -177,7 +175,7 @@ class Trainer(
 
             checkpoint_callback: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
-                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`. Default: ``True``.
+                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
 
                 .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
                     v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
@@ -213,10 +211,6 @@ class Trainer(
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
-            automatic_optimization: If False you are responsible for calling .backward, .step, zero_grad
-                in LightningModule. This argument has been moved to LightningModule. It is deprecated
-                here in v1.1 and will be removed in v1.3.
-
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
 
@@ -226,10 +220,9 @@ class Trainer(
                 Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
                 a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
 
-            profiler: To profile individual steps during training and assist in identifying bottlenecks. Passing bool
-                value is deprecated in v1.1 and will be removed in v1.3.
+            profiler: To profile individual steps during training and assist in identifying bottlenecks.
 
-            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
+            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int).
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
@@ -250,7 +243,7 @@ class Trainer(
             num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
-                Set it to `-1` to run all batches in all validation dataloaders. Default: 2
+                Set it to `-1` to run all batches in all validation dataloaders.
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
 
@@ -288,11 +281,6 @@ class Trainer(
 
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
-
-            enable_pl_optimizer: If True, each optimizer will be wrapped by
-                `pytorch_lightning.core.optimizer.LightningOptimizer`. It allows Lightning to
-                handle AMP, TPU, accumulated_gradients, etc.
-                .. warning:: Currently deprecated and it will be removed in v1.3
 
             multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
                 In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
@@ -346,7 +334,7 @@ class Trainer(
         self.on_init_start()
 
         # init optimizer + lr scheduler related flags
-        self.optimizer_connector.on_trainer_init(enable_pl_optimizer)
+        self.optimizer_connector.on_trainer_init()
 
         # init data flags
         self.data_connector.on_trainer_init(
@@ -357,23 +345,12 @@ class Trainer(
         self.training_tricks_connector.on_trainer_init(
             gradient_clip_val, track_grad_norm, accumulate_grad_batches, truncated_bptt_steps, terminate_on_nan
         )
-
-        # init train loop related flags
-        # TODO: remove in 1.3.0
-        if automatic_optimization is None:
-            automatic_optimization = True
-        else:
-            rank_zero_warn(
-                "Disable automatic optimization with the trainer flag is deprecated and will be removed in v1.3.0!"
-                "Please use the property on the LightningModule for disabling automatic optimization"
-            )
         self.train_loop.on_trainer_init(
             max_epochs,
             min_epochs,
             max_steps,
             min_steps,
             num_sanity_val_steps,
-            automatic_optimization,
             weights_summary,
         )
         self.evaluation_loop.on_trainer_init()
