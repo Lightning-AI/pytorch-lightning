@@ -19,8 +19,7 @@ from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNative
 
 
 class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
-    """Mixed Precision for Full Sharded Training
-    """
+    """Mixed Precision for Full Sharded Training"""
 
     def clip_gradients(
         self, model: Any, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = float(2.0)
