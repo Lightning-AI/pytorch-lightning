@@ -251,9 +251,9 @@ class ModelCheckpoint(Callback):
 
     def _should_skip_saving_checkpoint(self, trainer) -> bool:
         return (
-            trainer.fast_dev_run # disable checkpointing with fast_dev_run
+            trainer.fast_dev_run  # disable checkpointing with fast_dev_run
             or trainer.running_sanity_check  # don't save anything during sanity check
-            or self.save_top_k == 0 # no models are saved
+            or self.save_top_k == 0  # no models are saved
             or self._last_global_step_saved == global_step  # already saved at the last step
         )
 
@@ -302,9 +302,13 @@ class ModelCheckpoint(Callback):
         if self.save_top_k is not None and self.save_top_k < -1:
             raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
         if self.every_n_epochs == 0 or self.every_n_epochs < -1:
-            raise MisconfigurationException(f'Invalid value for every_n_epochs={self.every_n_epochs}. Must be positive or -1')
+            raise MisconfigurationException(
+                f'Invalid value for every_n_epochs={self.every_n_epochs}. Must be positive or -1'
+            )
         if self.every_n_batches == 0 or self.every_n_batches < -1:
-            raise MisconfigurationException(f'Invalid value for every_n_batches={self.every_n_batches}. Must be positive or -1')
+            raise MisconfigurationException(
+                f'Invalid value for every_n_batches={self.every_n_batches}. Must be positive or -1'
+            )
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
             if self.save_top_k not in (None, -1, 0):

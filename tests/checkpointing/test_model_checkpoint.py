@@ -514,20 +514,18 @@ def test_none_monitor_top_k(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
     ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
 
+
 def test_invalid_every_n_epoch(tmpdir):
     """ Test that an exception is raised for every_n_epochs = 0 or < -1. """
-    with pytest.raises(
-        MisconfigurationException, match=r'Invalid value for every_n_epochs=0*'
-    ):
+    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_epochs=0*'):
         ModelCheckpoint(dirpath=tmpdir, every_n_epochs=0)
-    with pytest.raises(
-        MisconfigurationException, match=r'Invalid value for every_n_epochs=-2*'
-    ):
+    with pytest.raises(MisconfigurationException, match=r'Invalid value for every_n_epochs=-2*'):
         ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-2)
 
     # These should not fail
     ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-1)
     ModelCheckpoint(dirpath=tmpdir, every_n_epochs=3)
+
 
 def test_invalid_every_n_batches(tmpdir):
     """ Test that an exception is raised for every_n_batches = 0 or < -1. """
