@@ -44,12 +44,8 @@ class TrainingStepVariations(ABC):
 
         output = OrderedDict({
             'loss': loss_train,
-            'progress_bar': {
-                'some_val': log_train * log_train
-            },
-            'log': {
-                'train_some_val': log_train * log_train
-            },
+            'progress_bar': dict(some_val=log_train * log_train),
+            'log': dict(train_some_val=log_train * log_train),
         })
         return output
 
