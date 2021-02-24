@@ -14,12 +14,7 @@
 import os
 from typing import List, Union
 
-from pytorch_lightning.callbacks import (
-    Callback,
-    ModelCheckpoint,
-    ProgressBar,
-    ProgressBarBase,
-)
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -75,7 +70,7 @@ class CallbackConnector:
             )
 
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
-            self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None, mode='min'))
+            self.trainer.callbacks.append(ModelCheckpoint())
 
     def _configure_swa_callbacks(self):
         if not self.trainer._stochastic_weight_avg:
