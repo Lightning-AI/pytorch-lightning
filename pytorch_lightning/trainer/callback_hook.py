@@ -86,7 +86,7 @@ class TrainerCallbackHookMixin(ABC):
         """Called when the epoch ends.
 
         Args:
-            outputs: List of outputs on each `train` epoch
+            outputs: List of outputs on each ``train`` epoch
         """
         for callback in self.callbacks:
             callback.on_train_epoch_end(self, self.lightning_module, outputs)
@@ -100,7 +100,7 @@ class TrainerCallbackHookMixin(ABC):
         """Called when the epoch ends.
 
         Args:
-            outputs: List of outputs on each `val` epoch
+            outputs: List of outputs on each ``validation`` epoch
         """
         for callback in self.callbacks:
             if self._is_param_in_hook_signature(callback.on_validation_epoch_end, "outputs"):
@@ -122,7 +122,7 @@ class TrainerCallbackHookMixin(ABC):
         """Called when the epoch ends.
 
         Args:
-            outputs: List of outputs on each `test` epoch
+            outputs: List of outputs on each ``test`` epoch
         """
         for callback in self.callbacks:
             if self._is_param_in_hook_signature(callback.on_test_epoch_end, "outputs"):
