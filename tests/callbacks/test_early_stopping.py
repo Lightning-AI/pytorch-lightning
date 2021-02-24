@@ -334,7 +334,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
     # Compute min_epochs latest step
     by_min_epochs = min_epochs * limit_train_batches
 
-    # Make sure the trainer stops for the max of all minimun requirements
+    # Make sure the trainer stops for the max of all minimum requirements
     assert trainer.global_step == max(min_steps, by_early_stopping, by_min_epochs), \
         (trainer.global_step, max(min_steps, by_early_stopping, by_min_epochs), step_freeze, min_steps, min_epochs)
 
@@ -342,5 +342,5 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
 
 
 def test_early_stopping_mode_options():
-    with pytest.raises(MisconfigurationException, match="`mode` can be auto, .* got unknown_option"):
+    with pytest.raises(MisconfigurationException, match="`mode` can be .* got unknown_option"):
         EarlyStopping(mode="unknown_option")

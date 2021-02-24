@@ -255,7 +255,6 @@ def stat_scores(
                 [1, 0, 3, 0, 1]])
         >>> stat_scores(preds, target, reduce='micro')
         tensor([2, 2, 6, 2, 4])
-
     """
 
     if reduce not in ["micro", "macro", "samples"]:
