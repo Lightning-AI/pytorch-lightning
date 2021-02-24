@@ -528,6 +528,8 @@ class MetricCollection(nn.ModuleDict):
               dict as key for output dict. Use this format if you want to chain
               together multiple of the same metric with different parameters.
 
+        prefix: a string to append in front of the keys of the output dict
+
     Example (input as list):
 
         >>> from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
@@ -548,7 +550,10 @@ class MetricCollection(nn.ModuleDict):
 
     """
 
-    def __init__(self, metrics: Union[List[Metric], Tuple[Metric], Dict[str, Metric]]):
+    def __init__(
+            self, metrics: Union[List[Metric], Tuple[Metric], Dict[str, Metric]],
+            prefix: Optional[str] = None
+    ):
         super().__init__()
         if isinstance(metrics, dict):
             # Check all values are metrics
@@ -573,13 +578,19 @@ class MetricCollection(nn.ModuleDict):
         else:
             raise ValueError("Unknown input to MetricCollection.")
 
+        if prefix is not None:
+            if isinstance(prefix, str):
+                self.prefix = prefix
+            else:
+                raise ValueError('Expected input `prefix` to be a string')
+
     def forward(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=E0202
         """
         Iteratively call forward for each metric. Positional arguments (args) will
         be passed to every metric in the collection, while keyword arguments (kwargs)
         will be filtered based on the signature of the individual metric.
         """
-        return {k: m(*args, **m._filter_kwargs(**kwargs)) for k, m in self.items()}
+        return {self._set_prefix(k): m(*args, **m._filter_kwargs(**kwargs)) for k, m in self.items()}
 
     def update(self, *args, **kwargs):  # pylint: disable=E0202
         """
@@ -592,7 +603,7 @@ class MetricCollection(nn.ModuleDict):
             m.update(*args, **m_kwargs)
 
     def compute(self) -> Dict[str, Any]:
-        return {k: m.compute() for k, m in self.items()}
+        return {self._set_prefix(k): m.compute() for k, m in self.items()}
 
     def reset(self):
         """ Iteratively call reset for each metric """
@@ -609,3 +620,6 @@ class MetricCollection(nn.ModuleDict):
         """
         for _, m in self.items():
             m.persistent(mode)
+
+    def _set_prefix(self, k):
+        return k if self.prefix is None else self.prefix+k
