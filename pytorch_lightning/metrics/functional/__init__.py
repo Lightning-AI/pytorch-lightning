@@ -23,6 +23,7 @@ from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
     to_categorical,
     to_onehot,
 )
+from pytorch_lightning.metrics.functional.cohen_kappa import cohen_kappa  # noqa: F401
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix  # noqa: F401
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance  # noqa: F401
 from pytorch_lightning.metrics.functional.f_beta import f1, fbeta  # noqa: F401

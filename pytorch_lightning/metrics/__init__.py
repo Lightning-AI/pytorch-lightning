@@ -16,6 +16,7 @@ from pytorch_lightning.metrics.classification import (  # noqa: F401
     AUC,
     AUROC,
     AveragePrecision,
+    CohenKappa,
     ConfusionMatrix,
     F1,
     FBeta,

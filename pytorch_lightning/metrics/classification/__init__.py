@@ -15,6 +15,7 @@ from pytorch_lightning.metrics.classification.accuracy import Accuracy  # noqa: 
 from pytorch_lightning.metrics.classification.auc import AUC  # noqa: F401
 from pytorch_lightning.metrics.classification.auroc import AUROC  # noqa: F401
 from pytorch_lightning.metrics.classification.average_precision import AveragePrecision  # noqa: F401
+from pytorch_lightning.metrics.classification.cohen_kappa import CohenKappa  # noqa: F401
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix  # noqa: F401
 from pytorch_lightning.metrics.classification.f_beta import F1, FBeta  # noqa: F401
 from pytorch_lightning.metrics.classification.hamming_distance import HammingDistance  # noqa: F401

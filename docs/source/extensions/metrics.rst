@@ -551,6 +551,12 @@ AUROC
 .. autoclass:: pytorch_lightning.metrics.AUROC
     :noindex:
 
+CohenKappa
+~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.CohenKappa
+    :noindex:
+
 ConfusionMatrix
 ~~~~~~~~~~~~~~~
 
@@ -641,6 +647,13 @@ average_precision [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.average_precision
+    :noindex:
+
+
+cohen_kappa [func]
+~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.cohen_kappa
     :noindex:
 
 
