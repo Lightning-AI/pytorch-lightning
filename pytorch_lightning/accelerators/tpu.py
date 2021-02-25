@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import torch
 from torch.optim import Optimizer
