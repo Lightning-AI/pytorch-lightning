@@ -18,7 +18,8 @@ from torch.optim import Adam, Optimizer
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from tests.helpers.boring_model import BoringModel
+from tests.base import EvalModelTemplate
+
 
 
 def test_lightning_optimizer(tmpdir):
@@ -327,3 +328,27 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
 
         assert adam_zero_grad.call_count == 4
         assert sgd_zero_grad.call_count == 10
+
+
+def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
+    """
+    Test zero_grad is called the same number of times as LBFGS requires
+    for reevaluation of the loss in automatic_optimization.
+    """
+
+    with patch("torch.optim.LBFGS.zero_grad") as zero_grad:
+
+        model = EvalModelTemplate()
+        model.configure_optimizers = model.configure_optimizers__lbfgs
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=1,
+            limit_val_batches=1,
+            max_epochs=1,
+            weights_summary=None,
+        )
+        trainer.fit(model)
+
+        lbfgs = model.optimizers()
+        max_iter = lbfgs.param_groups[0]["max_iter"]
+        assert zero_grad.call_count == max_iter
