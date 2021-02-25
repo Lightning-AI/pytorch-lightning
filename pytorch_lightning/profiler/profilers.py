@@ -605,7 +605,6 @@ class ScheduleWrapper:
                 self._training_step_and_backward_reached_end = True
             elif self._current_action == "validation_step":
                 self._validation_step_reached_end = True
-        print(action, self.num_step, self._current_action)
         return action
 
 
@@ -627,16 +626,15 @@ if _TORCH_GREATER_EQUAL_1_8:
             enabled: bool = True,
             use_cpu: bool = True,
             use_cuda: bool = True,
-            activities: Optional[List['ProfilerActivity']] = None,
             schedule: Optional[Callable] = torch.profiler.schedule(wait=2, warmup=1, active=5),
-            record_shapes: bool = False,
-            profile_memory: bool = False,
+            record_shapes: bool = True,
+            profile_memory: bool = True,
             with_stack: bool = False,
             with_flops: bool = True,
             row_limit: int = 20,
             export_to_tensorboard: bool = True,
-            export_to_flame_graph: bool = True,
-            metric: str = "self_cpu_time_total",
+            on_trace_ready: Optional[Callable] = None,
+            export_to_flame_graph: bool = False,
             group_by_input_shapes: bool = False,
             sort_by_key: Optional[str] = None,
             record_functions: Optional[List] = None,
@@ -652,36 +650,58 @@ if _TORCH_GREATER_EQUAL_1_8:
                     to std out when training is finished. When using ``ddp``,
                     each rank will stream the profiled operation to their own file
                     with the extension ``_{rank}.txt``
+
                 enabled: Setting this to False makes this context manager a no-op.
+
+                use_cpu: Enables timing of CPU events.
+
                 use_cuda: Enables timing of CUDA events as well using the cudaEvent API.
                     Adds approximately 4us of overhead to each tensor operation.
+
+                schedule: Optional Callable which describes recording procedure
+
                 record_shapes: If shapes recording is set, information about input dimensions will be collected.
-                profile_memory: Whether to report memory usage, default: True (Introduced in PyTorch 1.6.0)
-                group_by_input_shapes: Include operator input shapes and group calls by shape.
-                with_stack: record source information (file and line number) for the ops (Introduced in PyTorch 1.7.0)
-                use_kineto: experimental support for Kineto profiler (Introduced in PyTorch 1.8.0)
-                use_cpu: use_kineto=True and can be used to lower the overhead
-                    for GPU-only profiling (Introduced in PyTorch 1.8.0)
-                emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
-                    Run::
-                        nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
-                    To visualize, you can either use::
-                        nvvp trace_name.prof
-                        torch.autograd.profiler.load_nvprof(path)
-                export_to_chrome: Wether to export the sequence of profiled operators for Chrome.
-                    It will generate a ``.json`` file which can be read by Chrome.
-                path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
-                    By default, it will be save where the file being is being run.
+
+                profile_memory: Whether to report memory usage, default: True
+
+                with_stack: record source information (file and line number) for the ops
+
+                with_flops: Whether to record flops for support operations.
+
                 row_limit: Limit the number of rows in a table, `0` is a special value that
                     removes the limit completely.
+
+                export_to_tensorboard: Wether to export the sequence of profiled operators for Chrome.
+                    It can be used with `chrome://tracing/`. Just load the generated traces.
+
+                export_to_flame_graph: Wether to export the sequence of profiled operators for Flame Graph.
+                    c.f https://github.com/brendangregg/FlameGraph
+
+                group_by_input_shapes: Include operator input shapes and group calls by shape.
+
                 sort_by_key: Keys to sort out profiled table
-                profiled_functions: list of profiled functions which will create a context manager on.
+
+                record_functions: list of profiled functions which will create a context manager on.
                     Any other will be pass through.
+
+                path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
+                    By default, it will save in the `lightning_logs/version_{}` folder.
+
                 local_rank: When running in distributed setting, local_rank is used for each process
                     to write to their own file if `output_fname` is provided.
             """
 
             self.sort_by_key = sort_by_key
+
+            if schedule is not None:
+                if not isinstance(schedule, Callable):
+                    raise MisconfigurationException(f"Found schedule: {schedule}. Schedule should be a callable.")
+                action = schedule(0)
+                if not isinstance(action, ProfilerAction):
+                    raise MisconfigurationException(
+                        f"Found schedule: {schedule}. "
+                        "Schedule should be a callable returning `torch.profiler.ProfilerAction`. "
+                    )
 
             if isinstance(self.sort_by_key, str) and self.sort_by_key not in self.AVAILABLE_SORT_KEYS:
                 raise MisconfigurationException(
@@ -694,20 +714,22 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.use_cuda = use_cuda
             self.record_functions = record_functions or self.RECORD_FUNCTIONS
             self.record_functions_managers = {}
-            self.activities = activities or [ProfilerActivity.CPU] * use_cpu + [ProfilerActivity.CUDA] * use_cuda
+            self.activities = [ProfilerActivity.CPU] * use_cpu + [ProfilerActivity.CUDA] * use_cuda
             self.schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
             self.record_shapes = record_shapes
             self.row_limit = row_limit
             self.export_to_tensorboard = export_to_tensorboard
             self.export_to_flame_graph = export_to_flame_graph
-            self.metric = metric
             self.profile_memory = profile_memory
             self.with_stack = True if export_to_flame_graph else with_stack
             self.with_flops = with_flops
             self.local_rank = local_rank
             self.path_to_export_trace = path_to_export_trace
             self.group_by_input_shapes = group_by_input_shapes
-            self.on_trace_ready = None  # currently Lightning handles this part for the user
+            # currently Lightning handles this part for the user
+            # Open an issue with the specified use case.
+            self.on_trace_ready = on_trace_ready
+            self.udf_on_trace_ready = True if self.on_trace_ready is not None else False
 
             self.context_names = {}
             self.running_stack = []
@@ -757,6 +779,9 @@ if _TORCH_GREATER_EQUAL_1_8:
                 if action_name in self.STEP_FUNCTIONS:
                     if self.schedule is not None:
                         self.schedule._current_action = action_name
+
+                    if self.udf_on_trace_ready:
+                        return
 
                     def on_trace_ready(profiler):
                         local_rank = 0 if self.local_rank is None else self.local_rank
