@@ -1604,7 +1604,8 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
 
     if enabled:
         assert len(profiler.summary()) > 0
-        assert set(profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
+        expected = {'validation_step', 'training_step_and_backward', 'training_step', 'backward'}
+        assert set(profiler.profiled_actions.keys()) == expected
     else:
         assert profiler.summary() is None
         assert set(profiler.profiled_actions.keys()) == set()
