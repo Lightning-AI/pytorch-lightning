@@ -47,5 +47,5 @@ class CIFAR10DataModule(LightningDataModule):
 model = LitLightningModule(models.resnet50(pretrained=True))
 datamodule = CIFAR10DataModule()
 schedule = torch.profiler.schedule(wait=2, warmup=1, active=5)
-trainer = Trainer(max_epochs=1, limit_train_batches=15, limit_val_batches=15, gpus=1, profiler=PyTorchProfiler())
+trainer = Trainer(max_epochs=1, limit_train_batches=15, limit_val_batches=15, gpus=1, profiler=PyTorchProfiler(schedule=schedule))
 trainer.fit(model, datamodule=datamodule)

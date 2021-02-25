@@ -297,7 +297,7 @@ class AdvancedProfiler(BaseProfiler):
 
 class LegacyPyTorchProfiler(BaseProfiler):
 
-    RECORD_FUNCTIONS = ("training_step_and_backward", "training_step", "backward", "validation_step", "test_step")
+    PROFILED_FUNCTIONS = ("training_step_and_backward", "training_step", "backward", "validation_step", "test_step")
     AVAILABLE_SORT_KEYS = (
         "cpu_time",
         "cuda_time",
@@ -555,30 +555,58 @@ class ScheduleWrapper:
 
     def __init__(self, schedule: Optional[Callable]):
         self._schedule = schedule
-        self._num_step = 0
+        self._num_training_step_and_backward = 0
+        self._num_validation_step = 0
+        self._training_step_and_backward_reached_end = False
+        self._validation_step_reached_end = False
         # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
         self._none_action = None
+        self._current_action = None
+    
+    @property
+    def num_step(self):
+        if self._current_action == "training_step_and_backward":
+            return self._num_training_step_and_backward
+        elif self._current_action == "validation_step":
+            return self._num_validation_step
+        elif self._current_action == "on_fit_start":
+            return 0
+        else:
+            pass
+
+    def _step(self):
+        if self._current_action == "training_step_and_backward":
+            self._num_training_step_and_backward += 1
+        elif self._current_action == "validation_step":
+            # skip sanity check
+            if self._num_training_step_and_backward > 0:
+                self._num_validation_step += 1
+        elif self._current_action == "on_fit_start":
+            pass
 
     @property
-    def current_action(self):
-        if self._none_action is not None:
-            return self._none_action
-        return self._schedule(self._num_step)
-
-    @property
-    def previous_action(self):
-        if self._none_action is not None:
-            return self._none_action
-        return self._schedule(self._num_step - 1)
+    def has_finished(self):
+        if self._current_action == "training_step_and_backward":
+            return self._training_step_and_backward_reached_end
+        elif self._current_action == "validation_step":
+            return self._validation_step_reached_end
+        else:
+            return False
 
     def __call__(self, num_step:int):
         # ignore the provided input. Keep internal state instead.
-        if self._none_action is not None:
-            return self._none_action
-        self._num_step += 1
-        if self._schedule(self._num_step) == ProfilerAction.RECORD_AND_SAVE:
-            self._none_action = ProfilerAction.NONE
-        return self._schedule(self._num_step)
+        if self.has_finished:
+            return ProfilerAction.NONE
+
+        self._step()
+        action = self._schedule(self.num_step)
+        if action == ProfilerAction.RECORD_AND_SAVE:
+            if self._current_action == "training_step_and_backward":
+                self._training_step_and_backward_reached_end = True
+            elif self._current_action == "validation_step":
+                self._validation_step_reached_end = True
+        print(action, self.num_step, self._current_action)
+        return action
     
 
 class PyTorchProfiler(LegacyPyTorchProfiler):
@@ -628,7 +656,7 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
         self.record_functions = record_functions or self.RECORD_FUNCTIONS
         self.record_functions_managers = {}
         self.activities = activities or [ProfilerActivity.CPU] * use_cpu + [ProfilerActivity.CUDA] * use_cuda
-        self.schedules = {k: ScheduleWrapper(schedule) if schedule is not None else None for k in self.record_functions}
+        self.schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
         self.record_shapes = record_shapes
         self.row_limit = row_limit
         self.export_to_tensorboard = export_to_tensorboard
@@ -640,7 +668,7 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
         self.local_rank = local_rank
         self.path_to_export_trace = path_to_export_trace
         self.group_by_input_shapes = group_by_input_shapes
-        self.on_trace_ready = torch.profiler.tensorboard_trace_handler('./result')
+        self.on_trace_ready = on_trace_ready
 
         self.context_names = {}
         self.running_stack = []
@@ -678,20 +706,25 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
         return output_string
 
     def get_function_events(self):
-        self.kineto_results = torch.autograd._disable_profiler()
-        parsed_results = parse_kineto_results(self.kineto_results)
-        function_events = EventList(
-            parsed_results,
-            use_cuda=self.use_cuda,
-            profile_memory=self.profile_memory,
-            with_flops=self.with_flops)
-        # This functions takes too long
-        function_events._populate_cpu_children = lambda: None
-        function_events._build_tree()
-        return function_events
+        if self.profiler.profiler.function_events is None:
+            self.kineto_results = torch.autograd._disable_profiler()
+            parsed_results = parse_kineto_results(self.kineto_results)
+            function_events = EventList(
+                parsed_results,
+                use_cuda=self.use_cuda,
+                profile_memory=self.profile_memory,
+                with_flops=self.with_flops)
+            # This functions takes too long
+            function_events._populate_cpu_children = lambda: None
+            function_events._build_tree()
+            return function_events
+        else:
+            return self.profiler.profiler.function_events
 
     def start(self, action_name: str) -> None:
         if action_name == self.START_ACTION:
+            if self.schedule is not None:
+                self.schedule._current_action = action_name
             self._create_profiler(action_name, torch.profiler.profile)
 
         elif action_name in self.record_functions:
@@ -703,6 +736,8 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
             self.record_functions_managers[action_name].__exit__(None, None, None)
 
             if action_name in self.STEP_FUNCTIONS:
+                if self.schedule is not None:
+                    self.schedule._current_action = action_name
                 self.profiler.step()
 
     def __del__(self):
