@@ -129,7 +129,6 @@ class LightningOptimizer:
     def __optimizer_step(self, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
         trainer = self._trainer
         optimizer = self._optimizer
-        model = trainer.lightning_module
 
         with trainer.profiler.profile(profiler_name):
             trainer.accelerator.optimizer_step(optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
