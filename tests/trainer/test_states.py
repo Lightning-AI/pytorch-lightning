@@ -15,25 +15,7 @@ import pytest
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
-from tests.base import EvalModelTemplate
-
-
-class StateSnapshotCallback(Callback):
-    """ Allows to shapshot the state inside a particular trainer method. """
-
-    def __init__(self, snapshot_method: str):
-        super().__init__()
-        assert snapshot_method in ['on_batch_start', 'on_test_batch_start']
-        self.snapshot_method = snapshot_method
-        self.trainer_state = None
-
-    def on_batch_start(self, trainer, pl_module):
-        if self.snapshot_method == 'on_batch_start':
-            self.trainer_state = trainer.state
-
-    def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        if self.snapshot_method == 'on_test_batch_start':
-            self.trainer_state = trainer.state
+from tests.helpers import BoringModel
 
 
 def test_initialize_state(tmpdir):
@@ -48,71 +30,53 @@ def test_initialize_state(tmpdir):
         pytest.param(dict(max_steps=1), id='Single-Step'),
     ]
 )
-def test_running_state_during_fit(tmpdir, extra_params):
-    """ Tests that state is set to RUNNING during fit """
+def test_trainer_state_while_running(tmpdir, extra_params):
+    trainer = Trainer(default_root_dir=tmpdir, **extra_params, auto_lr_find=True)
+    fdr = trainer.fast_dev_run
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    class TestModel(BoringModel):
+        def __init__(self, expected_state):
+            super().__init__()
+            self.expected_state = expected_state
+            self.called = set()
+            self.lr = 0.1
 
-    snapshot_callback = StateSnapshotCallback(snapshot_method='on_batch_start')
+        def on_batch_start(self, *_):
+            assert self.trainer.state == self.expected_state
 
-    trainer = Trainer(callbacks=[snapshot_callback], default_root_dir=tmpdir, **extra_params)
+        def on_train_batch_start(self, *_):
+            self.called.add("train")
+            assert self.trainer.training
 
+        def on_sanity_check_start(self, *_):
+            self.called.add("sanity")
+            assert self.trainer.sanity_checking
+
+        def on_validation_batch_start(self, *_):
+            self.called.add("validation")
+            assert self.trainer.validating or self.trainer.sanity_checking
+
+        def on_test_batch_start(self, *_):
+            self.called.add("test")
+            assert self.trainer.testing
+
+    model = TestModel(TrainerState.TUNING)
+    trainer.tune(model)
+    if fdr:
+        assert not model.called
+    else:
+        assert model.called == {'train', 'validation'}
+    assert trainer.state is TrainerState.FINISHED
+
+    model = TestModel(TrainerState.FITTING)
     trainer.fit(model)
+    assert model.called == {'train', 'validation'} if fdr else {'train', 'sanity', 'validation'}
+    assert trainer.state is TrainerState.FINISHED
 
-    assert snapshot_callback.trainer_state.running()
-
-
-@pytest.mark.parametrize(
-    "extra_params", [
-        pytest.param(dict(fast_dev_run=True), id='Fast-Run'),
-        pytest.param(dict(max_steps=1), id='Single-Step'),
-    ]
-)
-def test_finished_state_after_fit(tmpdir, extra_params):
-    """ Tests that state is FINISHED after fit """
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-
-    trainer = Trainer(default_root_dir=tmpdir, **extra_params)
-
-    trainer.fit(model)
-
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-
-
-def test_running_state_during_test(tmpdir):
-    """ Tests that state is set to RUNNING during test """
-
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-
-    snapshot_callback = StateSnapshotCallback(snapshot_method='on_test_batch_start')
-
-    trainer = Trainer(
-        callbacks=[snapshot_callback],
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-    )
-
+    model = TestModel(TrainerState.TESTING)
     trainer.test(model)
-
-    assert snapshot_callback.trainer_state.running()
-
-
-def test_finished_state_after_test(tmpdir):
-    """ Tests that state is FINISHED after fit """
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-    )
-
-    trainer.test(model)
-
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert model.called == {'test'}
+    assert trainer.state is TrainerState.FINISHED
 
 
 @pytest.mark.parametrize(
@@ -123,19 +87,13 @@ def test_finished_state_after_test(tmpdir):
 )
 def test_interrupt_state_on_keyboard_interrupt(tmpdir, extra_params):
     """ Tests that state is set to INTERRUPTED on KeyboardInterrupt """
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    model = BoringModel()
 
     class InterruptCallback(Callback):
-
-        def __init__(self):
-            super().__init__()
-
         def on_batch_start(self, trainer, pl_module):
             raise KeyboardInterrupt
 
     trainer = Trainer(callbacks=[InterruptCallback()], default_root_dir=tmpdir, **extra_params)
 
     trainer.fit(model)
-
     assert trainer.state == TrainerState.INTERRUPTED
