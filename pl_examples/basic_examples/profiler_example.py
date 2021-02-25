@@ -46,8 +46,8 @@ class CIFAR10DataModule(LightningDataModule):
 
     def val_dataloader(self, *args, **kwargs):
         transform = T.Compose([T.Resize(256), T.CenterCrop(224), T.ToTensor()])
-        trainset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-        return torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=0)
+        valset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+        return torch.utils.data.DataLoader(valset, batch_size=32, shuffle=True, num_workers=0)
 
 
 model = LitLightningModule(models.resnet50(pretrained=True))
