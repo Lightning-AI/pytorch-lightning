@@ -99,9 +99,9 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self,
         amp: Type,
         model: LightningModule,
-        optimizers: List[Optimizer],
+        optimizers: List['Optimizer'],
         amp_level: str,
-    ) -> Tuple[LightningModule, List[Optimizer]]:
+    ) -> Tuple[LightningModule, List['Optimizer']]:
         r"""
         Override to init AMP your own way.
         Must return a model and list of optimizers.
