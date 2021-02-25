@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Changed the order of `zero_grad` and `backward` calls in automatic optimization. Lightning now calls `zero_grad` before `backward` ([#6147](https://github.com/PyTorchLightning/pytorch-lightning/pull/6147))
+
 
 ### Deprecated
 
@@ -52,6 +54,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed epoch level schedulers not being called when `val_check_interval < 1.0` ([#6075](https://github.com/PyTorchLightning/pytorch-lightning/pull/6075))
+
+
+- Fixed LBFGS optimizer support which didn't converge in automatic optimization ([#6147](https://github.com/PyTorchLightning/pytorch-lightning/pull/6147))
 
 
 ## [1.2.1] - 2021-02-23
