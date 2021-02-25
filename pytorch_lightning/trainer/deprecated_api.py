@@ -14,7 +14,6 @@
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 
 

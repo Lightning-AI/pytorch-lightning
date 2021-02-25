@@ -45,7 +45,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
 if TYPE_CHECKING:
-    from pytorch_lightning.trainer.states import RunningStage
+    pass
 
 
 class LightningModule(
