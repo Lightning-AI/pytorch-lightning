@@ -7,7 +7,7 @@ class CPUAccelerator(Accelerator):
 
     def setup(self, trainer, model):
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
-            MisconfigurationException("amp + cpu is not supported.  Please use a GPU option")
+            raise MisconfigurationException("amp + cpu is not supported. Please use a GPU option")
 
         if "cpu" not in str(self.root_device):
             raise MisconfigurationException(f"Device should be CPU, got {self.root_device} instead")

@@ -304,8 +304,6 @@ override the :meth:`optimizer_step` function.
 
 For example, here step optimizer A every 2 batches and optimizer B every 4 batches
 
-.. note:: ``.zero_grad()`` is called inside the default closure, so there is no need to call ``.zero_grad()`` manually.
-
 .. testcode::
 
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):

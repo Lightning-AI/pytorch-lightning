@@ -79,6 +79,11 @@ class DeepSpeedPlugin(DDPPlugin):
         num_nodes: int = 1,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
+        loss_scale: float = 0,
+        initial_scale_power: int = 32,
+        loss_scale_window: int = 1000,
+        hysteresis: int = 2,
+        min_loss_scale: int = 1
     ) -> None:
         """
 
@@ -127,6 +132,18 @@ class DeepSpeedPlugin(DDPPlugin):
 
             logging_level: Set logging level for deepspeed. (Default: ``logging.WARN``)
 
+            loss_scale: Loss scaling value for FP16 training.
+                0.0 results in dynamic loss scaling, otherwise static (Default: 0)
+
+            initial_scale_power: Power of the initial dynamic loss scale value. Loss scale is computed
+                by ``2^initial_scale_power`` (Default: 32)
+
+            loss_scale_window: Window in which to raise/lower the dynamic FP16 loss scaling value (Default: 1000)
+
+            hysteresis: FP16 Delay shift in Dynamic Loss scaling (Default: 2)
+
+            min_loss_scale: The minimum FP16 dynamic loss scaling value (Default: 1000)
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -153,6 +170,13 @@ class DeepSpeedPlugin(DDPPlugin):
             )
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
+
+        # default FP16 parameters.
+        self.loss_scale = loss_scale
+        self.initial_scale_power = initial_scale_power
+        self.loss_scale_window = loss_scale_window
+        self.hysteresis = hysteresis
+        self.min_loss_scale = min_loss_scale
 
     def _load_config(self, config):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
@@ -297,9 +321,19 @@ class DeepSpeedPlugin(DDPPlugin):
         amp_level = self.lightning_module.trainer.accelerator_connector.amp_level
         precision = self.lightning_module.trainer.accelerator_connector.precision
         if precision == 16:
-            if "amp" not in self.config and amp_type == AMPType.NATIVE:
-                self.config["fp16"] = {"enabled": True}
-            elif "apex" not in self.config and amp_type == AMPType.APEX:
+            if "fp16" not in self.config and amp_type == AMPType.NATIVE:
+                # FP16 is a DeepSpeed standalone AMP implementation
+                rank_zero_info("Enabling DeepSpeed FP16.")
+                self.config["fp16"] = {
+                    "enabled": True,
+                    "loss_scale": self.loss_scale,
+                    "initial_scale_power": self.initial_scale_power,
+                    "loss_scale_window": self.loss_scale_window,
+                    "hysteresis": self.hysteresis,
+                    "min_loss_scale": self.min_loss_scale
+                }
+            elif "amp" not in self.config and amp_type == AMPType.APEX:
+                rank_zero_only("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {
                     "enabled": True,
                     "opt_level": amp_level,

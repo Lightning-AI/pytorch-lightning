@@ -63,12 +63,11 @@ def bleu_score(
         Tensor with BLEU Score
 
     Example:
-
+        >>> from pytorch_lightning.metrics.functional import bleu_score
         >>> translate_corpus = ['the cat is on the mat'.split()]
         >>> reference_corpus = [['there is a cat on the mat'.split(), 'a cat is on the mat'.split()]]
         >>> bleu_score(translate_corpus, reference_corpus)
         tensor(0.7598)
-
     """
 
     assert len(translate_corpus) == len(reference_corpus)

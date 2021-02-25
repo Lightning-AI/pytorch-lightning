@@ -20,7 +20,8 @@ from argparse import ArgumentParser
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from tests.base import EvalModelTemplate
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
 
 
 def main():
@@ -35,24 +36,28 @@ def main():
     parser.set_defaults(accelerator="ddp")
     args = parser.parse_args()
 
-    model = EvalModelTemplate()
+    dm = ClassifDataModule()
+    model = ClassificationModel()
     trainer = Trainer.from_argparse_args(args)
 
-    result = {}
     if args.trainer_method == 'fit':
-        trainer.fit(model)
-        result = {'status': 'complete', 'method': args.trainer_method, 'result': None}
-    if args.trainer_method == 'test':
-        result = trainer.test(model)
-        result = {'status': 'complete', 'method': args.trainer_method, 'result': result}
-    if args.trainer_method == 'fit_test':
-        trainer.fit(model)
-        result = trainer.test(model)
-        result = {'status': 'complete', 'method': args.trainer_method, 'result': result}
+        trainer.fit(model, datamodule=dm)
+        result = None
+    elif args.trainer_method == 'test':
+        result = trainer.test(model, datamodule=dm)
+    elif args.trainer_method == 'fit_test':
+        trainer.fit(model, datamodule=dm)
+        result = trainer.test(model, datamodule=dm)
+    else:
+        raise ValueError(f'Unsupported: {args.trainer_method}')
 
-    if len(result) > 0:
-        file_path = os.path.join(args.tmpdir, 'ddp.result')
-        torch.save(result, file_path)
+    result_ext = {
+        'status': 'complete',
+        'method': args.trainer_method,
+        'result': result,
+    }
+    file_path = os.path.join(args.tmpdir, 'ddp.result')
+    torch.save(result_ext, file_path)
 
 
 if __name__ == '__main__':

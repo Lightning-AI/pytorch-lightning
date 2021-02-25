@@ -736,7 +736,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 .. testcode::
 
     # Profile your code to find speed/memory bottlenecks
-    Trainer(profiler=True)
+    Trainer(profiler="simple")
 
 ---------------
 
