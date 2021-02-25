@@ -111,7 +111,7 @@ class StatScores(Metric):
         ValueError:
             If ``reduce`` is set to ``"macro"`` and ``num_classes`` is not provided
         ValueError:
-            If ``num_classes`` is set 
+            If ``num_classes`` is set
             and ``ignore_index`` is not in the range ``0`` <= ``ignore_index`` < ``num_classes``
 
     Example:
