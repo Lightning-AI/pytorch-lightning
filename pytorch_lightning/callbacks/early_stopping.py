@@ -160,9 +160,9 @@ class EarlyStopping(Callback):
             self.wait_count = 0
         else:
             self.wait_count += 1
-            should_stop = self.wait_count >= self.patience
+            callback_signal_should_stop = self.wait_count >= self.patience
 
-            if bool(should_stop):
+            if bool(callback_signal_should_stop):
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
 
