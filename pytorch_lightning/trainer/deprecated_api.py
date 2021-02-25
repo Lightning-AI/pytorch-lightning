@@ -158,7 +158,7 @@ class DeprecatedTrainerAttributes:
     def running_sanity_check(self) -> bool:
         rank_zero_warn(
             "`Trainer.running_sanity_check` has been renamed to `Trainer.sanity_checking`"
-            " and will be removed in v1.5", DeprecationWarning
+            " and will be removed in v1.5.", DeprecationWarning
         )
         return self.sanity_checking
 
@@ -166,6 +166,6 @@ class DeprecatedTrainerAttributes:
     def tested_ckpt_path(self):
         rank_zero_warn(
             '`Trainer.tested_ckpt_path` has been renamed to `Trainer.evaluated_ckpt_path`'
-            ' in v1.1 and will be removed in v1.3.', DeprecationWarning
+            ' and will be removed in v1.5.', DeprecationWarning
         )
         return self.evaluated_ckpt_path
