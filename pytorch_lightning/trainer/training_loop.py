@@ -62,7 +62,6 @@ class TrainLoop:
     ):
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
-        self.trainer.interrupted = False
         self.trainer.should_stop = False
         self.trainer._state = TrainerState.INITIALIZING
 

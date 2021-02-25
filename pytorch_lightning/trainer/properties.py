@@ -55,7 +55,6 @@ class TrainerProperties(ABC):
     accelerator_connector: AcceleratorConnector
     callbacks: List[Callback]
     checkpoint_connector: CheckpointConnector
-    fitting: bool = False  # to differentiate between .fit() validation and .validate() validation
     limit_val_batches: int
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
@@ -169,6 +168,14 @@ class TrainerProperties(ABC):
     @property
     def state(self) -> TrainerState:
         return self._state
+
+    @state.setter
+    def state(self, state: TrainerState) -> None:
+        self._state = state
+
+    @property
+    def interrupted(self) -> bool:
+        return self._state is TrainerState.INTERRUPTED
 
     @property
     def is_global_zero(self) -> bool:
@@ -471,7 +478,7 @@ class TrainerProperties(ABC):
 
     @property
     def evaluating(self) -> bool:
-        return self._running_stage and self._running_stage.is_evaluating()
+        return self._running_stage and self._running_stage.evaluating()
 
     @property
     def sanity_checking(self) -> bool:

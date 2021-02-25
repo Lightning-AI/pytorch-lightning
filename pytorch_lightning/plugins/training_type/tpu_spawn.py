@@ -9,6 +9,7 @@ import torch.multiprocessing as mp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -125,7 +126,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             last_path = None
             # TODO: is there a better way than accessing trainer through model -> trainer?
             if (
-                self.lightning_module.trainer.fitting
+                self.lightning_module.trainer.state is TrainerState.FITTING
                 and best_model_path is not None
                 and len(best_model_path) > 0
             ):
@@ -218,7 +219,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo, pass also bets score
 
         # load last weights
-        if last_path and self.lightning_module.trainer.fitting:
+        if last_path and model.trainer.state is not TrainerState.FITTING:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
@@ -232,7 +233,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         assert hasattr(model, "trainer")
 
         # load weights if not interrupted
-        if on_colab_kaggle() and model.trainer.fiting:
+        if on_colab_kaggle() and model.trainer.state is TrainerState.FITTING:
             self.load_spawn_weights(model)
 
         self._model = model

@@ -420,12 +420,11 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
-        # bookkeeping
-        self._state = TrainerState.RUNNING
-        # we reuse fit in .test() and .predict(). When already set, it shouldn't be modified.
+        # we reuse fit for other functions. When already set, it shouldn't be modified.
+        if not self.state.running():
+            self.state = TrainerState.FITTING
         if self._running_stage is None:
             self.training = True
-        self.fitting = self.training
 
         # set local properties on the model
         self.model_connector.copy_trainer_model_properties(model)
@@ -497,14 +496,12 @@ class Trainer(
         if self.is_function_implemented('teardown'):
             model.teardown('fit')
 
+        if self.state != TrainerState.INTERRUPTED:
+            self.state = TrainerState.FINISHED
+        self._running_stage = None
+
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
-        if self._state != TrainerState.INTERRUPTED:
-            self._state = TrainerState.FINISHED
-
-        self._running_stage = None
-        self.fitting = False
-
         return self.accelerator.results or 1
 
     def pre_dispatch(self):
@@ -626,11 +623,9 @@ class Trainer(
 
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
-
-            # user could press ctrl+c many times... only shutdown once
+            # user could press Ctrl+c many times... only shutdown once
             if not self.interrupted:
-                self.interrupted = True
-                self._state = TrainerState.INTERRUPTED
+                self.state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
         except (RuntimeError, AssertionError):
             # if an exception is raised, the finally block is executed and can hide the actual exception
@@ -870,8 +865,8 @@ class Trainer(
         # --------------------
         self.verbose_evaluate = verbose
 
+        self.state = TrainerState.TESTING
         self.testing = True
-        self.fitting = False
 
         # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
@@ -891,6 +886,8 @@ class Trainer(
         )
 
         self.teardown('test')
+
+        assert self.state.stopped()
         self.testing = False
 
         return results
@@ -985,8 +982,8 @@ class Trainer(
 
         model = model or self.lightning_module
 
+        self.state = TrainerState.PREDICTING
         self.predicting = True
-        self.fitting = False
 
         if dataloaders and datamodule:
             raise MisconfigurationException(
@@ -1004,6 +1001,7 @@ class Trainer(
         self.model = model
         results = self.fit(model)
 
+        assert self.state.stopped()
         self.predicting = False
 
         return results
@@ -1030,7 +1028,13 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        self.state = TrainerState.TUNING
+        self.tuning = True
+
         self.tuner.tune(model, train_dataloader, val_dataloaders, datamodule)
+
+        assert self.state.stopped()
+        self.tuning = False
 
     def call_setup_hook(self, model):
         # call setup after the ddp process has connected

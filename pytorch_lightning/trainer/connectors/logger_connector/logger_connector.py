@@ -24,7 +24,7 @@ from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.utilities import DeviceType, flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -298,7 +298,12 @@ class LoggerConnector:
         self.prepare_eval_loop_results()
 
         # log results of evaluation
-        if self.trainer.evaluating and self.trainer.is_global_zero and self.trainer.verbose_evaluate:
+        if (
+            self.trainer.state is not TrainerState.FITTING
+            and self.trainer.evaluating
+            and self.trainer.is_global_zero
+            and self.trainer.verbose_evaluate
+        ):
             print('-' * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
                 print(f'DATALOADER:{result_idx} {self.trainer._running_stage.upper()} RESULTS')

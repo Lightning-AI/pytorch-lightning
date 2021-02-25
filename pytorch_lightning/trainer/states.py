@@ -20,40 +20,56 @@ from pytorch_lightning.utilities import LightningEnum
 
 
 class TrainerState(LightningEnum):
-    """ State which is set in the :class:`~pytorch_lightning.trainer.trainer.Trainer`
-    to indicate what is currently or was executed.
+    """ State for the :class:`~pytorch_lightning.trainer.trainer.Trainer`
+    to indicate what is currently or was executed. It follows the user-called
+    functions such as `trainer.fit()` and `trainer.test().
 
     >>> # you can compare the type with a string
-    >>> TrainerState.RUNNING == 'RUNNING'
+    >>> TrainerState.FITTING == 'FITTING'
     True
     >>> # which is case insensitive
     >>> TrainerState.FINISHED == 'finished'
     True
     """
-    INITIALIZING = 'INITIALIZING'
-    RUNNING = 'RUNNING'
+    INITIALIZING = 'INITIALIZING'  # trainer creation
+    FITTING = 'FITTING'  # trainer.fit()
+    VALIDATING = 'VALIDATING'  # trainer.validate()
+    TESTING = 'TESTING'  # trainer.test()
+    PREDICTING = 'PREDICTING'  # trainer.predict()
+    TUNING = 'TUNING'  # trainer.tune()
     FINISHED = 'FINISHED'
     INTERRUPTED = 'INTERRUPTED'
 
+    def stopped(self) -> bool:
+        return self in (self.FINISHED, self.INTERRUPTED)
 
+    def running(self) -> bool:
+        return self in (self.FITTING, self.VALIDATING, self.TESTING, self.PREDICTING, self.TUNING)
+
+# 
 class RunningStage(LightningEnum):
-    """Type of train phase.
+    """Current running stage.
+
+    This stage complements :class:`TrainerState` for example to indicate that
+    `RunningStage.VALIDATING` will be set both during `TrainerState.FITTING`
+    and `TrainerState.VALIDATING`. It follows the internal code logic.
 
     >>> # you can match the Enum with string
     >>> RunningStage.TRAINING == 'train'
     True
     """
     TRAINING = 'train'
-    SANITY_CHECKING = "sanity_check"
+    SANITY_CHECKING = 'sanity_check'
     VALIDATING = 'validation'
     TESTING = 'test'
     PREDICTING = 'predict'
     TUNING = 'tune'
 
-    def is_evaluating(self) -> bool:
+    def evaluating(self) -> bool:
         return self in (self.VALIDATING, self.TESTING)
 
 
+# TODO: this is unused, should remove it
 def trainer_state(*, entering: Optional[TrainerState] = None, exiting: Optional[TrainerState] = None) -> Callable:
     """ Decorator for :class:`~pytorch_lightning.trainer.trainer.Trainer` methods
     which changes state to `entering` before the function execution and `exiting`

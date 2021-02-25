@@ -27,6 +27,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -219,7 +220,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             last_path = None
             # TODO: is there a better way than accessing trainer through model -> trainer?
             if (
-                self.lightning_module.trainer.fitting
+                self.lightning_module.trainer.state is TrainerState.FITTING
                 and best_model_path is not None
                 and len(best_model_path) > 0
             ):
@@ -239,7 +240,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # todo, pass also best score
 
         # load last weights
-        if last_path is not None and self.lightning_module.trainer.fitting:
+        if last_path is not None and self.lightning_module.trainer.state is TrainerState.FITTING:
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             self.lightning_module.load_state_dict(ckpt)
 

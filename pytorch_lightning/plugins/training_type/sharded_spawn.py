@@ -2,6 +2,7 @@ from typing import Optional
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
@@ -31,7 +32,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         trainer.optimizers = optimizers
 
     def _wrap_optimizers(self):
-        if not self.model.trainer.fitting:
+        if self.model.trainer.state is not TrainerState.FITTING:
             return
         self._reinit_optimizers_with_oss()
 
