@@ -61,7 +61,7 @@ class ExplainedVariance(Metric):
 
     Raises:
         ValueError:
-            If ``multioutput`` is not one of ``"raw_values"``, ``"uniform_average"`` or ``"variance_weighted"``
+            If ``multioutput`` is not one of ``"raw_values"``, ``"uniform_average"`` or ``"variance_weighted"``.
 
     Example:
 

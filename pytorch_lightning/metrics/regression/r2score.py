@@ -70,7 +70,7 @@ class R2Score(Metric):
         ValueError:
             If ``adjusted`` parameter is not an integer larger or equal to 0.
         ValueError:
-            If ``multioutput`` is not one of ``"raw_values"``, ``"uniform_average"`` or ``"variance_weighted"``
+            If ``multioutput`` is not one of ``"raw_values"``, ``"uniform_average"`` or ``"variance_weighted"``.
 
     Example:
 
