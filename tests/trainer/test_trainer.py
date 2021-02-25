@@ -36,7 +36,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -1695,6 +1695,25 @@ def test_pytorch_profiler_nested(tmpdir):
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
             pa[n] = [e.replace("aten::", "") for e in pa[n]]
         assert pa[n] == expected_[n]
+
+
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_8, reason="Need at least PyTorch 1.8")
+def test_pytorch_profiler_trainer_new_api(tmpdir):
+    """Ensure that the profiler can be given to the training and default step are properly recorded. """
+
+    model = BoringModel()
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        profiler=PyTorchProfiler(path_to_export_trace=tmpdir),
+    )
+    trainer.fit(model)
+
+    files = sorted(os.listdir(tmpdir))
+    assert 'training_step_and_backward_0' in files[0]
+    assert 'validation_step_0' in files[1]
+    assert len(files) == 2
 
 
 @pytest.mark.parametrize(

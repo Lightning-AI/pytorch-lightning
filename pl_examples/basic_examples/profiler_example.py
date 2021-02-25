@@ -46,4 +46,9 @@ class CIFAR10DataModule(LightningDataModule):
 model = LitLightningModule(models.resnet50(pretrained=True))
 datamodule = CIFAR10DataModule()
 trainer = Trainer(max_epochs=1, limit_train_batches=15, limit_val_batches=15, gpus=1, profiler="pytorch")
+
+# This will generate a trace for training_step and validation_step
+# Open Chrome and copy/paste this url: `chrome://tracing/`. 
+# Once Tracing open, click on `Load` in the top right and load one of the generated traces.  
+
 trainer.fit(model, datamodule=datamodule)
