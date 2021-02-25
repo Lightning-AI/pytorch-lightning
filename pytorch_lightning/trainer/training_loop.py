@@ -737,6 +737,7 @@ class TrainLoop:
 
         with self.trainer.profiler.profile("training_step_and_backward"):
             if not accumulate_grad_batches_enabled:
+                self.trainer.train_loop.on_before_zero_grad(optimizer)
                 self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
             # lightning module hook
@@ -744,6 +745,7 @@ class TrainLoop:
             self._curr_step_result = result
 
             if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
+
                 # backward pass
                 if result is not None:
                     with self.trainer.profiler.profile("model_backward"):

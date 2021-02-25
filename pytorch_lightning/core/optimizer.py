@@ -134,9 +134,6 @@ class LightningOptimizer:
         with trainer.profiler.profile(profiler_name):
             trainer.accelerator.optimizer_step(optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
 
-        if self._trainer.train_loop.automatic_optimization:
-            trainer.train_loop.on_before_zero_grad(optimizer)
-
     def step(self, *args, closure: Optional[Callable] = None, **kwargs):
         """
         Call this directly from your training_step when doing optimizations manually.
