@@ -304,7 +304,6 @@ class Trainer(
 
         """
         super().__init__()
-        self._running_stage = None
 
         distributed_backend = distributed_backend or accelerator
 
@@ -445,11 +444,10 @@ class Trainer(
         """
         # bookkeeping
         self._state = TrainerState.RUNNING
-
-        # bookkeeping
         # we reuse fit in .test() and .predict(). When already set, it shouldn't be modified.
         if self._running_stage is None:
             self._running_stage = RunningStage.TRAINING
+        self._fitting = self.training
 
         # set local properties on the model
         self.model_connector.copy_trainer_model_properties(model)
@@ -531,6 +529,7 @@ class Trainer(
             self._state = TrainerState.FINISHED
 
         self._running_stage = None
+        self._fitting = False
 
         return self.accelerator.results or 1
 
@@ -604,9 +603,6 @@ class Trainer(
 
         self.run_sanity_check(self.lightning_module)
 
-        # set stage for logging
-        self._running_stage = RunningStage.TRAINING
-
         self.checkpoint_connector.has_trained = False
 
         # enable train mode
@@ -667,12 +663,8 @@ class Trainer(
             self.train_loop.on_train_end()
 
     def run_evaluation(self, max_batches=None, on_epoch=False):
-        # used to know if we are logging for val, test + reset cached results
-        self._running_stage = RunningStage.TESTING if self.testing else RunningStage.VALIDATING
+        # reset cached results
         self.logger_connector.reset()
-
-        # bookkeeping
-        self.evaluation_loop.testing = self.testing
 
         # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
@@ -895,6 +887,7 @@ class Trainer(
         self.verbose_evaluate = verbose
 
         self._running_stage = RunningStage.TESTING
+        self._fitting = False
 
         # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
@@ -915,6 +908,7 @@ class Trainer(
 
         self.teardown('test')
         self._running_stage = None
+
         return results
 
     def __evaluate_using_best_weights(
@@ -1008,6 +1002,7 @@ class Trainer(
         model = model or self.lightning_module
 
         self._running_stage = RunningStage.PREDICTING
+        self._fitting = False
 
         if dataloaders and datamodule:
             raise MisconfigurationException(
@@ -1024,6 +1019,7 @@ class Trainer(
 
         self.model = model
         results = self.fit(model)
+
         self._running_stage = None
 
         return results
@@ -1113,62 +1109,3 @@ class Trainer(
         if not skip:
             self._cache_logged_metrics()
         return output
-
-    @property
-    def training(self) -> bool:
-        return self._running_stage == RunningStage.TRAINING
-
-    @training.setter
-    def training(self, val: bool) -> None:
-        if val:
-            self._running_stage = RunningStage.TRAINING
-        elif self.training:
-            self._running_stage = None
-
-    @property
-    def testing(self) -> bool:
-        return self._running_stage == RunningStage.TESTING
-
-    @testing.setter
-    def testing(self, val: bool) -> None:
-        if val:
-            self._running_stage = RunningStage.TESTING
-        elif self.testing:
-            self._running_stage = None
-
-    @property
-    def predicting(self) -> bool:
-        return self._running_stage == RunningStage.PREDICTING
-
-    @predicting.setter
-    def predicting(self, val: bool) -> None:
-        if val:
-            self._running_stage = RunningStage.PREDICTING
-        elif self.predicting:
-            self._running_stage = None
-
-    @property
-    def tuning(self) -> bool:
-        return self._running_stage == RunningStage.TUNING
-
-    @tuning.setter
-    def tuning(self, val: bool) -> None:
-        if val:
-            self._running_stage = RunningStage.TUNING
-        elif self.tuning:
-            self._running_stage = None
-
-    @property
-    def validating(self) -> bool:
-        return self._running_stage == RunningStage.VALIDATING
-
-    @validating.setter
-    def validating(self, val: bool) -> None:
-        if val:
-            self._running_stage = RunningStage.VALIDATING
-        elif self.validating:
-            self._running_stage = None
-
-    @property
-    def evaluating(self) -> bool:
-        return self._running_stage and self._running_stage.is_evaluating()
