@@ -158,7 +158,6 @@ class EarlyStopping(Callback):
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
             self.wait_count = 0
-            should_stop = False
         else:
             self.wait_count += 1
             should_stop = self.wait_count >= self.patience
@@ -168,5 +167,5 @@ class EarlyStopping(Callback):
                 trainer.should_stop = True
 
         # stop every ddp process if any world process decides to stop
-        should_stop = trainer.training_type_plugin.reduce_early_stopping_decision(should_stop)
+        should_stop = trainer.training_type_plugin.reduce_early_stopping_decision(trainer.should_stop)
         trainer.should_stop = should_stop
