@@ -532,10 +532,11 @@ class LegacyPyTorchProfiler(BaseProfiler):
                 table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
                 recorded_stats[action_name] = table
 
+        linesep = os.linesep
         # log to standard out
-        output_string = f"{os.linesep}Profiler Report{os.linesep}"
+        output_string = f"{linesep}Profiler Report{linesep}"
         for action, stats in recorded_stats.items():
-            output_string += (f"{os.linesep}Profile stats for: {action} rank: {local_rank} {os.linesep}{stats}")
+            output_string += (f"{linesep}Profile stats for: {action} rank: {local_rank} {linesep}{stats}")
 
         return output_string
 
@@ -630,7 +631,7 @@ if _TORCH_GREATER_EQUAL_1_8:
             enabled: bool = True,
             use_cpu: bool = True,
             use_cuda: bool = True,
-            schedule: Optional[Callable] = torch.profiler.schedule(wait=2, warmup=1, active=5),
+            schedule: Optional[Callable] = torch.profiler.schedule(wait=3, warmup=1, active=2),
             record_shapes: bool = True,
             profile_memory: bool = True,
             with_stack: bool = False,
@@ -638,11 +639,12 @@ if _TORCH_GREATER_EQUAL_1_8:
             row_limit: int = 20,
             export_to_tensorboard: bool = True,
             on_trace_ready: Optional[Callable] = None,
-            export_to_flame_graph: bool = False,
+            export_to_flame_graph: bool = True,
+            metric: str = 'self_cpu_time_total',
             group_by_input_shapes: bool = False,
             sort_by_key: Optional[str] = None,
             record_functions: Optional[List] = None,
-            path_to_export_trace: str = None,
+            path_to_export_trace: Optional[str] = None,
             local_rank: Optional[int] = None,
         ):
             """
@@ -679,7 +681,10 @@ if _TORCH_GREATER_EQUAL_1_8:
                     It can be used with `chrome://tracing/`. Just load the generated traces.
 
                 export_to_flame_graph: Wether to export the sequence of profiled operators for Flame Graph.
-                    c.f https://github.com/brendangregg/FlameGraph
+                    Generate a performance visualization with the following commands:
+                    git clone https://github.com/brendangregg/FlameGraph
+                    cd FlameGraph
+                    ./flamegraph.pl –title “CPU time” –countname “us.” .../lightning_logs/version_{}/{}.stack > perf_viz.svg
 
                 group_by_input_shapes: Include operator input shapes and group calls by shape.
 
@@ -726,6 +731,7 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.export_to_flame_graph = export_to_flame_graph
             self.profile_memory = profile_memory
             self.with_stack = True if export_to_flame_graph else with_stack
+            self.metric = metric
             self.with_flops = with_flops
             self.local_rank = local_rank
             self.path_to_export_trace = path_to_export_trace
@@ -759,10 +765,11 @@ if _TORCH_GREATER_EQUAL_1_8:
             table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
             recorded_stats[self.START_ACTION] = table
 
+            linesep = os.linesep
             # log to standard out
-            output_string = f"{os.linesep}Profiler Report{os.linesep}"
+            output_string = f"{linesep}Profiler Report{linesep}"
             for action, stats in recorded_stats.items():
-                output_string += (f"{os.linesep}Profile stats for: {action} rank: {local_rank} {os.linesep}{stats}")
+                output_string += (f"{linesep}Profile stats for: {action} rank: {local_rank} {linesep}{stats}")
 
             return output_string
 
@@ -789,7 +796,11 @@ if _TORCH_GREATER_EQUAL_1_8:
 
                     def on_trace_ready(profiler):
                         local_rank = 0 if self.local_rank is None else self.local_rank
-                        tensorboard_trace_handler(self.path_to_export_trace, f"{action_name}_{local_rank}")(profiler)
+                        if self.export_to_tensorboard:
+                            tensorboard_trace_handler(self.path_to_export_trace, f"{action_name}_{local_rank}")(profiler)
+                        if self.export_to_flame_graph:
+                            path = os.path.join(self.path_to_export_trace, f"{action_name}_{local_rank}.stack")
+                            profiler.export_stacks(path, metric=self.metric)
 
                     self.profiler.on_trace_ready = on_trace_ready
                     self.profiler.step()

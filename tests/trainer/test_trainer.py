@@ -1629,6 +1629,7 @@ def test_pytorch_profiler_trainer(tmpdir, use_output_filename):
 
     model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -1704,6 +1705,7 @@ def test_pytorch_profiler_trainer_new_api(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=10,
         limit_val_batches=10,
