@@ -735,15 +735,15 @@ class TrainLoop:
         """
         wrap the forward step in a closure so second order methods work
         """
-        accumulate_grad_batches_enabled = self.trainer.accumulate_grad_batches > 1
-
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
-            if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
-                if not accumulate_grad_batches_enabled:
+            if not self._skip_backward and self.automatic_optimization:
+                is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
+
+                if is_first_batch_to_accumulate:
                     self.on_before_zero_grad(optimizer)
                     self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
