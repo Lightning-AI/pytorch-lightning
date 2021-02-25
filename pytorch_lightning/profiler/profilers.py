@@ -736,8 +736,6 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.local_rank = local_rank
             self.path_to_export_trace = path_to_export_trace
             self.group_by_input_shapes = group_by_input_shapes
-            # currently Lightning handles this part for the user
-            # Open an issue with the specified use case.
             self.on_trace_ready = on_trace_ready
             self.udf_on_trace_ready = True if self.on_trace_ready is not None else False
 
