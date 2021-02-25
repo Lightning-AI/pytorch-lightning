@@ -768,10 +768,6 @@ class TrainLoop:
                     # revert back to previous state
                     self.trainer.lightning_module.untoggle_optimizer(opt_idx)
 
-                # when the last batch of accumulation
-                if accumulate_grad_batches_enabled and not self.should_accumulate():
-                    self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
-
         return result
 
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
