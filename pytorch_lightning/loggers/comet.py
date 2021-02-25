@@ -115,6 +115,12 @@ class CometLogger(LightningLoggerBase):
         prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `workspace`, `log_code`, etc. used by
             :class:`CometExperiment` can be passed as keyword arguments in this logger.
+
+    Raises:
+        ImportError:
+            If required Comet package is not installed on the device.
+        MisconfigurationException:
+            If neither ``api_key`` nor ``save_dir`` are passed as arguments.
     """
 
     LOGGER_JOIN_CHAR = '-'
