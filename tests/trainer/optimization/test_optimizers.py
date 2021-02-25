@@ -34,6 +34,7 @@ def test_optimizer_with_scheduling(tmpdir):
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=0.2,
+        val_check_interval=0.5
     )
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
@@ -164,7 +165,7 @@ def test_reducelronplateau_scheduling(tmpdir):
     model.configure_optimizers = lambda: {
         'optimizer': optimizer,
         'lr_scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer),
-        'monitor': 'early_stop_on',
+        'monitor': 'val_acc',
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
@@ -172,7 +173,7 @@ def test_reducelronplateau_scheduling(tmpdir):
     lr_scheduler = trainer.lr_schedulers[0]
     assert lr_scheduler == dict(
         scheduler=lr_scheduler['scheduler'],
-        monitor='early_stop_on',
+        monitor='val_acc',
         interval='epoch',
         frequency=1,
         reduce_on_plateau=True,

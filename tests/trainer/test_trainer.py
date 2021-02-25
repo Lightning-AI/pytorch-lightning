@@ -421,34 +421,17 @@ def test_dp_output_reduce():
 
 
 @pytest.mark.parametrize(
-    ["save_top_k", "save_last", "file_prefix", "expected_files"],
+    "save_top_k,save_last,expected_files",
     [
-        pytest.param(
-            -1,
-            False,
-            "",
-            {"epoch=4.ckpt", "epoch=3.ckpt", "epoch=2.ckpt", "epoch=1.ckpt", "epoch=0.ckpt"},
-            id="CASE K=-1  (all)",
-        ),
-        pytest.param(1, False, "test_prefix", {"test_prefix-epoch=4.ckpt"}, id="CASE K=1 (2.5, epoch 4)"),
-        pytest.param(2, False, "", {"epoch=4.ckpt", "epoch=2.ckpt"}, id="CASE K=2 (2.5 epoch 4, 2.8 epoch 2)"),
-        pytest.param(
-            4,
-            False,
-            "",
-            {"epoch=1.ckpt", "epoch=4.ckpt", "epoch=3.ckpt", "epoch=2.ckpt"},
-            id="CASE K=4 (save all 4 base)",
-        ),
-        pytest.param(
-            3,
-            False,
-            "", {"epoch=2.ckpt", "epoch=3.ckpt", "epoch=4.ckpt"},
-            id="CASE K=3 (save the 2nd, 3rd, 4th model)"
-        ),
-        pytest.param(1, True, "", {"epoch=4.ckpt", "last.ckpt"}, id="CASE K=1 (save the 4th model and the last model)"),
+        pytest.param(-1, False, [f"epoch={i}.ckpt" for i in range(5)], id="CASE K=-1  (all)"),
+        pytest.param(1, False, {"epoch=4.ckpt"}, id="CASE K=1 (2.5, epoch 4)"),
+        pytest.param(2, False, [f"epoch={i}.ckpt" for i in (2, 4)], id="CASE K=2 (2.5 epoch 4, 2.8 epoch 2)"),
+        pytest.param(4, False, [f"epoch={i}.ckpt" for i in range(1, 5)], id="CASE K=4 (save all 4 base)"),
+        pytest.param(3, False, [f"epoch={i}.ckpt" for i in range(2, 5)], id="CASE K=3 (save the 2nd, 3rd, 4th model)"),
+        pytest.param(1, True, {"epoch=4.ckpt", "last.ckpt"}, id="CASE K=1 (save the 4th model and the last model)"),
     ],
 )
-def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, expected_files):
+def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files):
     """Test ModelCheckpoint options."""
 
     def mock_save_function(filepath, *args):
@@ -463,7 +446,6 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
         monitor='checkpoint_on',
         save_top_k=save_top_k,
         save_last=save_last,
-        prefix=file_prefix,
         verbose=1
     )
     checkpoint_callback.save_function = mock_save_function
@@ -1475,16 +1457,14 @@ def test_trainer_profiler_incorrect_str_arg():
 @pytest.mark.parametrize('profiler', (
     42,
     [42],
-    {
-        "a": 42
-    },
+    dict(a=42),
     torch.tensor(42),
     Trainer(),
 ))
 def test_trainer_profiler_incorrect_arg_type(profiler):
     with pytest.raises(
         MisconfigurationException,
-        match=r"Only None, bool, str and subclasses of `BaseProfiler`"
+        match="Only None, str and subclasses of `BaseProfiler`"
         r" are valid values for `Trainer`'s `profiler` parameter. *"
     ):
         Trainer(profiler=profiler)

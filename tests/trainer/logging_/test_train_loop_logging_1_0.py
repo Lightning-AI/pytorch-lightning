@@ -178,9 +178,7 @@ def test__training_step__epoch_end__log(tmpdir):
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
-    expected_pbar_metrics = {
-        'b',
-    }
+    expected_pbar_metrics = {'b'}
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
