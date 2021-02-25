@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `checkpoint` parameter to callback's `on_save_checkpoint` hook ([#6072](https://github.com/PyTorchLightning/pytorch-lightning/pull/6072))
 
 
+- Added support PyTorch 1.8 Profiler ([#6067](https://github.com/PyTorchLightning/pytorch-lightning/pull/6067))
+
+
+
 ### Changed
 
 
