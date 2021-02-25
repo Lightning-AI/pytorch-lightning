@@ -223,12 +223,19 @@ def test_tpu_grad_norm(tmpdir):
 @pl_multi_process_test
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
-
     tutils.reset_seed()
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, tpu_cores=8)
-    trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        tpu_cores=8,
+    )
+    trainer.fit(
+        model,
+        train_dataloader=model.train_dataloader(),
+        val_dataloaders=model.val_dataloader(),
+    )
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
@@ -271,7 +278,7 @@ def test_broadcast_on_tpu():
 
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
-        assert isinstance(trainer.accelerator_backend, TPUAccelerator)
+        assert isinstance(trainer.accelerator, TPUAccelerator)
         assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
         obj = ("ver_0.5", "logger_name", rank)
         result = trainer.training_type_plugin.broadcast(obj)

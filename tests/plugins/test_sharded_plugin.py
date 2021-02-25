@@ -23,9 +23,9 @@ def test_sharded_ddp_choice(tmpdir, accelerator):
 
         def on_fit_start(self, trainer, pl_module):
             if accelerator == 'ddp_sharded':
-                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPShardedPlugin)
+                assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
             elif accelerator == 'ddp_sharded_spawn':
-                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPSpawnShardedPlugin)
+                assert isinstance(trainer.accelerator.training_type_plugin, DDPSpawnShardedPlugin)
             raise SystemExit()
 
     model = BoringModel()
@@ -71,9 +71,9 @@ def test_ddp_choice_sharded_amp(tmpdir, accelerator):
 
         def on_fit_start(self, trainer, pl_module):
             if accelerator == 'ddp_sharded':
-                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPShardedPlugin)
+                assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
             elif accelerator == 'ddp_sharded_spawn':
-                assert isinstance(trainer.accelerator_backend.training_type_plugin, DDPSpawnShardedPlugin)
+                assert isinstance(trainer.accelerator.training_type_plugin, DDPSpawnShardedPlugin)
             raise SystemExit()
 
     model = BoringModel()

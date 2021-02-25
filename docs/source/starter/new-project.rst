@@ -258,15 +258,12 @@ Manual optimization
 However, for certain research like GANs, reinforcement learning, or something with multiple optimizers
 or an inner loop, you can turn off automatic optimization and fully control the training loop yourself.
 
-First, turn off automatic optimization:
-
-.. testcode::
-
-    trainer = Trainer(automatic_optimization=False)
-
-Now you own the train loop!
+Turn off automatic optimization and you control the train loop!
 
 .. code-block:: python
+
+    def __init__(self):
+        self.automatic_optimization = False
 
     def training_step(self, batch, batch_idx, optimizer_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
@@ -740,7 +737,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 .. testcode::
 
     # Profile your code to find speed/memory bottlenecks
-    Trainer(profiler=True)
+    Trainer(profiler="simple")
 
 ---------------
 
@@ -776,7 +773,8 @@ Community
 **********
 Our community of core maintainers and thousands of expert researchers is active on our
 `Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A>`_
-and `Forum <https://forums.pytorchlightning.ai/>`_. Drop by to hang out, ask Lightning questions or even discuss research!
+and `GitHub Discussions <https://github.com/PyTorchLightning/pytorch-lightning/discussions>`_. Drop by
+to hang out, ask Lightning questions or even discuss research!
 
 
 -------------

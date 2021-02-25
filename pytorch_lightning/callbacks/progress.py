@@ -19,6 +19,8 @@ Use or override one of the progress bar callbacks.
 
 """
 import importlib
+import io
+import os
 import sys
 
 # check if ipywidgets is installed before importing tqdm.auto
@@ -186,6 +188,12 @@ class ProgressBarBase(Callback):
         to temporarily enable and disable the main progress bar.
         """
         raise NotImplementedError
+
+    def print(self, *args, **kwargs):
+        """
+        You should provide a way to print without breaking the progress bar.
+        """
+        print(*args, **kwargs)
 
     def on_init_end(self, trainer):
         self._trainer = trainer
@@ -450,6 +458,22 @@ class ProgressBar(ProgressBarBase):
 
     def on_predict_end(self, trainer, pl_module):
         self.predict_progress_bar.close()
+
+    def print(
+        self, *args, sep: str = ' ', end: str = os.linesep, file: Optional[io.TextIOBase] = None, nolock: bool = False
+    ):
+        active_progress_bar = None
+
+        if not self.main_progress_bar.disable:
+            active_progress_bar = self.main_progress_bar
+        elif not self.val_progress_bar.disable:
+            active_progress_bar = self.val_progress_bar
+        elif not self.test_progress_bar.disable:
+            active_progress_bar = self.test_progress_bar
+
+        if active_progress_bar is not None:
+            s = sep.join(map(str, args))
+            active_progress_bar.write(s, end=end, file=file, nolock=nolock)
 
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)

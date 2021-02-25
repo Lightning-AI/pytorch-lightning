@@ -41,12 +41,11 @@ def mean_absolute_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tens
         Tensor with MAE
 
     Example:
-
+        >>> from pytorch_lightning.metrics.functional import mean_absolute_error
         >>> x = torch.tensor([0., 1, 2, 3])
         >>> y = torch.tensor([0., 1, 2, 2])
         >>> mean_absolute_error(x, y)
         tensor(0.2500)
-
     """
     sum_abs_error, n_obs = _mean_absolute_error_update(preds, target)
     return _mean_absolute_error_compute(sum_abs_error, n_obs)

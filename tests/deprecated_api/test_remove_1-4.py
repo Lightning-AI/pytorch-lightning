@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test deprecated functionality which will be removed in vX.Y.Z"""
+"""Test deprecated functionality which will be removed in v1.4.0"""
 import sys
 
 import pytest
@@ -28,6 +28,20 @@ from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
+
+
+def test_v1_4_0_deprecated_trainer_attributes():
+    with pytest.deprecated_call(match="will be removed in v1.4."):
+        trainer = Trainer()
+        _ = trainer.accelerator_backend
+    assert trainer.accelerator == trainer.accelerator_backend
+
+
+def test_v1_4_0_deprecated_trainer_methods():
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        trainer = Trainer()
+        _ = trainer.get_model()
+    assert trainer.get_model() == trainer.lightning_module
 
 
 def test_v1_4_0_deprecated_imports():
@@ -229,5 +243,5 @@ def test_v1_4_0_deprecated_checkpoint_on(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=True, max_epochs=1)
 
-    with pytest.warns(DeprecationWarning, match=r"Relying on.*is deprecated in v1.2 and will be removed in v1.4"):
+    with pytest.deprecated_call(match=r"Relying on.*is deprecated in v1.2 and will be removed in v1.4"):
         trainer.fit(TestModel())

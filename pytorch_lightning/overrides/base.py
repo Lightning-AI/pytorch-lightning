@@ -19,12 +19,13 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 
 
-class _LightningModuleWrapperBase(torch.nn.Module):
+class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 
     def __init__(self, pl_module: LightningModule):
         """
@@ -71,6 +72,9 @@ class _LightningModuleWrapperBase(torch.nn.Module):
             output = self.module(*inputs, **kwargs)
 
         return output
+
+    def on_post_move_to_device(self):
+        pass
 
 
 def warn_if_output_is_none(output: Any, method_name: str) -> None:
