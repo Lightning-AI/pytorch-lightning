@@ -8,7 +8,7 @@ from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 
   This will generate 2 traces: one for training_step and one for validation_step.
   Open Chrome and copy/paste this url: ``chrome://tracing/``.
-  Once Tracing Open, click on `Load` in the top-right and load one of the generated traces.
+  Once Tracing Opens, click on `Load` at the top-right and load one of the generated traces.
 
 """
 

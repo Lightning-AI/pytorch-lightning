@@ -1593,13 +1593,18 @@ def test_pytorch_profiler_trainer_ddp(tmpdir):
     profiler = PyTorchProfiler(output_filename=output_filename)
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, profiler=profiler, accelerator="ddp", gpus=2, logger=TensorBoardLogger(tmpdir))
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=6, 
+        limit_val_batches=6, 
+        profiler=profiler, 
+        accelerator="ddp", 
+        gpus=2, 
+        logger=TensorBoardLogger(tmpdir))
     trainer.fit(model)
 
     assert len(profiler.summary()) > 0
-    expected = {'validation_step', 'training_step_and_backward', 'training_step', 'backward'}
-    assert set(profiler.profiled_actions.keys()) == expected
-
     profiler.describe()
     data = Path(profiler.output_fname).read_text()
     assert len(data) > 0

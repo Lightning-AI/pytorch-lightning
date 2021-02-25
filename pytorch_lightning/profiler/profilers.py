@@ -558,7 +558,7 @@ class ScheduleWrapper:
     recording for both `training_step`, `validation_step`.
     """
 
-    def __init__(self, schedule: Optional[Callable]):
+    def __init__(self, schedule: Callable):
         self._schedule = schedule
         self._num_training_step_and_backward = 0
         self._num_validation_step = 0
