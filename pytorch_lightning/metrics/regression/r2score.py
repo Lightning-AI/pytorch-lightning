@@ -108,7 +108,7 @@ class R2Score(Metric):
         self.num_outputs = num_outputs
 
         if adjusted < 0 or not isinstance(adjusted, int):
-            raise ValueError('`adjusted` parameter should be an integer larger or' ' equal to 0.')
+            raise ValueError('`adjusted` parameter should be an integer larger or equal to 0.')
         self.adjusted = adjusted
 
         allowed_multioutput = ('raw_values', 'uniform_average', 'variance_weighted')
