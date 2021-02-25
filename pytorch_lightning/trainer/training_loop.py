@@ -477,7 +477,6 @@ class TrainLoop:
 
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
-        should_check_val = False
         val_loop_called = False
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
@@ -572,9 +571,8 @@ class TrainLoop:
             self.check_early_stopping_callback(True)
 
         if should_check_val:
+            self.trainer._running_stage = RunningStage.VALIDATING
             self.trainer.run_evaluation(on_epoch=True)
-
-            # reset stage to train
             self.trainer._running_stage = RunningStage.TRAINING
 
         # increment the global step once

@@ -640,6 +640,8 @@ class Trainer(
             self.train_loop.on_train_end()
 
     def run_evaluation(self, max_batches=None, on_epoch=False):
+        assert self._running_stage.is_evaluating()
+
         # reset cached results
         self.logger_connector.reset()
 
@@ -744,8 +746,8 @@ class Trainer(
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        # only load test dataloader for testing
-        # self.reset_test_dataloader(ref_model)
+        assert self.testing
+
         with self.profiler.profile("run_test_evaluation"):
             eval_loop_results, _ = self.run_evaluation()
 
@@ -807,7 +809,6 @@ class Trainer(
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         if should_sanity_check:
-            self.reset_val_dataloader(ref_model)
             self.num_sanity_val_batches = [
                 min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
             ]
@@ -817,7 +818,9 @@ class Trainer(
             self.on_sanity_check_start()
 
             # run eval step
+            self._running_stage = RunningStage.VALIDATING
             _, eval_results = self.run_evaluation(max_batches=self.num_sanity_val_batches)
+            self._running_stage = RunningStage.TRAINING
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
