@@ -353,7 +353,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
                 To visualize, you can either use::
                     nvvp trace_name.prof
                     torch.autograd.profiler.load_nvprof(path)
-            export_to_chrome: Wether to export the sequence of profiled operators for Chrome.
+            export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
                 It will generate a ``.json`` file which can be read by Chrome.
             path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
                 By default, it will be save where the file being is being run.
@@ -677,14 +677,14 @@ if _TORCH_GREATER_EQUAL_1_8:
                 row_limit: Limit the number of rows in a table, `0` is a special value that
                     removes the limit completely.
 
-                export_to_tensorboard: Wether to export the sequence of profiled operators for Chrome.
+                export_to_tensorboard: Whether to export the sequence of profiled operators for Chrome.
                     It can be used with `chrome://tracing/`. Just load the generated traces.
 
-                export_to_flame_graph: Wether to export the sequence of profiled operators for Flame Graph.
+                export_to_flame_graph: Whether to export the sequence of profiled operators for Flame Graph.
                     Generate a performance visualization with the following commands:
                     git clone https://github.com/brendangregg/FlameGraph
                     cd FlameGraph
-                    ./flamegraph.pl –title “CPU time” –countname “us.” .../lightning_logs/version_{}/{}.stack > perf_viz.svg
+                    ./flamegraph.pl –title “CPU time” –countname “us.” ./lightning_logs/version_{}/{}.stack > a.svg
 
                 group_by_input_shapes: Include operator input shapes and group calls by shape.
 
@@ -796,10 +796,11 @@ if _TORCH_GREATER_EQUAL_1_8:
 
                     def on_trace_ready(profiler):
                         local_rank = 0 if self.local_rank is None else self.local_rank
+                        filename = f"{action_name}_{local_rank}"
                         if self.export_to_tensorboard:
-                            tensorboard_trace_handler(self.path_to_export_trace, f"{action_name}_{local_rank}")(profiler)
+                            tensorboard_trace_handler(self.path_to_export_trace, filename)(profiler)
                         if self.export_to_flame_graph:
-                            path = os.path.join(self.path_to_export_trace, f"{action_name}_{local_rank}.stack")
+                            path = os.path.join(self.path_to_export_trace, f"{filename}.stack")
                             profiler.export_stacks(path, metric=self.metric)
 
                     self.profiler.on_trace_ready = on_trace_ready
