@@ -108,7 +108,7 @@ class Precision(StatScores):
     Raises:
         ValueError:
             If ``average`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"samples"``, ``"none"``, ``None``
-    
+
     Example:
 
         >>> from pytorch_lightning.metrics import Precision
@@ -263,7 +263,7 @@ class Recall(StatScores):
     Raises:
         ValueError:
             If ``average`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"samples"``, ``"none"``, ``None``
-    
+
     Example:
 
         >>> from pytorch_lightning.metrics import Recall

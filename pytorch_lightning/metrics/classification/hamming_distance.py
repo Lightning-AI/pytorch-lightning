@@ -56,7 +56,7 @@ class HammingDistance(Metric):
     Raises:
         ValueError:
             If ``threshold`` is not between ``0`` and ``1``.
-    
+
     Example:
 
         >>> from pytorch_lightning.metrics import HammingDistance

@@ -67,7 +67,7 @@ class FBeta(Metric):
     Raises:
         ValueError:
             If ``average`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"none"``, ``None``
-    
+
     Example:
 
         >>> from pytorch_lightning.metrics import FBeta
