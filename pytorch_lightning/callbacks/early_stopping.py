@@ -23,7 +23,6 @@ import numpy as np
 import torch
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -133,6 +132,7 @@ class EarlyStopping(Callback):
         self.patience = checkpointed_state['patience']
 
     def on_validation_end(self, trainer, pl_module):
+        from pytorch_lightning.trainer.states import TrainerState
         if trainer.state is not TrainerState.FITTING or trainer.sanity_checking:
             return
 

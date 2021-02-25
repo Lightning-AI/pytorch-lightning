@@ -218,31 +218,32 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     assert progress_bar.test_batches_seen == progress_bar.total_test_batches
 
 
-@pytest.mark.parametrize(['limit_val_batches', 'expected'], [
-    pytest.param(0, 0),
-    pytest.param(5, 7),
-])
-def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
+@pytest.mark.parametrize('limit_val_batches', (0, 5))
+def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches):
     """
     Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument.
     """
 
     class CurrentProgressBar(ProgressBar):
+        val_pbar_total = 0
+        sanity_pbar_total = 0
 
-        def __init__(self):
-            super().__init__()
-            self.val_progress_bar_total = 0
+        def on_sanity_check_end(self, *args):
+            self.sanity_pbar_total = self.val_progress_bar.total
+            super().on_sanity_check_end(*args)
 
-        def on_validation_epoch_end(self, trainer, pl_module):
-            self.val_progress_bar_total += trainer.progress_bar_callback.val_progress_bar.total
+        def on_validation_epoch_end(self, *args):
+            self.val_pbar_total = self.val_progress_bar.total
+            super().on_validation_epoch_end(*args)
 
     model = BoringModel()
     progress_bar = CurrentProgressBar()
+    num_sanity_val_steps = 2
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        num_sanity_val_steps=2,
+        num_sanity_val_steps=num_sanity_val_steps,
         limit_train_batches=1,
         limit_val_batches=limit_val_batches,
         callbacks=[progress_bar],
@@ -250,7 +251,9 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
         checkpoint_callback=False,
     )
     trainer.fit(model)
-    assert trainer.progress_bar_callback.val_progress_bar_total == expected
+
+    assert progress_bar.sanity_pbar_total == min(num_sanity_val_steps, limit_val_batches)
+    assert progress_bar.val_pbar_total == limit_val_batches
 
 
 def test_progress_bar_default_value(tmpdir):

@@ -14,7 +14,7 @@
 import pytest
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.trainer.states import trainer_state, TrainerState
+from pytorch_lightning.trainer.states import TrainerState
 from tests.base import EvalModelTemplate
 
 
@@ -34,79 +34,6 @@ class StateSnapshotCallback(Callback):
     def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         if self.snapshot_method == 'on_test_batch_start':
             self.trainer_state = trainer.state
-
-
-def test_state_decorator_nothing_passed(tmpdir):
-    """ Test that state is not changed if nothing is passed to a decorator"""
-
-    @trainer_state()
-    def test_method(self):
-        return self.state
-
-    trainer = Trainer(default_root_dir=tmpdir)
-
-    snapshot_state = test_method(trainer)
-
-    assert snapshot_state == TrainerState.INITIALIZING
-    assert trainer.state == TrainerState.INITIALIZING
-
-
-def test_state_decorator_entering_only(tmpdir):
-    """ Tests that state is set to entering inside a run function and restored to the previous value after. """
-
-    @trainer_state(entering=TrainerState.RUNNING)
-    def test_method(self):
-        return self.state
-
-    trainer = Trainer(default_root_dir=tmpdir)
-
-    snapshot_state = test_method(trainer)
-
-    assert snapshot_state == TrainerState.RUNNING
-    assert trainer.state == TrainerState.INITIALIZING
-
-
-def test_state_decorator_exiting_only(tmpdir):
-    """ Tests that state is not changed inside a run function and set to `exiting` after. """
-
-    @trainer_state(exiting=TrainerState.FINISHED)
-    def test_method(self):
-        return self.state
-
-    trainer = Trainer(default_root_dir=tmpdir)
-
-    snapshot_state = test_method(trainer)
-
-    assert snapshot_state == TrainerState.INITIALIZING
-    assert trainer.state == TrainerState.FINISHED
-
-
-def test_state_decorator_entering_and_exiting(tmpdir):
-    """ Tests that state is set to `entering` inside a run function and set ot `exiting` after. """
-
-    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
-    def test_method(self):
-        return self.state
-
-    trainer = Trainer(default_root_dir=tmpdir)
-
-    snapshot_state = test_method(trainer)
-
-    assert snapshot_state == TrainerState.RUNNING
-    assert trainer.state == TrainerState.FINISHED
-
-
-def test_state_decorator_interrupt(tmpdir):
-    """ Tests that state remains `INTERRUPTED` is its set in run function. """
-
-    @trainer_state(exiting=TrainerState.FINISHED)
-    def test_method(self):
-        self._state = TrainerState.INTERRUPTED
-
-    trainer = Trainer(default_root_dir=tmpdir)
-
-    test_method(trainer)
-    assert trainer.state == TrainerState.INTERRUPTED
 
 
 def test_initialize_state(tmpdir):
@@ -133,7 +60,7 @@ def test_running_state_during_fit(tmpdir, extra_params):
 
     trainer.fit(model)
 
-    assert snapshot_callback.trainer_state == TrainerState.RUNNING
+    assert snapshot_callback.trainer_state.running()
 
 
 @pytest.mark.parametrize(
@@ -170,7 +97,7 @@ def test_running_state_during_test(tmpdir):
 
     trainer.test(model)
 
-    assert snapshot_callback.trainer_state == TrainerState.RUNNING
+    assert snapshot_callback.trainer_state.running()
 
 
 def test_finished_state_after_test(tmpdir):

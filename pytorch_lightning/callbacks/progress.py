@@ -380,7 +380,6 @@ class ProgressBar(ProgressBarBase):
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
         self.val_progress_bar = self.init_sanity_tqdm()
-        reset(self.val_progress_bar, sum(trainer.num_sanity_val_batches))
         self.main_progress_bar = tqdm(disable=True)  # dummy progress bar
 
     def on_sanity_check_end(self, trainer, pl_module):
@@ -412,7 +411,9 @@ class ProgressBar(ProgressBarBase):
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
-        if not trainer.sanity_checking:
+        if trainer.sanity_checking:
+            reset(self.val_progress_bar, sum(trainer.num_sanity_val_batches))
+        else:
             self._update_bar(self.main_progress_bar)  # fill up remaining
             self.val_progress_bar = self.init_validation_tqdm()
             reset(self.val_progress_bar, self.total_val_batches)

@@ -67,37 +67,3 @@ class RunningStage(LightningEnum):
 
     def evaluating(self) -> bool:
         return self in (self.VALIDATING, self.TESTING)
-
-
-# TODO: this is unused, should remove it
-def trainer_state(*, entering: Optional[TrainerState] = None, exiting: Optional[TrainerState] = None) -> Callable:
-    """ Decorator for :class:`~pytorch_lightning.trainer.trainer.Trainer` methods
-    which changes state to `entering` before the function execution and `exiting`
-    after the function is executed. If `None` is passed to `entering`, the state is not changed.
-    If `None` is passed to `exiting`, the state is restored to the state before function execution.
-    If `INTERRUPTED` state is set inside a run function, the state remains `INTERRUPTED`.
-    """
-
-    def wrapper(fn) -> Callable:
-
-        @wraps(fn)
-        def wrapped_fn(self, *args, **kwargs):
-            if not isinstance(self, pytorch_lightning.Trainer):
-                return fn(self, *args, **kwargs)
-
-            state_before = self._state
-            if entering is not None:
-                self._state = entering
-            result = fn(self, *args, **kwargs)
-
-            # The INTERRUPTED state can be set inside the run function. To indicate that run was interrupted
-            # we retain INTERRUPTED state
-            if self._state == TrainerState.INTERRUPTED:
-                return result
-
-            self._state = exiting if exiting is not None else state_before
-            return result
-
-        return wrapped_fn
-
-    return wrapper

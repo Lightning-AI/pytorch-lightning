@@ -450,7 +450,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     )
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
-    trainer.fitting = True
+    trainer.state = TrainerState.FITTING
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
