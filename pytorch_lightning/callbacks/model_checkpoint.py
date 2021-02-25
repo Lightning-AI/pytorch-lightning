@@ -191,7 +191,7 @@ class ModelCheckpoint(Callback):
         """
         self.save_checkpoint(trainer, pl_module)
 
-    def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "monitor": self.monitor,
             "best_model_score": self.best_model_score,
@@ -200,9 +200,9 @@ class ModelCheckpoint(Callback):
             "dirpath": self.dirpath
         }
 
-    def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
-        self.best_model_score = checkpointed_state["best_model_score"]
-        self.best_model_path = checkpointed_state["best_model_path"]
+    def on_load_checkpoint(self, callback_state: Dict[str, Any]):
+        self.best_model_score = callback_state["best_model_score"]
+        self.best_model_path = callback_state["best_model_path"]
 
     def save_checkpoint(self, trainer, pl_module):
         """

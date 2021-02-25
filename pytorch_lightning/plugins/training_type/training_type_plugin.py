@@ -96,7 +96,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> Optional[LightningModule]:
+    def lightning_module(self) -> LightningModule:
         """Returns the pure LightningModule without potential wrappers"""
         return unwrap_lightning_module(self._model)
 
