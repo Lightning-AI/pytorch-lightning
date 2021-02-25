@@ -31,7 +31,7 @@ from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingT
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.states import TrainerState, RunningStage
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -416,7 +416,7 @@ class TrainerProperties(ABC):
 
     @property
     def training(self) -> bool:
-        return self._running_stage == RunningStage.TRAINING
+        return self._running_stage is RunningStage.TRAINING
 
     @training.setter
     def training(self, val: bool) -> None:
@@ -427,7 +427,7 @@ class TrainerProperties(ABC):
 
     @property
     def testing(self) -> bool:
-        return self._running_stage == RunningStage.TESTING
+        return self._running_stage is RunningStage.TESTING
 
     @testing.setter
     def testing(self, val: bool) -> None:
@@ -438,7 +438,7 @@ class TrainerProperties(ABC):
 
     @property
     def predicting(self) -> bool:
-        return self._running_stage == RunningStage.PREDICTING
+        return self._running_stage is RunningStage.PREDICTING
 
     @predicting.setter
     def predicting(self, val: bool) -> None:
@@ -449,7 +449,7 @@ class TrainerProperties(ABC):
 
     @property
     def tuning(self) -> bool:
-        return self._running_stage == RunningStage.TUNING
+        return self._running_stage is RunningStage.TUNING
 
     @tuning.setter
     def tuning(self, val: bool) -> None:
@@ -460,7 +460,7 @@ class TrainerProperties(ABC):
 
     @property
     def validating(self) -> bool:
-        return self._running_stage == RunningStage.VALIDATING
+        return self._running_stage is RunningStage.VALIDATING
 
     @validating.setter
     def validating(self, val: bool) -> None:
@@ -472,6 +472,17 @@ class TrainerProperties(ABC):
     @property
     def evaluating(self) -> bool:
         return self._running_stage and self._running_stage.is_evaluating()
+
+    @property
+    def sanity_checking(self) -> bool:
+        return self._running_stage is RunningStage.SANITY_CHECKING
+
+    @sanity_checking.setter
+    def sanity_checking(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.SANITY_CHECKING
+        elif self.sanity_checking:
+            self._running_stage = None
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

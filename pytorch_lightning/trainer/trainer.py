@@ -805,12 +805,14 @@ class Trainer(
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         if should_sanity_check:
+            stage = self._running_stage
+            self.sanity_checking = True
+
             self.num_sanity_val_batches = [
                 min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
             ]
 
             # hook and callback
-            self.running_sanity_check = True
             self.on_sanity_check_start()
 
             # run eval step
@@ -828,7 +830,8 @@ class Trainer(
                 self.logger_connector.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
-            self.running_sanity_check = False
+
+            self._running_stage = stage
 
     def test(
         self,

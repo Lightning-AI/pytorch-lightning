@@ -137,6 +137,7 @@ class DeprecatedTrainerAttributes:
 
     accelerator: Accelerator
     lightning_module = LightningModule
+    sanity_checking: bool
 
     @property
     def accelerator_backend(self) -> Accelerator:
@@ -152,3 +153,10 @@ class DeprecatedTrainerAttributes:
             " and will be removed in v1.4.", DeprecationWarning
         )
         return self.lightning_module
+
+    @property
+    def running_sanity_check(self) -> bool:
+        rank_zero_warn(
+            "TODO", DeprecationWarning
+        )
+        return self.sanity_checking

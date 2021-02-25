@@ -44,6 +44,7 @@ class RunningStage(LightningEnum):
     True
     """
     TRAINING = 'train'
+    SANITY_CHECKING = "sanity_check"
     VALIDATING = 'validation'
     TESTING = 'test'
     PREDICTING = 'predict'

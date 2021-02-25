@@ -37,7 +37,6 @@ class EvaluationLoop(object):
         self.trainer.num_val_batches = []
         self.trainer.test_dataloaders = None
         self.trainer.val_dataloaders = None
-        self.trainer.running_sanity_check = False
 
         # .validate() and .test() set this when they load a checkpoint
         self.trainer.evaluated_ckpt_path = None
@@ -318,7 +317,7 @@ class EvaluationLoop(object):
         self.trainer.call_hook('on_epoch_end')
 
     def log_evaluation_step_metrics(self, output, batch_idx):
-        if self.trainer.running_sanity_check:
+        if self.trainer.sanity_checking:
             return
 
         step_log_metrics = {}

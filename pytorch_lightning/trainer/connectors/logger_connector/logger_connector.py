@@ -289,7 +289,7 @@ class LoggerConnector:
             self.add_to_eval_loop_results(dl_idx, has_been_initialized)
 
     def get_evaluate_epoch_results(self):
-        if not self.trainer.running_sanity_check:
+        if not self.trainer.sanity_checking:
             # log all the metrics as a single dict
             metrics_to_log = self.cached_results.get_epoch_log_metrics()
             if len(metrics_to_log) > 0:
@@ -372,7 +372,7 @@ class LoggerConnector:
             self.eval_loop_results.append(dataloader_result_metrics)
 
     def __process_eval_epoch_end_results_and_log_legacy(self, eval_results):
-        if self.trainer.running_sanity_check:
+        if self.trainer.sanity_checking:
             return
 
         if eval_results is not None and len(eval_results) > 0:
