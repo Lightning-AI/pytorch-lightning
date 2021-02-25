@@ -44,7 +44,7 @@ class EvaluationLoop(object):
         # when true, print evaluation results in .validate() and .test()
         self.trainer.verbose_evaluate = True
 
-    def get_evaluation_dataloaders(self, max_batches):
+    def get_evaluation_dataloaders(self):
         model = self.trainer.lightning_module
 
         # select dataloaders
@@ -52,18 +52,20 @@ class EvaluationLoop(object):
             self.trainer.reset_test_dataloader(model)
 
             dataloaders = self.trainer.test_dataloaders
-            new_max_batches = self.trainer.num_test_batches
+            max_batches = self.trainer.num_test_batches
         else:
             # val
             if self.trainer.val_dataloaders is None or self.trainer.reload_dataloaders_every_epoch:
                 self.trainer.reset_val_dataloader(model)
-
+            if self.trainer.sanity_checking:
+                self.trainer.num_sanity_val_batches = [
+                    min(self.trainer.num_sanity_val_steps, val_batches)
+                    for val_batches in self.trainer.num_val_batches
+                ]
+                max_batches = self.trainer.num_sanity_val_batches
+            else:
+                max_batches = self.trainer.num_val_batches
             dataloaders = self.trainer.val_dataloaders
-            new_max_batches = self.trainer.num_val_batches
-
-        if max_batches is None:
-            max_batches = new_max_batches
-
         return dataloaders, max_batches
 
     def should_skip_evaluation(self, max_batches):

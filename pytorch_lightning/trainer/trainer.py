@@ -15,6 +15,7 @@
 import warnings
 from itertools import count
 from pathlib import Path
+from traceback import print_exc
 from typing import Dict, Iterable, List, Optional, Union
 
 import torch
@@ -52,7 +53,7 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
@@ -631,18 +632,23 @@ class Trainer(
                 self.interrupted = True
                 self._state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
+        except (RuntimeError, AssertionError):
+            # if an exception is raised, the finally block is executed and can hide the actual exception
+            # that was initially raised if `on_train_end` also raises an exception. we want to avoid that
+            # for assertions and other runtime errors so we aren't misled while debugging
+            print_exc()
         finally:
             # hook
             self.train_loop.on_train_end()
 
-    def run_evaluation(self, max_batches=None, on_epoch=False):
+    def run_evaluation(self, on_epoch=False):
         assert self.evaluating or self.sanity_checking
 
         # reset cached results
         self.logger_connector.reset()
 
         # prepare dataloaders
-        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
+        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
         # check if we want to skip this evaluation
         if self.evaluation_loop.should_skip_evaluation(max_batches):
@@ -808,15 +814,11 @@ class Trainer(
             stage = self._running_stage
             self.sanity_checking = True
 
-            self.num_sanity_val_batches = [
-                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
-            ]
-
             # hook and callback
             self.on_sanity_check_start()
 
             # run eval step
-            _, eval_results = self.run_evaluation(max_batches=self.num_sanity_val_batches)
+            _, eval_results = self.run_evaluation()
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:

@@ -512,11 +512,10 @@ class TrainLoop:
             # -----------------------------------------
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
+                self.trainer.validating = True
                 self.trainer.run_evaluation()
-                val_loop_called = True
-
-                # reset stage to train
                 self.trainer.training = True
+                val_loop_called = True
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)

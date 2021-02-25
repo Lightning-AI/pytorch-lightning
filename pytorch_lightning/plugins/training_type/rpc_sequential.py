@@ -208,7 +208,8 @@ class RPCSequentialPlugin(RPCPlugin):
         Returns: Whether to skip initialization
 
         """
-        return torch_distrib.is_initialized() and self.lightning_module.running_stage == RunningStage.TESTING
+        # TODO: should this use trainer.fitting? same for other occurrences in this file
+        return torch_distrib.is_initialized() and self.lightning_module.running_stage is RunningStage.TESTING
 
     def init_model_parallel_groups(self):
         num_model_parallel = 1  # TODO currently no support for vertical model parallel

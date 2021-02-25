@@ -215,11 +215,11 @@ class ModelCheckpoint(Callback):
 
         if (
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
-            or not trainer.fitting  # only save during fit
+            or not trainer.fitting  # don't save anything during non-fit
+            or trainer.sanity_checking  # don't save anything during sanity check
             or self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
-            or trainer.sanity_checking  # don't save anything during sanity check
             or self._last_global_step_saved == global_step  # already saved at the last step
         ):
             return
