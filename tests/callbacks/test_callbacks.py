@@ -98,7 +98,7 @@ def test_trainer_callback_system(torch_save, tmpdir):
         call.on_validation_epoch_end(trainer, model),
         call.on_epoch_end(trainer, model),
         call.on_validation_end(trainer, model),
-        call.on_save_checkpoint(trainer, model),
+        call.on_save_checkpoint(trainer, model),  # should take ANY but we are inspecting signature for BC
         call.on_train_end(trainer, model),
         call.on_fit_end(trainer, model),
         call.teardown(trainer, model, 'fit'),

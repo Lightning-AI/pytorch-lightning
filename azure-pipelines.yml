@@ -66,8 +66,9 @@ jobs:
         pip list
       displayName: 'Install dependencies'
 
-    - script: |
+    - bash: |
         python tests/collect_env_details.py
+        python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
       displayName: 'Env details'
 
     - bash: |
@@ -76,7 +77,7 @@ jobs:
         ls -l legacy/checkpoints/
       displayName: 'Get legacy checkpoints'
 
-    - script: |
+    - bash: |
         python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
       displayName: 'Testing: standard'
 
@@ -90,11 +91,11 @@ jobs:
         codecov --token=$(CODECOV_TOKEN) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
       displayName: 'Statistics'
 
-    - script: |
+    - bash: |
         python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
       displayName: 'Testing: extended'
 
-    - script: |
+    - bash: |
         python setup.py install --user --quiet
         bash pl_examples/run_ddp-example.sh
         pip uninstall -y pytorch-lightning

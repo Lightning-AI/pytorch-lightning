@@ -14,6 +14,7 @@
 """General utilities"""
 import operator
 import platform
+import sys
 from distutils.version import LooseVersion
 from importlib.util import find_spec
 
@@ -49,10 +50,11 @@ def _compare_version(package: str, op, version) -> bool:
 
 
 _IS_WINDOWS = platform.system() == "Windows"
+_IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
 _TORCH_LOWER_EQUAL_1_4 = _compare_version("torch", operator.le, "1.5.0")
 _TORCH_GREATER_EQUAL_1_6 = _compare_version("torch", operator.ge, "1.6.0")
 _TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
-_TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != 'none'])
+
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
 _DEEPSPEED_AVAILABLE = not _IS_WINDOWS and _module_available('deepspeed')
@@ -65,6 +67,7 @@ _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
 _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _RPC_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.rpc')
+_TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != 'none'])
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
 _XLA_AVAILABLE = _module_available("torch_xla")
