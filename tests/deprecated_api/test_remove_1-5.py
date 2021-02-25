@@ -14,12 +14,11 @@
 """Test deprecated functionality which will be removed in v1.5.0"""
 import pytest
 
-from pytorch_lightning import Trainer, Callback
-from tests.helpers import BoringModel
-from tests.helpers.utils import no_warning_callimport pytest
-
+from pytorch_lightning import Callback
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from tests.helpers import BoringModel
+from tests.helpers.utils import no_warning_call
 
 
 def test_v1_5_0_model_checkpoint_save_checkpoint():
