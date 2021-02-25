@@ -552,6 +552,10 @@ class LegacyPyTorchProfiler(BaseProfiler):
 
 
 class ScheduleWrapper:
+    """
+    This class is used to override the schedule logic from the profiler and perform
+    recording for both `training_step`, `validation_step`.
+    """
 
     def __init__(self, schedule: Optional[Callable]):
         self._schedule = schedule
