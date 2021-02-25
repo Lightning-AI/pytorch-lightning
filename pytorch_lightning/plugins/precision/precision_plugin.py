@@ -33,7 +33,7 @@ class PrecisionPlugin(Plugin):
     EPSILON: float = 1e-6
     precision: Union[str, int] = 32
 
-    def master_params(self, optimizer: Optimizer) -> Generator[torch.Tensor, None, None]:
+    def master_params(self, optimizer: 'Optimizer') -> Generator[torch.Tensor, None, None]:
         """The master params of the model. Returns the plain model params here.
         Maybe different in other precision plugins.
 
@@ -98,9 +98,7 @@ class PrecisionPlugin(Plugin):
     def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""
 
-    def clip_gradients(
-        self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0
-    ) -> None:
+    def clip_gradients(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
         """Clips the gradients to a specific value"""
         # TODO: separate TPU case from here
         if clip_val is None:
