@@ -469,10 +469,6 @@ class Trainer(
         # `run_predict` is the simplest to understand, use `Go to Definition` to read it :)
         # Search for `start_training` or `start_testing` or `start_predicting` in
         # `pytorch_lightning/plugins/training_type` folder to find accelerator dispatch functions.
-        self.accelerator.train_loop = self.run_train
-        self.accelerator.validation_loop = self.run_evaluation
-        self.accelerator.test_loop = self.run_evaluation
-        self.accelerator.predict_loop = self.run_predict
 
         # ----------------------------
         # TRAIN
