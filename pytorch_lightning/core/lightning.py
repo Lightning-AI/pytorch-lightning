@@ -17,7 +17,6 @@ import collections
 import copy
 import inspect
 import os
-import re
 import tempfile
 import uuid
 from abc import ABC
@@ -1805,24 +1804,6 @@ class LightningModule(
             return AttributeDict()
         # prevent any change
         return copy.deepcopy(self._hparams_initial)
-
-    def __get_hparams_assignment_variable(self):
-        """
-        looks at the code of the class to figure out what the user named self.hparams
-        this only happens when the user explicitly sets self.hparams
-        """
-        try:
-            class_code = inspect.getsource(self.__class__)
-            lines = class_code.split("\n")
-            for line in lines:
-                line = re.sub(r"\s+", "", line, flags=re.UNICODE)
-                if ".hparams=" in line:
-                    return line.split("=")[1]
-        # todo: specify the possible exception
-        except Exception:
-            return "hparams"
-
-        return None
 
     @property
     def model_size(self) -> float:
