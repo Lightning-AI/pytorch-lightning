@@ -160,12 +160,10 @@ class EarlyStopping(Callback):
             self.wait_count = 0
         else:
             self.wait_count += 1
-            callback_signal_should_stop = self.wait_count >= self.patience
 
-            if bool(callback_signal_should_stop):
+            if self.wait_count >= self.patience:
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
 
         # stop every ddp process if any world process decides to stop
-        should_stop = trainer.training_type_plugin.reduce_early_stopping_decision(trainer.should_stop)
-        trainer.should_stop = should_stop
+        trainer.should_stop = trainer.training_type_plugin.reduce_early_stopping_decision(trainer.should_stop)
