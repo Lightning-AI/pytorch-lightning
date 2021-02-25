@@ -516,7 +516,7 @@ class TrainLoop:
                 val_loop_called = True
 
                 # reset stage to train
-                self.trainer._running_stage = RunningStage.TRAINING
+                self.trainer.training = True
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -571,9 +571,9 @@ class TrainLoop:
             self.check_early_stopping_callback(True)
 
         if should_check_val:
-            self.trainer._running_stage = RunningStage.VALIDATING
+            self.trainer.validating = True
             self.trainer.run_evaluation(on_epoch=True)
-            self.trainer._running_stage = RunningStage.TRAINING
+            self.trainer.training = True
 
         # increment the global step once
         # progress global step according to grads progress

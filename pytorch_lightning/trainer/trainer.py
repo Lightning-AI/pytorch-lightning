@@ -423,7 +423,7 @@ class Trainer(
         self._state = TrainerState.RUNNING
         # we reuse fit in .test() and .predict(). When already set, it shouldn't be modified.
         if self._running_stage is None:
-            self._running_stage = RunningStage.TRAINING
+            self.training = True
         self.fitting = self.training
 
         # set local properties on the model
@@ -636,7 +636,7 @@ class Trainer(
             self.train_loop.on_train_end()
 
     def run_evaluation(self, max_batches=None, on_epoch=False):
-        assert self._running_stage.is_evaluating()
+        assert self.evaluating or self.sanity_checking
 
         # reset cached results
         self.logger_connector.reset()
@@ -816,9 +816,7 @@ class Trainer(
             self.on_sanity_check_start()
 
             # run eval step
-            self._running_stage = RunningStage.VALIDATING
             _, eval_results = self.run_evaluation(max_batches=self.num_sanity_val_batches)
-            self._running_stage = RunningStage.TRAINING
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
@@ -865,7 +863,7 @@ class Trainer(
         # --------------------
         self.verbose_evaluate = verbose
 
-        self._running_stage = RunningStage.TESTING
+        self.testing = True
         self.fitting = False
 
         # If you supply a datamodule you can't supply test_dataloaders
@@ -886,7 +884,7 @@ class Trainer(
         )
 
         self.teardown('test')
-        self._running_stage = None
+        self.testing = False
 
         return results
 
@@ -980,7 +978,7 @@ class Trainer(
 
         model = model or self.lightning_module
 
-        self._running_stage = RunningStage.PREDICTING
+        self.predicting = True
         self.fitting = False
 
         if dataloaders and datamodule:
@@ -999,7 +997,7 @@ class Trainer(
         self.model = model
         results = self.fit(model)
 
-        self._running_stage = None
+        self.predicting = False
 
         return results
 
