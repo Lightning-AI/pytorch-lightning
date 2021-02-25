@@ -148,7 +148,6 @@ class TrainLoop:
 
         # reset bookkeeping
         self.trainer._running_stage = None
-        self.trainer.fitting = False
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback

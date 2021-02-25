@@ -18,7 +18,6 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -43,9 +42,9 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         self.module = pl_module
 
     def forward(self, *inputs, **kwargs):
-        running_stage = self.module.running_stage
+        trainer = self.module.trainer
 
-        if running_stage is RunningStage.TRAINING:
+        if trainer.training:
             output = self.module.training_step(*inputs, **kwargs)
 
             # In manual_optimization, we need to prevent DDP reducer as
@@ -53,18 +52,18 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             # `require_backward_grad_sync` will be reset in the
             # ddp_plugin ``post_training_step`` hook
             if not self.module.automatic_optimization:
-                self.module.trainer.model.require_backward_grad_sync = False
+                trainer.model.require_backward_grad_sync = False
             warn_if_output_is_none(output, "training_step")
 
-        elif running_stage is RunningStage.TESTING:
+        elif trainer.testing:
             output = self.module.test_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "test_step")
 
-        elif running_stage in (RunningStage.VALIDATING, RunningStage.SANITY_CHECKING):
+        elif trainer.sanity_checking or trainer.validating:
             output = self.module.validation_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "validation_step")
 
-        elif running_stage is RunningStage.PREDICTING:
+        elif trainer.predicting:
             output = self.module.predict(*inputs, **kwargs)
             warn_if_output_is_none(output, "predict")
 

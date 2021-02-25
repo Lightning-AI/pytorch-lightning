@@ -171,10 +171,6 @@ class LightningModule(
         """
         return self._automatic_optimization
 
-    @property
-    def running_stage(self) -> Optional["RunningStage"]:
-        return self.trainer._running_stage if self.trainer else None
-
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:
         self._automatic_optimization = automatic_optimization

@@ -337,7 +337,7 @@ class LoggerConnector:
                     flat['checkpoint_on'] = flat['val_loss']
                     flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
-                if self.trainer.evaluating:
+                if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
                     self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
         else:
             # with a scalar return, auto set it to "val_loss" for callbacks
@@ -352,7 +352,7 @@ class LoggerConnector:
                 flat['early_stop_on'] = flat['val_loss']
 
             self.trainer.logger_connector.callback_metrics.update(flat)
-            if self.trainer.evaluating:
+            if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
                 self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
 
     def __process_eval_epoch_end_results_and_log_legacy_update(self, prog_bar_metrics, log_metrics, callback_metrics):
@@ -370,7 +370,7 @@ class LoggerConnector:
         callback_metrics.update(log_metrics)
         callback_metrics.update(prog_bar_metrics)
         self.trainer.logger_connector.callback_metrics.update(callback_metrics)
-        if self.trainer.evaluating:
+        if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
             self.trainer.logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         if len(dataloader_result_metrics) > 0:
