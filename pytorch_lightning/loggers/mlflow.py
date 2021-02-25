@@ -79,6 +79,9 @@ class MLFlowLogger(LightningLoggerBase):
             Has no effect if `tracking_uri` is provided.
         prefix: A string to put at the beginning of metric keys.
 
+    Raises:
+        ImportError:
+            If required MLFlow package is not installed on the device.
     """
 
     LOGGER_JOIN_CHAR = '-'
