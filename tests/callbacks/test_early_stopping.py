@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import pickle
+import sys
 from unittest import mock
 
 import cloudpickle
@@ -368,9 +369,12 @@ class EarlyStoppingModel(BoringModel):
         ([EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)], 3, None, 1),
         ([EarlyStopping(monitor='cba', patience=3),
           EarlyStopping(monitor='abc')], 3, None, 1),
-        ([EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)], 3, 'ddp_cpu', 2),
-        ([EarlyStopping(monitor='cba', patience=3),
-          EarlyStopping(monitor='abc')], 3, 'ddp_cpu', 2),
+        pytest.param(([EarlyStopping(monitor='abc'),
+                       EarlyStopping(monitor='cba', patience=3)], 3, 'ddp_cpu', 2),
+                     marks=pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")),
+        pytest.param(([EarlyStopping(monitor='cba', patience=3),
+                       EarlyStopping(monitor='abc')], 3, 'ddp_cpu', 2),
+                     marks=pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")),
     ],
 )
 def test_multiple_early_stopping_callbacks(callbacks, expected_stop_epoch, accelerator, num_processes, tmpdir):
