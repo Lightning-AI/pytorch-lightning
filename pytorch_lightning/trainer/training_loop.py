@@ -123,7 +123,6 @@ class TrainLoop:
     def on_train_end(self):
         if self._teardown_already_run:
             return
-
         self._teardown_already_run = True
 
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
@@ -147,6 +146,10 @@ class TrainLoop:
 
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
+
+        # reset bookkeeping
+        self.trainer._running_stage = None
+        self.trainer.fitting = False
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback

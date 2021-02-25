@@ -372,8 +372,7 @@ class TrainerDataLoadingMixin(ABC):
         has_loader = is_overridden('test_dataloader', model)
         has_step = is_overridden('test_step', model)
         if has_loader and has_step:
-            self.num_test_batches, self.test_dataloaders =\
-                self._reset_eval_dataloader(model, 'test')
+            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader(model, 'test')
 
     def reset_predict_dataloader(self, model) -> None:
         """Resets the predict dataloader and determines the number of batches.
@@ -383,8 +382,7 @@ class TrainerDataLoadingMixin(ABC):
         """
         has_loader = is_overridden('predict_dataloader', model)
         if has_loader:
-            self.num_predict_batches, self.predict_dataloaders =\
-                self._reset_eval_dataloader(model, 'predict')
+            self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(model, 'predict')
 
     def request_dataloader(self, dataloader_fx: Callable) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.

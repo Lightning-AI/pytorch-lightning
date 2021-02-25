@@ -446,10 +446,11 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
         monitor='checkpoint_on',
         save_top_k=save_top_k,
         save_last=save_last,
-        verbose=1
+        verbose=True
     )
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
+    trainer.fitting = True
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
@@ -690,7 +691,7 @@ def test_benchmark_option(tmpdir):
 
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
-def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
+def test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
     hparams = EvalModelTemplate.get_default_hparams()
 
     model = EvalModelTemplate(**hparams)

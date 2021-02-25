@@ -642,7 +642,12 @@ class Trainer(
             self.train_loop.on_train_end()
 
     def run_evaluation(self, on_epoch=False):
-        assert self.evaluating or self.sanity_checking
+        if not (self.evaluating or self.sanity_checking):
+            rank_zero_warn(
+                f"`trainer.run_evaluation()` was called but the running stage is set to {self._running_stage}."
+                " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
+            )
+            self.validating = True
 
         # reset cached results
         self.logger_connector.reset()
@@ -925,7 +930,7 @@ class Trainer(
             self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
 
         # run test
-        self.tested_ckpt_path = ckpt_path
+        self.evaluated_ckpt_path = ckpt_path
         results = self.fit(model)
 
         # teardown
