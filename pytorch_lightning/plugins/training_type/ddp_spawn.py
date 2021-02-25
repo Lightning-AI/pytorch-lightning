@@ -157,7 +157,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         self.barrier()
 
-        results = trainer.train_or_test_or_predict()
+        results = trainer.run_stage()
 
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(results)

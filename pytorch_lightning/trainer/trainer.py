@@ -509,25 +509,21 @@ class Trainer(
         self.accelerator.teardown()
 
     def dispatch(self):
-        if self.testing:
-            self.accelerator.start_testing(self)
-
+        if self.evaluating:
+            self.accelerator.start_evaluating(self)
         elif self.predicting:
             self.accelerator.start_predicting(self)
-
         else:
             self.accelerator.start_training(self)
 
-    def train_or_test_or_predict(self):
-        if self.testing:
-            results = self.run_test()
-
+    def run_stage(self):
+        results = None
+        if self.evaluating:
+            results = self.run_evaluate()
         elif self.predicting:
             results = self.run_predict()
-
         else:
-            results = self.run_train()
-
+            self.run_train()
         return results
 
     def _pre_training_routine(self):
@@ -562,7 +558,7 @@ class Trainer(
         if self.is_function_implemented("on_pretrain_routine_end"):
             ref_model.on_pretrain_routine_end()
 
-    def run_train(self):
+    def run_train(self) -> None:
 
         self._pre_training_routine()
 
@@ -741,13 +737,13 @@ class Trainer(
             outputs.append(output)
         return outputs
 
-    def run_test(self):
+    def run_evaluate(self):
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        assert self.testing
+        assert self.evaluating
 
-        with self.profiler.profile("run_test_evaluation"):
+        with self.profiler.profile(f"run_{self._running_stage}_evaluation"):
             eval_loop_results, _ = self.run_evaluation()
 
         if len(eval_loop_results) == 0:

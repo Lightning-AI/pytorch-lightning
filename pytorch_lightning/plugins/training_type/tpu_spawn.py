@@ -98,7 +98,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         trainer.save_checkpoint = self.save_checkpoint
         self.barrier()
 
-        results = trainer.train_or_test_or_predict()
+        results = trainer.run_stage()
 
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)

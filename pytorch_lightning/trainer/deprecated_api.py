@@ -137,6 +137,7 @@ class DeprecatedTrainerAttributes:
     accelerator: Accelerator
     lightning_module = LightningModule
     sanity_checking: bool
+    evaluated_ckpt_path: str
 
     @property
     def accelerator_backend(self) -> Accelerator:
@@ -156,7 +157,15 @@ class DeprecatedTrainerAttributes:
     @property
     def running_sanity_check(self) -> bool:
         rank_zero_warn(
-            "The use of `Trainer.running_sanity_check` is deprecated in favor of `Trainer.sanity_checking`"
+            "`Trainer.running_sanity_check` has been renamed to `Trainer.sanity_checking`"
             " and will be removed in v1.5", DeprecationWarning
         )
         return self.sanity_checking
+
+    @property
+    def tested_ckpt_path(self):
+        rank_zero_warn(
+            '`Trainer.tested_ckpt_path` has been renamed to `Trainer.evaluated_ckpt_path`'
+            ' in v1.1 and will be removed in v1.3.', DeprecationWarning
+        )
+        return self.evaluated_ckpt_path

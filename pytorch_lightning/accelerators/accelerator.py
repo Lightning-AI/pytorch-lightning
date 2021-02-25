@@ -82,8 +82,8 @@ class Accelerator(object):
     def start_training(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_training(trainer)
 
-    def start_testing(self, trainer: 'Trainer') -> None:
-        self.training_type_plugin.start_testing(trainer)
+    def start_evaluating(self, trainer: 'Trainer') -> None:
+        self.training_type_plugin.start_evaluating(trainer)
 
     def start_predicting(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_predicting(trainer)
