@@ -157,6 +157,7 @@ class DeprecatedTrainerAttributes:
     @property
     def running_sanity_check(self) -> bool:
         rank_zero_warn(
-            "TODO", DeprecationWarning
+            "The use of `Trainer.running_sanity_check` is deprecated in favor of `Trainer.sanity_checking`"
+            " and will be removed in v1.5", DeprecationWarning
         )
         return self.sanity_checking

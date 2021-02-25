@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import wraps
-from typing import Callable, Optional
-
-import pytorch_lightning
 from pytorch_lightning.utilities import LightningEnum
 
 
@@ -46,7 +42,7 @@ class TrainerState(LightningEnum):
     def running(self) -> bool:
         return self in (self.FITTING, self.VALIDATING, self.TESTING, self.PREDICTING, self.TUNING)
 
-# 
+
 class RunningStage(LightningEnum):
     """Current running stage.
 

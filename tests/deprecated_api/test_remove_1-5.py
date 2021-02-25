@@ -54,3 +54,9 @@ def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
     trainer.callbacks = [NewSignature(), ValidSignature1(), ValidSignature2()]
     with no_warning_call(DeprecationWarning):
         trainer.save_checkpoint(filepath)
+
+
+def test_v1_5_0_running_sanity_check():
+    trainer = Trainer()
+    with pytest.deprecated_call(match='deprecated in favor of `Trainer.sanity_checking`'):
+        assert not trainer.running_sanity_check
