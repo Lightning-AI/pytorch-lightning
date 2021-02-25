@@ -121,13 +121,16 @@ class InternalDebugger(object):
         self.saved_train_losses.append(loss_dict)
 
     @enabled_only
-    def track_lr_schedulers_update(self, batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=None):
+    def track_lr_schedulers_update(
+        self, batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=None, monitor_val=None
+    ):
         loss_dict = {
             'batch_idx': batch_idx,
             'interval': interval,
             'scheduler_idx': scheduler_idx,
             'epoch': self.trainer.current_epoch,
             'monitor_key': monitor_key,
+            'monitor_val': monitor_val,
             'old_lr': old_lr,
             'new_lr': new_lr
         }
