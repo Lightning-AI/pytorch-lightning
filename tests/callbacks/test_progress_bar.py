@@ -426,7 +426,7 @@ def test_progress_bar_print(tqdm_write, tmpdir):
 @mock.patch('builtins.print')
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
 def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
-    """ Test that printing in LightningModule goes through built-in print functin when progress bar is disabled. """
+    """ Test that printing in LightningModule goes through built-in print function when progress bar is disabled. """
     model = PrintModel()
     bar = ProgressBar()
     trainer = Trainer(

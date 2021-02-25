@@ -22,7 +22,6 @@ class DeprecatedDistDeviceAttributes:
 
     _distrib_type: DistributedType
     _device_type: DeviceType
-    _running_stage: RunningStage
     num_gpus: int
     accelerator_connector: AcceleratorConnector
 

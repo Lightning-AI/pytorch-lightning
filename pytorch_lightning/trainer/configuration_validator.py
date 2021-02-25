@@ -24,16 +24,15 @@ class ConfigValidator(object):
 
     def verify_loop_configurations(self, model: LightningModule):
         r"""
-        Checks that the model is configured correctly before training or testing is started.
+        Checks that the model is configured correctly before the run is started.
 
         Args:
             model: The model to check the configuration.
 
         """
-        if not self.trainer.evaluating:
+        if self.trainer.training:
             self.__verify_train_loop_configuration(model)
-        else:
-            # check evaluation loop configuration
+        elif self.trainer.evaluating:
             self.__verify_eval_loop_configuration(model)
 
     def __verify_train_loop_configuration(self, model):

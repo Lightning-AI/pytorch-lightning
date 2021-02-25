@@ -447,7 +447,7 @@ class Trainer(
         # we reuse fit in .test() and .predict(). When already set, it shouldn't be modified.
         if self._running_stage is None:
             self._running_stage = RunningStage.TRAINING
-        self._fitting = self.training
+        self.fitting = self.training
 
         # set local properties on the model
         self.model_connector.copy_trainer_model_properties(model)
@@ -529,7 +529,7 @@ class Trainer(
             self._state = TrainerState.FINISHED
 
         self._running_stage = None
-        self._fitting = False
+        self.fitting = False
 
         return self.accelerator.results or 1
 
@@ -887,7 +887,7 @@ class Trainer(
         self.verbose_evaluate = verbose
 
         self._running_stage = RunningStage.TESTING
-        self._fitting = False
+        self.fitting = False
 
         # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
@@ -1002,7 +1002,7 @@ class Trainer(
         model = model or self.lightning_module
 
         self._running_stage = RunningStage.PREDICTING
-        self._fitting = False
+        self.fitting = False
 
         if dataloaders and datamodule:
             raise MisconfigurationException(

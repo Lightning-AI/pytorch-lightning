@@ -35,8 +35,7 @@ class DDPShardedPlugin(DDPPlugin):
         trainer.convert_to_lightning_optimizers()
 
     def _wrap_optimizers(self):
-        trainer = self.model.trainer
-        if trainer.evaluating is True:
+        if not self.model.trainer.fitting:
             return
         self._reinit_optimizers_with_oss()
 

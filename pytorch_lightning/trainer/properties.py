@@ -46,7 +46,6 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 class TrainerProperties(ABC):
 
     _default_root_dir: str
-    _fitting: bool = False
     _lightning_optimizers = None
     _progress_bar_callback: ProgressBarBase
     _running_stage: Optional[RunningStage] = None
@@ -56,6 +55,7 @@ class TrainerProperties(ABC):
     accelerator_connector: AcceleratorConnector
     callbacks: List[Callback]
     checkpoint_connector: CheckpointConnector
+    fitting: bool = False  # to differentiate between .fit() validation and .validate() validation
     limit_val_batches: int
     logger: LightningLoggerBase
     logger_connector: LoggerConnector

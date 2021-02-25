@@ -155,7 +155,7 @@ class EarlyStopping(Callback):
         self.patience = checkpointed_state['patience']
 
     def on_validation_end(self, trainer, pl_module):
-        if trainer.running_sanity_check or trainer.evaluating:
+        if trainer.running_sanity_check or not trainer.fitting:
             return
 
         self._run_early_stopping_check(trainer, pl_module)
