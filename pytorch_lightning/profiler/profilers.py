@@ -612,7 +612,6 @@ class ScheduleWrapper:
 class PyTorchProfiler(LegacyPyTorchProfiler):
 
     START_ACTION = "on_fit_start"
-    END_ACTION = "on_fit_end"
     RECORD_FUNCTIONS = ("training_step_and_backward", "training_step", "backward", "validation_step", "test_step")
     STEP_FUNCTIONS = ("training_step_and_backward", "validation_step")
 
