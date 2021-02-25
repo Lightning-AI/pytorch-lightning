@@ -213,7 +213,7 @@ class DeepSpeedPlugin(DDPPlugin):
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
-        if self.lightning_module.trainer.training:
+        if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
         else:
             self._initialize_deepspeed_inference(model)

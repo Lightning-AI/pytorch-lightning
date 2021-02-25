@@ -38,7 +38,6 @@ def test_deepspeed_lightning_module_precision(tmpdir):
     """
 
     model = BoringModel()
-    model.trainer = Trainer()
     module = LightningDeepSpeedModule(model, precision=16)
 
     module.cuda().half()

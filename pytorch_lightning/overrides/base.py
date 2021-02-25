@@ -44,7 +44,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
     def forward(self, *inputs, **kwargs):
         trainer = self.module.trainer
 
-        if trainer.training:
+        if trainer and trainer.training:
             output = self.module.training_step(*inputs, **kwargs)
 
             # In manual_optimization, we need to prevent DDP reducer as
@@ -55,15 +55,15 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
                 trainer.model.require_backward_grad_sync = False
             warn_if_output_is_none(output, "training_step")
 
-        elif trainer.testing:
+        elif trainer and trainer.testing:
             output = self.module.test_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "test_step")
 
-        elif trainer.sanity_checking or trainer.validating:
+        elif trainer and (trainer.sanity_checking or trainer.validating):
             output = self.module.validation_step(*inputs, **kwargs)
             warn_if_output_is_none(output, "validation_step")
 
-        elif trainer.predicting:
+        elif trainer and trainer.predicting:
             output = self.module.predict(*inputs, **kwargs)
             warn_if_output_is_none(output, "predict")
 
