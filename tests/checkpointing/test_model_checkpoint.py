@@ -346,9 +346,9 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
     def on_train_start(self, trainer, pl_module):
         torch.save = Mock(wraps=torch.save)
 
-    def on_save_checkpoint(self, trainer, pl_module):
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint):
         # expect all ranks to run but only rank 0 will actually write the checkpoint file
-        super().on_save_checkpoint(trainer, pl_module)
+        super().on_save_checkpoint(trainer, pl_module, checkpoint)
         self.on_save_checkpoint_count += 1
 
     def on_train_end(self, trainer, pl_module):
