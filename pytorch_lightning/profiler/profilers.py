@@ -720,10 +720,10 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.output_filename = output_filename
             self.enabled = enabled
             self.use_cpu = use_cpu
-            self.use_cuda = use_cuda
+            self.use_cuda = use_cuda and torch.cuda.is_available()
             self.record_functions = record_functions or self.RECORD_FUNCTIONS
             self.record_functions_managers = {}
-            self.activities = [ProfilerActivity.CPU] * use_cpu + [ProfilerActivity.CUDA] * use_cuda
+            self.activities = [ProfilerActivity.CPU] * use_cpu + [ProfilerActivity.CUDA] * self.use_cuda
             self.schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
             self.record_shapes = record_shapes
             self.row_limit = row_limit
