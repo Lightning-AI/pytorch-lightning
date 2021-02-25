@@ -63,7 +63,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         return closure_loss
 
     def clip_gradients(
-        self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = float(2.0)
+        self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0
     ) -> None:
         """
         DeepSpeed handles clipping gradients via the training type plugin.
