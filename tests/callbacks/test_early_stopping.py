@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import pickle
+import sys
 from unittest import mock
 
 import cloudpickle
@@ -39,11 +40,11 @@ class EarlyStoppingTestRestore(EarlyStopping):
 
     def on_train_start(self, trainer, pl_module):
         if self.expected_state:
-            assert self.on_save_checkpoint(trainer, pl_module) == self.expected_state
+            assert self.on_save_checkpoint(trainer, pl_module, {}) == self.expected_state
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
-        self.saved_states.append(self.on_save_checkpoint(trainer, pl_module).copy())
+        self.saved_states.append(self.on_save_checkpoint(trainer, pl_module, {}).copy())
 
 
 def test_resume_early_stopping_from_checkpoint(tmpdir):
@@ -334,7 +335,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
     # Compute min_epochs latest step
     by_min_epochs = min_epochs * limit_train_batches
 
-    # Make sure the trainer stops for the max of all minimun requirements
+    # Make sure the trainer stops for the max of all minimum requirements
     assert trainer.global_step == max(min_steps, by_early_stopping, by_min_epochs), \
         (trainer.global_step, max(min_steps, by_early_stopping, by_min_epochs), step_freeze, min_steps, min_epochs)
 
@@ -342,5 +343,59 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
 
 
 def test_early_stopping_mode_options():
-    with pytest.raises(MisconfigurationException, match="`mode` can be auto, .* got unknown_option"):
+    with pytest.raises(MisconfigurationException, match="`mode` can be .* got unknown_option"):
         EarlyStopping(mode="unknown_option")
+
+
+class EarlyStoppingModel(BoringModel):
+
+    def __init__(self, expected_end_epoch):
+        super().__init__()
+        self.expected_end_epoch = expected_end_epoch
+
+    def validation_epoch_end(self, outputs):
+        losses = [8, 4, 2, 3, 4, 5, 8, 10]
+        val_loss = losses[self.current_epoch]
+        self.log('abc', torch.tensor(val_loss))
+        self.log('cba', torch.tensor(0))
+
+    def on_train_end(self) -> None:
+        assert self.trainer.current_epoch == self.expected_end_epoch, 'Early Stopping Failed'
+
+
+@pytest.mark.parametrize(
+    "callbacks, expected_stop_epoch, accelerator, num_processes",
+    [
+        ([EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)], 3, None, 1),
+        ([EarlyStopping(monitor='cba', patience=3),
+          EarlyStopping(monitor='abc')], 3, None, 1),
+        pytest.param([EarlyStopping(monitor='abc'),
+                      EarlyStopping(monitor='cba', patience=3)],
+                     3,
+                     'ddp_cpu',
+                     2,
+                     marks=pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")),
+        pytest.param([EarlyStopping(monitor='cba', patience=3),
+                      EarlyStopping(monitor='abc')],
+                     3,
+                     'ddp_cpu',
+                     2,
+                     marks=pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")),
+    ],
+)
+def test_multiple_early_stopping_callbacks(callbacks, expected_stop_epoch, accelerator, num_processes, tmpdir):
+    """
+    Ensure when using multiple early stopping callbacks we stop if any signals we should stop.
+    """
+
+    model = EarlyStoppingModel(expected_stop_epoch)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=callbacks,
+        overfit_batches=0.20,
+        max_epochs=20,
+        accelerator=accelerator,
+        num_processes=num_processes
+    )
+    trainer.fit(model)

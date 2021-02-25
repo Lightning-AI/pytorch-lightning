@@ -19,7 +19,6 @@ from pytorch_lightning import LightningModule
 
 
 def test_v1_3_0_deprecated_arguments(tmpdir):
-
     with pytest.deprecated_call(match="The setter for self.hparams in LightningModule is deprecated"):
 
         class DeprecatedHparamsModel(LightningModule):
