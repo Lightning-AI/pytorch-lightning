@@ -4,7 +4,6 @@ import torchvision.models as models
 import torchvision.transforms as T
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.profiler import PyTorchProfiler
 
 
 class LitLightningModule(LightningModule):
@@ -46,6 +45,5 @@ class CIFAR10DataModule(LightningDataModule):
 
 model = LitLightningModule(models.resnet50(pretrained=True))
 datamodule = CIFAR10DataModule()
-schedule = torch.profiler.schedule(wait=2, warmup=1, active=5)
-trainer = Trainer(max_epochs=1, limit_train_batches=15, limit_val_batches=15, gpus=1, profiler=PyTorchProfiler(schedule=schedule))
+trainer = Trainer(max_epochs=1, limit_train_batches=15, limit_val_batches=15, gpus=1, profiler="pytorch")
 trainer.fit(model, datamodule=datamodule)

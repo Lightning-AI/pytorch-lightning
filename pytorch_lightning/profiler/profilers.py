@@ -21,7 +21,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import numpy as np
 import torch
@@ -33,7 +33,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_8:
-    from torch.autograd.profiler import record_function, parse_kineto_results, EventList
+    from torch.autograd.profiler import record_function
     from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
 
@@ -562,7 +562,7 @@ class ScheduleWrapper:
         # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
         self._none_action = None
         self._current_action = None
-    
+
     @property
     def num_step(self):
         if self._current_action == "training_step_and_backward":
@@ -593,7 +593,7 @@ class ScheduleWrapper:
         else:
             return False
 
-    def __call__(self, num_step:int):
+    def __call__(self, num_step: int):
         # ignore the provided input. Keep internal state instead.
         if self.has_finished:
             return ProfilerAction.NONE
@@ -608,12 +608,14 @@ class ScheduleWrapper:
         print(action, self.num_step, self._current_action)
         return action
 
+
 class PyTorchProfiler(LegacyPyTorchProfiler):
     pass
 
-    
+
 if _TORCH_GREATER_EQUAL_1_8:
-    class PyTorchProfiler(LegacyPyTorchProfiler):
+
+    class PyTorchProfiler(LegacyPyTorchProfiler):  # noqa F811
 
         START_ACTION = "on_fit_start"
         RECORD_FUNCTIONS = ("training_step_and_backward", "training_step", "backward", "validation_step", "test_step")
@@ -641,11 +643,10 @@ if _TORCH_GREATER_EQUAL_1_8:
             path_to_export_trace: str = None,
             local_rank: Optional[int] = None,
         ):
-
             """
             This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
             different operators inside your model - both on the CPU and GPU
-            This relies on the 
+            This relies on the
             Args:
                 output_filename: optionally save profile results to file instead of printing
                     to std out when training is finished. When using ``ddp``,
@@ -706,7 +707,7 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.local_rank = local_rank
             self.path_to_export_trace = path_to_export_trace
             self.group_by_input_shapes = group_by_input_shapes
-            self.on_trace_ready = None # currently Lightning handles this part for the user
+            self.on_trace_ready = None  # currently Lightning handles this part for the user
 
             self.context_names = {}
             self.running_stack = []
@@ -756,9 +757,11 @@ if _TORCH_GREATER_EQUAL_1_8:
                 if action_name in self.STEP_FUNCTIONS:
                     if self.schedule is not None:
                         self.schedule._current_action = action_name
+
                     def on_trace_ready(profiler):
                         local_rank = 0 if self.local_rank is None else self.local_rank
                         tensorboard_trace_handler(self.path_to_export_trace, f"{action_name}_{local_rank}")(profiler)
+
                     self.profiler.on_trace_ready = on_trace_ready
                     self.profiler.step()
 

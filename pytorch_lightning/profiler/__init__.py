@@ -202,8 +202,6 @@ from pytorch_lightning.profiler.profilers import (
     SimpleProfiler,
 )
 
-
-
 __all__ = [
     'BaseProfiler',
     'SimpleProfiler',
