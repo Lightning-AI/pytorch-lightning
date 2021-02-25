@@ -346,14 +346,6 @@ def test_early_stopping_mode_options():
         EarlyStopping(mode="unknown_option")
 
 
-@pytest.mark.parametrize(
-    "callbacks, expected_stop_epoch",
-    [
-        ([EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)], 3),
-        ([EarlyStopping(monitor='cba', patience=3),
-          EarlyStopping(monitor='abc')], 3),
-    ],
-)
 class EarlyStoppingModel(BoringModel):
 
     def __init__(self, expected_end_epoch):
