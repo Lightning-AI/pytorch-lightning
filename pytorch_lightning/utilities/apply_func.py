@@ -17,20 +17,19 @@ from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
 from typing import Any, Callable, Optional, Union
-from distutils.version import LooseVersion
 
 import numpy as np
 import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHTEXT_AVAILABLE
+from pytorch_lightning.utilities.imports import _module_available
 
 if _TORCHTEXT_AVAILABLE:
-    from torchtext import __version__ as torchtext_version
-    if LooseVersion(torchtext_version) < LooseVersion('0.9.0a0+036df73'):
-        from torchtext.data import Batch
-    else:
+    if _module_available("torchtext.legacy"):
         from torchtext.legacy.data import Batch
+    else:
+        from torchtext.data import Batch
 else:
     Batch = type(None)
 
