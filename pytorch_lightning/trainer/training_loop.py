@@ -381,7 +381,7 @@ class TrainLoop:
         return training_step_output_for_epoch_end, training_step_output
 
     def _process_training_step_output_1_0(self, training_step_output, split_batch):
-        result = self.trainer.get_model()._results
+        result = self.trainer.lightning_module._results
 
         loss = None
         hiddens = None
@@ -667,7 +667,7 @@ class TrainLoop:
                 else:
                     if self.automatic_optimization:
                         # the closure is provided as a partial object and attached to the TrainLoop
-                        # to enable using the closure accross RPC.
+                        # to enable using the closure across RPC.
                         train_step_and_backward_closure = partial(
                             self.train_step_and_backward_closure, split_batch, batch_idx, opt_idx, optimizer,
                             self.trainer.hiddens
