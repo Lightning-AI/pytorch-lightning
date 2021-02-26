@@ -1652,7 +1652,7 @@ def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
     pytorch_profiler = PyTorchProfiler(
-        profiled_functions=["a", "b", "c"],
+        record_functions=["a", "b", "c"],
         use_cuda=torch.cuda.is_available(),
         output_filename=os.path.join(tmpdir, "profiler.txt")
     )
@@ -1695,7 +1695,8 @@ def test_pytorch_profiler_nested(tmpdir):
 
 
 @pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_8, reason="Need at least PyTorch 1.8")
-def test_pytorch_profiler_trainer_new_api(tmpdir):
+@pytest.mark.parametrize('profiler', ('pytorch', PyTorchProfiler))
+def test_pytorch_profiler_trainer_new_api(tmpdir, profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
 
     model = BoringModel()
@@ -1704,7 +1705,7 @@ def test_pytorch_profiler_trainer_new_api(tmpdir):
         max_epochs=1,
         limit_train_batches=10,
         limit_val_batches=10,
-        profiler=PyTorchProfiler(path_to_export_trace=tmpdir),
+        profiler=profiler(path_to_export_trace=tmpdir) if not isinstance(profiler, str) else profiler,
     )
     trainer.fit(model)
 

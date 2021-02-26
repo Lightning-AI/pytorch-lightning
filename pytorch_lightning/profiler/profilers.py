@@ -18,11 +18,11 @@ import io
 import os
 import pstats
 import time
-from functools import partial
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Callable, List, Optional, Union, Any
+from functools import partial
+from typing import Any, Callable, List, Optional, Union
 
 import numpy as np
 import torch
@@ -277,10 +277,10 @@ class AdvancedProfiler(BaseProfiler):
             ps.print_stats(self.line_count_restriction)
             recorded_stats[action_name] = s.getvalue()
 
-        # log to standard out
-        output_string = f"{os.linesep}Profiler Report{os.linesep}"
+        linesep = os.linesep
+        output_string = f"{linesep}Profiler Report{linesep}"
         for action, stats in recorded_stats.items():
-            output_string += f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
+            output_string += f"{linesep}Profile stats for: {action}{linesep}{stats}"
 
         return output_string
 
@@ -305,7 +305,7 @@ class RegisterRecordFunction:
     def _start_recording(self, module, input, module_name: str = None, is_built_in: bool = None):
         if module_name is not None:
             record_name = module_name if is_built_in else f"{type(module)}: {module_name}"
-            self._records[record_name] = record_function(record_name).__enter__() 
+            self._records[record_name] = record_function(record_name).__enter__()
         return input
 
     def _stop_recording(self, module, input, result, module_name: str = None, is_built_in: bool = None):
@@ -318,8 +318,12 @@ class RegisterRecordFunction:
         built_in_modules = dir(torch.nn)
         for module_name, module in self._model.named_modules():
             is_built_in = module in built_in_modules
-            module.register_forward_pre_hook(partial(self._start_recording, module_name=module_name, is_built_in=is_built_in))
-            module.register_forward_hook(partial(self._stop_recording, module_name=module_name, is_built_in=is_built_in))
+            module.register_forward_pre_hook(
+                partial(self._start_recording, module_name=module_name, is_built_in=is_built_in)
+            )
+            module.register_forward_hook(
+                partial(self._stop_recording, module_name=module_name, is_built_in=is_built_in)
+            )
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
         for module in self._model.modules():
@@ -649,44 +653,44 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
     This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
     different operators inside your model - both on the CPU and GPU.
     From PyTorch 1.8, the profiler relies on PyTorch Kineto Project: https://github.com/pytorch/kineto
-    
+
     PyTorch Profiler API changed from 1.8, and therefore this documentation will display both
     Args:
         output_filename: optionally save profile results to file instead of printing
             to std out when training is finished. When using ``ddp``,
             each rank will stream the profiled operation to their own file
             with the extension ``_{rank}.txt``
-        
+
         enabled: Setting this to False makes this context manager a no-op.
 
         use_cpu: Enables timing of CPU events.
-        
+
         use_cuda: Enables timing of CUDA events as well using the cudaEvent API.
             Adds approximately 4us of overhead to each tensor operation.
-        
+
         record_shapes: If shapes recording is set, information about input dimensions will be collected.
-        
+
         profile_memory: Whether to report memory usage, default: True (Introduced in PyTorch 1.6.0)
-        
+
         group_by_input_shapes: Include operator input shapes and group calls by shape.
-        
+
         with_stack: record source information (file and line number) for the ops (Introduced in PyTorch 1.7.0)
 
         row_limit: Limit the number of rows in a table, `0` is a special value that
             removes the limit completely.
-        
+
         export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
             It will generate a ``.json`` file which can be read by Chrome.
-        
+
         path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
             Before PyTorch 1.8, it will be save where the file being is being run.
             After PyTorch 1.8, it will save in the `lightning_logs/version_{}` folder.
-        
+
         sort_by_key: Keys to sort out profiled table
-        
+
         record_functions: list of profiled functions which will create a context manager on.
             Any other will be pass through.
-        
+
         local_rank: When running in distributed setting, local_rank is used for each process
             to write to their own file if `output_fname` is provided.
 
@@ -708,7 +712,7 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
                 ./flamegraph.pl –title “CPU time” –countname “us.” ./lightning_logs/version_{}/{}.stack > a.svg
 
         on_trace_ready: (WARNING: Supported only for torch>=1.8.0)
-            Function which takes the profiler and executed on `RECORD_AND_SAVE` action  
+            Function which takes the profiler and executed on `RECORD_AND_SAVE` action
 
         schedule: (WARNING: Supported only for torch>=1.8.0)
             Optional Callable which describes recording procedure
@@ -802,8 +806,8 @@ if _TORCH_GREATER_EQUAL_1_8:
 
                 local_rank: When running in distributed setting, local_rank is used for each process
                     to write to their own file if `output_fname` is provided.
-                
-                on_trace_ready: Function which takes the profiler and executed on `RECORD_AND_SAVE` action  
+
+                on_trace_ready: Function which takes the profiler and executed on `RECORD_AND_SAVE` action
             """
 
             self.sort_by_key = sort_by_key
@@ -836,7 +840,7 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.export_to_chrome = export_to_chrome
             self.export_to_flame_graph = export_to_flame_graph
             self.profile_memory = profile_memory
-            self.with_stack = True if export_to_flame_graph else with_stack
+            self.with_stack = export_to_flame_graph or with_stack
             self.metric = metric
             self.with_flops = with_flops
             self.local_rank = local_rank
@@ -875,7 +879,6 @@ if _TORCH_GREATER_EQUAL_1_8:
             recorded_stats[self.START_ACTION] = table
 
             linesep = os.linesep
-            # log to standard out
             output_string = f"{linesep}Profiler Report{linesep}"
             for action, stats in recorded_stats.items():
                 output_string += (f"{linesep}Profile stats for: {action} rank: {local_rank} {linesep}{stats}")
