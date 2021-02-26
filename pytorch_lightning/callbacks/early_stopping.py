@@ -18,6 +18,7 @@ Early Stopping
 Monitor a metric and stop training when it stops improving.
 
 """
+from typing import Any, Dict
 
 import numpy as np
 import torch
@@ -117,7 +118,7 @@ class EarlyStopping(Callback):
     def monitor_op(self):
         return self.mode_dict[self.mode]
 
-    def on_save_checkpoint(self, trainer, pl_module):
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
             'wait_count': self.wait_count,
             'stopped_epoch': self.stopped_epoch,
@@ -125,11 +126,11 @@ class EarlyStopping(Callback):
             'patience': self.patience
         }
 
-    def on_load_checkpoint(self, checkpointed_state):
-        self.wait_count = checkpointed_state['wait_count']
-        self.stopped_epoch = checkpointed_state['stopped_epoch']
-        self.best_score = checkpointed_state['best_score']
-        self.patience = checkpointed_state['patience']
+    def on_load_checkpoint(self, callback_state: Dict[str, Any]):
+        self.wait_count = callback_state['wait_count']
+        self.stopped_epoch = callback_state['stopped_epoch']
+        self.best_score = callback_state['best_score']
+        self.patience = callback_state['patience']
 
     def on_validation_end(self, trainer, pl_module):
         if trainer.running_sanity_check:
@@ -158,15 +159,12 @@ class EarlyStopping(Callback):
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
             self.wait_count = 0
-            should_stop = False
         else:
             self.wait_count += 1
-            should_stop = self.wait_count >= self.patience
 
-            if bool(should_stop):
+            if self.wait_count >= self.patience:
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
 
         # stop every ddp process if any world process decides to stop
-        should_stop = trainer.training_type_plugin.reduce_early_stopping_decision(should_stop)
-        trainer.should_stop = should_stop
+        trainer.should_stop = trainer.training_type_plugin.reduce_early_stopping_decision(trainer.should_stop)
