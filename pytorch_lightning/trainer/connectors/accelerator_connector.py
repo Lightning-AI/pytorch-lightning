@@ -279,7 +279,7 @@ class AcceleratorConnector(object):
         return len(gpus)
 
     @property
-    def parallel_devices(self) -> Union[List[torch.device], int]:
+    def parallel_devices(self) -> List[Union[torch.device, int]]:
         if self.on_gpu:
             devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
         elif self.on_tpu:
