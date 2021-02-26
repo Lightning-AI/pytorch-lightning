@@ -104,19 +104,15 @@ def _class_test(
     for i in range(rank, NUM_BATCHES, worldsize):
         batch_result = metric(preds[i], target[i])
 
-        if metric.dist_sync_on_step:
-            if rank == 0:
-                ddp_preds = torch.cat([preds[i + r] for r in range(worldsize)])
-                ddp_target = torch.cat([target[i + r] for r in range(worldsize)])
-                # assert for dist_sync_on_step
-                if check_dist_sync_on_step:
-                    sk_batch_result = sk_metric(ddp_preds, ddp_target)
-                    _assert_allclose(batch_result, sk_batch_result, atol=atol)
-        else:
+        if metric.dist_sync_on_step and check_dist_sync_on_step and rank == 0:
+            ddp_preds = torch.cat([preds[i + r] for r in range(worldsize)])
+            ddp_target = torch.cat([target[i + r] for r in range(worldsize)])
+            sk_batch_result = sk_metric(ddp_preds, ddp_target)
+            _assert_allclose(batch_result, sk_batch_result, atol=atol)
+        elif check_batch:
             # assert for batch
-            if check_batch:
-                sk_batch_result = sk_metric(preds[i], target[i])
-                _assert_allclose(batch_result, sk_batch_result, atol=atol)
+            sk_batch_result = sk_metric(preds[i], target[i])
+            _assert_allclose(batch_result, sk_batch_result, atol=atol)
 
     # check on all batches on all ranks
     result = metric.compute()
