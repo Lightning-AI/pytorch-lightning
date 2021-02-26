@@ -34,7 +34,7 @@ class LitLightningModule(LightningModule):
         self.log("val_loss", loss)
 
     def configure_optimizers(self):
-        return torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+        return torch.optim.SGD(self.parameters(), lr=0.001, momentum=0.9)
 
 
 class CIFAR10DataModule(LightningDataModule):
@@ -46,11 +46,11 @@ class CIFAR10DataModule(LightningDataModule):
 
     def val_dataloader(self, *args, **kwargs):
         transform = T.Compose([T.Resize(256), T.CenterCrop(224), T.ToTensor()])
-        trainset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-        return torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=0)
+        valset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+        return torch.utils.data.DataLoader(valset, batch_size=32, shuffle=True, num_workers=0)
 
 
 model = LitLightningModule(models.resnet50(pretrained=True))
 datamodule = CIFAR10DataModule()
-trainer = Trainer(max_epochs=1, limit_train_batches=15, limit_val_batches=15, gpus=1, profiler="pytorch")
+trainer = Trainer(max_epochs=1, limit_train_batches=15, limit_val_batches=15, profiler="pytorch")
 trainer.fit(model, datamodule=datamodule)

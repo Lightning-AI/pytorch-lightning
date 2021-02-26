@@ -1596,12 +1596,13 @@ def test_pytorch_profiler_trainer_ddp(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
-        limit_train_batches=6, 
-        limit_val_batches=6, 
-        profiler=profiler, 
-        accelerator="ddp", 
-        gpus=2, 
-        logger=TensorBoardLogger(tmpdir))
+        limit_train_batches=6,
+        limit_val_batches=6,
+        profiler=profiler,
+        accelerator="ddp",
+        gpus=2,
+        logger=TensorBoardLogger(tmpdir)
+    )
     trainer.fit(model)
 
     assert len(profiler.summary()) > 0

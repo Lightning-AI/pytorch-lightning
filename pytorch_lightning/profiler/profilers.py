@@ -332,7 +332,7 @@ class RegisterRecordFunction:
 
 class LegacyPyTorchProfiler(BaseProfiler):
 
-    PROFILED_FUNCTIONS = ("training_step_and_backward", "training_step", "backward", "validation_step", "test_step")
+    RECORD_FUNCTIONS = ("training_step_and_backward", "training_step", "backward", "validation_step", "test_step")
     AVAILABLE_SORT_KEYS = (
         "cpu_time",
         "cuda_time",
@@ -354,14 +354,13 @@ class LegacyPyTorchProfiler(BaseProfiler):
         profile_memory: bool = False,
         group_by_input_shapes: bool = False,
         with_stack: bool = False,
-        use_kineto: bool = False,
         use_cpu: bool = True,
         emit_nvtx: bool = False,
         export_to_chrome: bool = False,
         path_to_export_trace: str = None,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
-        profiled_functions: Optional[List] = None,
+        record_functions: Optional[List] = None,
         local_rank: Optional[int] = None,
     ):
         """
@@ -379,9 +378,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
             profile_memory: Whether to report memory usage, default: True (Introduced in PyTorch 1.6.0)
             group_by_input_shapes: Include operator input shapes and group calls by shape.
             with_stack: record source information (file and line number) for the ops (Introduced in PyTorch 1.7.0)
-            use_kineto: experimental support for Kineto profiler (Introduced in PyTorch 1.8.0)
-            use_cpu: use_kineto=True and can be used to lower the overhead
-                for GPU-only profiling (Introduced in PyTorch 1.8.0)
+            use_cpu: record events on the CPU
             emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
                 Run::
                     nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
@@ -395,7 +392,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
             row_limit: Limit the number of rows in a table, `0` is a special value that
                 removes the limit completely.
             sort_by_key: Keys to sort out profiled table
-            profiled_functions: list of profiled functions which will create a context manager on.
+            record_functions: list of profiled functions which will create a context manager on.
                 Any other will be pass through.
             local_rank: When running in distributed setting, local_rank is used for each process
                 to write to their own file if `output_fname` is provided.
@@ -403,14 +400,13 @@ class LegacyPyTorchProfiler(BaseProfiler):
 
         self.profiled_actions = {}
         self.enabled = enabled
-        self.profiled_functions = profiled_functions or self.PROFILED_FUNCTIONS
+        self.record_functions = record_functions or self.RECORD_FUNCTIONS
         self.use_cuda = use_cuda
         self.record_shapes = record_shapes
         self.profile_memory = profile_memory
         self.sort_by_key = sort_by_key or ("cuda_time_total" if self.use_cuda else "cpu_time_total")
         self.with_stack = with_stack
         self.group_by_input_shapes = group_by_input_shapes and record_shapes
-        self.use_kineto = use_kineto
         self.use_cpu = use_cpu
         self.row_limit = row_limit
         self.emit_nvtx = emit_nvtx
@@ -476,7 +472,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
         self.describe = rank_zero_only(self.describe)
 
     def start(self, action_name: str) -> None:
-        if action_name not in self.profiled_functions:
+        if action_name not in self.record_functions:
             return
 
         if len(self.running_stack) > 0:
@@ -523,7 +519,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
                     self.profiled_actions[name] += function_events
 
     def stop(self, action_name: str) -> None:
-        if action_name not in self.profiled_functions:
+        if action_name not in self.record_functions:
             return
 
         if len(self.running_stack) == 0 or self.running_stack[-1] != action_name:
@@ -651,39 +647,72 @@ class ScheduleWrapper:
 class PyTorchProfiler(LegacyPyTorchProfiler):
     """
     This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
-    different operators inside your model - both on the CPU and GPU
+    different operators inside your model - both on the CPU and GPU.
+    From PyTorch 1.8, the profiler relies on PyTorch Kineto Project: https://github.com/pytorch/kineto
+    
+    PyTorch Profiler API changed from 1.8, and therefore this documentation will display both
     Args:
         output_filename: optionally save profile results to file instead of printing
             to std out when training is finished. When using ``ddp``,
             each rank will stream the profiled operation to their own file
             with the extension ``_{rank}.txt``
+        
         enabled: Setting this to False makes this context manager a no-op.
+
+        use_cpu: Enables timing of CPU events.
+        
         use_cuda: Enables timing of CUDA events as well using the cudaEvent API.
             Adds approximately 4us of overhead to each tensor operation.
+        
         record_shapes: If shapes recording is set, information about input dimensions will be collected.
+        
         profile_memory: Whether to report memory usage, default: True (Introduced in PyTorch 1.6.0)
+        
         group_by_input_shapes: Include operator input shapes and group calls by shape.
+        
         with_stack: record source information (file and line number) for the ops (Introduced in PyTorch 1.7.0)
-        use_kineto: experimental support for Kineto profiler (Introduced in PyTorch 1.8.0)
-        use_cpu: use_kineto=True and can be used to lower the overhead
-            for GPU-only profiling (Introduced in PyTorch 1.8.0)
-        emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
+
+        row_limit: Limit the number of rows in a table, `0` is a special value that
+            removes the limit completely.
+        
+        export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
+            It will generate a ``.json`` file which can be read by Chrome.
+        
+        path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
+            Before PyTorch 1.8, it will be save where the file being is being run.
+            After PyTorch 1.8, it will save in the `lightning_logs/version_{}` folder.
+        
+        sort_by_key: Keys to sort out profiled table
+        
+        record_functions: list of profiled functions which will create a context manager on.
+            Any other will be pass through.
+        
+        local_rank: When running in distributed setting, local_rank is used for each process
+            to write to their own file if `output_fname` is provided.
+
+        emit_nvtx: (WARNING: Supported only for torch<1.8.0)
+            Context manager that makes every autograd operation emit an NVTX range
             Run::
                 nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
             To visualize, you can either use::
                 nvvp trace_name.prof
                 torch.autograd.profiler.load_nvprof(path)
-        export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
-            It will generate a ``.json`` file which can be read by Chrome.
-        path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
-            By default, it will be save where the file being is being run.
-        row_limit: Limit the number of rows in a table, `0` is a special value that
-            removes the limit completely.
-        sort_by_key: Keys to sort out profiled table
-        profiled_functions: list of profiled functions which will create a context manager on.
-            Any other will be pass through.
-        local_rank: When running in distributed setting, local_rank is used for each process
-            to write to their own file if `output_fname` is provided.
+
+        export_to_flame_graph: (WARNING: Supported only for torch>=1.8.0)
+            Whether to export the sequence of profiled operators for Flame Graph.
+            Generate a performance visualization with the following commands.
+            Run::
+
+                git clone https://github.com/brendangregg/FlameGraph
+                cd FlameGraph
+                ./flamegraph.pl –title “CPU time” –countname “us.” ./lightning_logs/version_{}/{}.stack > a.svg
+
+        on_trace_ready: (WARNING: Supported only for torch>=1.8.0)
+            Function which takes the profiler and executed on `RECORD_AND_SAVE` action  
+
+        schedule: (WARNING: Supported only for torch>=1.8.0)
+            Optional Callable which describes recording procedure
+
     """
 
 
@@ -703,25 +732,27 @@ if _TORCH_GREATER_EQUAL_1_8:
             use_cuda: bool = True,
             schedule: Optional[Callable] = torch.profiler.schedule(wait=3, warmup=1, active=2),
             record_shapes: bool = True,
+            group_by_input_shapes: bool = False,
             profile_memory: bool = True,
             with_stack: bool = False,
-            with_flops: bool = True,
             row_limit: int = 20,
-            export_to_tensorboard: bool = True,
+            export_to_chrome: bool = True,
+            sort_by_key: Optional[str] = None,
+            path_to_export_trace: Optional[str] = None,
+            record_functions: Optional[List] = None,
+            local_rank: Optional[int] = None,
             on_trace_ready: Optional[Callable] = None,
             export_to_flame_graph: bool = True,
+            with_flops: bool = True,
             metric: str = 'self_cpu_time_total',
-            group_by_input_shapes: bool = False,
-            sort_by_key: Optional[str] = None,
-            record_functions: Optional[List] = None,
             record_module_names: bool = True,
-            path_to_export_trace: Optional[str] = None,
-            local_rank: Optional[int] = None,
         ):
             """
+
             This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
             different operators inside your model - both on the CPU and GPU
-            This relies on the
+            This relies on PyTorch Kineto Project: https://github.com/pytorch/kineto
+
             Args:
                 output_filename: optionally save profile results to file instead of printing
                     to std out when training is finished. When using ``ddp``,
@@ -735,9 +766,9 @@ if _TORCH_GREATER_EQUAL_1_8:
                 use_cuda: Enables timing of CUDA events as well using the cudaEvent API.
                     Adds approximately 4us of overhead to each tensor operation.
 
-                schedule: Optional Callable which describes recording procedure
-
                 record_shapes: If shapes recording is set, information about input dimensions will be collected.
+
+                schedule: Optional Callable which describes recording procedure
 
                 profile_memory: Whether to report memory usage, default: True
 
@@ -748,14 +779,16 @@ if _TORCH_GREATER_EQUAL_1_8:
                 row_limit: Limit the number of rows in a table, `0` is a special value that
                     removes the limit completely.
 
-                export_to_tensorboard: Whether to export the sequence of profiled operators for Chrome.
+                export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
                     It can be used with `chrome://tracing/`. Just load the generated traces.
 
                 export_to_flame_graph: Whether to export the sequence of profiled operators for Flame Graph.
-                    Generate a performance visualization with the following commands:
-                    git clone https://github.com/brendangregg/FlameGraph
-                    cd FlameGraph
-                    ./flamegraph.pl –title “CPU time” –countname “us.” ./lightning_logs/version_{}/{}.stack > a.svg
+                    Generate a performance visualization with the following commands.
+                    Run::
+
+                        git clone https://github.com/brendangregg/FlameGraph
+                        cd FlameGraph
+                        ./flamegraph.pl –title “CPU time” –countname “us.” ./lightning_logs/version_{}/{}.stack > a.svg
 
                 group_by_input_shapes: Include operator input shapes and group calls by shape.
 
@@ -769,6 +802,8 @@ if _TORCH_GREATER_EQUAL_1_8:
 
                 local_rank: When running in distributed setting, local_rank is used for each process
                     to write to their own file if `output_fname` is provided.
+                
+                on_trace_ready: Function which takes the profiler and executed on `RECORD_AND_SAVE` action  
             """
 
             self.sort_by_key = sort_by_key
@@ -791,14 +826,14 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.output_filename = output_filename
             self.enabled = enabled
             self.use_cpu = use_cpu
-            self.use_cuda = use_cuda
+            self.use_cuda = use_cuda and torch.cuda.is_available()
             self.record_functions = record_functions or self.RECORD_FUNCTIONS
             self.record_functions_managers = {}
-            self.activities = [ProfilerActivity.CPU] * use_cpu + [ProfilerActivity.CUDA] * use_cuda
+            self.activities = [ProfilerActivity.CPU] * use_cpu + [ProfilerActivity.CUDA] * self.use_cuda
             self.schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
             self.record_shapes = record_shapes
             self.row_limit = row_limit
-            self.export_to_tensorboard = export_to_tensorboard
+            self.export_to_chrome = export_to_chrome
             self.export_to_flame_graph = export_to_flame_graph
             self.profile_memory = profile_memory
             self.with_stack = True if export_to_flame_graph else with_stack
@@ -807,8 +842,6 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.local_rank = local_rank
             self.path_to_export_trace = path_to_export_trace
             self.group_by_input_shapes = group_by_input_shapes
-            # currently Lightning handles this part for the user
-            # Open an issue with the specified use case.
             self.on_trace_ready = on_trace_ready
             self.udf_on_trace_ready = True if self.on_trace_ready is not None else False
             self.record_module_names = record_module_names
@@ -823,7 +856,7 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.output_file = None
             if local_rank is not None:
                 super().on_train_start(local_rank=local_rank)
-                self.on_train_start = super(LegacyPyTorchProfiler, self).on_train_start
+                self.on_train_start = super().on_train_start
 
         def summary(self) -> str:
             recorded_stats = {}
@@ -879,7 +912,7 @@ if _TORCH_GREATER_EQUAL_1_8:
                     def on_trace_ready(profiler):
                         local_rank = 0 if self.local_rank is None else self.local_rank
                         filename = f"{action_name}_{local_rank}"
-                        if self.export_to_tensorboard:
+                        if self.export_to_chrome:
                             tensorboard_trace_handler(self.path_to_export_trace, filename)(profiler)
                         if self.export_to_flame_graph:
                             path = os.path.join(self.path_to_export_trace, f"{filename}.stack")
