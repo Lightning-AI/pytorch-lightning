@@ -537,7 +537,7 @@ class MetricCollection(nn.ModuleDict):
         ValueError:
             If one of the elements of ``metrics`` is not an instance of ``pl.metrics.Metric``.
         ValueError:
-            If two elements in ``metrics`` have the same ``name``
+            If two elements in ``metrics`` have the same ``name``.
         ValueError:
             If ``metrics`` is not a ``list``, ``tuple`` or a ``dict``.
 
