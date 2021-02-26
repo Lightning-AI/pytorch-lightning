@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import math
 import os
 import pickle
@@ -26,6 +27,7 @@ import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf
+from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
@@ -1691,3 +1693,78 @@ def test_setup_hook_move_to_device_correctly(tmpdir):
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
     trainer.fit(model, train_data)
+
+
+def test_train_loop_system(tmpdir):
+    """
+    Test the following methods are called in the order.
+    1. training_step
+    2. zero_grad (skip when accumulate gradients)
+    3. backward
+    """
+    called_methods = []
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=3,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        progress_bar_refresh_rate=0,
+    )
+
+    class TestOptimizer(SGD):
+        def zero_grad(self, set_to_none=False):
+            called_methods.append(inspect.currentframe().f_code.co_name)
+            return super().zero_grad(set_to_none)
+
+
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            return TestOptimizer(self.parameters(), lr=0.1)
+
+        def training_step(self, *args, **kwargs):
+            called_methods.append(inspect.currentframe().f_code.co_name)
+            return super().training_step(*args, **kwargs)
+
+        def backward(self, *args, **kwargs):
+            called_methods.append(inspect.currentframe().f_code.co_name)
+            return super().backward(*args, **kwargs)
+
+
+    model = TestModel()
+    trainer = Trainer(**trainer_options)
+
+    # No methods are called yet.
+    assert called_methods == []
+
+    trainer.fit(model)
+    assert called_methods == [
+        "training_step",
+        "zero_grad",
+        "backward",
+        "training_step",
+        "zero_grad",
+        "backward",
+        "training_step",
+        "zero_grad",
+        "backward",
+    ]
+
+    called_methods.clear()
+    trainer = Trainer(**trainer_options, accumulate_grad_batches=2)
+
+    # No methods are called yet.
+    assert called_methods == []
+
+    trainer.fit(model)
+    assert called_methods == [
+        "training_step",
+        "zero_grad",
+        "backward",
+        "training_step",
+        "backward",
+        "training_step",
+        "zero_grad",
+        "backward",
+    ]
