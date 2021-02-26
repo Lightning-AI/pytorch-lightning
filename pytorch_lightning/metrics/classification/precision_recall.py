@@ -107,7 +107,7 @@ class Precision(StatScores):
 
     Raises:
         ValueError:
-            If ``average`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"samples"``, ``"none"``, ``None``
+            If ``average`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"samples"``, ``"none"``, ``None``.
 
     Example:
 
@@ -262,7 +262,7 @@ class Recall(StatScores):
 
     Raises:
         ValueError:
-            If ``average`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"samples"``, ``"none"``, ``None``
+            If ``average`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"samples"``, ``"none"``, ``None``.
 
     Example:
 

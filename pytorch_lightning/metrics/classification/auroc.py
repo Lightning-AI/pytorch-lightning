@@ -69,12 +69,12 @@ class AUROC(Metric):
         ValueError:
             If ``average`` is none of ``None``, ``"macro"`` or ``"weighted"``.
         ValueError:
-            If max_fpr is not a ``float`` in the range ``0`` < max_fpr <= ``1``.
+            If max_fpr is not a ``float`` in the range ``0`` < ``max_fpr`` <= ``1``.
         RuntimeError:
-            If ``PyTorch version`` is ``below 1.6`` since max_fpr requires `torch.bucketize`
+            If ``PyTorch version`` is ``below 1.6`` since max_fpr requires ``torch.bucketize``
             which is not available below 1.6.
         ValueError:
-            If the mode of data (binary, multi-label, multi-class) changes between batches
+            If the mode of data (binary, multi-label, multi-class) changes between batches.
 
     Example (binary case):
 

@@ -63,7 +63,7 @@ def _input_format_classification_one_hot(
     Raises:
         ValueError:
             If preds and target don't have the same number of dimensions
-            or one additional dimension for preds
+            or one additional dimension for preds.
 
     Returns:
         preds: one hot tensor of shape [num_classes, -1] with predicted labels
@@ -254,7 +254,7 @@ def class_reduce(
 
     Raises:
         ValueError:
-            If ``class_reduction`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"none"`` or ``None``
+            If ``class_reduction`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"none"`` or ``None``.
     """
     valid_reduction = ("micro", "macro", "weighted", "none", None)
     if class_reduction == "micro":
@@ -290,7 +290,7 @@ def _stable_1d_sort(x: torch, N: int = 2049):
 
     Raises:
         ValueError:
-            If dim of x is greater than 1 since stable sort works with only 1d tensors
+            If dim of ``x`` is greater than 1 since stable sort works with only 1d tensors.
     """
     if x.ndim > 1:
         raise ValueError('Stable sort only works on 1d tensors')

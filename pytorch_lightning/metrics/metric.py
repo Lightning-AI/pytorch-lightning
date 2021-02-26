@@ -122,9 +122,9 @@ class Metric(nn.Module, ABC):
 
         Raises:
             ValueError:
-                If ``default`` is not a ``tensor`` or an ``empty list.``
+                If ``default`` is not a ``tensor`` or an ``empty list``.
             ValueError:
-                If ``dist_reduce_fx`` is not callable or one of ``"mean"``, ``"sum"``, ``"cat"``, ``None``
+                If ``dist_reduce_fx`` is not callable or one of ``"mean"``, ``"sum"``, ``"cat"``, ``None``.
         """
         if (
             not isinstance(default, torch.Tensor) and not isinstance(default, list)  # noqa: W503
@@ -535,11 +535,11 @@ class MetricCollection(nn.ModuleDict):
 
     Raises:
         ValueError:
-            If one of the elements of ``metrics`` is not an instance of ``pl.metrics.Metric``
+            If one of the elements of ``metrics`` is not an instance of ``pl.metrics.Metric``.
         ValueError:
             If two elements in ``metrics`` have the same ``name``
         ValueError:
-            If ``metrics`` is not a ``list``, ``tuple`` or a ``dict``
+            If ``metrics`` is not a ``list``, ``tuple`` or a ``dict``.
 
     Example (input as list):
 
