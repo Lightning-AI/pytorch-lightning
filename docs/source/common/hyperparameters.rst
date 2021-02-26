@@ -53,10 +53,10 @@ a module (i.e.: if your project has a model that trains on Imagenet and another 
 
         @staticmethod
         def add_model_specific_args(parent_parser):
-            parser = ArgumentParser(parents=[parent_parser], add_help=False)
+            parser = parent_parser.add_argument_group("LitModel")
             parser.add_argument('--encoder_layers', type=int, default=12)
             parser.add_argument('--data_path', type=str, default='/some/path')
-            return parser
+            return parent_parser
 
 Now in your main trainer file, add the ``Trainer`` args, the program args, and add the model args
 
@@ -226,9 +226,9 @@ polluting the ``main.py`` file, the ``LightningModule`` lets you define argument
 
         @staticmethod
         def add_model_specific_args(parent_parser):
-            parser = ArgumentParser(parents=[parent_parser], add_help=False)
+            parser = parent_parser.add_argument_group("LitMNIST")
             parser.add_argument('--layer_1_dim', type=int, default=128)
-            return parser
+            return parent_parser
 
 .. testcode::
 
@@ -240,9 +240,9 @@ polluting the ``main.py`` file, the ``LightningModule`` lets you define argument
 
         @staticmethod
         def add_model_specific_args(parent_parser):
-            parser = ArgumentParser(parents=[parent_parser], add_help=False)
+            parser = parent_parser.add_argument_group("GoodGAN")
             parser.add_argument('--encoder_layers', type=int, default=12)
-            return parser
+            return parent_parser
 
 
 Now we can allow each model to inject the arguments it needs in the ``main.py``
