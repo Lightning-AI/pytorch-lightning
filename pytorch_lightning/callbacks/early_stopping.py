@@ -18,12 +18,13 @@ Early Stopping
 Monitor a metric and stop training when it stops improving, hits a theshhold, or reaching a maximum time.
 
 """
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
 from time import time
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -177,9 +178,27 @@ class EarlyStopping(Callback):
         else:
             self.wait_count += 1
 
-        if (self.wait_count >= self.patience) or self.monitor_op(current, self.threshold) or (self.elapsed_time > self.max_time):
+        if self.wait_count >= self.patience:
+            if self.verbose:
+                log.info(
+                    f"Early Stopping: No progress for {self.wait_count} epochs"
+                )
             self.stopped_epoch = trainer.current_epoch
             trainer.should_stop = True
+        elif (self.threshold != None) and (self.monitor_op(current, self.threshold)):
+            if self.verbose:
+                log.info(
+                    f"Early Stopping: {self.monitor} reached threshold {self.threshold}"
+                )            
+            self.stopped_epoch = trainer.current_epoch
+            trainer.should_stop = True
+        elif (self.max_time != None) and (self.elapsed_time > self.max_time):
+            if self.verbose:
+                log.info(
+                    f"Early Stopping: elapsed time {self.elapsed_time} >= {self.max_time}"
+                )              
+            self.stopped_epoch = trainer.current_epoch
+            trainer.should_stop = True            
 
         # stop every ddp process if any world process decides to stop
         trainer.should_stop = trainer.training_type_plugin.reduce_early_stopping_decision(trainer.should_stop)
