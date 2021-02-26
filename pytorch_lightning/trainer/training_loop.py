@@ -13,7 +13,7 @@
 # limitations under the License.
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
-from functools import partial
+from functools import partial, update_wrapper
 from typing import Any, Dict, Optional
 
 import numpy as np
@@ -606,6 +606,15 @@ class TrainLoop:
         result = self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         return None if result is None else result.loss
 
+    def make_closure(
+        self, split_batch: Any, batch_idx: int, opt_idx: int, optimizer: Optimizer, hiddens: Dict
+    ) -> partial:
+
+        partial_func = partial(
+            self.train_step_and_backward_closure, split_batch, batch_idx, opt_idx, optimizer, hiddens
+        )
+        return update_wrapper(partial_func, self.train_step_and_backward_closure)
+
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
         grad_norm_dic = {}
@@ -668,9 +677,8 @@ class TrainLoop:
                     if self.automatic_optimization:
                         # the closure is provided as a partial object and attached to the TrainLoop
                         # to enable using the closure across RPC.
-                        train_step_and_backward_closure = partial(
-                            self.train_step_and_backward_closure, split_batch, batch_idx, opt_idx, optimizer,
-                            self.trainer.hiddens
+                        train_step_and_backward_closure = self.make_closure(
+                            split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
                         )
 
                         # optimizer step
