@@ -389,6 +389,7 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
 @pytest.mark.parametrize("ddp_plugin_class", [DDPPlugin, DDPSpawnPlugin])
 def test_accelerator_choice_ddp_cpu_custom_plugin(_, ddp_plugin_class):
     """ Test that ddp_cpu can work together with custom plugins. """
+
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
