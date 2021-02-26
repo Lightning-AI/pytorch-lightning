@@ -654,7 +654,8 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
     different operators inside your model - both on the CPU and GPU.
     From PyTorch 1.8, the profiler relies on PyTorch Kineto Project: https://github.com/pytorch/kineto
 
-    PyTorch Profiler API changed from 1.8, and therefore this documentation will display both
+    PyTorch Profiler API changed from 1.8, and therefore this documentation will display both.
+
     Args:
         output_filename: optionally save profile results to file instead of printing
             to std out when training is finished. When using ``ddp``,

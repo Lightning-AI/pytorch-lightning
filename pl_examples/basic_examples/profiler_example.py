@@ -50,7 +50,9 @@ class CIFAR10DataModule(LightningDataModule):
         return torch.utils.data.DataLoader(valset, batch_size=32, shuffle=True, num_workers=0)
 
 
-model = LitLightningModule(models.resnet50(pretrained=True))
-datamodule = CIFAR10DataModule()
-trainer = Trainer(max_epochs=1, limit_train_batches=15, limit_val_batches=15, profiler="pytorch")
-trainer.fit(model, datamodule=datamodule)
+if __name__ == '__main__':
+
+    model = LitLightningModule(models.resnet50(pretrained=True))
+    datamodule = CIFAR10DataModule()
+    trainer = Trainer(max_epochs=1, limit_train_batches=15, limit_val_batches=15, profiler="pytorch")
+    trainer.fit(model, datamodule=datamodule)
