@@ -1393,11 +1393,11 @@ class TestLightningDataModule(LightningDataModule):
         return self._dataloaders
 
 
-def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=True):
+def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
-    model = BoringModel()
+    model = model or BoringModel()
     datamodule = TestLightningDataModule(dataloaders)
 
     trainer = Trainer(
@@ -1420,6 +1420,23 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
     assert len(results) == 2
     assert len(results[0]) == num_samples
     assert results[0][0].shape == torch.Size([1, 2])
+
+
+def test_trainer_predict_no_return(tmpdir):
+    """
+    Test trainer.predict warns when nothing is returned
+    """
+
+    class CustomBoringModel(BoringModel):
+
+        def predict(self, batch, batch_idx, dataloader_idx=None):
+            if (batch_idx + 1) % 2 == 0:
+                return
+
+            return super().predict(batch, batch_idx, dataloader_idx)
+
+    with pytest.warns(UserWarning, match='predict returned None'):
+        predict(tmpdir, None, None, 1, model=CustomBoringModel())
 
 
 @pytest.mark.parametrize('datamodule', [False, True])
