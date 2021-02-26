@@ -20,7 +20,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
 from tests.helpers import BoringModel
-import tests.base.plotting
+import tests.helpers.plotting
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
@@ -209,11 +209,11 @@ def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
 def test_mlflow_log_figure(client, mlflow, step_idx, figure_format, tmpdir):
 
     logger = MLFlowLogger('test', save_dir=tmpdir, figure_file_extension=figure_format)
-    logger.log_figure('dummy', tests.base.plotting.dummy_figure(), step_idx, close=True)  # functional test
+    logger.log_figure('dummy', tests.helpers.plotting.dummy_figure(), step_idx, close=True)  # functional test
 
     # test whether figure is closed etc.
     with mock.patch.object(logger.experiment, 'log_artifact') as mock_log:
-        f = tests.base.plotting.dummy_figure()
+        f = tests.helpers.plotting.dummy_figure()
         logger.log_figure('dummy', f, step_idx, close=True)
 
     fname_expect = logger.save_dir + f'/dummy_step_{step_idx}{figure_format}'

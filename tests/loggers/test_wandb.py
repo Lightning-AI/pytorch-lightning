@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, plotting
 
 
 def get_warnings(recwarn):
@@ -108,10 +108,10 @@ def test_wandb_logger_init(wandb, recwarn):
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_wandb_logger_log_figure(wandb, step_idx):
     logger = WandbLogger(anonymous=True, offline=True)
-    logger.log_figure('dummy', tests.base.plotting.dummy_figure(), step_idx, close=True)  # functional test
+    logger.log_figure('dummy', plotting.dummy_figure(), step_idx, close=True)  # functional test
 
     with mock.patch.object(logger.experiment, 'log') as mock_log:
-            f = tests.base.plotting.dummy_figure()
+            f = plotting.dummy_figure()
             logger.log_figure('dummy', f, step_idx, close=True)
 
     mock_log.assert_called_once_with({'dummy': wandb.Image(f)}, step=step_idx)

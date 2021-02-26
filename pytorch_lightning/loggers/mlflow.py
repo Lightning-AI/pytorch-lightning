@@ -18,6 +18,7 @@ MLflow Logger
 """
 import re
 from argparse import Namespace
+from pathlib import Path
 from time import time
 from typing import Any, Dict, Optional, Union
 
@@ -95,6 +96,7 @@ class MLFlowLogger(LightningLoggerBase):
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
+        figure_file_extension='.png'
     ):
         if mlflow is None:
             raise ImportError(
@@ -111,6 +113,7 @@ class MLFlowLogger(LightningLoggerBase):
         self._run_id = None
         self.tags = tags
         self._prefix = prefix
+        self._figure_file_extension = figure_file_extension
         self._mlflow_client = MlflowClient(tracking_uri)
 
     @property

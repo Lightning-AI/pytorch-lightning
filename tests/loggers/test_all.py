@@ -25,6 +25,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import (
     CometLogger,
+    CSVLogger,
     MLFlowLogger,
     NeptuneLogger,
     TensorBoardLogger,
@@ -36,7 +37,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
-import tests.base.plotting
+import tests.helpers.plotting
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -418,7 +419,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     WandbLogger,
 ])
 def test_logger_close_figure_all(logger_class, close, tmpdir):
-    f = tests.base.plotting.dummy_figure()
+    f = tests.helpers.plotting.dummy_figure()
 
     logger = _instantiate_logger(logger_class, save_idr=tmpdir)
 

@@ -24,7 +24,7 @@ from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_only
 from tests.helpers import BoringModel
-import tests.base.plotting
+import tests.helpers.plotting
 
 
 def test_logger_collection():
@@ -162,7 +162,7 @@ def test_multiple_loggers_figure():
     logger2 = MagicMock()
 
     logger = LoggerCollection([logger1, logger2])
-    logger.log_figure('dummy_figure', tests.base.plotting.dummy_figure(), 0)
+    logger.log_figure('dummy_figure', tests.helpers.plotting.dummy_figure(), 0)
 
     logger1.log_figure.assert_called_once()
     logger2.log_figure.assert_called_once()

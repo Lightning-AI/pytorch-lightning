@@ -15,13 +15,11 @@ import os
 from unittest.mock import patch, DEFAULT
 
 import pytest
-import matplotlib.pyplot as plt
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
-import tests.base.plotting
+from tests.helpers import plotting, BoringModel
 
 
 def _patch_comet_atexit(monkeypatch):
@@ -233,11 +231,11 @@ def test_comet_log_figure(comet, comet_experiment, tmpdir, monkeypatch, step_idx
 
     _patch_comet_atexit(monkeypatch)
     logger = CometLogger(project_name="test", save_dir=tmpdir)
-    logger.log_figure('dummy', tests.base.plotting.dummy_figure(), step_idx, close=True)  # functional test
+    logger.log_figure('dummy', plotting.dummy_figure(), step_idx, close=True)  # functional test
 
     # test whether figure is closed etc.
-    with mock.patch.object(logger.experiment, 'log_figure') as mock_log:
-        f = tests.base.plotting.dummy_figure()
+    with patch.object(logger.experiment, 'log_figure') as mock_log:
+        f = plotting.dummy_figure()
         logger.log_figure('dummy', f, step_idx, close=True)
 
     mock_log.assert_called_once_with(figure_name='dummy', figure=f, step=step_idx)
