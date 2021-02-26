@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 from time import sleep
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -27,7 +27,6 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
-from pytorch_lightning.plugins.environments import SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE, _TORCH_GREATER_EQUAL_1_7, rank_zero_warn
@@ -58,11 +57,11 @@ class DDPPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        parallel_devices,
-        num_nodes=1,
+        parallel_devices: Optional[List[torch.device]] = None,
+        num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
-        sync_batchnorm=False,
-        **kwargs: Dict[str, Any],
+        sync_batchnorm: bool = False,
+        **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.interactive_ddp_procs = []
@@ -120,7 +119,7 @@ class DDPPlugin(ParallelPlugin):
         command = sys.argv
         try:
             full_path = path_lib(command[0])
-        except Exception as e:
+        except Exception:
             full_path = os.path.abspath(command[0])
 
         command[0] = full_path
@@ -159,6 +158,8 @@ class DDPPlugin(ParallelPlugin):
             if _HYDRA_AVAILABLE:
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
+                    os_cwd = f'"{os.getcwd()}"'
+                    command += [f'hydra.run.dir={os_cwd}', f'hydra.job.name=train_ddp_process_{local_rank}']
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.interactive_ddp_procs.append(proc)
 
@@ -209,13 +210,12 @@ class DDPPlugin(ParallelPlugin):
         os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
-        torch_backend = "nccl" if self.on_gpu else "gloo"
 
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
+            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
-    def pre_training(self):
+    def pre_dispatch(self):
         # TODO: check if needed
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
@@ -232,7 +232,7 @@ class DDPPlugin(ParallelPlugin):
         # where to store ip_table
         self.init_ddp_connection(self.global_rank, self.world_size)
 
-        # TODO: we moved it to the trainer.fit after calling pre_training
+        # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
         # self.trainer.call_setup_hook(self.model)
 
@@ -257,7 +257,7 @@ class DDPPlugin(ParallelPlugin):
 
         self.barrier()
 
-    def post_training(self):
+    def post_dispatch(self):
         if "WORLD_SIZE" in os.environ:
             del os.environ["WORLD_SIZE"]
 
@@ -278,10 +278,22 @@ class DDPPlugin(ParallelPlugin):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
-        if isinstance(output, torch.Tensor):
-            output = sync_ddp_if_available(output, group, reduce_op)
-        return output
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
+        """
+        Reduces a tensor from several distributed processes to one aggregated tensor.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            group: the process group to gather results from. Defaults to all processes (world)
+            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
+                Can also be a string 'sum' to calculate the sum during reduction.
+
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
+        if isinstance(tensor, torch.Tensor):
+            tensor = sync_ddp_if_available(tensor, group, reduce_op=(reduce_op or "mean"))
+        return tensor
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)

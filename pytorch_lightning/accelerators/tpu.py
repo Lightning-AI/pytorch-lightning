@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import torch
 from torch.optim import Optimizer
@@ -13,10 +13,14 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
+if TYPE_CHECKING:
+    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.trainer.trainer import Trainer
+
 
 class TPUAccelerator(Accelerator):
 
-    def setup(self, trainer, model):
+    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException(
                 "amp + tpu is not supported. "
@@ -27,10 +31,14 @@ class TPUAccelerator(Accelerator):
             raise MisconfigurationException("TPUs only support a single tpu core or tpu spawn training.")
         return super().setup(trainer, model)
 
-    def run_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs):
+    def run_optimizer_step(
+        self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
+    ) -> None:
         xm.optimizer_step(optimizer, optimizer_args={'closure': lambda_closure, **kwargs})
 
-    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+    def all_gather(
+        self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
+    ) -> torch.Tensor:
         """
         Function to gather a tensor from several distributed processes
         Args:

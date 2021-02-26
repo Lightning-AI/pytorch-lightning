@@ -49,6 +49,7 @@ RUN apt-get update -qq && \
         unzip \
         ca-certificates \
         software-properties-common \
+        libopenmpi-dev \
     && \
 
 # Install python
@@ -109,6 +110,11 @@ RUN \
     git clone https://github.com/NVIDIA/apex && \
     pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
     rm -rf apex
+
+RUN \
+    # install DeepSpeed from source.
+    # todo: swap to pypi release once DeepSpeed releases a new version.
+    pip install deepspeed@git+https://github.com/microsoft/DeepSpeed@ec8b1cb
 
 RUN \
     # Show what we have

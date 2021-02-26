@@ -47,7 +47,7 @@ class EvaluationLoop(object):
 
     def get_evaluation_dataloaders(self, max_batches):
         # select dataloaders
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         # select dataloaders
         if self.trainer.testing:
@@ -80,14 +80,14 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_validation_start', *args, **kwargs)
 
     def on_evaluation_model_eval(self, *_, **__):
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
         if self.trainer.testing:
             model_ref.on_test_model_eval()
         else:
             model_ref.on_validation_model_eval()
 
     def on_evaluation_model_train(self, *_, **__):
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
         if self.trainer.testing:
             model_ref.on_test_model_train()
         else:
@@ -100,7 +100,7 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
     def reload_evaluation_dataloaders(self):
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
         if self.trainer.testing:
             self.trainer.reset_test_dataloader(model)
         else:
@@ -151,26 +151,17 @@ class EvaluationLoop(object):
         # configure args
         args = self._build_args(batch, batch_idx, dataloader_idx)
 
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
         model_ref._results = Result()
 
-        if self.trainer._predicting:
-            model_ref._current_fx_name = "predict"
-            predictions = self.trainer.accelerator_backend.predict(args)
-            self._predictions[dataloader_idx].append(predictions)
-            self.trainer._progress_bar_callback.on_test_batch_end(
-                self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
-            )
-            return
-
-        elif self.testing:
+        if self.testing:
             model_ref._current_fx_name = "test_step"
             with self.trainer.profiler.profile("test_step"):
-                output = self.trainer.accelerator_backend.test_step(args)
+                output = self.trainer.accelerator.test_step(args)
         else:
             model_ref._current_fx_name = "validation_step"
             with self.trainer.profiler.profile("validation_step"):
-                output = self.trainer.accelerator_backend.validation_step(args)
+                output = self.trainer.accelerator.validation_step(args)
 
         # capture any logged information
         self.trainer.logger_connector.cache_logged_metrics()
@@ -208,7 +199,7 @@ class EvaluationLoop(object):
         return eval_loop_results
 
     def __run_eval_epoch_end(self, num_dataloaders):
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         # with a single dataloader don't pass an array
         outputs = self.outputs
@@ -279,7 +270,7 @@ class EvaluationLoop(object):
         return eval_results
 
     def on_predict_epoch_end(self):
-        self.trainer._progress_bar_callback.on_test_end(self.trainer, self.trainer.get_model())
+        self.trainer._progress_bar_callback.on_test_end(self.trainer, self.trainer.lightning_module)
 
         results = self._predictions
 
@@ -326,6 +317,8 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
+
+        self.trainer.call_hook('on_epoch_end')
 
     def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.running_sanity_check:

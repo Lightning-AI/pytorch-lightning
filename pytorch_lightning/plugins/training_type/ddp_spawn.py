@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 import re
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -46,11 +46,11 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        parallel_devices,
-        num_nodes=1,
+        parallel_devices: Optional[List[torch.device]] = None,
+        num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
         sync_batchnorm: bool = False,
-        **kwargs: Dict[str, Any],
+        **kwargs: Union[Any, Dict[str, Any]],
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.num_nodes = num_nodes
@@ -110,6 +110,9 @@ class DDPSpawnPlugin(ParallelPlugin):
     def start_testing(self, trainer):
         mp.spawn(self.new_process, **self.mp_spawn_kwargs)
 
+    def start_predicting(self, trainer):
+        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+
     def new_process(self, process_idx, trainer, mp_queue):
         self.mp_queue = mp_queue
 
@@ -128,7 +131,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # where to store ip_table
         self.init_ddp_connection(self.global_rank, self.world_size)
 
-        # TODO: we moved it to the trainer.fit after calling pre_training
+        # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
         # self.trainer.call_setup_hook(self.model)
 
@@ -153,15 +156,12 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         self.barrier()
 
-        if trainer.testing:
-            results = trainer.run_test()
-        else:
-            results = trainer.train()
+        results = trainer.train_or_test_or_predict()
 
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
-    def post_training(self):
+    def post_dispatch(self):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
@@ -194,11 +194,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
-        torch_backend = "nccl" if self.on_gpu else "gloo"
 
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
+            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
@@ -257,10 +256,22 @@ class DDPSpawnPlugin(ParallelPlugin):
         if not self.lightning_module.automatic_optimization and self.model.require_backward_grad_sync:
             prepare_for_backward(self.model, closure_loss)
 
-    def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
-        if isinstance(output, torch.Tensor):
-            output = sync_ddp_if_available(output, group, reduce_op)
-        return output
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
+        """
+        Reduces a tensor from several distributed processes to one aggregated tensor.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            group: the process group to gather results from. Defaults to all processes (world)
+            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
+                Can also be a string 'sum' to calculate the sum during reduction.
+
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
+        if isinstance(tensor, torch.Tensor):
+            tensor = sync_ddp_if_available(tensor, group, reduce_op=(reduce_op or "mean"))
+        return tensor
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)

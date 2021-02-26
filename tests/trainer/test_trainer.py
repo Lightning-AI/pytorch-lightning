@@ -421,34 +421,17 @@ def test_dp_output_reduce():
 
 
 @pytest.mark.parametrize(
-    ["save_top_k", "save_last", "file_prefix", "expected_files"],
+    "save_top_k,save_last,expected_files",
     [
-        pytest.param(
-            -1,
-            False,
-            "",
-            {"epoch=4.ckpt", "epoch=3.ckpt", "epoch=2.ckpt", "epoch=1.ckpt", "epoch=0.ckpt"},
-            id="CASE K=-1  (all)",
-        ),
-        pytest.param(1, False, "test_prefix", {"test_prefix-epoch=4.ckpt"}, id="CASE K=1 (2.5, epoch 4)"),
-        pytest.param(2, False, "", {"epoch=4.ckpt", "epoch=2.ckpt"}, id="CASE K=2 (2.5 epoch 4, 2.8 epoch 2)"),
-        pytest.param(
-            4,
-            False,
-            "",
-            {"epoch=1.ckpt", "epoch=4.ckpt", "epoch=3.ckpt", "epoch=2.ckpt"},
-            id="CASE K=4 (save all 4 base)",
-        ),
-        pytest.param(
-            3,
-            False,
-            "", {"epoch=2.ckpt", "epoch=3.ckpt", "epoch=4.ckpt"},
-            id="CASE K=3 (save the 2nd, 3rd, 4th model)"
-        ),
-        pytest.param(1, True, "", {"epoch=4.ckpt", "last.ckpt"}, id="CASE K=1 (save the 4th model and the last model)"),
+        pytest.param(-1, False, [f"epoch={i}.ckpt" for i in range(5)], id="CASE K=-1  (all)"),
+        pytest.param(1, False, {"epoch=4.ckpt"}, id="CASE K=1 (2.5, epoch 4)"),
+        pytest.param(2, False, [f"epoch={i}.ckpt" for i in (2, 4)], id="CASE K=2 (2.5 epoch 4, 2.8 epoch 2)"),
+        pytest.param(4, False, [f"epoch={i}.ckpt" for i in range(1, 5)], id="CASE K=4 (save all 4 base)"),
+        pytest.param(3, False, [f"epoch={i}.ckpt" for i in range(2, 5)], id="CASE K=3 (save the 2nd, 3rd, 4th model)"),
+        pytest.param(1, True, {"epoch=4.ckpt", "last.ckpt"}, id="CASE K=1 (save the 4th model and the last model)"),
     ],
 )
-def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, expected_files):
+def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files):
     """Test ModelCheckpoint options."""
 
     def mock_save_function(filepath, *args):
@@ -463,7 +446,6 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
         monitor='checkpoint_on',
         save_top_k=save_top_k,
         save_last=save_last,
-        prefix=file_prefix,
         verbose=1
     )
     checkpoint_callback.save_function = mock_save_function
@@ -474,7 +456,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
         trainer.current_epoch = i
         trainer.global_step = i
         trainer.logger_connector.callback_metrics = {"checkpoint_on": torch.tensor(loss)}
-        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
+        checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
 
     file_lists = set(os.listdir(tmpdir))
 
@@ -540,12 +522,12 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
 
     class TestModel(BoringModel):
         # Model that tracks epochs and batches seen
-        num_epochs_seen = 0
+        num_epochs_end_seen = 0
         num_batches_seen = 0
         num_on_load_checkpoint_called = 0
 
         def on_epoch_end(self):
-            self.num_epochs_seen += 1
+            self.num_epochs_end_seen += 1
 
         def on_train_batch_start(self, *_):
             self.num_batches_seen += 1
@@ -567,7 +549,8 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
     )
     trainer.fit(model)
 
-    assert model.num_epochs_seen == 2
+    # `on_epoch_end` will be called once for val_sanity, twice for train, twice for val
+    assert model.num_epochs_end_seen == 1 + 2 + 2
     assert model.num_batches_seen == trainer.num_training_batches * 2
     assert model.num_on_load_checkpoint_called == 0
 
@@ -1420,11 +1403,11 @@ def test_trainer_setup_call(tmpdir):
 
     trainer.fit(model)
     assert trainer.stage == "fit"
-    assert trainer.get_model().stage == "fit"
+    assert trainer.lightning_module.stage == "fit"
 
     trainer.test(ckpt_path=None)
     assert trainer.stage == "test"
-    assert trainer.get_model().stage == "test"
+    assert trainer.lightning_module.stage == "test"
 
 
 @pytest.mark.parametrize(
@@ -1474,16 +1457,14 @@ def test_trainer_profiler_incorrect_str_arg():
 @pytest.mark.parametrize('profiler', (
     42,
     [42],
-    {
-        "a": 42
-    },
+    dict(a=42),
     torch.tensor(42),
     Trainer(),
 ))
 def test_trainer_profiler_incorrect_arg_type(profiler):
     with pytest.raises(
         MisconfigurationException,
-        match=r"Only None, bool, str and subclasses of `BaseProfiler`"
+        match="Only None, str and subclasses of `BaseProfiler`"
         r" are valid values for `Trainer`'s `profiler` parameter. *"
     ):
         Trainer(profiler=profiler)
@@ -1496,6 +1477,9 @@ class TestLightningDataModule(LightningDataModule):
         self._dataloaders = dataloaders
 
     def test_dataloader(self):
+        return self._dataloaders
+
+    def predict_dataloader(self):
         return self._dataloaders
 
 
@@ -1515,7 +1499,6 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
         gpus=gpus,
         num_processes=num_processes,
         plugins=plugins,
-        num_sanity_val_steps=0
     )
     if datamodule:
         results = trainer.predict(model, datamodule=datamodule)
@@ -1529,9 +1512,6 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
     assert results[0][0].shape == torch.Size([1, 2])
 
 
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
 @pytest.mark.parametrize('datamodule', [False, True])
 def test_trainer_predict_cpu(tmpdir, datamodule):
     predict(tmpdir, None, None, 1, datamodule=datamodule)

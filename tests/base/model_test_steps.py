@@ -54,9 +54,7 @@ class TestStepVariations(ABC):
             output = OrderedDict({
                 'test_loss': loss_test,
                 'test_acc': test_acc,
-                'test_dic': {
-                    'test_loss_a': loss_test
-                },
+                'test_dic': dict(test_loss_a=loss_test),
             })
             return output
 
@@ -90,9 +88,7 @@ class TestStepVariations(ABC):
             output = OrderedDict({
                 'test_loss': loss_test,
                 'test_acc': test_acc,
-                'test_dic': {
-                    'test_loss_a': loss_test
-                },
+                'test_dic': dict(test_loss_a=loss_test),
             })
             return output
         if batch_idx % 5 == 0:

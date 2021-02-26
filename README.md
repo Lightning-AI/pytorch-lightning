@@ -16,7 +16,7 @@ Scale your models, not the boilerplate.**
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
   <a href="#grid-ai">Grid AI</a> •
-  <a href="#licence">Licence</a>
+  <a href="#license">License</a>
 </p>
 
 <!-- DO NOT ADD CONDA DOWNLOADS... README CHANGES MUST BE APPROVED BY EDEN OR WILL -->
@@ -29,7 +29,6 @@ Scale your models, not the boilerplate.**
 
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorch-lightning.readthedocs.io/en/stable/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A)
-[![Discourse status](https://img.shields.io/discourse/status?server=https%3A%2F%2Fforums.pytorchlightning.ai)](https://forums.pytorchlightning.ai/)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
 
 <!--
@@ -63,7 +62,7 @@ Lightning forces the following structure to your code which makes it reusable an
 
 Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit precision without changing your code!
 
-Get started with our [2 step guide](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
+Get started with our [2 step guide](https://pytorch-lightning.readthedocs.io/en/latest/starter/new-project.html)
 
 ---
 
@@ -72,7 +71,7 @@ Lightning is rigurously tested across multiple GPUs, TPUs CPUs and against major
 
 <details>
   <summary>Current build statuses</summary>
-  
+
   <center>
 
   | System / PyTorch ver. | 1.4 (min. req.)* | 1.5 | 1.6 | 1.7 (latest) | 1.8 (nightly) |
@@ -93,9 +92,9 @@ Lightning is rigurously tested across multiple GPUs, TPUs CPUs and against major
 
 <details>
   <summary>Bleeding edge build status (1.2)</summary>
-  
+
   <center>
-  
+
   ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
   ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
   ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.2-dev&event=push)
@@ -115,41 +114,51 @@ Simple installation from PyPI
 pip install pytorch-lightning
 ```
 
+<!-- following section will be skipped from PyPI description -->
 <details>
   <summary>Other installation options</summary>
     <!-- following section will be skipped from PyPI description -->
-  
-  #### Install with optional dependencies (CPU)
-  
-  ```bash
-  pip install pytorch-lightning['cpu-extra']
-  ```
 
-  #### Install with optional dependencies (GPU, TPU)
-  
+  #### Install with optional dependencies
+
   ```bash
   pip install pytorch-lightning['extra']
   ```
-  
+
   #### Conda
+
   ```bash
   conda install pytorch-lightning -c conda-forge
   ```
 
+  #### Install stable - future 1.1.x
+
+  the actual status of 1.1 [stable] is following:
+
+  ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.1.x&event=push)
+  ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.1.x&event=push)
+  ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.1.x&event=push)
+  ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.1.x&event=push)
+  ![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.1.x&event=push)
+
+  Install future release from the source
+  ```bash
+  pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.1.x --upgrade
+  ```
+
   #### Install bleeding-edge - future 1.2
 
-  Install future release from the source (no guarantees)
+  Install nightly from the source (no guarantees)
   ```bash
-  pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.2-dev --upgrade
+  pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip
   ```
-  or nightly from testing PyPI
+
+  or from testing PyPI
   ```bash
   pip install -iU https://test.pypi.org/simple/ pytorch-lightning
   ```
-
-  <!-- end skipping PyPI description -->
 </details>
-
+<!-- end skipping PyPI description -->
 
 ### Step 1: Add these imports
 
@@ -209,7 +218,7 @@ trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 ```
 
 ## Advanced features
-Lightning has over [40+ advanced features](https://pytorch-lightning.readthedocs.io/en/stable/trainer.html#trainer-flags) designed for professional AI research at scale.
+Lightning has over [40+ advanced features](https://pytorch-lightning.readthedocs.io/en/latest/common/trainer.html#trainer-flags) designed for professional AI research at scale.
 
 Here are some examples:
 
@@ -219,7 +228,7 @@ Here are some examples:
 
 <details>
   <summary>Highlighted feature code snippets</summary>
-  
+
   ```python
   # 8 GPUs
   # no code changes needed
@@ -230,58 +239,58 @@ Here are some examples:
   ```
 
   <summary>Train on TPUs without code changes</summary>
-  
+
   ```python
   # no code changes needed
   trainer = Trainer(tpu_cores=8)
    ```
 
   <summary>16-bit precision</summary>
-  
+
   ```python
   # no code changes needed
   trainer = Trainer(precision=16)
    ```
 
   <summary>Experiment managers</summary>
-  
+
   ```python
   from pytorch_lightning import loggers
-  
+
   # tensorboard
   trainer = Trainer(logger=TensorBoardLogger('logs/'))
-  
+
   # weights and biases
   trainer = Trainer(logger=loggers.WandbLogger())
-  
+
   # comet
   trainer = Trainer(logger=loggers.CometLogger())
-  
+
   # mlflow
   trainer = Trainer(logger=loggers.MLFlowLogger())
-  
+
   # neptune
   trainer = Trainer(logger=loggers.NeptuneLogger())
-  
+
   # ... and dozens more
    ```
 
   <summary>EarlyStopping</summary>
-  
+
   ```python
   es = EarlyStopping(monitor='val_loss')
   trainer = Trainer(callbacks=[es])
    ```
 
   <summary>Checkpointing</summary>
-  
+
   ```python
   checkpointing = ModelCheckpoint(monitor='val_loss')
   trainer = Trainer(callbacks=[checkpointing])
    ```
 
   <summary>Export to torchscript (JIT) (production use)</summary>
-  
+
   ```python
   # torchscript
   autoencoder = LitAutoEncoder()
@@ -289,7 +298,7 @@ Here are some examples:
    ```
 
   <summary>Export to ONNX (production use)</summary>
-  
+
   ```python
   # onnx
   with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
@@ -305,6 +314,10 @@ For complex/professional level work, you have optional full control of the train
 
 ```python
 class LitAutoEncoder(pl.LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
     def training_step(self, batch, batch_idx, optimizer_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
         (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
@@ -369,18 +382,16 @@ class LitAutoEncoder(pl.LightningModule):
 ## Community
 
 The lightning community is maintained by
-- [16 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, Ph.D. students from top AI labs.
-- 280+ community contributors.
+- [10+ core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
+- 400+ community contributors.
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 
 ### Asking for help
 If you have any questions please:
 1. [Read the docs](https://pytorch-lightning.rtfd.io/en/latest).
-2. [Search through the Discussions](https://github.com/PyTorchLightning/pytorch-lightning/discussions).
-3. [Look it up in our forum (or add a new question)](https://forums.pytorchlightning.ai)
-4. [Join our slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A).
-
+2. [Search through existing Discussions](https://github.com/PyTorchLightning/pytorch-lightning/discussions), or [add a new question](https://github.com/PyTorchLightning/pytorch-lightning/discussions/new)
+3. [Join our slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A).
 ### Funding
 [We're venture funded](https://techcrunch.com/2020/10/08/grid-ai-raises-18-6m-series-a-to-help-ai-researchers-and-engineers-bring-their-models-to-production/) to make sure we can provide around the clock support, hire a full-time staff, attend conferences, and move faster through implementing features you request.
 
@@ -414,12 +425,12 @@ Please observe the Apache 2.0 license that is listed in this repository. In addi
 the Lightning framework is Patent Pending.
 
 ## BibTeX
-If you want to cite the framework feel free to use this (but only if you loved it 😊):
+If you want to cite the framework feel free to use this (but only if you loved it 😊) or [zendo](https://zenodo.org/record/3828935#.YC45Lc9Khqs):
 
 ```bibtex
 @article{falcon2019pytorch,
   title={PyTorch Lightning},
-  author={Falcon, WA},
+  author={Falcon, WA and .al},
   journal={GitHub. Note: https://github.com/PyTorchLightning/pytorch-lightning},
   volume={3},
   year={2019}

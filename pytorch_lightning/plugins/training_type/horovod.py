@@ -28,7 +28,7 @@ if _HOROVOD_AVAILABLE:
 
 class HorovodPlugin(ParallelPlugin):
 
-    def __init__(self, parallel_devices: List[torch.device]):
+    def __init__(self, parallel_devices: Optional[List[torch.device]] = None):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
     @property
@@ -50,7 +50,7 @@ class HorovodPlugin(ParallelPlugin):
 
         self.model_to_device()
 
-    def pre_training(self):
+    def pre_dispatch(self):
 
         def _unpack_lightning_optimizer(opt):
             return opt._optimizer if isinstance(opt, LightningOptimizer) else opt
@@ -95,16 +95,22 @@ class HorovodPlugin(ParallelPlugin):
                 stack.enter_context(optimizer.skip_synchronize())
 
             # set up training routine
-            self._results = trainer.train()
+            self._results = trainer.run_train()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
 
     def start_testing(self, trainer):
-        with ExitStack() as stack:
-            # set up training routine
-            # self.trainer.train_loop.setup_training(self.trainer.model)
+        with ExitStack():
             self._results = trainer.run_test()
+
+        # Make sure all workers have finished training before returning to the user
+        hvd.join()
+
+    def start_predicting(self, trainer):
+        with ExitStack():
+            # set up training routine
+            self._results = trainer.run_predict()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
@@ -116,31 +122,40 @@ class HorovodPlugin(ParallelPlugin):
         obj = hvd.broadcast_object(obj, src)
         return obj
 
-    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
-        optimizer.synchronize()
-
     def model_to_device(self):
         if self.on_gpu:
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
+        """
+        Reduces a tensor from several distributed processes to one aggregated tensor.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            group: the process group to gather results from. Defaults to all processes (world)
+            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
+                Can also be a string 'sum' to calculate the sum during reduction.
+
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
         if group is not None:
             raise ValueError(
                 "Horovod does not support allreduce using a subcommunicator at this time. "
                 "Unset `group`."
             )
 
-        if reduce_op is None or reduce_op == "sum":
-            reduce_op = hvd.Sum
-        elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
+        if reduce_op in (None, "avg", "mean"):
             reduce_op = hvd.Average
+        elif reduce_op == "sum":
+            reduce_op = hvd.Sum
         else:
             raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
 
         # sync all processes before reduction
         hvd.join()
-        return hvd.allreduce(output, op=reduce_op)
+        return hvd.allreduce(tensor, op=reduce_op)
 
     def gather_all_tensors(self, result: Union[torch.Tensor], group: Optional[Any] = None):
         if group is not None:
@@ -158,3 +173,8 @@ class HorovodPlugin(ParallelPlugin):
         gathered = hvd.allgather(result)
         gathered_result = list(gathered.split(1, dim=0))
         return gathered_result
+
+    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+        # synchronize all horovod optimizers.
+        for optimizer in self.lightning_module.trainer.optimizers:
+            optimizer.synchronize()

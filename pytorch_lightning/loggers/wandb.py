@@ -61,9 +61,13 @@ class WandbLogger(LightningLoggerBase):
         \**kwargs: Additional arguments like `entity`, `group`, `tags`, etc. used by
             :func:`wandb.init` can be passed as keyword arguments in this logger.
 
-    Example:
+    Raises:
+        ImportError:
+            If required WandB package is not installed on the device.
+        MisconfigurationException:
+            If both ``log_model`` and ``offline``is set to ``True``.
 
-    .. code-block:: python
+    Example::
 
         from pytorch_lightning.loggers import WandbLogger
         from pytorch_lightning import Trainer

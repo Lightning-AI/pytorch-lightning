@@ -79,6 +79,9 @@ class MLFlowLogger(LightningLoggerBase):
             Has no effect if `tracking_uri` is provided.
         prefix: A string to put at the beginning of metric keys.
 
+    Raises:
+        ImportError:
+            If required MLFlow package is not installed on the device.
     """
 
     LOGGER_JOIN_CHAR = '-'
@@ -150,6 +153,12 @@ class MLFlowLogger(LightningLoggerBase):
         params = self._convert_params(params)
         params = self._flatten_dict(params)
         for k, v in params.items():
+            if len(str(v)) > 250:
+                rank_zero_warn(
+                    f"Mlflow only allows parameters with up to 250 characters. Discard {k}={v}", RuntimeWarning
+                )
+                continue
+
             self.experiment.log_param(self.run_id, k, v)
 
     @rank_zero_only

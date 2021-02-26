@@ -21,7 +21,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
-from tests.helpers.datamodules import TrialMNISTDataModule
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -179,13 +180,10 @@ def test_call_to_trainer_method(tmpdir, optimizer):
 def test_datamodule_parameter(tmpdir):
     """ Test that the datamodule parameter works """
 
-    # trial datamodule
-    dm = TrialMNISTDataModule(tmpdir)
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-
-    before_lr = hparams.get('learning_rate')
+    before_lr = model.lr
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -194,7 +192,7 @@ def test_datamodule_parameter(tmpdir):
 
     lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
     after_lr = lrfinder.suggestion()
-    model.learning_rate = after_lr
+    model.lr = after_lr
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
@@ -231,8 +229,8 @@ def test_accumulation_and_early_stopping(tmpdir):
 def test_suggestion_parameters_work(tmpdir):
     """ Test that default skipping does not alter results in basic case """
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     # logger file to get meta
     trainer = Trainer(
@@ -240,12 +238,11 @@ def test_suggestion_parameters_work(tmpdir):
         max_epochs=3,
     )
 
-    lrfinder = trainer.tuner.lr_find(model)
+    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
     lr1 = lrfinder.suggestion(skip_begin=10)  # default
-    lr2 = lrfinder.suggestion(skip_begin=80)  # way too high, should have an impact
+    lr2 = lrfinder.suggestion(skip_begin=150)  # way too high, should have an impact
 
-    assert lr1 != lr2, \
-        'Skipping parameter did not influence learning rate'
+    assert lr1 != lr2, 'Skipping parameter did not influence learning rate'
 
 
 def test_suggestion_with_non_finite_values(tmpdir):
@@ -271,8 +268,6 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
 def test_lr_finder_fails_fast_on_bad_config(tmpdir):
     """ Test that tune fails if the model does not have a lr BEFORE running lr find """
-    # note: this did not raise an exception before #5638 because lr_find is skipped
-    # during fast_dev_run and the lr attribute check was done after lr_find
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, auto_lr_find=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, auto_lr_find=True)
     with pytest.raises(MisconfigurationException, match='should have one of these fields'):
         trainer.tune(BoringModel())
