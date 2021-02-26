@@ -196,14 +196,22 @@ def add_argparse_args(
             add_help=False,
         )
 
-    depr_arg_names = ['kwargs']
+    ignore_arg_names = ['self', 'args', 'kwargs']
     if hasattr(cls, "get_deprecated_arg_names"):
-        depr_arg_names += cls.get_deprecated_arg_names()
+        ignore_arg_names += cls.get_deprecated_arg_names()
 
     allowed_types = (str, int, float, bool)
 
+    # Get symbols from cls or init function.
+    for symbol in (cls, cls.__init__):
+        args_and_types = get_init_arguments_and_types(symbol)
+        args_and_types = [x for x in args_and_types if x[0] not in ignore_arg_names]
+        if len(args_and_types) > 0:
+            break
+
     args_help = parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__)
-    for arg, arg_types, arg_default in (at for at in get_init_arguments_and_types(cls) if at[0] not in depr_arg_names):
+
+    for arg, arg_types, arg_default in args_and_types:
         arg_types = [at for at in allowed_types if at in arg_types]
         if not arg_types:
             # skip argument with not supported type
@@ -233,6 +241,9 @@ def add_argparse_args(
         # hack for track_grad_norm
         if arg == 'track_grad_norm':
             use_type = float
+
+        if arg_default is inspect._empty:
+            arg_default = None
 
         parser.add_argument(
             f'--{arg}',

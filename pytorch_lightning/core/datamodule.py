@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args
+from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
 
 
 class _DataModuleWrapper(type):
@@ -278,19 +278,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
             List with tuples of 3 values:
             (argument name, set with argument types, argument default value).
         """
-        datamodule_default_params = inspect.signature(cls.__init__).parameters
-        name_type_default = []
-        for arg in datamodule_default_params:
-            arg_type = datamodule_default_params[arg].annotation
-            arg_default = datamodule_default_params[arg].default
-            try:
-                arg_types = tuple(arg_type.__args__)
-            except AttributeError:
-                arg_types = (arg_type, )
-
-            name_type_default.append((arg, arg_types, arg_default))
-
-        return name_type_default
+        return get_init_arguments_and_types(cls)
 
     @classmethod
     def from_datasets(

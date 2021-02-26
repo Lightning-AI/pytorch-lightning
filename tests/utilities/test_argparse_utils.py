@@ -74,8 +74,6 @@ def test_get_abbrev_qualified_cls_name():
 
 class AddArgparseArgsExampleClass:
     """
-    Example class.
-
     Args:
         my_parameter: A thing.
     """
@@ -88,6 +86,16 @@ class AddArgparseArgsExampleClass:
         return []
 
 
+class AddArgparseArgsExampleClassViaInit:
+
+    def __init__(self, my_parameter: int = 0):
+        """
+        Args:
+            my_parameter: A thing.
+        """
+        pass
+
+
 def extract_help_text(parser):
     help_str_buffer = io.StringIO()
     parser.print_help(file=help_str_buffer)
@@ -95,7 +103,11 @@ def extract_help_text(parser):
     return help_str_buffer.read()
 
 
-def test_add_argparse_args():
+@pytest.mark.parametrize(["cls", "name"], [
+    [AddArgparseArgsExampleClass, "AddArgparseArgsExampleClass"],
+    [AddArgparseArgsExampleClassViaInit, "AddArgparseArgsExampleClassViaInit"],
+])
+def test_add_argparse_args(cls, name):
     """
     Tests that ``add_argparse_args`` handles argument groups correctly, and
     can be parsed.
@@ -104,15 +116,16 @@ def test_add_argparse_args():
     parser_main = parser.add_argument_group("main")
     parser_main.add_argument("--main_arg", type=str, default="")
     parser_old = parser  # For testing.
-    parser = add_argparse_args(AddArgparseArgsExampleClass, parser)
+    parser = add_argparse_args(cls, parser)
     assert parser is parser_old
 
     # Check nominal argument groups.
     help_text = extract_help_text(parser)
     assert "main:" in help_text
     assert "--main_arg" in help_text
-    assert "AddArgparseArgsExampleClass:" in help_text
+    assert f"{name}:" in help_text
     assert "--my_parameter" in help_text
+    assert "A thing" in help_text
 
     fake_argv = ["--main_arg=abc", "--my_parameter=2"]
     args = parser.parse_args(fake_argv)
