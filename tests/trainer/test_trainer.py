@@ -1718,7 +1718,6 @@ def test_train_loop_system(tmpdir):
             called_methods.append(inspect.currentframe().f_code.co_name)
             return super().zero_grad(set_to_none)
 
-
     class TestModel(BoringModel):
         def configure_optimizers(self):
             return TestOptimizer(self.parameters(), lr=0.1)
@@ -1730,7 +1729,6 @@ def test_train_loop_system(tmpdir):
         def backward(self, *args, **kwargs):
             called_methods.append(inspect.currentframe().f_code.co_name)
             return super().backward(*args, **kwargs)
-
 
     model = TestModel()
     trainer = Trainer(**trainer_options)
