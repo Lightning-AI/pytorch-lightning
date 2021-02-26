@@ -196,8 +196,9 @@ def add_argparse_args(
             add_help=False,
         )
 
-    blacklist = ['kwargs']
-    depr_arg_names = cls.get_deprecated_arg_names() + blacklist
+    depr_arg_names = ['kwargs']
+    if hasattr(cls, "get_deprecated_arg_names"):
+        depr_arg_names += cls.get_deprecated_arg_names()
 
     allowed_types = (str, int, float, bool)
 
