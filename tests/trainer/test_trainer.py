@@ -1723,11 +1723,11 @@ def test_train_loop_system(tmpdir):
             return TestOptimizer(self.parameters(), lr=0.1)
 
         def training_step(self, *args, **kwargs):
-            called_methods.append(inspect.currentframe().f_code.co_name)
+            called_methods.append("training_step")
             return super().training_step(*args, **kwargs)
 
         def backward(self, *args, **kwargs):
-            called_methods.append(inspect.currentframe().f_code.co_name)
+            called_methods.append("backward")
             return super().backward(*args, **kwargs)
 
     model = TestModel()
