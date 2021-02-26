@@ -185,6 +185,8 @@ def add_argparse_args(
         >>> parser = Trainer.add_argparse_args(parser, use_argument_group=False)
         >>> args = parser.parse_args([])
     """
+    if isinstance(parent_parser, _ArgumentGroup):
+        raise RuntimeError("Please only pass an ArgumentParser instance.")
     if use_argument_group:
         group_name = get_abbrev_qualified_cls_name(cls)
         parser = parent_parser.add_argument_group(group_name)

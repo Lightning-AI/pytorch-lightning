@@ -1,13 +1,15 @@
-from argparse import ArgumentParser
 import io
+from argparse import ArgumentParser
 from typing import List
 
+import pytest
+
+from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     get_abbrev_qualified_cls_name,
     parse_args_from_docstring,
 )
-from pytorch_lightning import Trainer
 
 
 def test_parse_args_from_docstring_normal():
@@ -77,6 +79,7 @@ class AddArgparseArgsExampleClass:
     Args:
         my_parameter: A thing.
     """
+
     def __init__(self, my_parameter: int = 0):
         pass
 
@@ -117,6 +120,12 @@ def test_add_argparse_args():
     assert args.my_parameter == 2
 
 
+def test_negative_add_argparse_args():
+    with pytest.raises(RuntimeError, match="Please only pass an ArgumentParser instance."):
+        parser = ArgumentParser()
+        add_argparse_args(AddArgparseArgsExampleClass, parser.add_argument_group("bad workflow"))
+
+
 def test_add_argparse_args_no_argument_group():
     """
     Test similar to above, but with ``use_argument_group=False``
@@ -125,9 +134,7 @@ def test_add_argparse_args_no_argument_group():
     parser = ArgumentParser()
     parser.add_argument("--main_arg", type=str, default="")
     parser_old = parser  # For testing.
-    parser = add_argparse_args(
-        AddArgparseArgsExampleClass, parser, use_argument_group=False
-    )
+    parser = add_argparse_args(AddArgparseArgsExampleClass, parser, use_argument_group=False)
     assert parser is not parser_old
 
     # Check arguments.
