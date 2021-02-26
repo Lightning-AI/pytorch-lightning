@@ -609,7 +609,9 @@ class TrainLoop:
     def make_closure(
         self, split_batch: Any, batch_idx: int, opt_idx: int, optimizer: Optimizer, hiddens: Dict
     ) -> partial:
-
+        """
+        This function wraps the closure into a partial object which will be called within ``optimizer.step``.
+        """
         partial_func = partial(
             self.train_step_and_backward_closure, split_batch, batch_idx, opt_idx, optimizer, hiddens
         )
