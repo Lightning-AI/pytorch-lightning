@@ -1,4 +1,13 @@
-from pytorch_lightning.utilities.argparse import parse_args_from_docstring
+from argparse import ArgumentParser
+import io
+from typing import List
+
+from pytorch_lightning.utilities.argparse import (
+    add_argparse_args,
+    get_abbrev_qualified_cls_name,
+    parse_args_from_docstring,
+)
+from pytorch_lightning import Trainer
 
 
 def test_parse_args_from_docstring_normal():
@@ -48,3 +57,86 @@ def test_parse_args_from_docstring_empty():
         """
     )
     assert len(args_help.keys()) == 0
+
+
+def test_get_abbrev_qualified_cls_name():
+    assert get_abbrev_qualified_cls_name(Trainer) == "pl.Trainer"
+
+    class NestedClass:
+        pass
+
+    assert not __name__.startswith("pytorch_lightning.")
+    expected_name = f"{__name__}.test_get_abbrev_qualified_cls_name.<locals>.NestedClass"
+    assert get_abbrev_qualified_cls_name(NestedClass) == expected_name
+
+
+class AddArgparseArgsExampleClass:
+    """
+    Example class.
+
+    Args:
+        my_parameter: A thing.
+    """
+    def __init__(self, my_parameter: int = 0):
+        pass
+
+    @staticmethod
+    def get_deprecated_arg_names() -> List[str]:
+        return []
+
+
+def extract_help_text(parser):
+    help_str_buffer = io.StringIO()
+    parser.print_help(file=help_str_buffer)
+    help_str_buffer.seek(0)
+    return help_str_buffer.read()
+
+
+def test_add_argparse_args():
+    """
+    Tests that ``add_argparse_args`` handles argument groups correctly, and
+    can be parsed.
+    """
+    parser = ArgumentParser()
+    parser_main = parser.add_argument_group("main")
+    parser_main.add_argument("--main_arg", type=str, default="")
+    parser_old = parser  # For testing.
+    parser = add_argparse_args(AddArgparseArgsExampleClass, parser)
+    assert parser is parser_old
+
+    # Check nominal argument groups.
+    help_text = extract_help_text(parser)
+    assert "main:" in help_text
+    assert "--main_arg" in help_text
+    assert "AddArgparseArgsExampleClass:" in help_text
+    assert "--my_parameter" in help_text
+
+    fake_argv = ["--main_arg=abc", "--my_parameter=2"]
+    args = parser.parse_args(fake_argv)
+    assert args.main_arg == "abc"
+    assert args.my_parameter == 2
+
+
+def test_add_argparse_args_no_argument_group():
+    """
+    Test similar to above, but with ``use_argument_group=False``
+    (old workflow).
+    """
+    parser = ArgumentParser()
+    parser.add_argument("--main_arg", type=str, default="")
+    parser_old = parser  # For testing.
+    parser = add_argparse_args(
+        AddArgparseArgsExampleClass, parser, use_argument_group=False
+    )
+    assert parser is not parser_old
+
+    # Check arguments.
+    help_text = extract_help_text(parser)
+    assert "--main_arg" in help_text
+    assert "--my_parameter" in help_text
+    assert "AddArgparseArgsExampleClass:" not in help_text
+
+    fake_argv = ["--main_arg=abc", "--my_parameter=2"]
+    args = parser.parse_args(fake_argv)
+    assert args.main_arg == "abc"
+    assert args.my_parameter == 2

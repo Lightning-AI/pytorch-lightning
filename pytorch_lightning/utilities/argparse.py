@@ -13,13 +13,11 @@
 # limitations under the License.
 import inspect
 import os
-from argparse import ArgumentParser, Namespace
+from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
 from typing import Any, Dict, List, Tuple, Union
 
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_str
-
-ArgumentGroup = type(ArgumentParser().add_argument_group("fake"))
 
 
 def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
@@ -136,27 +134,40 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
     return name_type_default
 
 
+def get_abbrev_qualified_cls_name(cls):
+    assert isinstance(cls, type), repr(cls)
+    if cls.__module__.startswith("pytorch_lightning."):
+        # Abbreviate.
+        return f"pl.{cls.__name__}"
+    else:
+        # Fully qualified.
+        return f"{cls.__module__}.{cls.__qualname__}"
+
+
 def add_argparse_args(
     cls,
-    parent_parser: Union[ArgumentParser, ArgumentGroup],
+    parent_parser: ArgumentParser,
     *,
-    inplace=False,
-) -> Union[ArgumentParser, ArgumentGroup]:
-    r"""Extends existing argparse by default `Trainer` attributes.
+    use_argument_group=True,
+) -> ArgumentParser:
+    r"""Extends existing argparse by default attributes for ``cls``.
 
     Args:
         cls: Lightning class
         parent_parser:
             The custom cli arguments parser, which will be extended by
-            the Trainer default arguments.
-        inplace:
-            By default, this is False, and creates a new ArgumentParser connected to
-            ``parent_parser``.
-            If True, then this will add the arguments directly to the passed ``parent_parser``
-            instance. (Use this when using `add_argument_group()`.)
+            the class's default arguments.
+        use_argument_group:
+            By default, this is True, and uses ``add_argument_group`` to add
+            a new group.
+            If False, this will use old behavior.
+
+    Returns:
+        If use_argument_group is True, returns ``parent_parser`` to keep old
+        workflows. If False, will return the new ArgumentParser object.
 
     Only arguments of the allowed types (str, float, int, bool) will
-    extend the `parent_parser`.
+    extend the ``parent_parser``.
 
     Examples:
 
@@ -167,13 +178,16 @@ def add_argparse_args(
         >>> parser = Trainer.add_argparse_args(parser)
         >>> args = parser.parse_args([])
 
-        # Option 2: Using add_argument_group(). Warning: Do not use the return value to parse args!
+        # Option 2: Disable use_argument_group (old behavior).
+        >>> import argparse
+        >>> from pytorch_lightning import Trainer
         >>> parser = argparse.ArgumentParser()
-        >>> Trainer.add_argparse_args(parser.add_argument_group("pl.Trainer"), inplace=True)
+        >>> parser = Trainer.add_argparse_args(parser, use_argument_group=False)
         >>> args = parser.parse_args([])
     """
-    if inplace:
-        parser = parent_parser
+    if use_argument_group:
+        group_name = get_abbrev_qualified_cls_name(cls)
+        parser = parent_parser.add_argument_group(group_name)
     else:
         parser = ArgumentParser(
             parents=[parent_parser],
@@ -205,6 +219,8 @@ def add_argparse_args(
         else:
             use_type = arg_types[0]
 
+        # TODO: Defer these to an optional static method, like
+        # `argparse_hacks()`?
         if arg == 'gpus' or arg == 'tpu_cores':
             use_type = _gpus_allowed_type
             arg_default = _gpus_arg_default
@@ -226,7 +242,10 @@ def add_argparse_args(
             **arg_kwargs,
         )
 
-    return parser
+    if use_argument_group:
+        return parent_parser
+    else:
+        return parser
 
 
 def parse_args_from_docstring(docstring: str) -> Dict[str, str]:
