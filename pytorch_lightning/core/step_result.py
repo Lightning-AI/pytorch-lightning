@@ -468,7 +468,7 @@ class Result(Dict):
             sample = next(iter(sample.values()), 1)
             size = Result.unpack_batch_size(sample)
         elif isinstance(sample, Iterable):
-            # todo (tudorcebere): Add `.get` call to get batch_size
+            # todo (tudorcebere) Add `.get` call to get batch_size  # noqa E265
             if _PYSYFT_AVAILABLE:
                 size = 1
             else:

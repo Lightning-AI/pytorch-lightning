@@ -303,7 +303,7 @@ class ModelCheckpoint(Callback):
 
         # delegate the saving to the trainer
         if self.save_function is not None:
-            # Todo (tudorcebere): Add support for saving the model
+            # Todo (tudorcebere): Add support for saving the model   # noqa E265
             if _PYSYFT_AVAILABLE:
                 pass
             else:
