@@ -15,13 +15,14 @@ r"""
 Early Stopping
 ^^^^^^^^^^^^^^
 
-Monitor a metric and stop training when it stops improving.
+Monitor a metric and stop training when it stops improving, hits a theshhold, or reaching a maximum time.
 
 """
 from typing import Any, Dict
 
 import numpy as np
 import torch
+from time import time
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
@@ -30,7 +31,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class EarlyStopping(Callback):
     r"""
-    Monitor a metric and stop training when it stops improving.
+    Monitor a metric and stop training when it stops improving, hits a theshhold, or reaching a maximum time.
 
     Args:
         monitor: quantity to be monitored. Default: ``'early_stop_on'``.
@@ -40,6 +41,8 @@ class EarlyStopping(Callback):
             improvement. Default: ``0.0``.
         patience: number of validation epochs with no improvement
             after which training will be stopped. Default: ``3``.
+        max_time: maximum number of seconds before stopping.  Default: ``None``.
+        threshold: value for ``monitor`` at which training stops.  Default: ``None``.
         verbose: verbosity mode. Default: ``False``.
         mode: one of ``'min'``, ``'max'``. In ``'min'`` mode,
             training will stop when the quantity
@@ -73,6 +76,8 @@ class EarlyStopping(Callback):
         monitor: str = 'early_stop_on',
         min_delta: float = 0.0,
         patience: int = 3,
+        max_time: Optional[float] = None,
+        threshold: Optional[float] = None,
         verbose: bool = False,
         mode: str = 'min',
         strict: bool = True,
@@ -80,6 +85,8 @@ class EarlyStopping(Callback):
         super().__init__()
         self.monitor = monitor
         self.patience = patience
+        self.max_time = max_time
+        self.threshold = threshold
         self.verbose = verbose
         self.strict = strict
         self.min_delta = min_delta
@@ -87,6 +94,8 @@ class EarlyStopping(Callback):
         self.stopped_epoch = 0
         self.mode = mode
         self.warned_result_obj = False
+        self.last_time = time()
+        self.elapsed_time = 0.0
 
         if self.mode not in self.mode_dict:
             raise MisconfigurationException(f"`mode` can be {', '.join(self.mode_dict.keys())}, got {self.mode}")
@@ -123,7 +132,9 @@ class EarlyStopping(Callback):
             'wait_count': self.wait_count,
             'stopped_epoch': self.stopped_epoch,
             'best_score': self.best_score,
-            'patience': self.patience
+            'patience': self.patience,
+            "elapsed_time": self.elapsed_time,
+            "threshold": self.threshold,            
         }
 
     def on_load_checkpoint(self, callback_state: Dict[str, Any]):
@@ -131,6 +142,8 @@ class EarlyStopping(Callback):
         self.stopped_epoch = callback_state['stopped_epoch']
         self.best_score = callback_state['best_score']
         self.patience = callback_state['patience']
+        self.elapsed_time = callback_state["elapsed_time"]
+        self.last_time = time()
 
     def on_validation_end(self, trainer, pl_module):
         if trainer.running_sanity_check:
@@ -156,15 +169,17 @@ class EarlyStopping(Callback):
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
 
+        self.elapsed_time += time() - self.last_time
+        self.last_time = time()
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
             self.wait_count = 0
         else:
             self.wait_count += 1
 
-            if self.wait_count >= self.patience:
-                self.stopped_epoch = trainer.current_epoch
-                trainer.should_stop = True
+        if (self.wait_count >= self.patience) or self.monitor_op(current, self.threshold) or (self.elapsed_time > self.max_time):
+            self.stopped_epoch = trainer.current_epoch
+            trainer.should_stop = True
 
         # stop every ddp process if any world process decides to stop
         trainer.should_stop = trainer.training_type_plugin.reduce_early_stopping_decision(trainer.should_stop)
