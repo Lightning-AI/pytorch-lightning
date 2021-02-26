@@ -91,7 +91,11 @@ def _class_test(
             calculated across devices for each batch (and not just at the end)
     """
     # Instanciate lightning metric
-    metric = metric_class(compute_on_step=check_dist_sync_on_step or check_batch, dist_sync_on_step=dist_sync_on_step, **metric_args)
+    metric = metric_class(
+        compute_on_step=check_dist_sync_on_step or check_batch, 
+        dist_sync_on_step=dist_sync_on_step, 
+        **metric_args
+    )
 
     # verify metrics work after being loaded from pickled state
     pickled_metric = pickle.dumps(metric)
