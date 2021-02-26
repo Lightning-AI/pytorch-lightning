@@ -371,7 +371,7 @@ class Accelerator(object):
         return None
 
     @property
-    def precision(self) -> int:
+    def precision(self) -> Union[str, int]:
         return self.precision_plugin.precision
 
     @property

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import cast, Union
+from typing import cast, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
@@ -23,12 +23,15 @@ if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
     from fairscale.optim.grad_scaler import ShardedGradScaler
 
+if TYPE_CHECKING:
+    from torch.optim import Optimizer
+
 
 class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
     """Mixed Precision for Sharded Training
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.scaler = ShardedGradScaler()
 
