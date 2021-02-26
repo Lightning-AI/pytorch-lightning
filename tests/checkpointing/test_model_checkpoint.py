@@ -568,7 +568,7 @@ def test_model_checkpoint_period(tmpdir, period):
 def test_model_checkpoint_topk_zero(tmpdir):
     """ Test that no checkpoints are saved when save_top_k=0. """
     model = LogInTwoMethods()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=0, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
@@ -582,8 +582,9 @@ def test_model_checkpoint_topk_zero(tmpdir):
     assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
-    # check that no ckpts were created
-    assert len(os.listdir(tmpdir)) == 0
+    # check that only the last ckpt was created
+    assert os.listdir(tmpdir) == ['last.ckpt']
+    assert checkpoint_callback.last_model_path == tmpdir / 'last.ckpt'
 
 
 def test_model_checkpoint_topk_all(tmpdir):

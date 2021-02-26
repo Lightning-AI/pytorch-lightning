@@ -221,7 +221,6 @@ class ModelCheckpoint(Callback):
 
         if (
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
-            or self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
@@ -541,7 +540,7 @@ class ModelCheckpoint(Callback):
             rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
     def _save_none_monitor_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
-        if self.monitor is not None:
+        if self.monitor is not None or self.save_top_k == 0:
             return
 
         filepath = self._get_metric_interpolated_filepath_name(
