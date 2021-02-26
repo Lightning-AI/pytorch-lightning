@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.imports import _TORCHTEXT_AVAILABLE
 from pytorch_lightning.utilities.imports import _module_available
 
 if _TORCHTEXT_AVAILABLE:
-    if _module_available("torchtext.legacy"):
+    if _module_available("torchtext.legacy.data"):
         from torchtext.legacy.data import Batch
     else:
         from torchtext.data import Batch
