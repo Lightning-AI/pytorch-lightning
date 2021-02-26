@@ -13,6 +13,7 @@
 # limitations under the License.
 import types
 from contextlib import contextmanager
+from functools import partial
 from typing import Callable, Optional
 from weakref import proxy
 
@@ -212,7 +213,7 @@ class LightningOptimizer:
             profiler_name = "closure_{self._optimizer_idx}"
             closure = do_nothing_closure
         else:
-            if not isinstance(closure, types.FunctionType):
+            if not isinstance(closure, (types.FunctionType, partial)):
                 raise MisconfigurationException("When closure is provided, it should be a function")
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 

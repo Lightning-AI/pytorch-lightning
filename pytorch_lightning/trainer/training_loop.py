@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
+from functools import partial
+from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
+from torch.optim import Optimizer
 
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core.memory import ModelSummary
@@ -28,10 +30,14 @@ from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
+
+if _PYSYFT_AVAILABLE:
+    from syft.core.pointer.pointer import Pointer
 
 
 class TrainLoop:
@@ -272,9 +278,7 @@ class TrainLoop:
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
     def _check_training_step_output(self, training_step_output):
-        from syft.core.pointer.pointer import Pointer
-
-        if isinstance(training_step_output, Pointer):
+        if _PYSYFT_AVAILABLE and isinstance(training_step_output, Pointer):
             training_step_output = training_step_output.get(delete_obj=False)
         if isinstance(training_step_output, torch.Tensor) and not self.automatic_optimization:
             if training_step_output.grad_fn is None:
@@ -348,12 +352,10 @@ class TrainLoop:
         # -----------------------------------------
         # no need for these checks in 1.0.0
         # TODO: remove checks in 1.0.0
-        from syft.core.pointer.pointer import Pointer
-        if isinstance(training_step_output_for_epoch_end, Pointer):
-            _training_step_output_for_epoch_end = training_step_output_for_epoch_end.get(
-                delete_obj=False)
+        if _PYSYFT_AVAILABLE and isinstance(training_step_output_for_epoch_end, Pointer):
+            training_step_output_for_epoch_end = training_step_output_for_epoch_end.get(delete_obj=False)
 
-        is_tensor = isinstance(_training_step_output_for_epoch_end, torch.Tensor)
+        is_tensor = isinstance(training_step_output_for_epoch_end, torch.Tensor)
         is_1_0_output = is_tensor or ("log" not in training_step_output and "progress_bar" not in training_step_output)
         if is_1_0_output:
             return self._process_training_step_output_1_0(training_step_output, split_batch)
@@ -379,13 +381,12 @@ class TrainLoop:
         return training_step_output_for_epoch_end, training_step_output
 
     def _process_training_step_output_1_0(self, training_step_output, split_batch):
-        from syft.core.pointer.pointer import Pointer
         result = self.trainer.get_model()._results
 
         loss = None
         hiddens = None
 
-        if isinstance(training_step_output, Pointer):
+        if _PYSYFT_AVAILABLE and isinstance(training_step_output, Pointer):
             training_step_output = training_step_output.get(delete_obj=False)
 
         # handle dict return
@@ -404,9 +405,7 @@ class TrainLoop:
         result.hiddens = hiddens
 
         # track batch for manual reduction with result
-        split_batch_size = len(split_batch)
-
-        result.track_batch_size(split_batch_size)
+        result.track_batch_size(len(split_batch))
 
         # track metrics without grads for epoch reduction
         training_step_output_for_epoch_end = copy(result)
@@ -596,6 +595,17 @@ class TrainLoop:
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
 
+    def train_step_and_backward_closure(
+        self,
+        split_batch: Any,
+        batch_idx: int,
+        opt_idx: int,
+        optimizer: Optimizer,
+        hiddens: Dict,
+    ) -> Optional[torch.Tensor]:
+        result = self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        return None if result is None else result.loss
+
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
         grad_norm_dic = {}
@@ -656,11 +666,12 @@ class TrainLoop:
 
                 else:
                     if self.automatic_optimization:
-                        def train_step_and_backward_closure():
-                            result = self.training_step_and_backward(
-                                split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
-                            )
-                            return None if result is None else result.loss
+                        # the closure is provided as a partial object and attached to the TrainLoop
+                        # to enable using the closure accross RPC.
+                        train_step_and_backward_closure = partial(
+                            self.train_step_and_backward_closure, split_batch, batch_idx, opt_idx, optimizer,
+                            self.trainer.hiddens
+                        )
 
                         # optimizer step
                         self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
@@ -669,7 +680,7 @@ class TrainLoop:
                         self._curr_step_result = self.training_step(
                             split_batch, batch_idx, opt_idx, self.trainer.hiddens
                         )
-# MOVE CLOSURE TO THE AST
+
                     if self._curr_step_result is None:
                         # user decided to skip optimization
                         # make sure to zero grad.

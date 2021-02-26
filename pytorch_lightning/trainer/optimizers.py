@@ -21,9 +21,9 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import _PYSYFT_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import PYSYFT_AVAILABLE
+
 
 class TrainerOptimizersMixin(ABC):
 
@@ -66,7 +66,7 @@ class TrainerOptimizersMixin(ABC):
         elif isinstance(optim_conf, (list, tuple)):
             optimizers = list(optim_conf)
         # unknown configuration
-        elif PYSYFT_AVAILABLE:
+        elif _PYSYFT_AVAILABLE:
             if optim_conf.__module__ == "syft.proxy.torch.optim":
                 optimizers = [optim_conf]
         else:

@@ -60,8 +60,12 @@ from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
+
+if _PYSYFT_AVAILABLE:
+    from syft import client_cache
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -587,9 +591,11 @@ class Trainer(
         model = self.lightning_module
         model.train()
 
-        from syft import client_cache
-
-        client_cache["duet"].torch.set_grad_enabled(True)
+        if _PYSYFT_AVAILABLE:
+            # Todo (tudorcebere): Find better solution than `client_cache` to access Duet
+            client_cache["duet"].torch.set_grad_enabled(True)
+        else:
+            torch.set_grad_enabled(True)
 
         # reload data when needed
         self.train_loop.reset_train_val_dataloaders(model)

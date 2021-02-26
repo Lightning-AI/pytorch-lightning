@@ -23,6 +23,7 @@ from torch import Tensor
 
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
 
 
 class Result(Dict):
@@ -467,9 +468,12 @@ class Result(Dict):
             sample = next(iter(sample.values()), 1)
             size = Result.unpack_batch_size(sample)
         elif isinstance(sample, Iterable):
-            # sample = next(iter(sample), 1)
-            # size = Result.unpack_batch_size(sample)
-            size = 1
+            # todo (tudorcebere): Add `.get` call to get batch_size
+            if _PYSYFT_AVAILABLE:
+                size = 1
+            else:
+                sample = next(iter(sample), 1)
+                size = Result.unpack_batch_size(sample)
         else:
             size = 1
         return size

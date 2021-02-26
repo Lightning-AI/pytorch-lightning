@@ -24,6 +24,10 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
+
+if _PYSYFT_AVAILABLE:
+    from syft import client_cache
 
 
 class TensorRunningAccum(object):
@@ -65,9 +69,11 @@ class TensorRunningAccum(object):
     def append(self, x):
         """Add an element to the accumulator."""
         if self.memory is None:
-            from syft import client_cache
-
-            self.memory = client_cache["duet"].torch.zeros(self.window_length, *x.shape)
+            if _PYSYFT_AVAILABLE:
+                # Todo (tudorcebere): Find better solution than `client_cache` to access Duet
+                self.memory = client_cache["duet"].torch.zeros(self.window_length, *x.shape)
+            else:
+                self.memory = torch.zeros(self.window_length, *x.shape)
 
         # ensure same device and type
         if self.memory.device != x.device or self.memory.type() != x.type():
