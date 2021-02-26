@@ -1709,7 +1709,11 @@ def test_pytorch_profiler_trainer_new_api(tmpdir, profiler):
     )
     trainer.fit(model)
 
-    files = sorted(os.listdir(tmpdir))
+    if profiler == PyTorchProfiler:
+        files = os.listdir(tmpdir)
+    else:
+        files = os.listdir(trainer.profiler.path_to_export_trace)
+    files = sorted(list(filter(lambda x: '.json' in x, files)))
     assert 'training_step_and_backward_0' in files[0]
     assert 'validation_step_0' in files[1]
     assert len(files) == 2
