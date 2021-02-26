@@ -92,8 +92,8 @@ def _class_test(
     """
     # Instanciate lightning metric
     metric = metric_class(
-        compute_on_step=check_dist_sync_on_step or check_batch, 
-        dist_sync_on_step=dist_sync_on_step, 
+        compute_on_step=check_dist_sync_on_step or check_batch,
+        dist_sync_on_step=dist_sync_on_step,
         **metric_args
     )
 
