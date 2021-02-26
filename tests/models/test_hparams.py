@@ -562,7 +562,7 @@ class SuperClassPositionalArgs(BoringModel):
 
     def __init__(self, hparams):
         super().__init__()
-        self._hparams = hparams
+        self._hparams = hparams  # pretend BoringModel did not call self.save_hyperparameters()
 
 
 class SubClassVarArgs(SuperClassPositionalArgs):
