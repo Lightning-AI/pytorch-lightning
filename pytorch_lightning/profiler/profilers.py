@@ -18,10 +18,11 @@ import io
 import os
 import pstats
 import time
+from functools import partial
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, Union, Any
 
 import numpy as np
 import torch
@@ -293,6 +294,40 @@ class AdvancedProfiler(BaseProfiler):
         """Close profiler's stream."""
         if self.output_file:
             self.output_file.close()
+
+
+class RegisterRecordFunction:
+
+    def __init__(self, model):
+        self._model = model
+        self._records = {}
+
+    def _start_recording(self, module, input, module_name: str = None, is_built_in: bool = None):
+        if module_name is not None:
+            record_name = module_name if is_built_in else f"{type(module)}: {module_name}"
+            self._records[record_name] = record_function(record_name).__enter__() 
+        return input
+
+    def _stop_recording(self, module, input, result, module_name: str = None, is_built_in: bool = None):
+        if module_name is not None:
+            record_name = module_name if is_built_in else f"{type(module)}: {module_name}"
+            self._records[record_name].__exit__(None, None, None)
+        return result
+
+    def __enter__(self):
+        built_in_modules = dir(torch.nn)
+        for module_name, module in self._model.named_modules():
+            is_built_in = module in built_in_modules
+            module.register_forward_pre_hook(partial(self._start_recording, module_name=module_name, is_built_in=is_built_in))
+            module.register_forward_hook(partial(self._stop_recording, module_name=module_name, is_built_in=is_built_in))
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
+        for module in self._model.modules():
+            module._forward_pre_hooks = []
+            module._forward_hooks = []
+        for record in self._records.values():
+            del record
+        del self._records
 
 
 class LegacyPyTorchProfiler(BaseProfiler):
@@ -614,7 +649,42 @@ class ScheduleWrapper:
 
 
 class PyTorchProfiler(LegacyPyTorchProfiler):
-    pass
+    """
+    This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
+    different operators inside your model - both on the CPU and GPU
+    Args:
+        output_filename: optionally save profile results to file instead of printing
+            to std out when training is finished. When using ``ddp``,
+            each rank will stream the profiled operation to their own file
+            with the extension ``_{rank}.txt``
+        enabled: Setting this to False makes this context manager a no-op.
+        use_cuda: Enables timing of CUDA events as well using the cudaEvent API.
+            Adds approximately 4us of overhead to each tensor operation.
+        record_shapes: If shapes recording is set, information about input dimensions will be collected.
+        profile_memory: Whether to report memory usage, default: True (Introduced in PyTorch 1.6.0)
+        group_by_input_shapes: Include operator input shapes and group calls by shape.
+        with_stack: record source information (file and line number) for the ops (Introduced in PyTorch 1.7.0)
+        use_kineto: experimental support for Kineto profiler (Introduced in PyTorch 1.8.0)
+        use_cpu: use_kineto=True and can be used to lower the overhead
+            for GPU-only profiling (Introduced in PyTorch 1.8.0)
+        emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
+            Run::
+                nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
+            To visualize, you can either use::
+                nvvp trace_name.prof
+                torch.autograd.profiler.load_nvprof(path)
+        export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
+            It will generate a ``.json`` file which can be read by Chrome.
+        path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
+            By default, it will be save where the file being is being run.
+        row_limit: Limit the number of rows in a table, `0` is a special value that
+            removes the limit completely.
+        sort_by_key: Keys to sort out profiled table
+        profiled_functions: list of profiled functions which will create a context manager on.
+            Any other will be pass through.
+        local_rank: When running in distributed setting, local_rank is used for each process
+            to write to their own file if `output_fname` is provided.
+    """
 
 
 if _TORCH_GREATER_EQUAL_1_8:
@@ -644,6 +714,7 @@ if _TORCH_GREATER_EQUAL_1_8:
             group_by_input_shapes: bool = False,
             sort_by_key: Optional[str] = None,
             record_functions: Optional[List] = None,
+            record_module_names: bool = True,
             path_to_export_trace: Optional[str] = None,
             local_rank: Optional[int] = None,
         ):
@@ -740,10 +811,13 @@ if _TORCH_GREATER_EQUAL_1_8:
             # Open an issue with the specified use case.
             self.on_trace_ready = on_trace_ready
             self.udf_on_trace_ready = True if self.on_trace_ready is not None else False
+            self.record_module_names = record_module_names
 
             self.context_names = {}
             self.running_stack = []
             self.profiler = None
+            self.lightning_module = None
+            self.register = None
 
             self.output_fname = output_filename
             self.output_file = None
@@ -760,6 +834,8 @@ if _TORCH_GREATER_EQUAL_1_8:
                 return output_string
 
             self.profiler.__exit__(None, None, None)
+            if self.register is not None:
+                self.register.__exit__(None, None, None)
 
             data = self.profiler.events().key_averages(group_by_input_shapes=self.group_by_input_shapes)
             table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
@@ -772,6 +848,12 @@ if _TORCH_GREATER_EQUAL_1_8:
                 output_string += (f"{linesep}Profile stats for: {action} rank: {local_rank} {linesep}{stats}")
 
             return output_string
+
+        def on_train_start(self, local_rank: Optional[str] = None, log_dir: str = None):
+            super().on_train_start(local_rank=local_rank, log_dir=log_dir)
+            if self.record_module_names and self.lightning_module is not None:
+                self.register = RegisterRecordFunction(self.lightning_module)
+                self.register.__enter__()
 
         def start(self, action_name: str) -> None:
             if action_name == self.START_ACTION:

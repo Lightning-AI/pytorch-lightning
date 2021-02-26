@@ -66,4 +66,6 @@ class ProfilerConnector:
         elif isinstance(trainer.logger, TensorBoardLogger):
             log_dir = trainer.logger.log_dir
 
+        # need a reference to the model to add a record 
+        self.trainer.profiler.lightning_module = self.trainer.lightning_module
         self.trainer.profiler.on_train_start(local_rank=local_rank, log_dir=log_dir)
