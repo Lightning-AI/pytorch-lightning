@@ -21,12 +21,12 @@ from packaging import version
 
 import numpy as np
 import torch
-from torchtext import __version__ as torchtext_version
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHTEXT_AVAILABLE
 
 if _TORCHTEXT_AVAILABLE:
+    from torchtext import __version__ as torchtext_version
     if version.parse(torchtext_version) < version.parse('0.9.0a0+036df73'):
         from torchtext.data import Batch
     else:
