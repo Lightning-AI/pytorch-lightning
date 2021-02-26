@@ -5,7 +5,6 @@ import torch
 from torch.nn import DataParallel
 
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.overrides.base import warning_cache
 from pytorch_lightning.overrides.data_parallel import (
     LightningParallelModule,
     python_scalar_to_tensor,
@@ -13,11 +12,7 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers import BoringModel
-<<<<<<< HEAD
 from tests.helpers.runif import RunIf
-=======
-from tests.helpers.utils import no_warning_call
->>>>>>> no_warning_call
 
 
 @pytest.mark.parametrize("wrapper_class", [
