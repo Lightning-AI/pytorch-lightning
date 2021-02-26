@@ -222,8 +222,6 @@ def add_argparse_args(
         else:
             use_type = arg_types[0]
 
-        # TODO: Defer these to an optional static method, like
-        # `argparse_hacks()`?
         if arg == 'gpus' or arg == 'tpu_cores':
             use_type = _gpus_allowed_type
             arg_default = _gpus_arg_default
