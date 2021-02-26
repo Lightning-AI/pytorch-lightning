@@ -91,7 +91,7 @@ def _class_test(
             calculated across devices for each batch (and not just at the end)
     """
     # Instanciate lightning metric
-    metric = metric_class(compute_on_step=True, dist_sync_on_step=dist_sync_on_step, **metric_args)
+    metric = metric_class(compute_on_step=check_dist_sync_on_step or check_batch, dist_sync_on_step=dist_sync_on_step, **metric_args)
 
     # verify metrics work after being loaded from pickled state
     pickled_metric = pickle.dumps(metric)
@@ -104,14 +104,14 @@ def _class_test(
             if rank == 0:
                 ddp_preds = torch.cat([preds[i + r] for r in range(worldsize)])
                 ddp_target = torch.cat([target[i + r] for r in range(worldsize)])
-                sk_batch_result = sk_metric(ddp_preds, ddp_target)
                 # assert for dist_sync_on_step
                 if check_dist_sync_on_step:
+                    sk_batch_result = sk_metric(ddp_preds, ddp_target)
                     _assert_allclose(batch_result, sk_batch_result, atol=atol)
         else:
-            sk_batch_result = sk_metric(preds[i], target[i])
             # assert for batch
             if check_batch:
+                sk_batch_result = sk_metric(preds[i], target[i])
                 _assert_allclose(batch_result, sk_batch_result, atol=atol)
 
     # check on all batches on all ranks
