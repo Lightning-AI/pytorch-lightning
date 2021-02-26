@@ -478,7 +478,7 @@ class TrainerProperties(ABC):
 
     @property
     def evaluating(self) -> bool:
-        return self._running_stage and self._running_stage.evaluating()
+        return self._running_stage and self._running_stage.evaluating
 
     @property
     def sanity_checking(self) -> bool:

@@ -418,7 +418,7 @@ class Trainer(
 
         """
         # we reuse fit for other functions. When already set, it shouldn't be modified.
-        if not self.state.running():
+        if not self.state.running:
             self.state = TrainerState.FITTING
         if self._running_stage is None:
             self.training = True
@@ -880,7 +880,7 @@ class Trainer(
 
         self.teardown('test')
 
-        assert self.state.stopped()
+        assert self.state.stopped
         self.testing = False
 
         return results
@@ -994,7 +994,7 @@ class Trainer(
         self.model = model
         results = self.fit(model)
 
-        assert self.state.stopped()
+        assert self.state.stopped
         self.predicting = False
 
         return results
@@ -1026,7 +1026,7 @@ class Trainer(
 
         self.tuner.tune(model, train_dataloader, val_dataloaders, datamodule)
 
-        assert self.state.stopped()
+        assert self.state.stopped
         self.tuning = False
 
     def call_setup_hook(self, model):

@@ -36,9 +36,11 @@ class TrainerState(LightningEnum):
     FINISHED = 'FINISHED'
     INTERRUPTED = 'INTERRUPTED'
 
+    @property
     def stopped(self) -> bool:
         return self in (self.FINISHED, self.INTERRUPTED)
 
+    @property
     def running(self) -> bool:
         return self in (self.FITTING, self.VALIDATING, self.TESTING, self.PREDICTING, self.TUNING)
 
@@ -61,5 +63,6 @@ class RunningStage(LightningEnum):
     PREDICTING = 'predict'
     TUNING = 'tune'
 
+    @property
     def evaluating(self) -> bool:
         return self in (self.VALIDATING, self.TESTING)
