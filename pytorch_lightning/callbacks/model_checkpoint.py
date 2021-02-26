@@ -86,26 +86,14 @@ class ModelCheckpoint(Callback):
             if ``save_top_k >= 2`` and the callback is called multiple
             times inside an epoch, the name of the saved file will be
             appended with a version count starting with ``v1``.
-        mode: one of {auto, min, max}.
-            If ``save_top_k != 0``, the decision
-            to overwrite the current save file is made
-            based on either the maximization or the
-            minimization of the monitored quantity. For `val_acc`,
-            this should be `max`, for `val_loss` this should
-            be `min`, etc. In `auto` mode, the direction is
-            automatically inferred from the name of the monitored quantity.
-
-            .. warning::
-               Setting ``mode='auto'`` has been deprecated in v1.1 and will be removed in v1.3.
-
+        mode: one of {min, max}.
+            If ``save_top_k != 0``, the decision to overwrite the current save file is made
+            based on either the maximization or the minimization of the monitored quantity.
+            For ``'val_acc'``, this should be ``'max'``, for ``'val_loss'`` this should be ``'min'``, etc.
         save_weights_only: if ``True``, then only the model's weights will be
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
         period: Interval (number of epochs) between checkpoints.
-        prefix: A string to put at the beginning of checkpoint filename.
-
-            .. warning::
-               This argument has been deprecated in v1.1 and will be removed in v1.3
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -122,7 +110,7 @@ class ModelCheckpoint(Callback):
         MisconfigurationException:
             If ``save_top_k`` is neither ``None`` nor more than or equal to ``-1``,
             if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``, or
-            if ``mode`` is none of ``"min"``, ``"max"``, and ``"auto"``.
+            if ``mode`` is none of ``"min"`` or ``"max"``.
         ValueError:
             If ``trainer.save_checkpoint`` is ``None``.
 
@@ -166,9 +154,8 @@ class ModelCheckpoint(Callback):
         save_last: Optional[bool] = None,
         save_top_k: Optional[int] = None,
         save_weights_only: bool = False,
-        mode: str = "auto",
+        mode: str = "min",
         period: int = 1,
-        prefix: str = "",
     ):
         super().__init__()
         self.monitor = monitor
@@ -178,7 +165,6 @@ class ModelCheckpoint(Callback):
         self.save_weights_only = save_weights_only
         self.period = period
         self._last_global_step_saved = -1
-        self.prefix = prefix
         self.current_score = None
         self.best_k_models = {}
         self.kth_best_model_path = ""
@@ -187,12 +173,6 @@ class ModelCheckpoint(Callback):
         self.last_model_path = ""
         self.save_function = None
         self.warned_result_obj = False
-
-        if prefix:
-            rank_zero_warn(
-                'Argument `prefix` is deprecated in v1.1 and will be removed in v1.3.'
-                ' Please prepend your prefix in `filename` instead.', DeprecationWarning
-            )
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
@@ -211,7 +191,7 @@ class ModelCheckpoint(Callback):
         """
         self.save_checkpoint(trainer, pl_module)
 
-    def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "monitor": self.monitor,
             "best_model_score": self.best_model_score,
@@ -220,9 +200,9 @@ class ModelCheckpoint(Callback):
             "dirpath": self.dirpath
         }
 
-    def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
-        self.best_model_score = checkpointed_state["best_model_score"]
-        self.best_model_path = checkpointed_state["best_model_path"]
+    def on_load_checkpoint(self, callback_state: Dict[str, Any]):
+        self.best_model_score = callback_state["best_model_score"]
+        self.best_model_path = callback_state["best_model_path"]
 
     def save_checkpoint(self, trainer, pl_module):
         """
@@ -300,18 +280,8 @@ class ModelCheckpoint(Callback):
             "max": (-torch_inf, "max"),
         }
 
-        if mode not in mode_dict and mode != 'auto':
-            raise MisconfigurationException(f"`mode` can be auto, {', '.join(mode_dict.keys())}, got {mode}")
-
-        # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
-        if mode == 'auto':
-            rank_zero_warn(
-                "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
-                " Default value for mode with be 'min' in v1.3.", DeprecationWarning
-            )
-
-            _condition = monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
-            mode_dict['auto'] = ((-torch_inf, "max") if _condition else (torch_inf, "min"))
+        if mode not in mode_dict:
+            raise MisconfigurationException(f"`mode` can be {', '.join(mode_dict.keys())} but got {mode}")
 
         self.kth_value, self.mode = mode_dict[mode]
 
@@ -410,7 +380,7 @@ class ModelCheckpoint(Callback):
             'step=0.ckpt'
 
         """
-        filename = self._format_checkpoint_name(self.filename, epoch, step, metrics, prefix=self.prefix)
+        filename = self._format_checkpoint_name(self.filename, epoch, step, metrics)
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
 
@@ -523,7 +493,6 @@ class ModelCheckpoint(Callback):
                 trainer.current_epoch,
                 trainer.global_step,
                 ckpt_name_metrics,
-                prefix=self.prefix
             )
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
         else:

@@ -167,9 +167,6 @@ improve readability and reproducibility.
             def train_dataloader(self):
                 return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
 
-    .. warning:: Deprecated since v1.1.0. This method of assigning hyperparameters to the LightningModule
-        will no longer be supported from v1.3.0. Use the ``self.save_hyperparameters()`` method from above instead.
-
 
 4.  You can also save full objects such as `dict` or `Namespace` to the checkpoint.
 

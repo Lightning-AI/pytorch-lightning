@@ -130,7 +130,7 @@ def test_multiple_val_dataloader(tmpdir):
 
     # make sure predictions are good for each val set
     for dataloader in trainer.val_dataloaders:
-        tpipes.run_prediction(trained_model=model, dataloader=dataloader)
+        tpipes.run_prediction_eval_model_template(trained_model=model, dataloader=dataloader)
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
@@ -153,8 +153,8 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
+        limit_val_batches=10,
+        limit_train_batches=100,
     )
     trainer.fit(model)
     if ckpt_path == 'specific':
@@ -162,12 +162,11 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
     trainer.test(ckpt_path=ckpt_path)
 
     # verify there are 2 test loaders
-    assert len(trainer.test_dataloaders) == 2, \
-        'Multiple test_dataloaders not initiated properly'
+    assert len(trainer.test_dataloaders) == 2, 'Multiple test_dataloaders not initiated properly'
 
     # make sure predictions are good for each test set
     for dataloader in trainer.test_dataloaders:
-        tpipes.run_prediction(trainer.model, dataloader)
+        tpipes.run_prediction_eval_model_template(trainer.model, dataloader)
 
     # run the test method
     trainer.test(ckpt_path=ckpt_path)
