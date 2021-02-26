@@ -767,7 +767,7 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.output_file = None
             if local_rank is not None:
                 super().on_train_start(local_rank=local_rank)
-                self.on_train_start = super(LegacyPyTorchProfiler, self).on_train_start
+                self.on_train_start = super().on_train_start
 
         def summary(self) -> str:
             recorded_stats = {}
