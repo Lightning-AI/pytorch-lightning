@@ -199,129 +199,32 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     assert not failed, "Model should be loaded due to strict=False."
 
 
-@pytest.mark.parametrize(
-    ["schedule", "expected"],
-    [
-        pytest.param({
-            1: 2,
-            3: 4
-        }, [1, 2, 4]),
-        pytest.param(3, [3, 3, 3]),
-        pytest.param(4, [4, 4, 4]),
-    ],
-)
-def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
-    """
-    Test grad accumulation by the freq of optimizer updates
-    """
-
-    # test incorrect configs
-    with pytest.raises(IndexError):
-        assert Trainer(accumulate_grad_batches={-1: 3, 1: 4, 4: 6})
-    with pytest.raises(IndexError):
-        assert Trainer(accumulate_grad_batches={-2: 3})
-
-    with pytest.raises(TypeError):
-        assert Trainer(accumulate_grad_batches={})
-    with pytest.raises(TypeError):
-        assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
-    with pytest.raises(TypeError):
-        assert Trainer(accumulate_grad_batches={1: 2, 3.0: 4})
-    with pytest.raises(TypeError):
-        assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
-
-    model = EvalModelTemplate()
-
-    trainer = Trainer(
-        accumulate_grad_batches=schedule,
-        limit_train_batches=0.7,  # not to be divisible by accumulate_grad_batches on purpose
-        limit_val_batches=0.8,
-        max_epochs=4,
-        default_root_dir=tmpdir,
-    )
-
-    model.old_optimizer_step = model.optimizer_step
-
-    # test optimizer call freq matches scheduler
-    def _optimizer_step(
-        epoch,
-        batch_idx,
-        optimizer,
-        optimizer_idx,
-        second_order_closure=None,
-        on_tpu=False,
-        using_native_amp=False,
-        using_lbfgs=False,
-    ):
-        # only test the first 12 batches in epoch
-        if batch_idx < 12:
-            if epoch == 0:
-                # reset counter when starting epoch
-                if batch_idx == expected[0] - 1:
-                    model.prev_called_batch_idx = expected[0] - 1
-
-                    # use this opportunity to test once
-                    assert trainer.accumulate_grad_batches == expected[0]
-
-                # separate check for last batch with accumulate 1 step
-                if expected[0] == 1 and (batch_idx + 1) == trainer.num_training_batches:
-                    assert batch_idx == model.prev_called_batch_idx
-                elif (batch_idx + 1) == trainer.num_training_batches:
-                    # prev_called_batch_idx - schedule + modulus remainder
-                    assert batch_idx == (model.prev_called_batch_idx - expected[0] + (batch_idx + 1) % expected[0])
-                else:
-                    assert batch_idx == model.prev_called_batch_idx
-                    model.prev_called_batch_idx += expected[0]
-
-            elif 1 <= epoch <= 2:
-                # reset counter when starting epoch
-                if batch_idx == expected[1] - 1:
-                    model.prev_called_batch_idx = expected[1] - 1
-
-                    # use this opportunity to test once
-                    assert trainer.accumulate_grad_batches == expected[1]
-
-                if trainer.num_training_batches == batch_idx + 1:
-                    # prev_called_batch_idx - schedule + modulus remainder
-                    assert batch_idx == (model.prev_called_batch_idx - expected[1] + (batch_idx + 1) % expected[1])
-                else:
-                    assert batch_idx == model.prev_called_batch_idx
-                    model.prev_called_batch_idx += expected[1]
-
-            else:
-                if batch_idx == expected[2] - 1:
-                    model.prev_called_batch_idx = expected[2] - 1
-
-                    # use this opportunity to test once
-                    assert trainer.accumulate_grad_batches == expected[2]
-
-                if (batch_idx + 1) == trainer.num_training_batches:
-                    # prev_called_batch_idx - schedule + modulus remainder
-                    assert batch_idx == (model.prev_called_batch_idx - expected[2] + (batch_idx + 1) % expected[2])
-                else:
-                    assert batch_idx == model.prev_called_batch_idx
-                    model.prev_called_batch_idx += expected[2]
-
-        model.old_optimizer_step(
-            epoch, batch_idx, optimizer, optimizer_idx, second_order_closure, on_tpu, using_native_amp, using_lbfgs
+@pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
+def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batches):
+    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=20,
+            limit_val_batches=1,
+            max_epochs=1,
+            weights_summary=None,
+            accumulate_grad_batches=accumulate_grad_batches,
         )
+        trainer.fit(model)
+
+        assert sgd_zero_grad.call_count == math.ceil(trainer.limit_train_batches / accumulate_grad_batches)
 
 
 @pytest.mark.parametrize(
     ["accumulate_grad_batches", "limit_train_batches"],
     [
-        pytest.param({
-            1: 2,
-            3: 4
-        }, 1.0),
-        pytest.param({
-            1: 2,
-            3: 4
-        }, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
-        pytest.param(3, 1.0),
-        pytest.param(3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
-        pytest.param(4, 1.0),
-        pytest.param(4, 0.7),  # not to be divisible by accumulate_grad_batches on purpose
+        ({1: 2, 3: 4}, 1.0),
+        ({1: 2, 3: 4}, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
+        (3, 1.0),
+        (3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
+        (4, 1.0),
+        (4, 0.7),  # not to be divisible by accumulate_grad_batches on purpose
     ],
 )
 def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_batches, limit_train_batches):
@@ -329,20 +232,19 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
 
     class CurrentModel(BoringModel):
 
-        def on_batch_start(self, batch, batch_idx, dataloader_idx):
+        def on_batch_start(self, *_):
             self.on_train_batch_start_state_dict = self.state_dict()
 
-        def on_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_batch_end(self, outputs, batch, batch_idx, *_):
             self.on_train_batch_start_end_dict = self.state_dict()
             for key in self.on_train_batch_start_end_dict.keys():
+                equal = torch.equal(
+                    self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key]
+                )
                 if (batch_idx + 1) == self.trainer.num_training_batches:
-                    assert torch.equal(
-                        self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key]
-                    )
+                    assert equal
                 else:
-                    assert not torch.equal(
-                        self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key]
-                    )
+                    assert not equal
 
     model = CurrentModel()
 
