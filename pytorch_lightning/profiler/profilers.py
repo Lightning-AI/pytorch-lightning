@@ -295,7 +295,7 @@ class AdvancedProfiler(BaseProfiler):
             self.output_file.close()
 
 
-class LegacyPyTorchProfiler(BaseProfiler):
+class PyTorchProfiler(BaseProfiler):
 
     PROFILED_FUNCTIONS = ("training_step_and_backward", "training_step", "backward", "validation_step", "test_step")
     AVAILABLE_SORT_KEYS = (
@@ -332,36 +332,56 @@ class LegacyPyTorchProfiler(BaseProfiler):
         """
         This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
         different operators inside your model - both on the CPU and GPU
+
         Args:
+
             output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished. When using ``ddp``,
                 each rank will stream the profiled operation to their own file
                 with the extension ``_{rank}.txt``
+
             enabled: Setting this to False makes this context manager a no-op.
+
             use_cuda: Enables timing of CUDA events as well using the cudaEvent API.
                 Adds approximately 4us of overhead to each tensor operation.
+
             record_shapes: If shapes recording is set, information about input dimensions will be collected.
+
             profile_memory: Whether to report memory usage, default: True (Introduced in PyTorch 1.6.0)
+
             group_by_input_shapes: Include operator input shapes and group calls by shape.
+
             with_stack: record source information (file and line number) for the ops (Introduced in PyTorch 1.7.0)
+
             use_kineto: experimental support for Kineto profiler (Introduced in PyTorch 1.8.0)
+
             use_cpu: use_kineto=True and can be used to lower the overhead
                 for GPU-only profiling (Introduced in PyTorch 1.8.0)
+
             emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
                 Run::
+
                     nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
+
                 To visualize, you can either use::
+
                     nvvp trace_name.prof
                     torch.autograd.profiler.load_nvprof(path)
-            export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
+
+            export_to_chrome: Wether to export the sequence of profiled operators for Chrome.
                 It will generate a ``.json`` file which can be read by Chrome.
+
             path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
                 By default, it will be save where the file being is being run.
+
             row_limit: Limit the number of rows in a table, `0` is a special value that
                 removes the limit completely.
+
             sort_by_key: Keys to sort out profiled table
+
             profiled_functions: list of profiled functions which will create a context manager on.
                 Any other will be pass through.
+
             local_rank: When running in distributed setting, local_rank is used for each process
                 to write to their own file if `output_fname` is provided.
         """
@@ -613,13 +633,9 @@ class ScheduleWrapper:
         return action
 
 
-class PyTorchProfiler(LegacyPyTorchProfiler):
-    pass
-
-
 if _TORCH_GREATER_EQUAL_1_8:
 
-    class PyTorchProfiler(LegacyPyTorchProfiler):  # noqa F811
+    class PyTorchProfiler(PyTorchProfiler):  # noqa F811
 
         START_ACTION = "on_fit_start"
         RECORD_FUNCTIONS = ("training_step_and_backward", "training_step", "backward", "validation_step", "test_step")
@@ -648,9 +664,11 @@ if _TORCH_GREATER_EQUAL_1_8:
             local_rank: Optional[int] = None,
         ):
             """
+
             This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
             different operators inside your model - both on the CPU and GPU
-            This relies on the
+            This relies on PyTorch Kineto Project: https://github.com/pytorch/kineto
+
             Args:
                 output_filename: optionally save profile results to file instead of printing
                     to std out when training is finished. When using ``ddp``,
@@ -681,10 +699,12 @@ if _TORCH_GREATER_EQUAL_1_8:
                     It can be used with `chrome://tracing/`. Just load the generated traces.
 
                 export_to_flame_graph: Whether to export the sequence of profiled operators for Flame Graph.
-                    Generate a performance visualization with the following commands:
-                    git clone https://github.com/brendangregg/FlameGraph
-                    cd FlameGraph
-                    ./flamegraph.pl –title “CPU time” –countname “us.” ./lightning_logs/version_{}/{}.stack > a.svg
+                    Generate a performance visualization with the following commands.
+                    Run::
+
+                        git clone https://github.com/brendangregg/FlameGraph
+                        cd FlameGraph
+                        ./flamegraph.pl –title “CPU time” –countname “us.” ./lightning_logs/version_{}/{}.stack > a.svg
 
                 group_by_input_shapes: Include operator input shapes and group calls by shape.
 

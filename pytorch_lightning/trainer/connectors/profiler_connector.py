@@ -62,6 +62,7 @@ class ProfilerConnector:
             for logger in trainer.logger._logger_iterable:
                 if isinstance(logger, TensorBoardLogger):
                     log_dir = logger.log_dir
+                    break
 
         elif isinstance(trainer.logger, TensorBoardLogger):
             log_dir = trainer.logger.log_dir
