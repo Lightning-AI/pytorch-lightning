@@ -196,7 +196,7 @@ class MLFlowLogger(LightningLoggerBase):
         figure.savefig(filename)
         self.experiment.log_artifact(self.run_id, filename, artifact_path="figure_" + name)
 
-        Path(filename).unlink(missing_ok=False)  # delete temporary file
+        Path(filename).unlink()  # delete temporary file
 
         if close:
             plt.close(figure)
