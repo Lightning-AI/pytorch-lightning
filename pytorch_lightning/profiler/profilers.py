@@ -136,8 +136,8 @@ class SimpleProfiler(BaseProfiler):
 
         Raises:
             ValueError:
-                If you attempt to start an action which has already started,
-                If you attempt to stop recording an action which was never started.
+                If you attempt to start an action which has already started, or
+                if you attempt to stop recording an action which was never started.
         """
         self.current_actions = {}
         self.recorded_durations = defaultdict(list)
@@ -388,8 +388,8 @@ class PyTorchProfiler(BaseProfiler):
 
         Raises:
             MisconfigurationException:
-                If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``,
-                If log file is not a ``.txt`` file.
+                If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``, or
+                if log file is not a ``.txt`` file.
             ValueError:
                 If you attempt to stop recording an action which was never started.
         """
