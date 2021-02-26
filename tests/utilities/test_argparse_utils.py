@@ -96,6 +96,12 @@ class AddArgparseArgsExampleClassViaInit:
         pass
 
 
+class AddArgparseArgsExampleClassNoDoc:
+
+    def __init__(self, my_parameter: int = 0):
+        pass
+
+
 def extract_help_text(parser):
     help_str_buffer = io.StringIO()
     parser.print_help(file=help_str_buffer)
@@ -106,6 +112,7 @@ def extract_help_text(parser):
 @pytest.mark.parametrize(["cls", "name"], [
     [AddArgparseArgsExampleClass, "AddArgparseArgsExampleClass"],
     [AddArgparseArgsExampleClassViaInit, "AddArgparseArgsExampleClassViaInit"],
+    [AddArgparseArgsExampleClassNoDoc, "AddArgparseArgsExampleClassNoDoc"],
 ])
 def test_add_argparse_args(cls, name):
     """
@@ -125,7 +132,8 @@ def test_add_argparse_args(cls, name):
     assert "--main_arg" in help_text
     assert f"{name}:" in help_text
     assert "--my_parameter" in help_text
-    assert "A thing" in help_text
+    if cls is not AddArgparseArgsExampleClassNoDoc:
+        assert "A thing" in help_text
 
     fake_argv = ["--main_arg=abc", "--my_parameter=2"]
     args = parser.parse_args(fake_argv)

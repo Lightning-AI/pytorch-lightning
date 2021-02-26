@@ -209,7 +209,7 @@ def add_argparse_args(
         if len(args_and_types) > 0:
             break
 
-    args_help = parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__)
+    args_help = parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__ or "")
 
     for arg, arg_types, arg_default in args_and_types:
         arg_types = [at for at in allowed_types if at in arg_types]
