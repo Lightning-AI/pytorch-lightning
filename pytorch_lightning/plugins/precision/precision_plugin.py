@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Any, Callable, Dict, Generator, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Generator, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 

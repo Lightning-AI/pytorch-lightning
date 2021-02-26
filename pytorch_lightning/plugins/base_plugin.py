@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, Optional, overload, Sequence, Tuple, TYPE_CHECKING, Union
-
-if TYPE_CHECKING:
-    from torch.nn import Module
-    from torch.optim import Optimizer
+from abc import ABC
+from typing import Generator
 
 
 class Plugin(ABC):
