@@ -25,6 +25,9 @@ from pytorch_lightning.metrics import Metric
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
 
+if _PYSYFT_AVAILABLE:
+    from syft.core.pointer.pointer import Pointer
+
 
 class Result(Dict):
 
@@ -464,16 +467,15 @@ class Result(Dict):
             size = sample.size(0)
         elif isinstance(sample, str):
             return len(sample)
+        elif _PYSYFT_AVAILABLE and isinstance(sample, Pointer):
+            sample = sample.get(delete_obj=False)
+            size = Result.unpack_batch_size(sample)
         elif isinstance(sample, dict):
             sample = next(iter(sample.values()), 1)
             size = Result.unpack_batch_size(sample)
         elif isinstance(sample, Iterable):
-            # todo (tudorcebere) Add `.get` call to get batch_size  # noqa E265
-            if _PYSYFT_AVAILABLE:
-                size = 1
-            else:
-                sample = next(iter(sample), 1)
-                size = Result.unpack_batch_size(sample)
+            sample = next(iter(sample), 1)
+            size = Result.unpack_batch_size(sample)
         else:
             size = 1
         return size
