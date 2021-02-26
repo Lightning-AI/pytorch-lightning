@@ -21,7 +21,6 @@ from pytorch_lightning.loggers import NeptuneLogger
 from tests.helpers import BoringModel, plotting
 
 
-
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_online(neptune):
     logger = NeptuneLogger(api_key='test', project_name='project')

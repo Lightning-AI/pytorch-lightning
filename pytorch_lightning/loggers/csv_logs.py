@@ -25,7 +25,6 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-import matplotlib.pyplot as plt
 import torch
 
 from pytorch_lightning.core.saving import save_hparams_to_yaml

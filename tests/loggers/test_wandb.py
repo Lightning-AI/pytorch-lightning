@@ -18,7 +18,6 @@ from argparse import ArgumentParser
 from unittest import mock
 
 import pytest
-import matplotlib.pyplot as plt
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
@@ -111,10 +110,11 @@ def test_wandb_logger_log_figure(wandb, step_idx):
     logger.log_figure('dummy', plotting.dummy_figure(), step_idx, close=True)  # functional test
 
     with mock.patch.object(logger.experiment, 'log') as mock_log:
-            f = plotting.dummy_figure()
-            logger.log_figure('dummy', f, step_idx, close=True)
+        f = plotting.dummy_figure()
+        logger.log_figure('dummy', f, step_idx, close=True)
 
     mock_log.assert_called_once_with({'dummy': wandb.Image(f)}, step=step_idx)
+
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_wandb_pickle(wandb, tmpdir):

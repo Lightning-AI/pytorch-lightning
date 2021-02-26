@@ -184,7 +184,7 @@ class LightningLoggerBase(ABC):
             step: step number at which the figure should be recorded
             close: close figure after logging
         """
-        """Default is silent. 
+        """Default is silent.
         We should not raise NotImplemented because one could have multiple logger where only some support log_figure."""
         if close:
             plt.close(figure)

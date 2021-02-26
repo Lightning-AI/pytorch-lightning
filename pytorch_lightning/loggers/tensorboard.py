@@ -20,7 +20,6 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-import matplotlib.pyplot as plt
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams

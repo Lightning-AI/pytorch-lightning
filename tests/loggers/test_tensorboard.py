@@ -18,7 +18,6 @@ from unittest import mock
 
 import pytest
 import torch
-import matplotlib.pyplot as plt
 import yaml
 from omegaconf import OmegaConf
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
