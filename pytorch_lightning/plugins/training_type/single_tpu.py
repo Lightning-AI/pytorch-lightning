@@ -32,7 +32,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
         return self._model
 
     def model_to_device(self) -> None:
-        self._model.to(self.root_device)
+        self._model = self._model.to(self.root_device)
 
     def pre_dispatch(self) -> None:
         if isinstance(self.device, int):

@@ -42,7 +42,7 @@ class SingleDevicePlugin(TrainingTypePlugin):
         if self.on_gpu:
             torch.cuda.set_device(self.root_device)
 
-        self._model.to(self.root_device)
+        self._model = self._model.to(self.root_device)
 
     def connect(self, model: torch.nn.Module) -> torch.nn.Module:
         self._model = model

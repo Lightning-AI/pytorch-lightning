@@ -26,7 +26,7 @@ def test_deepspeed_lightning_module(tmpdir):
     assert module.dtype == torch.half
     assert model.dtype == torch.half
 
-    module.to(torch.double)
+    module = module.to(torch.double)
     assert module.dtype == torch.double
     assert model.dtype == torch.double
 
@@ -49,7 +49,7 @@ def test_deepspeed_lightning_module_precision(tmpdir):
 
     assert out.dtype == torch.half
 
-    module.to(torch.double)
+    module = module.to(torch.double)
     assert module.dtype == torch.double
     assert model.dtype == torch.double
 

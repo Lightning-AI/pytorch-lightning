@@ -32,7 +32,7 @@ class GPUAccelerator(Accelerator):
 
     def on_train_end(self) -> None:
         # clean up memory
-        self.model.cpu()
+        self.model = self.model.cpu()
         with torch.cuda.device(self.root_device):
             torch.cuda.empty_cache()
 

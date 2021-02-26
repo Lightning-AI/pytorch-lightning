@@ -249,7 +249,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def model_to_device(self):
         if self.root_device.type == "cuda":
             torch.cuda.set_device(self.root_device)
-        self.model.to(self.root_device)
+        self.model = self.model.to(self.root_device)
 
     def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run before precision plugin executes backward"""

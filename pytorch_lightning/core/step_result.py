@@ -431,8 +431,7 @@ class Result(Dict):
 
     def cpu(self) -> 'Result':
         """Move all self attributes to CPU."""
-        self.to(torch.device("cpu"))
-        return self
+        return self.to(torch.device("cpu"))
 
     def __repr__(self):
         self_copy = self.copy()
