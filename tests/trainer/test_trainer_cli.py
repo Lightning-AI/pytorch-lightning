@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-import io
 import pickle
 from argparse import ArgumentParser, Namespace
 from unittest import mock
