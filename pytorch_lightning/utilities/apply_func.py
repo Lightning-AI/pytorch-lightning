@@ -17,6 +17,7 @@ from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
 from typing import Any, Callable, Optional, Union
+from packaging import version
 
 import numpy as np
 import torch
@@ -25,7 +26,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHTEXT_AVAILABLE
 
 if _TORCHTEXT_AVAILABLE:
-    from torchtext.data import Batch
+    if version.parse(torchtext.__version__) < version.parse('0.9.0a0+036df73'):
+        from torchtext.data import Batch
+    else:
+        from torchtext.legacy.data import Batch
 else:
     Batch = type(None)
 
