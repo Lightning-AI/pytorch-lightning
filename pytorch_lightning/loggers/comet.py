@@ -20,6 +20,7 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
+import matplotlib.pyplot as plt
 import torch
 from torch import is_tensor
 
@@ -250,6 +251,13 @@ class CometLogger(LightningLoggerBase):
         epoch = metrics_without_epoch.pop('epoch', None)
         metrics_without_epoch = self._add_prefix(metrics_without_epoch)
         self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
+
+    @rank_zero_only
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
+        self.experiment.log_figure(figure_name=name, figure=figure, step=step)
+
+        if close:
+            plt.close(figure)
 
     def reset_experiment(self):
         self._experiment = None

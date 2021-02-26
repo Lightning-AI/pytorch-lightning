@@ -21,6 +21,7 @@ from argparse import Namespace
 from functools import wraps
 from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
@@ -172,6 +173,20 @@ class LightningLoggerBase(ABC):
             step: Step number at which the metrics should be recorded
         """
         pass
+
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
+        """
+        Logs a matplotlib figure.
+        Args:
+            name: name of the figure
+            figure: plt figure handle
+            step: step number at which the figure should be recorded
+            close: close figure after logging
+        """
+        """Default is silent.
+        Not raising NotImplemented because one could have multiple logger where only some support log_figure."""
+        if close:
+            plt.close(figure)
 
     @staticmethod
     def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
@@ -374,6 +389,15 @@ class LoggerCollection(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         for logger in self._logger_iterable:
             logger.log_metrics(metrics, step)
+
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
+
+        for logger in self._logger_iterable:
+            # don't close in the individual loggers, but once at the end
+            logger.log_figure(name, figure, step=step, close=False)
+
+        if close:
+            plt.close(figure)
 
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         for logger in self._logger_iterable:

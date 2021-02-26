@@ -18,6 +18,7 @@ Neptune Logger
 from argparse import Namespace
 from typing import Any, Dict, Iterable, Optional, Union
 
+import matplotlib.pyplot as plt
 import torch
 from torch import is_tensor
 
@@ -261,6 +262,18 @@ class NeptuneLogger(LightningLoggerBase):
             # `step` is ignored because Neptune expects strictly increasing step values which
             # Lighting does not always guarantee.
             self.log_metric(key, val)
+
+    @rank_zero_only
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
+        if step is not None:
+            description = f"step_{step}"
+        else:
+            description = None
+
+        self.experiment.log_image(name, figure, description=description)
+
+        if close:
+            plt.close(figure)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:

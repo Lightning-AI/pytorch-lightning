@@ -19,7 +19,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, plotting
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
@@ -199,3 +199,23 @@ def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
 
     with pytest.warns(RuntimeWarning, match=f'Discard {key}={value}'):
         logger.log_hyperparams(params)
+
+
+@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
+@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
+@pytest.mark.parametrize("step_idx", [10, None])
+@pytest.mark.parametrize("figure_format", ['.png', '.pdf'])
+def test_mlflow_log_figure(client, mlflow, step_idx, figure_format, tmpdir):
+
+    logger = MLFlowLogger('test', save_dir=tmpdir, figure_file_extension=figure_format)
+    logger.log_figure('dummy', plotting.dummy_figure(), step_idx, close=True)  # functional test
+
+    # test whether figure is closed etc.
+    with mock.patch.object(logger.experiment, 'log_artifact') as mock_log:
+        f = plotting.dummy_figure()
+        logger.log_figure('dummy', f, step_idx, close=True)
+
+    fname_expect = logger.save_dir + f'/dummy_step_{step_idx}{figure_format}'
+    artifact_expect = 'figure_dummy'
+
+    mock_log.assert_called_once_with(logger.run_id, fname_expect, artifact_path=artifact_expect)

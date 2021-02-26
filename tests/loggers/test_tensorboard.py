@@ -24,7 +24,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, plotting
 
 
 @pytest.mark.skipif(
@@ -131,6 +131,19 @@ def test_tensorboard_log_metrics(tmpdir, step_idx):
         "IntTensor": torch.tensor(1),
     }
     logger.log_metrics(metrics, step_idx)
+
+
+@pytest.mark.parametrize("step_idx", [10, None])
+def test_tensorboard_log_figure(tmpdir, step_idx):
+    logger = TensorBoardLogger(tmpdir)
+    logger.log_figure('dummy', plotting.dummy_figure(), step_idx, close=True)  # functional test
+
+    # test whether figure is closed etc.
+    with mock.patch.object(logger.experiment, 'add_figure') as mock_log:
+        f = plotting.dummy_figure()
+        logger.log_figure('dummy', f, step_idx, close=True)
+
+    mock_log.assert_called_once_with(tag="dummy", figure=f, global_step=step_idx, close=True)
 
 
 def test_tensorboard_log_hyperparams(tmpdir):

@@ -19,7 +19,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, plotting
 
 
 def _patch_comet_atexit(monkeypatch):
@@ -222,3 +222,20 @@ def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
     logger = CometLogger(project_name="test", save_dir=tmpdir)
     logger.log_metrics({"test": 1, "epoch": 1}, step=123)
     logger.experiment.log_metrics.assert_called_once_with({"test": 1}, epoch=1, step=123)
+
+
+@patch("pytorch_lightning.loggers.comet.CometExperiment")
+@patch('pytorch_lightning.loggers.comet.comet_ml')
+@pytest.mark.parametrize("step_idx", [10, None])
+def test_comet_log_figure(comet, comet_experiment, tmpdir, monkeypatch, step_idx):
+
+    _patch_comet_atexit(monkeypatch)
+    logger = CometLogger(project_name="test", save_dir=tmpdir)
+    logger.log_figure('dummy', plotting.dummy_figure(), step_idx, close=True)  # functional test
+
+    # test whether figure is closed etc.
+    with patch.object(logger.experiment, 'log_figure') as mock_log:
+        f = plotting.dummy_figure()
+        logger.log_figure('dummy', f, step_idx, close=True)
+
+    mock_log.assert_called_once_with(figure_name='dummy', figure=f, step=step_idx)

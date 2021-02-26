@@ -13,11 +13,12 @@
 # limitations under the License.
 from unittest.mock import MagicMock, patch
 
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, plotting
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
@@ -124,3 +125,17 @@ def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
 
     logger_open_after_fit = _run_training(NeptuneLogger(offline_mode=True, close_after_fit=False))
     assert logger_open_after_fit._experiment.stop.call_count == 0
+
+
+@patch('pytorch_lightning.loggers.neptune.neptune')
+@pytest.mark.parametrize("step_idx", [10, None])
+def test_neptune_log_figure(neptune, step_idx):
+    logger = NeptuneLogger(api_key='test', project_name='project')
+    logger.log_figure('dummy', plotting.dummy_figure(), step=42, close=True)
+
+    with patch.object(logger.experiment, 'log_image') as mock_log:
+        f = plotting.dummy_figure()
+        logger.log_figure('dummy', f, step_idx, close=True)
+
+    mock_log.assert_called_once_with('dummy', f,
+                                     description=f"step_{step_idx}" if step_idx is not None else None)

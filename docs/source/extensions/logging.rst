@@ -290,6 +290,19 @@ in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.util
 
 ----------
 
+***************
+Logging Figures
+***************
+
+When training a model, often it is very indicative to log figures, e.g. of the in- and output.
+For standard matplotlib figures, Lightning has a unified API that works with the implemented loggers.
+
+.. code-block:: python
+    f = plt.figure()
+    logger.log_figure(name='dummy_figure', figure=f, step=0, close=True)
+
+----------
+
 *************
 Snapshot code
 *************

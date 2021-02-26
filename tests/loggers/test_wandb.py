@@ -22,7 +22,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, plotting
 
 
 def get_warnings(recwarn):
@@ -214,3 +214,16 @@ def test_wandb_logger_offline_log_model(wandb, tmpdir):
     """ Test that log_model=True raises an error in offline mode """
     with pytest.raises(MisconfigurationException, match='checkpoints cannot be uploaded in offline mode'):
         _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)
+
+
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+@pytest.mark.parametrize("step_idx", [10, None])
+def test_wandb_logger_log_figure(wandb, step_idx):
+    logger = WandbLogger(anonymous=True, offline=True)
+    logger.log_figure('dummy', plotting.dummy_figure(), step_idx, close=True)  # functional test
+
+    with mock.patch.object(logger.experiment, 'log') as mock_log:
+        f = plotting.dummy_figure()
+        logger.log_figure('dummy', f, step_idx, close=True)
+
+    mock_log.assert_called_once_with({'dummy': wandb.Image(f)}, step=step_idx)

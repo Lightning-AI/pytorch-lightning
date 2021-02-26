@@ -23,7 +23,7 @@ from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, Ten
 from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_only
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, plotting
 
 
 def test_logger_collection():
@@ -72,6 +72,10 @@ class CustomLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics, step):
         self.metrics_logged = metrics
+
+    @rank_zero_only
+    def log_figure(self, name, figure, step):
+        self.figure_logged = figure
 
     @rank_zero_only
     def finalize(self, status):
@@ -164,6 +168,18 @@ def test_multiple_loggers_pickle(tmpdir):
 
     assert trainer2.logger[0].metrics_logged == {"acc": 1.0}
     assert trainer2.logger[1].metrics_logged == {"acc": 1.0}
+
+
+def test_multiple_loggers_figure():
+
+    logger1 = MagicMock()
+    logger2 = MagicMock()
+
+    logger = LoggerCollection([logger1, logger2])
+    logger.log_figure('dummy_figure', plotting.dummy_figure(), 0)
+
+    logger1.log_figure.assert_called_once()
+    logger2.log_figure.assert_called_once()
 
 
 def test_adding_step_key(tmpdir):

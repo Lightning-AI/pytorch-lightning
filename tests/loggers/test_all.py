@@ -25,6 +25,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import (
     CometLogger,
+    CSVLogger,
     MLFlowLogger,
     NeptuneLogger,
     TensorBoardLogger,
@@ -33,7 +34,7 @@ from pytorch_lightning.loggers import (
 )
 from pytorch_lightning.loggers.base import DummyExperiment
 from pytorch_lightning.trainer.states import TrainerState
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, plotting
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
@@ -405,3 +406,26 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
+
+
+@pytest.mark.parametrize("close", [True, False])
+@pytest.mark.parametrize("logger_class", [
+    CometLogger,
+    CSVLogger,
+    MLFlowLogger,
+    NeptuneLogger,
+    TensorBoardLogger,
+    WandbLogger,
+])
+def test_logger_close_figure_all(logger_class, close, tmpdir):
+    f = plotting.dummy_figure()
+
+    logger = _instantiate_logger(logger_class, save_idr=tmpdir)
+
+    with mock.patch('matplotlib.pyplot.close') as plt_close:
+        logger.log_figure('dummy', f, 0, close=close)
+
+    if close:
+        plt_close.assert_called_once_with(f)
+    else:
+        plt_close.assert_not_called()
