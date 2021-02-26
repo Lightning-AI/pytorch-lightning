@@ -401,7 +401,7 @@ class TrainLoop:
         hiddens = None
 
         if isinstance(training_step_output, Pointer):
-            _training_step_output = training_step_output.get(delete_obj=False)
+            training_step_output = training_step_output.get(delete_obj=False)
 
         # handle dict return
         if isinstance(training_step_output, dict):
@@ -410,7 +410,7 @@ class TrainLoop:
             result["extra"] = training_step_output
 
         # handle scalar return
-        elif isinstance(_training_step_output, torch.Tensor):
+        elif isinstance(training_step_output, torch.Tensor):
             loss = training_step_output
             result["extra"] = {}
 
@@ -419,10 +419,7 @@ class TrainLoop:
         result.hiddens = hiddens
 
         # track batch for manual reduction with result
-        if PYSYFT_AVAILABLE:
-            split_batch_size = 1
-        else:
-            split_batch_size = len(split_batch)
+        split_batch_size = len(split_batch)
 
         result.track_batch_size(split_batch_size)
 
@@ -706,7 +703,7 @@ class TrainLoop:
                         self._curr_step_result = self.training_step(
                             split_batch, batch_idx, opt_idx, self.trainer.hiddens
                         )
-
+# MOVE CLOSURE TO THE AST
                     if self._curr_step_result is None:
                         # user decided to skip optimization
                         # make sure to zero grad.

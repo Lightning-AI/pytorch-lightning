@@ -112,7 +112,7 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def start_training(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the training loop
-        self._results = trainer.train()
+q        self._results = trainer.train()
 
     def start_testing(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
