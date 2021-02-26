@@ -15,7 +15,6 @@
 import ast
 import csv
 import inspect
-import logging
 import os
 from argparse import Namespace
 from copy import deepcopy
@@ -26,21 +25,20 @@ from warnings import warn
 import torch
 import yaml
 
-from pytorch_lightning.utilities import AttributeDict, OMEGACONF_AVAILABLE, rank_zero_warn
+from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
-log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
-if OMEGACONF_AVAILABLE:
+if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
     from omegaconf.dictconfig import DictConfig
     from omegaconf.errors import UnsupportedValueType, ValidationError
-
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -100,36 +98,35 @@ class ModelIO(object):
         Return:
             :class:`LightningModule` with loaded weights and hyperparameters (if available).
 
-        Example:
-            .. code-block:: python
+        Example::
 
-                # load weights without mapping ...
-                MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+            # load weights without mapping ...
+            MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
 
-                # or load weights mapping all weights from GPU 1 to GPU 0 ...
-                map_location = {'cuda:1':'cuda:0'}
-                MyLightningModule.load_from_checkpoint(
-                    'path/to/checkpoint.ckpt',
-                    map_location=map_location
-                )
+            # or load weights mapping all weights from GPU 1 to GPU 0 ...
+            map_location = {'cuda:1':'cuda:0'}
+            MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                map_location=map_location
+            )
 
-                # or load weights and hyperparameters from separate files.
-                MyLightningModule.load_from_checkpoint(
-                    'path/to/checkpoint.ckpt',
-                    hparams_file='/path/to/hparams_file.yaml'
-                )
+            # or load weights and hyperparameters from separate files.
+            MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                hparams_file='/path/to/hparams_file.yaml'
+            )
 
-                # override some of the params with new values
-                MyLightningModule.load_from_checkpoint(
-                    PATH,
-                    num_layers=128,
-                    pretrained_ckpt_path: NEW_PATH,
-                )
+            # override some of the params with new values
+            MyLightningModule.load_from_checkpoint(
+                PATH,
+                num_layers=128,
+                pretrained_ckpt_path: NEW_PATH,
+            )
 
-                # predict
-                pretrained_model.eval()
-                pretrained_model.freeze()
-                y_hat = pretrained_model(x)
+            # predict
+            pretrained_model.eval()
+            pretrained_model.freeze()
+            y_hat = pretrained_model(x)
         """
         if map_location is not None:
             checkpoint = pl_load(checkpoint_path, map_location=map_location)
@@ -181,7 +178,9 @@ class ModelIO(object):
             cls_kwargs_loaded.update(checkpoint.get(_new_hparam_key))
 
             # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
-            cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+            cls_kwargs_loaded = _convert_loaded_hparams(
+                cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE)
+            )
 
             # 4. Update cls_kwargs_new with cls_kwargs_old, such that new has higher priority
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
@@ -350,9 +349,9 @@ def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict
         return {}
 
     with fs.open(config_yaml, "r") as fp:
-        hparams = yaml.full_load(fp)
+        hparams = yaml.load(fp, Loader=yaml.UnsafeLoader)
 
-    if OMEGACONF_AVAILABLE:
+    if _OMEGACONF_AVAILABLE:
         if use_omegaconf:
             try:
                 return OmegaConf.create(hparams)
@@ -378,7 +377,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         hparams = dict(hparams)
 
     # saving with OmegaConf objects
-    if OMEGACONF_AVAILABLE:
+    if _OMEGACONF_AVAILABLE:
         # deepcopy: hparams from user shouldn't be resolved
         hparams = deepcopy(hparams)
         to_container = partial(OmegaConf.to_container, resolve=True)
@@ -390,13 +389,15 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
             except (UnsupportedValueType, ValidationError):
                 pass
 
-    assert isinstance(hparams, dict)
+    if not isinstance(hparams, dict):
+        raise TypeError("hparams must be dictionary")
+
     hparams_allowed = {}
     # drop paramaters which contain some strange datatypes as fsspec
     for k, v in hparams.items():
         try:
             yaml.dump(v)
-        except TypeError as err:
+        except TypeError:
             warn(f"Skipping '{k}' parameter because it is not possible to safely dump to YAML.")
             hparams[k] = type(v).__name__
         else:

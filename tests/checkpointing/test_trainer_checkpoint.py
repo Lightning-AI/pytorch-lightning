@@ -11,16 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 import os
+from copy import deepcopy
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities.cloud_io import load as pl_load
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 def test_finetuning_with_resume_from_checkpoint(tmpdir):

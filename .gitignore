@@ -16,6 +16,7 @@ test_tube_exp/
 docs/source/api
 docs/source/*.md
 docs/source/generated
+docs/source/*/generated
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -145,3 +146,14 @@ pytorch\ lightning
 test-reports/
 wandb
 .forked/
+*.prof
+*.tar.gz
+
+# dataset generated from bolts in examples.
+cifar-10-batches-py
+*.pt
+# ctags
+tags
+data
+MNIST
+runs

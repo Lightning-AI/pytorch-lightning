@@ -15,10 +15,7 @@ from typing import Any, Optional
 
 import torch
 
-from pytorch_lightning.metrics.functional.f_beta import (
-    _fbeta_update,
-    _fbeta_compute
-)
+from pytorch_lightning.metrics.functional.f_beta import _fbeta_compute, _fbeta_update
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -32,7 +29,7 @@ class FBeta(Metric):
         {(\beta^2 * \text{precision}) + \text{recall}}
 
     Where :math:`\beta` is some positive real factor. Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
+    Accepts probabilities from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
 
     Forward accepts
@@ -40,8 +37,8 @@ class FBeta(Metric):
     - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
     - ``target`` (long tensor): ``(N, ...)``
 
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument
+    to convert into integer labels. This is the case for binary and multi-label probabilities.
 
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
@@ -49,14 +46,14 @@ class FBeta(Metric):
         num_classes: Number of classes in the dataset.
         beta: Beta coefficient in the F measure.
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
+            Threshold value for binary or multi-label probabilities. default: 0.5
 
         average:
             - ``'micro'`` computes metric globally
             - ``'macro'`` computes metric for each class and uniformly averages them
             - ``'weighted'`` computes metric for each class and does a weighted-average,
               where each class is weighted by their support (accounts for class imbalance)
-            - ``'none'`` computes and returns the metric per class
+            - ``'none'`` or ``None`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
@@ -90,7 +87,9 @@ class FBeta(Metric):
         process_group: Optional[Any] = None,
     ):
         super().__init__(
-            compute_on_step=compute_on_step, dist_sync_on_step=dist_sync_on_step, process_group=process_group,
+            compute_on_step=compute_on_step,
+            dist_sync_on_step=dist_sync_on_step,
+            process_group=process_group,
         )
 
         self.num_classes = num_classes
@@ -99,10 +98,12 @@ class FBeta(Metric):
         self.average = average
         self.multilabel = multilabel
 
-        allowed_average = ("micro", "macro", "weighted", None)
+        allowed_average = ("micro", "macro", "weighted", "none", None)
         if self.average not in allowed_average:
-            raise ValueError('Argument `average` expected to be one of the following:'
-                             f' {allowed_average} but got {self.average}')
+            raise ValueError(
+                'Argument `average` expected to be one of the following:'
+                f' {allowed_average} but got {self.average}'
+            )
 
         self.add_state("true_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
         self.add_state("predicted_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
@@ -128,35 +129,8 @@ class FBeta(Metric):
         """
         Computes fbeta over state.
         """
-        return _fbeta_compute(self.true_positives, self.predicted_positives,
-                              self.actual_positives, self.beta, self.average)
-
-
-# todo: remove in v1.2
-class Fbeta(FBeta):
-    r"""
-    Computes `F-score <https://en.wikipedia.org/wiki/F-score>`_
-
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.classification.f_beta.FBeta`
-    """
-    def __init__(
-        self,
-        num_classes: int,
-        beta: float = 1.0,
-        threshold: float = 0.5,
-        average: str = "micro",
-        multilabel: bool = False,
-        compute_on_step: bool = True,
-        dist_sync_on_step: bool = False,
-        process_group: Optional[Any] = None,
-    ):
-        rank_zero_warn(
-            "This `Fbeta` was deprecated in v1.0.x in favor of"
-            " `from pytorch_lightning.metrics.classification.f_beta import FBeta`."
-            " It will be removed in v1.2.0", DeprecationWarning
-        )
-        super().__init__(
-            num_classes, beta, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group
+        return _fbeta_compute(
+            self.true_positives, self.predicted_positives, self.actual_positives, self.beta, self.average
         )
 
 
@@ -189,7 +163,7 @@ class F1(FBeta):
             - ``'macro'`` computes metric for each class and uniformly averages them
             - ``'weighted'`` computes metric for each class and does a weighted-average,
               where each class is weighted by their support (accounts for class imbalance)
-            - ``'none'`` computes and returns the metric per class
+            - ``'none'`` or ``None`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
@@ -219,6 +193,9 @@ class F1(FBeta):
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
     ):
+        if multilabel is not False:
+            rank_zero_warn(f'The `multilabel={multilabel}` parameter is unused and will not have any effect.')
+
         super().__init__(
             num_classes=num_classes,
             beta=1.0,

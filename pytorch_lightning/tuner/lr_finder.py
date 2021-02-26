@@ -14,8 +14,8 @@
 import importlib
 import logging
 import os
-from typing import List, Optional, Sequence, Union, Callable
 from functools import wraps
+from typing import Callable, List, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -27,10 +27,10 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -42,58 +42,48 @@ else:
 log = logging.getLogger(__name__)
 
 
-def _run_lr_finder_internally(trainer, model: LightningModule):
-    """ Call lr finder internally during Trainer.fit() """
-    lr_finder = lr_find(trainer, model)
-
-    if lr_finder is None:
-        return
-
-    lr = lr_finder.suggestion()
-
-    # TODO: log lr.results to self.logger
+def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
     if isinstance(trainer.auto_lr_find, str):
-        # Try to find requested field, may be nested
-        if lightning_hasattr(model, trainer.auto_lr_find):
-            lightning_setattr(model, trainer.auto_lr_find, lr)
-        else:
+        if not lightning_hasattr(model, trainer.auto_lr_find):
             raise MisconfigurationException(
                 f'`auto_lr_find` was set to {trainer.auto_lr_find}, however'
-                ' could not find this as a field in `model` or `model.hparams`.')
-    else:
-        if lightning_hasattr(model, 'lr'):
-            lightning_setattr(model, 'lr', lr)
-        elif lightning_hasattr(model, 'learning_rate'):
-            lightning_setattr(model, 'learning_rate', lr)
-        else:
-            raise MisconfigurationException(
-                'When auto_lr_find is set to True, expects that `model` or'
-                ' `model.hparams` either has field `lr` or `learning_rate`'
-                ' that can overridden')
-    log.info(f'Learning rate set to {lr}')
+                ' could not find this as a field in `model` or `model.hparams`.'
+            )
+        return trainer.auto_lr_find
+
+    attr_options = ('lr', 'learning_rate')
+    for attr in attr_options:
+        if lightning_hasattr(model, attr):
+            return attr
+
+    raise MisconfigurationException(
+        'When `auto_lr_find=True`, either `model` or `model.hparams` should'
+        f' have one of these fields: {attr_options} overridden.'
+    )
 
 
 def lr_find(
-        trainer,
-        model: LightningModule,
-        train_dataloader: Optional[DataLoader] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        min_lr: float = 1e-8,
-        max_lr: float = 1,
-        num_training: int = 100,
-        mode: str = 'exponential',
-        early_stop_threshold: float = 4.0,
-        datamodule: Optional[LightningDataModule] = None,
+    trainer,
+    model: LightningModule,
+    train_dataloader: Optional[DataLoader] = None,
+    val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+    min_lr: float = 1e-8,
+    max_lr: float = 1,
+    num_training: int = 100,
+    mode: str = 'exponential',
+    early_stop_threshold: float = 4.0,
+    datamodule: Optional[LightningDataModule] = None,
+    update_attr: bool = False,
 ):
     r"""
-    `lr_find` enables the user to do a range test of good initial learning rates,
+    ``lr_find`` enables the user to do a range test of good initial learning rates,
     to reduce the amount of guesswork in picking a good starting learning rate.
 
     Args:
         model: Model to do range testing for
 
         train_dataloader: A PyTorch
-            `DataLoader` with training samples. If the model has
+            ``DataLoader`` with training samples. If the model has
             a predefined train_dataloader method, this will be skipped.
 
         min_lr: minimum learning rate to investigate
@@ -102,19 +92,21 @@ def lr_find(
 
         num_training: number of learning rates to test
 
-        mode: search strategy, either 'linear' or 'exponential'. If set to
-            'linear' the learning rate will be searched by linearly increasing
-            after each batch. If set to 'exponential', will increase learning
-            rate exponentially.
+        mode: Search strategy to update learning rate after each batch:
+
+            - ``'exponential'`` (default): Will increase the learning rate exponentially.
+            - ``'linear'``: Will increase the learning rate linearly.
 
         early_stop_threshold: threshold for stopping the search. If the
             loss at any point is larger than early_stop_threshold*best_loss
             then the search is stopped. To disable, set to None.
 
-        datamodule: An optional `LightningDataModule` which holds the training
-            and validation dataloader(s). Note that the `train_dataloader` and
-            `val_dataloaders` parameters cannot be used at the same time as
-            this parameter, or a `MisconfigurationException` will be raised.
+        datamodule: An optional ``LightningDataModule`` which holds the training
+            and validation dataloader(s). Note that the ``train_dataloader`` and
+            ``val_dataloaders`` parameters cannot be used at the same time as
+            this parameter, or a ``MisconfigurationException`` will be raised.
+
+        update_attr: Whether to update the learning rate attribute or not.
 
 
     Example::
@@ -142,6 +134,10 @@ def lr_find(
         rank_zero_warn('Skipping learning rate finder since fast_dev_run is enabled.', UserWarning)
         return
 
+    # Determine lr attr
+    if update_attr:
+        lr_attr_name = _determine_lr_attr_name(trainer, model)
+
     save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp_model.ckpt')
 
     __lr_finder_dump_params(trainer, model)
@@ -153,9 +149,7 @@ def lr_find(
     lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
     # Use special lr logger callback
-    trainer.callbacks = [_LRCallback(num_training,
-                                     early_stop_threshold,
-                                     progress_bar_refresh_rate=1)]
+    trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
 
     # No logging
     trainer.logger = DummyLogger()
@@ -178,23 +172,19 @@ def lr_find(
     model.configure_optimizers = lr_finder._exchange_scheduler(model.configure_optimizers)
 
     # Fit, lr & loss logged in callback
-    trainer.fit(model,
-                train_dataloader=train_dataloader,
-                val_dataloaders=val_dataloaders,
-                datamodule=datamodule)
+    trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule)
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:
         log.info('LR finder stopped early due to diverging loss.')
 
     # Transfer results from callback to lr finder object
-    lr_finder.results.update({'lr': trainer.callbacks[0].lrs,
-                              'loss': trainer.callbacks[0].losses})
+    lr_finder.results.update({'lr': trainer.callbacks[0].lrs, 'loss': trainer.callbacks[0].losses})
     lr_finder._total_batch_idx = trainer.total_batch_idx  # for debug purpose
 
     # Reset model state
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer._device_type == DeviceType.GPU)
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)
@@ -203,6 +193,14 @@ def lr_find(
     __lr_finder_restore_params(trainer, model)
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.enable()
+
+    # Update lr attr if required
+    if update_attr:
+        lr = lr_finder.suggestion()
+
+        # TODO: log lr.results to self.logger
+        lightning_setattr(model, lr_attr_name, lr)
+        log.info(f'Learning rate set to {lr}')
 
     return lr_finder
 
@@ -253,6 +251,7 @@ class _LRFinder(object):
         # Get suggestion
         lr = lr_finder.suggestion()
     """
+
     def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
         assert mode in ('linear', 'exponential'), \
             'mode should be either `linear` or `exponential`'
@@ -270,6 +269,7 @@ class _LRFinder(object):
             originally specified optimizer together with a new scheduler that
             that takes care of the learning rate search.
         """
+
         @wraps(configure_optimizers)
         def func():
             # Decide the structure of the output from configure_optimizers
@@ -290,7 +290,8 @@ class _LRFinder(object):
             if len(optimizers) != 1:
                 raise MisconfigurationException(
                     f'`model.configure_optimizers()` returned {len(optimizers)}, but'
-                    ' learning rate finder only works with single optimizer')
+                    ' learning rate finder only works with single optimizer'
+                )
 
             optimizer = optimizers[0]
 
@@ -302,8 +303,7 @@ class _LRFinder(object):
             args = (optimizer, self.lr_max, self.num_training)
             scheduler = _LinearLR(*args) if self.mode == 'linear' else _ExponentialLR(*args)
 
-            return [optimizer], [{'scheduler': scheduler,
-                                  'interval': 'step'}]
+            return [optimizer], [{'scheduler': scheduler, 'interval': 'step'}]
 
         return func
 
@@ -331,8 +331,7 @@ class _LRFinder(object):
         if suggest:
             _ = self.suggestion()
             if self._optimal_idx:
-                ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx],
-                        markersize=10, marker='o', color='red')
+                ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx], markersize=10, marker='o', color='red')
 
         if show:
             plt.show()
@@ -355,6 +354,7 @@ class _LRFinder(object):
             min_grad = np.gradient(loss).argmin()
             self._optimal_idx = min_grad + skip_begin
             return self.results["lr"][self._optimal_idx]
+        # todo: specify the possible exception
         except Exception:
             log.exception('Failed to compute suggesting for `lr`. There might not be enough points.')
             self._optimal_idx = None
@@ -377,10 +377,14 @@ class _LRCallback(Callback):
             if ``beta=0`` all past information is ignored.
 
     """
-    def __init__(self, num_training: int,
-                 early_stop_threshold: float = 4.0,
-                 progress_bar_refresh_rate: int = 0,
-                 beta: float = 0.98):
+
+    def __init__(
+        self,
+        num_training: int,
+        early_stop_threshold: float = 4.0,
+        progress_bar_refresh_rate: int = 0,
+        beta: float = 0.98
+    ):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
@@ -446,11 +450,7 @@ class _LinearLR(_LRScheduler):
     last_epoch: int
     base_lrs: Sequence
 
-    def __init__(self,
-                 optimizer: torch.optim.Optimizer,
-                 end_lr: float,
-                 num_iter: int,
-                 last_epoch: int = -1):
+    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_LinearLR, self).__init__(optimizer, last_epoch)
@@ -488,11 +488,7 @@ class _ExponentialLR(_LRScheduler):
     last_epoch: int
     base_lrs: Sequence
 
-    def __init__(self,
-                 optimizer: torch.optim.Optimizer,
-                 end_lr: float,
-                 num_iter: int,
-                 last_epoch: int = -1):
+    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)
@@ -502,7 +498,7 @@ class _ExponentialLR(_LRScheduler):
         r = curr_iter / self.num_iter
 
         if self.last_epoch > 0:
-            val = [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
+            val = [base_lr * (self.end_lr / base_lr)**r for base_lr in self.base_lrs]
         else:
             val = [base_lr for base_lr in self.base_lrs]
         self._lr = val

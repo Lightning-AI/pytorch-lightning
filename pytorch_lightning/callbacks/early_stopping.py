@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""
 Early Stopping
 ^^^^^^^^^^^^^^
@@ -19,15 +18,14 @@ Early Stopping
 Monitor a metric and stop training when it stops improving.
 
 """
-import numbers
-import os
+from typing import Any, Dict
 
 import numpy as np
 import torch
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn, TPU_AVAILABLE
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class EarlyStopping(Callback):
@@ -43,19 +41,20 @@ class EarlyStopping(Callback):
         patience: number of validation epochs with no improvement
             after which training will be stopped. Default: ``3``.
         verbose: verbosity mode. Default: ``False``.
-        mode: one of {auto, min, max}. In `min` mode,
+        mode: one of ``'min'``, ``'max'``. In ``'min'`` mode,
             training will stop when the quantity
-            monitored has stopped decreasing; in `max`
+            monitored has stopped decreasing and in ``'max'``
             mode it will stop when the quantity
-            monitored has stopped increasing; in `auto`
-            mode, the direction is automatically inferred
-            from the name of the monitored quantity.
-
-            .. warning::
-               Setting ``mode='auto'`` has been deprecated in v1.1 and will be removed in v1.3.
+            monitored has stopped increasing.
 
         strict: whether to crash the training if `monitor` is
             not found in the validation metrics. Default: ``True``.
+
+    Raises:
+        MisconfigurationException:
+            If ``mode`` is none of ``"min"`` or ``"max"``.
+        RuntimeError:
+            If the metric ``monitor`` is not available.
 
     Example::
 
@@ -75,7 +74,7 @@ class EarlyStopping(Callback):
         min_delta: float = 0.0,
         patience: int = 3,
         verbose: bool = False,
-        mode: str = 'auto',
+        mode: str = 'min',
         strict: bool = True,
     ):
         super().__init__()
@@ -88,47 +87,22 @@ class EarlyStopping(Callback):
         self.stopped_epoch = 0
         self.mode = mode
         self.warned_result_obj = False
-        # Indicates, if eval results are used as basis for early stopping
-        # It is set to False initially and overwritten, if eval results have been validated
-        self.based_on_eval_results = False
 
-        self.__init_monitor_mode()
+        if self.mode not in self.mode_dict:
+            raise MisconfigurationException(f"`mode` can be {', '.join(self.mode_dict.keys())}, got {self.mode}")
 
         self.min_delta *= 1 if self.monitor_op == torch.gt else -1
         torch_inf = torch.tensor(np.Inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
-    def __init_monitor_mode(self):
-        # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
-        if self.mode not in self.mode_dict and self.mode != 'auto':
-            if self.verbose > 0:
-                rank_zero_warn(
-                    f'EarlyStopping mode={self.mode} is unknown, fallback to auto mode.',
-                    RuntimeWarning,
-                )
-            self.mode = 'auto'
-
-        if self.mode == 'auto':
-            rank_zero_warn(
-                "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
-                " Default value for mode with be 'min' in v1.3.",
-                DeprecationWarning
-            )
-
-            if "acc" in self.monitor or self.monitor.startswith("fmeasure"):
-                self.mode = 'max'
-            else:
-                self.mode = 'min'
-
-            if self.verbose > 0:
-                rank_zero_info(f'EarlyStopping mode set to {self.mode} for monitoring {self.monitor}.')
-
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
 
-        error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
-                     f' which is not available. Pass in or modify your `EarlyStopping` callback to use any of the'
-                     f' following: `{"`, `".join(list(logs.keys()))}`')
+        error_msg = (
+            f'Early stopping conditioned on metric `{self.monitor}` which is not available.'
+            ' Pass in or modify your `EarlyStopping` callback to use any of the following:'
+            f' `{"`, `".join(list(logs.keys()))}`'
+        )
 
         if monitor_val is None:
             if self.strict:
@@ -144,7 +118,7 @@ class EarlyStopping(Callback):
     def monitor_op(self):
         return self.mode_dict[self.mode]
 
-    def on_save_checkpoint(self, trainer, pl_module):
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
             'wait_count': self.wait_count,
             'stopped_epoch': self.stopped_epoch,
@@ -152,29 +126,14 @@ class EarlyStopping(Callback):
             'patience': self.patience
         }
 
-    def on_load_checkpoint(self, checkpointed_state):
-        self.wait_count = checkpointed_state['wait_count']
-        self.stopped_epoch = checkpointed_state['stopped_epoch']
-        self.best_score = checkpointed_state['best_score']
-        self.patience = checkpointed_state['patience']
+    def on_load_checkpoint(self, callback_state: Dict[str, Any]):
+        self.wait_count = callback_state['wait_count']
+        self.stopped_epoch = callback_state['stopped_epoch']
+        self.best_score = callback_state['best_score']
+        self.patience = callback_state['patience']
 
     def on_validation_end(self, trainer, pl_module):
         if trainer.running_sanity_check:
-            return
-
-        self._run_early_stopping_check(trainer, pl_module)
-
-    def on_validation_epoch_end(self, trainer, pl_module):
-        if trainer.fast_dev_run or trainer.running_sanity_check:
-            return
-
-        if self._validate_condition_metric(trainer.callback_metrics):
-            # turn off early stopping in on_train_epoch_end
-            self.based_on_eval_results = True
-
-    def on_train_epoch_end(self, trainer, pl_module, outputs):
-        # disable early stopping in train loop when there's a val loop
-        if self.based_on_eval_results:
             return
 
         self._run_early_stopping_check(trainer, pl_module)
@@ -197,26 +156,15 @@ class EarlyStopping(Callback):
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
 
-        if current is not None:
-            if isinstance(current, Metric):
-                current = current.compute()
-            elif isinstance(current, numbers.Number):
-                current = torch.tensor(current, device=pl_module.device, dtype=torch.float)
-
-        if trainer.use_tpu and TPU_AVAILABLE:
-            current = current.cpu()
-
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
             self.wait_count = 0
         else:
             self.wait_count += 1
-            should_stop = self.wait_count >= self.patience
 
-            if bool(should_stop):
+            if self.wait_count >= self.patience:
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
 
         # stop every ddp process if any world process decides to stop
-        should_stop = trainer.accelerator_backend.early_stopping_should_stop(pl_module)
-        trainer.should_stop = should_stop
+        trainer.should_stop = trainer.training_type_plugin.reduce_early_stopping_decision(trainer.should_stop)

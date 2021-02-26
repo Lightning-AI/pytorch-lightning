@@ -16,20 +16,18 @@
 MLflow Logger
 -------------
 """
-import logging
 import re
 from argparse import Namespace
 from time import time
-from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
-
 import matplotlib.pyplot as plt
+from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, _module_available
+from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
 
-log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
+
 _MLFLOW_AVAILABLE = _module_available("mlflow")
 try:
     import mlflow
@@ -82,9 +80,10 @@ class MLFlowLogger(LightningLoggerBase):
             Defaults to `./mlflow` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
         prefix: A string to put at the beginning of metric keys.
-        figure_file_extension: File extension that is interpretable by
-            matplotlib, will be the one that the artifact is saved with.
 
+    Raises:
+        ImportError:
+            If required MLFlow package is not installed on the device.
     """
 
     LOGGER_JOIN_CHAR = '-'
@@ -96,11 +95,12 @@ class MLFlowLogger(LightningLoggerBase):
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
-        figure_file_extension: str = '.png',
     ):
         if mlflow is None:
-            raise ImportError('You want to use `mlflow` logger which is not installed yet,'
-                              ' install it with `pip install mlflow`.')
+            raise ImportError(
+                'You want to use `mlflow` logger which is not installed yet,'
+                ' install it with `pip install mlflow`.'
+            )
         super().__init__()
         if not tracking_uri:
             tracking_uri = f'{LOCAL_FILE_URI_PREFIX}{save_dir}'
@@ -112,7 +112,6 @@ class MLFlowLogger(LightningLoggerBase):
         self.tags = tags
         self._prefix = prefix
         self._mlflow_client = MlflowClient(tracking_uri)
-        self._figure_file_extension = figure_file_extension
 
     @property
     @rank_zero_experiment
@@ -156,6 +155,12 @@ class MLFlowLogger(LightningLoggerBase):
         params = self._convert_params(params)
         params = self._flatten_dict(params)
         for k, v in params.items():
+            if len(str(v)) > 250:
+                rank_zero_warn(
+                    f"Mlflow only allows parameters with up to 250 characters. Discard {k}={v}", RuntimeWarning
+                )
+                continue
+
             self.experiment.log_param(self.run_id, k, v)
 
     @rank_zero_only

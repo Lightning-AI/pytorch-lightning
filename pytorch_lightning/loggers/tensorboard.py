@@ -11,31 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 TensorBoard Logger
 ------------------
 """
 
-import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
+import matplotlib.pyplot as plt
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
-import matplotlib.pyplot as plt
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, OMEGACONF_AVAILABLE
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
-log = logging.getLogger(__name__)
-
-if OMEGACONF_AVAILABLE:
+if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
 
@@ -165,7 +162,7 @@ class TensorBoardLogger(LightningLoggerBase):
         params = self._convert_params(params)
 
         # store params to output
-        if OMEGACONF_AVAILABLE and isinstance(params, Container):
+        if _OMEGACONF_AVAILABLE and isinstance(params, Container):
             self.hparams = OmegaConf.merge(self.hparams, params)
         else:
             self.hparams.update(params)
@@ -203,13 +200,10 @@ class TensorBoardLogger(LightningLoggerBase):
             else:
                 try:
                     self.experiment.add_scalar(k, v, step)
-                except Exception as e:
+                # todo: specify the possible exception
+                except Exception as ex:
                     m = f'\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
-                    type(e)(e.message + m)
-
-    @rank_zero_only
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
-        self.experiment.add_figure(tag=name, figure=figure, global_step=step, close=close)
+                    type(ex)(ex.message + m)
 
     @rank_zero_only
     def log_graph(self, model: LightningModule, input_array=None):
@@ -218,26 +212,25 @@ class TensorBoardLogger(LightningLoggerBase):
                 input_array = model.example_input_array
 
             if input_array is not None:
-                input_array = model.transfer_batch_to_device(input_array, model.device)
+                input_array = model._apply_batch_transfer_handler(input_array)
                 self.experiment.add_graph(model, input_array)
             else:
-                rank_zero_warn('Could not log computational graph since the'
-                               ' `model.example_input_array` attribute is not set'
-                               ' or `input_array` was not given',
-                               UserWarning)
+                rank_zero_warn(
+                    'Could not log computational graph since the'
+                    ' `model.example_input_array` attribute is not set'
+                    ' or `input_array` was not given', UserWarning
+                )
 
     @rank_zero_only
     def save(self) -> None:
         super().save()
         dir_path = self.log_dir
-        if not self._fs.isdir(dir_path):
-            dir_path = self.save_dir
 
         # prepare the file path
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
-        # save the metatags file if it doesn't exist
-        if not self._fs.isfile(hparams_file):
+        # save the metatags file if it doesn't exist and the log directory exists
+        if self._fs.isdir(dir_path) and not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only

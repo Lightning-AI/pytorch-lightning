@@ -43,6 +43,7 @@ class Generator(nn.Module):
       (model): Sequential(...)
     )
     """
+
     def __init__(self, latent_dim: int = 100, img_shape: tuple = (1, 28, 28)):
         super().__init__()
         self.img_shape = img_shape
@@ -60,7 +61,7 @@ class Generator(nn.Module):
             *block(256, 512),
             *block(512, 1024),
             nn.Linear(1024, int(np.prod(img_shape))),
-            nn.Tanh()
+            nn.Tanh(),
         )
 
     def forward(self, z):
@@ -76,6 +77,7 @@ class Discriminator(nn.Module):
       (model): Sequential(...)
     )
     """
+
     def __init__(self, img_shape):
         super().__init__()
 
@@ -106,13 +108,14 @@ class GAN(LightningModule):
       )
     )
     """
+
     def __init__(
-            self,
-            img_shape: tuple = (1, 28, 28),
-            lr: float = 0.0002,
-            b1: float = 0.5,
-            b2: float = 0.999,
-            latent_dim: int = 100,
+        self,
+        img_shape: tuple = (1, 28, 28),
+        lr: float = 0.0002,
+        b1: float = 0.5,
+        b2: float = 0.999,
+        latent_dim: int = 100,
     ):
         super().__init__()
 
@@ -130,12 +133,9 @@ class GAN(LightningModule):
     def add_argparse_args(parent_parser: ArgumentParser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
-        parser.add_argument("--b1", type=float, default=0.5,
-                            help="adam: decay of first order momentum of gradient")
-        parser.add_argument("--b2", type=float, default=0.999,
-                            help="adam: decay of second order momentum of gradient")
-        parser.add_argument("--latent_dim", type=int, default=100,
-                            help="dimensionality of the latent space")
+        parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
+        parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of second order momentum of gradient")
+        parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
 
         return parser
 
@@ -180,8 +180,7 @@ class GAN(LightningModule):
             fake = torch.zeros(imgs.size(0), 1)
             fake = fake.type_as(imgs)
 
-            fake_loss = self.adversarial_loss(
-                self.discriminator(self(z).detach()), fake)
+            fake_loss = self.adversarial_loss(self.discriminator(self(z).detach()), fake)
 
             # discriminator loss is the average of these
             d_loss = (real_loss + fake_loss) / 2
@@ -213,14 +212,14 @@ class MNISTDataModule(LightningDataModule):
     >>> MNISTDataModule()  # doctest: +ELLIPSIS
     <...generative_adversarial_net.MNISTDataModule object at ...>
     """
+
     def __init__(self, batch_size: int = 64, data_path: str = os.getcwd(), num_workers: int = 4):
         super().__init__()
         self.batch_size = batch_size
         self.data_path = data_path
         self.num_workers = num_workers
 
-        self.transform = transforms.Compose([transforms.ToTensor(),
-                                             transforms.Normalize([0.5], [0.5])])
+        self.transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize([0.5], [0.5])])
         self.dims = (1, 28, 28)
 
     def prepare_data(self, stage=None):

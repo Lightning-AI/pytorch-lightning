@@ -14,19 +14,21 @@
 import pytest
 from torch import optim
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import BoringModel, EvalModelTemplate
+from tests.helpers import BoringModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
 
 
 def test_lr_monitor_single_lr(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
-    model.configure_optimizers = model.configure_optimizers__single_scheduler
+    model = BoringModel()
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
@@ -36,15 +38,15 @@ def test_lr_monitor_single_lr(tmpdir):
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert all(v is None for v in lr_monitor.last_momentum_values.values()), \
         'Momentum should not be logged by default'
     assert len(lr_monitor.lrs) == len(trainer.lr_schedulers), \
         'Number of learning rates logged does not match number of lr schedulers'
-    assert lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ['lr-Adam'], \
+    assert lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ['lr-SGD'], \
         'Names of learning rates not set correctly'
 
 
@@ -53,7 +55,9 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
     """
     Test that learning rates and momentum are extracted and logged for single lr scheduler.
     """
+
     class LogMomentumModel(BoringModel):
+
         def __init__(self, opt):
             super().__init__()
             self.opt = opt
@@ -78,8 +82,8 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
         log_every_n_steps=1,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert all(v is not None for v in lr_monitor.last_momentum_values.values()), \
         'Expected momentum to be logged'
@@ -93,7 +97,9 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
     """
     Test that if optimizer doesn't have momentum then a warning is raised with log_momentum=True.
     """
+
     class LogMomentumModel(BoringModel):
+
         def configure_optimizers(self):
             optimizer = optim.ASGD(self.parameters(), lr=1e-2)
             lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -110,8 +116,8 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         callbacks=[lr_monitor],
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
-        result = trainer.fit(model)
-        assert result
+        trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert all(v == 0 for v in lr_monitor.last_momentum_values.values()), \
         'Expected momentum to be logged'
@@ -124,7 +130,13 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
 def test_lr_monitor_no_lr_scheduler(tmpdir):
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    class CustomBoringModel(BoringModel):
+
+        def configure_optimizers(self):
+            optimizer = optim.SGD(self.parameters(), lr=0.1)
+            return optimizer
+
+    model = CustomBoringModel()
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
@@ -136,21 +148,21 @@ def test_lr_monitor_no_lr_scheduler(tmpdir):
     )
 
     with pytest.warns(RuntimeWarning, match='have no learning rate schedulers'):
-        result = trainer.fit(model)
-        assert result
+        trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_lr_monitor_no_logger(tmpdir):
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         callbacks=[lr_monitor],
-        logger=False
+        logger=False,
     )
 
     with pytest.raises(MisconfigurationException, match='`Trainer` that has no logger'):
@@ -162,8 +174,21 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
     """ Test that learning rates are extracted and logged for multi lr schedulers. """
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
-    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
+    class CustomBoringModel(BoringModel):
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers(self):
+            optimizer1 = optim.Adam(self.parameters(), lr=1e-2)
+            optimizer2 = optim.Adam(self.parameters(), lr=1e-2)
+            lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
+            lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
+
+            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
+
+    model = CustomBoringModel()
+    model.training_epoch_end = None
 
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
     log_every_n_steps = 2
@@ -176,8 +201,8 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
         limit_val_batches=0.1,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert len(lr_monitor.lrs) == len(trainer.lr_schedulers), \
@@ -198,8 +223,23 @@ def test_lr_monitor_param_groups(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
-    model.configure_optimizers = model.configure_optimizers__param_groups
+    class CustomClassificationModel(ClassificationModel):
+
+        def configure_optimizers(self):
+            param_groups = [{
+                'params': list(self.parameters())[:2],
+                'lr': self.lr * 0.1
+            }, {
+                'params': list(self.parameters())[2:],
+                'lr': self.lr
+            }]
+
+            optimizer = optim.Adam(param_groups)
+            lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
+            return [optimizer], [lr_scheduler]
+
+    model = CustomClassificationModel()
+    dm = ClassifDataModule()
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
@@ -209,8 +249,8 @@ def test_lr_monitor_param_groups(tmpdir):
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
     )
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model, datamodule=dm)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert len(lr_monitor.lrs) == 2 * len(trainer.lr_schedulers), \
@@ -221,7 +261,9 @@ def test_lr_monitor_param_groups(tmpdir):
 
 
 def test_lr_monitor_custom_name(tmpdir):
+
     class TestModel(BoringModel):
+
         def configure_optimizers(self):
             optimizer, [scheduler] = super().configure_optimizers()
             lr_scheduler = {'scheduler': scheduler, 'name': 'my_logging_name'}

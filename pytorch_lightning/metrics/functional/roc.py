@@ -11,40 +11,37 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Sequence, Tuple, List, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import torch
 
 from pytorch_lightning.metrics.functional.precision_recall_curve import (
+    _binary_clf_curve,
     _precision_recall_curve_update,
-    _binary_clf_curve
 )
 
 
 def _roc_update(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        pos_label: Optional[int] = None,
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    pos_label: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, int, int]:
     return _precision_recall_curve_update(preds, target, num_classes, pos_label)
 
 
 def _roc_compute(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        pos_label: int,
-        sample_weights: Optional[Sequence] = None,
-) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: int,
+    pos_label: int,
+    sample_weights: Optional[Sequence] = None,
+) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[List[torch.Tensor], List[torch.Tensor],
+                                                                  List[torch.Tensor]]]:
 
     if num_classes == 1:
         fps, tps, thresholds = _binary_clf_curve(
-            preds=preds,
-            target=target,
-            sample_weights=sample_weights,
-            pos_label=pos_label
+            preds=preds, target=target, sample_weights=sample_weights, pos_label=pos_label
         )
         # Add an extra threshold position
         # to make sure that the curve starts at (0, 0)
@@ -81,26 +78,29 @@ def _roc_compute(
 
 
 def roc(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        pos_label: Optional[int] = None,
-        sample_weights: Optional[Sequence] = None,
-) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    pos_label: Optional[int] = None,
+    sample_weights: Optional[Sequence] = None,
+) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[List[torch.Tensor], List[torch.Tensor],
+                                                                  List[torch.Tensor]]]:
     """
     Computes the Receiver Operating Characteristic (ROC).
 
     Args:
+        preds: predictions from model (logits or probabilities)
+        target: ground truth values
         num_classes: integer with number of classes. Not nessesary to provide
             for binary problems.
         pos_label: integer determining the positive class. Default is ``None``
             which for binary problem is translate to 1. For multiclass problems
             this argument should not be set as we iteratively change it in the
             range [0,num_classes-1]
-        sample_weight: sample weights for each data point
+        sample_weights: sample weights for each data point
 
-    Returns: 3-element tuple containing
+    Returns:
+        3-element tuple containing
 
         fpr:
             tensor with false positive rates.
@@ -113,6 +113,7 @@ def roc(
 
     Example (binary case):
 
+        >>> from pytorch_lightning.metrics.functional import roc
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 1, 1])
         >>> fpr, tpr, thresholds = roc(pred, target, pos_label=1)
@@ -125,6 +126,7 @@ def roc(
 
     Example (multiclass case):
 
+        >>> from pytorch_lightning.metrics.functional import roc
         >>> pred = torch.tensor([[0.75, 0.05, 0.05, 0.05],
         ...                      [0.05, 0.75, 0.05, 0.05],
         ...                      [0.05, 0.05, 0.75, 0.05],
@@ -140,7 +142,6 @@ def roc(
          tensor([1.7500, 0.7500, 0.0500]),
          tensor([1.7500, 0.7500, 0.0500]),
          tensor([1.7500, 0.7500, 0.0500])]
-
     """
     preds, target, num_classes, pos_label = _roc_update(preds, target, num_classes, pos_label)
     return _roc_compute(preds, target, num_classes, pos_label, sample_weights)

@@ -19,15 +19,13 @@ from pytorch_lightning.metrics.utils import _input_format_classification_one_hot
 
 
 def _fbeta_update(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        threshold: float = 0.5,
-        multilabel: bool = False
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: int,
+    threshold: float = 0.5,
+    multilabel: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    preds, target = _input_format_classification_one_hot(
-        num_classes, preds, target, threshold, multilabel
-    )
+    preds, target = _input_format_classification_one_hot(num_classes, preds, target, threshold, multilabel)
     true_positives = torch.sum(preds * target, dim=1)
     predicted_positives = torch.sum(preds, dim=1)
     actual_positives = torch.sum(target, dim=1)
@@ -35,11 +33,11 @@ def _fbeta_update(
 
 
 def _fbeta_compute(
-        true_positives: torch.Tensor,
-        predicted_positives: torch.Tensor,
-        actual_positives: torch.Tensor,
-        beta: float = 1.0,
-        average: str = "micro"
+    true_positives: torch.Tensor,
+    predicted_positives: torch.Tensor,
+    actual_positives: torch.Tensor,
+    beta: float = 1.0,
+    average: str = "micro"
 ) -> torch.Tensor:
     if average == "micro":
         precision = true_positives.sum().float() / predicted_positives.sum()
@@ -48,46 +46,46 @@ def _fbeta_compute(
         precision = true_positives.float() / predicted_positives
         recall = true_positives.float() / actual_positives
 
-    num = (1 + beta ** 2) * precision * recall
-    denom = beta ** 2 * precision + recall
+    num = (1 + beta**2) * precision * recall
+    denom = beta**2 * precision + recall
     return class_reduce(num, denom, weights=actual_positives, class_reduction=average)
 
 
 def fbeta(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        beta: float = 1.0,
-        threshold: float = 0.5,
-        average: str = "micro",
-        multilabel: bool = False
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: int,
+    beta: float = 1.0,
+    threshold: float = 0.5,
+    average: str = "micro",
+    multilabel: bool = False
 ) -> torch.Tensor:
     """
     Computes f_beta metric.
 
     Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
+    Accepts probabilities from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
 
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument
+    to convert into integer labels. This is the case for binary and multi-label probabilities.
 
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
     Args:
-        pred: estimated probabilities
-        target: ground-truth labels
+        preds: predictions from model (probabilities, or labels)
+        target: ground truth labels
         num_classes: Number of classes in the dataset.
         beta: Beta coefficient in the F measure.
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
+            Threshold value for binary or multi-label probabilities. default: 0.5
 
         average:
             - ``'micro'`` computes metric globally
             - ``'macro'`` computes metric for each class and uniformly averages them
             - ``'weighted'`` computes metric for each class and does a weighted-average,
               where each class is weighted by their support (accounts for class imbalance)
-            - ``'none'`` computes and returns the metric per class
+            - ``'none'`` or ``None`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
 
@@ -107,39 +105,39 @@ def fbeta(
 
 
 def f1(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        threshold: float = 0.5,
-        average: str = "micro",
-        multilabel: bool = False
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: int,
+    threshold: float = 0.5,
+    average: str = "micro",
+    multilabel: bool = False
 ) -> torch.Tensor:
     """
     Computes F1 metric. F1 metrics correspond to a equally weighted average of the
     precision and recall scores.
 
     Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
+    Accepts probabilities from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
 
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument
+    to convert into integer labels. This is the case for binary and multi-label probabilities.
 
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
     Args:
-        pred: estimated probabilities
-        target: ground-truth labels
+        preds: predictions from model (probabilities, or labels)
+        target: ground truth labels
         num_classes: Number of classes in the dataset.
         threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
+            Threshold value for binary or multi-label probabilities. default: 0.5
 
         average:
             - ``'micro'`` computes metric globally
             - ``'macro'`` computes metric for each class and uniformly averages them
             - ``'weighted'`` computes metric for each class and does a weighted-average,
               where each class is weighted by their support (accounts for class imbalance)
-            - ``'none'`` computes and returns the metric per class
+            - ``'none'`` or ``None`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
 

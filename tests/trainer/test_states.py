@@ -13,8 +13,8 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Trainer, Callback
-from pytorch_lightning.trainer.states import TrainerState, trainer_state
+from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.trainer.states import trainer_state, TrainerState
 from tests.base import EvalModelTemplate
 
 
@@ -115,10 +115,12 @@ def test_initialize_state(tmpdir):
     assert trainer.state == TrainerState.INITIALIZING
 
 
-@pytest.mark.parametrize("extra_params", [
-    pytest.param(dict(fast_dev_run=True), id='Fast-Run'),
-    pytest.param(dict(max_steps=1), id='Single-Step'),
-])
+@pytest.mark.parametrize(
+    "extra_params", [
+        pytest.param(dict(fast_dev_run=True), id='Fast-Run'),
+        pytest.param(dict(max_steps=1), id='Single-Step'),
+    ]
+)
 def test_running_state_during_fit(tmpdir, extra_params):
     """ Tests that state is set to RUNNING during fit """
 
@@ -127,34 +129,29 @@ def test_running_state_during_fit(tmpdir, extra_params):
 
     snapshot_callback = StateSnapshotCallback(snapshot_method='on_batch_start')
 
-    trainer = Trainer(
-        callbacks=[snapshot_callback],
-        default_root_dir=tmpdir,
-        **extra_params
-    )
+    trainer = Trainer(callbacks=[snapshot_callback], default_root_dir=tmpdir, **extra_params)
 
     trainer.fit(model)
 
     assert snapshot_callback.trainer_state == TrainerState.RUNNING
 
 
-@pytest.mark.parametrize("extra_params", [
-    pytest.param(dict(fast_dev_run=True), id='Fast-Run'),
-    pytest.param(dict(max_steps=1), id='Single-Step'),
-])
+@pytest.mark.parametrize(
+    "extra_params", [
+        pytest.param(dict(fast_dev_run=True), id='Fast-Run'),
+        pytest.param(dict(max_steps=1), id='Single-Step'),
+    ]
+)
 def test_finished_state_after_fit(tmpdir, extra_params):
     """ Tests that state is FINISHED after fit """
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        **extra_params
-    )
+    trainer = Trainer(default_root_dir=tmpdir, **extra_params)
 
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_running_state_during_test(tmpdir):
@@ -188,30 +185,29 @@ def test_finished_state_after_test(tmpdir):
 
     trainer.test(model)
 
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.parametrize("extra_params", [
-    pytest.param(dict(fast_dev_run=True), id='Fast-Run'),
-    pytest.param(dict(max_steps=1), id='Single-Step'),
-])
+@pytest.mark.parametrize(
+    "extra_params", [
+        pytest.param(dict(fast_dev_run=True), id='Fast-Run'),
+        pytest.param(dict(max_steps=1), id='Single-Step'),
+    ]
+)
 def test_interrupt_state_on_keyboard_interrupt(tmpdir, extra_params):
     """ Tests that state is set to INTERRUPTED on KeyboardInterrupt """
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
 
     class InterruptCallback(Callback):
+
         def __init__(self):
             super().__init__()
 
         def on_batch_start(self, trainer, pl_module):
             raise KeyboardInterrupt
 
-    trainer = Trainer(
-        callbacks=[InterruptCallback()],
-        default_root_dir=tmpdir,
-        **extra_params
-    )
+    trainer = Trainer(callbacks=[InterruptCallback()], default_root_dir=tmpdir, **extra_params)
 
     trainer.fit(model)
 

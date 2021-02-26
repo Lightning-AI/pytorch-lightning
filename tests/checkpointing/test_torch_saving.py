@@ -18,8 +18,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.core.optimizer import LightningOptimizer
-from tests.base import BoringModel
+from tests.helpers import BoringModel
 
 
 def test_model_torch_save(tmpdir):
@@ -39,8 +38,7 @@ def test_model_torch_save(tmpdir):
     trainer = torch.load(temp_path)
 
 
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_model_torch_save_ddp_cpu(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
     model = BoringModel()
@@ -68,7 +66,7 @@ def test_model_torch_save_ddp_cuda(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=num_epochs,
         accelerator="ddp_spawn",
-        gpus=2
+        gpus=2,
     )
     temp_path = os.path.join(tmpdir, 'temp.pt')
     trainer.fit(model)

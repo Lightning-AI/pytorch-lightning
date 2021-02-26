@@ -11,15 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Union, List, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 
-from pytorch_lightning.metrics import Metric
-from pytorch_lightning.metrics.functional.roc import (
-    _roc_update,
-    _roc_compute
-)
+from pytorch_lightning.metrics.functional.roc import _roc_compute, _roc_update
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -31,10 +28,10 @@ class ROC(Metric):
 
     Forward accepts
 
-    - ``preds`` (float tensor): ``(N, ...)`` (binary) or ``(N, C, ...)`` (multiclass)
-      where C is the number of classes
+    - ``preds`` (float tensor): ``(N, ...)`` (binary) or ``(N, C, ...)`` (multiclass) tensor
+      with probabilities, where C is the number of classes.
 
-    - ``target`` (long tensor): ``(N, ...)``
+    - ``target`` (long tensor): ``(N, ...)`` or ``(N, C, ...)`` with integer labels
 
     Args:
         num_classes: integer with number of classes. Not nessesary to provide
@@ -53,6 +50,7 @@ class ROC(Metric):
 
     Example (binary case):
 
+        >>> from pytorch_lightning.metrics import ROC
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 1, 1])
         >>> roc = ROC(pos_label=1)
@@ -66,6 +64,7 @@ class ROC(Metric):
 
     Example (multiclass case):
 
+        >>> from pytorch_lightning.metrics import ROC
         >>> pred = torch.tensor([[0.75, 0.05, 0.05, 0.05],
         ...                      [0.05, 0.75, 0.05, 0.05],
         ...                      [0.05, 0.05, 0.75, 0.05],
@@ -84,6 +83,7 @@ class ROC(Metric):
          tensor([1.7500, 0.7500, 0.0500])]
 
     """
+
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -117,23 +117,21 @@ class ROC(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        preds, target, num_classes, pos_label = _roc_update(
-            preds,
-            target,
-            self.num_classes,
-            self.pos_label
-        )
+        preds, target, num_classes, pos_label = _roc_update(preds, target, self.num_classes, self.pos_label)
         self.preds.append(preds)
         self.target.append(target)
         self.num_classes = num_classes
         self.pos_label = pos_label
 
-    def compute(self) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-                               Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
+    def compute(
+        self
+    ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[List[torch.Tensor], List[torch.Tensor],
+                                                                      List[torch.Tensor]]]:
         """
         Compute the receiver operating characteristic
 
-        Returns: 3-element tuple containing
+        Returns:
+            3-element tuple containing
 
             fpr:
                 tensor with false positive rates.
@@ -143,7 +141,6 @@ class ROC(Metric):
                 If multiclass, this is a list of such tensors, one for each class.
             thresholds:
                 thresholds used for computing false- and true postive rates
-
         """
         preds = torch.cat(self.preds, dim=0)
         target = torch.cat(self.target, dim=0)
