@@ -23,6 +23,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 
 
@@ -282,10 +283,14 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
 
 def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
     """ Test for a warning when model.batch_size and model.hparams.batch_size both present. """
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    model.hparams = hparams
-    # now we have model.batch_size and model.hparams.batch_size
+    class TestModel(BoringModel):
+        def __init__(self, batch_size=1):
+            super().__init__()
+            # now we have model.batch_size and model.hparams.batch_size
+            self.batch_size = 1
+            self.save_hyperparameters()
+
+    model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, max_epochs=1000, auto_scale_batch_size=True)
     expected_message = "Field `model.batch_size` and `model.hparams.batch_size` are mutually exclusive!"
     with pytest.warns(UserWarning, match=expected_message):
