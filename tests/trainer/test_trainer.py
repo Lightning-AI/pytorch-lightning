@@ -1714,9 +1714,9 @@ def test_train_loop_system(tmpdir):
     )
 
     class TestOptimizer(SGD):
-        def zero_grad(self, set_to_none=False):
+        def zero_grad(self, *args, **kwargs):
             called_methods.append(inspect.currentframe().f_code.co_name)
-            return super().zero_grad(set_to_none)
+            return super().zero_grad(*args, **kwargs)
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
