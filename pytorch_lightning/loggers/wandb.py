@@ -16,6 +16,8 @@ Weights and Biases Logger
 -------------------------
 """
 import os
+import re
+import numbers
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
@@ -168,10 +170,6 @@ class WandbLogger(LightningLoggerBase):
                 **self._kwargs
             ) if wandb.run is None else wandb.run
 
-            # save checkpoints in wandb dir to upload on W&B servers
-            if self._save_dir is None:
-                self._save_dir = self._experiment.dir
-
             # define default x-axis (for latest wandb versions)
             if getattr(self._experiment, "define_metric", None):
                 self._experiment.define_metric("trainer/global_step")
@@ -215,6 +213,18 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        # upload all checkpoints from saving dir
+        # save checkpoints as artifacts
         if self._log_model:
-            wandb.save(os.path.join(self.save_dir, "*.ckpt"))
+            # use run name and ensure it's a valid Artifact name
+            artifact_name = re.sub(r"[^a-zA-Z0-9_\.\-]", "", self.experiment.name)
+            # gather interesting metadata
+            metadata = {
+                k: v
+                for k, v in dict(self.experiment.summary).items()
+                if isinstance(v, numbers.Number) and not k.startswith("_")
+            }
+            # TODO: see if we can also log data from `trainer.checkpoint_callback` (best_model_path, etc) 
+            artifact = wandb.Artifact(name=f"run-{artifact_name}", type="model", metadata=metadata)
+            # TODO: we need access to `trainer.checkpoint_callback.dirpath`
+            artifact.add_dir(trainer.checkpoint_callback.dirpath)
+            self.experiment.log_artifact(artifact)
