@@ -41,6 +41,7 @@ else:
 
 
 def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
+
     if isinstance(trainer.auto_lr_find, str):
         if not lightning_hasattr(model, trainer.auto_lr_find):
             raise MisconfigurationException(
@@ -106,6 +107,11 @@ def lr_find(
 
         update_attr: Whether to update the learning rate attribute or not.
 
+    Raises:
+        MisconfigurationException:
+            If ``trainer.auto_lr_find`` cannot be found in ``model`` or ``model.hparams``,
+            if learning rate field is not overridden in ``model`` or ``model.hparams``, when ``auto_lr_find=True``, or
+            if you are using more than one optimizer, as learning rate finder works with single optimizer.
 
     Example::
 

@@ -70,6 +70,13 @@ def scale_batch_size(
 
         **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
             or datamodule.
+
+    Raises:
+        MisconfigurationException:
+            If field ``batch_arg_name`` was not found in both ``model`` and ``model.hparams``, or
+            if you attempt to use batch scaling feature when dataloaders are passed directly to ``.fit()``.
+        ValueError:
+            If mode in ``scale_batch_size()`` is neither ``power`` nor ``binsearch``.
     """
     if trainer.fast_dev_run:
         rank_zero_warn('Skipping batch size scaler since fast_dev_run is enabled.', UserWarning)
