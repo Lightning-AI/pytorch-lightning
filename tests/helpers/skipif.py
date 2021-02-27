@@ -44,7 +44,7 @@ def create_skipif(
     reasons = []
 
     if min_gpus:
-        conditions.append(torch.cuda.device_count() < 2)
+        conditions.append(torch.cuda.device_count() < min_gpus)
         reasons.append(f"multi-GPU machine with at least {min_gpus}")
 
     if min_torch:
@@ -57,7 +57,7 @@ def create_skipif(
         reasons.append("PyTorch quantization")
 
     if not any(conditions):
-        return dict(condition=False, reason="no reason, just go test it...")
+        return dict(condition=False, reason="Conditions satisfied, going ahead with the test")
 
     reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
     reason = "test requires " + ' + '.join(reasons)
