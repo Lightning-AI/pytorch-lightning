@@ -171,6 +171,10 @@ class NeptuneLogger(LightningLoggerBase):
         prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `params`, `tags`, `properties`, etc. used by
             :func:`neptune.Session.create_experiment` can be passed as keyword arguments in this logger.
+
+    Raises:
+        ImportError:
+            If required Neptune package is not installed on the device.
     """
 
     LOGGER_JOIN_CHAR = '-'
