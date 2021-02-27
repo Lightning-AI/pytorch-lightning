@@ -1714,6 +1714,10 @@ def test_train_loop_system(tmpdir):
     )
 
     class TestOptimizer(SGD):
+        def step(self, *args, **kwargs):
+            called_methods.append("step")
+            return super().step(*args, **kwargs)
+
         def zero_grad(self, *args, **kwargs):
             called_methods.append("zero_grad")
             return super().zero_grad(*args, **kwargs)
@@ -1738,12 +1742,15 @@ def test_train_loop_system(tmpdir):
 
     trainer.fit(model)
     assert called_methods == [
+        "step",
         "training_step",
         "zero_grad",
         "backward",
+        "step",
         "training_step",
         "zero_grad",
         "backward",
+        "step",
         "training_step",
         "zero_grad",
         "backward",
@@ -1757,11 +1764,14 @@ def test_train_loop_system(tmpdir):
 
     trainer.fit(model)
     assert called_methods == [
+        "step",
         "training_step",
         "zero_grad",
         "backward",
+        "step",
         "training_step",
         "backward",
+        "step",
         "training_step",
         "zero_grad",
         "backward",
