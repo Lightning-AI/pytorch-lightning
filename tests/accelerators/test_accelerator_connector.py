@@ -385,9 +385,11 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {})
-@mock.patch('torch.cuda.device_count', return_value=0)
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 @pytest.mark.parametrize("ddp_plugin_class", [DDPPlugin, DDPSpawnPlugin])
+@mock.patch('torch.cuda.device_count', return_value=0)
 def test_accelerator_choice_ddp_cpu_custom_plugin(_, ddp_plugin_class):
     """ Test that ddp_cpu can work together with custom plugins. """
 
