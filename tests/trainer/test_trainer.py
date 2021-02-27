@@ -1708,7 +1708,7 @@ def test_train_loop_system(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_train_batches=3,
+        limit_train_batches=5,
         limit_val_batches=1,
         limit_test_batches=1,
         progress_bar_refresh_rate=0,
@@ -1747,33 +1747,33 @@ def test_train_loop_system(tmpdir):
         "training_step",
         "zero_grad",
         "backward",
-        "step",
-        "training_step",
-        "zero_grad",
-        "backward",
-        "step",
-        "training_step",
-        "zero_grad",
-        "backward",
-    ]
+    ] * trainer.limit_train_batches
 
     called_methods.clear()
-    trainer = Trainer(**trainer_options, accumulate_grad_batches=2)
+    trainer = Trainer(**trainer_options, accumulate_grad_batches=3)
 
     # No methods are called yet.
     assert called_methods == []
 
     trainer.fit(model)
     assert called_methods == [
-        "step",
+        # 0
         "training_step",
         "zero_grad",
         "backward",
+        # 1
+        "training_step",
+        "backward",
+        # 2
         "step",
         "training_step",
         "backward",
-        "step",
+        # 3
         "training_step",
         "zero_grad",
+        "backward",
+        # 4
+        "step",
+        "training_step",
         "backward",
     ]
