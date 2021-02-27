@@ -53,7 +53,7 @@ class PSNR(Metric):
 
     Raises:
         ValueError:
-            If ``dim`` is not none and ``data_range`` is not given.
+            If ``dim`` is not ``None`` and ``data_range`` is not given.
 
     Example:
 
