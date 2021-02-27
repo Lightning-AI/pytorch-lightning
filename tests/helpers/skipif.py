@@ -33,11 +33,10 @@ def skipif_args(
             ...
 
     >>> from pprint import pprint
-    >>> pprint(skipif_args(min_torch="99"))
+    >>> pprint(skipif_args(min_torch="99", min_gpus=0))
     {'condition': True, 'reason': 'Required: [torch>=99]'}
-    >>> pprint(skipif_args(min_torch="0.0"))  # doctest: +NORMALIZE_WHITESPACE
-    {'condition': False, 'reason': # doctest: +NORMALIZE_WHITESPACE
-     'Conditions satisfied, going ahead with the test.'}
+    >>> pprint(skipif_args(min_torch="0.0", min_gpus=0))  # doctest: +NORMALIZE_WHITESPACE
+    {'condition': False, 'reason': 'Conditions satisfied, going ahead with the test.'}
     """
     conditions = []
     reasons = []
