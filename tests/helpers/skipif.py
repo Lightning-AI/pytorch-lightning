@@ -38,7 +38,7 @@ def create_skipif(
     >>> pprint(create_skipif(min_torch="99"))
     {'condition': True, 'reason': 'test requires minimal version `torch>=99'}
     >>> pprint(create_skipif(min_torch="0.0"))
-    {'condition': False, 'reason': 'no reason, just go test it...'}
+    {'condition': False, 'reason': 'Conditions satisfied, going ahead with the test.'}
     """
     conditions = []
     reasons = []
@@ -57,7 +57,7 @@ def create_skipif(
         reasons.append("PyTorch quantization")
 
     if not any(conditions):
-        return dict(condition=False, reason="Conditions satisfied, going ahead with the test")
+        return dict(condition=False, reason="Conditions satisfied, going ahead with the test.")
 
     reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
     reason = "test requires " + ' + '.join(reasons)
