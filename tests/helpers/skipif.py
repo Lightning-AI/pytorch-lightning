@@ -26,7 +26,7 @@ def skipif_args(
     min_torch: Optional[str] = None,
     pt_quant: bool = False,
 ) -> dict:
-    """ Creating aggregated arguments for standatd pytest skipif, sot the usecase is::
+    """ Creating aggregated arguments for standard pytest skipif, sot the usecase is::
 
         @pytest.mark.skipif(**create_skipif(min_torch="99"))
         def test_any_func(...):
@@ -35,8 +35,9 @@ def skipif_args(
     >>> from pprint import pprint
     >>> pprint(skipif_args(min_torch="99"))
     {'condition': True, 'reason': 'Required: [torch>=99]'}
-    >>> pprint(skipif_args(min_torch="0.0"))
-    {'condition': False, 'reason': 'Conditions satisfied, going ahead with the test.'}
+    >>> pprint(skipif_args(min_torch="0.0"))  # doctest: +NORMALIZE_WHITESPACE
+    {'condition': False, 'reason': # doctest: +NORMALIZE_WHITESPACE
+     'Conditions satisfied, going ahead with the test.'}
     """
     conditions = []
     reasons = []
