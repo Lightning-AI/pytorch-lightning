@@ -24,7 +24,7 @@ from pytorch_lightning.utilities import _TORCH_QUANTIZE_AVAILABLE
 def skipif_args(
     min_gpus: int = 0,
     min_torch: Optional[str] = None,
-    pt_quant: bool = False,
+    avail_quant: bool = False,
 ) -> dict:
     """ Creating aggregated arguments for standard pytest skipif, sot the usecase is::
 
@@ -50,7 +50,7 @@ def skipif_args(
         conditions.append(torch_version < LooseVersion(min_torch))
         reasons.append(f"torch>={min_torch}")
 
-    if pt_quant:
+    if avail_quant:
         _miss_default = 'fbgemm' not in torch.backends.quantized.supported_engines
         conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
         reasons.append("PyTorch quantization is available")
