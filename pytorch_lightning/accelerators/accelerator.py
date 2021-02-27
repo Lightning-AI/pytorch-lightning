@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Iterable, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
@@ -74,9 +74,9 @@ class Accelerator(object):
             trainer: the trainer instance to connect to
             model: the model to train
         """
-        self.connect_training_type_plugin(self.training_type_plugin, model)
+        self.connect_training_type_plugin(model)
         self.setup_optimizers(trainer)
-        self.connect_precision_plugin(self.precision_plugin)
+        self.connect_precision_plugin()
 
     def start_training(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_training(trainer)
@@ -330,16 +330,16 @@ class Accelerator(object):
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+    def connect_training_type_plugin(self, model: LightningModule) -> None:
         """Attaches the training type plugin to the accelerator.
         Also transfers ownership of the model to this plugin
 
         """
-        plugin.connect(model)
+        self.training_type_plugin.connect(model)
 
-    def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
+    def connect_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator"""
-        model, optimizers, schedulers = plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
         self.model = model
         self.optimizers = optimizers
         self.schedulers = schedulers
