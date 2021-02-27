@@ -120,6 +120,7 @@ def test_tensorboard_no_name(tmpdir, name):
     assert logger.root_dir == tmpdir
     assert os.listdir(tmpdir / "version_0")
 
+
 def test_tensorboard_log_sub_dir(tmpdir):
 
     class TestLogger(TensorBoardLogger):
@@ -150,7 +151,6 @@ def test_tensorboard_log_sub_dir(tmpdir):
     trainer = Trainer(**trainer_args, logger=logger)
     trainer.fit(model)
     assert trainer.logger.log_dir == save_dir / "name" / "version" / "sub_dir"
-
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
