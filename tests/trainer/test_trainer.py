@@ -1701,6 +1701,10 @@ def test_train_loop_system(tmpdir):
     2. model.training_step
     3. optimizer.zero_grad (run when the first batch of gradient accumulation)
     4. model.backward
+
+    Note that the order is NOT `training_step`->`zero_grad`->`backward`->`step`.
+    This is because `optimizer.step(closure)` calls `closure()` which then calls
+    the three remaining methods `training_step`, `zero_grad` and `backward` inside.
     """
     called_methods = []
 
