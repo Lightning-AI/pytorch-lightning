@@ -650,15 +650,13 @@ class DataHooks:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
-        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true index in the future.
-
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
             Data-Parallel support will come in near future.
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
-            dataloader_idx: DataLoader idx for batch
+            dataloader_idx: The index of the dataloader to which the batch belongs.
 
         Returns:
             A batch of data
@@ -683,15 +681,13 @@ class DataHooks:
         """
         Override to alter or apply batch augmentations to your batch after it is transferred to the device.
 
-        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true ``idx`` in the future.
-
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
             Data-Parallel support will come in near future.
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
-            dataloader_idx: DataLoader idx for batch (Default: 0)
+            dataloader_idx: The index of the dataloader to which the batch belongs.
 
         Returns:
             A batch of data

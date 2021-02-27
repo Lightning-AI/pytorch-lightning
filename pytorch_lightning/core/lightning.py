@@ -178,7 +178,9 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    def _apply_batch_transfer_handler(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0):
+    def _apply_batch_transfer_handler(
+        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
+    ):
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
         batch = self.transfer_batch_to_device(batch, device)
         batch = self.on_after_batch_transfer(batch, dataloader_idx)

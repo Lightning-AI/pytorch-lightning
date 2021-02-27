@@ -217,10 +217,10 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, m
         test_losses = {dl_idx: [] for dl_idx in range(num_dataloaders)}
 
         @decorator_with_arguments(fx_name="test_step")
-        def test_step(self, batch, batch_idx, dl_idx=0):
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.test_losses[dl_idx].append(loss)
+            self.test_losses[dataloader_idx].append(loss)
             self.log("test_loss", loss, on_step=True, on_epoch=True)
             return {"test_loss": loss}
 

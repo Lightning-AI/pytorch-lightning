@@ -127,18 +127,21 @@ class Accelerator(object):
         """
         pass
 
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
+    def batch_to_device(
+        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
+    ) -> Any:
         """Moves the batch to the correct device.
         The returned batch is of the same type as the input batch, just having all tensors on the correct device.
 
         Args:
             batch: The batch of samples to move to the correct device
             device: The target device
+            dataloader_idx: The index of the dataloader to which the batch belongs.
         """
         model = self.lightning_module
 
         if model is not None:
-            return model._apply_batch_transfer_handler(batch, device)
+            return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
 
         return move_data_to_device(batch, device)
 
@@ -148,12 +151,12 @@ class Accelerator(object):
 
     def training_step(
         self,
-        args: List[Union[Any, int]],
+        kwargs: Dict[str, Union[Any, int]],
     ) -> _STEP_OUTPUT_TYPE:
         """The actual training step.
 
         Args:
-            args: the arguments for the models training step. Can consist of the following:
+            kwargs: the arguments for the models training step. Can consist of the following:
                 batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                     The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
                 batch_idx (int): Integer displaying index of this batch
@@ -162,67 +165,61 @@ class Accelerator(object):
                     :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         """
-        args[0] = self.to_device(args[0])
+        kwargs = self.to_device(kwargs)
 
         with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
-            return self.training_type_plugin.training_step(*args)
+            return self.training_type_plugin.training_step(**kwargs)
 
     def post_training_step(self) -> None:
         self.training_type_plugin.post_training_step()
 
-    def validation_step(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
+    def validation_step(self, kwargs: Dict[str, Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
         """The actual validation step.
 
         Args:
-            args: the arguments for the models validation step. Can consist of the following:
+            kwargs: the arguments for the models validation step. Can consist of the following:
                 batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                     The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
                 batch_idx (int): The index of this batch
                 dataloader_idx (int): The index of the dataloader that produced this batch
                     (only if multiple val dataloaders used)
         """
-        batch = self.to_device(args[0])
-
-        args[0] = batch
+        kwargs = self.to_device(kwargs)
 
         with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
-            return self.training_type_plugin.validation_step(*args)
+            return self.training_type_plugin.validation_step(**kwargs)
 
-    def test_step(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
+    def test_step(self, kwargs: Dict[str, Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
         """The actual test step.
 
         Args:
-            args: the arguments for the models test step. Can consist of the following:
+            kwargs: the arguments for the models test step. Can consist of the following:
                 batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                     The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
                 batch_idx (int): The index of this batch.
                 dataloader_idx (int): The index of the dataloader that produced this batch
                     (only if multiple test dataloaders used).
         """
-        batch = self.to_device(args[0])
-
-        args[0] = batch
+        kwargs = self.to_device(kwargs)
 
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
-            return self.training_type_plugin.test_step(*args)
+            return self.training_type_plugin.test_step(**kwargs)
 
-    def predict(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
+    def predict(self, kwargs: Dict[str, Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
         """The actual predict step.
 
         Args:
-            args: the arguments for the models predict step. Can consist of the following:
+            kwargs: the arguments for the models predict step. Can consist of the following:
                 batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                     The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
                 batch_idx (int): The index of this batch.
                 dataloader_idx (int): The index of the dataloader that produced this batch
                     (only if multiple predict dataloaders used).
         """
-        batch = self.to_device(args[0])
-
-        args[0] = batch
+        kwargs = self.to_device(kwargs)
 
         with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
-            return self.training_type_plugin.predict(*args)
+            return self.training_type_plugin.predict(**kwargs)
 
     def training_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the training step
@@ -347,9 +344,10 @@ class Accelerator(object):
         self.optimizers = optimizers
         self.schedulers = schedulers
 
-    def to_device(self, batch: Any) -> Any:
+    def to_device(self, kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
         """Pushes the batch to the root device"""
-        return self.batch_to_device(batch, self.root_device)
+        kwargs['batch'] = self.batch_to_device(kwargs['batch'], dataloader_idx=kwargs.get('dataloader_idx', None))
+        return kwargs
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:

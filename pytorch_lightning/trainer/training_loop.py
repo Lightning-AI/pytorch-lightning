@@ -283,13 +283,13 @@ class TrainLoop:
         model_ref = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
-            args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
+            kwargs = self._build_kwargs(split_batch, batch_idx, opt_idx, hiddens)
 
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator.training_step(args)
+                training_step_output = self.trainer.accelerator.training_step(kwargs)
                 self.trainer.accelerator.post_training_step()
 
             self.trainer.logger_connector.cache_logged_metrics()
@@ -834,9 +834,9 @@ class TrainLoop:
 
         return should_check_val and can_check_val
 
-    def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
+    def _build_kwargs(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
-        args = [batch, batch_idx]
+        kwargs = {'batch': batch, 'batch_idx': batch_idx}
 
         if len(self.trainer.optimizers) > 1:
             if self.trainer.has_arg("training_step", "optimizer_idx"):
@@ -846,7 +846,8 @@ class TrainLoop:
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
                         " the old signature will be removed in v1.5", DeprecationWarning
                     )
-                args.append(opt_idx)
+
+                kwargs['optimizer_idx'] = opt_idx
             elif not self.trainer.has_arg("training_step", "optimizer_idx") and self.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
@@ -855,9 +856,9 @@ class TrainLoop:
 
         # pass hiddens if using tbptt
         if self.trainer.truncated_bptt_steps is not None:
-            args.append(hiddens)
+            kwargs['hiddens'] = hiddens
 
-        return args
+        return kwargs
 
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
