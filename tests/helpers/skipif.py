@@ -35,9 +35,9 @@ def create_skipif(
             ...
 
     >>> from pprint import pprint
-    >>> create_skipif(min_torch="99")
+    >>> pprint(create_skipif(min_torch="99"))
     {'condition': True, 'reason': 'test requires minimal version `torch>=99'}
-    >>> create_skipif(min_torch="0.0")
+    >>> pprint(create_skipif(min_torch="0.0"))
     {'condition': False, 'reason': 'no reason, just go test it...'}
     """
     conditions = []
