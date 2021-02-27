@@ -446,12 +446,5 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         wandb.run = None
         wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
-<<<<<<< HEAD
-<<<<<<< HEAD
-        logger.experiment.log.assert_called_once_with({'tmp-test': 1.0, 'trainer/global_step': 0})
-=======
-        logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
->>>>>>> parent of 8058668a... sub dir arg exclusively for tensorboard, linted
-=======
-        logger.experiment.log.assert_called_once_with({"tmp-test": 1.0}, step=0)
->>>>>>> parent of 36b8e209... resolving merge conflict
+       logger.experiment.log.assert_called_once_with({'tmp-test': 1.0, 'trainer/global_step': 0})
+
