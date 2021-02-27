@@ -120,6 +120,38 @@ def test_tensorboard_no_name(tmpdir, name):
     assert logger.root_dir == tmpdir
     assert os.listdir(tmpdir / "version_0")
 
+def test_tensorboard_log_sub_dir(tmpdir):
+
+    class TestLogger(TensorBoardLogger):
+        # for reproducibility
+        @property
+        def version(self):
+            return "version"
+
+        @property
+        def name(self):
+            return "name"
+
+    model = BoringModel()
+    trainer_args = dict(
+        default_root_dir=tmpdir,
+        max_steps=1,
+    )
+
+    # no sub_dir specified
+    save_dir = tmpdir / "logs"
+    logger = TestLogger(save_dir)
+    trainer = Trainer(**trainer_args, logger=logger)
+    trainer.fit(model)
+    assert trainer.logger.log_dir[:-1] == save_dir / "name" / "version"
+
+    # sub_dir specified
+    logger = TestLogger(save_dir, sub_dir="sub_dir")
+    trainer = Trainer(**trainer_args, logger=logger)
+    trainer.fit(model)
+    assert trainer.logger.log_dir == save_dir / "name" / "version" / "sub_dir"
+
+
 
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_tensorboard_log_metrics(tmpdir, step_idx):
