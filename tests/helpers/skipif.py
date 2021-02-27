@@ -14,6 +14,7 @@
 from distutils.version import LooseVersion
 from typing import Optional
 
+import pytest
 import torch
 from pkg_resources import get_distribution
 
@@ -44,8 +45,18 @@ def create_skipif(
         reasons.append("PyTorch quantization")
 
     if not any(conditions):
-        return dict(condition=False)
+        return dict(condition=False, reason="no reason, just go test it...")
 
     reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
     reason = "test requires " + ' + '.join(reasons)
-    return dict(condition=False, reason=reason)
+    return dict(condition=any(conditions), reason=reason)
+
+
+@pytest.mark.skipif(**create_skipif(min_torch="99"))
+def test_always_skip():
+    exit(1)
+
+
+@pytest.mark.skipif(**create_skipif(min_torch="0.0"))
+def test_always_pass():
+    assert True
