@@ -1698,9 +1698,10 @@ def test_setup_hook_move_to_device_correctly(tmpdir):
 def test_train_loop_system(tmpdir):
     """
     Test the following methods are called in the order in automatic optimization.
-    1. training_step
-    2. zero_grad (skip when accumulate gradients)
-    3. backward
+    1. optimizer.step
+    2. model.training_step
+    3. optimizer.zero_grad (skip when accumulate gradients)
+    4. model.backward
     """
     called_methods = []
 
