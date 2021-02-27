@@ -34,7 +34,7 @@ def test_optimizer_with_scheduling(tmpdir):
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=0.2,
-        val_check_interval=0.5
+        val_check_interval=0.5,
     )
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
