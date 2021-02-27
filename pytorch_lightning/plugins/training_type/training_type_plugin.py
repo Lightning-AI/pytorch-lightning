@@ -35,6 +35,10 @@ class TrainingTypePlugin(Plugin, ABC):
         self._results = None
         self.global_rank = 0
 
+    @abstractmethod
+    def connect(self, model: 'Module') -> None:
+        """Called by the accelerator to connect it with this plugin"""
+
     @property
     @abstractmethod
     def on_gpu(self) -> bool:
@@ -96,7 +100,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> Optional[LightningModule]:
+    def lightning_module(self) -> LightningModule:
         """Returns the pure LightningModule without potential wrappers"""
         return unwrap_lightning_module(self._model)
 

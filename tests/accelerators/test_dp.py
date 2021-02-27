@@ -11,17 +11,48 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from unittest import mock
+
 import pytest
 import torch
+import torch.nn.functional as F
 
 import pytorch_lightning as pl
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
-from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
 
 PRETEND_N_OF_GPUS = 16
+
+
+class CustomClassificationModelDP(ClassificationModel):
+
+    def _step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        return {'logits': logits, 'y': y}
+
+    def training_step(self, batch, batch_idx):
+        out = self._step(batch, batch_idx)
+        loss = F.cross_entropy(out['logits'], out['y'])
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx)
+
+    def test_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx)
+
+    def validation_step_end(self, outputs):
+        self.log('val_acc', self.valid_acc(outputs['logits'], outputs['y']))
+
+    def test_step_end(self, outputs):
+        self.log('test_acc', self.test_acc(outputs['logits'], outputs['y']))
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -29,9 +60,12 @@ def test_multi_gpu_early_stop_dp(tmpdir):
     """Make sure DDP works. with early stopping"""
     tutils.set_random_master_port()
 
+    dm = ClassifDataModule()
+    model = CustomClassificationModelDP()
+
     trainer_options = dict(
         default_root_dir=tmpdir,
-        callbacks=[EarlyStopping()],
+        callbacks=[EarlyStopping(monitor='val_acc')],
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
@@ -39,8 +73,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
         accelerator='dp',
     )
 
-    model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model)
+    tpipes.run_model_test(trainer_options, model, dm)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -57,7 +90,7 @@ def test_multi_gpu_model_dp(tmpdir):
         progress_bar_refresh_rate=0,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
 
@@ -65,14 +98,13 @@ def test_multi_gpu_model_dp(tmpdir):
     memory.get_memory_profile('min_max')
 
 
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_test(tmpdir):
     tutils.set_random_master_port()
 
-    import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
-
-    model = EvalModelTemplate()
+    dm = ClassifDataModule()
+    model = CustomClassificationModelDP()
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -81,17 +113,17 @@ def test_dp_test(tmpdir):
         gpus=[0, 1],
         accelerator='dp',
     )
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path
-    results = trainer.test()
+    results = trainer.test(datamodule=dm)
     assert 'test_acc' in results[0]
 
-    old_weights = model.c_d1.weight.clone().detach().cpu()
+    old_weights = model.layer_0.weight.clone().detach().cpu()
 
-    results = trainer.test(model)
+    results = trainer.test(model, datamodule=dm)
     assert 'test_acc' in results[0]
 
     # make sure weights didn't change
-    new_weights = model.c_d1.weight.clone().detach().cpu()
+    new_weights = model.layer_0.weight.clone().detach().cpu()
 
     assert torch.all(torch.eq(old_weights, new_weights))

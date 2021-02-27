@@ -279,7 +279,7 @@ class AcceleratorConnector(object):
         return len(gpus)
 
     @property
-    def parallel_devices(self) -> Union[List[torch.device], int]:
+    def parallel_devices(self) -> List[Union[torch.device, int]]:
         if self.on_gpu:
             devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
         elif self.on_tpu:
@@ -547,7 +547,10 @@ class AcceleratorConnector(object):
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
-            rank_zero_warn("GPU available but not used. Set the --gpus flag when calling the script.")
+            rank_zero_warn(
+                "GPU available but not used. Set the gpus flag in your trainer"
+                " `Trainer(gpus=1)` or script `--gpus=1`."
+            )
 
     def _set_horovod_backend(self):
         self.check_horovod()
