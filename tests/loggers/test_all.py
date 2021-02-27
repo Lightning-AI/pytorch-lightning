@@ -447,4 +447,3 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
-
