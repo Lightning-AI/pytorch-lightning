@@ -143,6 +143,7 @@ class LoggerConnector:
         return should_log_every_n_steps or self.trainer.should_stop
 
     def configure_logger(self, logger):
+        # connect logger to trainer
         if logger is True:
             version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
 
@@ -157,6 +158,9 @@ class LoggerConnector:
                 self.trainer.logger = LoggerCollection(logger)
             else:
                 self.trainer.logger = logger
+
+        # connect trainer to logger
+        logger.connect(self.trainer)
 
     def cache_training_step_metrics(self, opt_closure_result):
         """
