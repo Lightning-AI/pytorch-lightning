@@ -139,8 +139,8 @@ With Lightning most users don't have to think about when to call ``.zero_grad()`
 since Lightning automates that for you.
 
 .. warning::
-   Before 1.2.1, ``.zero_grad()`` was called after ``.backward()`` and ``.step()`` internally.
-   From 1.2.1, Lightning calls ``.zero_grad()`` before ``.backward()``.
+   Before 1.2.2, ``.zero_grad()`` was called after ``.backward()`` and ``.step()`` internally.
+   From 1.2.2, Lightning calls ``.zero_grad()`` before ``.backward()``.
 
 Under the hood Lightning does the following:
 
@@ -367,8 +367,8 @@ Using the closure functions for optimization
 When using optimization schemes such as LBFGS, the `second_order_closure` needs to be enabled. By default, this function is defined by wrapping the `training_step` and the backward steps as follows
 
 .. warning::
-   Before 1.2.1, ``.zero_grad()`` was called outside the closure internally.
-   From 1.2.1, the closure calls ``.zero_grad()`` inside, so there is no need to define your own closure
+   Before 1.2.2, ``.zero_grad()`` was called outside the closure internally.
+   From 1.2.2, the closure calls ``.zero_grad()`` inside, so there is no need to define your own closure
    when using similar optimizers to :class:`torch.optim.LBFGS` which requires reevaluation of the loss with the closure in ``optimizer.step()``.
 
 .. testcode::
