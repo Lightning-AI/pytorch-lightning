@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import inspect
 
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
@@ -22,6 +23,8 @@ from pytorch_lightning.utilities.parsing import (
     lightning_hasattr,
     lightning_setattr,
     parse_class_init_keys,
+    get_init_args,
+    collect_init_args,
     str_to_bool,
     str_to_bool_or_str,
 )
@@ -234,6 +237,43 @@ def test_parse_class_init_keys(tmpdir):
             pass
 
     assert parse_class_init_keys(Class) == ("self", "my_args", "my_kwargs")
+
+
+def test_get_init_args(tmpdir):
+    class AutomaticArgsModel:
+        def __init__(self, anyarg, anykw=42, **kwargs):
+            super().__init__()
+
+            self.get_init_args_wrapper()
+
+        def get_init_args_wrapper(self):
+            frame = inspect.currentframe().f_back
+            self.result = get_init_args(frame)
+
+    my_class = AutomaticArgsModel("test", anykw=32, otherkw=123)
+    assert my_class.result == {"anyarg": "test", "anykw": 32, "otherkw": 123}
+
+    my_class.get_init_args_wrapper()
+    assert my_class.result == {}
+
+
+def test_collect_init_args():
+    class AutomaticArgsParent:
+        def __init__(self, anyarg, anykw=42, **kwargs):
+            super().__init__()
+            self.get_init_args_wrapper()
+
+        def get_init_args_wrapper(self):
+            frame = inspect.currentframe()
+            self.result = collect_init_args(frame, [])
+
+    class AutomaticArgsChild(AutomaticArgsParent):
+        def __init__(self, anyarg, childarg, anykw=42, childkw=42, **kwargs):
+            super().__init__(anyarg, anykw=anykw, **kwargs)
+
+    my_class = AutomaticArgsChild("test1", "test2", anykw=32, childkw=22, otherkw=123)
+    assert my_class.result[0] == {"anyarg": "test1", "anykw": 32, "otherkw": 123}
+    assert my_class.result[1] == {"anyarg": "test1", "childarg": "test2", "anykw": 32, "childkw": 22, "otherkw": 123}
 
 
 def test_AttributeDict(tmpdir):
