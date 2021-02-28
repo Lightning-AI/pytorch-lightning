@@ -205,6 +205,12 @@ def test_v1_5_0_old_on_test_epoch_end(tmpdir):
         trainer.test(model)
 
 
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+def test_v1_5_0_wandb_unused_sync_step(tmpdir):
+    with pytest.deprecated_call(match=r"v1.2.1 and will be removed in v1.5"):
+        WandbLogger(sync_step=True)
+
+
 def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
 
     class OldSignature(Callback):
