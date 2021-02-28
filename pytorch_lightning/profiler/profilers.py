@@ -21,7 +21,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from functools import partial
+from functools import partial, wraps
 from typing import Any, Callable, List, Optional, Union
 
 import numpy as np
@@ -314,6 +314,17 @@ class RegisterRecordFunction:
             self._records[record_name].__exit__(None, None, None)
         return result
 
+    @staticmethod
+    def backward_wrapper(func: Callable, module_name: str = None) -> Callable:
+
+        @wraps(func)
+        def wrapped_backward(*args, **kwargs):
+            with record_function(module_name):
+                out = func(*args, **kwargs)
+            return out
+
+        return wrapped_backward
+
     def __enter__(self):
         built_in_modules = dir(torch.nn)
         for module_name, module in self._model.named_modules():
@@ -324,6 +335,7 @@ class RegisterRecordFunction:
             module.register_forward_hook(
                 partial(self._stop_recording, module_name=module_name, is_built_in=is_built_in)
             )
+            module.backward = self.backward_wrapper(module.backward, module_name)
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
         for module in self._model.modules():
