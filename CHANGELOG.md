@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Changed the order of `zero_grad` and `backward` calls in automatic optimization. Lightning now calls `zero_grad` before `backward` ([#6147](https://github.com/PyTorchLightning/pytorch-lightning/pull/6147))
+- Changed the order of `backward`, `step`, `zero_grad` to `zero_grad`, `backward`, `step` ([#6147](https://github.com/PyTorchLightning/pytorch-lightning/pull/6147))
 
 
 ### Deprecated
