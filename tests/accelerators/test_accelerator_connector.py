@@ -18,6 +18,7 @@ from unittest import mock
 
 import pytest
 import torch
+import torch.distributed
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -385,9 +386,9 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
         trainer.fit(model)
 
 
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+# @pytest.mark.skipif(
+#     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+# )
 @pytest.mark.parametrize("ddp_plugin_class", [DDPPlugin, DDPSpawnPlugin])
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_accelerator_choice_ddp_cpu_custom_plugin(_, ddp_plugin_class):
@@ -401,6 +402,7 @@ def test_accelerator_choice_ddp_cpu_custom_plugin(_, ddp_plugin_class):
             assert isinstance(trainer.training_type_plugin, ddp_plugin_class)
             assert trainer.training_type_plugin.num_processes == 2
             assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
+            torch.distributed.destroy_process_group()
             raise SystemExit()
 
     model = BoringModel()
