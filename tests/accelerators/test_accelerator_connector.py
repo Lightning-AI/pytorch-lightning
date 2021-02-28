@@ -417,7 +417,7 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
 #         trainer.fit(model)
 
 
-@pytest.skip("debug")
+@pytest.mark.skip("debug")
 @mock.patch.dict(
     os.environ, {
         "SLURM_NTASKS": "2",
