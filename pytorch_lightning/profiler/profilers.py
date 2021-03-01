@@ -20,7 +20,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import numpy as np
 

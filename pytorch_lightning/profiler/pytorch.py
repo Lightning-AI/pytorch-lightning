@@ -36,6 +36,7 @@ class RegisterRecordFunction:
     def __init__(self, model):
         self._model = model
         self._records = {}
+        self.handles = {}
 
     def _start_recording(self, module, input, module_name: str = None, is_built_in: bool = None):
         if module_name is not None:
@@ -53,20 +54,18 @@ class RegisterRecordFunction:
         built_in_modules = dir(torch.nn)
         for module_name, module in self._model.named_modules():
             is_built_in = module in built_in_modules
-            module.register_forward_pre_hook(
+            pre_handle = module.register_forward_pre_hook(
                 partial(self._start_recording, module_name=module_name, is_built_in=is_built_in)
             )
-            module.register_forward_hook(
+            post_handle = module.register_forward_hook(
                 partial(self._stop_recording, module_name=module_name, is_built_in=is_built_in)
             )
-
+            self.handles[module_name] = [pre_handle, post_handle]
+    
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
-        for module in self._model.modules():
-            module._forward_pre_hooks = []
-            module._forward_hooks = []
-        for record in self._records.values():
-            del record
-        del self._records
+        for module_name, _ in self._model.named_modules():
+            for h in self.handles[module_name]:
+                h.remove()
 
 
 class LegacyPyTorchProfiler(BaseProfiler):
@@ -451,7 +450,7 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
 
 if _TORCH_GREATER_EQUAL_1_8:
 
-    class PUPPyTorchProfiler(LegacyPyTorchProfiler):  # noqa F811
+    class PyTorchProfiler(LegacyPyTorchProfiler):  # noqa F811
 
         START_ACTION = "on_fit_start"
         RECORD_FUNCTIONS = ("training_step_and_backward", "training_step", "backward", "validation_step", "test_step")
