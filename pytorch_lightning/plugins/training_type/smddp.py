@@ -49,6 +49,7 @@ class SMDDPPlugin(ParallelPlugin):
         if not _SMDIST_AVAILABLE:
             raise MisconfigurationException("`smdistributed` module is not available.")
 
+        # While running smdistributed, all the gpus in the instance are considered
         parallel_device_ids = list(range(torch.cuda.device_count()))
         self.parallel_devices = [torch.device("cuda", i) for i in parallel_device_ids]
 
