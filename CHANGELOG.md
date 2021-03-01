@@ -18,7 +18,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for PyTorch 1.8 Profiler ([#6067](https://github.com/PyTorchLightning/pytorch-lightning/pull/6067))
 
 
-
 ### Changed
 
 - Changed the order of `backward`, `step`, `zero_grad` to `zero_grad`, `backward`, `step` ([#6147](https://github.com/PyTorchLightning/pytorch-lightning/pull/6147))
