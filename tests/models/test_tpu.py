@@ -177,8 +177,6 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
 
-    # todo: Test on 8 cores - hanging.
-
     class CustomBoringModel(BoringModel):
 
         def validation_step(self, *args, **kwargs):
@@ -195,9 +193,10 @@ def test_model_tpu_early_stop(tmpdir):
         max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=2,
-        tpu_cores=[1],
+        tpu_cores=8,
     )
     trainer.fit(model)
+    trainer.test(test_dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
 
 
 @pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")

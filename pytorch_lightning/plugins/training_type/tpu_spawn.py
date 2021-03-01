@@ -141,6 +141,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 xm.save(self.lightning_module.state_dict(), last_path)
 
+            # this barrier seems to make xm.save fails less often
+            self.barrier("rdz")
+
             if self.global_rank == 0:
                 # todo, pass complete checkpoint as state dictionary
                 self.mp_queue.put(best_model_path)
