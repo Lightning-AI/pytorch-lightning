@@ -178,7 +178,7 @@ class SMDDPPlugin(ParallelPlugin):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def init_smdddp_connection(self, global_rank: int, world_size: int) -> None:
+    def init_smddp_connection(self, global_rank: int, world_size: int) -> None:
 
         if not dist.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")

@@ -120,7 +120,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         else:
             yield None
 
-    def broadcast(self, obj: object, src: int) -> object:
+    def broadcast(self, obj: object, src: int = 0) -> object:
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
