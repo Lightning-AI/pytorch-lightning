@@ -33,7 +33,8 @@ from pytorch_lightning.utilities.parsing import (
 unpicklable_function = lambda: None
 
 
-def _get_test_cases():
+@pytest.fixture(scope="module")
+def model_cases():
 
     class TestHparamsNamespace:
         learning_rate = 1
@@ -91,9 +92,9 @@ def _get_test_cases():
     return model1, model2, model3, model4, model5, model6, model7
 
 
-def test_lightning_hasattr(tmpdir):
+def test_lightning_hasattr(tmpdir, model_cases):
     """Test that the lightning_hasattr works in all cases"""
-    model1, model2, model3, model4, model5, model6, model7 = models = _get_test_cases()
+    model1, model2, model3, model4, model5, model6, model7 = models = model_cases
     assert lightning_hasattr(model1, 'learning_rate'), \
         'lightning_hasattr failed to find namespace variable'
     assert lightning_hasattr(model2, 'learning_rate'), \
@@ -113,9 +114,9 @@ def test_lightning_hasattr(tmpdir):
         assert not lightning_hasattr(m, "this_attr_not_exist")
 
 
-def test_lightning_getattr(tmpdir):
+def test_lightning_getattr(tmpdir, model_cases):
     """Test that the lightning_getattr works in all cases"""
-    models = _get_test_cases()
+    models = model_cases
     for i, m in enumerate(models[:3]):
         value = lightning_getattr(m, 'learning_rate')
         assert value == i, 'attribute not correctly extracted'
@@ -136,9 +137,9 @@ def test_lightning_getattr(tmpdir):
             lightning_getattr(m, "this_attr_not_exist")
 
 
-def test_lightning_setattr(tmpdir):
+def test_lightning_setattr(tmpdir, model_cases):
     """Test that the lightning_setattr works in all cases"""
-    models = _get_test_cases()
+    models = model_cases
     for m in models[:3]:
         lightning_setattr(m, 'learning_rate', 10)
         assert lightning_getattr(m, 'learning_rate') == 10, \
