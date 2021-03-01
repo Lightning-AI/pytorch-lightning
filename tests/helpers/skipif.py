@@ -71,6 +71,7 @@ class LightSkipif(MarkDecorator):
     Light SkipIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
         @LightSkipif(min_torch="0.0")
+        @pytest.mark.parametrize("arg1", [1, 2.0])
         def test_wrapper(arg1):
             assert arg1 > 0.0
     """
