@@ -17,7 +17,6 @@ from typing import Any, Dict
 from unittest import mock
 from unittest.mock import PropertyMock
 
-import pytest
 import torch
 import torch.nn.functional as F
 
