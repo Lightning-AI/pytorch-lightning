@@ -23,7 +23,7 @@ jobs:
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: 2
 
-    pool: dsvm-spot-pool
+    pool: gridai-spot-pool
 
     #strategy:
     #  matrix:
@@ -58,7 +58,7 @@ jobs:
         export GIT_TERMINAL_PROMPT=1
         #sudo apt-get install -y cmake
         # python -m pip install "pip==20.1"
-        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install --requirement requirements.txt
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed
