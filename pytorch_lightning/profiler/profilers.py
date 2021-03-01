@@ -389,6 +389,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
                 To visualize, you can either use::
                     nvvp trace_name.prof
                     torch.autograd.profiler.load_nvprof(path)
+
             export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
                 It will generate a ``.json`` file which can be read by Chrome.
             path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
