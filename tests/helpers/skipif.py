@@ -45,7 +45,7 @@ class SkipIf:
             num_gpus: min number of gpus required to run test
             min_torch: minimum pytorch version to run test
             quantization: if `torch.quantization` package is required to run test
-            kwargs: native pytest.mark.skipif kwy word arguments
+            kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
         reasons = []
