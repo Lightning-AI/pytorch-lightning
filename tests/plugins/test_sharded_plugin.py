@@ -1,5 +1,4 @@
 import os
-import platform
 
 import pytest
 import torch

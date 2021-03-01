@@ -13,7 +13,6 @@
 # limitations under the License.
 import json
 import os
-import platform
 import shlex
 import subprocess
 import sys

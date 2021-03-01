@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import platform
 
-import pytest
 import torch
 
 import tests.helpers.pipelines as tpipes

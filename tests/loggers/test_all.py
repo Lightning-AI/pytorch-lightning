@@ -14,7 +14,6 @@
 import inspect
 import os
 import pickle
-import platform
 from unittest import mock
 from unittest.mock import ANY
 
