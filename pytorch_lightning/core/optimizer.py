@@ -129,14 +129,9 @@ class LightningOptimizer:
     def __optimizer_step(self, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
         trainer = self._trainer
         optimizer = self._optimizer
-        model = trainer.lightning_module
 
         with trainer.profiler.profile(profiler_name):
             trainer.accelerator.optimizer_step(optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
-
-        if self._trainer.train_loop.automatic_optimization:
-            trainer.train_loop.on_before_zero_grad(optimizer)
-            model.optimizer_zero_grad(trainer.current_epoch, trainer.batch_idx, optimizer, self._optimizer_idx)
 
     def step(self, *args, closure: Optional[Callable] = None, **kwargs):
         """
