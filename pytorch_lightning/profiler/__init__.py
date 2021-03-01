@@ -209,4 +209,3 @@ __all__ = [
     'PassThroughProfiler',
     "PyTorchProfiler",
 ]
-
