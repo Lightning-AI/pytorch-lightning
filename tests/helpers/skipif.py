@@ -21,11 +21,11 @@ from pkg_resources import get_distribution
 from pytorch_lightning.utilities import _TORCH_QUANTIZE_AVAILABLE
 
 
-class LightSkipif:
+class LitSkipif:
     """
     Light SkipIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
-        @LightSkipif(min_torch="0.0")
+        @LitSkipif(min_torch="0.0")
         @pytest.mark.parametrize("arg1", [1, 2.0])
         def test_wrapper(arg1):
             assert arg1 > 0.0
@@ -65,12 +65,12 @@ class LightSkipif:
         )
 
 
-@LightSkipif(min_torch="99")
+@LitSkipif(min_torch="99")
 def test_always_skip():
     exit(1)
 
 
 @pytest.mark.parametrize("arg1", [0.5, 1.0, 2.0])
-@LightSkipif(min_torch="0.0")
+@LitSkipif(min_torch="0.0")
 def test_wrapper(arg1):
     assert arg1 > 0.0
