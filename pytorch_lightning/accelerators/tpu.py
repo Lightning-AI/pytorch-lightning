@@ -36,9 +36,7 @@ class TPUAccelerator(Accelerator):
     ) -> None:
         xm.optimizer_step(optimizer, optimizer_args={'closure': lambda_closure, **kwargs})
 
-    def all_gather(
-        self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
-    ) -> torch.Tensor:
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """
         Function to gather a tensor from several distributed processes
         Args:
