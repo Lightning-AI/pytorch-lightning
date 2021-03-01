@@ -110,7 +110,10 @@ class TensorRunningAccum(object):
             if self.rotated:
                 return getattr(self.memory, how)()
             else:
-                return getattr(self.memory[list(range(1, self.current_idx))], how)()
+                if _PYSYFT_AVAILABLE:
+                    return getattr(self.memory[list(range(1, self.current_idx))], how)()
+                else:
+                    return getattr(self.memory[1: self.current_idx], how)()
 
 
 class Accumulator(object):
