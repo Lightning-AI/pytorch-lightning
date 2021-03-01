@@ -39,7 +39,7 @@ def test_model_torch_save(tmpdir):
     trainer = torch.load(temp_path)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(windows=True)
 def test_model_torch_save_ddp_cpu(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
     model = BoringModel()

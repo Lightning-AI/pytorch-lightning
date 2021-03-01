@@ -90,7 +90,7 @@ def test_ddp_choice_sharded_amp(tmpdir, accelerator):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(windows=True)
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
     """
@@ -114,8 +114,7 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
         assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(min_gpus=2, windows=)
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     """
@@ -139,8 +138,7 @@ def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
         assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(min_gpus=2, windows=True)
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_finetune(tmpdir):
     """
@@ -162,7 +160,7 @@ def test_ddp_sharded_plugin_finetune(tmpdir):
     trainer.fit(saved_model)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(windows=True)
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     """
@@ -194,8 +192,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
 
 @pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")
 @pytest.mark.skip(reason="Currently unsupported restarting training on different number of devices.")
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(min_gpus=2, windows=True)
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     """
@@ -225,8 +222,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(min_gpus=1, windows=True)
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     """
@@ -256,7 +252,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(windows=True)
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
@@ -275,8 +271,7 @@ def test_ddp_sharded_plugin_test(tmpdir):
     trainer.test(model)
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(min_gpus=2, windows=True)
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_test_multigpu(tmpdir):
     """

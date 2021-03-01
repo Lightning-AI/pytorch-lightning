@@ -42,14 +42,13 @@ def _test_all_gather_ddp(rank, world_size):
     assert torch.allclose(grad2, tensor2.grad)
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+@RunIf(windows=True)
 def test_all_gather_ddp():
     world_size = 3
     torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size, ), nprocs=world_size)
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, windows=True)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )

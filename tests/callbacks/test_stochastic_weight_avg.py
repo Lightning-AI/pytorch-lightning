@@ -128,8 +128,7 @@ def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_spawn", gpus=2)
 
 
-@RunIf(min_torch="1.6.0")
-@pytest.mark.skipif(platform.system() == "Windows", reason="ddp_cpu is not available on Windows")
+@RunIf(min_torch="1.6.0", windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
 

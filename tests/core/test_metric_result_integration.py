@@ -21,6 +21,7 @@ import torch.multiprocessing as mp
 import tests.helpers.utils as tutils
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.metrics import Metric
+from tests.helpers.skipif import SkipIf
 
 
 class DummyMetric(Metric):
@@ -90,7 +91,7 @@ def _ddp_test_fn(rank, worldsize):
             assert epoch_expected[k] == epoch_log[k]
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+@SkipIf(windows=True)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
     tutils.reset_seed()

@@ -178,8 +178,7 @@ class CustomDDPPlugin(DDPSpawnPlugin):
             assert isinstance(self.model.module, LightningDistributedModule)
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+@RunIf(min_gpus=2, windows=True)
 def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
     model = BoringModel()
     trainer = Trainer(

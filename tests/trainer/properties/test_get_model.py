@@ -47,7 +47,7 @@ def test_get_model(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+@RunIf(windows=True)
 def test_get_model_ddp_cpu(tmpdir):
     """
     Tests that `trainer.lightning_module` extracts the model correctly when using ddp on cpu
@@ -86,8 +86,7 @@ def test_get_model_gpu(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
-@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+@RunIf(min_gpus=1, windows=True)
 @DDPLauncher.run("--accelerator [accelerator]", max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
 def test_get_model_ddp_gpu(tmpdir, args=None):
     """

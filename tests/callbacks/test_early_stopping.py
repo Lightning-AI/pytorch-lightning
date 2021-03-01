@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.skipif import SkipIf
 
 
 class EarlyStoppingTestRestore(EarlyStopping):
@@ -374,13 +375,13 @@ class EarlyStoppingModel(BoringModel):
                      3,
                      'ddp_cpu',
                      2,
-                     marks=pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")),
+                     marks=SkipIf(windows=True)),
         pytest.param([EarlyStopping(monitor='cba', patience=3),
                       EarlyStopping(monitor='abc')],
                      3,
                      'ddp_cpu',
                      2,
-                     marks=pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")),
+                     marks=SkipIf(windows=True)),
     ],
 )
 def test_multiple_early_stopping_callbacks(callbacks, expected_stop_epoch, accelerator, num_processes, tmpdir):
