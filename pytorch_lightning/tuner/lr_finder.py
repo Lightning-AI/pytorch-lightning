@@ -109,7 +109,7 @@ def lr_find(
     Raises:
         MisconfigurationException:
             If learning rate/lr in ``model`` or ``model.hparams`` isn't overriden when ``auto_lr_find=True``, or
-            if you are using `more than one optimizer` with learning rate finder
+            if you are using `more than one optimizer` with learning rate finder.
 
     Example::
 
