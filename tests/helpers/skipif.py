@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from distutils.version import LooseVersion
-from typing import Optional
+from functools import wraps
+from typing import Callable, Optional
 
 import pytest
 import torch
+from _pytest.mark import MarkDecorator
 from pkg_resources import get_distribution
 
 from pytorch_lightning.utilities import _TORCH_QUANTIZE_AVAILABLE
@@ -28,7 +30,7 @@ def skipif_args(
 ) -> dict:
     """ Creating aggregated arguments for standard pytest skipif, sot the usecase is::
 
-        @pytest.mark.skipif(**create_skipif(min_torch="99"))
+        @pytest.mark.skipif(**skipif_args(min_torch="99"))
         def test_any_func(...):
             ...
 
@@ -59,7 +61,35 @@ def skipif_args(
         return dict(condition=False, reason="Conditions satisfied, going ahead with the test.")
 
     reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
-    return dict(condition=any(conditions), reason=f"Required: [{' + '.join(reasons)}]",)
+    return dict(
+        condition=any(conditions),
+        reason=f"Required: [{' + '.join(reasons)}]",
+    )
+
+
+class LightSkipif(MarkDecorator):
+    """
+    Light SkipIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
+
+        @LightSkipif(min_torch="0.0")
+        def test_wrapper(arg1):
+            assert arg1 > 0.0
+    """
+
+    def __new__(
+        self,
+        *args,
+        min_gpus: int = 0,
+        min_torch: Optional[str] = None,
+        quantization_available: bool = False,
+        **kwargs
+    ):
+        custom = skipif_args(
+            min_gpus=min_gpus,
+            min_torch=min_torch,
+            quant_available=quantization_available,
+        )
+        return pytest.mark.skipif(*args, **custom, **kwargs)
 
 
 @pytest.mark.skipif(**skipif_args(min_torch="99"))
@@ -67,6 +97,13 @@ def test_always_skip():
     exit(1)
 
 
+@pytest.mark.parametrize("arg1", [0.5, 1.0, 2.0])
 @pytest.mark.skipif(**skipif_args(min_torch="0.0"))
-def test_always_pass():
-    assert True
+def test_always_pass(arg1):
+    assert arg1 > 0.0
+
+
+@pytest.mark.parametrize("arg1", [0.5, 1.0, 2.0])
+@LightSkipif(min_torch="0.0")
+def test_wrapper(arg1):
+    assert arg1 > 0.0
