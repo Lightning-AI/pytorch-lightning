@@ -102,12 +102,10 @@ class StochasticWeightAveraging(Callback):
         if isinstance(swa_epoch_start, float) and not (0 <= swa_epoch_start <= 1):
             raise MisconfigurationException(err_msg)
 
-        if (
-            swa_lrs is not None and (
-                not isinstance(swa_lrs, (float, list)) or isinstance(swa_lrs, float) and swa_lrs <= 0
-                or isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)
-            )
-        ):
+        wrong_type = not isinstance(swa_lrs, (float, list))
+        wrong_float = isinstance(swa_lrs, float) and swa_lrs <= 0
+        wrong_list = isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)
+        if (swa_lrs is not None and (wrong_type or wrong_float or wrong_list)):
             raise MisconfigurationException("The `swa_lrs` should be a positive float or a list of positive float.")
 
         if avg_fn is not None and not isinstance(avg_fn, Callable):
