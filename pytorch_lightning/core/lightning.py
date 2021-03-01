@@ -226,6 +226,7 @@ class LightningModule(
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        auto_add_dataloader_idx: bool = True,
     ):
         """
         Log a key, value
@@ -260,7 +261,10 @@ class LightningModule(
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
-            sync_dist_group: the ddp group
+            sync_dist_group: the ddp group to sync across
+            auto_add_dataloader_idx: if True, appends the index of the current dataloader to
+                the name (when using multiple). If False, user needs to give unique names for
+                each dataloader to not mix values
         """
         if self._results is not None:
             # in any epoch end can't log step metrics (only epoch metric)
@@ -292,6 +296,8 @@ class LightningModule(
 
             training_type_plugin = self.trainer.training_type_plugin
 
+            dataloader_idx = self._current_dataloader_idx if auto_add_dataloader_idx else None
+
             self._results.log(
                 name,
                 value,
@@ -307,7 +313,7 @@ class LightningModule(
                 sync_dist_op,
                 sync_dist_group,
                 training_type_plugin.reduce,
-                self._current_dataloader_idx,
+                dataloader_idx,
                 self.device,
             )
 
@@ -325,6 +331,7 @@ class LightningModule(
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        auto_add_dataloader_idx: bool = True,
     ):
         """
         Log a dictonary of values at once
@@ -346,7 +353,10 @@ class LightningModule(
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
-            sync_dist_group: the ddp group:
+            sync_dist_group: the ddp group sync across
+            auto_add_dataloader_idx: if True, appends the index of the current dataloader to
+                the name (when using multiple). If False, user needs to give unique names for
+                each dataloader to not mix values
         """
         for k, v in dictionary.items():
             self.log(
@@ -363,6 +373,7 @@ class LightningModule(
                 sync_dist_op=sync_dist_op,
                 tbptt_pad_token=tbptt_pad_token,
                 tbptt_reduce_fx=tbptt_reduce_fx,
+                auto_add_dataloader_idx=auto_add_dataloader_idx
             )
 
     def write_prediction(
