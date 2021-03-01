@@ -44,11 +44,11 @@ class SMDistributedEnvironment(ClusterEnvironment):
         port = os.environ.get('MASTER_PORT')
         return port
 
-    def world_size(self):
-        return len(os.environ['SM_HOSTS'])
+    def world_size(self) -> int:
+        return dist.get_world_size()
 
-    def local_rank(self):
-        return int(dist.get_local_rank())
+    def local_rank(self) -> int:
+        return dist.get_local_rank()
 
     def node_rank(self) -> int:
         return dist.get_rank()

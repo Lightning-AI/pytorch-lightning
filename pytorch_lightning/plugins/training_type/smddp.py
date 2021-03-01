@@ -24,7 +24,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _GROUP_AVAILABLE, _SMDIST_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -40,7 +40,7 @@ if _SMDIST_AVAILABLE:
     from smdistributed.dataparallel.torch.parallel.distributed import DistributedDataParallel
 
 
-class SMDDPPlugin(TrainingTypePlugin):
+class SMDDPPlugin(ParallelPlugin):
 
     distributed_backend = "smddp"
 
@@ -53,9 +53,11 @@ class SMDDPPlugin(TrainingTypePlugin):
         if not _SMDIST_AVAILABLE:
             raise MisconfigurationException("`smdistributed` module is not available.")
 
-        super().__init__()
         parallel_device_ids = list(range(torch.cuda.device_count()))
         self.parallel_devices = [torch.device("cuda", i) for i in parallel_device_ids]
+
+        super().__init__(parallel_devices=self.parallel_devices, cluster_environment=cluster_environment)
+
         self.sync_batchnorm = sync_batchnorm
         self.dist = SMLightningDistributed()
         self.num_nodes = len(os.environ['SM_HOSTS'])
