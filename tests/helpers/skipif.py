@@ -16,7 +16,6 @@ from typing import Optional
 
 import pytest
 import torch
-from _pytest.mark import MarkDecorator
 from pkg_resources import get_distribution
 
 from pytorch_lightning.utilities import _TORCH_QUANTIZE_AVAILABLE
