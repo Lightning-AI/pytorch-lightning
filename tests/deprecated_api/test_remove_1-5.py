@@ -13,11 +13,20 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
 
+from unittest import mock
+
 import pytest
 
 from pytorch_lightning import Trainer, Callback
+from pytorch_lightning.loggers import WandbLogger
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
+
+
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+def test_v1_5_0_wandb_unused_sync_step(tmpdir):
+    with pytest.deprecated_call(match=r"v1.2.1 and will be removed in v1.5"):
+        WandbLogger(sync_step=True)
 
 
 def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
