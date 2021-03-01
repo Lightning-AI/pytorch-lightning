@@ -58,6 +58,10 @@ class SMDDPPlugin(ParallelPlugin):
         self.sync_batchnorm = sync_batchnorm
         self.dist = SMLightningDistributed()
         self.num_nodes = len(os.environ['SM_HOSTS'])
+        # Debugging
+        print("====" * 10)
+        print("Nodes", os.environ['SM_HOSTS'])
+        print("====" * 10)
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else self.parallel_devices
 
     @property
