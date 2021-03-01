@@ -22,7 +22,8 @@ from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
-from pytorch_lightning.utilities import parsing, rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_str
 
 
 class _DataModuleWrapper(type):
@@ -272,10 +273,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
                 arg_kwargs.update(nargs="?", const=True)
                 # if the only arg type is bool
                 if len(arg_types) == 1:
-                    use_type = parsing.str_to_bool
+                    use_type = str_to_bool
                 # if only two args (str, bool)
                 elif len(arg_types) == 2 and set(arg_types) == {str, bool}:
-                    use_type = parsing.str_to_bool_or_str
+                    use_type = str_to_bool_or_str
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]
