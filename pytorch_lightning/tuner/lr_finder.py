@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import importlib
+import logging
 import os
 from functools import wraps
 from typing import Callable, List, Optional, Sequence, Union
@@ -22,7 +23,6 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -38,6 +38,8 @@ if importlib.util.find_spec('ipywidgets') is not None:
     from tqdm.auto import tqdm
 else:
     from tqdm import tqdm
+
+log = logging.getLogger(__name__)
 
 
 def _determine_lr_attr_name(trainer, model: LightningModule) -> str:

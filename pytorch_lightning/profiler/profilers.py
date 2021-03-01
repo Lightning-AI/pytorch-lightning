@@ -16,6 +16,7 @@
 import cProfile
 import inspect
 import io
+import logging
 import os
 import pstats
 import time
@@ -27,11 +28,12 @@ from typing import List, Optional, Union
 import numpy as np
 import torch
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+log = logging.getLogger(__name__)
 
 
 class BaseProfiler(ABC):

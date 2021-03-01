@@ -38,6 +38,7 @@ Note:
     See: https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
 """
 import argparse
+import logging
 import os
 from pathlib import Path
 from typing import Union
@@ -54,11 +55,11 @@ from torchvision.datasets.utils import download_and_extract_archive
 
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
-from pytorch_lightning import _logger as log
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.callbacks.finetuning import BaseFinetuning
 from pytorch_lightning.utilities import rank_zero_info
 
+log = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
 
 #  --- Finetuning Callback ---
