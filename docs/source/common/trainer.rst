@@ -254,10 +254,10 @@ You can also modify hardware behavior by subclassing an existing accelerator to 
 
 Example::
 
-    class MyOwnDDP(DDPAccelerator):
+    class MyOwnAcc(Accelerator):
         ...
 
-    Trainer(accelerator=MyOwnDDP())
+    Trainer(accelerator=MyOwnAcc())
 
 .. warning:: Passing in custom accelerators is experimental but work is in progress to enable full compatibility.
 
