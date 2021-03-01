@@ -1202,10 +1202,10 @@ class LightningModule(
         Example::
 
             def training_step(...):
-                (opt_a, opt_b) = self.optimizers()
+                opt_a, opt_b = self.optimizers()
                 loss = ...
                 # automatically applies scaling, etc...
-                self.manual_backward(loss, opt_a)
+                self.manual_backward(loss)
                 opt_a.step()
         """
         if optimizer is not None:
