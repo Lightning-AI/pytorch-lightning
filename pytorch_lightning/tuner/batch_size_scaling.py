@@ -27,6 +27,7 @@ from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_has
 
 log = logging.getLogger(__name__)
 
+
 def scale_batch_size(
     trainer,
     model: LightningModule,

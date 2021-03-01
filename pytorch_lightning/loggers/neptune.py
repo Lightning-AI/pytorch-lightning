@@ -15,8 +15,8 @@
 Neptune Logger
 --------------
 """
-from argparse import Namespace
 import logging
+from argparse import Namespace
 from typing import Any, Dict, Iterable, Optional, Union
 
 import torch

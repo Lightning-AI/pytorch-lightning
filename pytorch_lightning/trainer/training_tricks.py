@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC
 import logging
+from abc import ABC
 
 import torch
 from torch import Tensor

@@ -3,7 +3,6 @@ import os
 import signal
 from subprocess import call
 
-
 log = logging.getLogger(__name__)
 
 
