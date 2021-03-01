@@ -82,7 +82,7 @@ def test_cli_to_pass(tmpdir, args=None):
     return '1'
 
 
-@RunIf(windows=True)
+@RunIf(not_windows=True)
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
 def test_torch_distributed_backend_env_variables(tmpdir):
     """

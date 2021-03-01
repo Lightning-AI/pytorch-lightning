@@ -48,7 +48,7 @@ def _ddp_test_fn(rank, worldsize, result_cls: Result):
 
 
 @pytest.mark.parametrize("result_cls", [Result])
-@SkipIf(windows=True)
+@RunIf(not_windows=True)
 def test_result_reduce_ddp(result_cls):
     """Make sure result logging works with DDP"""
     tutils.reset_seed()

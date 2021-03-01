@@ -38,7 +38,7 @@ class RunIf:
         min_gpus: int = 0,
         min_torch: Optional[str] = None,
         quantization: bool = False,
-        windows: bool = False,
+        not_windows: bool = False,
         **kwargs
     ):
         """
@@ -66,7 +66,7 @@ class RunIf:
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("missing PyTorch quantization")
 
-        if windows:
+        if not_windows:
             conditions.append(sys.platform == "win32")
             reasons.append("unimplemented on Windows")
 

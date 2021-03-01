@@ -599,7 +599,7 @@ def test_error_on_zero_len_dataloader(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(windows=True)
+@RunIf(not_windows=True)
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 @patch('pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count', return_value=4)
 def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
@@ -645,7 +645,7 @@ def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
         trainer.test(**test_options)
 
 
-@RunIf(windows=True)
+@RunIf(not_windows=True)
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 @patch('pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count', return_value=4)
 def test_warning_with_few_workers_multi_loader(mock, tmpdir, ckpt_path):

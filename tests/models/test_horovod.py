@@ -330,7 +330,7 @@ def test_accuracy_metric_horovod():
     horovod.run(_compute_batch, np=2)
 
 
-# @SkipIf(windows=True)
+# @RunIf(not_windows=True)
 # def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
 #     model = BoringModel()
 #     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
