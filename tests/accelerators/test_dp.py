@@ -26,6 +26,7 @@ from pytorch_lightning.core import memory
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.skipif import SkipIf
 
 PRETEND_N_OF_GPUS = 16
 
@@ -55,7 +56,7 @@ class CustomClassificationModelDP(ClassificationModel):
         self.log('test_acc', self.test_acc(outputs['logits'], outputs['y']))
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_multi_gpu_early_stop_dp(tmpdir):
     """Make sure DDP works. with early stopping"""
     tutils.set_random_master_port()
@@ -76,7 +77,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
     tpipes.run_model_test(trainer_options, model, dm)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_multi_gpu_model_dp(tmpdir):
     tutils.set_random_master_port()
 
@@ -98,8 +99,7 @@ def test_multi_gpu_model_dp(tmpdir):
     memory.get_memory_profile('min_max')
 
 
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_dp_test(tmpdir):
     tutils.set_random_master_port()
 

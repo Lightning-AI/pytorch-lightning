@@ -23,6 +23,7 @@ import torch
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 from tests.helpers.deterministic_model import DeterministicModel
+from tests.helpers.skipif import SkipIf
 
 
 def test_training_step_scalar(tmpdir):
@@ -211,7 +212,7 @@ class DPPReduceMeanPbarModel(BoringModel):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_dpp_reduce_mean_pbar(tmpdir):
 
     model = DPPReduceMeanPbarModel()

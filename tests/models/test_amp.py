@@ -25,6 +25,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.skipif import SkipIf
 
 
 class AMPTestModel(BoringModel):
@@ -97,7 +98,7 @@ def test_amp_multi_gpu_dp(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_amp_multi_gpu_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
@@ -115,7 +116,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @mock.patch.dict(
     os.environ, {
         "SLURM_NTASKS": "1",

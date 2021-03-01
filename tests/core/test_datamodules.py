@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.skipif import SkipIf
 from tests.helpers.utils import reset_seed, set_random_master_port
 
 
@@ -373,7 +374,7 @@ def test_full_loop_single_gpu(tmpdir):
     assert result[0]['test_acc'] > 0.6
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_full_loop_dp(tmpdir):
     set_random_master_port()
 

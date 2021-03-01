@@ -30,6 +30,7 @@ from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.skipif import SkipIf
 
 
 def test_fit_train_loader_only(tmpdir):
@@ -726,7 +727,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
         trainer.test(model, test_dataloaders=[dataloader])
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+@SkipIf(min_gpus=2)
 def test_dataloader_reinit_for_subclass(tmpdir):
 
     class CustomDataLoader(torch.utils.data.DataLoader):
@@ -808,7 +809,7 @@ class DistribSamplerCallback(Callback):
 
 
 @pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+@SkipIf(min_gpus=2)
 def test_dataloader_distributed_sampler(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend """
 
@@ -836,7 +837,7 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
 
 
 @pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+@SkipIf(min_gpus=2)
 def test_dataloader_distributed_sampler_already_attached(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader """
 
@@ -854,7 +855,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     assert trainer.state == TrainerState.FINISHED, "DDP Training failed"
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
+@SkipIf(min_gpus=3)
 def test_batch_size_smaller_than_num_gpus(tmpdir):
     # we need at least 3 gpus for this test
     num_gpus = 3

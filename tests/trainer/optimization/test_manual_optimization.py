@@ -26,6 +26,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.skipif import SkipIf
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -447,7 +448,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_manual_optimization_and_return_tensor(tmpdir):
     """
     This test verify that in `manual_optimization`
@@ -472,8 +473,7 @@ def test_manual_optimization_and_return_tensor(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_manual_optimization_and_return_detached_tensor(tmpdir):
     """
     This test verify that in `manual_optimization`
@@ -1073,7 +1073,7 @@ def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizati
         assert not torch.equal(param.cpu().data, param_copy.data)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
@@ -1085,7 +1085,7 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
     train_manual_optimization(tmpdir, "ddp")
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
@@ -1151,7 +1151,7 @@ class TesManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
                 opt_dis.zero_grad()
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )

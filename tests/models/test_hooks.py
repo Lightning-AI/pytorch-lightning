@@ -22,6 +22,7 @@ import torch
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.skipif import SkipIf
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
@@ -197,7 +198,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )

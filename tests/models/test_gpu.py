@@ -26,11 +26,12 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.skipif import SkipIf
 
 PRETEND_N_OF_GPUS = 16
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
     tutils.set_random_master_port()
@@ -48,7 +49,7 @@ def test_multi_gpu_none_backend(tmpdir):
     tpipes.run_model_test(trainer_options, model, dm)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.parametrize('gpus', [1, [0], [1]])
 def test_single_gpu_model(tmpdir, gpus):
     """Make sure single GPU works (DP mode)."""

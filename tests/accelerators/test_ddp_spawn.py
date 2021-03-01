@@ -23,9 +23,10 @@ from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.skipif import SkipIf
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     tutils.set_random_master_port()
 
@@ -44,7 +45,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     tpipes.run_model_test(trainer_options, model, dm)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_multi_gpu_model_ddp_spawn(tmpdir):
     tutils.set_random_master_port()
 
@@ -66,7 +67,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
     memory.get_memory_profile('min_max')
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_master_port()

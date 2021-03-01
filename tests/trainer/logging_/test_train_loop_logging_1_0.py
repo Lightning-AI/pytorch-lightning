@@ -31,6 +31,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from tests.helpers.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.helpers.deterministic_model import DeterministicModel
+from tests.helpers.skipif import SkipIf
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -731,7 +732,7 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     assert trainer.logged_metrics['bar'] == fake_result
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )

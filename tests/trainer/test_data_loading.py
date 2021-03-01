@@ -21,6 +21,7 @@ from torch.utils.data.sampler import BatchSampler, SequentialSampler
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.skipif import SkipIf
 
 
 class IndexedRandomDataset(RandomDataset):
@@ -102,7 +103,7 @@ def check_replace_distrubuted_sampler(tmpdir, save_preds_on_dl_idx, accelerator,
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.parametrize("mode", [1, 2])
 def test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler(tmpdir, mode):
     check_replace_distrubuted_sampler(tmpdir, True, "ddp", 2, 2, mode)

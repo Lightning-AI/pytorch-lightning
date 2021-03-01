@@ -42,6 +42,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.skipif import SkipIf
 
 
 @pytest.fixture
@@ -1420,7 +1421,7 @@ def test_trainer_predict_cpu(tmpdir, datamodule):
     predict(tmpdir, None, None, 1, datamodule=datamodule)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
@@ -1429,7 +1430,7 @@ def test_trainer_predict_dp(tmpdir, num_gpus):
     predict(tmpdir, "dp", num_gpus, None)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
@@ -1437,7 +1438,7 @@ def test_trainer_predict_ddp(tmpdir):
     predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
@@ -1446,7 +1447,7 @@ def test_trainer_predict_ddp_spawn(tmpdir):
     predict(tmpdir, "ddp_spawn", 2, None)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
@@ -1484,7 +1485,7 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
     pytorch_profiler.stop(action)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )

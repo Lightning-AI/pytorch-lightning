@@ -18,6 +18,7 @@ import torch.nn as nn
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from tests.helpers import BoringModel
+from tests.helpers.skipif import SkipIf
 
 
 class SubSubModule(DeviceDtypeModuleMixin):
@@ -75,7 +76,7 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
     assert model.dtype == model.module.module.dtype == dst_dtype
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_submodules_multi_gpu_dp(tmpdir):
     model = TopModule()
     trainer = Trainer(
@@ -88,7 +89,7 @@ def test_submodules_multi_gpu_dp(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     model = TopModule()
     trainer = Trainer(

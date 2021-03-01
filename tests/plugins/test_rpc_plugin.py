@@ -10,6 +10,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.training_type.rpc_sequential import RPCPlugin
 from pytorch_lightning.utilities import _RPC_AVAILABLE
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.skipif import SkipIf
 
 
 @mock.patch.dict(
@@ -66,7 +67,7 @@ class CustomRPCPlugin(RPCPlugin):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@SkipIf(min_gpus=2)
 @pytest.mark.skipif(not _RPC_AVAILABLE, reason="RPC is not available")
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
