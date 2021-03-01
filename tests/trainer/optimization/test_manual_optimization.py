@@ -26,7 +26,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from tests.helpers.boring_model import BoringModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -240,7 +240,7 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_multiple_optimizers_manual_native_amp(tmpdir):
     """
     Tests that only training_step can be used
@@ -310,7 +310,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_multiple_optimizers_manual_apex(tmpdir):
     """
@@ -447,7 +447,7 @@ class ManualOptimizationExtendedModel(BoringModel):
         assert self.called["on_train_batch_end"] == 10
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_manual_optimization_and_return_tensor(tmpdir):
     """
     This test verify that in `manual_optimization`
@@ -472,7 +472,7 @@ def test_manual_optimization_and_return_tensor(tmpdir):
     trainer.fit(model)
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_manual_optimization_and_return_detached_tensor(tmpdir):
     """
     This test verify that in `manual_optimization`
@@ -501,7 +501,7 @@ def test_manual_optimization_and_return_detached_tensor(tmpdir):
         trainer.fit(model)
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_manual_optimization_and_accumulated_gradient(tmpdir):
     """
     This test verify that in `automatic_optimization=False`,
@@ -592,7 +592,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_multiple_optimizers_step(tmpdir):
     """
     Tests that `step` works with several optimizers
@@ -1072,7 +1072,7 @@ def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizati
         assert not torch.equal(param.cpu().data, param_copy.data)
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
@@ -1084,7 +1084,7 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
     train_manual_optimization(tmpdir, "ddp")
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
@@ -1150,7 +1150,7 @@ class TesManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
                 opt_dis.zero_grad()
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )

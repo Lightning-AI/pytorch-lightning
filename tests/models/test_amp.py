@@ -25,7 +25,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 class AMPTestModel(BoringModel):
@@ -39,7 +39,7 @@ class AMPTestModel(BoringModel):
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_amp_single_gpu_dp(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
@@ -59,7 +59,7 @@ def test_amp_single_gpu_dp(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_amp_single_gpu_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
@@ -78,7 +78,7 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_amp_multi_gpu_dp(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
@@ -98,7 +98,7 @@ def test_amp_multi_gpu_dp(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_amp_multi_gpu_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
@@ -116,7 +116,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 @mock.patch.dict(
     os.environ, {
         "SLURM_NTASKS": "1",
@@ -193,7 +193,7 @@ def test_amp_without_apex(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""

@@ -16,10 +16,10 @@ import torch
 
 from pytorch_lightning.core.decorators import auto_move_data
 from tests.helpers import BoringModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize(['src_device', 'dest_device'], [
     pytest.param(torch.device('cpu'), torch.device('cpu')),
     pytest.param(torch.device('cpu', 0), torch.device('cuda', 0)),

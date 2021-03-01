@@ -25,7 +25,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 def test_num_training_batches(tmpdir):

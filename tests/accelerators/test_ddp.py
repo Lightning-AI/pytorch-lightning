@@ -21,13 +21,13 @@ import torch
 from pytorch_lightning import Trainer
 from tests.accelerators import ddp_model, DDPLauncher
 from tests.helpers.boring_model import BoringModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 from tests.utilities.distributed import call_training_script
 
 CLI_ARGS = '--max_epochs 1 --gpus 2 --accelerator ddp'
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_multi_gpu_model_ddp_fit_only(tmpdir):
     # call the script
     call_training_script(ddp_model, CLI_ARGS, 'fit', tmpdir, timeout=120)
@@ -40,7 +40,7 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir):
     assert result['status'] == 'complete'
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_multi_gpu_model_ddp_test_only(tmpdir):
     # call the script
     call_training_script(ddp_model, CLI_ARGS, 'test', tmpdir)
@@ -53,7 +53,7 @@ def test_multi_gpu_model_ddp_test_only(tmpdir):
     assert result['status'] == 'complete'
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_multi_gpu_model_ddp_fit_test(tmpdir):
     # call the script
     call_training_script(ddp_model, CLI_ARGS, 'fit_test', tmpdir, timeout=20)
@@ -70,7 +70,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
         assert out['test_acc'] > 0.7
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 @DDPLauncher.run(
     "--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]",
     max_epochs=["1"],

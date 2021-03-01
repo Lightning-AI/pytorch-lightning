@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 from tests.helpers.utils import reset_seed, set_random_master_port
 
 
@@ -348,7 +348,7 @@ def test_trainer_attached_to_dm(tmpdir):
     assert dm.trainer is not None
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_full_loop_single_gpu(tmpdir):
     reset_seed()
 
@@ -373,7 +373,7 @@ def test_full_loop_single_gpu(tmpdir):
     assert result[0]['test_acc'] > 0.6
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_full_loop_dp(tmpdir):
     set_random_master_port()
 
@@ -420,7 +420,7 @@ def test_full_loop_dp(tmpdir):
     assert result[0]['test_acc'] > 0.6
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_dm_apply_batch_transfer_handler(get_module_mock):
     expected_device = torch.device('cuda', 0)

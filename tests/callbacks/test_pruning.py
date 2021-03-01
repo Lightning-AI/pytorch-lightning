@@ -27,7 +27,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 class TestModel(BoringModel):

@@ -17,7 +17,7 @@ import torchtext
 from torchtext.data.example import Example
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 def _get_torchtext_data_iterator(include_lengths=False):
@@ -56,7 +56,7 @@ def _get_torchtext_data_iterator(include_lengths=False):
 
 @pytest.mark.parametrize('include_lengths', [False, True])
 @pytest.mark.parametrize(['device'], [pytest.param(torch.device('cuda', 0))])
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, device):
     data_iterator, _ = _get_torchtext_data_iterator(include_lengths=include_lengths)
     data_iter = iter(data_iterator)

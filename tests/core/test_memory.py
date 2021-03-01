@@ -21,7 +21,7 @@ from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import ParityModuleRNN
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 class EmptyModule(LightningModule):
@@ -120,7 +120,7 @@ def test_empty_model_summary_shapes(mode):
     pytest.param(torch.device('cuda', 0)),
     pytest.param(torch.device('cuda', 0)),
 ])
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_linear_model_summary_shapes(device, mode):
     """ Test that the model summary correctly computes the input- and output shapes. """
     model = UnorderedModel().to(device)
@@ -292,7 +292,7 @@ def test_empty_model_size(mode):
     assert 0.0 == summary.model_size
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
 @pytest.mark.parametrize(
     'precision', [

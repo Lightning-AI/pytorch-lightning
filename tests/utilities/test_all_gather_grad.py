@@ -8,7 +8,7 @@ import torch
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities import AllGatherGrad
 from tests.helpers.boring_model import BoringModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 def setup_ddp(rank, world_size):

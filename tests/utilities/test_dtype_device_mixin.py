@@ -18,7 +18,7 @@ import torch.nn as nn
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from tests.helpers import BoringModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 class SubSubModule(DeviceDtypeModuleMixin):
@@ -58,7 +58,7 @@ class DeviceAssertCallback(Callback):
     pytest.param(torch.device('cpu')),
     pytest.param(torch.device('cuda', 0)),
 ])
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_submodules_device_and_dtype(dst_device, dst_dtype):
     """
     Test that the device and dtype property updates propagate through mixed nesting of regular
@@ -76,7 +76,7 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
     assert model.dtype == model.module.module.dtype == dst_dtype
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_submodules_multi_gpu_dp(tmpdir):
     model = TopModule()
     trainer = Trainer(
@@ -89,7 +89,7 @@ def test_submodules_multi_gpu_dp(tmpdir):
     trainer.fit(model)
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     model = TopModule()
     trainer = Trainer(
@@ -110,7 +110,7 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
         pytest.param(torch.device('cuda', 0)),
     ]
 )
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_gpu_cuda_device(device):
     model = TopModule()
 

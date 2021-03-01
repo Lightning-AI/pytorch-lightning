@@ -32,7 +32,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 if _HOROVOD_AVAILABLE:
     import horovod

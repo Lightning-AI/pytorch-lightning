@@ -18,7 +18,7 @@ import torch
 
 from pytorch_lightning.metrics.compositional import CompositionalMetric
 from pytorch_lightning.metrics.metric import Metric
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 class DummyMetric(Metric):
@@ -65,7 +65,7 @@ def test_metrics_add(second_operand, expected_result):
     ["second_operand", "expected_result"],
     [(DummyMetric(3), torch.tensor(2)), (3, torch.tensor(2)), (3, torch.tensor(2)), (torch.tensor(3), torch.tensor(2))],
 )
-@SkipIf(min_torch="1.5.0")
+@RunIf(min_torch="1.5.0")
 def test_metrics_and(second_operand, expected_result):
     first_metric = DummyMetric(2)
 
@@ -108,7 +108,7 @@ def test_metrics_eq(second_operand, expected_result):
         (torch.tensor(2), torch.tensor(2)),
     ],
 )
-@SkipIf(min_torch="1.5.0")
+@RunIf(min_torch="1.5.0")
 def test_metrics_floordiv(second_operand, expected_result):
     first_metric = DummyMetric(5)
 
@@ -278,7 +278,7 @@ def test_metrics_ne(second_operand, expected_result):
     ["second_operand", "expected_result"],
     [(DummyMetric([1, 0, 3]), torch.tensor([-1, -2, 3])), (torch.tensor([1, 0, 3]), torch.tensor([-1, -2, 3]))],
 )
-@SkipIf(min_torch="1.5.0")
+@RunIf(min_torch="1.5.0")
 def test_metrics_or(second_operand, expected_result):
     first_metric = DummyMetric([-1, -2, 3])
 
@@ -297,7 +297,7 @@ def test_metrics_or(second_operand, expected_result):
     [
         pytest.param(DummyMetric(2), torch.tensor(4)),
         pytest.param(2, torch.tensor(4)),
-        pytest.param(2.0, torch.tensor(4.0), marks=SkipIf(min_torch="1.6.0")),
+        pytest.param(2.0, torch.tensor(4.0), marks=RunIf(min_torch="1.6.0")),
         pytest.param(torch.tensor(2), torch.tensor(4)),
     ],
 )
@@ -315,7 +315,7 @@ def test_metrics_pow(second_operand, expected_result):
     ["first_operand", "expected_result"],
     [(5, torch.tensor(2)), (5.0, torch.tensor(2.0)), (torch.tensor(5), torch.tensor(2))],
 )
-@SkipIf(min_torch="1.5.0")
+@RunIf(min_torch="1.5.0")
 def test_metrics_rfloordiv(first_operand, expected_result):
     second_operand = DummyMetric(2)
 
@@ -352,7 +352,7 @@ def test_metrics_rmod(first_operand, expected_result):
     [
         pytest.param(DummyMetric(2), torch.tensor(4)),
         pytest.param(2, torch.tensor(4)),
-        pytest.param(2.0, torch.tensor(4.0), marks=SkipIf(min_torch="1.6.0")),
+        pytest.param(2.0, torch.tensor(4.0), marks=RunIf(min_torch="1.6.0")),
     ],
 )
 def test_metrics_rpow(first_operand, expected_result):
@@ -393,7 +393,7 @@ def test_metrics_rsub(first_operand, expected_result):
         (torch.tensor(6), torch.tensor(2.0)),
     ],
 )
-@SkipIf(min_torch="1.5.0")
+@RunIf(min_torch="1.5.0")
 def test_metrics_rtruediv(first_operand, expected_result):
     second_operand = DummyMetric(3)
 
@@ -432,7 +432,7 @@ def test_metrics_sub(second_operand, expected_result):
         (torch.tensor(3), torch.tensor(2.0)),
     ],
 )
-@SkipIf(min_torch="1.5.0")
+@RunIf(min_torch="1.5.0")
 def test_metrics_truediv(second_operand, expected_result):
     first_metric = DummyMetric(6)
 

@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 def test_fit_train_loader_only(tmpdir):

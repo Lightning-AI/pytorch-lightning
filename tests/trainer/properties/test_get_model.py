@@ -18,7 +18,7 @@ import pytest
 from pytorch_lightning import Trainer
 from tests.accelerators import DDPLauncher
 from tests.helpers.boring_model import BoringModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 class TrainerGetModel(BoringModel):

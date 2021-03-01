@@ -19,7 +19,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 class TestModel(BoringModel):

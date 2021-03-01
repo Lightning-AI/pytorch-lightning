@@ -9,7 +9,7 @@ import torch
 from torch import nn
 
 from pytorch_lightning.metrics.metric import Metric, MetricCollection
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 torch.manual_seed(42)
 

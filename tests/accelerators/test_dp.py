@@ -22,7 +22,7 @@ from pytorch_lightning.core import memory
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 PRETEND_N_OF_GPUS = 16
 

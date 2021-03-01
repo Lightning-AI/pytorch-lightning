@@ -22,7 +22,7 @@ import torch
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel, RandomDataset
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])

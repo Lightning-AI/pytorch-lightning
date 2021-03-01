@@ -12,7 +12,7 @@ from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeed
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _DEEPSPEED_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.skipif import RunIf
 
 
 def test_deepspeed_lightning_module(tmpdir):
@@ -32,7 +32,7 @@ def test_deepspeed_lightning_module(tmpdir):
     assert model.dtype == torch.double
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_deepspeed_lightning_module_precision(tmpdir):
     """
         Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision 16.
@@ -195,7 +195,7 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
         trainer.fit(model)
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 def test_warn_deepspeed_override_backward(tmpdir):
     """
