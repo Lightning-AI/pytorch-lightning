@@ -284,7 +284,9 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
 
 def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
     """ Test for a warning when model.batch_size and model.hparams.batch_size both present. """
+
     class TestModel(BoringModel):
+
         def __init__(self, batch_size=1):
             super().__init__()
             # now we have model.batch_size and model.hparams.batch_size

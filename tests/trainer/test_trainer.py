@@ -221,8 +221,14 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
 @pytest.mark.parametrize(
     ["accumulate_grad_batches", "limit_train_batches"],
     [
-        ({1: 2, 3: 4}, 1.0),
-        ({1: 2, 3: 4}, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
+        ({
+            1: 2,
+            3: 4
+        }, 1.0),
+        ({
+            1: 2,
+            3: 4
+        }, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
         (3, 1.0),
         (3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
         (4, 1.0),
@@ -240,9 +246,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
         def on_batch_end(self, outputs, batch, batch_idx, *_):
             self.on_train_batch_start_end_dict = self.state_dict()
             for key in self.on_train_batch_start_end_dict.keys():
-                equal = torch.equal(
-                    self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key]
-                )
+                equal = torch.equal(self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key])
                 if (batch_idx + 1) == self.trainer.num_training_batches:
                     assert equal
                 else:
@@ -1719,6 +1723,7 @@ def test_train_loop_system(tmpdir):
     )
 
     class TestOptimizer(SGD):
+
         def step(self, *args, **kwargs):
             called_methods.append("step")
             return super().step(*args, **kwargs)
@@ -1728,6 +1733,7 @@ def test_train_loop_system(tmpdir):
             return super().zero_grad(*args, **kwargs)
 
     class TestModel(BoringModel):
+
         def configure_optimizers(self):
             return TestOptimizer(self.parameters(), lr=0.1)
 

@@ -16,7 +16,6 @@ import platform
 from unittest import mock
 
 import pytest
-import torch
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel

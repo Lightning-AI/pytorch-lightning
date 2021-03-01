@@ -25,10 +25,7 @@ from tests.helpers.simple_models import RegressionModel
 from tests.helpers.skipif import SkipIf
 
 
-@pytest.mark.parametrize(
-    "observe",
-    ['average', pytest.param('histogram', marks=SkipIf(min_torch="1.5"))]
-)
+@pytest.mark.parametrize("observe", ['average', pytest.param('histogram', marks=SkipIf(min_torch="1.5"))])
 @pytest.mark.parametrize("fuse", [True, False])
 @SkipIf(quantization=True)
 def test_quantization(tmpdir, observe, fuse):

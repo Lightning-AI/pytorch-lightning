@@ -31,14 +31,7 @@ class SkipIf:
             assert arg1 > 0.0
     """
 
-    def __new__(
-        self,
-        *args,
-        min_gpus: int = 0,
-        min_torch: Optional[str] = None,
-        quantization: bool = False,
-        **kwargs
-    ):
+    def __new__(self, *args, min_gpus: int = 0, min_torch: Optional[str] = None, quantization: bool = False, **kwargs):
         """
         Args:
             args: native pytest.mark.skipif arguments

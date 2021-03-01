@@ -14,7 +14,6 @@
 import sys
 
 import pytest
-import torch
 
 from pytorch_lightning import Trainer
 from tests.accelerators import DDPLauncher
