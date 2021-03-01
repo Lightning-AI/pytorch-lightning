@@ -19,10 +19,8 @@ import pytest
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
-
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
-
 
 
 def test_v1_5_0_model_checkpoint_save_checkpoint():
