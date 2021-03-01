@@ -19,7 +19,7 @@ import pytest
 import torch
 from pkg_resources import get_distribution
 
-from pytorch_lightning.utilities import _TORCH_QUANTIZE_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _TORCH_QUANTIZE_AVAILABLE
 
 
 class RunIf:
@@ -39,6 +39,7 @@ class RunIf:
         min_torch: Optional[str] = None,
         quantization: bool = False,
         skip_windows: bool = False,
+        fairscale: bool = False,
         **kwargs
     ):
         """
@@ -48,6 +49,7 @@ class RunIf:
             min_torch: minimum pytorch version to run test
             quantization: if `torch.quantization` package is required to run test
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
+            fairscale: if `fairscale` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -70,6 +72,10 @@ class RunIf:
         if skip_windows:
             conditions.append(sys.platform == "win32")
             reasons.append("unimplemented on Windows")
+
+        if fairscale:
+            conditions.append(not _FAIRSCALE_AVAILABLE)
+            reasons.append("Fairscale is not available")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
