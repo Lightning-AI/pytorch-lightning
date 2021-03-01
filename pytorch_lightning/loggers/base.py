@@ -19,14 +19,16 @@ import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union, TYPE_CHECKING
 
 import numpy as np
 import torch
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning import Trainer
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -72,7 +74,7 @@ class LightningLoggerBase(ABC):
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
 
-    def connect(self, trainer: Optional[Trainer] = None) -> None:
+    def connect(self, trainer: Optional['Trainer'] = None) -> None:
         """
         Connect trainer to logger
 
@@ -365,7 +367,7 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
 
-    def connect(self, trainer: Optional[Trainer] = None) -> None:
+    def connect(self, trainer: Optional['Trainer'] = None) -> None:
         for logger in self._logger_iterable:
             logger.connect(trainer)
 
