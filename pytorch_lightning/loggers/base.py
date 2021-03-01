@@ -19,7 +19,8 @@ import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union, TYPE_CHECKING
+from typing import (Any, Callable, Dict, Iterable, List, Mapping, MutableMapping,
+                    Optional, Sequence, Tuple, Union, TYPE_CHECKING)
 
 import numpy as np
 import torch
