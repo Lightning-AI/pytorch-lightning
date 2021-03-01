@@ -456,7 +456,14 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
             to write to their own file if ``output_fname`` is provided.
 
         emit_nvtx: warning - Supported only for torch<1.8.0)
-            Use nvprof or ``torch.autograd.profiler.load_nvprof``.
+            Run::
+
+                nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
+
+            To visualize, you can either use::
+
+                nvvp trace_name.prof
+                torch.autograd.profiler.load_nvprof(path)
 
         export_to_flame_graph: warning - Supported only for torch>=1.8.0
             Whether to export the sequence of profiled operators for Flame Graph.
