@@ -248,7 +248,7 @@ as long as you return a loss with an attached graph from the `training_step`, Li
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        loss = self.encoder(batch[0])
+        loss = self.encoder(batch)
         return loss
 
 .. _manual_opt:
@@ -267,19 +267,18 @@ Turn off automatic optimization and you control the train loop!
 
     def training_step(self, batch, batch_idx, optimizer_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
-        (opt_a, opt_b, opt_c) = self.optimizers(use_pl_optimizer=True)
+        opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
 
-        loss_a = self.generator(batch[0])
-
-        # use this instead of loss.backward so we can automate half precision, etc...
-        self.manual_backward(loss_a, opt_a, retain_graph=True)
-        self.manual_backward(loss_a, opt_a)
-        opt_a.step()
+        loss_a = self.generator(batch)
         opt_a.zero_grad()
+        # use `manual_backward()` instead of `loss.backward` to automate half precision, etc...
+        self.manual_backward(loss_a)
+        opt_a.step()
 
-        loss_b = self.discriminator(batch[0])
-        self.manual_backward(loss_b, opt_b)
-        ...
+        loss_b = self.discriminator(batch)
+        opt_b.zero_grad()
+        self.manual_backward(loss_b)
+        opt_b.step()
 
 
 Predict or Deploy
