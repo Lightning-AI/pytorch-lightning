@@ -133,6 +133,11 @@ class SimpleProfiler(BaseProfiler):
         Args:
             output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished.
+
+        Raises:
+            ValueError:
+                If you attempt to start an action which has already started, or
+                if you attempt to stop recording an action which was never started.
         """
         self.current_actions = {}
         self.recorded_durations = defaultdict(list)
@@ -234,6 +239,10 @@ class AdvancedProfiler(BaseProfiler):
             line_count_restriction: this can be used to limit the number of functions
                 reported for each action. either an integer (to select a count of lines),
                 or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
+
+        Raises:
+            ValueError:
+                If you attempt to stop recording an action which was never started.
         """
         self.profiled_actions = {}
         self.line_count_restriction = line_count_restriction
@@ -376,6 +385,13 @@ class PyTorchProfiler(BaseProfiler):
 
             local_rank: When running in distributed setting, local_rank is used for each process
                 to write to their own file if `output_fname` is provided.
+
+        Raises:
+            MisconfigurationException:
+                If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``, or
+                if log file is not a ``.txt`` file.
+            ValueError:
+                If you attempt to stop recording an action which was never started.
         """
 
         self.profiled_actions = {}
