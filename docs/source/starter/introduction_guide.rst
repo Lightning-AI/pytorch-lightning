@@ -361,9 +361,9 @@ The training step is what happens inside the training loop.
             # TRAINING STEP
             # ....
             # TRAINING STEP
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
 In the case of MNIST, we do the following
 
@@ -377,9 +377,9 @@ In the case of MNIST, we do the following
             loss = F.nll_loss(logits, y)
             # ------ TRAINING STEP END ------
 
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
 In Lightning, everything that is in the training step gets organized under the
 :func:`~pytorch_lightning.core.LightningModule.training_step` function in the LightningModule.
