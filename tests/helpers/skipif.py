@@ -36,7 +36,7 @@ class SkipIf:
         *args,
         min_gpus: int = 0,
         min_torch: Optional[str] = None,
-        quantization_missing: bool = False,
+        quantization: bool = False,
         **kwargs
     ):
         conditions = []
@@ -51,7 +51,7 @@ class SkipIf:
             conditions.append(torch_version < LooseVersion(min_torch))
             reasons.append(f"torch>={min_torch}")
 
-        if quantization_missing:
+        if quantization:
             _miss_default = 'fbgemm' not in torch.backends.quantized.supported_engines
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("PyTorch quantization is available")
