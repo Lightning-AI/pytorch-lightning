@@ -27,6 +27,7 @@ from pytorch_lightning.utilities import (
     _RPC_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
+_FAIRSCALE_AVAILABLE,
 )
 
 try:
@@ -63,6 +64,7 @@ class RunIf:
         skip_windows: bool = False,
         special: bool = False,
         rpc: bool = False,
+        fairscale: bool = False,
         **kwargs
     ):
         """
@@ -80,6 +82,7 @@ class RunIf:
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             special: running in special mode, outside pytest suit
             rpc: requires Remote Procedure Call (RPC)
+            fairscale: if `fairscale` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -136,6 +139,10 @@ class RunIf:
         if rpc:
             conditions.append(not _RPC_AVAILABLE)
             reasons.append("RPC")
+
+        if fairscale:
+            conditions.append(not _FAIRSCALE_AVAILABLE)
+            reasons.append("Fairscale")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
