@@ -378,6 +378,7 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
         max_epochs=num_epochs,
+        profiler=None,
     )
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
