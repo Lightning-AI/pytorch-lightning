@@ -111,9 +111,9 @@ class TensorRunningAccum(object):
                 return getattr(self.memory, how)()
             else:
                 if _PYSYFT_AVAILABLE:
-                    return getattr(self.memory[list(range(1, self.current_idx))], how)()
+                    return getattr(self.memory[list(range(0, self.current_idx))], how)()
                 else:
-                    return getattr(self.memory[1: self.current_idx], how)()
+                    return getattr(self.memory[:self.current_idx], how)()
 
 
 class Accumulator(object):
