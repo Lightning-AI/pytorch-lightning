@@ -149,7 +149,7 @@ class WandbLogger(LightningLoggerBase):
         state['_experiment'] = None
         return state
 
-    def connect(self, trainer: Optional['Trainer'] = None) -> None:
+    def connect(self, trainer: 'Trainer') -> None:
         if trainer is not None:
             self._trainer = proxy(trainer)
 

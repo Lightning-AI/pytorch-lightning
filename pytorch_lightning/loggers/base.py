@@ -75,7 +75,7 @@ class LightningLoggerBase(ABC):
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
 
-    def connect(self, trainer: Optional['Trainer'] = None) -> None:
+    def connect(self, trainer: 'Trainer') -> None:
         """
         Connect trainer to logger
 
@@ -368,7 +368,7 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
 
-    def connect(self, trainer: Optional['Trainer'] = None) -> None:
+    def connect(self, trainer: 'Trainer') -> None:
         for logger in self._logger_iterable:
             logger.connect(trainer)
 
