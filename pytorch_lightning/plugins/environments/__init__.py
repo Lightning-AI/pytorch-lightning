@@ -13,4 +13,5 @@
 # limitations under the License.
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment  # noqa: F401
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment  # noqa: F401
+from pytorch_lightning.plugins.environments.smdist_environment import SMDistributedEnvironment  # noqa: F401
 from pytorch_lightning.plugins.environments.torchelastic_environment import TorchElasticEnvironment  # noqa: F401

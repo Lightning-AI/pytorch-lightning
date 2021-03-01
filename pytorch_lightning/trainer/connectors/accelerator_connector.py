@@ -38,11 +38,17 @@ from pytorch_lightning.plugins import (
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
     SingleTPUPlugin,
+    SMDDPPlugin,
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
 )
-from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.plugins.environments import (
+    ClusterEnvironment,
+    SLURMEnvironment,
+    SMDistributedEnvironment,
+    TorchElasticEnvironment,
+)
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
@@ -299,6 +305,10 @@ class AcceleratorConnector(object):
         te_flags_passed = "WORLD_SIZE" in os.environ and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
         return te_flags_passed
 
+    @property
+    def use_smdistributed(self) -> bool:
+        return self.distributed_backend == DistributedType.SMDDP
+
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
@@ -396,6 +406,8 @@ class AcceleratorConnector(object):
             plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
         elif self.use_horovod:
             plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
+        elif self.use_smdistributed:
+            plugin = SMDDPPlugin(cluster_environment=self.cluster_environment, sync_batchnorm=self.sync_batchnorm)
         elif self.on_tpu:
             if isinstance(self.tpu_cores, list):
                 plugin = SingleTPUPlugin(self.tpu_id)
@@ -457,6 +469,8 @@ class AcceleratorConnector(object):
             # TODO: decouple DDP from TE
             #   refactor and let generic cluster env hold the information about who spawns the processes
             os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
+        elif self.use_smdistributed:
+            env = SMDistributedEnvironment()
         else:
             # TODO: maybe introduce a DefaultEnvironment?
             env = TorchElasticEnvironment()
