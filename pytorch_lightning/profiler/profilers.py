@@ -456,7 +456,7 @@ class PyTorchProfiler(BaseProfiler):
 
     def _start(self, action_name: str) -> None:
         if self.emit_nvtx:
-            self._create_profiler(action_name, torch.cuda.profiler.profile, enter=False)
+            self._profiler = self._create_profiler(action_name, torch.cuda.profiler.profile, enter=True)
             self._create_profiler(action_name, torch.autograd.profiler.emit_nvtx)
         else:
             self._create_profiler(action_name, torch.autograd.profiler.profile)
@@ -466,14 +466,21 @@ class PyTorchProfiler(BaseProfiler):
         profiler_args = {k: v for k, v in vars(self).items() if k in init_args}
         pr = profiler(**profiler_args)
         if enter:
-            pr = pr.__enter__()
+            out_pr = pr.__enter__()
+            if out_pr is not None:
+                pr = out_pr
         self.profiler = pr
+        return pr
 
     def _stop(self, action_name: str) -> None:
         if self.profiler is None:
             return
 
         self.profiler.__exit__(exc_type=None, exc_val=None, exc_tb=None)
+
+        if isinstance(self.profiler, torch.autograd.profiler.emit_nvtx):
+            self._profiler.__exit__(None, None, None)
+            return
 
         function_events = self.profiler.function_events
         self.profiler = None

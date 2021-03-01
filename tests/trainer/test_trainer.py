@@ -1664,6 +1664,25 @@ def test_pytorch_profiler_nested(tmpdir):
         assert pa[n] == expected_[n]
 
 
+@pytest.mark.skipif(True, reason="This tests need to be run with nvprof")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
+def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
+    """
+    How to run this test.
+    nvprof --profile-from-start off -o trace_name.prof -- pytest {}:test_pytorch_profiler_nested_emit_nvtx
+    python -c "import torch;print(torch.autograd.profiler.load_nvprof('{}/trace_name.prof'))"
+    """
+    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
+
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        profiler=profiler,
+        gpus=1,
+    )
+    trainer.fit(model)
+
+
 @pytest.mark.parametrize(
     ["limit_train_batches", "global_step", "num_training_batches", "current_epoch", "should_train"],
     [(0.2, 0, 0, 0, False), (0.5, 10, 2, 4, True)],
