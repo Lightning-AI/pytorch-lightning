@@ -149,9 +149,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 self.mp_queue.put(last_path)
                 self.mp_queue.put(results)
 
-    def try_save(self, state_dict: Dict, path: str):
-        # saving can randomly fail, 
-        # therefore we try several times
+    def try_save(self, state_dict: Dict, path: str) -> None:
+        """
+        Saving with xm.save can failed to meet rendez-vous.
+        Therefore, we will try several times to do so.
+        """
         for _ in range(self._repeat_save_on_fail):
             try:
                 xm.save(state_dict, path)
