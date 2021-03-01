@@ -20,6 +20,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
@@ -256,38 +257,9 @@ class SMDDPPlugin(ParallelPlugin):
         return model
 
 
-class SMLightningDistributed:
-
-    def __init__(self, rank=None, device=None):
-        self.rank = rank
-        self.device = device
-
-    def broadcast(self, obj: Any, group=WORLD):
-        if self.rank == 0:
-            self._emit(obj, group)
-        else:
-            obj = self._receive(group)
-        return obj
+class SMLightningDistributed(LightningDistributed):
 
     def _broadcast(self, tensor, src=0, group=WORLD):
         if group is None:
             return dist.broadcast(tensor, src=src)
         return dist.broadcast(tensor, src=0, group=group)
-
-    def _emit(self, obj: Any, group=WORLD):
-        buffer = io.BytesIO()
-        torch.save(obj, buffer)
-        data = bytearray(buffer.getbuffer())
-        length_tensor = torch.tensor([len(data)]).long().to(self.device)
-        self._broadcast(length_tensor, src=0, group=group)
-        data_tensor = torch.ByteTensor(data).to(self.device)
-        self._broadcast(data_tensor, src=0, group=group)
-
-    def _receive(self, group=WORLD):
-        length_tensor = torch.tensor([0]).long().to(self.device)
-        self._broadcast(length_tensor, src=0, group=group)
-        data_tensor = torch.empty([length_tensor.item()], dtype=torch.uint8).to(self.device)
-        self._broadcast(data_tensor, src=0, group=group)
-        buffer = io.BytesIO(data_tensor.cpu().numpy())
-        obj = torch.load(buffer)
-        return obj
