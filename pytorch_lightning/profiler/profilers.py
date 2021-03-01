@@ -13,6 +13,7 @@
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
 import cProfile
+import inspect
 import io
 import os
 import pstats
@@ -23,9 +24,12 @@ from contextlib import contextmanager
 from typing import List, Optional, Union
 
 import numpy as np
+import torch
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class BaseProfiler(ABC):
@@ -374,7 +378,7 @@ class PyTorchProfiler(BaseProfiler):
             path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
                 By default, it will be save where the file being is being run.
 
-            row_limit: Limit the number of rows in a table, `0` is a special value that
+            row_limit: Limit the number of rows in a table, ``0`` is a special value that
                 removes the limit completely.
 
             sort_by_key: Keys to sort out profiled table

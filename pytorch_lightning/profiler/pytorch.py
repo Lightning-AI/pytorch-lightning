@@ -33,7 +33,7 @@ if _TORCH_GREATER_EQUAL_1_8:
 
 class RegisterRecordFunction:
     """
-    While profiling autograd operations, this class will add label with module name 
+    While profiling autograd operations, this class will add label with module name
     around the forward function.
 
     The Lightning PyTorch Profiler will activate this feature automatically.
@@ -87,7 +87,7 @@ class RegisterRecordFunction:
                 partial(self._stop_recording, module_name=module_name, is_built_in=is_built_in)
             )
             self.handles[module_name] = [pre_handle, post_handle]
-    
+
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
         for module_name, _ in self._model.named_modules():
             for h in self.handles[module_name]:
@@ -158,7 +158,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
                 It will generate a ``.json`` file which can be read by Chrome.
             path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
                 By default, it will be save where the file being is being run.
-            row_limit: Limit the number of rows in a table, `0` is a special value that
+            row_limit: Limit the number of rows in a table, ``0`` is a special value that
                 removes the limit completely.
             sort_by_key: Keys to sort out profiled table.
             record_functions: list of profiled functions which will create a context manager on.
@@ -369,36 +369,31 @@ class ScheduleWrapper:
         self._current_action = None
 
     @property
-    def num_step(self):
+    def num_step(self) -> int:
         if self._current_action == "training_step_and_backward":
             return self._num_training_step_and_backward
         elif self._current_action == "validation_step":
             return self._num_validation_step
-        elif self._current_action == "on_fit_start":
-            return 0
         else:
-            pass
+            return 0
 
-    def _step(self):
+    def _step(self) -> None:
         if self._current_action == "training_step_and_backward":
             self._num_training_step_and_backward += 1
         elif self._current_action == "validation_step":
             # skip sanity check
             if self._num_training_step_and_backward > 0:
                 self._num_validation_step += 1
-        elif self._current_action == "on_fit_start":
-            pass
 
     @property
-    def has_finished(self):
+    def has_finished(self) -> bool:
         if self._current_action == "training_step_and_backward":
             return self._training_step_and_backward_reached_end
         elif self._current_action == "validation_step":
             return self._validation_step_reached_end
-        else:
-            return False
+        return False
 
-    def __call__(self, num_step: int):
+    def __call__(self, num_step: int) -> 'ProfilerAction':
         # ignore the provided input. Keep internal state instead.
         if self.has_finished:
             return ProfilerAction.NONE
@@ -442,7 +437,7 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
 
         with_stack: record source information (file and line number) for the ops (Introduced in PyTorch 1.7.0)
 
-        row_limit: Limit the number of rows in a table, `0` is a special value that
+        row_limit: Limit the number of rows in a table, ``0`` is a special value that
             removes the limit completely.
 
         export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
@@ -534,11 +529,11 @@ if _TORCH_GREATER_EQUAL_1_8:
 
                 with_flops: Whether to record flops for support operations.
 
-                row_limit: Limit the number of rows in a table, `0` is a special value that
+                row_limit: Limit the number of rows in a table, ``0`` is a special value that
                     removes the limit completely.
 
                 export_to_chrome: Whether to export the sequence of profiled operators for Chrome
-                    It can be used with `chrome://tracing/`. Just load the generated traces.
+                    It can be used with ``chrome://tracing/``. Just load the generated traces.
 
                 export_to_flame_graph: Whether to export the sequence of profiled operators for Flame Graph
                     Generate a performance visualization with the following commands.
@@ -634,7 +629,7 @@ if _TORCH_GREATER_EQUAL_1_8:
 
             return output_string
 
-        def on_train_start(self, local_rank: Optional[str] = None, log_dir: str = None):
+        def on_train_start(self, local_rank: Optional[str] = None, log_dir: str = None) -> None:
             super().on_train_start(local_rank=local_rank, log_dir=log_dir)
             if self.record_module_names and self.lightning_module is not None:
                 self.register = RegisterRecordFunction(self.lightning_module)
@@ -673,7 +668,7 @@ if _TORCH_GREATER_EQUAL_1_8:
                     self.profiler.on_trace_ready = on_trace_ready
                     self.profiler.step()
 
-        def __del__(self):
+        def __del__(self) -> None:
             """Close profiler's stream."""
             if self.output_file:
                 self.output_file.close()
