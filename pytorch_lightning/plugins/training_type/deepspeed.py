@@ -104,7 +104,7 @@ class DeepSpeedPlugin(DDPPlugin):
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning (default: 2)
 
-            cpu_offload: Enable offloading optimizer memory and computation to CPU (default: False)
+            cpu_offload: Enable offloading optimizer memory and computation to CPU
 
             contiguous_gradients: Copies gradients to a continuous buffer as they are produced.
                 Avoids memory fragmentation during backwards. Useful when training large models. (default: True)
