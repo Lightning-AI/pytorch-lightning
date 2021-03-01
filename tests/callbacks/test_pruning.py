@@ -269,6 +269,11 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
 
 
 def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog):
+    """
+    When a model is saved multiple times and make_permanent=True, we need to
+    make sure a copy is pruned and not the trained model if we want to continue
+    with the same pruning buffers.
+    """
     seed_everything(0)
 
     class TestPruning(ModelPruning):
