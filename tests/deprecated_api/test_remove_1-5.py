@@ -19,8 +19,15 @@ import pytest
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import WandbLogger
+from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
+
+
+def test_v1_4_0_deprecated_imports():
+    _soft_unimport_module('pytorch_lightning.callbacks.swa')
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        from pytorch_lightning.callbacks.swa import StochasticWeightAveraging  # noqa: F811 F401
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
