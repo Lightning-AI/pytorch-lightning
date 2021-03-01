@@ -462,6 +462,10 @@ class LightningModule(
         all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
         return apply_to_collection(data, torch.Tensor, all_gather)
 
+    @property
+    def accelerator_model(self):
+        return self.trainer.accelerator.model
+
     def forward(self, *args, **kwargs):
         r"""
         Same as :meth:`torch.nn.Module.forward()`, however in Lightning you want this to define

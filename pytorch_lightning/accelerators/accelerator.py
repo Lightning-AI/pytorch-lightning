@@ -74,7 +74,8 @@ class Accelerator(object):
             model: the model to train
         """
         self.connect_training_type_plugin(self.training_type_plugin, model)
-        self.setup_optimizers(trainer)
+        if not self.training_type_plugin.manage_configure_optimizers:
+            self.setup_optimizers(trainer)
         self.connect_precision_plugin(self.precision_plugin)
 
     def start_training(self, trainer: 'Trainer') -> None:

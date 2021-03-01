@@ -165,3 +165,7 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
         optimizer.step(closure=lambda_closure, **kwargs)
+
+    @property
+    def manage_configure_optimizers(self) -> bool:
+        return False

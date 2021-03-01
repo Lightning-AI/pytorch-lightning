@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_FULLY_SHARDED_AVAILABLE
@@ -32,7 +33,7 @@ if _FAIRSCALE_AVAILABLE:
         return unwrap_lightning_module(model)
 
 
-class LightningFullyShardedDataParallel(_LightningModuleWrapperBase):
+class LightningFullyShardedDataModule(_LightningModuleWrapperBase):
     # Just do this for later docstrings
     pass
 

@@ -250,12 +250,21 @@ class DDPPlugin(ParallelPlugin):
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
-        # move the model to the correct device
-        self.model_to_device()
+        if self.move_to_device_in_prefetch:
+            # move the model to the correct device
+            self.model_to_device()
 
         self.configure_ddp()
 
         self.barrier()
+
+    @property
+    def move_to_device_in_prefetch(self) -> bool:
+        """
+        We will call the model_to_device hook within pre-fetch if this is set to True.
+        Useful for when plugin would like to call model_to_device at another time, or skip the call.
+        """
+        return True
 
     def post_dispatch(self):
         if "WORLD_SIZE" in os.environ:

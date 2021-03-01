@@ -399,10 +399,9 @@ class CheckpointConnector:
         """
         # dump states as a checkpoint dictionary object
         checkpoint = self.dump_checkpoint(weights_only)
+        checkpoint = self.trainer.accelerator.on_save(checkpoint)
         if self.trainer.is_global_zero:
             # write the checkpoint dictionary on the file
-
-            checkpoint = self.trainer.accelerator.on_save(checkpoint)
             try:
                 atomic_save(checkpoint, filepath)
             except AttributeError as err:

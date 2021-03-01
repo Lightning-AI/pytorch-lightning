@@ -22,10 +22,11 @@ from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
+    from fairscale.nn import enable_wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
     from pytorch_lightning.overrides.fairscale import (
-        LightningFullyShardedDataParallel,
+        LightningFullyShardedDataModule,
         unwrap_lightning_module_fully_sharded,
     )
 
@@ -34,8 +35,8 @@ class FullyShardedPlugin(DDPPlugin):
 
     def __init__(
         self,
-        cpu_offload: bool = True,
-        flatten_parameters: bool = False,
+        cpu_offload: bool = False,
+        flatten_parameters: bool = True,
         reshard_after_forward: bool = True,
         move_grads_to_cpu: Optional[bool] = None,
         fp32_reduce_scatter: Optional[bool] = None,
@@ -72,8 +73,8 @@ class FullyShardedPlugin(DDPPlugin):
 
            cpu_offload: Offload FP32 params to CPU. Only useable in precision=16 mode (default: False).
 
-           move_grads_to_cpu: Moves gradient shards to CPU after reducation.
-                Only disable if using CPU based optimizers (defaults to ``cpu_offload``).
+                   move_grads_to_cpu: Moves gradient shards to CPU after reduction.
+                        Only disable if using CPU based optimizers (defaults to ``cpu_offload``).
 
            flatten_parameters: Flattens parameter into single contiguous tensor for speed efficiency
                 (default: False).
@@ -111,11 +112,35 @@ class FullyShardedPlugin(DDPPlugin):
         self.fp32_reduce_scatter = fp32_reduce_scatter
         self.compute_dtype = compute_dtype
         self.bucket_cap_mb = bucket_cap_mb
+        self._process_group = None
+
+    @property
+    def process_group(self):
+        if self._process_group is None:
+            self._process_group = torch.distributed.new_group()
+        return self._process_group
 
     def configure_ddp(self):
         precision = self.lightning_module.trainer.precision
+
+        # set the device before instantiate the wrapper
+        if self.root_device.type == "cuda":
+            torch.cuda.set_device(self.root_device)
+
+        with enable_wrap(
+            cpu_offload=self.cpu_offload,
+            flatten_parameters=self.flatten_parameters,
+            move_grads_to_cpu=self.move_grads_to_cpu,
+            mixed_precision=precision == "mixed",
+            process_group=self.process_group
+        ):
+            # todo: this should somehow be incorporated as a general hook.
+            # currently this also means you have to use fully sharded to load the model as well.
+            self.lightning_module.trainer.call_hook("on_distributed_model_setup")
+
         self.model = FullyShardedDataParallel(
-            LightningFullyShardedDataParallel(self.model),
+            LightningFullyShardedDataModule(self.model),
+            process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
@@ -125,14 +150,21 @@ class FullyShardedPlugin(DDPPlugin):
             compute_dtype=self.compute_dtype,
             bucket_cap_mb=self.bucket_cap_mb,
         )
+        if not self.cpu_offload:
+            super().model_to_device()
+        # setup optimizers after fully sharded has wrapped the lightning module
+        self.lightning_module.trainer.accelerator.setup_optimizers(self.lightning_module.trainer)
+
+    def model_to_device(self):
+        self.model.to(self.root_device)
 
     @property
     def lightning_module(self) -> LightningModule:
         return unwrap_lightning_module_fully_sharded(self.model)
 
-    def model_to_device(self):
-        if not self.cpu_offload:
-            super().model_to_device()
+    @property
+    def move_to_device_in_prefetch(self):
+        return False
 
     def on_save(self, checkpoint: dict) -> dict:
         state_dict = self.collate_state_dict()
@@ -148,3 +180,7 @@ class FullyShardedPlugin(DDPPlugin):
         # Remove module prefix from state dict as this is the behaviour of state dict.
         state_dict = {k.partition('module.')[2]: state_dict[k] for k in state_dict.keys()}
         return state_dict
+
+    @property
+    def manage_configure_optimizers(self) -> bool:
+        return True
