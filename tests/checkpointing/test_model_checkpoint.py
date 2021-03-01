@@ -426,6 +426,14 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt_name = ckpt.format_checkpoint_name(4, 3, {'val/loss': 0.03})
     assert ckpt_name == 'epoch=4_val/loss=0.03000.ckpt'
 
+    # auto_insert_metric_name=False
+    ckpt_name = ModelCheckpoint._format_checkpoint_name(
+        'epoch={epoch:03d}-val_acc={val/acc}',
+        3,
+        2,
+        {'val/acc': 0.03},
+        auto_insert_metric_name=False)
+    assert ckpt_name == 'epoch=003-val_acc=0.03'
 
 class ModelCheckpointExtensionTest(ModelCheckpoint):
     FILE_EXTENSION = '.tpkc'
