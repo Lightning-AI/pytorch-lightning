@@ -26,15 +26,10 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.utilities import _GROUP_AVAILABLE, _SMDIST_AVAILABLE
+from pytorch_lightning.utilities import _SMDIST_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
-
-WORLD = None
-if _GROUP_AVAILABLE:
-    from torch.distributed import group
-    WORLD = group.WORLD
 
 if _SMDIST_AVAILABLE:
     import smdistributed.dataparallel.torch.distributed as dist
@@ -153,7 +148,6 @@ class SMDDPPlugin(ParallelPlugin):
 
         # on world_size=0 let everyone know training is starting
         if self.is_global_zero and not dist.is_initialized():
-            print("===" * 10, "Inside the loop")
             log.info("-" * 100)
             log.info(f"distributed_backend={self.distributed_backend}")
             log.info(f"All DDP processes registered. Starting ddp with {self.world_size} processes")
@@ -259,7 +253,7 @@ class SMDDPPlugin(ParallelPlugin):
 
 class SMLightningDistributed(LightningDistributed):
 
-    def _broadcast(self, tensor, src=0, group=WORLD):
+    def _broadcast(self, tensor, src, group):
         if group is None:
             return dist.broadcast(tensor, src=src)
         return dist.broadcast(tensor, src=0, group=group)
