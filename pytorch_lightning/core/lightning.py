@@ -43,6 +43,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.states import RunningStage
@@ -1521,7 +1522,11 @@ class LightningModule(
             Dictionary with the items to be displayed in the progress bar.
         """
         # call .item() only once but store elements without graphs
-        running_train_loss = self.trainer.train_loop.running_loss.mean().get()
+        if _PYSYFT_AVAILABLE:
+            running_train_loss = self.trainer.train_loop.running_loss.mean().get(delete_obj=False)
+        else:
+            running_train_loss = self.trainer.train_loop.running_loss.mean()
+
         avg_training_loss = None
         if running_train_loss is not None:
             avg_training_loss = running_train_loss.cpu().item()
