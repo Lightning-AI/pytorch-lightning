@@ -1608,14 +1608,12 @@ def test_pytorch_profiler_trainer_new_api(tmpdir, profiler):
         max_epochs=1,
         limit_train_batches=10,
         limit_val_batches=10,
-        profiler=profiler(path_to_export_trace=tmpdir) if not isinstance(profiler, str) else profiler,
+        profiler=profiler if isinstance(profiler, str) else profiler(path_to_export_trace=tmpdir),
     )
     trainer.fit(model)
 
     if profiler == PyTorchProfiler:
-        files = os.listdir(tmpdir)
-    else:
-        files = os.listdir(trainer.profiler.path_to_export_trace)
+    files = os.listdir(tmpdir if profiler == PyTorchProfiler else trainer.profiler.path_to_export_trace)
     files = sorted([file for file in files if file.endswith('.json')])
     assert 'training_step_and_backward_0' in files[0]
     assert 'validation_step_0' in files[1]
