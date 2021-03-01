@@ -875,7 +875,7 @@ class Trainer(
         results = (
             self.__evaluate_given_model(model, dataloaders=test_dataloaders)
             if model_provided else
-            self.__evaluate_using_best_weights(model, ckpt_path=ckpt_path, dataloaders=test_dataloaders)
+            self.__evaluate_using_weights(model, ckpt_path=ckpt_path, dataloaders=test_dataloaders)
         )
 
         self.teardown('test')
@@ -885,7 +885,7 @@ class Trainer(
 
         return results
 
-    def __evaluate_using_best_weights(
+    def __evaluate_using_weights(
         self,
         model,
         ckpt_path: Optional[str] = None,
@@ -894,7 +894,7 @@ class Trainer(
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
             raise MisconfigurationException(
-                'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
+                'ckpt_path is "best", but `ModelCheckpoint` is not configured to save the best model.'
             )
 
         # load best weights
@@ -905,8 +905,8 @@ class Trainer(
 
             if len(ckpt_path) == 0:
                 rank_zero_warn(
-                    f'.test() found no path for the best weights, {ckpt_path}. Please '
-                    f'specify a path for a checkpoint .test(ckpt_path=PATH)'
+                    f'`.test()` found no path for the best weights, {ckpt_path}. Please'
+                    ' specify a path for a checkpoint `.test(ckpt_path=PATH)`'
                 )
                 return {}
             if not self._device_type == DeviceType.TPU:
@@ -919,8 +919,12 @@ class Trainer(
         if dataloaders is not None:
             self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
 
+        if self.validating:
+            self.validated_ckpt_paath = ckpt_path
+        else:
+            self.tested_ckpt_path = ckpt_path
+
         # run test
-        self.evaluated_ckpt_path = ckpt_path
         results = self.fit(model)
 
         # teardown
@@ -1034,11 +1038,7 @@ class Trainer(
         stage_name = 'test' if self.evaluating else 'fit'
 
         if self.datamodule is not None:
-            called = {
-                'fit': self.datamodule.has_setup_fit,
-                'test': self.datamodule.has_setup_test,
-            }[stage_name]
-
+            called = getattr(self.datamodule, f'has_setup_{stage_name}')
             if not called:
                 self.datamodule.setup(stage_name)
 

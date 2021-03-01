@@ -230,7 +230,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def __load_weights_on_main_process(self) -> None:
         model = self.lightning_module
-        assert hasattr(model, "trainer")
 
         # load weights if not interrupted
         if on_colab_kaggle() and model.trainer.state is TrainerState.FITTING:

@@ -39,7 +39,8 @@ class EvaluationLoop(object):
         self.trainer.val_dataloaders = None
 
         # .validate() and .test() set this when they load a checkpoint
-        self.trainer.evaluated_ckpt_path = None
+        self.trainer.validated_ckpt_path = None
+        self.trainer.tested_ckpt_path = None
 
         # when true, print evaluation results in .validate() and .test()
         self.trainer.verbose_evaluate = True

@@ -60,9 +60,3 @@ def test_v1_5_0_running_sanity_check():
     trainer = Trainer()
     with pytest.deprecated_call(match='has been renamed to `Trainer.sanity_checking`'):
         assert not trainer.running_sanity_check
-
-
-def test_v1_5_0_tested_ckpt_path():
-    trainer = Trainer()
-    with pytest.deprecated_call(match='has been renamed to `Trainer.evaluated_ckpt_path`'):
-        assert not trainer.tested_ckpt_path

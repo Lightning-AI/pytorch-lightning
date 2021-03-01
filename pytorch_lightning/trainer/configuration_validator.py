@@ -82,9 +82,10 @@ class ConfigValidator(object):
             )
 
     def __verify_eval_loop_configuration(self, model):
-        stage = self.trainer._running_stage
+        stage = "val" if self.trainer.validating else "test"
+
+        loader_name = f'{stage}_dataloader'
         step_name = f'{stage}_step'
-        loader_name = 'val_dataloader' if self.trainer.validating else f'{stage}_dataloader'
 
         has_loader = is_overridden(loader_name, model)
         has_step = is_overridden(step_name, model)
