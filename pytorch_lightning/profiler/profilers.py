@@ -470,7 +470,7 @@ class PyTorchProfiler(BaseProfiler):
             if out_pr is not None:
                 pr = out_pr
         self.profiler = pr
-        return pr
+        return self.profiler
 
     def _stop(self, action_name: str) -> None:
         if self.profiler is None:
