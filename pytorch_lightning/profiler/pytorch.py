@@ -32,6 +32,32 @@ if _TORCH_GREATER_EQUAL_1_8:
 
 
 class RegisterRecordFunction:
+    """
+    While profiling autograd operations, this class will add label with module name 
+    around the forward function.
+
+    The Lightning PyTorch Profiler will activate this feature automatically.
+
+    It can be desactivated as follow:
+
+    Example::
+
+        from pytorch_lightning.profilers import PyTorchProfiler
+
+        profiler = PyTorchProfiler(record_module_names=False)
+
+        Trainer(profiler=profiler)
+
+    It can be used outside of Lightning as follow:
+
+    Example::
+
+        from pytorch_lightning import Trainer, seed_everything
+
+        with RegisterRecordFunction(model):
+            out = model(batch)
+
+    """
 
     def __init__(self, model):
         self._model = model
