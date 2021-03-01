@@ -54,7 +54,7 @@ class SkipIf:
         if quantization:
             _miss_default = 'fbgemm' not in torch.backends.quantized.supported_engines
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
-            reasons.append("PyTorch quantization is available")
+            reasons.append("missing PyTorch quantization")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
