@@ -122,7 +122,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             self.save_spawn_weights(model)
 
     def model_to_device(self) -> None:
-        self._model = self._model.to(xm.xla_device())
+        self._model.to(xm.xla_device())
 
     def barrier(self, name: Optional[str] = None) -> None:
         rendezvous(f"pl.Trainer.{name}")
