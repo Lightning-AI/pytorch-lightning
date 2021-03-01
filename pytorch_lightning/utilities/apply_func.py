@@ -23,6 +23,7 @@ import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHTEXT_AVAILABLE
+from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
 
 if _TORCHTEXT_AVAILABLE:
     from torchtext.data import Batch
@@ -152,6 +153,14 @@ def move_data_to_device(batch: Any, device: torch.device):
             return device_data
 
         kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
+
+        if _PYSYFT_AVAILABLE:
+            from syft.core.pointer.pointer import Pointer
+            from syft import client_cache
+            if isinstance(data, Pointer):
+                data = data.get(delete_obj=False)
+                data = data.send(client_cache["duet"])
+                return data
         return data.to(device, **kwargs)
 
     dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType

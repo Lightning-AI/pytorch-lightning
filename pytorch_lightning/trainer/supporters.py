@@ -75,9 +75,10 @@ class TensorRunningAccum(object):
             else:
                 self.memory = torch.zeros(self.window_length, *x.shape)
 
-        # ensure same device and type
-        if self.memory.device != x.device or self.memory.type() != x.type():
-            x = x.to(self.memory)
+        if not _PYSYFT_AVAILABLE:
+            # ensure same device and type
+            if self.memory.device != x.device or self.memory.type() != x.type():
+                x = x.to(self.memory)
 
         # store without grads
         with torch.no_grad():
@@ -109,7 +110,7 @@ class TensorRunningAccum(object):
             if self.rotated:
                 return getattr(self.memory, how)()
             else:
-                return getattr(self.memory[:self.current_idx], how)()
+                return getattr(self.memory[list(range(1, self.current_idx))], how)()
 
 
 class Accumulator(object):

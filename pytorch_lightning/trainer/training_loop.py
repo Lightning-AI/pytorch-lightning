@@ -353,10 +353,14 @@ class TrainLoop:
         # no need for these checks in 1.0.0
         # TODO: remove checks in 1.0.0
         if _PYSYFT_AVAILABLE and isinstance(training_step_output_for_epoch_end, Pointer):
-            training_step_output_for_epoch_end = training_step_output_for_epoch_end.get(delete_obj=False)
+            _training_step_output_for_epoch_end = training_step_output_for_epoch_end.get(
+                delete_obj=False)
+        else:
+            _training_step_output_for_epoch_end = training_step_output_for_epoch_end
 
-        is_tensor = isinstance(training_step_output_for_epoch_end, torch.Tensor)
-        is_1_0_output = is_tensor or ("log" not in training_step_output and "progress_bar" not in training_step_output)
+        is_tensor = isinstance(_training_step_output_for_epoch_end, torch.Tensor)
+        is_1_0_output = is_tensor or ("log" not in _training_step_output_for_epoch_end and "progress_bar" not
+                                      in _training_step_output_for_epoch_end)
         if is_1_0_output:
             return self._process_training_step_output_1_0(training_step_output, split_batch)
 
@@ -387,16 +391,18 @@ class TrainLoop:
         hiddens = None
 
         if _PYSYFT_AVAILABLE and isinstance(training_step_output, Pointer):
-            training_step_output = training_step_output.get(delete_obj=False)
+            _training_step_output = training_step_output.get(delete_obj=False)
+        else:
+            _training_step_output = training_step_output
 
         # handle dict return
-        if isinstance(training_step_output, dict):
+        if isinstance(_training_step_output, dict):
             loss = training_step_output.pop("loss", None)
             hiddens = training_step_output.pop("hiddens", None)
             result["extra"] = training_step_output
 
         # handle scalar return
-        elif isinstance(training_step_output, torch.Tensor):
+        elif isinstance(_training_step_output, torch.Tensor):
             loss = training_step_output
             result["extra"] = {}
 
@@ -644,6 +650,9 @@ class TrainLoop:
         splits = self.tbptt_split_batch(batch)
 
         for split_idx, split_batch in enumerate(splits):
+            if _PYSYFT_AVAILABLE:
+                from syft import client_cache
+                split_batch = split_batch.get(delete_obj=False).send(client_cache["duet"])
 
             # create an iterable for optimizers and loop over them
             for opt_idx, optimizer in self.prepare_optimizers():
@@ -682,6 +691,8 @@ class TrainLoop:
                         train_step_and_backward_closure = self.make_closure(
                             split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
                         )
+
+                        train_step_and_backward_closure()
 
                         # optimizer step
                         self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)

@@ -164,4 +164,4 @@ class TrainingTypePlugin(Plugin, ABC):
         return trainer.init_optimizers(model)
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
-        optimizer.step(closure=lambda_closure, **kwargs)
+        optimizer.step(**kwargs)
