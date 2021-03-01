@@ -23,7 +23,7 @@ from pytorch_lightning.utilities import _TORCH_QUANTIZE_AVAILABLE
 
 class SkipIf:
     """
-    Light SkipIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
+    SkipIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
         @SkipIf(min_torch="0.0")
         @pytest.mark.parametrize("arg1", [1, 2.0])
