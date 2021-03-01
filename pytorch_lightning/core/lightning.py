@@ -17,14 +17,13 @@ import collections
 import copy
 import inspect
 import os
-import re
 import tempfile
 import uuid
 from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -43,6 +42,9 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.states import RunningStage
 
 
 class LightningModule(
@@ -103,7 +105,6 @@ class LightningModule(
         self._running_manual_backward = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
-        self.running_stage = None
         self._automatic_optimization: bool = True
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
@@ -169,6 +170,10 @@ class LightningModule(
         """
         return self._automatic_optimization
 
+    @property
+    def running_stage(self) -> Optional["RunningStage"]:
+        return self.trainer._running_stage if self.trainer else None
+
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:
         self._automatic_optimization = automatic_optimization
@@ -189,8 +194,8 @@ class LightningModule(
         Prints only from process 0. Use this in any distributed mode to log only once.
 
         Args:
-            *args: The thing to print. Will be passed to Python's built-in print function.
-            **kwargs: Will be passed to Python's built-in print function.
+            *args: The thing to print. The same as for Python's built-in print function.
+            **kwargs: The same as for Python's built-in print function.
 
         Example::
 
@@ -199,7 +204,11 @@ class LightningModule(
 
         """
         if self.trainer.is_global_zero:
-            print(*args, **kwargs)
+            progress_bar = self.trainer.progress_bar_callback
+            if progress_bar is not None and progress_bar.is_enabled:
+                progress_bar.print(*args, **kwargs)
+            else:
+                print(*args, **kwargs)
 
     def log(
         self,
@@ -1314,9 +1323,6 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer.
 
-        .. tip:: With ``Trainer(enable_pl_optimizer=True)``, you can use ``optimizer.step()`` directly
-         and it will handle zero_grad, accumulated gradients, AMP, TPU and more automatically for you.
-
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
             to ``optimizer.step()`` function as shown in the examples. This ensures that
@@ -1798,39 +1804,6 @@ class LightningModule(
             return AttributeDict()
         # prevent any change
         return copy.deepcopy(self._hparams_initial)
-
-    @hparams.setter
-    def hparams(self, hp: Union[dict, Namespace, Any]):
-        # TODO: remove this method in v1.3.0.
-        rank_zero_warn(
-            "The setter for self.hparams in LightningModule is deprecated since v1.1.0 and will be"
-            " removed in v1.3.0. Replace the assignment `self.hparams = hparams` with "
-            " `self.save_hyperparameters()`.", DeprecationWarning
-        )
-        hparams_assignment_name = self.__get_hparams_assignment_variable()
-        self._hparams_name = hparams_assignment_name
-        self._set_hparams(hp)
-        # this resolves case when user does not uses `save_hyperparameters` and do hard assignement in init
-        if not hasattr(self, "_hparams_initial"):
-            self._hparams_initial = copy.deepcopy(self._hparams)
-
-    def __get_hparams_assignment_variable(self):
-        """
-        looks at the code of the class to figure out what the user named self.hparams
-        this only happens when the user explicitly sets self.hparams
-        """
-        try:
-            class_code = inspect.getsource(self.__class__)
-            lines = class_code.split("\n")
-            for line in lines:
-                line = re.sub(r"\s+", "", line, flags=re.UNICODE)
-                if ".hparams=" in line:
-                    return line.split("=")[1]
-        # todo: specify the possible exception
-        except Exception:
-            return "hparams"
-
-        return None
 
     @property
     def model_size(self) -> float:

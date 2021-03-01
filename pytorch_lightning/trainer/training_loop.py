@@ -58,7 +58,6 @@ class TrainLoop:
         max_steps,
         min_steps,
         num_sanity_val_steps,
-        automatic_optimization,
         weights_summary,
     ):
         self.trainer.global_step = 0
@@ -71,7 +70,6 @@ class TrainLoop:
         self.trainer.batch_idx = 0
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
-        self.automatic_optimization = automatic_optimization
 
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.trainer.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
@@ -480,6 +478,7 @@ class TrainLoop:
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
         should_check_val = False
+        val_loop_called = False
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
@@ -515,9 +514,10 @@ class TrainLoop:
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.run_evaluation()
+                val_loop_called = True
 
                 # reset stage to train
-                self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
+                self.trainer._running_stage = RunningStage.TRAINING
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -560,20 +560,22 @@ class TrainLoop:
         )
 
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
+        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
+        should_train_only = self.trainer.disable_validation or should_skip_eval
+
+        # update epoch level lr_schedulers if no val loop outside train loop is triggered
+        if (val_loop_called and not should_check_val) or should_train_only:
+            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+
+        if should_train_only:
+            self.check_checkpoint_callback(True)
+            self.check_early_stopping_callback(True)
+
         if should_check_val:
             self.trainer.run_evaluation(on_epoch=True)
 
             # reset stage to train
-            self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
-
-        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
-        should_train_only = self.trainer.disable_validation or should_skip_eval
-
-        if should_train_only:
-            # update epoch level lr_schedulers
-            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
-            self.check_checkpoint_callback(True)
-            self.check_early_stopping_callback(True)
+            self.trainer._running_stage = RunningStage.TRAINING
 
         # increment the global step once
         # progress global step according to grads progress
@@ -820,7 +822,7 @@ class TrainLoop:
         is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         can_check_val = self.trainer.enable_validation and is_val_check_epoch
         is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
-        epoch_end_val_check = self.trainer.val_check_batch == self.trainer.num_training_batches
+        epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
 
         should_check_val = ((is_val_check_batch and epoch_end_val_check) or self.trainer.should_stop
                             or is_last_batch_for_infinite_dataset

@@ -170,7 +170,8 @@ def precision_recall_curve(
             range [0,num_classes-1]
         sample_weights: sample weights for each data point
 
-    Returns: 3-element tuple containing
+    Returns:
+        3-element tuple containing
 
         precision:
             tensor where element i is the precision of predictions with
@@ -185,6 +186,7 @@ def precision_recall_curve(
 
     Example (binary case):
 
+        >>> from pytorch_lightning.metrics.functional import precision_recall_curve
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 1, 0])
         >>> precision, recall, thresholds = precision_recall_curve(pred, target, pos_label=1)
@@ -197,6 +199,7 @@ def precision_recall_curve(
 
     Example (multiclass case):
 
+        >>> from pytorch_lightning.metrics.functional import precision_recall_curve
         >>> pred = torch.tensor([[0.75, 0.05, 0.05, 0.05, 0.05],
         ...                      [0.05, 0.75, 0.05, 0.05, 0.05],
         ...                      [0.05, 0.05, 0.75, 0.05, 0.05],
@@ -210,7 +213,6 @@ def precision_recall_curve(
         [tensor([1., 0.]), tensor([1., 0.]), tensor([1., 0., 0.]), tensor([1., 0., 0.]), tensor([nan, 0.])]
         >>> thresholds
         [tensor([0.7500]), tensor([0.7500]), tensor([0.0500, 0.7500]), tensor([0.0500, 0.7500]), tensor([0.0500])]
-
     """
     preds, target, num_classes, pos_label = _precision_recall_curve_update(preds, target, num_classes, pos_label)
     return _precision_recall_curve_compute(preds, target, num_classes, pos_label, sample_weights)
