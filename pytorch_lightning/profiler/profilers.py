@@ -685,7 +685,7 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
 
         path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
             Before PyTorch 1.8, it will be save where the file being is being run.
-            After PyTorch 1.8, it will save in the `lightning_logs/version_{}` folder.
+            After PyTorch 1.8, it will save in the ``lightning_logs/version_{}`` folder.
 
         sort_by_key: Keys to sort out profiled table
 
@@ -693,37 +693,25 @@ class PyTorchProfiler(LegacyPyTorchProfiler):
             Any other will be pass through.
 
         local_rank: When running in distributed setting, local_rank is used for each process
-            to write to their own file if `output_fname` is provided.
+            to write to their own file if ``output_fname`` is provided.
 
-        emit_nvtx: (WARNING: Supported only for torch<1.8.0)
-            Context manager that makes every autograd operation emit an NVTX range
-            Run::
-                nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
-            To visualize, you can either use::
-                nvvp trace_name.prof
-                torch.autograd.profiler.load_nvprof(path)
+        emit_nvtx: warning - Supported only for torch<1.8.0)
+            Use nvprof or ``torch.autograd.profiler.load_nvprof``.
 
-        export_to_flame_graph: (WARNING: Supported only for torch>=1.8.0)
+        export_to_flame_graph: warning - Supported only for torch>=1.8.0
             Whether to export the sequence of profiled operators for Flame Graph.
-            Generate a performance visualization with the following commands.
-            Run::
 
-                git clone https://github.com/brendangregg/FlameGraph
-                cd FlameGraph
-                ./flamegraph.pl –title “CPU time” –countname “us.” ./lightning_logs/version_{}/{}.stack > a.svg
+        on_trace_ready: warning - Supported only for torch>=1.8.0
+            Function which takes the profiler and executed on ``RECORD_AND_SAVE`` action
 
-        on_trace_ready: (WARNING: Supported only for torch>=1.8.0)
-            Function which takes the profiler and executed on `RECORD_AND_SAVE` action
-
-        schedule: (WARNING: Supported only for torch>=1.8.0)
+        schedule: warning - Supported only for torch>=1.8.0
             Optional Callable which describes recording procedure
-
     """
 
 
 if _TORCH_GREATER_EQUAL_1_8:
 
-    class PyTorchProfiler(LegacyPyTorchProfiler):  # noqa F811
+    class PUPPyTorchProfiler(LegacyPyTorchProfiler):  # noqa F811
 
         START_ACTION = "on_fit_start"
         RECORD_FUNCTIONS = ("training_step_and_backward", "training_step", "backward", "validation_step", "test_step")
@@ -735,7 +723,7 @@ if _TORCH_GREATER_EQUAL_1_8:
             enabled: bool = True,
             use_cpu: bool = True,
             use_cuda: bool = True,
-            schedule: Optional[Callable] = torch.profiler.schedule(wait=3, warmup=1, active=2),
+            schedule: Optional[Callable] = torch.profiler.schedule(wait=1, warmup=1, active=2),
             record_shapes: bool = True,
             group_by_input_shapes: bool = False,
             profile_memory: bool = True,
@@ -784,25 +772,20 @@ if _TORCH_GREATER_EQUAL_1_8:
                 row_limit: Limit the number of rows in a table, `0` is a special value that
                     removes the limit completely.
 
-                export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
+                export_to_chrome: Whether to export the sequence of profiled operators for Chrome
                     It can be used with `chrome://tracing/`. Just load the generated traces.
 
-                export_to_flame_graph: Whether to export the sequence of profiled operators for Flame Graph.
+                export_to_flame_graph: Whether to export the sequence of profiled operators for Flame Graph
                     Generate a performance visualization with the following commands.
-                    Run::
-
-                        git clone https://github.com/brendangregg/FlameGraph
-                        cd FlameGraph
-                        ./flamegraph.pl –title “CPU time” –countname “us.” ./lightning_logs/version_{}/{}.stack > a.svg
 
                 group_by_input_shapes: Include operator input shapes and group calls by shape.
 
                 sort_by_key: Keys to sort out profiled table
 
-                record_functions: list of profiled functions which will create a context manager on.
+                record_functions: list of profiled functions which will create a context manager on
                     Any other will be pass through.
 
-                path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
+                path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``
                     By default, it will save in the `lightning_logs/version_{}` folder.
 
                 local_rank: When running in distributed setting, local_rank is used for each process
