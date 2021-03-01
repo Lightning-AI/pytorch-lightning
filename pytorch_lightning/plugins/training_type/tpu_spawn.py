@@ -14,6 +14,7 @@
 import io
 import os
 import re
+from time import sleep
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
@@ -50,6 +51,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         )
         self.tpu_local_core_rank = 0
         self.start_method = None
+        self._repeat_save_on_fail = 3
 
     def connect(self, model: torch.nn.Module) -> torch.nn.Module:
         self.create_mp_queue()
@@ -139,16 +141,23 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             # TODO: is there a better way than accessing trainer through model -> trainer?
             if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                xm.save(self.lightning_module.state_dict(), last_path)
-
-            # this barrier seems to make xm.save fails less often
-            self.barrier("rdz")
+                self.try_save(self.lightning_module.state_dict(), last_path)
 
             if self.global_rank == 0:
                 # todo, pass complete checkpoint as state dictionary
                 self.mp_queue.put(best_model_path)
                 self.mp_queue.put(last_path)
                 self.mp_queue.put(results)
+
+    def try_save(self, state_dict: Dict, path: str):
+        # saving can randomly fail, 
+        # therefore we try several times
+        for _ in range(self._repeat_save_on_fail):
+            try:
+                xm.save(state_dict, path)
+                break
+            except RuntimeError:
+                sleep(0.001)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         buffer = io.BytesIO()
@@ -297,4 +306,4 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # dump states as a checkpoint dictionary object
         _checkpoint = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
-        xm.save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)
+        self.try_save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)
