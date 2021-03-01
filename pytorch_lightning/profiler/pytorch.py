@@ -105,6 +105,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
         """
         This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
         different operators inside your model - both on the CPU and GPU
+
         Args:
             output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished. When using ``ddp``,
@@ -120,8 +121,11 @@ class LegacyPyTorchProfiler(BaseProfiler):
             use_cpu: record events on the CPU
             emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
                 Run::
+
                     nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
+
                 To visualize, you can either use::
+
                     nvvp trace_name.prof
                     torch.autograd.profiler.load_nvprof(path)
 
@@ -131,7 +135,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
                 By default, it will be save where the file being is being run.
             row_limit: Limit the number of rows in a table, `0` is a special value that
                 removes the limit completely.
-            sort_by_key: Keys to sort out profiled table
+            sort_by_key: Keys to sort out profiled table.
             record_functions: list of profiled functions which will create a context manager on.
                 Any other will be pass through.
             local_rank: When running in distributed setting, local_rank is used for each process
