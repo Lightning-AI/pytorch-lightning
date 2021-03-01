@@ -125,7 +125,7 @@ class HorovodPlugin(ParallelPlugin):
     def model_to_device(self):
         if self.on_gpu:
             torch.cuda.set_device(self.root_device)
-        self.model = self.model.to(self.root_device)
+        self.model.to(self.root_device)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
         """
