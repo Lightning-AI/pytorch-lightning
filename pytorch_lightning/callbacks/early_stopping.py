@@ -38,8 +38,18 @@ class EarlyStopping(Callback):
             to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no
             improvement. Default: ``0.0``.
-        patience: number of validation epochs with no improvement
-            after which training will be stopped. Default: ``3``.
+        patience: number of validation checks with no improvement
+            after which training will be stopped. Under the default
+            configuration, one validation check happens after every
+            training epoch. However, the frequency of validation
+            can be modified by setting various parameters on the
+            Trainer, for example check_val_every_n_epoch and
+            val_check_interval. It must be noted that the patience
+            parameter counts the number of validation checks with
+            no improvement, and not the number of training epochs.
+            Therefore, with parameters check_val_every_n_epoch=10
+            and patience=3, the trainer will perform at least 40
+            training epochs before being stopped. Default: ``3``.
         verbose: verbosity mode. Default: ``False``.
         mode: one of ``'min'``, ``'max'``. In ``'min'`` mode,
             training will stop when the quantity
