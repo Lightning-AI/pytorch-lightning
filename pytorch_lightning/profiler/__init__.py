@@ -198,9 +198,9 @@ from pytorch_lightning.profiler.profilers import (
     AdvancedProfiler,
     BaseProfiler,
     PassThroughProfiler,
-    PyTorchProfiler,
     SimpleProfiler,
 )
+from pytorch_lightning.profiler.pytorch import PyTorchProfiler
 
 __all__ = [
     'BaseProfiler',
@@ -209,3 +209,4 @@ __all__ = [
     'PassThroughProfiler',
     "PyTorchProfiler",
 ]
+
