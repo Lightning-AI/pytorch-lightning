@@ -177,9 +177,6 @@ class Trainer(
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
 
-                .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
-                    v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
-
             check_val_every_n_epoch: Check val every n train epochs.
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
