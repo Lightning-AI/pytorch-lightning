@@ -114,6 +114,18 @@ def r2score(
             * ``'uniform_average'`` scores are uniformly averaged
             * ``'variance_weighted'`` scores are weighted by their individual variances
 
+    Raises:
+        ValueError:
+            If both ``preds`` and ``targets`` are not ``1D`` or ``2D`` tensors.
+        ValueError:
+            If ``len(preds)`` is less than ``2``
+            since at least ``2`` sampels are needed to calculate r2 score.
+        ValueError:
+            If ``multioutput`` is not one of ``raw_values``,
+            ``uniform_average`` or ``variance_weighted``.
+        ValueError:
+            If ``adjusted`` is not an ``integer`` greater than ``0``.
+
     Example:
 
         >>> from pytorch_lightning.metrics.functional import r2score

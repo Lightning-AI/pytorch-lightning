@@ -197,6 +197,14 @@ def precision_recall_curve(
         >>> thresholds
         tensor([1, 2, 3])
 
+    Raises:
+        ValueError:
+            If ``preds`` and ``target`` don't have the same number of dimensions,
+            or one additional dimension for ``preds``.
+        ValueError:
+            If the number of classes deduced from ``preds`` is not the same as the
+            ``num_classes`` provided.
+
     Example (multiclass case):
 
         >>> from pytorch_lightning.metrics.functional import precision_recall_curve

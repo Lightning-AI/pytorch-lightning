@@ -54,6 +54,12 @@ def image_gradients(img: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     Return:
         Tuple of (dy, dx) with each gradient of shape ``[N, C, H, W]``
 
+    Raises:
+        TypeError:
+            If ``img`` is not of the type <torch.Tensor>.
+        RuntimeError:
+            If ``img`` is not a 4D tensor.
+
     Example:
         >>> from pytorch_lightning.metrics.functional import image_gradients
         >>> image = torch.arange(0, 1*1*5*5, dtype=torch.float32)
