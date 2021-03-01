@@ -384,24 +384,23 @@ inside your LightningModule
 
     def __init__(self):
         ...
-        self.train_metrics = pl.metrics.MetricCollection(Accuracy(), Precision(), Recall(), prefix='train_')
-        self.valid_metrics = pl.metrics.MetricCollection(Accuracy(), Precision(), Recall(), prefix='val_')
+        metrics = pl.metrics.MetricCollection(...)
+        self.train_metrics = metrics.clone()
+        self.valid_metrics = metrics.clone()
 
     def training_step(self, batch, batch_idx):
         logits = self(x)
         ...
-        output = self.train_metrics(logits, y)
+        self.train_metrics(logits, y)
         # use log_dict instead of log
-        # metrics are logged with keys: train_Accuracy, train_Precision and train_Recall
-        self.log_dict(output)
+        self.log_dict(self.train_metrics, on_step=True, on_epoch=False, prefix='train')
 
     def validation_step(self, batch, batch_idx):
         logits = self(x)
         ...
-        output = self.valid_metrics(logits, y)
+        self.valid_metrics(logits, y)
         # use log_dict instead of log
-        # metrics are logged with keys: val_Accuracy, val_Precision and val_Recall
-        self.log_dict(output)
+        self.log_dict(self.valid_metrics, on_step=True, on_epoch=True, prefix='val')
 
 .. note::
 
