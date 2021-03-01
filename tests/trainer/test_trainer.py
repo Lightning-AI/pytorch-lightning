@@ -1664,7 +1664,7 @@ def test_pytorch_profiler_nested(tmpdir):
         assert pa[n] == expected_[n]
 
 
-@pytest.mark.skipif(True, reason="This tests need to be run with nvprof")
+@pytest.mark.skip(reason="This tests need to be run with nvprof")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
 def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     """
