@@ -387,10 +387,9 @@ class ModelCheckpoint(Callback):
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}-{val_loss:.2f}')
             >>> os.path.basename(ckpt.format_checkpoint_name(2, 3, metrics=dict(val_loss=0.123456)))
             'epoch=2-val_loss=0.12.ckpt'
-            >>> ckpt = ModelCheckpoint(
-            >>>     dirpath=tmpdir,
-            >>>     filename='epoch={epoch}-validation_loss={val_loss:.2f}',
-            >>>     auto_insert_metric_name=False)
+            >>> ckpt = ModelCheckpoint(dirpath=tmpdir,
+            ... filename='epoch={epoch}-validation_loss={val_loss:.2f}',
+            ... auto_insert_metric_name=False)
             >>> os.path.basename(ckpt.format_checkpoint_name(2, 3, metrics=dict(val_loss=0.123456)))
             'epoch=2-validation_loss=0.12.ckpt'
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{missing:d}')

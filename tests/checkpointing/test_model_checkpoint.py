@@ -435,6 +435,7 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
         auto_insert_metric_name=False)
     assert ckpt_name == 'epoch=003-val_acc=0.03'
 
+
 class ModelCheckpointExtensionTest(ModelCheckpoint):
     FILE_EXTENSION = '.tpkc'
 
