@@ -26,7 +26,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringDataModule, BoringModel
-from tests.helpers.skipif import LitSkipif
+from tests.helpers.skipif import SkipIf
 
 
 def _setup_ddp(rank, worldsize):
@@ -72,7 +72,7 @@ def test_result_reduce_ddp(result_cls):
         pytest.param(5, False, 0, id='nested_list_predictions'),
         pytest.param(6, False, 0, id='dict_list_predictions'),
         pytest.param(7, True, 0, id='write_dict_predictions'),
-        pytest.param(0, True, 1, id='full_loop_single_gpu', marks=LitSkipif(min_gpus=1))
+        pytest.param(0, True, 1, id='full_loop_single_gpu', marks=SkipIf(min_gpus=1))
     ]
 )
 def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
