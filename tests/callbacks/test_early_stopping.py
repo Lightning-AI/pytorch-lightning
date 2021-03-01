@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-import sys
 from unittest import mock
 
 import cloudpickle

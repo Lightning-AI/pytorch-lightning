@@ -14,7 +14,6 @@
 import math
 import os
 import pickle
-import platform
 import sys
 from argparse import Namespace
 from copy import deepcopy
@@ -221,8 +220,14 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
 @pytest.mark.parametrize(
     ["accumulate_grad_batches", "limit_train_batches"],
     [
-        ({1: 2, 3: 4}, 1.0),
-        ({1: 2, 3: 4}, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
+        ({
+            1: 2,
+            3: 4
+        }, 1.0),
+        ({
+            1: 2,
+            3: 4
+        }, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
         (3, 1.0),
         (3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
         (4, 1.0),
