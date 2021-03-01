@@ -19,7 +19,8 @@ import os
 import re
 import numbers
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, TYPE_CHECKING
+from weakref import proxy
 
 import torch.nn as nn
 
@@ -27,6 +28,9 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
 warning_cache = WarningCache()
 
@@ -134,6 +138,7 @@ class WandbLogger(LightningLoggerBase):
         self._prefix = prefix
         self._experiment = experiment
         self._kwargs = kwargs
+        self._trainer = None
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -143,6 +148,10 @@ class WandbLogger(LightningLoggerBase):
         # cannot be pickled
         state['_experiment'] = None
         return state
+
+    def connect(self, trainer: Optional['Trainer'] = None) -> None:
+        if trainer is not None:
+            self._trainer = proxy(trainer)
 
     @property
     @rank_zero_experiment
@@ -214,7 +223,7 @@ class WandbLogger(LightningLoggerBase):
     @rank_zero_only
     def finalize(self, status: str) -> None:
         # save checkpoints as artifacts
-        if self._log_model:
+        if self._log_model and self._trainer is not None and self._trainer.checkpoint_callback is not None:
             # use run name and ensure it's a valid Artifact name
             artifact_name = re.sub(r"[^a-zA-Z0-9_\.\-]", "", self.experiment.name)
             # gather interesting metadata
@@ -223,8 +232,14 @@ class WandbLogger(LightningLoggerBase):
                 for k, v in dict(self.experiment.summary).items()
                 if isinstance(v, numbers.Number) and not k.startswith("_")
             }
-            # TODO: see if we can also log data from `trainer.checkpoint_callback` (best_model_path, etc) 
+            metadata['ModelCheckpoint'] = {k: v for k, v in vars(
+                self._trainer.checkpoint_callback).items() if not callable(v)}
             artifact = wandb.Artifact(name=f"run-{artifact_name}", type="model", metadata=metadata)
-            # TODO: we need access to `trainer.checkpoint_callback.dirpath`
-            artifact.add_dir(trainer.checkpoint_callback.dirpath)
+            # add relevant checkpoints
+            for checkpoint in set([
+                self._trainer.checkpoint_callback.best_model_path,
+                self._trainer.checkpoint_callback.last_model_path,
+                *self._trainer.checkpoint_callback.best_k_models.keys()
+            ]) - {''}:
+                artifact.add_file(checkpoint)
             self.experiment.log_artifact(artifact)
