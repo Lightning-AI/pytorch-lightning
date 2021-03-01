@@ -133,8 +133,8 @@ def test_python_scalar_to_tensor(inp, expected):
     assert torch.all(python_scalar_to_tensor(inp).eq(expected))
 
 
+@SkipIf(min_gpus=1)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_lightning_parallel_module_python_scalar_conversion(device):
     """ Test that LightningParallelModule can convert Python scalars to tensors. """
 

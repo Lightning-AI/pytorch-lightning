@@ -878,7 +878,7 @@ def test_gradient_clipping(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
 def test_gradient_clipping_fp16(tmpdir):
     """
@@ -1272,7 +1272,7 @@ def test_trainer_subclassing():
         }),
     ],
 )
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_trainer_omegaconf(trainer_params):
     Trainer(**trainer_params)
 
@@ -1668,7 +1668,7 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
     trainer.fit(model, train_data)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_setup_hook_move_to_device_correctly(tmpdir):
     """
     Verify that if a user defines a layer in the setup hook function, this is moved to the correct device.

@@ -216,7 +216,7 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
         device_parser.parse_gpu_ids(gpus)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_single_gpu_batch_parse():
     trainer = Trainer(gpus=1)
 
@@ -307,7 +307,7 @@ def test_single_gpu_batch_parse():
     assert batch.label.type() == 'torch.cuda.LongTensor'
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_non_blocking():
     """ Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects. """
     trainer = Trainer()

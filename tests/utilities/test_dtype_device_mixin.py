@@ -58,7 +58,7 @@ class DeviceAssertCallback(Callback):
     pytest.param(torch.device('cpu')),
     pytest.param(torch.device('cuda', 0)),
 ])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_submodules_device_and_dtype(dst_device, dst_dtype):
     """
     Test that the device and dtype property updates propagate through mixed nesting of regular
@@ -110,7 +110,7 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
         pytest.param(torch.device('cuda', 0)),
     ]
 )
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_gpu_cuda_device(device):
     model = TopModule()
 

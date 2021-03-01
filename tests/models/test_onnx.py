@@ -38,7 +38,7 @@ def test_model_saves_with_input_sample(tmpdir):
     assert os.path.getsize(file_path) > 4e2
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_model_saves_on_gpu(tmpdir):
     """Test that model saves on gpu"""
     model = BoringModel()

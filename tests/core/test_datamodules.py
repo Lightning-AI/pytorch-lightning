@@ -349,7 +349,7 @@ def test_trainer_attached_to_dm(tmpdir):
     assert dm.trainer is not None
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_full_loop_single_gpu(tmpdir):
     reset_seed()
 
@@ -421,7 +421,7 @@ def test_full_loop_dp(tmpdir):
     assert result[0]['test_acc'] > 0.6
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_dm_apply_batch_transfer_handler(get_module_mock):
     expected_device = torch.device('cuda', 0)

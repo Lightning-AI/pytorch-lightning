@@ -144,7 +144,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     assert callback.len_outputs == 0
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_apply_batch_transfer_handler(model_getter_mock):
     expected_device = torch.device('cuda', 0)

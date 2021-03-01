@@ -197,7 +197,7 @@ def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_v1_4_0_deprecated_lightning_data_parallel():
     model = BoringModel()
     with pytest.deprecated_call(match="`LightningDataParallel` is deprecated since v1.2 and will be removed in v1.4."):

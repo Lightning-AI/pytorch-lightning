@@ -225,7 +225,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+@SkipIf(min_gpus=1)
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):

@@ -170,7 +170,7 @@ def test_horovod_amp(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
 
     class TestTrainingStepModel(BoringModel):

@@ -66,7 +66,6 @@ class CustomRPCPlugin(RPCPlugin):
         return
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @SkipIf(min_gpus=2)
 @pytest.mark.skipif(not _RPC_AVAILABLE, reason="RPC is not available")
 @pytest.mark.skipif(

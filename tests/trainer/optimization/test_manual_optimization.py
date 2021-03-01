@@ -240,7 +240,7 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_multiple_optimizers_manual_native_amp(tmpdir):
     """
     Tests that only training_step can be used
@@ -310,7 +310,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_multiple_optimizers_manual_apex(tmpdir):
     """
@@ -447,7 +447,6 @@ class ManualOptimizationExtendedModel(BoringModel):
         assert self.called["on_train_batch_end"] == 10
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @SkipIf(min_gpus=2)
 def test_manual_optimization_and_return_tensor(tmpdir):
     """
@@ -502,7 +501,7 @@ def test_manual_optimization_and_return_detached_tensor(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_manual_optimization_and_accumulated_gradient(tmpdir):
     """
     This test verify that in `automatic_optimization=False`,
@@ -593,7 +592,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@SkipIf(min_gpus=1)
 def test_multiple_optimizers_step(tmpdir):
     """
     Tests that `step` works with several optimizers
