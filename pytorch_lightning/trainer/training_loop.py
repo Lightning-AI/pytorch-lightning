@@ -784,7 +784,13 @@ class TrainLoop:
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
-            if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
+            if not self._skip_backward and self.automatic_optimization:
+                is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
+
+                if is_first_batch_to_accumulate:
+                    self.on_before_zero_grad(optimizer)
+                    self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
+
                 # backward pass
                 if result is not None:
                     with self.trainer.profiler.profile("model_backward"):
