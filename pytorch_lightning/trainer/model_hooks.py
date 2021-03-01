@@ -13,23 +13,22 @@
 # limitations under the License.
 
 import inspect
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from pytorch_lightning.core.lightning import LightningModule
 
 
 class TrainerModelHooksMixin(ABC):
+
+    lightning_module: LightningModule
+
     def is_function_implemented(self, f_name, model=None):
         if model is None:
-            model = self.get_model()
+            model = self.lightning_module
         f_op = getattr(model, f_name, None)
         return callable(f_op)
 
     def has_arg(self, f_name, arg_name):
-        model = self.get_model()
+        model = self.lightning_module
         f_op = getattr(model, f_name, None)
         return arg_name in inspect.signature(f_op).parameters
-
-    @abstractmethod
-    def get_model(self) -> LightningModule:
-        """Warning: this is just empty shell for code implemented in other class."""

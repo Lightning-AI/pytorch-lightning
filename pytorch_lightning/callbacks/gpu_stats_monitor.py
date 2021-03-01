@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 GPU Stats Monitor
 =================
@@ -24,10 +23,10 @@ import os
 import shutil
 import subprocess
 import time
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import DeviceType, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 
@@ -48,6 +47,10 @@ class GPUStatsMonitor(Callback):
         fan_speed: Set to ``True`` to monitor percentage of fan speed. Default: ``False``.
         temperature: Set to ``True`` to monitor the memory and gpu temperature in degree Celsius.
             Default: ``False``.
+
+    Raises:
+        MisconfigurationException:
+            If NVIDIA driver is not installed, not running on GPUs, or ``Trainer`` has no logger.
 
     Example::
 
@@ -100,11 +103,9 @@ class GPUStatsMonitor(Callback):
 
     def on_train_start(self, trainer, *args, **kwargs):
         if not trainer.logger:
-            raise MisconfigurationException(
-                'Cannot use GPUStatsMonitor callback with Trainer that has no logger.'
-            )
+            raise MisconfigurationException('Cannot use GPUStatsMonitor callback with Trainer that has no logger.')
 
-        if not trainer.on_gpu:
+        if trainer._device_type != DeviceType.GPU:
             raise MisconfigurationException(
                 'You are using GPUStatsMonitor but are not running on GPU'
                 f' since gpus attribute in Trainer is set to {trainer.gpus}.'
@@ -208,10 +209,6 @@ class GPUStatsMonitor(Callback):
 
     @staticmethod
     def _should_log(trainer) -> bool:
-        should_log = (
-            (trainer.global_step + 1) % trainer.log_every_n_steps == 0
-            or trainer.should_stop
-        )
+        should_log = ((trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop)
 
-        should_log = should_log and not trainer.fast_dev_run
         return should_log

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Abstract base class used to build new loggers."""
 
 import argparse
@@ -31,12 +30,16 @@ from pytorch_lightning.utilities import rank_zero_only
 
 def rank_zero_experiment(fn: Callable) -> Callable:
     """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
+
     @wraps(fn)
     def experiment(self):
+
         @rank_zero_only
         def get_experiment():
             return fn(self)
+
         return get_experiment() or DummyExperiment()
+
     return experiment
 
 
@@ -59,9 +62,9 @@ class LightningLoggerBase(ABC):
     """
 
     def __init__(
-            self,
-            agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-            agg_default_func: Callable[[Sequence[float]], float] = np.mean
+        self,
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Callable[[Sequence[float]], float] = np.mean
     ):
         self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
@@ -69,9 +72,9 @@ class LightningLoggerBase(ABC):
         self._agg_default_func = agg_default_func
 
     def update_agg_funcs(
-            self,
-            agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-            agg_default_func: Callable[[Sequence[float]], float] = np.mean
+        self,
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Callable[[Sequence[float]], float] = np.mean
     ):
         """
         Update aggregation methods.
@@ -95,9 +98,9 @@ class LightningLoggerBase(ABC):
     def experiment(self) -> Any:
         """Return the experiment object associated with this logger."""
 
-    def _aggregate_metrics(
-            self, metrics: Dict[str, float], step: Optional[int] = None
-    ) -> Tuple[int, Optional[Dict[str, float]]]:
+    def _aggregate_metrics(self,
+                           metrics: Dict[str, float],
+                           step: Optional[int] = None) -> Tuple[int, Optional[Dict[str, float]]]:
         """
         Aggregates metrics.
 
@@ -192,6 +195,7 @@ class LightningLoggerBase(ABC):
         Returns:
             dictionary with all callables sanitized
         """
+
         def _sanitize_callable(val):
             # Give them one chance to return a value. Don't go rabbit hole of recursive call
             if isinstance(val, Callable):
@@ -200,6 +204,7 @@ class LightningLoggerBase(ABC):
                     if isinstance(_val, Callable):
                         return val.__name__
                     return _val
+                # todo: specify the possible exception
                 except Exception:
                     return getattr(val, "__name__", None)
             return val
@@ -207,7 +212,7 @@ class LightningLoggerBase(ABC):
         return {key: _sanitize_callable(val) for key, val in params.items()}
 
     @staticmethod
-    def _flatten_dict(params: Dict[str, Any], delimiter: str = '/') -> Dict[str, Any]:
+    def _flatten_dict(params: Dict[Any, Any], delimiter: str = '/') -> Dict[str, Any]:
         """
         Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
 
@@ -223,12 +228,15 @@ class LightningLoggerBase(ABC):
             {'a/b': 'c'}
             >>> LightningLoggerBase._flatten_dict({'a': {'b': 123}})
             {'a/b': 123}
+            >>> LightningLoggerBase._flatten_dict({5: {'a': 123}})
+            {'5/a': 123}
         """
 
         def _dict_generator(input_dict, prefixes=None):
             prefixes = prefixes[:] if prefixes else []
             if isinstance(input_dict, MutableMapping):
                 for key, value in input_dict.items():
+                    key = str(key)
                     if isinstance(value, (MutableMapping, Namespace)):
                         value = vars(value) if isinstance(value, Namespace) else value
                         for d in _dict_generator(value, prefixes + [key]):
@@ -348,9 +356,9 @@ class LoggerCollection(LightningLoggerBase):
         return [logger for logger in self._logger_iterable][index]
 
     def update_agg_funcs(
-            self,
-            agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-            agg_default_func: Callable[[Sequence[float]], float] = np.mean
+        self,
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Callable[[Sequence[float]], float] = np.mean
     ):
         for logger in self._logger_iterable:
             logger.update_agg_funcs(agg_key_funcs, agg_default_func)
@@ -403,16 +411,23 @@ class LoggerCollection(LightningLoggerBase):
 
 class DummyExperiment(object):
     """ Dummy experiment """
+
     def nop(*args, **kw):
         pass
 
     def __getattr__(self, _):
         return self.nop
 
+    def __getitem__(self, idx):
+        # enables self.logger[0].experiment.add_image
+        # and self.logger.experiment[0].add_image(...)
+        return self
+
 
 class DummyLogger(LightningLoggerBase):
     """ Dummy logger for internal use. Is usefull if we want to disable users
         logger for a feature, but still secure that users code can run """
+
     def __init__(self):
         super().__init__()
         self._experiment = DummyExperiment()
@@ -437,11 +452,14 @@ class DummyLogger(LightningLoggerBase):
     def version(self):
         pass
 
+    def __getitem__(self, idx):
+        return self
+
 
 def merge_dicts(
-        dicts: Sequence[Mapping],
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        default_func: Callable[[Sequence[float]], float] = np.mean
+    dicts: Sequence[Mapping],
+    agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+    default_func: Callable[[Sequence[float]], float] = np.mean
 ) -> Dict:
     """
     Merge a sequence with dictionaries into one dictionary by aggregating the

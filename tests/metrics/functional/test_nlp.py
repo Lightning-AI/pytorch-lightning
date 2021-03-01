@@ -1,6 +1,6 @@
 import pytest
 import torch
-from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu, sentence_bleu
+from nltk.translate.bleu_score import corpus_bleu, sentence_bleu, SmoothingFunction
 
 from pytorch_lightning.metrics.functional.nlp import bleu_score
 
@@ -14,7 +14,6 @@ REFERENCE2 = tuple(
     "It is a guiding principle which makes the military forces always being under the command of the Party".split()
 )
 REFERENCE3 = tuple("It is the practical guide for the army always to heed the directions of the party".split())
-
 
 # example taken from
 # https://www.nltk.org/api/nltk.translate.html?highlight=bleu%20score#nltk.translate.bleu_score.corpus_bleu
@@ -44,7 +43,10 @@ smooth_func = SmoothingFunction().method2
 )
 def test_bleu_score(weights, n_gram, smooth_func, smooth):
     nltk_output = sentence_bleu(
-        [REFERENCE1, REFERENCE2, REFERENCE3], HYPOTHESIS1, weights=weights, smoothing_function=smooth_func
+        [REFERENCE1, REFERENCE2, REFERENCE3],
+        HYPOTHESIS1,
+        weights=weights,
+        smoothing_function=smooth_func,
     )
     pl_output = bleu_score([HYPOTHESIS1], [[REFERENCE1, REFERENCE2, REFERENCE3]], n_gram=n_gram, smooth=smooth)
     assert torch.allclose(pl_output, torch.tensor(nltk_output))

@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union, Tuple, Sequence
+from typing import Sequence, Tuple, Union
 
 import torch
+
 from pytorch_lightning.metrics.utils import _check_same_shape
 
 
@@ -22,15 +23,16 @@ def _explained_variance_update(preds: torch.Tensor, target: torch.Tensor) -> Tup
     return preds, target
 
 
-def _explained_variance_compute(preds: torch.Tensor,
-                                target: torch.Tensor,
-                                multioutput: str = 'uniform_average',
-                                ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
+def _explained_variance_compute(
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    multioutput: str = 'uniform_average',
+) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
     diff_avg = torch.mean(target - preds, dim=0)
-    numerator = torch.mean((target - preds - diff_avg) ** 2, dim=0)
+    numerator = torch.mean((target - preds - diff_avg)**2, dim=0)
 
     target_avg = torch.mean(target, dim=0)
-    denominator = torch.mean((target - target_avg) ** 2, dim=0)
+    denominator = torch.mean((target - target_avg)**2, dim=0)
 
     # Take care of division by zero
     nonzero_numerator = numerator != 0
@@ -51,15 +53,16 @@ def _explained_variance_compute(preds: torch.Tensor,
         return torch.sum(denominator / denom_sum * output_scores)
 
 
-def explained_variance(preds: torch.Tensor,
-                       target: torch.Tensor,
-                       multioutput: str = 'uniform_average',
-                       ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
+def explained_variance(
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    multioutput: str = 'uniform_average',
+) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
     """
     Computes explained variance.
 
     Args:
-        pred: estimated labels
+        preds: estimated labels
         target: ground truth labels
         multioutput: Defines aggregation in the case of multiple output scores. Can be one
             of the following strings (default is `'uniform_average'`.):
