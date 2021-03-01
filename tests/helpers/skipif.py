@@ -66,7 +66,7 @@ def skipif_args(
     )
 
 
-class LightSkipif(MarkDecorator):
+class LightSkipif:
     """
     Light SkipIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
