@@ -46,20 +46,19 @@ class SMDDPPlugin(TrainingTypePlugin):
 
     def __init__(
         self,
-        parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         sync_batchnorm: bool = False,
         **kwargs: Union[Any, Dict[str, Any]],
     ):
         if not _SMDIST_AVAILABLE:
             raise MisconfigurationException("`smdistributed` module is not available.")
+
         super().__init__()
         parallel_device_ids = list(range(torch.cuda.device_count()))
         self.parallel_devices = [torch.device("cuda", i) for i in parallel_device_ids]
         self.sync_batchnorm = sync_batchnorm
         self.dist = SMLightningDistributed()
         self.num_nodes = len(os.environ['SM_HOSTS'])
-        self._ddp_kwargs = kwargs
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else self.parallel_devices
 
     @property
@@ -70,6 +69,22 @@ class SMDDPPlugin(TrainingTypePlugin):
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
+
+    def training_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def validation_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def predict(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def post_training_step(self):
+        if not self.lightning_module.automatic_optimization:
+            self.model.require_backward_grad_sync = True
 
     def barrier(self, *args, **kwargs) -> None:
         if dist.is_initialized():
@@ -127,7 +142,7 @@ class SMDDPPlugin(TrainingTypePlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        self.init_ddp_connection(self.global_rank, self.world_size)
+        self.init_smddp_connection(self.global_rank, self.world_size)
 
         # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
@@ -151,7 +166,7 @@ class SMDDPPlugin(TrainingTypePlugin):
         # move the model to the correct device
         self.model_to_device()
 
-        self.configure_ddp()
+        self.configure_smddp()
 
         self.barrier()
 
@@ -160,24 +175,16 @@ class SMDDPPlugin(TrainingTypePlugin):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
-
-        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
+    def init_smdddp_connection(self, global_rank: int, world_size: int) -> None:
 
         if not dist.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
             dist.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
-    def configure_ddp(self):
-        # self.pre_configure_ddp()
-        # print("=Device IDs=" * 5, self.determine_ddp_device_ids())
-        print("=Local Device IDs=" * 5, dist.get_local_rank())
+    def configure_smddp(self):
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model),
             device_ids=[dist.get_local_rank()],
-            # **self._ddp_kwargs,
         )
 
     def sync_ddp_if_available(
@@ -219,23 +226,24 @@ class SMDDPPlugin(TrainingTypePlugin):
         Return:
             reduced value
         """
+        divide_by_world_size = False
+
+        if group is None:
+            group = dist.group.WORLD
+
+        op = reduce_op if isinstance(reduce_op, ReduceOp) else ReduceOp.SUM
+
+        if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
+            divide_by_world_size = True
+
+        # sync all processes before reduction
+        dist.barrier(group=group)
+        dist.all_reduce(result, op=op, group=group, async_op=False)
+
+        if divide_by_world_size:
+            result = result / dist.get_world_size(group)
+
         return result
-
-    def training_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def predict(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def post_training_step(self):
-        if not self.lightning_module.automatic_optimization:
-            self.model.require_backward_grad_sync = True
 
     def unwrap_lightning_module(self) -> LightningModule:
         model = self._model
