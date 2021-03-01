@@ -149,26 +149,26 @@ def test_scriptable(tmpdir):
 
 
 def test_metric_collection_lightning_log(tmpdir):
-    """ test that logging in lightning works with the MetricCollection class """
+
     class TestModel(BoringModel):
 
         def __init__(self):
             super().__init__()
-            self.metric = MetricCollection([SumMetric(), DiffMetric()], prefix='train_')
+            self.metric = MetricCollection([SumMetric(), DiffMetric()])
             self.sum = 0.0
             self.diff = 0.0
 
         def training_step(self, batch, batch_idx):
             x = batch
-            self.metric(x.sum())
+            metric_vals = self.metric(x.sum())
             self.sum += x.sum()
             self.diff -= x.sum()
-            self.log_dict(self.metric)
+            self.log_dict({f'{k}_step': v for k, v in metric_vals.items()})
             return self.step(x)
 
         def training_epoch_end(self, outputs):
             metric_vals = self.metric.compute()
-            self.log_dict(metric_vals)
+            self.log_dict({f'{k}_epoch': v for k, v in metric_vals.items()})
 
     model = TestModel()
     model.val_dataloader = None
@@ -184,5 +184,5 @@ def test_metric_collection_lightning_log(tmpdir):
     trainer.fit(model)
 
     logged = trainer.logged_metrics
-    assert torch.allclose(torch.tensor(logged["train_SumMetric"]), model.sum)
-    assert torch.allclose(torch.tensor(logged["train_DiffMetric"]), model.diff)
+    assert torch.allclose(torch.tensor(logged["SumMetric_epoch"]), model.sum)
+    assert torch.allclose(torch.tensor(logged["DiffMetric_epoch"]), model.diff)
