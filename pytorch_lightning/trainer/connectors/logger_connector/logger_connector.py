@@ -160,7 +160,8 @@ class LoggerConnector:
                 self.trainer.logger = logger
 
         # connect trainer to logger
-        logger.connect(self.trainer)
+        if hasattr(self.trainer.logger, 'connect'):
+            self.trainer.logger.connect(self.trainer)
 
     def cache_training_step_metrics(self, opt_closure_result):
         """
