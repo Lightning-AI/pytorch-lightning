@@ -456,7 +456,7 @@ class PyTorchProfiler(BaseProfiler):
 
     def _start(self, action_name: str) -> None:
         if self.emit_nvtx:
-            self._profiler = self._create_profiler(action_name, torch.cuda.profiler.profile, enter=True)
+            self._parent_profiler = self._create_profiler(action_name, torch.cuda.profiler.profile, enter=True)
             self._create_profiler(action_name, torch.autograd.profiler.emit_nvtx)
         else:
             self._create_profiler(action_name, torch.autograd.profiler.profile)
@@ -479,7 +479,9 @@ class PyTorchProfiler(BaseProfiler):
         self.profiler.__exit__(exc_type=None, exc_val=None, exc_tb=None)
 
         if isinstance(self.profiler, torch.autograd.profiler.emit_nvtx):
-            self._profiler.__exit__(None, None, None)
+            # when running ``emit_nvtx``, PyTorch requires 2 context manager.
+            # The parent_profiler is being closed too.
+            self._parent_profiler.__exit__(None, None, None)
             return
 
         function_events = self.profiler.function_events
