@@ -144,7 +144,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     assert callback.len_outputs == 0
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_apply_batch_transfer_handler(model_getter_mock):
     expected_device = torch.device('cuda', 0)
@@ -198,7 +198,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )

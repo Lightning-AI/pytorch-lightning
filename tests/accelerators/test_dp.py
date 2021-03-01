@@ -52,7 +52,7 @@ class CustomClassificationModelDP(ClassificationModel):
         self.log('test_acc', self.test_acc(outputs['logits'], outputs['y']))
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_multi_gpu_early_stop_dp(tmpdir):
     """Make sure DDP works. with early stopping"""
     tutils.set_random_master_port()
@@ -73,7 +73,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
     tpipes.run_model_test(trainer_options, model, dm)
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_multi_gpu_model_dp(tmpdir):
     tutils.set_random_master_port()
 
@@ -95,7 +95,7 @@ def test_multi_gpu_model_dp(tmpdir):
     memory.get_memory_profile('min_max')
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_dp_test(tmpdir):
     tutils.set_random_master_port()
 

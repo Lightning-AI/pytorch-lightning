@@ -369,7 +369,7 @@ def test_call_back_validator(tmpdir):
         validator.check_logging_in_callbacks(current_hook_fx_name=None, on_step=None, on_epoch=None)
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_epoch_results_cache_dp(tmpdir):
 
     root_device = torch.device("cuda", 0)

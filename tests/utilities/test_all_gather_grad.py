@@ -49,7 +49,7 @@ def test_all_gather_ddp():
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )

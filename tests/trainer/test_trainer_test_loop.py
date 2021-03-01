@@ -19,7 +19,7 @@ from tests.base import EvalModelTemplate
 from tests.helpers.skipif import RunIf
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_single_gpu_test(tmpdir):
     tutils.set_random_master_port()
 
@@ -47,7 +47,7 @@ def test_single_gpu_test(tmpdir):
     assert torch.all(torch.eq(old_weights, new_weights))
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_ddp_spawn_test(tmpdir):
     tutils.set_random_master_port()
 

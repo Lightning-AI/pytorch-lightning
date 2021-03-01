@@ -218,7 +218,7 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize('scale_arg', ['power', 'binsearch', True])
 def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     """ Test possible values for 'batch size auto scaling' Trainer argument. """
@@ -240,7 +240,7 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     assert not os.path.exists(tmpdir / 'scale_batch_size_temp_model.ckpt')
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize('use_hparams', [True, False])
 def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     """ Test that new batch size gets written to the correct hyperparameter attribute. """
@@ -342,7 +342,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         trainer.tune(model, **fit_options)
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
 def test_auto_scale_batch_size_with_amp(tmpdir):
     model = EvalModelTemplate()

@@ -213,7 +213,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
         trainer.fit(model)
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 def test_deepspeed_run_configure_optimizers(tmpdir):
     """
@@ -246,7 +246,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
 def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     """
@@ -282,7 +282,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_deepspeed_custom_precision_params(tmpdir):
     """
         Ensure if we modify the FP16 parameters via the DeepSpeedPlugin, the deepspeed config contains these changes.
@@ -313,7 +313,7 @@ def test_deepspeed_custom_precision_params(tmpdir):
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
     """
         Ensure if we use a config and turn off cpu_offload, that this is set to False within the config.
@@ -334,7 +334,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 
 
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )

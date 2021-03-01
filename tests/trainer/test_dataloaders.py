@@ -727,7 +727,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
         trainer.test(model, test_dataloaders=[dataloader])
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_dataloader_reinit_for_subclass(tmpdir):
 
     class CustomDataLoader(torch.utils.data.DataLoader):
@@ -809,7 +809,7 @@ class DistribSamplerCallback(Callback):
 
 
 @pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_dataloader_distributed_sampler(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend """
 
@@ -837,7 +837,7 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
 
 
 @pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_dataloader_distributed_sampler_already_attached(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader """
 
@@ -855,7 +855,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     assert trainer.state == TrainerState.FINISHED, "DDP Training failed"
 
 
-@SkipIf(min_gpus=3)
+@RunIf(min_gpus=3)
 def test_batch_size_smaller_than_num_gpus(tmpdir):
     # we need at least 3 gpus for this test
     num_gpus = 3

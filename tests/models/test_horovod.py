@@ -102,7 +102,7 @@ def test_horovod_cpu_implicit(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
@@ -123,7 +123,7 @@ def test_horovod_multi_gpu(tmpdir):
 @pytest.mark.skip(reason="Horovod has a problem with broadcast when using apex?")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_horovod_apex(tmpdir):
     """Test Horovod with multi-GPU support using apex amp."""
@@ -147,7 +147,7 @@ def test_horovod_apex(tmpdir):
 @pytest.mark.skip(reason="Skip till Horovod fixes integration with Native torch.cuda.amp")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires torch.cuda.amp")
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
@@ -170,7 +170,7 @@ def test_horovod_amp(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
 
     class TestTrainingStepModel(BoringModel):

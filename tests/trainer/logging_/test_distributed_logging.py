@@ -52,7 +52,7 @@ def test_global_zero_only_logging_ddp_cpu(tmpdir):
     trainer.fit(model)
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 def test_global_zero_only_logging_ddp_spawn(tmpdir):
     """
     Makes sure logging only happens from root zero

@@ -169,7 +169,7 @@ def test_pruning_callback_ddp(tmpdir, use_global_unstructured, parameters_to_pru
     )
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_pruning_callback_ddp_spawn(tmpdir):
     train_with_pruning_callback(tmpdir, use_global_unstructured=True, accelerator="ddp_spawn", gpus=2)

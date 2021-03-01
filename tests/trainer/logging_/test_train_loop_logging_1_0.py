@@ -732,7 +732,7 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     assert trainer.logged_metrics['bar'] == fake_result
 
 
-@SkipIf(min_gpus=2)
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
@@ -772,7 +772,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     assert trainer.logged_metrics['bar'] == 2
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_logging_sync_dist_true_gpu(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with GPU (should just return the original value)
@@ -896,7 +896,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     assert trainer.callback_metrics == expected
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_metric_are_properly_reduced(tmpdir):
 
     class TestingModel(BoringModel):

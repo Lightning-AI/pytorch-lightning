@@ -269,7 +269,7 @@ def test_child_metric_state_dict():
     assert module.state_dict() == expected_state_dict
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_device_and_dtype_transfer(tmpdir):
     metric = DummyMetric1()
     assert metric.x.is_cuda is False
@@ -322,7 +322,7 @@ def test_metric_collection(tmpdir):
     assert isinstance(metric_loaded, MetricCollection)
 
 
-@SkipIf(min_gpus=1)
+@RunIf(min_gpus=1)
 def test_device_and_dtype_transfer_metriccollection(tmpdir):
     m1 = DummyMetric1()
     m2 = DummyMetric2()
