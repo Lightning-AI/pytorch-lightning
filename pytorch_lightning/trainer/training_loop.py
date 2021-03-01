@@ -692,8 +692,6 @@ class TrainLoop:
                             split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
                         )
 
-                        train_step_and_backward_closure()
-
                         # optimizer step
                         self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
