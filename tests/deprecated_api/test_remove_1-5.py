@@ -17,7 +17,7 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import WandbLogger
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
@@ -30,7 +30,9 @@ def test_v1_5_0_wandb_unused_sync_step(tmpdir):
 
 
 def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
+
     class OldSignature(Callback):
+
         def on_save_checkpoint(self, trainer, pl_module):  # noqa
             ...
 
@@ -49,14 +51,17 @@ def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
         trainer.save_checkpoint(filepath)
 
     class NewSignature(Callback):
+
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):
             ...
 
     class ValidSignature1(Callback):
+
         def on_save_checkpoint(self, trainer, *args):
             ...
 
     class ValidSignature2(Callback):
+
         def on_save_checkpoint(self, *args):
             ...
 
