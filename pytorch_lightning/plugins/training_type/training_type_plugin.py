@@ -22,7 +22,6 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
@@ -169,8 +168,4 @@ class TrainingTypePlugin(Plugin, ABC):
         return trainer.init_optimizers(model)
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
-        if _PYSYFT_AVAILABLE:
-            lambda_closure()
-            optimizer.step(**kwargs)
-        else:
-            optimizer.step(closure=lambda_closure, **kwargs)
+        optimizer.step(closure=lambda_closure, **kwargs)

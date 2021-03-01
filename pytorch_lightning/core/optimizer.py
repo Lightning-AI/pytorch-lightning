@@ -19,7 +19,7 @@ from weakref import proxy
 
 from torch.optim import Optimizer
 
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import _PYSYFT_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -211,6 +211,11 @@ class LightningOptimizer:
             if not isinstance(closure, (types.FunctionType, partial)):
                 raise MisconfigurationException("When closure is provided, it should be a function")
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
+
+        if _PYSYFT_AVAILABLE:
+            # todo (tudorcebere): use plans to execute the closure.
+            closure()
+            closure = None
 
         self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
         self._total_optimizer_step_calls += 1
