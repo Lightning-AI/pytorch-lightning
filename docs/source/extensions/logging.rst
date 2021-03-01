@@ -265,7 +265,7 @@ to see fewer messages like so:
 .. code-block:: python
 
     import logging
-    logging.getLogger("lightning").setLevel(logging.ERROR)
+    logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
 
 Read more about custom Python logging `here <https://docs.python.org/3/library/logging.html>`_.
 
