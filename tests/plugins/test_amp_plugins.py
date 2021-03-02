@@ -31,14 +31,14 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
 @mock.patch('torch.cuda.device_count', return_value=2)
 @pytest.mark.parametrize('ddp_backend,gpus', [('ddp', 2), ('ddp2', 2), ('ddp_spawn', 2)])
 @pytest.mark.parametrize(
-    'amp,plugin_arg,plugin_cls', [
-        pytest.param('native', None, NativeMixedPrecisionPlugin, marks=RunIf(amp_native=True)),
-        pytest.param('native', [MyNativeAMP()], MyNativeAMP, marks=RunIf(amp_native=True)),
-        pytest.param('apex', None, ApexMixedPrecisionPlugin, marks=RunIf(amp_apex=True)),
-        pytest.param('apex', [MyApexPlugin(amp_level="O2")], MyApexPlugin, marks=RunIf(amp_apex=True))
+    'amp,custom_plugin,plugin_cls', [
+        pytest.param('native', False, NativeMixedPrecisionPlugin, marks=RunIf(amp_native=True)),
+        pytest.param('native', True, MyNativeAMP, marks=RunIf(amp_native=True)),
+        pytest.param('apex', False, ApexMixedPrecisionPlugin, marks=RunIf(amp_apex=True)),
+        pytest.param('apex', True, MyApexPlugin, marks=RunIf(amp_apex=True))
     ]
 )
-def test_amp_apex_ddp(mocked_device_count, ddp_backend, gpus, amp, plugin_arg, plugin_cls):
+def test_amp_apex_ddp(mocked_device_count, ddp_backend, gpus, amp, custom_plugin, plugin_cls):
 
     trainer = Trainer(
         fast_dev_run=True,
@@ -46,7 +46,7 @@ def test_amp_apex_ddp(mocked_device_count, ddp_backend, gpus, amp, plugin_arg, p
         amp_backend=amp,
         gpus=gpus,
         accelerator=ddp_backend,
-        plugins=plugin_arg,
+        plugins=[plugin_cls()] if custom_plugin else None,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
 
