@@ -113,7 +113,7 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
         assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
-@RunIf(min_gpus=2, windows=)
+@RunIf(min_gpus=2, skip_windows=True)
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     """
