@@ -420,12 +420,18 @@ def test_plugin_accelerator_choice(accelerator, plugin):
     assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
 
 
-@pytest.mark.parametrize(
-    ["accelerator", "plugin"],
-    [('ddp', DDPPlugin), ('ddp_spawn', DDPSpawnPlugin), ('ddp_sharded', DDPShardedPlugin),
-     ('ddp_sharded_spawn', DDPSpawnShardedPlugin), ('deepspeed', DeepSpeedPlugin)],
-)
-@RunIf(pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available."), min_gpus=2, skip_windows=True)
+@pytest.mark.parametrize(["accelerator", "plugin"], [
+    ('ddp', DDPPlugin),
+    ('ddp_spawn', DDPSpawnPlugin),
+    ('ddp_sharded', DDPShardedPlugin),
+    ('ddp_sharded_spawn', DDPSpawnShardedPlugin),
+    pytest.param(
+        'deepspeed',
+        DeepSpeedPlugin,
+        marks=pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+    ),
+])
+@RunIf(min_gpus=2, skip_windows=True)
 def test_accelerator_choice_multi_node_gpu(accelerator, plugin, tmpdir):
     trainer = Trainer(
         accelerator=accelerator,
