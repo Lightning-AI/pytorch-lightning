@@ -11,10 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import partial
 from typing import cast, TYPE_CHECKING, Union
 
-import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
@@ -35,24 +33,12 @@ class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
     def __init__(self) -> None:
         super().__init__()
         self.scaler = ShardedGradScaler()
-
-    def clip_gradients(
-        self,
-        optimizer: Optimizer,
-        clip_val: Union[int, float],
-        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        norm_type: float = 2.0,
-    ) -> None:
-        clip_grad_funcs = {
-            GradClipAlgorithmType.VALUE: partial(self._clip_grad_by_value),
-            GradClipAlgorithmType.NORM: partial(self._clip_grad_by_norm, norm_type=norm_type)
+        self.clip_grad_funcs = {  # declaration for adapt overrided function.
+            GradClipAlgorithmType.VALUE: super().clip_grad_by_value,
+            GradClipAlgorithmType.NORM: self.clip_grad_by_norm,
         }
-        clip_grad_funcs[gradient_clip_algorithm](optimizer, clip_val)
 
-    def _clip_grad_by_value(self, optimizer, clip_val):
-        parameters = list(self.master_params(optimizer))
-        torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
-
-    def _clip_grad_by_norm(self, optimizer, clip_val, norm_type):
+    def clip_grad_by_norm(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0):
+        """ Overrided function. Clip gradients by norm. """
         optimizer = cast(OSS, optimizer)
         optimizer.clip_grad_norm(clip_val, norm_type=norm_type)

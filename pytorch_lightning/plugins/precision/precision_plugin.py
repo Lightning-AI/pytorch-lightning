@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from functools import partial
 from typing import Any, Callable, Generator, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
@@ -34,6 +33,13 @@ class PrecisionPlugin(Plugin):
     """
     EPSILON: float = 1e-6
     precision: Union[str, int] = 32
+
+    def __init__(self):
+        super().__init__()
+        self.clip_grad_funcs = {
+            GradClipAlgorithmType.VALUE: self.clip_grad_by_value,
+            GradClipAlgorithmType.NORM: self.clip_grad_by_norm,
+        }
 
     def master_params(self, optimizer: 'Optimizer') -> Generator[torch.Tensor, None, None]:
         """The master params of the model. Returns the plain model params here.
@@ -105,9 +111,18 @@ class PrecisionPlugin(Plugin):
         optimizer: 'Optimizer',
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        norm_type: float = 2.0,
     ) -> None:
-        """Clips the gradients to a specific value"""
+        """Clips the gradients"""
+        clip_grad_func = self.clip_grad_funcs[gradient_clip_algorithm]
+        clip_grad_func(optimizer, clip_val)
+
+    def clip_grad_by_value(self, optimizer: 'Optimizer', clip_val: Union[int, float]):
+        """ clip gradient by value """
+        parameters = list(self.master_params(optimizer))
+        torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
+
+    def clip_grad_by_norm(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0):
+        """ clip gradient by norm """
         # TODO: separate TPU case from here
         if clip_val is None:
             return
@@ -117,17 +132,6 @@ class PrecisionPlugin(Plugin):
             return
 
         parameters = list(self.master_params(optimizer))
-        clip_grad_funcs = {
-            GradClipAlgorithmType.VALUE: self._clip_grad_by_value,
-            GradClipAlgorithmType.NORM: partial(self._clip_grad_by_norm, norm_type=norm_type)
-        }
-        clip_grad_funcs[gradient_clip_algorithm](parameters, grad_clip_val)
-
-    @staticmethod
-    def _clip_grad_by_value(parameters, clip_val):
-        torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
-
-    def _clip_grad_by_norm(self, parameters, clip_val, norm_type):
         max_norm = clip_val
 
         if isinstance(parameters, torch.Tensor):

@@ -81,7 +81,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         optimizer: 'Optimizer',
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        norm_type: float = 2.0,
     ) -> None:
         """
         DeepSpeed handles clipping gradients via the training type plugin.
