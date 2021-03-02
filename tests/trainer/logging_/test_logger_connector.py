@@ -29,6 +29,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validat
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.skipif import RunIf
 
 
 def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Callable:
@@ -368,7 +369,7 @@ def test_call_back_validator(tmpdir):
         validator.check_logging_in_callbacks(current_hook_fx_name=None, on_step=None, on_epoch=None)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires two GPUs")
+@RunIf(min_gpus=2)
 def test_epoch_results_cache_dp(tmpdir):
 
     root_device = torch.device("cuda", 0)

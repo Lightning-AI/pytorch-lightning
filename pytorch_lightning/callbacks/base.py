@@ -17,7 +17,7 @@ Abstract base class used to build new callbacks.
 """
 
 import abc
-from typing import Any
+from typing import Any, Dict
 
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -177,12 +177,26 @@ class Callback(abc.ABC):
         """Called when the training is interrupted by ``KeyboardInterrupt``."""
         pass
 
-    def on_save_checkpoint(self, trainer, pl_module: LightningModule) -> None:
-        """Called when saving a model checkpoint, use to persist state."""
+    def on_save_checkpoint(self, trainer, pl_module: LightningModule, checkpoint: Dict[str, Any]) -> dict:
+        """
+        Called when saving a model checkpoint, use to persist state.
+
+        Args:
+            trainer: the current Trainer instance.
+            pl_module: the current LightningModule instance.
+            checkpoint: the checkpoint dictionary that will be saved.
+
+        Returns:
+            The callback state.
+        """
         pass
 
-    def on_load_checkpoint(self, checkpointed_state) -> None:
-        """Called when loading a model checkpoint, use to reload state."""
+    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
+        """Called when loading a model checkpoint, use to reload state.
+
+        Args:
+            callback_state: the callback state returned by ``on_save_checkpoint``.
+        """
         pass
 
     def on_after_backward(self, trainer, pl_module: LightningModule) -> None:

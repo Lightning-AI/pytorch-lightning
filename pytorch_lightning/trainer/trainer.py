@@ -177,9 +177,6 @@ class Trainer(
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
 
-                .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
-                    v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
-
             check_val_every_n_epoch: Check val every n train epochs.
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
@@ -739,9 +736,9 @@ class Trainer(
     def track_output_for_epoch_end(self, outputs, output):
         if output is not None:
             if isinstance(output, Result):
-                output.detach()
+                output = output.detach()
                 if self.move_metrics_to_cpu:
-                    output.cpu()
+                    output = output.cpu()
             elif isinstance(output, dict):
                 output = recursive_detach(output, to_cpu=self.move_metrics_to_cpu)
             elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:
