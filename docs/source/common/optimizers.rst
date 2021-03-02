@@ -67,27 +67,91 @@ Here is the same example as above using a ``closure``.
             opt.zero_grad()
 
 
+.. tip:: Be careful where you call ``zero_grad`` or your model won't converge. It is good pratice to call ``zero_grad`` before ``manual_backward``.
+
+
 .. code-block:: python
 
-    # Scenario for a GAN.
-    def training_step(...):
-        opt_gen, opt_dis = self.optimizers()
+    import torch
+    from pytorch_lightning import LightningModule
+    from torch.utils.data import Dataset
 
-        # compute generator loss
-        loss_gen = self.compute_generator_loss(...)
+    class SimpleGAN(LightningModule):
 
-        # zero_grad needs to be called before backward
-        opt_gen.zero_grad()
-        self.manual_backward(loss_gen)
-        opt_gen.step()
+        def __init__(self):
+            super().__init__()
+            latent_dim = 64
+            self._Z = MultivariateNormal(tr.zeros(latent_dim, device=self.device),
+                                        tr.eye(latent_dim, device=self.device))
+            self.G = MnistDenseGenerator(latent_dim)
+            self.D = MnistDenseDiscriminator()
+            self.num_workers = 0
 
-        # compute discriminator loss
-        loss_dis = self.compute_discriminator_loss(...)
+        @property
+        def automatic_optimization(self):
+            # Important: This property activate ``manual optimization`` for this model
+            return False
 
-        # zero_grad needs to be called before backward
-        opt_dis.zero_grad()
-        self.manual_backward(loss_dis)
-        opt_dis.step()
+        def train_dataloader(self) -> DataLoader:
+            return tr.utils.data.DataLoader(data, batch_size=64, shuffle=True,
+                                            num_workers=self.num_workers)
+
+        def forward(self, x):
+            return self.G(x)
+
+    def generator_loss(self, d_z: Tensor) -> Tensor:
+        # the closer ``d_z`` is from 1,
+        # the better the generator is able to fool the discriminator
+        return -1 * tr.log(d_z).mean()
+
+    def discriminator_loss(self, d_x: Tensor, d_z: Tensor) -> Tensor:
+        # the closer is ``d_x`` from 1 and ``dz`` from 0,
+        # the better the discriminator is able to distinguish
+        # true data from generated ones
+        return -1 * (tr.log(d_x).mean() + tr.log(1 - d_z).mean())
+
+    def sample_z(self, n) -> Tensor:
+        sample = self._Z.sample((n,))
+        return sample
+
+    def sample_G(self, n) -> Tensor:
+        z = self.sample_z(n)
+        return self.G(z)
+
+    def training_step(self, batch, batch_idx, optimizer_idx, *args):
+        # Get optimizers
+        g_opt, d_opt = self.optimizers()
+
+        # Train generator
+        X, _ = batch
+        batch_size = X.shape[0]
+        g_X = self.sample_G(batch_size)
+        d_z = self.D(g_X)
+        g_loss = self.generator_loss(d_z)
+
+        # zero_grad should be called before manual_backward
+        g_opt.zero_grad()
+        self.manual_backward(g_loss)
+
+        g_opt.step()
+
+        # Train discriminator
+        d_x = self.D(X)
+        d_z = self.D(g_X.detach())
+
+        d_loss = self.discriminator_loss(d_x, d_z)
+
+        # zero_grad should be called before manual_backward
+        d_opt.zero_grad()
+        self.manual_backward(d_loss)
+        d_opt.step()
+
+        self.log_dict({'g_loss': g_loss, 'd_loss': d_loss}, prog_bar=True, logger=True)
+
+    def configure_optimizers(self):
+        g_opt = torch.optim.RMSprop(self.G.parameters(), lr=1e-5)
+        d_opt = torch.optim.RMSprop(self.D.parameters(), lr=1e-5)
+        return g_opt, d_opt
 
 
 .. note:: ``LightningOptimizer`` provides a ``toggle_model`` function as a ``@context_manager`` for advanced users. It can be useful when performing gradient accumulation with several optimizers or training in a distributed setting.
