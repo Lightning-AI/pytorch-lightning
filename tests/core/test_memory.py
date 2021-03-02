@@ -292,8 +292,7 @@ def test_empty_model_size(mode):
     assert 0.0 == summary.model_size
 
 
-@RunIf(min_gpus=1)
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@RunIf(min_gpus=1, amp_native=True)
 @pytest.mark.parametrize(
     'precision', [
         pytest.param(16, marks=pytest.mark.skip(reason="no longer valid, because 16 can mean mixed precision")),

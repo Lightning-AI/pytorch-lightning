@@ -9,7 +9,7 @@ from torch.optim import Optimizer
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _DEEPSPEED_AVAILABLE, _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -122,12 +122,12 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
 
 @pytest.mark.parametrize(
     "amp_backend", [
-        pytest.param("native", marks=pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")),
+        pytest.param("native", marks=RunIf(amp_native=True)),
         pytest.param("apex", marks=pytest.mark.skipif(not _APEX_AVAILABLE, reason="Requires Apex")),
     ]
 )
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
+@RunIf(amp_native=True)
 def test_deepspeed_precision_choice(amp_backend, tmpdir):
     """
         Test to ensure precision plugin is also correctly chosen.

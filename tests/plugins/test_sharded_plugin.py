@@ -6,7 +6,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -58,10 +58,9 @@ def test_invalid_apex_sharded(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, amp_native=True)
 @pytest.mark.parametrize(["accelerator"], [("ddp_sharded", ), ("ddp_sharded_spawn", )])
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
 def test_ddp_choice_sharded_amp(tmpdir, accelerator):
     """
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded
