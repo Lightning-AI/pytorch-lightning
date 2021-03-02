@@ -388,7 +388,7 @@ class DataHooks:
         Implement one or more PyTorch DataLoaders for training.
 
         Return:
-            Either a single PyTorch :class:`~torch.utils.data.DataLoader` or an collection of these
+            Either a single PyTorch :class:`~torch.utils.data.DataLoader` or a collection of these
             (list, dict, nested lists and dicts). In the case of multiple dataloaders, please see
             this :ref:`page <multiple-training-dataloaders>`
 
