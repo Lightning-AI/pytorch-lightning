@@ -53,42 +53,6 @@ def test_optimizer_with_scheduling(tmpdir):
         'Lr not adjusted correctly, expected %f but got %f' % (init_lr * 0.1, adjusted_lr)
 
 
-def test_multi_optimizer_with_scheduling(tmpdir):
-    """ Verify that learning rate scheduling is working """
-
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
-
-    # fit model
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
-    )
-    trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-
-    init_lr = hparams.get('learning_rate')
-    adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
-    adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
-
-    assert len(trainer.lr_schedulers) == 2, \
-        'all lr scheduler not initialized properly, it has %i elements instread of 1' % len(trainer.lr_schedulers)
-
-    assert all(a == adjusted_lr1[0] for a in adjusted_lr1), \
-        'Lr not equally adjusted for all param groups for optimizer 1'
-    adjusted_lr1 = adjusted_lr1[0]
-
-    assert all(a == adjusted_lr2[0] for a in adjusted_lr2), \
-        'Lr not equally adjusted for all param groups for optimizer 2'
-    adjusted_lr2 = adjusted_lr2[0]
-
-    assert init_lr * 0.1 == adjusted_lr1 and init_lr * 0.1 == adjusted_lr2, \
-        'Lr not adjusted correctly, expected %f but got %f' % (init_lr * 0.1, adjusted_lr1)
-
-
 def test_multi_optimizer_with_scheduling_stepping(tmpdir):
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -109,8 +73,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
 
-    assert len(trainer.lr_schedulers) == 2, \
-        'all lr scheduler not initialized properly'
+    assert len(trainer.lr_schedulers) == 2, 'all lr scheduler not initialized properly'
 
     assert all(a == adjusted_lr1[0] for a in adjusted_lr1), \
         'lr not equally adjusted for all param groups for optimizer 1'
@@ -121,11 +84,9 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     adjusted_lr2 = adjusted_lr2[0]
 
     # Called ones after end of epoch
-    assert init_lr * 0.1 ** 1 == adjusted_lr1, \
-        'lr for optimizer 1 not adjusted correctly'
+    assert init_lr * 0.1 == adjusted_lr1, 'lr for optimizer 1 not adjusted correctly'
     # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times
-    assert init_lr * 0.1 == adjusted_lr2, \
-        'lr for optimizer 2 not adjusted correctly'
+    assert init_lr * 0.1 == adjusted_lr2, 'lr for optimizer 2 not adjusted correctly'
 
 
 def test_reducelronplateau_with_no_monitor_raises(tmpdir):
