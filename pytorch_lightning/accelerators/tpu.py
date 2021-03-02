@@ -19,12 +19,12 @@ if TYPE_CHECKING:
 
 
 class TPUAccelerator(Accelerator):
-    '''
+    """
     Raises:
         MisconfigurationException:
             If amp is used with tpu, or
             if TPUs are not using single TPU core or TPU spawn training.
-    '''
+    """
     def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException(
