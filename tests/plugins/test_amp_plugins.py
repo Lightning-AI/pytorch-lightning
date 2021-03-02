@@ -25,22 +25,18 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0"
+        "SLURM_LOCALID": "0",
     }
 )
 @mock.patch('torch.cuda.device_count', return_value=2)
+@pytest.mark.parametrize('ddp_backend,gpus', [('ddp', 2), ('ddp2', 2), ('ddp_spawn', 2)])
 @pytest.mark.parametrize(
-    'ddp_backend,gpus',
-    [('ddp', 2), ('ddp2', 2), ('ddp_spawn', 2)],
-)
-@pytest.mark.parametrize(
-    'amp,plugin_arg,plugin_cls',
-    [
+    'amp,plugin_arg,plugin_cls', [
         pytest.param('native', None, NativeMixedPrecisionPlugin, marks=RunIf(amp_native=True)),
         pytest.param('native', [MyNativeAMP()], MyNativeAMP, marks=RunIf(amp_native=True)),
         pytest.param('apex', None, ApexMixedPrecisionPlugin, marks=RunIf(amp_apex=True)),
         pytest.param('apex', [MyApexPlugin(amp_level="O2")], MyApexPlugin, marks=RunIf(amp_apex=True))
-    ],
+    ]
 )
 def test_amp_apex_ddp(mocked_device_count, ddp_backend, gpus, amp, plugin_arg, plugin_cls):
 
