@@ -145,7 +145,8 @@ def test_pruning_misconfiguration():
 )
 @pytest.mark.parametrize("use_lottery_ticket_hypothesis", [False, True])
 def test_pruning_callback(
-    tmpdir, use_global_unstructured: bool, parameters_to_prune: bool, pruning_fn: Union[str, pytorch_prune.BasePruningMethod], use_lottery_ticket_hypothesis: bool
+    tmpdir, use_global_unstructured: bool, parameters_to_prune: bool,
+    pruning_fn: Union[str, pytorch_prune.BasePruningMethod], use_lottery_ticket_hypothesis: bool
 ):
     train_with_pruning_callback(
         tmpdir,

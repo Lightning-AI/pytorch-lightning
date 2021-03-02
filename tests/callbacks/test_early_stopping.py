@@ -14,7 +14,7 @@
 import logging
 import os
 import pickle
-from typing import Optional, List
+from typing import List, Optional
 from unittest import mock
 
 import cloudpickle
@@ -373,13 +373,16 @@ class EarlyStoppingModel(BoringModel):
     "callbacks, expected_stop_epoch, accelerator, num_processes",
     [
         ([EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)], 3, None, 1),
-        ([EarlyStopping(monitor='cba', patience=3), EarlyStopping(monitor='abc')], 3, None, 1),
-        pytest.param([EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)],
+        ([EarlyStopping(monitor='cba', patience=3),
+          EarlyStopping(monitor='abc')], 3, None, 1),
+        pytest.param([EarlyStopping(monitor='abc'),
+                      EarlyStopping(monitor='cba', patience=3)],
                      3,
                      'ddp_cpu',
                      2,
                      marks=RunIf(skip_windows=True)),
-        pytest.param([EarlyStopping(monitor='cba', patience=3), EarlyStopping(monitor='abc')],
+        pytest.param([EarlyStopping(monitor='cba', patience=3),
+                      EarlyStopping(monitor='abc')],
                      3,
                      'ddp_cpu',
                      2,

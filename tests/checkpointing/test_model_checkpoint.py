@@ -58,8 +58,12 @@ class LogInTwoMethods(BoringModel):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(
     "validation_step_none,val_dataloaders_none,monitor",
-    [(False, False, 'val_log'), (False, False, 'train_log_epoch'), (True, False, 'train_log_epoch'),
-     (False, True, 'train_log_epoch'),],
+    [
+        (False, False, 'val_log'),
+        (False, False, 'train_log_epoch'),
+        (True, False, 'train_log_epoch'),
+        (False, True, 'train_log_epoch'),
+    ],
 )
 @pytest.mark.parametrize('reduce_lr_on_plateau', [False, True])
 def test_model_checkpoint_score_and_ckpt(
