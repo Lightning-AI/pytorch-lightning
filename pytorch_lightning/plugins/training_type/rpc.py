@@ -63,7 +63,7 @@ class RPCPlugin(DDPPlugin):
         rpc._set_rpc_timeout(self.rpc_timeout_sec)
         self._is_rpc_initialized = True
 
-    def rpc_save_model(self, save_model_fn, last_filepath, trainer) -> None:
+    def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
         """
         Override to save model to disk.
         This is required as the main process will be required to handle aggregating model states from RPC processes.
