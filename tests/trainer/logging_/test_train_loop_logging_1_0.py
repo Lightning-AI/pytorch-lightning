@@ -732,10 +732,7 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     assert trainer.logged_metrics['bar'] == fake_result
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with ddp
