@@ -181,7 +181,7 @@ class EvaluationLoop(object):
 
     def evaluation_epoch_end(self):
         # unset dataloder_idx in model
-        self.trainer.logger_connector.evaluation_epoch_end(self.trainer.testing)
+        self.trainer.logger_connector.evaluation_epoch_end()
 
         # call the model epoch end
         deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders)

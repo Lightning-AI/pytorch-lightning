@@ -259,8 +259,7 @@ class LoggerConnector:
         self._track_callback_metrics(deprecated_eval_results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results)
 
-    def evaluation_epoch_end(self, testing):
-        # Todo: required argument `testing` is not used
+    def evaluation_epoch_end(self):
         # reset dataloader idx
         model_ref = self.trainer.lightning_module
         model_ref._current_dataloader_idx = None
