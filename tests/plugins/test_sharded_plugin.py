@@ -6,7 +6,6 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -182,7 +181,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.") # todo
+@pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")  # todo
 @pytest.mark.skip(reason="Currently unsupported restarting training on different number of devices.")
 @RunIf(min_gpus=2, skip_windows=True, fairscale=True)
 def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
