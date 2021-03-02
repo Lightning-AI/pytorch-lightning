@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import platform
 
-import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 def test_model_torch_save(tmpdir):
@@ -39,7 +37,7 @@ def test_model_torch_save(tmpdir):
     trainer = torch.load(temp_path)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_model_torch_save_ddp_cpu(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
     model = BoringModel()

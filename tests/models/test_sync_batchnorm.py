@@ -24,7 +24,7 @@ from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.helpers.datamodules import MNISTDataModule
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 from tests.helpers.utils import set_random_master_port
 
 

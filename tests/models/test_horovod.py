@@ -13,7 +13,6 @@
 # limitations under the License.
 import json
 import os
-import platform
 import shlex
 import subprocess
 import sys
@@ -32,7 +31,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 if _HOROVOD_AVAILABLE:
     import horovod
@@ -67,7 +66,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     assert exit_code == 0
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
@@ -84,7 +83,7 @@ def test_horovod_cpu(tmpdir):
     _run_horovod(trainer_options)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_horovod_cpu_implicit(tmpdir):
     """Test Horovod without specifying a backend, inferring from env set by `horovodrun`."""
     trainer_options = dict(
@@ -100,9 +99,8 @@ def test_horovod_cpu_implicit(tmpdir):
     _run_horovod(trainer_options)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, skip_windows=True)
 def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
@@ -121,9 +119,8 @@ def test_horovod_multi_gpu(tmpdir):
 
 
 @pytest.mark.skip(reason="Horovod has a problem with broadcast when using apex?")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, skip_windows=True)
 @pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 def test_horovod_apex(tmpdir):
     """Test Horovod with multi-GPU support using apex amp."""
@@ -145,9 +142,8 @@ def test_horovod_apex(tmpdir):
 
 
 @pytest.mark.skip(reason="Skip till Horovod fixes integration with Native torch.cuda.amp")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, skip_windows=True)
 @pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires torch.cuda.amp")
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
@@ -168,9 +164,8 @@ def test_horovod_amp(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@RunIf(min_gpus=1)
+@RunIf(min_gpus=1, skip_windows=True)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
 
     class TestTrainingStepModel(BoringModel):
@@ -198,7 +193,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
     tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_horovod_multi_optimizer(tmpdir):
     model = BasicGAN()
 
@@ -233,7 +228,7 @@ def test_horovod_multi_optimizer(tmpdir):
 # TODO: unclear Horovod failure...
 @pytest.mark.skip(reason="unclear Horovod failure...")
 @pytest.mark.skipif(not _HOROVOD_AVAILABLE, reason="Horovod is unavailable")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_result_reduce_horovod(tmpdir):
     """Make sure result logging works with Horovod.
 
@@ -284,7 +279,7 @@ def test_result_reduce_horovod(tmpdir):
 # TODO: unclear Horovod failure...
 @pytest.mark.skip(reason="unclear Horovod failure...")
 @pytest.mark.skipif(not _HOROVOD_AVAILABLE, reason="Horovod is unavailable")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_accuracy_metric_horovod():
     num_batches = 10
     batch_size = 16
@@ -335,7 +330,7 @@ def test_accuracy_metric_horovod():
     horovod.run(_compute_batch, np=2)
 
 
-# @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+# @RunIf(skip_windows=True)
 # def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
 #     model = BoringModel()
 #     model.configure_optimizers = model.configure_optimizers__multiple_schedulers

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.4.0"""
-import sys
 
 import pytest
 import torch
@@ -28,7 +27,7 @@ from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 def test_v1_4_0_deprecated_trainer_attributes():
@@ -178,8 +177,7 @@ class CustomDDPPlugin(DDPSpawnPlugin):
             assert isinstance(self.model.module, LightningDistributedModule)
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+@RunIf(min_gpus=2, skip_windows=True)
 def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
     model = BoringModel()
     trainer = Trainer(

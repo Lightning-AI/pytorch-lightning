@@ -21,7 +21,7 @@ from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import ParityModuleRNN
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class EmptyModule(LightningModule):

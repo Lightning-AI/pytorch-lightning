@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import platform
 from unittest import mock
-
-import pytest
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):
@@ -33,7 +30,7 @@ class TestModel(BoringModel):
             assert logged_times == expected, msg
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_global_zero_only_logging_ddp_cpu(tmpdir):
     """
     Makes sure logging only happens from root zero

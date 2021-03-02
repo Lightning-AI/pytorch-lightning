@@ -24,7 +24,7 @@ from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequential
 from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import RandomDataset
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")

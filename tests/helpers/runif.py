@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 from distutils.version import LooseVersion
 from typing import Optional
 
@@ -31,13 +32,22 @@ class RunIf:
             assert arg1 > 0.0
     """
 
-    def __new__(self, *args, min_gpus: int = 0, min_torch: Optional[str] = None, quantization: bool = False, **kwargs):
+    def __new__(
+        self,
+        *args,
+        min_gpus: int = 0,
+        min_torch: Optional[str] = None,
+        quantization: bool = False,
+        skip_windows: bool = False,
+        **kwargs
+    ):
         """
         Args:
             args: native pytest.mark.skipif arguments
             min_gpus: min number of gpus required to run test
             min_torch: minimum pytorch version to run test
             quantization: if `torch.quantization` package is required to run test
+            skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -56,6 +66,10 @@ class RunIf:
             _miss_default = 'fbgemm' not in torch.backends.quantized.supported_engines
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("missing PyTorch quantization")
+
+        if skip_windows:
+            conditions.append(sys.platform == "win32")
+            reasons.append("unimplemented on Windows")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

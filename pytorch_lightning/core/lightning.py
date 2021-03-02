@@ -16,6 +16,7 @@
 import collections
 import copy
 import inspect
+import logging
 import os
 import tempfile
 import uuid
@@ -30,7 +31,6 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -45,6 +45,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.states import RunningStage
+log = logging.getLogger(__name__)
 
 
 class LightningModule(
