@@ -149,8 +149,8 @@ def test_negative_add_argparse_args():
 
 def test_add_argparse_args_no_argument_group():
     """
-    Test similar to above, but with ``use_argument_group=False``
-    (old workflow).
+    Tests that ``add_argparse_args(..., use_argument_group=False)`` (old
+    workflow) handles argument groups correctly, and can be parsed.
     """
     parser = ArgumentParser()
     parser.add_argument("--main_arg", type=str, default="")
