@@ -249,14 +249,6 @@ class ModelCheckpoint(Callback):
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
 
-    def _should_skip_saving_checkpoint(self, trainer) -> bool:
-        return (
-            trainer.fast_dev_run  # disable checkpointing with fast_dev_run
-            or trainer.running_sanity_check  # don't save anything during sanity check
-            or self.save_top_k == 0  # no models are saved
-            or self._last_global_step_saved == global_step  # already saved at the last step
-        )
-
     def save_checkpoint(self, trainer, pl_module):
         """
         Performs the main logic around saving a checkpoint.
