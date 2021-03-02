@@ -52,7 +52,6 @@ class EarlyStopping(Callback):
         mode: one of ``'min'``, ``'max'``. In ``'min'`` mode, training will stop when the quantity
             monitored has stopped decreasing and in ``'max'`` mode it will stop when the quantity
             monitored has stopped increasing.
-
         strict: whether to crash the training if `monitor` is not found in the validation metrics.
 
     Raises:
