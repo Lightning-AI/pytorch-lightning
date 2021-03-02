@@ -95,9 +95,7 @@ def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
     return raw_checkpoint_path
 
 
-@pytest.mark.parametrize(
-    "cls", [SaveHparamsModel, SaveHparamsDecoratedModel]
-)
+@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_namespace_hparams(tmpdir, cls):
     # init model
     model = cls(hparams=Namespace(test_arg=14))
@@ -106,9 +104,7 @@ def test_namespace_hparams(tmpdir, cls):
     _run_standard_hparams_test(tmpdir, model, cls)
 
 
-@pytest.mark.parametrize(
-    "cls", [SaveHparamsModel, SaveHparamsDecoratedModel]
-)
+@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_dict_hparams(tmpdir, cls):
     # init model
     model = cls(hparams={'test_arg': 14})
@@ -117,9 +113,7 @@ def test_dict_hparams(tmpdir, cls):
     _run_standard_hparams_test(tmpdir, model, cls)
 
 
-@pytest.mark.parametrize(
-    "cls", [SaveHparamsModel, SaveHparamsDecoratedModel]
-)
+@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_omega_conf_hparams(tmpdir, cls):
     # init model
     conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))

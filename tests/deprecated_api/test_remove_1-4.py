@@ -28,6 +28,7 @@ from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
+from tests.helpers.skipif import RunIf
 
 
 def test_v1_4_0_deprecated_trainer_attributes():
@@ -177,7 +178,7 @@ class CustomDDPPlugin(DDPSpawnPlugin):
             assert isinstance(self.model.module, LightningDistributedModule)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
     model = BoringModel()
@@ -196,7 +197,7 @@ def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_v1_4_0_deprecated_lightning_data_parallel():
     model = BoringModel()
     with pytest.deprecated_call(match="`LightningDataParallel` is deprecated since v1.2 and will be removed in v1.4."):
