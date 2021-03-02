@@ -16,7 +16,7 @@ from typing import List, Union
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -63,15 +63,6 @@ class CallbackConnector:
         self.trainer.callbacks = self._reorder_callbacks(self.trainer.callbacks)
 
     def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):
-        if isinstance(checkpoint_callback, ModelCheckpoint):
-            # TODO: deprecated, remove this block in v1.3.0
-            rank_zero_warn(
-                "Passing a ModelCheckpoint instance to Trainer(checkpoint_callbacks=...)"
-                " is deprecated since v1.1 and will no longer be supported in v1.3."
-                " Use `callbacks` argument instead.", DeprecationWarning
-            )
-            self.trainer.callbacks.append(checkpoint_callback)
-
         if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
             raise MisconfigurationException(
                 "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint"
@@ -85,7 +76,7 @@ class CallbackConnector:
         if not self.trainer._stochastic_weight_avg:
             return
 
-        from pytorch_lightning.callbacks.swa import StochasticWeightAveraging
+        from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
         existing_swa = [cb for cb in self.trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks

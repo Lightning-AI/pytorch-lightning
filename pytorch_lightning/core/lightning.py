@@ -16,8 +16,8 @@
 import collections
 import copy
 import inspect
+import logging
 import os
-import re
 import tempfile
 import uuid
 from abc import ABC
@@ -31,7 +31,6 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -46,6 +45,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.states import RunningStage
+log = logging.getLogger(__name__)
 
 
 class LightningModule(
@@ -1216,10 +1216,10 @@ class LightningModule(
         Example::
 
             def training_step(...):
-                (opt_a, opt_b) = self.optimizers()
+                opt_a, opt_b = self.optimizers()
                 loss = ...
                 # automatically applies scaling, etc...
-                self.manual_backward(loss, opt_a)
+                self.manual_backward(loss)
                 opt_a.step()
         """
         if optimizer is not None:
@@ -1809,39 +1809,6 @@ class LightningModule(
             return AttributeDict()
         # prevent any change
         return copy.deepcopy(self._hparams_initial)
-
-    @hparams.setter
-    def hparams(self, hp: Union[dict, Namespace, Any]):
-        # TODO: remove this method in v1.3.0.
-        rank_zero_warn(
-            "The setter for self.hparams in LightningModule is deprecated since v1.1.0 and will be"
-            " removed in v1.3.0. Replace the assignment `self.hparams = hparams` with "
-            " `self.save_hyperparameters()`.", DeprecationWarning
-        )
-        hparams_assignment_name = self.__get_hparams_assignment_variable()
-        self._hparams_name = hparams_assignment_name
-        self._set_hparams(hp)
-        # this resolves case when user does not uses `save_hyperparameters` and do hard assignement in init
-        if not hasattr(self, "_hparams_initial"):
-            self._hparams_initial = copy.deepcopy(self._hparams)
-
-    def __get_hparams_assignment_variable(self):
-        """
-        looks at the code of the class to figure out what the user named self.hparams
-        this only happens when the user explicitly sets self.hparams
-        """
-        try:
-            class_code = inspect.getsource(self.__class__)
-            lines = class_code.split("\n")
-            for line in lines:
-                line = re.sub(r"\s+", "", line, flags=re.UNICODE)
-                if ".hparams=" in line:
-                    return line.split("=")[1]
-        # todo: specify the possible exception
-        except Exception:
-            return "hparams"
-
-        return None
 
     @property
     def model_size(self) -> float:
