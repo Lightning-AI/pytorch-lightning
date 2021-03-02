@@ -29,10 +29,7 @@ from tests.helpers.runif import RunIf
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_rpc_sequential_plugin_manual(tmpdir, args=None):
     model = SequentialModelRPCManual()
     trainer = Trainer(
@@ -57,10 +54,7 @@ def test_rpc_sequential_plugin_manual(tmpdir, args=None):
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_rpc_sequential_plugin_manual_amp(tmpdir, args=None):
     model = SequentialModelRPCManual()
     trainer = Trainer(
@@ -83,10 +77,7 @@ def test_rpc_sequential_plugin_manual_amp(tmpdir, args=None):
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_rpc_sequential_plugin_automatic(tmpdir, args=None):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(
@@ -111,10 +102,7 @@ def test_rpc_sequential_plugin_automatic(tmpdir, args=None):
 
 @pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_rpc_sequential_plugin_with_wrong_balance(tmpdir, args=None):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(

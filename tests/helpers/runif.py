@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import sys
 from distutils.version import LooseVersion
 from typing import Optional
@@ -23,6 +24,7 @@ from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _RPC_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 )
@@ -59,6 +61,8 @@ class RunIf:
         horovod: bool = False,
         horovod_nccl: bool = False,
         skip_windows: bool = False,
+        special: bool = False,
+        rpc: bool = False,
         **kwargs
     ):
         """
@@ -74,6 +78,8 @@ class RunIf:
             horovod: if Horovod is installed
             horovod_nccl: if Horovod is installed with NCCL support
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
+            special: running in special mode, outside pytest suit
+            rpc: requires Remote Procedure Call (RPC)
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -121,6 +127,15 @@ class RunIf:
         if horovod_nccl:
             conditions.append(not _HOROVOD_NCCL_AVAILABLE)
             reasons.append("Horovod with NCCL")
+
+        if special:
+            env_flag = os.getenv("PL_RUNNING_SPECIAL_TESTS", '0')
+            conditions.append(env_flag != '1')
+            reasons.append("Special execution")
+
+        if rpc:
+            conditions.append(not _RPC_AVAILABLE)
+            reasons.append("RPC")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
