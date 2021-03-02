@@ -86,6 +86,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed duplicate logs appearing in console when using the python logging module ([#5509](https://github.com/PyTorchLightning/pytorch-lightning/pull/5509), [#6275](https://github.com/PyTorchLightning/pytorch-lightning/pull/6275))
 
 
+- Fixed `all_gather` on SingleTPU shouldn't call `all_gather` ([#6296](https://github.com/PyTorchLightning/pytorch-lightning/pull/6296))
+
+
 ## [1.2.1] - 2021-02-23
 
 ### Fixed
