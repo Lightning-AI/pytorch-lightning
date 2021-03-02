@@ -6,7 +6,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -39,7 +39,7 @@ def test_sharded_ddp_choice(tmpdir, accelerator):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
+@RunIf(amp_apex=True)
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_invalid_apex_sharded(tmpdir):
     """
