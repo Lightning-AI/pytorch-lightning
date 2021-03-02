@@ -101,8 +101,7 @@ class LoggerConnector:
             current_hook_fx_name=hook_fx_name, on_step=on_step, on_epoch=on_epoch
         )
 
-    def on_evaluation_batch_start(self, testing, batch, dataloader_idx, num_dataloaders):
-        # Todo: required argument `testing` is not used
+    def on_evaluation_batch_start(self, batch, dataloader_idx, num_dataloaders):
         model = self.trainer.lightning_module
         # set dataloader_idx only if multiple ones
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
