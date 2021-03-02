@@ -17,12 +17,12 @@ Tests to ensure that the training loop works with a scalar
 import os
 from unittest import mock
 
-import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 from tests.helpers.deterministic_model import DeterministicModel
+from tests.helpers.runif import RunIf
 
 
 def test_training_step_scalar(tmpdir):
@@ -211,7 +211,7 @@ class DPPReduceMeanPbarModel(BoringModel):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_dpp_reduce_mean_pbar(tmpdir):
 
     model = DPPReduceMeanPbarModel()

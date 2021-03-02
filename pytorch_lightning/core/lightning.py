@@ -16,6 +16,7 @@
 import collections
 import copy
 import inspect
+import logging
 import os
 import tempfile
 import uuid
@@ -30,7 +31,6 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -46,6 +46,7 @@ from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.states import RunningStage
+log = logging.getLogger(__name__)
 
 
 class LightningModule(
@@ -1212,10 +1213,10 @@ class LightningModule(
         Example::
 
             def training_step(...):
-                (opt_a, opt_b) = self.optimizers()
+                opt_a, opt_b = self.optimizers()
                 loss = ...
                 # automatically applies scaling, etc...
-                self.manual_backward(loss, opt_a)
+                self.manual_backward(loss)
                 opt_a.step()
         """
         if optimizer is not None:

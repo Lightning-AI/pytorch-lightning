@@ -33,22 +33,26 @@ class EarlyStopping(Callback):
     Monitor a metric and stop training when it stops improving.
 
     Args:
-        monitor: quantity to be monitored. Default: ``'early_stop_on'``.
-        min_delta: minimum change in the monitored quantity
-            to qualify as an improvement, i.e. an absolute
-            change of less than `min_delta`, will count as no
-            improvement. Default: ``0.0``.
-        patience: number of validation epochs with no improvement
-            after which training will be stopped. Default: ``3``.
-        verbose: verbosity mode. Default: ``False``.
-        mode: one of ``'min'``, ``'max'``. In ``'min'`` mode,
-            training will stop when the quantity
-            monitored has stopped decreasing and in ``'max'``
-            mode it will stop when the quantity
-            monitored has stopped increasing.
+        monitor: quantity to be monitored.
+        min_delta: minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute
+            change of less than `min_delta`, will count as no improvement.
+        patience: number of validation checks with no improvement
+            after which training will be stopped. Under the default configuration, one validation check happens after
+            every training epoch. However, the frequency of validation can be modified by setting various parameters on
+            the ``Trainer``, for example ``check_val_every_n_epoch`` and ``val_check_interval``.
 
-        strict: whether to crash the training if `monitor` is
-            not found in the validation metrics. Default: ``True``.
+            .. note::
+
+                It must be noted that the patience parameter counts the number of validation checks with
+                no improvement, and not the number of training epochs. Therefore, with parameters
+                ``check_val_every_n_epoch=10`` and ``patience=3``, the trainer will perform at least 40 training
+                epochs before being stopped.
+
+        verbose: verbosity mode.
+        mode: one of ``'min'``, ``'max'``. In ``'min'`` mode, training will stop when the quantity
+            monitored has stopped decreasing and in ``'max'`` mode it will stop when the quantity
+            monitored has stopped increasing.
+        strict: whether to crash the training if `monitor` is not found in the validation metrics.
 
     Raises:
         MisconfigurationException:

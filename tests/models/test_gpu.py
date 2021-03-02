@@ -25,12 +25,13 @@ from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 PRETEND_N_OF_GPUS = 16
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
     tutils.set_random_master_port()
@@ -48,7 +49,7 @@ def test_multi_gpu_none_backend(tmpdir):
     tpipes.run_model_test(trainer_options, model, dm)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize('gpus', [1, [0], [1]])
 def test_single_gpu_model(tmpdir, gpus):
     """Make sure single GPU works (DP mode)."""
@@ -215,7 +216,7 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
         device_parser.parse_gpu_ids(gpus)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_single_gpu_batch_parse():
     trainer = Trainer(gpus=1)
 
@@ -306,7 +307,7 @@ def test_single_gpu_batch_parse():
     assert batch.label.type() == 'torch.cuda.LongTensor'
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_non_blocking():
     """ Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects. """
     trainer = Trainer()

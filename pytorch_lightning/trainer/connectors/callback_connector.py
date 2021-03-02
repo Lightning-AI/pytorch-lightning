@@ -76,7 +76,7 @@ class CallbackConnector:
         if not self.trainer._stochastic_weight_avg:
             return
 
-        from pytorch_lightning.callbacks.swa import StochasticWeightAveraging
+        from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
         existing_swa = [cb for cb in self.trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
