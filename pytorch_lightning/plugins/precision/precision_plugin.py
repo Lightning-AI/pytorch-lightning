@@ -132,7 +132,7 @@ class PrecisionPlugin(Plugin):
             return
 
         parameters = list(self.master_params(optimizer))
-        max_norm = clip_val
+        max_norm = grad_clip_val
 
         if isinstance(parameters, torch.Tensor):
             parameters = [parameters]
