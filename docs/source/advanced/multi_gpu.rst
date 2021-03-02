@@ -362,6 +362,9 @@ Distributed Data Parallel Spawn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 `ddp_spawn` is exactly like `ddp` except that it uses .spawn to start the training processes.
 
+.. note::
+    If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be the default.
+
 .. warning:: It is STRONGLY recommended to use `DDP` for speed and performance.
 
 .. code-block:: python
