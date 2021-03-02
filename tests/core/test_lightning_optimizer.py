@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import gc
 from unittest.mock import DEFAULT, patch
 
 import torch
 from torch.optim import Adam, Optimizer, SGD
+from torch.optim.optimizer import _RequiredParameter
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from tests.helpers.boring_model import BoringModel
 
@@ -303,3 +306,103 @@ def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
     lbfgs = model.optimizers()
     max_iter = lbfgs.param_groups[0]["max_iter"]
     assert zero_grad.call_count == max_iter
+
+
+required = _RequiredParameter()
+
+
+class OptimizerWithHooks(Optimizer):
+
+    def __init__(self, model, lr=required, u0=required):
+        if lr is not required and lr < 0.0:
+            raise ValueError("Invalid learning rate: {}".format(lr))
+
+        defaults = dict(lr=lr)
+        self.steps = 0
+
+        self.params = []
+
+        self._fwd_handles = []
+        self._bwd_handles = []
+
+        self.model = model
+
+        for _, mod in model.named_modules():  # iterates over modules of model
+            mod_class = mod.__class__.__name__
+            if mod_class in ['Linear']:  # silently skips other layers
+
+                # save the inputs and gradients for the kfac matrix computation
+                handle = mod.register_forward_pre_hook(self._save_input)  # save the inputs
+                self._fwd_handles.append(handle)  # collect forward-save-input hooks in list
+                handle = mod.register_backward_hook(self._save_grad_output)  # save the gradients
+                self._bwd_handles.append(handle)  # collect backward-save-grad hook in list
+
+                # save the parameters
+                params = [mod.weight]
+                if mod.bias is not None:
+                    params.append(mod.bias)
+
+                # save a param_group for each module
+                d = {'params': params, 'mod': mod, 'layer_type': mod_class}
+                self.params.append(d)
+
+        super(OptimizerWithHooks, self).__init__(self.params, defaults)
+
+    def _save_input(self, mod, i):
+        """Saves input of layer"""
+        if mod.training:
+            self.state[mod]['x'] = i[0]
+
+    def _save_grad_output(self, mod, grad_input, grad_output):
+        """
+        Saves grad on output of layer to
+        grad is scaled with batch_size since gradient is spread over samples in mini batch
+        """
+        bs = grad_output[0].shape[0]  # batch_size
+        if mod.training:
+            self.state[mod]['grad'] = grad_output[0] * bs
+
+    def step(self, closure=None):
+        closure()
+        for group in self.param_groups:
+            _ = self.state[group['mod']]['x']
+            _ = self.state[group['mod']]['grad']
+        return True
+
+
+def test_lightning_optimizer_dont_delete_wrapped_optimizer(tmpdir):
+    """
+    """
+
+    class TestCB(Callback):
+
+        def __init__(self):
+            self.count_on_train_batch_start = 0
+            self.count_on_train_batch_end = 0
+
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx: int, dataloader_idx: int) -> None:
+            self.count_on_train_batch_start += 1
+            optimizer = pl_module.optimizers(use_pl_optimizer=False)
+            assert len(optimizer._fwd_handles) == 1
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
+            self.count_on_train_batch_end += 1
+            # delete the lightning_optimizers
+            pl_module.trainer._lightning_optimizers = None
+            gc.collect()
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            return OptimizerWithHooks(self)
+
+    callback = TestCB()
+
+    model = TestModel()
+    # Initialize a trainer
+    trainer = Trainer(limit_train_batches=4, limit_val_batches=1, max_steps=1, callbacks=callback)
+
+    # Train the model ⚡
+    trainer.fit(model)
+    assert callback.count_on_train_batch_start == 4
+    assert callback.count_on_train_batch_end == 4
