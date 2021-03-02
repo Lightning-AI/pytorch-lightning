@@ -108,38 +108,49 @@ Here is the same example as above using a ``closure``.
             return self.G(z)
 
         def training_step(self, batch, batch_idx, optimizer_idx, *args):
-            # Get optimizers
+            # Implementation follows https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
             g_opt, d_opt = self.optimizers()
 
-            # Train generator
             X, _ = batch
             batch_size = X.shape[0]
+
+            real_label = torch.ones((batch_size, 1), device=self.device)
+            fake_label = torch.zeros((batch_size, 1), device=self.device)
+
             g_X = self.sample_G(batch_size)
-            d_z = self.D(g_X)
-            g_loss = self.generator_loss(d_z)
 
-            # zero_grad should be called before manual_backward
-            g_opt.zero_grad()
-            self.manual_backward(g_loss)
-
-            g_opt.step()
-
-            # Train discriminator
-            d_x = self.D(X)
-            d_z = self.D(g_X.detach())
-
-            d_loss = self.discriminator_loss(d_x, d_z)
-
-            # zero_grad should be called before manual_backward
+            ###########################
+            #  Optimize Discriminator #
+            ###########################
             d_opt.zero_grad()
-            self.manual_backward(d_loss)
+
+            d_x = self.D(X)
+            errD_real = self.criterion(d_x, real_label)
+
+            d_z = self.D(g_X.detach())
+            errD_fake = self.criterion(d_z, fake_label)
+
+            errD = (errD_real + errD_fake)
+
+            self.manual_backward(errD)
             d_opt.step()
 
-            self.log_dict({'g_loss': g_loss, 'd_loss': d_loss}, prog_bar=True)
+            #######################
+            #  Optimize Generator #
+            #######################
+            g_opt.zero_grad()
+
+            d_z = self.D(g_X)
+            errG = self.criterion(d_z, real_label)
+
+            self.manual_backward(errG)
+            g_opt.step()
+
+            self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
 
         def configure_optimizers(self):
-            g_opt = torch.optim.RMSprop(self.G.parameters(), lr=1e-5)
-            d_opt = torch.optim.RMSprop(self.D.parameters(), lr=1e-5)
+            g_opt = torch.optim.Adam(self.G.parameters(), lr=1e-5)
+            d_opt = torch.optim.Adam(self.D.parameters(), lr=1e-5)
             return g_opt, d_opt
 
 .. note:: ``LightningOptimizer`` provides a ``toggle_model`` function as a ``@context_manager`` for advanced users. It can be useful when performing gradient accumulation with several optimizers or training in a distributed setting.
@@ -153,48 +164,6 @@ When performing gradient accumulation, there is no need to perform grad synchron
 Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
 
 
-Here is the same example as before with this helper.
-
-.. code-block:: python
-
-    import torch
-    from pytorch_lightning import LightningModule
-    from torch.utils.data import Dataset
-
-    class SimpleGAN(LightningModule):
-
-        ...
-
-        def training_step(self, batch, batch_idx, optimizer_idx, *args):
-            g_opt, d_opt = self.optimizers()
-            X, _ = batch
-            batch_size = X.shape[0]
-
-            def gen_closure():
-            g_X = self.sample_G(batch_size)
-            d_x = self.D(X)
-            d_z = self.D(g_X)
-            g_loss = self.generator_loss(d_z)
-            g_opt.zero_grad()
-            self.manual_backward(g_loss)
-            self.log('g_loss', g_loss, prog_bar=True)
-
-            with g_opt.toggle_model():
-            g_opt.step(closure=gen_closure)
-
-            def dis_closure():
-            g_X = self.sample_G(batch_size)
-            d_x = self.D(X)
-            d_z = self.D(g_X)
-            d_loss = self.discriminator_loss(d_x, d_z)
-            d_opt.zero_grad()
-            self.manual_backward(d_loss)
-            self.log('d_loss', d_loss, prog_bar=True)
-
-            with d_opt.toggle_model():
-            d_opt.step(closure=dis_closure)
-
-
 Here is an example for advanced use-case.
 
 
@@ -203,29 +172,55 @@ Here is an example for advanced use-case.
 
     # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
 
-    def training_step(self, batch, batch_idx, ...):
-        opt_gen, opt_dis = self.optimizers()
+    class SimpleGAN(LightningModule):
 
-        accumulated_grad_batches = batch_idx % 2 == 0
+        ...
 
-        # compute generator loss
-        def closure_gen():
-            loss_gen = self.compute_generator_loss(...)
-            self.manual_backward(loss_gen)
+        def training_step(self, batch, batch_idx, optimizer_idx, *args):
+            # Implementation follows https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+            g_opt, d_opt = self.optimizers()
+
+            X, _ = batch
+            X.requires_grad = True
+            batch_size = X.shape[0]
+
+            real_label = torch.ones((batch_size, 1), device=self.device)
+            fake_label = torch.zeros((batch_size, 1), device=self.device)
+
+            accumulated_grad_batches = batch_idx % 2 == 0
+
+            g_X = self.sample_G(batch_size)
+
+            ###########################
+            #  Optimize Discriminator #
+            ###########################
+            with d_opt.toggle_model(sync_grad=accumulated_grad_batches):
+            d_x = self.D(X)
+            errD_real = self.criterion(d_x, real_label)
+
+            d_z = self.D(g_X.detach())
+            errD_fake = self.criterion(d_z, fake_label)
+
+            errD = (errD_real + errD_fake)
+
+            self.manual_backward(errD)
             if accumulated_grad_batches:
-                opt_gen.zero_grad()
+                d_opt.step()
+                d_opt.zero_grad()
 
-        with opt_gen.toggle_model(sync_grad=accumulated_grad_batches):
-            opt_gen.step(closure=closure_gen)
+            #######################
+            #  Optimize Generator #
+            #######################
+            with g_opt.toggle_model(sync_grad=accumulated_grad_batches):
+            d_z = self.D(g_X)
+            errG = self.criterion(d_z, real_label)
 
-        def closure_dis():
-            loss_dis = self.compute_discriminator_loss(...)
-            self.manual_backward(loss_dis)
+            self.manual_backward(errG)
             if accumulated_grad_batches:
-                opt_dis.zero_grad()
+                g_opt.step()
+                g_opt.zero_grad()
 
-        with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
-            opt_dis.step(closure=closure_dis)
+            self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
 
 ------
 
