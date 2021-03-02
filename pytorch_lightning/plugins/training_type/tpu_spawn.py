@@ -158,9 +158,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         try:
             xm.save(state_dict, path)
         except RuntimeError as e:
-            if "Failed to meet rendezvous" in str(e):
-                pass
-            else:
+            if "Failed to meet rendezvous" not in str(e):
                 raise e
 
     def broadcast(self, obj: object, src: int = 0) -> object:
