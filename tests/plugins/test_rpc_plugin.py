@@ -65,11 +65,8 @@ class CustomRPCPlugin(RPCPlugin):
         return
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.skipif(not _RPC_AVAILABLE, reason="RPC is not available")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
 def test_rpc_function_calls_ddp(tmpdir):
     model = BoringModel()
     plugin = CustomRPCPlugin()

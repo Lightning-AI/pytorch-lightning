@@ -99,10 +99,7 @@ def check_replace_distrubuted_sampler(tmpdir, save_preds_on_dl_idx, accelerator,
         trainer.test(model)
 
 
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize("mode", [1, 2])
 def test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler(tmpdir, mode):
     check_replace_distrubuted_sampler(tmpdir, True, "ddp", 2, 2, mode)

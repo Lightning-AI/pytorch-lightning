@@ -48,10 +48,7 @@ def test_all_gather_ddp():
     torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size, ), nprocs=world_size)
 
 
-@RunIf(min_gpus=2, skip_windows=True)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, skip_windows=True, special=True)
 def test_all_gather_collection(tmpdir):
 
     class TestModel(BoringModel):
