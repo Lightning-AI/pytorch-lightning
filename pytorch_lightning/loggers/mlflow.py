@@ -15,17 +15,17 @@
 MLflow Logger
 -------------
 """
+import logging
 import re
 from argparse import Namespace
 from time import time
 from typing import Any, Dict, Optional, Union
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
 
+log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-
 _MLFLOW_AVAILABLE = _module_available("mlflow")
 try:
     import mlflow
