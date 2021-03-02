@@ -794,6 +794,8 @@ class Trainer(
         return eval_loop_results
 
     def run_predict(self):
+        self.predict_loop.on_predict_start()
+        
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders(None)
 
@@ -811,8 +813,6 @@ class Trainer(
 
         # set up the eval loop
         self.predict_loop.setup(model, max_batches, dataloaders)
-        
-        self.predict_loop.on_predict_start()
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
