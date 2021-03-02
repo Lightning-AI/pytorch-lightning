@@ -1,8 +1,9 @@
+import logging
 import os
 import signal
 from subprocess import call
 
-from pytorch_lightning import _logger as log
+log = logging.getLogger(__name__)
 
 
 class SLURMConnector:

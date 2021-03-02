@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 import re
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+
+log = logging.getLogger(__name__)
 
 
 class SLURMEnvironment(ClusterEnvironment):
