@@ -28,6 +28,7 @@ from pytorch_lightning.utilities import (
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 _FAIRSCALE_AVAILABLE,
+_DEEPSPEED_AVAILABLE,
 )
 
 try:
@@ -65,6 +66,7 @@ class RunIf:
         special: bool = False,
         rpc: bool = False,
         fairscale: bool = False,
+        deepspeed: bool = False,
         **kwargs
     ):
         """
@@ -83,6 +85,7 @@ class RunIf:
             special: running in special mode, outside pytest suit
             rpc: requires Remote Procedure Call (RPC)
             fairscale: if `fairscale` module is required to run the test
+            deepspeed: if `deepspeed` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -143,6 +146,10 @@ class RunIf:
         if fairscale:
             conditions.append(not _FAIRSCALE_AVAILABLE)
             reasons.append("Fairscale")
+
+        if deepspeed:
+            conditions.append(not _DEEPSPEED_AVAILABLE)
+            reasons.append("Deepspeed")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
