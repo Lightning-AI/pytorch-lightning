@@ -27,9 +27,8 @@ from tests.helpers.boring_model import RandomDataset
 from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, special=True, fairscale_pipe=True)
 def test_rpc_sequential_plugin_manual(tmpdir, args=None):
     model = SequentialModelRPCManual()
     trainer = Trainer(
@@ -52,9 +51,8 @@ def test_rpc_sequential_plugin_manual(tmpdir, args=None):
         trainer.accelerator.training_type_plugin.exit_rpc_process()
 
 
-@pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, special=True, fairscale_pipe=True)
 def test_rpc_sequential_plugin_manual_amp(tmpdir, args=None):
     model = SequentialModelRPCManual()
     trainer = Trainer(
@@ -75,9 +73,8 @@ def test_rpc_sequential_plugin_manual_amp(tmpdir, args=None):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, special=True, fairscale_pipe=True)
 def test_rpc_sequential_plugin_automatic(tmpdir, args=None):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(
@@ -100,9 +97,8 @@ def test_rpc_sequential_plugin_automatic(tmpdir, args=None):
         trainer.accelerator.training_type_plugin.exit_rpc_process()
 
 
-@pytest.mark.skipif(not _FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, special=True, fairscale_pipe=True)
 def test_rpc_sequential_plugin_with_wrong_balance(tmpdir, args=None):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(

@@ -28,6 +28,7 @@ from pytorch_lightning.utilities import (
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 _FAIRSCALE_AVAILABLE,
+_FAIRSCALE_PIPE_AVAILABLE,
 _DEEPSPEED_AVAILABLE,
 )
 
@@ -66,6 +67,7 @@ class RunIf:
         special: bool = False,
         rpc: bool = False,
         fairscale: bool = False,
+        fairscale_pipe: bool = False,
         deepspeed: bool = False,
         **kwargs
     ):
@@ -146,6 +148,10 @@ class RunIf:
         if fairscale:
             conditions.append(not _FAIRSCALE_AVAILABLE)
             reasons.append("Fairscale")
+
+        if fairscale_pipe:
+            conditions.append(not _FAIRSCALE_PIPE_AVAILABLE)
+            reasons.append("Fairscale Pipe")
 
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)
