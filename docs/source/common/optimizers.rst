@@ -195,30 +195,30 @@ Here is an example for advanced use-case.
             #  Optimize Discriminator #
             ###########################
             with d_opt.toggle_model(sync_grad=accumulated_grad_batches):
-            d_x = self.D(X)
-            errD_real = self.criterion(d_x, real_label)
+                d_x = self.D(X)
+                errD_real = self.criterion(d_x, real_label)
 
-            d_z = self.D(g_X.detach())
-            errD_fake = self.criterion(d_z, fake_label)
+                d_z = self.D(g_X.detach())
+                errD_fake = self.criterion(d_z, fake_label)
 
-            errD = (errD_real + errD_fake)
+                errD = (errD_real + errD_fake)
 
-            self.manual_backward(errD)
-            if accumulated_grad_batches:
-                d_opt.step()
-                d_opt.zero_grad()
+                self.manual_backward(errD)
+                if accumulated_grad_batches:
+                    d_opt.step()
+                    d_opt.zero_grad()
 
             #######################
             #  Optimize Generator #
             #######################
             with g_opt.toggle_model(sync_grad=accumulated_grad_batches):
-            d_z = self.D(g_X)
-            errG = self.criterion(d_z, real_label)
+                d_z = self.D(g_X)
+                errG = self.criterion(d_z, real_label)
 
-            self.manual_backward(errG)
-            if accumulated_grad_batches:
-                g_opt.step()
-                g_opt.zero_grad()
+                self.manual_backward(errG)
+                if accumulated_grad_batches:
+                    g_opt.step()
+                    g_opt.zero_grad()
 
             self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
 
