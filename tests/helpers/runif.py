@@ -24,6 +24,7 @@ from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _RPC_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 )
@@ -61,6 +62,7 @@ class RunIf:
         horovod_nccl: bool = False,
         skip_windows: bool = False,
         special: bool = False,
+        rpc: bool = False,
         **kwargs
     ):
         """
@@ -77,6 +79,7 @@ class RunIf:
             horovod_nccl: if Horovod is installed with NCCL support
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             special: running in special mode, outside pytest suit
+            rpc:
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -129,6 +132,10 @@ class RunIf:
             env_flag = os.getenv("PL_RUNNING_SPECIAL_TESTS", '0')
             conditions.append(env_flag != '1')
             reasons.append("Special execution")
+
+        if rpc:
+            conditions.append(not _RPC_AVAILABLE)
+            reasons.append("RPC")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

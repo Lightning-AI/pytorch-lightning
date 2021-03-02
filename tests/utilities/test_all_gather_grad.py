@@ -2,7 +2,6 @@ import os
 import sys
 
 import numpy as np
-import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
