@@ -23,7 +23,7 @@ class TPUAccelerator(Accelerator):
     Raises:
         MisconfigurationException:
             If amp is used with tpu, or
-            If TPUs are not using a single TPU core or TPU spawn training.
+            if TPUs are not using a single TPU core or TPU spawn training.
     """
     def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
