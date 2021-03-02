@@ -291,8 +291,7 @@ class ModelCheckpoint(Callback):
             self._fs.rm(filepath)
             log.debug(f"Removed checkpoint: {filepath}")
 
-    def _save_model(self, filepath: str, trainer, pl_module):
-        # Todo: required argument `pl_module` is not used
+    def _save_model(self, filepath: str, trainer):
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
@@ -505,9 +504,9 @@ class ModelCheckpoint(Callback):
 
         if trainer.training_type_plugin.rpc_enabled:
             # RPCPlugin manages saving all model states
-            trainer.training_type_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
+            trainer.training_type_plugin.rpc_save_model(self._save_model, last_filepath, trainer)
         else:
-            self._save_model(last_filepath, trainer, pl_module)
+            self._save_model(last_filepath, trainer)
         if (
             self.last_model_path and self.last_model_path != last_filepath
             and (self.save_top_k != -1 or self.save_last) and trainer.is_global_zero
@@ -574,7 +573,7 @@ class ModelCheckpoint(Callback):
                 f"Epoch {epoch:d}, global step {step:d}: {self.monitor} reached {current:0.5f}"
                 f' (best {self.best_model_score:0.5f}), saving model to "{filepath}" as top {k}'
             )
-        self._save_model(filepath, trainer, pl_module)
+        self._save_model(filepath, trainer)
 
         if del_filepath is not None and filepath != del_filepath:
             self._del_model(del_filepath)
