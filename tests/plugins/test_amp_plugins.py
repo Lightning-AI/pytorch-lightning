@@ -64,12 +64,13 @@ class GradientUnscaleBoringModel(BoringModel):
 
 
 @RunIf(min_gpus=2, amp_native=True)
-def test_amp_gradient_unscale(tmpdir):
+@pytest.mark.parametrize('accum', [1, 2])
+def test_amp_gradient_unscale(tmpdir, accum):
     model = GradientUnscaleBoringModel()
 
     trainer = Trainer(
         max_epochs=2,
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_test_batches=2,
         limit_val_batches=2,
@@ -79,34 +80,6 @@ def test_amp_gradient_unscale(tmpdir):
         precision=16,
         track_grad_norm=2,
         log_every_n_steps=1,
-    )
-    trainer.fit(model)
-
-
-class UnscaleAccumulateGradBatchesBoringModel(BoringModel):
-
-    def on_after_backward(self):
-        norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
-        if not (torch.isinf(norm) or torch.isnan(norm)):
-            assert norm.item() < 15.
-
-
-@RunIf(min_gpus=2, amp_native=True)
-def test_amp_gradient_unscale_accumulate_grad_batches(tmpdir):
-    model = UnscaleAccumulateGradBatchesBoringModel()
-
-    trainer = Trainer(
-        max_epochs=2,
-        default_root_dir=os.getcwd(),
-        limit_train_batches=2,
-        limit_test_batches=2,
-        limit_val_batches=2,
-        amp_backend='native',
-        accelerator='ddp_spawn',
-        gpus=2,
-        precision=16,
-        track_grad_norm=2,
-        log_every_n_steps=1,
-        accumulate_grad_batches=2,
+        accumulate_grad_batches=accum,
     )
     trainer.fit(model)
