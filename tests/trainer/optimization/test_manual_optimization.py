@@ -24,7 +24,6 @@ import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import _APEX_AVAILABLE
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -310,8 +309,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=1)
-@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
+@RunIf(min_gpus=1, amp_apex=True)
 def test_multiple_optimizers_manual_apex(tmpdir):
     """
     Tests that only training_step can be used
