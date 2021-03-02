@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import gc
+from typing import Any
 from unittest.mock import DEFAULT, patch
 
 import torch
@@ -19,7 +20,6 @@ from torch.optim import Adam, Optimizer, SGD
 from torch.optim.optimizer import _RequiredParameter
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from tests.helpers.boring_model import BoringModel
 
@@ -374,35 +374,32 @@ def test_lightning_optimizer_dont_delete_wrapped_optimizer(tmpdir):
     """
     """
 
-    class TestCB(Callback):
+    class TestModel(BoringModel):
 
         def __init__(self):
+            super().__init__()
             self.count_on_train_batch_start = 0
             self.count_on_train_batch_end = 0
-
-        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx: int, dataloader_idx: int) -> None:
-            self.count_on_train_batch_start += 1
-            optimizer = pl_module.optimizers(use_pl_optimizer=False)
-            assert len(optimizer._fwd_handles) == 1
-
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
-            self.count_on_train_batch_end += 1
-            # delete the lightning_optimizers
-            pl_module.trainer._lightning_optimizers = None
-            gc.collect()
-
-    class TestModel(BoringModel):
 
         def configure_optimizers(self):
             return OptimizerWithHooks(self)
 
-    callback = TestCB()
+        def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+            self.count_on_train_batch_start += 1
+            optimizer = self.optimizers(use_pl_optimizer=False)
+            assert len(optimizer._fwd_handles) == 1
+
+        def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+            self.count_on_train_batch_end += 1
+            # delete the lightning_optimizers
+            self.trainer._lightning_optimizers = None
+            gc.collect()
 
     model = TestModel()
     # Initialize a trainer
-    trainer = Trainer(limit_train_batches=4, limit_val_batches=1, max_steps=1, callbacks=callback)
+    trainer = Trainer(limit_train_batches=4, limit_val_batches=1, max_epochs=1)
 
     # Train the model ⚡
     trainer.fit(model)
-    assert callback.count_on_train_batch_start == 4
-    assert callback.count_on_train_batch_end == 4
+    assert model.count_on_train_batch_start == 4
+    assert model.count_on_train_batch_end == 4
