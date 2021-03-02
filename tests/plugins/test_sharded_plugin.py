@@ -6,14 +6,13 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
+@RunIf(fairscale=True)
 @pytest.mark.parametrize(["accelerator"], [("ddp_sharded", ), ("ddp_sharded_spawn", )])
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_sharded_ddp_choice(tmpdir, accelerator):
     """
         Test to ensure that plugin is correctly chosen
@@ -39,8 +38,7 @@ def test_sharded_ddp_choice(tmpdir, accelerator):
         trainer.fit(model)
 
 
-@RunIf(amp_apex=True)
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@RunIf(amp_apex=True, fairscale=True)
 def test_invalid_apex_sharded(tmpdir):
     """
         Test to ensure that we raise an error when we try to use apex and sharded
@@ -58,9 +56,8 @@ def test_invalid_apex_sharded(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, amp_native=True)
+@RunIf(min_gpus=2, amp_native=True, fairscale=True)
 @pytest.mark.parametrize(["accelerator"], [("ddp_sharded", ), ("ddp_sharded_spawn", )])
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_choice_sharded_amp(tmpdir, accelerator):
     """
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded
@@ -88,8 +85,7 @@ def test_ddp_choice_sharded_amp(tmpdir, accelerator):
         trainer.fit(model)
 
 
-@RunIf(skip_windows=True)
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@RunIf(skip_windows=True, fairscale=True)
 def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly
@@ -112,8 +108,7 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
         assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
-@RunIf(min_gpus=2, skip_windows=True)
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
 def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly when using multiple GPUs
@@ -136,8 +131,7 @@ def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
         assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
-@RunIf(min_gpus=2, skip_windows=True)
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
 def test_ddp_sharded_plugin_finetune(tmpdir):
     """
         Test to ensure that we can save and restart training (simulate fine-tuning)
@@ -158,8 +152,7 @@ def test_ddp_sharded_plugin_finetune(tmpdir):
     trainer.fit(saved_model)
 
 
-@RunIf(skip_windows=True)
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@RunIf(skip_windows=True, fairscale=True)
 def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     """
         Test to ensure that resuming from checkpoint works
@@ -188,10 +181,9 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")
+@pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")  # todo
 @pytest.mark.skip(reason="Currently unsupported restarting training on different number of devices.")
-@RunIf(min_gpus=2, skip_windows=True)
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
 def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     """
         Test to ensure that resuming from checkpoint works when downsizing number of GPUS
@@ -220,8 +212,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1, skip_windows=True)
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@RunIf(min_gpus=1, skip_windows=True, fairscale=True)
 def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     """
         Test to ensure that resuming from checkpoint works when going from GPUs- > CPU
@@ -250,8 +241,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, special=True)
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@RunIf(skip_windows=True, special=True, fairscale=True)
 def test_ddp_sharded_plugin_test(tmpdir):
     """
         Test to ensure we can use test without fit
@@ -266,8 +256,7 @@ def test_ddp_sharded_plugin_test(tmpdir):
     trainer.test(model)
 
 
-@RunIf(min_gpus=2, skip_windows=True)
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
 def test_ddp_sharded_plugin_test_multigpu(tmpdir):
     """
         Test to ensure we can use test without fit
