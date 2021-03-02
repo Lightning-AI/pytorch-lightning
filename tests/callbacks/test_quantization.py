@@ -22,7 +22,7 @@ from pytorch_lightning.metrics.functional.mean_relative_error import mean_relati
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.simple_models import RegressionModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("observe", ['average', pytest.param('histogram', marks=RunIf(min_torch="1.5"))])

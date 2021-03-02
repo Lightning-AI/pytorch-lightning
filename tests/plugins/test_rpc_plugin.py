@@ -9,7 +9,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.training_type.rpc_sequential import RPCPlugin
 from pytorch_lightning.utilities import _RPC_AVAILABLE
 from tests.helpers.boring_model import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 @mock.patch.dict(

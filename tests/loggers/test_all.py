@@ -332,7 +332,7 @@ class RankZeroLoggerCheck(Callback):
         TestTubeLogger,
     ]
 )
-@RunIf(not_windows=True)
+@RunIf(skip_windows=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """ Test that loggers get replaced by dummy loggers on global rank > 0"""
     _patch_comet_atexit(monkeypatch)

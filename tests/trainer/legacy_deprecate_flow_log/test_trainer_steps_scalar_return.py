@@ -22,7 +22,7 @@ import torch
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 from tests.helpers.deterministic_model import DeterministicModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 def test_training_step_scalar(tmpdir):

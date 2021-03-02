@@ -12,7 +12,7 @@ from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeed
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _DEEPSPEED_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 def test_deepspeed_lightning_module(tmpdir):

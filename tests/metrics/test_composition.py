@@ -18,7 +18,7 @@ import torch
 
 from pytorch_lightning.metrics.compositional import CompositionalMetric
 from pytorch_lightning.metrics.metric import Metric
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class DummyMetric(Metric):

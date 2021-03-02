@@ -41,7 +41,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 @pytest.fixture
@@ -1441,7 +1441,7 @@ def test_trainer_predict_ddp(tmpdir):
     predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
 
 
-@RunIf(min_gpus=2, windows=True)
+@RunIf(min_gpus=2, skip_windows=True)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
@@ -1457,7 +1457,7 @@ def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, None, 1, None)
 
 
-@RunIf(windows=True)
+@RunIf(skip_windows=True)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )

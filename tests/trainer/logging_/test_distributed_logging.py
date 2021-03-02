@@ -18,7 +18,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):
@@ -32,7 +32,7 @@ class TestModel(BoringModel):
             assert logged_times == expected, msg
 
 
-@RunIf(windows=True)
+@RunIf(skip_windows=True)
 def test_global_zero_only_logging_ddp_cpu(tmpdir):
     """
     Makes sure logging only happens from root zero

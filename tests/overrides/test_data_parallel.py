@@ -13,7 +13,7 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("wrapper_class", [

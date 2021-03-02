@@ -17,7 +17,7 @@ import pytest
 from pytorch_lightning import Trainer
 from tests.accelerators import DDPLauncher
 from tests.helpers.boring_model import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class TrainerGetModel(BoringModel):
@@ -46,7 +46,7 @@ def test_get_model(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(windows=True)
+@RunIf(skip_windows=True)
 def test_get_model_ddp_cpu(tmpdir):
     """
     Tests that `trainer.lightning_module` extracts the model correctly when using ddp on cpu
@@ -85,7 +85,7 @@ def test_get_model_gpu(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1, windows=True)
+@RunIf(min_gpus=1, skip_windows=True)
 @DDPLauncher.run("--accelerator [accelerator]", max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
 def test_get_model_ddp_gpu(tmpdir, args=None):
     """

@@ -89,7 +89,7 @@ def _ddp_test_fn(rank, worldsize):
             assert epoch_expected[k] == epoch_log[k]
 
 
-@RunIf(not_windows=True)
+@RunIf(skip_windows=True)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
     tutils.reset_seed()

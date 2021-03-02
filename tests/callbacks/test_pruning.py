@@ -26,7 +26,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):
@@ -168,12 +168,12 @@ def test_pruning_callback_ddp(tmpdir, use_global_unstructured, parameters_to_pru
     )
 
 
-@RunIf(min_gpus=2, windows=True)
+@RunIf(min_gpus=2, skip_windows=True)
 def test_pruning_callback_ddp_spawn(tmpdir):
     train_with_pruning_callback(tmpdir, use_global_unstructured=True, accelerator="ddp_spawn", gpus=2)
 
 
-@RunIf(windows=True)
+@RunIf(skip_windows=True)
 def test_pruning_callback_ddp_cpu(tmpdir):
     train_with_pruning_callback(tmpdir, parameters_to_prune=True, accelerator="ddp_cpu", num_processes=2)
 

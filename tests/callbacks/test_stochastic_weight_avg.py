@@ -23,7 +23,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_6:
     from pytorch_lightning.callbacks import StochasticWeightAveraging
@@ -127,7 +127,7 @@ def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_spawn", gpus=2)
 
 
-@RunIf(min_torch="1.6.0", windows=True)
+@RunIf(min_torch="1.6.0", skip_windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
 

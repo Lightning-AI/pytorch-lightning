@@ -39,7 +39,7 @@ def _test_ddp_sum_cat(rank, worldsize):
     assert dummy.bar == worldsize
 
 
-@RunIf(not_windows=True)
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("process", [_test_ddp_cat, _test_ddp_sum, _test_ddp_sum_cat])
 def test_ddp(process):
     torch.multiprocessing.spawn(process, args=(2, ), nprocs=2)
@@ -65,7 +65,7 @@ def _test_non_contiguous_tensors(rank, worldsize):
     metric.update(torch.randn(10, 5)[:, 0])
 
 
-@RunIf(not_windows=True)
+@RunIf(skip_windows=True)
 def test_non_contiguous_tensors():
     """ Test that gather_all operation works for non contiguous tensors """
     torch.multiprocessing.spawn(_test_non_contiguous_tensors, args=(2, ), nprocs=2)

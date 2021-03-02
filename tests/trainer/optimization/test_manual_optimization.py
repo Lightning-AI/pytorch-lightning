@@ -26,7 +26,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import _APEX_AVAILABLE
 from tests.helpers.boring_model import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})

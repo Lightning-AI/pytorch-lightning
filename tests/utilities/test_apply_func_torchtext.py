@@ -17,7 +17,7 @@ import torchtext
 from torchtext.data.example import Example
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 def _get_torchtext_data_iterator(include_lengths=False):
