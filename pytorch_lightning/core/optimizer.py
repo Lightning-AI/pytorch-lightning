@@ -213,7 +213,7 @@ class LightningOptimizer:
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
         if _PYSYFT_AVAILABLE:
-            # todo (tudorcebere): use plans to execute the closure.
+            # todo (tudorcebere): use plans to execute the closure.  # noqa E265
             closure()
             closure = None
 
