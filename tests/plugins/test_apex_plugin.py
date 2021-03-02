@@ -5,10 +5,10 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE
+from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
+@RunIf(amp_apex=True)
 @mock.patch.dict(
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",
@@ -36,7 +36,7 @@ def test_amp_choice_default_ddp(mocked_device_count, ddp_backend, gpus):
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
 
 
-@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
+@RunIf(amp_apex=True)
 @mock.patch.dict(
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",
