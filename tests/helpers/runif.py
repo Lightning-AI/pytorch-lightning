@@ -19,7 +19,21 @@ import pytest
 import torch
 from pkg_resources import get_distribution
 
-from pytorch_lightning.utilities import _TORCH_QUANTIZE_AVAILABLE
+from pytorch_lightning.utilities import (
+    _APEX_AVAILABLE,
+    _HOROVOD_AVAILABLE,
+    _NATIVE_AMP_AVAILABLE,
+    _TORCH_QUANTIZE_AVAILABLE,
+    _TPU_AVAILABLE,
+)
+
+try:
+    from horovod.common.util import nccl_built
+    nccl_built()
+except (ImportError, ModuleNotFoundError, AttributeError):
+    _HOROVOD_NCCL_AVAILABLE = False
+finally:
+    _HOROVOD_NCCL_AVAILABLE = True
 
 
 class RunIf:
@@ -37,7 +51,13 @@ class RunIf:
         *args,
         min_gpus: int = 0,
         min_torch: Optional[str] = None,
+        min_python: Optional[str] = None,
         quantization: bool = False,
+        amp_apex: bool = False,
+        amp_native: bool = False,
+        tpu: bool = False,
+        horovod: bool = False,
+        horovod_nccl: bool = False,
         skip_windows: bool = False,
         **kwargs
     ):
@@ -46,7 +66,13 @@ class RunIf:
             args: native pytest.mark.skipif arguments
             min_gpus: min number of gpus required to run test
             min_torch: minimum pytorch version to run test
+            min_python: minimum python version required to run test
             quantization: if `torch.quantization` package is required to run test
+            amp_apex: NVIDIA Apex is installed
+            amp_native: if native PyTorch native AMP is supported
+            tpu: if TPU is available
+            horovod: if Horovod is installed
+            horovod_nccl: if Horovod is installed with NCCL support
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             kwargs: native pytest.mark.skipif keyword arguments
         """
@@ -62,14 +88,39 @@ class RunIf:
             conditions.append(torch_version < LooseVersion(min_torch))
             reasons.append(f"torch>={min_torch}")
 
+        if min_python:
+            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            conditions.append(py_version < LooseVersion(min_python))
+            reasons.append(f"python>={min_python}")
+
         if quantization:
             _miss_default = 'fbgemm' not in torch.backends.quantized.supported_engines
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
-            reasons.append("missing PyTorch quantization")
+            reasons.append("PyTorch quantization")
+
+        if amp_native:
+            conditions.append(not _NATIVE_AMP_AVAILABLE)
+            reasons.append("native AMP")
+
+        if amp_apex:
+            conditions.append(not _APEX_AVAILABLE)
+            reasons.append("NVIDIA Apex")
 
         if skip_windows:
             conditions.append(sys.platform == "win32")
             reasons.append("unimplemented on Windows")
+
+        if tpu:
+            conditions.append(not _TPU_AVAILABLE)
+            reasons.append("TPU")
+
+        if horovod:
+            conditions.append(not _HOROVOD_AVAILABLE)
+            reasons.append("Horovod")
+
+        if horovod_nccl:
+            conditions.append(not _HOROVOD_NCCL_AVAILABLE)
+            reasons.append("Horovod with NCCL")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
