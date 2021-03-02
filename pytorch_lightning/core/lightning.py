@@ -295,7 +295,7 @@ class LightningModule(
                 )
 
             training_type_plugin = self.trainer.training_type_plugin
-            
+
             # Determine if dataloader index should be added
             dataloader_idx = self._current_dataloader_idx if add_dataloader_idx else None
 

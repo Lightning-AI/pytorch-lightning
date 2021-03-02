@@ -28,7 +28,6 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
@@ -473,24 +472,27 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.parametrize("auto_add_dataloader_idx", [False, True])
-def test_auto_add_dataloader_idx(tmpdir, auto_add_dataloader_idx):
+@pytest.mark.parametrize("add_dataloader_idx", [False, True])
+def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     """ test that auto_add_dataloader_idx argument works """
 
-    class TestModel(EvalModelTemplate):
+    class TestModel(BoringModel):
+        def val_dataloader(self):
+            dl = super().val_dataloader()
+            return [dl, dl]
 
         def validation_step(self, *args, **kwargs):
-            output = super().validation_step(*args, **kwargs)
-            if auto_add_dataloader_idx:
+            output = super().validation_step(*args[:-1], **kwargs)
+            if add_dataloader_idx:
                 name = "val_loss"
             else:
                 name = f"val_loss_custom_naming_{args[-1]}"
 
-            self.log(name, output["val_loss"], auto_add_dataloader_idx=auto_add_dataloader_idx)
+            self.log(name, output["x"], add_dataloader_idx=add_dataloader_idx)
             return output
 
     model = TestModel()
-    model.val_dataloader = model.val_dataloader__multiple
+    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -499,7 +501,8 @@ def test_auto_add_dataloader_idx(tmpdir, auto_add_dataloader_idx):
     trainer.fit(model)
     logged = trainer.logged_metrics
 
-    if auto_add_dataloader_idx:
+    # Check that the correct keys exist
+    if add_dataloader_idx:
         assert 'val_loss/dataloader_idx_0' in logged
         assert 'val_loss/dataloader_idx_1' in logged
     else:
