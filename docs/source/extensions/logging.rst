@@ -262,7 +262,7 @@ Lightning logs useful information about the training process and user warnings t
 You can retrieve the Lightning logger and change it to your liking. For example, adjust the logging level
 or redirect output for certain modules to log files:
 
-.. code-block:: python
+.. testcode::
 
     import logging
 
