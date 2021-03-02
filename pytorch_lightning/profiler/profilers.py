@@ -26,7 +26,6 @@ from typing import Optional, Union
 
 import numpy as np
 
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 log = logging.getLogger(__name__)
