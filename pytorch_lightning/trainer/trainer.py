@@ -811,6 +811,8 @@ class Trainer(
 
         # set up the eval loop
         self.predict_loop.setup(model, max_batches, dataloaders)
+        
+        self.predict_loop.on_predict_start()
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -830,6 +832,7 @@ class Trainer(
                     self.predict_loop.predict(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
+        self.predict_loop.on_predict_end()
         return results
 
     def run_sanity_check(self, ref_model):
