@@ -101,6 +101,7 @@ class ModelCheckpoint(Callback):
 
             .. warning::
                This argument has been deprecated in v1.3 and will be removed in v1.5.
+
             Use ``every_n_epochs`` instead.
 
     Note:
