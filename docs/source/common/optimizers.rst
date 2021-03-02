@@ -80,79 +80,67 @@ Here is the same example as above using a ``closure``.
 
         def __init__(self):
             super().__init__()
-            latent_dim = 64
-            self._Z = MultivariateNormal(tr.zeros(latent_dim, device=self.device),
-                                        tr.eye(latent_dim, device=self.device))
-            self.G = MnistDenseGenerator(latent_dim)
-            self.D = MnistDenseDiscriminator()
-            self.num_workers = 0
+            self.G = Generator(...)
+            self.D = Discriminator(...)
 
         @property
         def automatic_optimization(self):
             # Important: This property activate ``manual optimization`` for this model
             return False
 
-        def train_dataloader(self) -> DataLoader:
-            return tr.utils.data.DataLoader(data, batch_size=64, shuffle=True,
-                                            num_workers=self.num_workers)
+        def generator_loss(self, d_z: Tensor) -> Tensor:
+            # the closer ``d_z`` is from 1,
+            # the better the generator is able to fool the discriminator
+            return -1 * tr.log(d_z).mean()
 
-        def forward(self, x):
-            return self.G(x)
+        def discriminator_loss(self, d_x: Tensor, d_z: Tensor) -> Tensor:
+            # the closer is ``d_x`` from 1 and ``dz`` from 0,
+            # the better the discriminator is able to distinguish
+            # true data from generated ones
+            return -1 * (tr.log(d_x).mean() + tr.log(1 - d_z).mean())
 
-    def generator_loss(self, d_z: Tensor) -> Tensor:
-        # the closer ``d_z`` is from 1,
-        # the better the generator is able to fool the discriminator
-        return -1 * tr.log(d_z).mean()
+        def sample_z(self, n) -> Tensor:
+            sample = self._Z.sample((n,))
+            return sample
 
-    def discriminator_loss(self, d_x: Tensor, d_z: Tensor) -> Tensor:
-        # the closer is ``d_x`` from 1 and ``dz`` from 0,
-        # the better the discriminator is able to distinguish
-        # true data from generated ones
-        return -1 * (tr.log(d_x).mean() + tr.log(1 - d_z).mean())
+        def sample_G(self, n) -> Tensor:
+            z = self.sample_z(n)
+            return self.G(z)
 
-    def sample_z(self, n) -> Tensor:
-        sample = self._Z.sample((n,))
-        return sample
+        def training_step(self, batch, batch_idx, optimizer_idx, *args):
+            # Get optimizers
+            g_opt, d_opt = self.optimizers()
 
-    def sample_G(self, n) -> Tensor:
-        z = self.sample_z(n)
-        return self.G(z)
+            # Train generator
+            X, _ = batch
+            batch_size = X.shape[0]
+            g_X = self.sample_G(batch_size)
+            d_z = self.D(g_X)
+            g_loss = self.generator_loss(d_z)
 
-    def training_step(self, batch, batch_idx, optimizer_idx, *args):
-        # Get optimizers
-        g_opt, d_opt = self.optimizers()
+            # zero_grad should be called before manual_backward
+            g_opt.zero_grad()
+            self.manual_backward(g_loss)
 
-        # Train generator
-        X, _ = batch
-        batch_size = X.shape[0]
-        g_X = self.sample_G(batch_size)
-        d_z = self.D(g_X)
-        g_loss = self.generator_loss(d_z)
+            g_opt.step()
 
-        # zero_grad should be called before manual_backward
-        g_opt.zero_grad()
-        self.manual_backward(g_loss)
+            # Train discriminator
+            d_x = self.D(X)
+            d_z = self.D(g_X.detach())
 
-        g_opt.step()
+            d_loss = self.discriminator_loss(d_x, d_z)
 
-        # Train discriminator
-        d_x = self.D(X)
-        d_z = self.D(g_X.detach())
+            # zero_grad should be called before manual_backward
+            d_opt.zero_grad()
+            self.manual_backward(d_loss)
+            d_opt.step()
 
-        d_loss = self.discriminator_loss(d_x, d_z)
+            self.log_dict({'g_loss': g_loss, 'd_loss': d_loss}, prog_bar=True)
 
-        # zero_grad should be called before manual_backward
-        d_opt.zero_grad()
-        self.manual_backward(d_loss)
-        d_opt.step()
-
-        self.log_dict({'g_loss': g_loss, 'd_loss': d_loss}, prog_bar=True, logger=True)
-
-    def configure_optimizers(self):
-        g_opt = torch.optim.RMSprop(self.G.parameters(), lr=1e-5)
-        d_opt = torch.optim.RMSprop(self.D.parameters(), lr=1e-5)
-        return g_opt, d_opt
-
+        def configure_optimizers(self):
+            g_opt = torch.optim.RMSprop(self.G.parameters(), lr=1e-5)
+            d_opt = torch.optim.RMSprop(self.D.parameters(), lr=1e-5)
+            return g_opt, d_opt
 
 .. note:: ``LightningOptimizer`` provides a ``toggle_model`` function as a ``@context_manager`` for advanced users. It can be useful when performing gradient accumulation with several optimizers or training in a distributed setting.
 
@@ -164,7 +152,51 @@ Toggling means that all parameters from B exclusive to A will have their ``requi
 When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
 Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
 
-Here is an example on how to use it:
+
+Here is the same example as before with this helper.
+
+.. code-block:: python
+
+    import torch
+    from pytorch_lightning import LightningModule
+    from torch.utils.data import Dataset
+
+    class SimpleGAN(LightningModule):
+
+        ...
+
+        def training_step(self, batch, batch_idx, optimizer_idx, *args):
+            g_opt, d_opt = self.optimizers()
+            X, _ = batch
+            batch_size = X.shape[0]
+
+            def gen_closure():
+            g_X = self.sample_G(batch_size)
+            d_x = self.D(X)
+            d_z = self.D(g_X)
+            g_loss = self.generator_loss(d_z)
+            g_opt.zero_grad()
+            self.manual_backward(g_loss)
+            self.log('g_loss', g_loss, prog_bar=True)
+
+            with g_opt.toggle_model():
+            g_opt.step(closure=gen_closure)
+
+            def dis_closure():
+            g_X = self.sample_G(batch_size)
+            d_x = self.D(X)
+            d_z = self.D(g_X)
+            d_loss = self.discriminator_loss(d_x, d_z)
+            d_opt.zero_grad()
+            self.manual_backward(d_loss)
+            self.log('d_loss', d_loss, prog_bar=True)
+
+            with d_opt.toggle_model():
+            d_opt.step(closure=dis_closure)
+
+
+Here is an example for advanced use-case.
+
 
 .. code-block:: python
 
