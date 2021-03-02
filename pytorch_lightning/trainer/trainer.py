@@ -736,9 +736,9 @@ class Trainer(
     def track_output_for_epoch_end(self, outputs, output):
         if output is not None:
             if isinstance(output, Result):
-                output.detach()
+                output = output.detach()
                 if self.move_metrics_to_cpu:
-                    output.cpu()
+                    output = output.cpu()
             elif isinstance(output, dict):
                 output = recursive_detach(output, to_cpu=self.move_metrics_to_cpu)
             elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:

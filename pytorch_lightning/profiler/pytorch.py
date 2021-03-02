@@ -38,7 +38,7 @@ class RegisterRecordFunction:
 
     The Lightning PyTorch Profiler will activate this feature automatically.
 
-    It can be desactivated as follow:
+    It can be deactivated as follow:
 
     Example::
 
@@ -48,7 +48,7 @@ class RegisterRecordFunction:
 
         Trainer(profiler=profiler)
 
-    It can be used outside of Lightning as follow:
+    It can be used outside of Lightning as follows:
 
     Example::
 
