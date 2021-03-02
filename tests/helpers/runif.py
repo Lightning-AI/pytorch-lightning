@@ -79,7 +79,7 @@ class RunIf:
             horovod_nccl: if Horovod is installed with NCCL support
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             special: running in special mode, outside pytest suit
-            rpc:
+            rpc: requires Remote Procedure Call (RPC)
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
