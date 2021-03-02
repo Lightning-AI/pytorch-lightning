@@ -231,10 +231,9 @@ class ModelCheckpoint(Callback):
         """
         checkpoints can be saved at the end of the val loop
         """
-        epoch = trainer.current_epoch
         skip = (
             self._should_skip_saving_checkpoint(trainer) or self.every_n_epochs < 1
-            or (epoch + 1) % self.every_n_epochs != 0
+            or (trainer.current_epoch + 1) % self.every_n_epochs != 0
         )
         if skip:
             return
