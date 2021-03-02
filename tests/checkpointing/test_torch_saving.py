@@ -19,6 +19,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
+from tests.helpers.skipif import RunIf
 
 
 def test_model_torch_save(tmpdir):
@@ -57,7 +58,7 @@ def test_model_torch_save_ddp_cpu(tmpdir):
     torch.save(trainer, temp_path)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_model_torch_save_ddp_cuda(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using gpu ddp."""
     model = BoringModel()

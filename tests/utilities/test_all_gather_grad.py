@@ -8,6 +8,7 @@ import torch
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities import AllGatherGrad
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.skipif import RunIf
 
 
 def setup_ddp(rank, world_size):
@@ -48,7 +49,7 @@ def test_all_gather_ddp():
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
