@@ -46,6 +46,7 @@ class TPUAccelerator(Accelerator):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
+        # todo: Add support for backwack with all_gather
         if torch.distributed.is_initialized():
             return xm.all_gather(tensor, group=group, sync_grads=sync_grads)
         return tensor
