@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
-
 import cProfile
+import inspect
 import io
 import logging
 import os
@@ -22,11 +22,14 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import numpy as np
+import torch
 
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
 
@@ -558,4 +561,3 @@ class PyTorchProfiler(BaseProfiler):
         """Close profiler's stream."""
         if self.output_file:
             self.output_file.close()
-

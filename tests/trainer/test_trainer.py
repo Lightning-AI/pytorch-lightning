@@ -1572,11 +1572,12 @@ def test_pytorch_profiler_nested(tmpdir):
 
 @pytest.mark.skip(reason="This tests need to be run with nvprof")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
-def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
+def test_pytorch_profiler_nested_emit_nvtx():
     """
-    How to run this test.
-    nvprof --profile-from-start off -o trace_name.prof -- pytest {}:test_pytorch_profiler_nested_emit_nvtx
-    python -c "import torch;print(torch.autograd.profiler.load_nvprof('{}/trace_name.prof'))"
+    This test check emit_nvtx is correctly supported
     """
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
