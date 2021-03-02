@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-import sys
 from unittest import mock
 
 import cloudpickle
@@ -27,6 +26,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 
@@ -374,13 +374,13 @@ class EarlyStoppingModel(BoringModel):
                      3,
                      'ddp_cpu',
                      2,
-                     marks=pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")),
+                     marks=RunIf(skip_windows=True)),
         pytest.param([EarlyStopping(monitor='cba', patience=3),
                       EarlyStopping(monitor='abc')],
                      3,
                      'ddp_cpu',
                      2,
-                     marks=pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")),
+                     marks=RunIf(skip_windows=True)),
     ],
 )
 def test_multiple_early_stopping_callbacks(callbacks, expected_stop_epoch, accelerator, num_processes, tmpdir):

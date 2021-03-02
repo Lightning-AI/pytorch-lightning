@@ -20,7 +20,7 @@ from torch.utils.data.sampler import BatchSampler, SequentialSampler
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class IndexedRandomDataset(RandomDataset):

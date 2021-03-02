@@ -19,7 +19,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 @RunIf(min_gpus=2)

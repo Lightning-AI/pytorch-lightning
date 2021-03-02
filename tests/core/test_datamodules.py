@@ -26,8 +26,8 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
-from tests.helpers.skipif import RunIf
 from tests.helpers.utils import reset_seed, set_random_master_port
 
 
