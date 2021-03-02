@@ -277,7 +277,7 @@ def test_collect_init_args():
     assert my_class.result[1] == {"anyarg": "test1", "childarg": "test2", "anykw": 32, "childkw": 22, "otherkw": 123}
 
 
-def test_AttributeDict(tmpdir):
+def test_attribute_dict(tmpdir):
     # Test initialization
     inputs = {
         'key1': 1,
