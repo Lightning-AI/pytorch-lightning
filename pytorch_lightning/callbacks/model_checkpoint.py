@@ -175,7 +175,7 @@ class ModelCheckpoint(Callback):
         mode: str = "min",
         auto_insert_metric_name: bool = True
         every_n_epochs: int = 1,
-        every_n_batches: int = -1,
+        every_n_batches: int = 0,
         period: Optional[int] = None,
     ):
         super().__init__()
@@ -293,13 +293,13 @@ class ModelCheckpoint(Callback):
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
             raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
-        if self.every_n_epochs == 0 or self.every_n_epochs < -1:
+        if self.every_n_epochs <= -1:
             raise MisconfigurationException(
-                f'Invalid value for every_n_epochs={self.every_n_epochs}. Must be positive or -1'
+                f'Invalid value for every_n_epochs={self.every_n_epochs}. Must be non-negative.'
             )
-        if self.every_n_batches == 0 or self.every_n_batches < -1:
+        if self.every_n_batches <= -1:
             raise MisconfigurationException(
-                f'Invalid value for every_n_batches={self.every_n_batches}. Must be positive or -1'
+                f'Invalid value for every_n_batches={self.every_n_batches}. Must be non-negative.'
             )
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
