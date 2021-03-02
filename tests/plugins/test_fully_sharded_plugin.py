@@ -1,5 +1,4 @@
 import os
-import platform
 from unittest import mock
 
 import pytest
@@ -8,9 +7,13 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import FullyShardedNativeMixedPrecisionPlugin, FullyShardedPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _FAIRSCALE_FULLY_SHARDED_AVAILABLE, _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
+
+if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
+    from fairscale.nn import auto_wrap, FullyShardedDataParallel
 
 
 @pytest.mark.parametrize(["plugin"], [("ddp_fully_sharded", )])
@@ -38,8 +41,8 @@ def test_sharded_ddp_choice(tmpdir, plugin):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
+@RunIf(amp_apex=True)
 def test_invalid_apex_sharded(tmpdir):
     """
         Test to ensure that we raise an error when we try to use apex and sharded
@@ -59,10 +62,10 @@ def test_invalid_apex_sharded(tmpdir):
 
 @pytest.mark.parametrize(["plugin"], [("ddp_fully_sharded", )])
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch('torch.cuda.device_count', return_value=1)
 @mock.patch('torch.cuda.is_available', return_value=True)
+@RunIf(amp_native=True)
 def test_ddp_choice_sharded_amp(device_count_mock, mock_cuda_available, plugin, tmpdir):
     """
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded
@@ -89,9 +92,8 @@ def test_ddp_choice_sharded_amp(device_count_mock, mock_cuda_available, plugin, 
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires CUDA")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
+@RunIf(min_gpus=1, skip_windows=True)
 def test_fully_sharded_plugin_checkpoint(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly when using a single GPU.
@@ -109,12 +111,41 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     _assert_save_equality(tmpdir, trainer)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
+@RunIf(min_gpus=1, skip_windows=True)
+def test_fully_sharded_plugin_checkpoint_autowrap(tmpdir):
+    """
+        Test to ensure that checkpoint is saved correctly when using auto_wrap.
+    """
+
+    class TestModel(BoringModel):
+
+        def on_distributed_model_setup(self) -> None:
+            self.layer = auto_wrap(self.layer, min_num_params=1)
+
+        def on_train_start(self) -> None:
+            assert isinstance(self.layer, FullyShardedDataParallel)
+            assert isinstance(self.accelerator_model, FullyShardedDataParallel)
+
+    model = TestModel()
+
+    trainer = Trainer(
+        gpus=1,
+        plugins='ddp_fully_sharded',
+        fast_dev_run=True,
+        precision=16,
+    )
+
+    trainer.fit(model)
+
+    _assert_save_equality(tmpdir, trainer)
+
+
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
+@RunIf(min_gpus=2, skip_windows=True)
 def test_fully_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly when using multiple GPUs
