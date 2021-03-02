@@ -373,7 +373,7 @@ class LightningModule(
                 sync_dist_op=sync_dist_op,
                 tbptt_pad_token=tbptt_pad_token,
                 tbptt_reduce_fx=tbptt_reduce_fx,
-                auto_add_dataloader_idx=add_dataloader_idx
+                add_dataloader_idx=add_dataloader_idx
             )
 
     def write_prediction(
