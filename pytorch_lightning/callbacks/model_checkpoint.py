@@ -239,7 +239,7 @@ class ModelCheckpoint(Callback):
             self._save_top_k_checkpoints(trainer, pl_module, monitor_candidates)
 
         # Mode 2: save the last checkpoint
-        self._save_last_checkpoint(trainer, pl_module, monitor_candidates)
+        self._save_last_checkpoint(trainer, monitor_candidates)
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
@@ -480,7 +480,7 @@ class ModelCheckpoint(Callback):
         monitor_candidates.update(step=trainer.global_step, epoch=trainer.current_epoch)
         return monitor_candidates
 
-    def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics):
+    def _save_last_checkpoint(self, trainer, ckpt_name_metrics):
         should_save_last = self.monitor is None or self.save_last
         if not should_save_last:
             return
@@ -504,7 +504,7 @@ class ModelCheckpoint(Callback):
 
         if trainer.training_type_plugin.rpc_enabled:
             # RPCPlugin manages saving all model states
-            trainer.training_type_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
+            trainer.training_type_plugin.rpc_save_model(self._save_model, last_filepath, trainer)
         else:
             self._save_model(last_filepath, trainer)
         if (
