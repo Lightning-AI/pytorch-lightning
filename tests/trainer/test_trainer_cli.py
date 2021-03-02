@@ -18,11 +18,11 @@ from argparse import ArgumentParser, Namespace
 from unittest import mock
 
 import pytest
-import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import argparse
+from tests.helpers.runif import RunIf
 
 
 @mock.patch('argparse.ArgumentParser.parse_args')
@@ -175,7 +175,7 @@ def test_argparse_args_parsing(cli_args, expected):
     pytest.param('--gpus 1', [0]),
     pytest.param('--gpus 0,', [0]),
 ])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_argparse_args_parsing_gpus(cli_args, expected_gpu):
     """Test multi type argument with bool."""
     cli_args = cli_args.split(' ') if cli_args else []
