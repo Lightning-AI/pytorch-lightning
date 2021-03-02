@@ -84,7 +84,7 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 @mock.patch.dict(
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",

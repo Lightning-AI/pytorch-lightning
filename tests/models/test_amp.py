@@ -162,7 +162,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert generated == 'abc23'
 
 
-@pytest.mark.skipif(torch.cuda.is_available(), reason="test is restricted only on CPU")
+@RunIf(min_gpus=1)
 def test_cpu_model_with_amp(tmpdir):
     """Make sure model trains on CPU."""
     with pytest.raises(MisconfigurationException, match="AMP is only available on GPU"):

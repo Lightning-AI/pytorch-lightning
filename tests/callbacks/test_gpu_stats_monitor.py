@@ -15,7 +15,6 @@ import os
 
 import numpy as np
 import pytest
-import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import GPUStatsMonitor
@@ -68,7 +67,7 @@ def test_gpu_stats_monitor(tmpdir):
         assert any([f in h for h in met_data.dtype.names])
 
 
-@pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
+@RunIf(min_gpus=1)
 def test_gpu_stats_monitor_cpu_machine(tmpdir):
     """
     Test GPUStatsMonitor on CPU machine.

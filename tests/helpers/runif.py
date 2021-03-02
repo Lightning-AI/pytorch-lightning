@@ -51,6 +51,7 @@ class RunIf:
         *args,
         min_gpus: int = 0,
         min_torch: Optional[str] = None,
+        min_python: Optional[str] = None,
         quantization: bool = False,
         amp_apex: bool = False,
         amp_native: bool = False,
@@ -85,6 +86,11 @@ class RunIf:
             torch_version = LooseVersion(get_distribution("torch").version)
             conditions.append(torch_version < LooseVersion(min_torch))
             reasons.append(f"torch>={min_torch}")
+
+        if min_python:
+            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            conditions.append(py_version < LooseVersion(min_python))
+            reasons.append(f"python>={min_python}")
 
         if quantization:
             _miss_default = 'fbgemm' not in torch.backends.quantized.supported_engines
