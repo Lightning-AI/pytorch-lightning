@@ -912,8 +912,7 @@ class Trainer(
                 )
                 return {}
 
-            if torch.distributed.is_available() and torch.distributed.is_initialized():
-                self.training_type_plugin.barrier()
+            self.training_type_plugin.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
