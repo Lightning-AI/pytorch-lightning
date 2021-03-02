@@ -13,8 +13,6 @@
 # limitations under the License.
 from typing import cast, TYPE_CHECKING, Union
 
-from torch.optim import Optimizer
-
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE, GradClipAlgorithmType
 
