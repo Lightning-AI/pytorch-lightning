@@ -514,6 +514,7 @@ class TrainLoop:
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
+
             if should_check_val:
                 self.trainer.run_evaluation()
                 val_loop_called = True
@@ -577,7 +578,7 @@ class TrainLoop:
             self.trainer.run_evaluation(on_epoch=True)
 
             # reset stage to train
-            self.trainer._running_stage = RunningStage.TRAINING
+            self.trainer._set_running_stage(RunningStage.TRAINING, self.trainer.lightning_module)
 
         # increment the global step once
         # progress global step according to grads progress
