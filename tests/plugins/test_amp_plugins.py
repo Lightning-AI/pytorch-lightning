@@ -6,6 +6,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -38,7 +39,9 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
         pytest.param('apex', True, MyApexPlugin, marks=RunIf(amp_apex=True))
     ]
 )
-def test_amp_apex_ddp(mocked_device_count, ddp_backend, gpus, amp, custom_plugin, plugin_cls):
+def test_amp_apex_ddp(
+    mocked_device_count, ddp_backend: str, gpus: int, amp: str, custom_plugin: bool, plugin_cls: MixedPrecisionPlugin
+):
 
     trainer = Trainer(
         fast_dev_run=True,
@@ -61,7 +64,7 @@ class GradientUnscaleBoringModel(BoringModel):
 
 @RunIf(min_gpus=2, amp_native=True)
 @pytest.mark.parametrize('accum', [1, 2])
-def test_amp_gradient_unscale(tmpdir, accum):
+def test_amp_gradient_unscale(tmpdir, accum: int):
     model = GradientUnscaleBoringModel()
 
     trainer = Trainer(
