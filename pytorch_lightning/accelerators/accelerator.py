@@ -303,7 +303,7 @@ class Accelerator(object):
         self,
         optimizer: Optimizer,
         clip_val: Union[int, float],
-        gradient_clip_algorithm: str = GradClipAlgorithmType.NORM,
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """clips all the optimizer parameters to the given value"""
 
