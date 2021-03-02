@@ -19,7 +19,7 @@ import pytest
 import torch
 from pkg_resources import get_distribution
 
-from pytorch_lightning.utilities import _TORCH_QUANTIZE_AVAILABLE, _NATIVE_AMP_AVAILABLE, _APEX_AVAILABLE
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE, _TORCH_QUANTIZE_AVAILABLE
 
 
 class RunIf:
