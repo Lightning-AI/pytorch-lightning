@@ -22,7 +22,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 if _FAIRSCALE_AVAILABLE:
-    from fairscale.nn import ShardedDataParallel
+    from fairscale.nn.data_parallel import ShardedDataParallel
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import FullyShardedDataParallel
 
@@ -130,7 +130,7 @@ def test_get_model_ddp_gpu(tmpdir, args=None):
 @RunIf(min_gpus=1, skip_windows=True)
 def test_get_accelerator_wrapped_model(accelerator, wrapper, tmpdir):
     """
-    Ensure we can access the wrapped accelerator model during training.
+    Ensure we can access the wrapped accelerator model during training.ShardedDataParallel
     """
 
     class TestModel(BoringModel):
