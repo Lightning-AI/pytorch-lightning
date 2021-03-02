@@ -14,6 +14,7 @@
 import logging
 import os
 import pickle
+from typing import Optional, List
 from unittest import mock
 
 import cloudpickle
@@ -119,7 +120,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
         ([6, 5, 6, 5, 5, 5], 3, 4),
     ],
 )
-def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_epoch):
+def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expected_stop_epoch: int):
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
 
     class ModelOverrideValidationReturn(BoringModel):
@@ -142,7 +143,7 @@ def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_ep
     assert trainer.current_epoch == expected_stop_epoch
 
 
-@pytest.mark.parametrize('validation_step', ['base', None])
+@pytest.mark.parametrize('validation_step_none', [True, False])
 @pytest.mark.parametrize(
     "loss_values, patience, expected_stop_epoch",
     [
@@ -151,7 +152,9 @@ def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_ep
         ([6, 5, 6, 5, 5, 5], 3, 4),
     ],
 )
-def test_early_stopping_patience_train(tmpdir, validation_step, loss_values, patience, expected_stop_epoch):
+def test_early_stopping_patience_train(
+    tmpdir, validation_step_none: bool, loss_values: list, patience: int, expected_stop_epoch: int
+):
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
 
     class ModelOverrideTrainReturn(BoringModel):
@@ -163,7 +166,7 @@ def test_early_stopping_patience_train(tmpdir, validation_step, loss_values, pat
 
     model = ModelOverrideTrainReturn()
 
-    if validation_step is None:
+    if validation_step_none:
         model.validation_step = None
 
     early_stop_callback = EarlyStopping(monitor="train_loss", patience=patience, verbose=True)
@@ -254,7 +257,7 @@ def test_early_stopping_functionality_arbitrary_key(tmpdir):
 
 
 @pytest.mark.parametrize('step_freeze, min_steps, min_epochs', [(5, 1, 1), (5, 1, 3), (3, 15, 1)])
-def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, min_steps, min_epochs):
+def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: int, min_steps: int, min_epochs: int):
     """Excepted Behaviour:
     IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
     THEN the trainer should continue until reaching `trainer.global_step` == `min_steps`, and stop.
@@ -370,26 +373,23 @@ class EarlyStoppingModel(BoringModel):
     "callbacks, expected_stop_epoch, accelerator, num_processes",
     [
         ([EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)], 3, None, 1),
-        ([EarlyStopping(monitor='cba', patience=3),
-          EarlyStopping(monitor='abc')], 3, None, 1),
-        pytest.param([EarlyStopping(monitor='abc'),
-                      EarlyStopping(monitor='cba', patience=3)],
+        ([EarlyStopping(monitor='cba', patience=3), EarlyStopping(monitor='abc')], 3, None, 1),
+        pytest.param([EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)],
                      3,
                      'ddp_cpu',
                      2,
                      marks=RunIf(skip_windows=True)),
-        pytest.param([EarlyStopping(monitor='cba', patience=3),
-                      EarlyStopping(monitor='abc')],
+        pytest.param([EarlyStopping(monitor='cba', patience=3), EarlyStopping(monitor='abc')],
                      3,
                      'ddp_cpu',
                      2,
                      marks=RunIf(skip_windows=True)),
     ],
 )
-def test_multiple_early_stopping_callbacks(callbacks, expected_stop_epoch, accelerator, num_processes, tmpdir):
-    """
-    Ensure when using multiple early stopping callbacks we stop if any signals we should stop.
-    """
+def test_multiple_early_stopping_callbacks(
+    tmpdir, callbacks: List[EarlyStopping], expected_stop_epoch: int, accelerator: Optional[str], num_processes: int
+):
+    """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
 
     model = EarlyStoppingModel(expected_stop_epoch)
 

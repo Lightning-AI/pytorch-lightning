@@ -51,7 +51,7 @@ def test_mc_called(tmpdir):
     ['epochs', 'val_check_interval', 'expected'],
     [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 7)],
 )
-def test_default_checkpoint_freq(save_mock, tmpdir, epochs, val_check_interval, expected):
+def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_interval: float, expected: int):
 
     model = BoringModel()
     trainer = Trainer(
@@ -69,8 +69,8 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs, val_check_interval, 
 
 @mock.patch('torch.save')
 @pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1), (2, 2, 1.0, 2),
-                                                                             (2, 1, 0.25, 4), (2, 2, 0.3, 7)])
-def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected):
+                                                                             (2, 1, 0.25, 4), (2, 2, 0.3, 7),])
+def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float, expected: int):
 
     class TestModel(BoringModel):
 

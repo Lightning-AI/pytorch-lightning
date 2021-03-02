@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+from typing import Union, Callable
 
 import pytest
 import torch
@@ -28,7 +29,7 @@ from tests.helpers.simple_models import RegressionModel
 @pytest.mark.parametrize("observe", ['average', pytest.param('histogram', marks=RunIf(min_torch="1.5"))])
 @pytest.mark.parametrize("fuse", [True, False])
 @RunIf(quantization=True)
-def test_quantization(tmpdir, observe, fuse):
+def test_quantization(tmpdir, observe: str, fuse: bool):
     """Parity test for quant model"""
     seed_everything(42)
     dm = RegressDataModule()
@@ -122,7 +123,7 @@ def custom_trigger_last(trainer):
     ]
 )
 @RunIf(quantization=True)
-def test_quantization_triggers(tmpdir, trigger_fn, expected_count):
+def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], expected_count: int):
     """Test  how many times the quant is called"""
     dm = RegressDataModule()
     qmodel = RegressionModel()

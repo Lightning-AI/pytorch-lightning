@@ -19,6 +19,7 @@ import re
 from argparse import Namespace
 from logging import INFO
 from pathlib import Path
+from typing import Union
 from unittest import mock
 from unittest.mock import Mock
 
@@ -56,12 +57,14 @@ class LogInTwoMethods(BoringModel):
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(
-    "validation_step,val_dataloaders,monitor",
-    [('base', "base", 'val_log'), ('base', "base", 'train_log_epoch'), (None, "base", 'train_log_epoch'),
-     ("base", None, 'train_log_epoch')],
+    "validation_step_none,val_dataloaders_none,monitor",
+    [(False, False, 'val_log'), (False, False, 'train_log_epoch'), (True, False, 'train_log_epoch'),
+     (False, True, 'train_log_epoch'),],
 )
 @pytest.mark.parametrize('reduce_lr_on_plateau', [False, True])
-def test_model_checkpoint_score_and_ckpt(tmpdir, validation_step, val_dataloaders, monitor, reduce_lr_on_plateau):
+def test_model_checkpoint_score_and_ckpt(
+    tmpdir, validation_step_none: bool, val_dataloaders_none: bool, monitor: str, reduce_lr_on_plateau: bool
+):
     """
     Test that when a model checkpoint is saved, it saves with
     the correct score appended to ckpt_path and checkpoint data
@@ -108,9 +111,9 @@ def test_model_checkpoint_score_and_ckpt(tmpdir, validation_step, val_dataloader
 
     model = CustomBoringModel()
 
-    if validation_step is None:
+    if validation_step_none:
         model.validation_step = None
-    if val_dataloaders is None:
+    if val_dataloaders_none:
         model.val_dataloaders = None
 
     trainer = Trainer(
@@ -261,7 +264,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_in
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
-def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
+def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
     """Test that dirpath=None in checkpoint callback is valid and that ckpt_path is set correctly"""
     tutils.reset_seed()
     model = LogInTwoMethods()
@@ -285,7 +288,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
 
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
-def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
+def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
     """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
     model = LogInTwoMethods()
@@ -306,7 +309,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
     "logger_version,expected",
     [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")],
 )
-def test_model_checkpoint_path(tmpdir, logger_version, expected):
+def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], expected: str):
     """Test that "version_" prefix is only added when logger's version is an integer"""
     tutils.reset_seed()
     model = LogInTwoMethods()
@@ -543,7 +546,7 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
 
 
 @pytest.mark.parametrize("period", list(range(4)))
-def test_model_checkpoint_period(tmpdir, period):
+def test_model_checkpoint_period(tmpdir, period: int):
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}', save_top_k=-1, period=period)
@@ -673,17 +676,20 @@ def test_default_checkpoint_behavior(tmpdir):
 @pytest.mark.parametrize('should_validate', [True, False])
 @pytest.mark.parametrize('save_last', [True, False])
 @pytest.mark.parametrize('verbose', [True, False])
-def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_validate, save_last, verbose):
+def test_model_checkpoint_save_last_warning(
+    tmpdir, caplog, max_epochs: int, should_validate: bool, save_last: bool, verbose: bool
+):
     """Tests 'Saving latest checkpoint...' log"""
     model = LogInTwoMethods()
     if not should_validate:
         model.validation_step = None
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[
-            ModelCheckpoint(
+    ckpt = ModelCheckpoint(
                 monitor='early_stop_on', dirpath=tmpdir, save_top_k=0, save_last=save_last, verbose=verbose
             )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[ckpt
+
         ],
         max_epochs=max_epochs,
     )
@@ -728,7 +734,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize('mode', ['min', 'max'])
-def test_checkpointing_with_nan_as_first(tmpdir, mode):
+def test_checkpointing_with_nan_as_first(tmpdir, mode: int):
     monitor = [float('nan')]
     monitor += [5, 7, 8] if mode == 'max' else [8, 7, 5]
 
@@ -971,7 +977,7 @@ def test_current_score(tmpdir):
 
 
 @pytest.mark.parametrize("mode", ["min", "max"])
-def test_current_score_when_nan(tmpdir, mode):
+def test_current_score_when_nan(tmpdir, mode: str):
     """ Check that ModelCheckpoint handles NaN values correctly """
 
     class TestModel(BoringModel):
