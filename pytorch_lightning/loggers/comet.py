@@ -16,6 +16,7 @@ Comet Logger
 ------------
 """
 
+import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
@@ -23,12 +24,12 @@ from typing import Any, Dict, Optional, Union
 import torch
 from torch import is_tensor
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+log = logging.getLogger(__name__)
 _COMET_AVAILABLE = _module_available("comet_ml")
 
 if _COMET_AVAILABLE:

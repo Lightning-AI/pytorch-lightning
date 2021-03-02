@@ -16,6 +16,7 @@ ModelPruning
 ^^^^^^^^^^^^
 """
 import inspect
+import logging
 from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -24,11 +25,12 @@ import torch
 import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+log = logging.getLogger(__name__)
 
 _PYTORCH_PRUNING_FUNCTIONS = {
     "ln_structured": pytorch_prune.ln_structured,
