@@ -96,15 +96,15 @@ class RunIf:
         if quantization:
             _miss_default = 'fbgemm' not in torch.backends.quantized.supported_engines
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
-            reasons.append("missing PyTorch quantization")
+            reasons.append("PyTorch quantization")
 
         if amp_native:
             conditions.append(not _NATIVE_AMP_AVAILABLE)
-            reasons.append("missing native AMP")
+            reasons.append("native AMP")
 
         if amp_apex:
             conditions.append(not _APEX_AVAILABLE)
-            reasons.append("missing NVIDIA Apex")
+            reasons.append("NVIDIA Apex")
 
         if skip_windows:
             conditions.append(sys.platform == "win32")
