@@ -23,16 +23,15 @@ to manually manage the optimization process. To do so, do the following:
 
 * Override your LightningModule ``automatic_optimization`` property to return ``False``
 * Drop or ignore the optimizer_idx argument
-* Use `self.manual_backward(loss)` instead of `loss.backward()`.
+* Use ``self.manual_backward(loss)`` instead of ``loss.backward()``.
 
-.. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with zero_grad, accumulated_grad_batches, model toggling, etc..
+.. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with ``optimizer.zero_grad()``, gradient accumulation, model toggling, etc..
 
-.. warning:: Before 1.2, ``optimzer.step`` was calling ``zero_grad`` internally. From 1.2, it is left to the users expertize.
+.. warning:: Before 1.2, ``optimzer.step`` was calling ``optimizer.zero_grad()`` internally. From 1.2, it is left to the users expertize.
 
 .. tip:: To perform ``accumulate_grad_batches`` with one optimizer, you can do as such.
 
 .. tip:: ``self.optimizers()`` will return ``LightningOptimizer`` objects. You can access your own optimizer with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to support accelerators and precision for you.
-
 
 .. code-block:: python
 
@@ -41,14 +40,14 @@ to manually manage the optimization process. To do so, do the following:
 
         loss = self.compute_loss(batch)
         self.manual_backward(loss)
-        opt.step()
 
         # accumulate gradient batches
         if batch_idx % 2 == 0:
+            opt.step()
             opt.zero_grad()
 
 
-.. tip:: It is a good practice to provide the optimizer with a ``closure`` function that performs a ``forward`` and ``backward`` pass of your model. It is optional for most optimizers, but makes your code compatible if you switch to an optimizer which requires a closure.
+.. tip:: It is a good practice to provide the optimizer with a ``closure`` function that performs a ``forward`` and ``backward`` pass of your model. It is optional for most optimizers, but makes your code compatible if you switch to an optimizer which requires a closure. See also `the PyTorch docs <https://pytorch.org/docs/stable/optim.html#optimizer-step-closure>`_.
 
 Here is the same example as above using a ``closure``.
 
@@ -71,7 +70,6 @@ Here is the same example as above using a ``closure``.
 .. code-block:: python
 
     # Scenario for a GAN.
-
     def training_step(...):
         opt_gen, opt_dis = self.optimizers()
 
@@ -137,8 +135,12 @@ Here is an example on how to use it:
 
 Automatic optimization
 ======================
-With Lightning most users don't have to think about when to call .backward(), .step(), .zero_grad(), since
-Lightning automates that for you.
+With Lightning most users don't have to think about when to call ``.zero_grad()``, ``.backward()`` and ``.step()``
+since Lightning automates that for you.
+
+.. warning::
+   Before 1.2.2, ``.zero_grad()`` was called after ``.backward()`` and ``.step()`` internally.
+   From 1.2.2, Lightning calls ``.zero_grad()`` before ``.backward()``.
 
 Under the hood Lightning does the following:
 
@@ -147,33 +149,33 @@ Under the hood Lightning does the following:
     for epoch in epochs:
         for batch in data:
             loss = model.training_step(batch, batch_idx, ...)
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
-        for scheduler in schedulers:
-            scheduler.step()
+        for lr_scheduler in lr_schedulers:
+            lr_scheduler.step()
 
 In the case of multiple optimizers, Lightning does the following:
 
 .. code-block:: python
 
     for epoch in epochs:
-      for batch in data:
-         for opt in optimizers:
-            disable_grads_for_other_optimizers()
-            train_step(opt)
-            opt.step()
+        for batch in data:
+            for opt in optimizers:
+                loss = model.training_step(batch, batch_idx, optimizer_idx)
+                opt.zero_grad()
+                loss.backward()
+                opt.step()
 
-      for scheduler in schedulers:
-         scheduler.step()
+        for lr_scheduler in lr_schedulers:
+            lr_scheduler.step()
 
 
 Learning rate scheduling
 ------------------------
-Every optimizer you use can be paired with any `LearningRateScheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
-In the basic use-case, the scheduler (or multiple schedulers) should be returned as the second output from the ``.configure_optimizers``
-method:
+Every optimizer you use can be paired with any `Learning Rate Scheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
+In the basic use-case, the scheduler (or multiple schedulers) should be returned as the second output from the ``.configure_optimizers`` method:
 
 .. testcode::
 
@@ -262,7 +264,7 @@ returned as a dict which can contain the following keywords:
 
 Use multiple optimizers (like GANs)
 -----------------------------------
-To use multiple optimizers return > 1 optimizers from :meth:`pytorch_lightning.core.LightningModule.configure_optimizers`
+To use multiple optimizers return two or more optimizers from :meth:`pytorch_lightning.core.LightningModule.configure_optimizers`
 
 .. testcode::
 
@@ -283,13 +285,15 @@ Lightning will call each optimizer sequentially:
 .. code-block:: python
 
    for epoch in epochs:
-      for batch in data:
-         for opt in optimizers:
-            train_step(opt)
-            opt.step()
+       for batch in data:
+           for opt in optimizers:
+               loss = train_step(batch, batch_idx, optimizer_idx)
+               opt.zero_grad()
+               loss.backward()
+               opt.step()
 
-      for scheduler in schedulers:
-         scheduler.step()
+      for lr_scheduler in lr_schedulers:
+          lr_scheduler.step()
 
 ----------
 
@@ -332,7 +336,7 @@ Here we add a learning-rate warm up
         # update params
         optimizer.step(closure=closure)
 
-.. note:: The default ``optimizer_step`` is relying on the internal ``LightningOptimizer`` to properly perform a step. It handles TPUs, AMP, accumulate_grad_batches, zero_grad, and much more ...
+.. note:: The default ``optimizer_step`` is relying on the internal ``LightningOptimizer`` to properly perform a step. It handles TPUs, AMP, accumulate_grad_batches and much more ...
 
 .. testcode::
 
@@ -361,6 +365,11 @@ Using the closure functions for optimization
 --------------------------------------------
 
 When using optimization schemes such as LBFGS, the `second_order_closure` needs to be enabled. By default, this function is defined by wrapping the `training_step` and the backward steps as follows
+
+.. warning::
+   Before 1.2.2, ``.zero_grad()`` was called outside the closure internally.
+   From 1.2.2, the closure calls ``.zero_grad()`` inside, so there is no need to define your own closure
+   when using similar optimizers to :class:`torch.optim.LBFGS` which requires reevaluation of the loss with the closure in ``optimizer.step()``.
 
 .. testcode::
 

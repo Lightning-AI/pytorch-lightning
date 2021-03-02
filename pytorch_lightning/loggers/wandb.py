@@ -26,6 +26,8 @@ from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
+warning_cache = WarningCache()
+
 _WANDB_AVAILABLE = _module_available("wandb")
 
 try:
@@ -56,7 +58,6 @@ class WandbLogger(LightningLoggerBase):
         project: The name of the project to which this run will belong.
         log_model: Save checkpoints in wandb dir to upload on W&B servers.
         prefix: A string to put at the beginning of metric keys.
-        sync_step: Sync Trainer step with wandb step.
         experiment: WandB experiment object. Automatically set when creating a run.
         \**kwargs: Additional arguments like `entity`, `group`, `tags`, etc. used by
             :func:`wandb.init` can be passed as keyword arguments in this logger.
@@ -98,7 +99,7 @@ class WandbLogger(LightningLoggerBase):
         log_model: Optional[bool] = False,
         experiment=None,
         prefix: Optional[str] = '',
-        sync_step: Optional[bool] = True,
+        sync_step: Optional[bool] = None,
         **kwargs
     ):
         if wandb is None:
@@ -114,6 +115,12 @@ class WandbLogger(LightningLoggerBase):
                 'Hint: Set `offline=False` to log your model.'
             )
 
+        if sync_step is not None:
+            warning_cache.warn(
+                "`WandbLogger(sync_step=(True|False))` is deprecated in v1.2.1 and will be removed in v1.5."
+                " Metrics are now logged separately and automatically synchronized.", DeprecationWarning
+            )
+
         super().__init__()
         self._name = name
         self._save_dir = save_dir
@@ -123,12 +130,8 @@ class WandbLogger(LightningLoggerBase):
         self._project = project
         self._log_model = log_model
         self._prefix = prefix
-        self._sync_step = sync_step
         self._experiment = experiment
         self._kwargs = kwargs
-        # logging multiple Trainer on a single W&B run (k-fold, resuming, etc)
-        self._step_offset = 0
-        self.warning_cache = WarningCache()
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -165,12 +168,15 @@ class WandbLogger(LightningLoggerBase):
                 **self._kwargs
             ) if wandb.run is None else wandb.run
 
-            # offset logging step when resuming a run
-            self._step_offset = self._experiment.step
-
             # save checkpoints in wandb dir to upload on W&B servers
             if self._save_dir is None:
                 self._save_dir = self._experiment.dir
+
+            # define default x-axis (for latest wandb versions)
+            if getattr(self._experiment, "define_metric", None):
+                self._experiment.define_metric("trainer/global_step")
+                self._experiment.define_metric("*", step_metric='trainer/global_step', step_sync=True)
+
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
@@ -188,15 +194,8 @@ class WandbLogger(LightningLoggerBase):
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         metrics = self._add_prefix(metrics)
-        if self._sync_step and step is not None and step + self._step_offset < self.experiment.step:
-            self.warning_cache.warn(
-                'Trying to log at a previous step. Use `WandbLogger(sync_step=False)`'
-                ' or try logging with `commit=False` when calling manually `wandb.log`.'
-            )
-        if self._sync_step:
-            self.experiment.log(metrics, step=(step + self._step_offset) if step is not None else None)
-        elif step is not None:
-            self.experiment.log({**metrics, 'trainer_step': (step + self._step_offset)})
+        if step is not None:
+            self.experiment.log({**metrics, 'trainer/global_step': step})
         else:
             self.experiment.log(metrics)
 
@@ -216,10 +215,6 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        # offset future training logged on same W&B run
-        if self._experiment is not None:
-            self._step_offset = self._experiment.step
-
         # upload all checkpoints from saving dir
         if self._log_model:
             wandb.save(os.path.join(self.save_dir, "*.ckpt"))

@@ -145,8 +145,7 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
             output.update({"python scalar": 12.3})
             return output
 
-    model = TestModel()
-    model.to(device)
+    model = TestModel().to(device)
     model.trainer = Mock()
     model.trainer._running_stage = RunningStage.TRAINING
     batch = torch.rand(2, 32).to(device)
