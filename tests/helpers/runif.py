@@ -19,7 +19,7 @@ import pytest
 import torch
 from pkg_resources import get_distribution
 
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _TORCH_QUANTIZE_AVAILABLE
+from pytorch_lightning.utilities import _DEEPSPEED_AVAILABLE, _FAIRSCALE_AVAILABLE, _TORCH_QUANTIZE_AVAILABLE
 
 
 class RunIf:
@@ -40,6 +40,7 @@ class RunIf:
         quantization: bool = False,
         skip_windows: bool = False,
         fairscale: bool = False,
+        deepspeed: bool = False,
         **kwargs
     ):
         """
@@ -50,6 +51,7 @@ class RunIf:
             quantization: if `torch.quantization` package is required to run test
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             fairscale: if `fairscale` module is required to run the test
+            deepspeed: if `deepspeed` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -76,6 +78,10 @@ class RunIf:
         if fairscale:
             conditions.append(not _FAIRSCALE_AVAILABLE)
             reasons.append("Fairscale is not available")
+
+        if deepspeed:
+            conditions.append(not _DEEPSPEED_AVAILABLE)
+            reasons.append("Deepspeed is not available")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
