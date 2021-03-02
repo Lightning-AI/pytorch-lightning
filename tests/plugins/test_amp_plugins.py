@@ -5,12 +5,19 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import NativeMixedPrecisionPlugin
-from tests.helpers.boring_model import BoringModel
+from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
+from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@RunIf(amp_native=True)
+class MyNativeAMP(NativeMixedPrecisionPlugin):
+    pass
+
+
+class MyApexPlugin(ApexMixedPrecisionPlugin):
+    pass
+
+
 @mock.patch.dict(
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",
@@ -23,21 +30,29 @@ from tests.helpers.runif import RunIf
 )
 @mock.patch('torch.cuda.device_count', return_value=2)
 @pytest.mark.parametrize(
-    ['ddp_backend', 'gpus'],
+    'ddp_backend,gpus',
     [('ddp', 2), ('ddp2', 2), ('ddp_spawn', 2)],
 )
-def test_amp_choice_custom_ddp_cpu(device_count_mock, ddp_backend, gpus):
-
-    class MyNativeAMP(NativeMixedPrecisionPlugin):
-        pass
+@pytest.mark.parametrize(
+    'amp,plugin_arg,plugin_cls',
+    [
+        pytest.param('native', None, NativeMixedPrecisionPlugin, marks=RunIf(amp_native=True)),
+        pytest.param('native', [MyNativeAMP()], MyNativeAMP, marks=RunIf(amp_native=True)),
+        pytest.param('apex', None, ApexMixedPrecisionPlugin, marks=RunIf(amp_apex=True)),
+        pytest.param('apex', [MyApexPlugin(amp_level="O2")], MyApexPlugin, marks=RunIf(amp_apex=True))
+    ],
+)
+def test_amp_apex_ddp(mocked_device_count, ddp_backend, gpus, amp, plugin_arg, plugin_cls):
 
     trainer = Trainer(
+        fast_dev_run=True,
         precision=16,
-        amp_backend='native',
+        amp_backend=amp,
+        gpus=gpus,
         accelerator=ddp_backend,
-        plugins=[MyNativeAMP()],
+        plugins=plugin_arg,
     )
-    assert isinstance(trainer.precision_plugin, MyNativeAMP)
+    assert isinstance(trainer.precision_plugin, plugin_cls)
 
 
 class GradientUnscaleBoringModel(BoringModel):
