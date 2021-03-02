@@ -7,4 +7,4 @@ torchtext>=0.5
 onnx>=1.7.0
 onnxruntime>=1.3.0
 hydra-core>=1.0
-fairscale>=0.3.0
+https://github.com/facebookresearch/fairscale/archive/f3359550d9bb3a2e4c1fcdcfef739e0d97fff774.zip

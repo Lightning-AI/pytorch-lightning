@@ -23,6 +23,6 @@ class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
 
     def clip_gradients(
         self, model: Any, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = float(2.0)
-    ):
+    ) -> None:
         # Model manages clipping of gradients
         model.clip_grad_norm_(clip_val, norm_type)

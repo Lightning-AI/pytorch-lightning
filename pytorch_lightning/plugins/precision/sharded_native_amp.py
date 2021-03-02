@@ -32,6 +32,8 @@ class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
         super().__init__()
         self.scaler = ShardedGradScaler()
 
-    def clip_gradients(self, model: Any, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
+    def clip_gradients(
+        self, model: Any, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0
+    ) -> None:
         optimizer = cast(OSS, optimizer)
         optimizer.clip_grad_norm(clip_val, norm_type=norm_type)
