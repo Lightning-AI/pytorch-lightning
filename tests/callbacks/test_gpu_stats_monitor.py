@@ -67,7 +67,7 @@ def test_gpu_stats_monitor(tmpdir):
         assert any([f in h for h in met_data.dtype.names])
 
 
-@RunIf(min_gpus=1)
+@pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
 def test_gpu_stats_monitor_cpu_machine(tmpdir):
     """
     Test GPUStatsMonitor on CPU machine.

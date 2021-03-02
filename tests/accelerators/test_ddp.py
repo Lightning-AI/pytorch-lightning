@@ -82,7 +82,8 @@ def test_cli_to_pass(tmpdir, args=None):
     return '1'
 
 
-@RunIf(min_gpus=1, skip_windows=True)
+@RunIf(skip_windows=True)
+@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
 def test_torch_distributed_backend_env_variables(tmpdir):
     """
     This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError.
