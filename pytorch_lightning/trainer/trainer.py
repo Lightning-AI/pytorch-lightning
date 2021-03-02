@@ -197,7 +197,7 @@ class Trainer(
 
             gradient_clip_val: 0 means don't clip.
 
-            gradient_clip_algorithm: 'value' means clip_by_value, 'norm' means clip_by_norm. Defualt: 'norm'
+            gradient_clip_algorithm: 'value' means clip_by_value, 'norm' means clip_by_norm. Default: 'norm'
 
             limit_train_batches: How much of training dataset to check (floats = percent, int = num_batches)
 
