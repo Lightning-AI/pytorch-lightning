@@ -20,8 +20,8 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
-from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 
 @RunIf(min_gpus=2)

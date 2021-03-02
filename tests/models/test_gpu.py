@@ -25,8 +25,8 @@ from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
-from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 PRETEND_N_OF_GPUS = 16
 

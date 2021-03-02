@@ -22,8 +22,8 @@ from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
-from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 
 def test_cpu_slurm_save_load(tmpdir):
