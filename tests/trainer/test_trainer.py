@@ -36,7 +36,6 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -881,8 +880,7 @@ def test_gradient_clipping(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@RunIf(min_gpus=1, amp_native=True)
 def test_gradient_clipping_fp16(tmpdir):
     """
     Test gradient clipping with fp16

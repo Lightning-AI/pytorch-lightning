@@ -19,7 +19,7 @@ import pytest
 import torch
 from pkg_resources import get_distribution
 
-from pytorch_lightning.utilities import _TORCH_QUANTIZE_AVAILABLE
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE, _TORCH_QUANTIZE_AVAILABLE
 
 
 class RunIf:
@@ -38,6 +38,8 @@ class RunIf:
         min_gpus: int = 0,
         min_torch: Optional[str] = None,
         quantization: bool = False,
+        amp_apex: bool = False,
+        amp_native: bool = False,
         skip_windows: bool = False,
         **kwargs
     ):
@@ -47,6 +49,8 @@ class RunIf:
             min_gpus: min number of gpus required to run test
             min_torch: minimum pytorch version to run test
             quantization: if `torch.quantization` package is required to run test
+            amp_apex: NVIDIA Apex is installed
+            amp_native: if native PyTorch native AMP is supported
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             kwargs: native pytest.mark.skipif keyword arguments
         """
@@ -66,6 +70,14 @@ class RunIf:
             _miss_default = 'fbgemm' not in torch.backends.quantized.supported_engines
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("missing PyTorch quantization")
+
+        if amp_native:
+            conditions.append(not _NATIVE_AMP_AVAILABLE)
+            reasons.append("missing native AMP")
+
+        if amp_apex:
+            conditions.append(not _APEX_AVAILABLE)
+            reasons.append("missing NVIDIA Apex")
 
         if skip_windows:
             conditions.append(sys.platform == "win32")

@@ -6,12 +6,11 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
+@RunIf(amp_native=True)
 @mock.patch.dict(
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",
@@ -49,8 +48,7 @@ class GradientUnscaleBoringModel(BoringModel):
             assert norm.item() < 15.
 
 
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, amp_native=True)
 def test_amp_gradient_unscale(tmpdir):
     model = GradientUnscaleBoringModel()
 
@@ -78,8 +76,7 @@ class UnscaleAccumulateGradBatchesBoringModel(BoringModel):
             assert norm.item() < 15.
 
 
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, amp_native=True)
 def test_amp_gradient_unscale_accumulate_grad_batches(tmpdir):
     model = UnscaleAccumulateGradBatchesBoringModel()
 

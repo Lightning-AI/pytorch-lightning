@@ -22,7 +22,6 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -193,8 +192,7 @@ def test_amp_without_apex(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=1)
-@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
+@RunIf(min_gpus=1, amp_apex=True)
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
 
