@@ -15,7 +15,6 @@ import logging
 import math
 import os
 import pickle
-import platform
 import re
 from argparse import Namespace
 from pathlib import Path
@@ -38,6 +37,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class LogInTwoMethods(BoringModel):
@@ -364,10 +364,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
             assert torch.save.call_count == 0
 
 
-@pytest.mark.skipif(
-    platform.system() == "Windows",
-    reason="Distributed training is not supported on Windows",
-)
+@RunIf(skip_windows=True)
 def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     """Test to ensure that the model callback saves the checkpoints only once in distributed mode."""
     model = LogInTwoMethods()
