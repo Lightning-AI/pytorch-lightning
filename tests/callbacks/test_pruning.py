@@ -153,11 +153,9 @@ def test_pruning_callback(
     )
 
 
+@RunIf(special=True)
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
 @pytest.mark.parametrize("use_global_unstructured", [False, True])
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1", reason="test should be run outside of pytest"
-)
 def test_pruning_callback_ddp(tmpdir, use_global_unstructured, parameters_to_prune):
     train_with_pruning_callback(
         tmpdir,
