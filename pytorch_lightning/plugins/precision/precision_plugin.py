@@ -34,7 +34,7 @@ class PrecisionPlugin(Plugin):
     EPSILON: float = 1e-6
     precision: Union[str, int] = 32
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.clip_grad_funcs = {
             GradClipAlgorithmType.VALUE: self.clip_grad_by_value,
