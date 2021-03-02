@@ -19,7 +19,7 @@ The traces can be visualized in 2 ways:
     1. Open Chrome and copy/paste this url: `chrome://tracing/`.
     2. Once tracing opens, click on `Load` at the top-right and load one of the generated traces.
 
-* With PyTorch Tensorboard Profiler (Instructions can be found at https://github.com/pytorch/kineto/tree/master/tb_plugin)
+* With PyTorch Tensorboard Profiler (Instructions are here: https://github.com/pytorch/kineto/tree/master/tb_plugin)
     1. pip install tensorboard torch-tb-profiler
     2. tensorboard --logdir={FOLDER}
 
