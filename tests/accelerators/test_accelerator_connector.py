@@ -35,7 +35,6 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
