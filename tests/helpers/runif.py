@@ -19,8 +19,21 @@ import pytest
 import torch
 from pkg_resources import get_distribution
 
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE, _TORCH_QUANTIZE_AVAILABLE, \
-    _TPU_AVAILABLE
+from pytorch_lightning.utilities import (
+    _APEX_AVAILABLE,
+    _HOROVOD_AVAILABLE,
+    _NATIVE_AMP_AVAILABLE,
+    _TORCH_QUANTIZE_AVAILABLE,
+    _TPU_AVAILABLE,
+)
+
+try:
+    from horovod.common.util import nccl_built
+    nccl_built()
+except (ImportError, ModuleNotFoundError, AttributeError):
+    _HOROVOD_NCCL_AVAILABLE = False
+finally:
+    _HOROVOD_NCCL_AVAILABLE = True
 
 
 class RunIf:
@@ -42,6 +55,8 @@ class RunIf:
         amp_apex: bool = False,
         amp_native: bool = False,
         tpu: bool = False,
+        horovod: bool = False,
+        horovod_nccl: bool = False,
         skip_windows: bool = False,
         **kwargs
     ):
@@ -54,6 +69,8 @@ class RunIf:
             amp_apex: NVIDIA Apex is installed
             amp_native: if native PyTorch native AMP is supported
             tpu: if TPU is available
+            horovod: if Horovod is installed
+            horovod_nccl: if Horovod is installed with NCCL support
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             kwargs: native pytest.mark.skipif keyword arguments
         """
@@ -89,6 +106,14 @@ class RunIf:
         if tpu:
             conditions.append(not _TPU_AVAILABLE)
             reasons.append("TPU")
+
+        if horovod:
+            conditions.append(not _HOROVOD_AVAILABLE)
+            reasons.append("Horovod")
+
+        if horovod_nccl:
+            conditions.append(not _HOROVOD_NCCL_AVAILABLE)
+            reasons.append("Horovod with NCCL")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
