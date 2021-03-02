@@ -129,7 +129,7 @@ def test_torchscript_properties(tmpdir, modelclass):
     ParityModuleRNN,
     BasicGAN,
 ])
-@RunIf(min_torch="1.5")
+@RunIf(min_torch="1.5.0")
 def test_torchscript_save_load(tmpdir, modelclass):
     """ Test that scripted LightningModule is correctly saved and can be loaded. """
     model = modelclass()

@@ -111,15 +111,15 @@ class RunIf:
 
         if tpu:
             conditions.append(not _TPU_AVAILABLE)
-            reasons.append("TPU")
+            reasons.append("missing TPU")
 
         if horovod:
             conditions.append(not _HOROVOD_AVAILABLE)
-            reasons.append("Horovod")
+            reasons.append("missing Horovod")
 
         if horovod_nccl:
             conditions.append(not _HOROVOD_NCCL_AVAILABLE)
-            reasons.append("Horovod with NCCL")
+            reasons.append("missing Horovod with NCCL")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

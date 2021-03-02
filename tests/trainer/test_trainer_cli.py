@@ -187,7 +187,7 @@ def test_argparse_args_parsing_gpus(cli_args, expected_gpu):
     assert trainer.data_parallel_device_ids == expected_gpu
 
 
-@RunIf(min_python="3.7")
+@RunIf(min_python="3.7.0")
 @pytest.mark.parametrize(['cli_args', 'extra_args'], [
     pytest.param({}, {}),
     pytest.param({'logger': False}, {}),

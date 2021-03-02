@@ -28,7 +28,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@RunIf(min_torch="1.5")
+@RunIf(min_torch="1.5.0")
 def test_tensorboard_hparams_reload(tmpdir):
 
     class CustomModel(BoringModel):
