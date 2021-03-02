@@ -14,7 +14,6 @@
 import io
 import os
 import re
-from time import sleep
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
