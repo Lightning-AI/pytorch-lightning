@@ -66,6 +66,7 @@ class RunIf:
             args: native pytest.mark.skipif arguments
             min_gpus: min number of gpus required to run test
             min_torch: minimum pytorch version to run test
+            min_python: minimum python version required to run test
             quantization: if `torch.quantization` package is required to run test
             amp_apex: NVIDIA Apex is installed
             amp_native: if native PyTorch native AMP is supported
@@ -111,15 +112,15 @@ class RunIf:
 
         if tpu:
             conditions.append(not _TPU_AVAILABLE)
-            reasons.append("missing TPU")
+            reasons.append("TPU")
 
         if horovod:
             conditions.append(not _HOROVOD_AVAILABLE)
-            reasons.append("missing Horovod")
+            reasons.append("Horovod")
 
         if horovod_nccl:
             conditions.append(not _HOROVOD_NCCL_AVAILABLE)
-            reasons.append("missing Horovod with NCCL")
+            reasons.append("Horovod with NCCL")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
