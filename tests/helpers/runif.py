@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 from distutils.version import LooseVersion
 from typing import Optional
 
@@ -21,11 +22,11 @@ from pkg_resources import get_distribution
 from pytorch_lightning.utilities import _TORCH_QUANTIZE_AVAILABLE
 
 
-class SkipIf:
+class RunIf:
     """
-    SkipIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
+    RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
-        @SkipIf(min_torch="0.0")
+        @RunIf(min_torch="0.0")
         @pytest.mark.parametrize("arg1", [1, 2.0])
         def test_wrapper(arg1):
             assert arg1 > 0.0
@@ -37,6 +38,7 @@ class SkipIf:
         min_gpus: int = 0,
         min_torch: Optional[str] = None,
         quantization: bool = False,
+        skip_windows: bool = False,
         **kwargs
     ):
         """
@@ -45,6 +47,7 @@ class SkipIf:
             min_gpus: min number of gpus required to run test
             min_torch: minimum pytorch version to run test
             quantization: if `torch.quantization` package is required to run test
+            skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -64,6 +67,10 @@ class SkipIf:
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("missing PyTorch quantization")
 
+        if skip_windows:
+            conditions.append(sys.platform == "win32")
+            reasons.append("unimplemented on Windows")
+
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
             *args,
@@ -73,12 +80,12 @@ class SkipIf:
         )
 
 
-@SkipIf(min_torch="99")
+@RunIf(min_torch="99")
 def test_always_skip():
     exit(1)
 
 
 @pytest.mark.parametrize("arg1", [0.5, 1.0, 2.0])
-@SkipIf(min_torch="0.0")
+@RunIf(min_torch="0.0")
 def test_wrapper(arg1):
     assert arg1 > 0.0

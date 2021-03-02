@@ -13,18 +13,21 @@
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
 import inspect
+import logging
 import os
 from functools import partial
 from typing import Any, Callable, List, Optional
 
 import torch
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.profiler.profilers import BaseProfiler
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_only
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+log = logging.getLogger(__name__)
+
 
 if _TORCH_GREATER_EQUAL_1_8:
     from torch.autograd.profiler import record_function

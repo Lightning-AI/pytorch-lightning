@@ -34,6 +34,7 @@ from pytorch_lightning.plugins import (
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_accelerator_choice_cpu(tmpdir):
@@ -119,7 +120,7 @@ def test_accelerator_choice_ddp_slurm():
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
+@RunIf(min_gpus=1)
 @mock.patch.dict(
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",
@@ -157,7 +158,7 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
+@RunIf(min_gpus=1)
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2", "LOCAL_RANK": "10", "NODE_RANK": "0"})
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp_te(device_count_mock):
@@ -185,7 +186,7 @@ def test_accelerator_choice_ddp_te(device_count_mock):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
+@RunIf(min_gpus=1)
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2", "LOCAL_RANK": "10", "NODE_RANK": "0"})
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp2_te(device_count_mock):

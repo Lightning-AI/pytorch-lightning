@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities import rank_zero_warn
+
+log = logging.getLogger(__name__)
 
 
 class TorchElasticEnvironment(ClusterEnvironment):

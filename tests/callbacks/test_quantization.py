@@ -21,16 +21,13 @@ from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.datamodules import RegressDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import RegressionModel
-from tests.helpers.skipif import SkipIf
 
 
-@pytest.mark.parametrize(
-    "observe",
-    ['average', pytest.param('histogram', marks=SkipIf(min_torch="1.5"))]
-)
+@pytest.mark.parametrize("observe", ['average', pytest.param('histogram', marks=RunIf(min_torch="1.5"))])
 @pytest.mark.parametrize("fuse", [True, False])
-@SkipIf(quantization=True)
+@RunIf(quantization=True)
 def test_quantization(tmpdir, observe, fuse):
     """Parity test for quant model"""
     seed_everything(42)
@@ -65,7 +62,7 @@ def test_quantization(tmpdir, observe, fuse):
     assert torch.allclose(org_score, quant_score, atol=0.45)
 
 
-@SkipIf(quantization=True)
+@RunIf(quantization=True)
 def test_quantize_torchscript(tmpdir):
     """Test converting to torchscipt """
     dm = RegressDataModule()
@@ -81,7 +78,7 @@ def test_quantize_torchscript(tmpdir):
     tsmodel(tsmodel.quant(batch[0]))
 
 
-@SkipIf(quantization=True)
+@RunIf(quantization=True)
 def test_quantization_exceptions(tmpdir):
     """Test wrong fuse layers"""
     with pytest.raises(MisconfigurationException, match='Unsupported qconfig'):
@@ -124,7 +121,7 @@ def custom_trigger_last(trainer):
         (custom_trigger_last, 2),
     ]
 )
-@SkipIf(quantization=True)
+@RunIf(quantization=True)
 def test_quantization_triggers(tmpdir, trigger_fn, expected_count):
     """Test  how many times the quant is called"""
     dm = RegressDataModule()

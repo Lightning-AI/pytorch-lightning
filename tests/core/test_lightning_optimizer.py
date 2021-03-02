@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import patch, DEFAULT
+from unittest.mock import DEFAULT, patch
 
 import torch
 from torch.optim import Adam, Optimizer, SGD
@@ -188,6 +188,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
     """
     Test overriding zero_grad works in automatic_optimization
     """
+
     class TestModel(BoringModel):
 
         def training_step(self, batch, batch_idx, optimizer_idx=None):
@@ -281,7 +282,9 @@ def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
     Test zero_grad is called the same number of times as LBFGS requires
     for reevaluation of the loss in automatic_optimization.
     """
+
     class TestModel(BoringModel):
+
         def configure_optimizers(self):
             return torch.optim.LBFGS(self.parameters())
 

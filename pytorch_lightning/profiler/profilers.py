@@ -14,6 +14,7 @@
 """Profiler to check if there are any bottlenecks in your code."""
 import cProfile
 import io
+import logging
 import os
 import pstats
 import time
@@ -24,8 +25,9 @@ from typing import Optional, Union
 
 import numpy as np
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+
+log = logging.getLogger(__name__)
 
 
 class BaseProfiler(ABC):
