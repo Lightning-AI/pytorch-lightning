@@ -261,7 +261,7 @@ class TrainLoop:
         is_result_obj = isinstance(training_step_output, Result)
 
         if is_result_obj:
-            training_step_output.detach()
+            training_step_output = training_step_output.detach()
         else:
             training_step_output.batch_loss = training_step_output.batch_loss.detach()
 
@@ -395,9 +395,9 @@ class TrainLoop:
 
         # track metrics without grads for epoch reduction
         training_step_output_for_epoch_end = copy(result)
-        training_step_output_for_epoch_end.detach()
+        training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
         if self.trainer.move_metrics_to_cpu:
-            training_step_output_for_epoch_end.cpu()
+            training_step_output_for_epoch_end = training_step_output_for_epoch_end.cpu()
 
         # what flows back into the system
         training_step_output = result
@@ -740,7 +740,13 @@ class TrainLoop:
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
-            if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
+            if not self._skip_backward and self.automatic_optimization:
+                is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
+
+                if is_first_batch_to_accumulate:
+                    self.on_before_zero_grad(optimizer)
+                    self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
+
                 # backward pass
                 if result is not None:
                     with self.trainer.profiler.profile("model_backward"):

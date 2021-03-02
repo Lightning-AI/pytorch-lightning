@@ -59,6 +59,10 @@ class ExplainedVariance(Metric):
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
 
+    Raises:
+        ValueError:
+            If ``multioutput`` is not one of ``"raw_values"``, ``"uniform_average"`` or ``"variance_weighted"``.
+
     Example:
 
         >>> from pytorch_lightning.metrics import ExplainedVariance

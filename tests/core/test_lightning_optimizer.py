@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import patch
+from unittest.mock import DEFAULT, patch
 
 import torch
-from torch.optim import Adam, Optimizer
+from torch.optim import Adam, Optimizer, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -76,65 +76,7 @@ def test_lightning_optimizer_from_user(tmpdir):
     assert trainer._lightning_optimizers[0].__repr__() == expected
 
 
-@patch("torch.optim.Adam.step", autospec=True)
-@patch("torch.optim.SGD.step", autospec=True)
-def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, tmpdir):
-    """
-    Test that the user can use our LightningOptimizer. Not recommended for now.
-    """
-
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
-            (opt_1, opt_2) = self.optimizers()
-            assert isinstance(opt_1, LightningOptimizer)
-            assert isinstance(opt_2, LightningOptimizer)
-
-            output = self.layer(batch)
-            loss_1 = self.loss(batch, output)
-            self.manual_backward(loss_1)
-            opt_1.step()
-            opt_1.zero_grad()
-
-            output = self.layer(batch)
-            loss_2 = self.loss(batch, output)
-            self.manual_backward(loss_2)
-
-            if batch_idx % 2 == 0:
-                opt_2.step()
-                opt_2.zero_grad()
-
-        def configure_optimizers(self):
-            optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-            optimizer_1 = LightningOptimizer(optimizer_1)
-
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
-            return [optimizer_1, optimizer_2], [lr_scheduler]
-
-    model = TestModel()
-    model.training_step_end = None
-    model.training_epoch_end = None
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=8,
-        limit_val_batches=1,
-        max_epochs=1,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    assert len(mock_sgd_step.mock_calls) == 8
-    assert len(mock_adam_step.mock_calls) == 4
-
-
-@patch("torch.optim.Adam.step", autospec=True)
-@patch("torch.optim.SGD.step", autospec=True)
-def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_sgd_step, mock_adam_step, tmpdir):
+def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdir):
     """
     Test that the user can use our LightningOptimizer. Not recommended.
     """
@@ -146,27 +88,26 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
             self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx, optimizer_idx=None):
-            (opt_1, opt_2) = self.optimizers()
+            opt_1, opt_2 = self.optimizers()
             assert isinstance(opt_1, LightningOptimizer)
             assert isinstance(opt_2, LightningOptimizer)
 
-            output = self.layer(batch)
-            loss_1 = self.loss(batch, output)
-            self.manual_backward(loss_1)
-            opt_1.step()
-
-            def closure():
+            def closure(opt):
                 output = self.layer(batch)
-                loss_2 = self.loss(batch, output)
-                self.manual_backward(loss_2)
+                loss = self.loss(batch, output)
+                opt.zero_grad()
+                self.manual_backward(loss)
 
-            opt_2.step(closure=closure)
+            if batch_idx % 2 == 0:
+                closure(opt_1)
+                opt_1.step()
+
+            closure(opt_2)
+            opt_2.step()
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-            optimizer_1 = LightningOptimizer(optimizer_1)
-
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
             return [optimizer_1, optimizer_2], [lr_scheduler]
 
@@ -179,12 +120,18 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
-        accumulate_grad_batches=2,
+        accumulate_grad_batches=999,  # does not do anything if manual optimization
     )
-    trainer.fit(model)
 
-    assert len(mock_sgd_step.mock_calls) == 8
-    assert len(mock_adam_step.mock_calls) == 8
+    with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, \
+         patch.multiple(torch.optim.Adam, zero_grad=DEFAULT, step=DEFAULT) as adam:
+        trainer.fit(model)
+
+    assert sgd["step"].call_count == 4
+    assert adam["step"].call_count == 8
+
+    assert sgd["zero_grad"].call_count == 4
+    assert adam["zero_grad"].call_count == 8
 
 
 def test_state(tmpdir):
@@ -237,93 +184,122 @@ def test_state(tmpdir):
     assert optimizer.state == lightning_optimizer.state
 
 
-def test_lightning_optimizer_automatic_optimization(tmpdir):
+def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
     """
-    Test lightning optimize works with in automatic_optimization
+    Test overriding zero_grad works in automatic_optimization
     """
 
     class TestModel(BoringModel):
 
         def training_step(self, batch, batch_idx, optimizer_idx=None):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"loss": loss}
+            return super().training_step(batch, batch_idx)
 
         def training_epoch_end(self, outputs):
-            outputs = sum(outputs, [])
-            torch.stack([x["loss"] for x in outputs]).mean()
+            ...
 
-        def optimizer_step(
-            self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
-        ):
-            assert optimizer_closure.__name__ == "train_step_and_backward_closure"
-            optimizer_closure()
-            if batch_idx % 2 == 0:
-                optimizer.step()
+        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+            if isinstance(optimizer, SGD) and batch_idx % 2 == 0:
+                optimizer.zero_grad()
+            if isinstance(optimizer, Adam) and batch_idx % 5 == 0:
                 optimizer.zero_grad()
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-            optimizer_1 = LightningOptimizer(optimizer_1)
-
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
             return [optimizer_1, optimizer_2], [lr_scheduler]
 
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=10,
+        limit_train_batches=20,
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
     )
-    trainer.fit(model)
-
-
-def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
-    """
-    Test lightning optimize works with optimizer_zero_grad overrides in automatic_optimization
-    """
 
     with patch("torch.optim.Adam.zero_grad") as adam_zero_grad, \
-            patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
-
-        class TestModel(BoringModel):
-
-            def training_step(self, batch, batch_idx, optimizer_idx=None):
-                output = self.layer(batch)
-                loss = self.loss(batch, output)
-                return {"loss": loss}
-
-            def training_epoch_end(self, outputs):
-                outputs = sum(outputs, [])
-                torch.stack([x["loss"] for x in outputs]).mean()
-
-            def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
-                if optimizer_idx == 0:
-                    if batch_idx % 2 == 0:
-                        optimizer.zero_grad()
-
-                if optimizer_idx == 1:
-                    if batch_idx % 5 == 0:
-                        optimizer.zero_grad()
-
-            def configure_optimizers(self):
-                optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-                optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-                lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
-                return [optimizer_1, optimizer_2], [lr_scheduler]
-
-        model = TestModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=20,
-            limit_val_batches=1,
-            max_epochs=1,
-            weights_summary=None,
-        )
+         patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
         trainer.fit(model)
 
-        assert adam_zero_grad.call_count == 4
-        assert sgd_zero_grad.call_count == 10
+    assert adam_zero_grad.call_count == 4
+    assert sgd_zero_grad.call_count == 10
+
+
+def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
+    """
+    Test overriding step works in automatic_optimization
+    """
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx, optimizer_idx=None):
+            return super().training_step(batch, batch_idx)
+
+        def training_epoch_end(self, outputs):
+            ...
+
+        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **_):
+            assert optimizer_closure.__name__ == "train_step_and_backward_closure"
+            # not passing the closure to the optimizer because step is mocked
+            # zero_grad is called inside the closure
+            if isinstance(optimizer, SGD) and batch_idx % 2 == 0:
+                optimizer_closure()
+                optimizer.step()
+            if isinstance(optimizer, Adam) and batch_idx % 4 == 0:
+                optimizer_closure()
+                optimizer.step()  # not passing the closure here because it's a mock
+
+        def configure_optimizers(self):
+            optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
+            return [optimizer_1, optimizer_2], [lr_scheduler]
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=8,
+        limit_val_batches=1,
+        max_epochs=1,
+        weights_summary=None,
+    )
+
+    with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, \
+         patch.multiple(torch.optim.Adam, zero_grad=DEFAULT, step=DEFAULT) as adam:
+        trainer.fit(model)
+
+    assert sgd["step"].call_count == 4
+    assert adam["step"].call_count == 2
+
+    assert sgd["zero_grad"].call_count == 4
+    assert adam["zero_grad"].call_count == 2
+
+
+def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
+    """
+    Test zero_grad is called the same number of times as LBFGS requires
+    for reevaluation of the loss in automatic_optimization.
+    """
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            return torch.optim.LBFGS(self.parameters())
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        weights_summary=None,
+    )
+
+    with patch("torch.optim.LBFGS.zero_grad") as zero_grad:
+        trainer.fit(model)
+
+    lbfgs = model.optimizers()
+    max_iter = lbfgs.param_groups[0]["max_iter"]
+    assert zero_grad.call_count == max_iter

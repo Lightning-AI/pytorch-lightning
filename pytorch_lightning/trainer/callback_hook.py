@@ -15,7 +15,7 @@
 from abc import ABC
 from copy import deepcopy
 from inspect import signature
-from typing import List, Dict, Any, Type, Callable
+from typing import Any, Callable, Dict, List, Type
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
@@ -214,8 +214,7 @@ class TrainerCallbackHookMixin(ABC):
                 rank_zero_warn(
                     "`Callback.on_save_checkpoint` signature has changed in v1.3."
                     " A `checkpoint` parameter has been added."
-                    " Support for the old signature will be removed in v1.5",
-                    DeprecationWarning
+                    " Support for the old signature will be removed in v1.5", DeprecationWarning
                 )
                 state = callback.on_save_checkpoint(self, self.lightning_module)  # noqa: parameter-unfilled
             else:

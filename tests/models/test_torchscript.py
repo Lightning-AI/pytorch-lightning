@@ -19,6 +19,7 @@ import torch
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
 from tests.helpers.datamodules import MNISTDataModule
+from tests.helpers.skipif import RunIf
 
 
 @pytest.mark.parametrize("modelclass", [
@@ -82,8 +83,8 @@ def test_torchscript_input_output_trace():
     assert torch.allclose(script_output, model_output)
 
 
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 def test_torchscript_device(device):
     """ Test that scripted module is on the correct device. """
     model = BoringModel().to(device)
