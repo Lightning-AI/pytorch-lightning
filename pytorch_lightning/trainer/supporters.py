@@ -71,7 +71,10 @@ class TensorRunningAccum(object):
         if self.memory is None:
             if _PYSYFT_AVAILABLE:
                 # Todo (tudorcebere): Find better solution than `client_cache` to access Duet
-                self.memory = client_cache["duet"].torch.zeros(self.window_length, *x.shape)
+                self.memory = client_cache["duet"].torch.zeros(
+                    client_cache["duet"].python.Tuple([self.window_length])
+                    + client_cache["duet"].python.Tuple(x.shape)
+                )
             else:
                 self.memory = torch.zeros(self.window_length, *x.shape)
 
