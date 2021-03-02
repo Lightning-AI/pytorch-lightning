@@ -431,8 +431,9 @@ def test_plugin_accelerator_choice(accelerator, plugin):
         marks=pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
     ),
 ])
-@RunIf(min_gpus=2, skip_windows=True)
-def test_accelerator_choice_multi_node_gpu(accelerator, plugin, tmpdir):
+@mock.patch('torch.cuda.is_available', return_value=True)
+@mock.patch('torch.cuda.device_count', return_value=2)
+def test_accelerator_choice_multi_node_gpu(mock_is_available, mock_device_count, accelerator, plugin, tmpdir):
     trainer = Trainer(
         accelerator=accelerator,
         default_root_dir=tmpdir,
