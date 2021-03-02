@@ -22,6 +22,7 @@ import torch
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
@@ -143,7 +144,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     assert callback.len_outputs == 0
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_apply_batch_transfer_handler(model_getter_mock):
     expected_device = torch.device('cuda', 0)
@@ -197,7 +198,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 @pytest.mark.skipif(
     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
 )
@@ -446,12 +447,12 @@ def test_trainer_model_hook_system(tmpdir):
         'on_epoch_start',
         'on_train_epoch_start',
         'on_train_batch_start',
-        'on_after_backward',
         'on_before_zero_grad',
+        'on_after_backward',
         'on_train_batch_end',
         'on_train_batch_start',
-        'on_after_backward',
         'on_before_zero_grad',
+        'on_after_backward',
         'on_train_batch_end',
         'on_train_epoch_end',
         'on_epoch_end',
