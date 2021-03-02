@@ -222,8 +222,8 @@ class ModelCheckpoint(Callback):
         if self._should_skip_saving_checkpoint(trainer):
             return
         step = trainer.global_step
-        skip_step = self.every_n_steps < 1 or ((step + 1) % self.every_n_steps != 0)
-        if skip_step:
+        skip_batch = self.every_n_batches < 1 or ((step + 1) % self.every_n_batches != 0)
+        if skip_batch:
             return
         self.save_checkpoint(trainer, pl_module)
 
