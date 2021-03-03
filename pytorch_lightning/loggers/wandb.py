@@ -20,7 +20,6 @@ import re
 import numbers
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union, TYPE_CHECKING
-from weakref import proxy
 
 import torch.nn as nn
 
