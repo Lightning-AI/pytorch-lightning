@@ -38,6 +38,7 @@ def test_rpc_choice(tmpdir, ddp_backend, gpus, num_processes):
 
     model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         fast_dev_run=True,
         gpus=gpus,
         num_processes=num_processes,
@@ -76,7 +77,8 @@ def test_rpc_function_calls_ddp(tmpdir):
         max_epochs=max_epochs,
         gpus=2,
         distributed_backend='ddp',
-        plugins=[plugin]
+        plugins=[plugin],
+        default_root_dir=tmpdir,
     )
 
     trainer.fit(model)

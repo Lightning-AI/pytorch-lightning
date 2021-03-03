@@ -105,8 +105,16 @@ def test_sync_batchnorm_ddp(tmpdir):
     dm.setup(stage=None)
 
     model = SyncBNModule(gpu_count=2, bn_targets=bn_outputs)
+    ddp = DDPSpawnPlugin(
+        parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
+        num_nodes=1,
+        sync_batchnorm=True,
+        cluster_environment=TorchElasticEnvironment(),
+        find_unused_parameters=True
+    )
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         gpus=2,
         num_nodes=1,
         accelerator='ddp_spawn',
@@ -115,15 +123,7 @@ def test_sync_batchnorm_ddp(tmpdir):
         sync_batchnorm=True,
         num_sanity_val_steps=0,
         replace_sampler_ddp=False,
-        plugins=[
-            DDPSpawnPlugin(
-                parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
-                num_nodes=1,
-                sync_batchnorm=True,
-                cluster_environment=TorchElasticEnvironment(),
-                find_unused_parameters=True
-            )
-        ]
+        plugins=[ddp]
     )
 
     trainer.fit(model, dm)
