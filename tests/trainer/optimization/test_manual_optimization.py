@@ -1070,10 +1070,7 @@ def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizati
         assert not torch.equal(param.cpu().data, param_copy.data)
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
@@ -1148,9 +1145,6 @@ class TesManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
                 opt_dis.zero_grad()
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
     train_manual_optimization(tmpdir, "ddp", model_cls=TesManualOptimizationDDPModelToggleModel)

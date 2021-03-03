@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
-    def __init__(self, amp_level: str) -> None:
+    def __init__(self, amp_level: str = "O2") -> None:
         self.backend = AMPType.APEX
         self.amp_level = amp_level
 

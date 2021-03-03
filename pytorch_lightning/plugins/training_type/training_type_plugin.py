@@ -171,5 +171,10 @@ class TrainingTypePlugin(Plugin, ABC):
         optimizer.step(closure=lambda_closure, **kwargs)
 
     @property
-    def manage_configure_optimizers(self) -> bool:
+    def setup_optimizers_after_dispatch(self) -> bool:
+        """
+        Override to delay setting optimizers and schedulers till after dispatch.
+        This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
+        Returns: True if delaying setup optimizers till after dispatch, False to call within setup.
+        """
         return False

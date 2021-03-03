@@ -194,5 +194,5 @@ class FullyShardedPlugin(DDPPlugin):
         return state_dict
 
     @property
-    def manage_configure_optimizers(self) -> bool:
+    def setup_optimizers_after_dispatch(self) -> bool:
         return True
