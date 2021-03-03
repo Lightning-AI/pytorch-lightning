@@ -72,7 +72,7 @@ jobs:
       displayName: 'Env details'
 
     - bash: |
-        pip install torchtext -U
+        pip install torchtext==0.7 -U
       displayName: 'HotFix'
 
     - bash: |
