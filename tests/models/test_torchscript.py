@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from distutils.version import LooseVersion
 
 import pytest
 import torch
@@ -130,10 +129,7 @@ def test_torchscript_properties(tmpdir, modelclass):
     ParityModuleRNN,
     BasicGAN,
 ])
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
-    reason="torch.save/load has bug loading script modules on torch <= 1.4",
-)
+@RunIf(min_torch="1.5.0")
 def test_torchscript_save_load(tmpdir, modelclass):
     """ Test that scripted LightningModule is correctly saved and can be loaded. """
     model = modelclass()

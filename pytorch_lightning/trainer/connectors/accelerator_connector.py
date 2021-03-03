@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 from typing import List, Optional, Sequence, Union
 
 import torch
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
@@ -60,6 +60,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
+
+log = logging.getLogger(__name__)
 
 
 class AcceleratorConnector(object):
@@ -494,7 +496,7 @@ class AcceleratorConnector(object):
                 # define the max CPU available
                 self.num_processes = os.cpu_count()
         # special case with TPUs
-        elif self.distributed_backend == 'tpu':
+        elif self.distributed_backend == 'tpu' or self.tpu_cores is not None:
             self._device_type = DeviceType.TPU
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)
@@ -534,12 +536,12 @@ class AcceleratorConnector(object):
         if self.distributed_backend == "horovod":
             self._set_horovod_backend()
 
-        # throw error to force user ddp or ddp2 choice
-        _ddp = (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
-        if (self.num_nodes > 1 and self._distrib_type not in _ddp):
+        using_valid_distributed = self.use_ddp or self.use_ddp2
+        if self.num_nodes > 1 and not using_valid_distributed:
+            # throw error to force user to choose a supported distributed type such as ddp or ddp2
             raise MisconfigurationException(
-                'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
-                'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
+                'Your chosen distributed type does not support num_nodes > 1. '
+                'Please set accelerator=ddp or accelerator=ddp2.'
             )
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')

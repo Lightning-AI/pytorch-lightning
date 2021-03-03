@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 import pickle
 from unittest import mock
@@ -20,7 +21,7 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import _logger, seed_everything, Trainer
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -28,6 +29,8 @@ from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
+
+_logger = logging.getLogger(__name__)
 
 
 class EarlyStoppingTestRestore(EarlyStopping):

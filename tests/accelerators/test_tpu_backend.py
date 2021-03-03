@@ -18,8 +18,8 @@ from torch import nn
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _TPU_AVAILABLE
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
 
 
@@ -39,7 +39,7 @@ class WeightSharingModule(BoringModel):
         return x
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_resume_training_on_cpu(tmpdir):
     """ Checks if training can be resumed from a saved checkpoint on CPU"""
@@ -70,7 +70,7 @@ def test_resume_training_on_cpu(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_if_test_works_after_train(tmpdir):
     """ Ensure that .test() works after .fit() """
@@ -82,7 +82,7 @@ def test_if_test_works_after_train(tmpdir):
     assert len(trainer.test(model)) == 1
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_weight_tying_warning(tmpdir, capsys=None):
     """
@@ -98,7 +98,7 @@ def test_weight_tying_warning(tmpdir, capsys=None):
         assert result
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_if_weights_tied(tmpdir, capsys=None):
     """
