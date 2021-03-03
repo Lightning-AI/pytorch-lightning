@@ -295,7 +295,7 @@ when using the TestTubeLogger or the TensorBoardLogger, all hyperparams will sho
 in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.add_hparams>`_.
 
 .. note::
-    If you want to track a metric with `TensorBoardLogger`, log value updates with the key `hp_metric`. If tracking multiple metrics, initialize `TensorBoardLogger` with `default_hp_metric=False` and call `log_hyperparams` once with your metric keys and initial values. Subsequent updates can simply be logged to the metric keys.
+    If you want to track a metric with ``TensorBoardLogger``, log value updates with the key ``hp_metric``. If tracking multiple metrics, initialize ``TensorBoardLogger`` with ``default_hp_metric=False`` and call ``log_hyperparams`` once with your metric keys and initial values. Subsequent updates can simply be logged to the metric keys.
 
 ----------
 
