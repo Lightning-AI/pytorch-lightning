@@ -329,22 +329,23 @@ class OptimizerWithHooks(Optimizer):
 
         for _, mod in model.named_modules():  # iterates over modules of model
             mod_class = mod.__class__.__name__
-            if mod_class in ['Linear']:  # silently skips other layers
+            if mod_class not in ['Linear']:  # silently skips other layers
+                continue
 
-                # save the inputs and gradients for the kfac matrix computation
-                handle = mod.register_forward_pre_hook(self._save_input)  # save the inputs
-                self._fwd_handles.append(handle)  # collect forward-save-input hooks in list
-                handle = mod.register_backward_hook(self._save_grad_output)  # save the gradients
-                self._bwd_handles.append(handle)  # collect backward-save-grad hook in list
+            # save the inputs and gradients for the kfac matrix computation
+            handle = mod.register_forward_pre_hook(self._save_input)  # save the inputs
+            self._fwd_handles.append(handle)  # collect forward-save-input hooks in list
+            handle = mod.register_backward_hook(self._save_grad_output)  # save the gradients
+            self._bwd_handles.append(handle)  # collect backward-save-grad hook in list
 
-                # save the parameters
-                params = [mod.weight]
-                if mod.bias is not None:
-                    params.append(mod.bias)
+            # save the parameters
+            params = [mod.weight]
+            if mod.bias is not None:
+                params.append(mod.bias)
 
-                # save a param_group for each module
-                d = {'params': params, 'mod': mod, 'layer_type': mod_class}
-                self.params.append(d)
+            # save a param_group for each module
+            d = {'params': params, 'mod': mod, 'layer_type': mod_class}
+            self.params.append(d)
 
         super(OptimizerWithHooks, self).__init__(self.params, defaults)
 
