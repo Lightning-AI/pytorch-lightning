@@ -442,6 +442,8 @@ if _TORCH_GREATER_EQUAL_1_8:
                 self._handles[module_name] = [pre_handle, post_handle]
 
         def __exit__(self, *_):
+            for h in self._handles.values():	
+                h.remove()  # remove module forward hooks
             self._records = {}
             self._handles = {}
 
