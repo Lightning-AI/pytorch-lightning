@@ -43,9 +43,6 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.states import RunningStage
-
 log = logging.getLogger(__name__)
 
 
@@ -69,7 +66,6 @@ class LightningModule(
         "on_gpu",
         "current_epoch",
         "global_step",
-        "running_stage",
         "global_rank",
         "local_rank",
         "logger",
