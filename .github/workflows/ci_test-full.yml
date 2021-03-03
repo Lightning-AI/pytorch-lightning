@@ -112,6 +112,12 @@ jobs:
         pip list
       shell: bash
 
+    # todo: require proper fix in docker image
+    - name: Hotfix dependency
+      run: |
+        pip install torchtext==0.7 -U
+      shell: bash
+
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows'
       env:
