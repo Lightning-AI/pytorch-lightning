@@ -94,7 +94,7 @@ Here is the same example as above using a ``closure``.
             return -1 * tr.log(d_z).mean()
 
         def discriminator_loss(self, d_x: Tensor, d_z: Tensor) -> Tensor:
-            # the closer is ``d_x`` from 1 and ``dz`` from 0,
+            # the closer is ``d_x`` from 1 and ``d_z`` from 0,
             # the better the discriminator is able to distinguish
             # true data from generated ones
             return -1 * (tr.log(d_x).mean() + tr.log(1 - d_z).mean())
