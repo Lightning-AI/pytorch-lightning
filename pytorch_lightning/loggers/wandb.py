@@ -61,7 +61,7 @@ class WandbLogger(LightningLoggerBase):
         version: Same as id.
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong.
-        log_model: Save checkpoints in wandb dir to upload on W&B servers.
+        log_model: Save checkpoints as W&B artifacts.
         prefix: A string to put at the beginning of metric keys.
         experiment: WandB experiment object. Automatically set when creating a run.
         \**kwargs: Additional arguments like `entity`, `group`, `tags`, etc. used by
@@ -79,9 +79,6 @@ class WandbLogger(LightningLoggerBase):
         from pytorch_lightning import Trainer
         wandb_logger = WandbLogger()
         trainer = Trainer(logger=wandb_logger)
-
-    Note: When logging manually through `wandb.log` or `trainer.logger.experiment.log`,
-    make sure to use `commit=False` so the logging step does not increase.
 
     See Also:
         - `Tutorial <https://colab.research.google.com/drive/16d1uctGaw2y9KhGBlINNTsWpmlXdJwRW?usp=sharing>`__
