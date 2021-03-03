@@ -103,7 +103,7 @@ class HorovodPlugin(ParallelPlugin):
 
     def start_evaluating(self, trainer):
         with ExitStack():
-            self._results = trainer.evaluate()
+            self._results = trainer.run_evaluate()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
