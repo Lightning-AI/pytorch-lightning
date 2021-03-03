@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class TPUAccelerator(Accelerator):
-    
+
     def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         """
         Raises:

@@ -15,7 +15,7 @@ _log = logging.getLogger(__name__)
 
 
 class GPUAccelerator(Accelerator):
-    
+
     def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         """
         Raises:

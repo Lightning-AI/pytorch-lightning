@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class CPUAccelerator(Accelerator):
-    
+
     def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         """
         Raises:
