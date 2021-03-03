@@ -19,6 +19,7 @@ from torch.nn import DataParallel
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 class DataParallelPlugin(ParallelPlugin):
@@ -48,6 +49,9 @@ class DataParallelPlugin(ParallelPlugin):
 
         elif isinstance(tensor, torch.Tensor):
             tensor = tensor.mean()
+
+        elif isinstance(tensor, dict):
+            tensor = apply_to_collection(tensor, torch.Tensor, torch.mean)
 
         return tensor
 
