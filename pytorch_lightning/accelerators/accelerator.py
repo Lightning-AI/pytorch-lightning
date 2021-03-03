@@ -74,7 +74,8 @@ class Accelerator(object):
             model: the model to train
         """
         self.connect_training_type_plugin(self.training_type_plugin, model)
-        self.setup_optimizers(trainer)
+        if not self.training_type_plugin.setup_optimizers_after_dispatch:
+            self.setup_optimizers(trainer)
         self.connect_precision_plugin(self.precision_plugin)
 
     def start_training(self, trainer: 'Trainer') -> None:
@@ -86,12 +87,14 @@ class Accelerator(object):
     def start_predicting(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_predicting(trainer)
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: 'Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.pre_dispatch()
+        if self.training_type_plugin.setup_optimizers_after_dispatch:
+            self.setup_optimizers(trainer)
         self.precision_plugin.pre_dispatch()
 
-    def post_dispatch(self) -> None:
+    def post_dispatch(self, trainer: 'Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
