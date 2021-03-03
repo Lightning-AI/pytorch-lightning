@@ -14,7 +14,6 @@
 import math
 import os
 import pickle
-import platform
 import sys
 from argparse import Namespace
 from copy import deepcopy
@@ -34,14 +33,14 @@ from pytorch_lightning import Callback, LightningDataModule, LightningModule, Tr
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
+from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 @pytest.fixture
@@ -220,8 +219,14 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
 @pytest.mark.parametrize(
     ["accumulate_grad_batches", "limit_train_batches"],
     [
-        ({1: 2, 3: 4}, 1.0),
-        ({1: 2, 3: 4}, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
+        ({
+            1: 2,
+            3: 4
+        }, 1.0),
+        ({
+            1: 2,
+            3: 4
+        }, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
         (3, 1.0),
         (3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
         (4, 1.0),
@@ -239,9 +244,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
         def on_batch_end(self, outputs, batch, batch_idx, *_):
             self.on_train_batch_start_end_dict = self.state_dict()
             for key in self.on_train_batch_start_end_dict.keys():
-                equal = torch.equal(
-                    self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key]
-                )
+                equal = torch.equal(self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key])
                 if (batch_idx + 1) == self.trainer.num_training_batches:
                     assert equal
                 else:
@@ -877,8 +880,7 @@ def test_gradient_clipping(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@RunIf(min_gpus=1, amp_native=True)
 def test_gradient_clipping_fp16(tmpdir):
     """
     Test gradient clipping with fp16
@@ -1271,7 +1273,7 @@ def test_trainer_subclassing():
         }),
     ],
 )
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_trainer_omegaconf(trainer_params):
     Trainer(**trainer_params)
 
@@ -1420,44 +1422,28 @@ def test_trainer_predict_cpu(tmpdir, datamodule):
     predict(tmpdir, None, None, 1, datamodule=datamodule)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize('num_gpus', [1, 2])
 def test_trainer_predict_dp(tmpdir, num_gpus):
     predict(tmpdir, "dp", num_gpus, None)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_trainer_predict_ddp(tmpdir):
     predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, skip_windows=True, special=True)
 def test_trainer_predict_ddp_spawn(tmpdir):
     predict(tmpdir, "ddp_spawn", 2, None)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, None, 1, None)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(skip_windows=True, special=True)
 def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
 
@@ -1484,10 +1470,7 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
     pytorch_profiler.stop(action)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize("use_output_filename", [False, True])
 def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
@@ -1667,7 +1650,7 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
     trainer.fit(model, train_data)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_setup_hook_move_to_device_correctly(tmpdir):
     """
     Verify that if a user defines a layer in the setup hook function, this is moved to the correct device.
@@ -1718,6 +1701,7 @@ def test_train_loop_system(tmpdir):
     )
 
     class TestOptimizer(SGD):
+
         def step(self, *args, **kwargs):
             called_methods.append("step")
             return super().step(*args, **kwargs)
@@ -1727,6 +1711,7 @@ def test_train_loop_system(tmpdir):
             return super().zero_grad(*args, **kwargs)
 
     class TestModel(BoringModel):
+
         def configure_optimizers(self):
             return TestOptimizer(self.parameters(), lr=0.1)
 

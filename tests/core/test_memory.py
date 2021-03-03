@@ -17,10 +17,10 @@ import torch.nn as nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import ParityModuleRNN
+from tests.helpers.runif import RunIf
 
 
 class EmptyModule(LightningModule):
@@ -119,7 +119,7 @@ def test_empty_model_summary_shapes(mode):
     pytest.param(torch.device('cuda', 0)),
     pytest.param(torch.device('cuda', 0)),
 ])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
+@RunIf(min_gpus=1)
 def test_linear_model_summary_shapes(device, mode):
     """ Test that the model summary correctly computes the input- and output shapes. """
     model = UnorderedModel().to(device)
@@ -291,8 +291,7 @@ def test_empty_model_size(mode):
     assert 0.0 == summary.model_size
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@RunIf(min_gpus=1, amp_native=True)
 @pytest.mark.parametrize(
     'precision', [
         pytest.param(16, marks=pytest.mark.skip(reason="no longer valid, because 16 can mean mixed precision")),

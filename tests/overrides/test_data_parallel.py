@@ -13,6 +13,7 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("wrapper_class", [
@@ -88,7 +89,7 @@ def test_unsqueeze_scalar_tensor(inp, expected):
     assert torch.all(unsqueeze_scalar_tensor(inp).eq(expected))
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-gpu machine")
+@RunIf(min_gpus=2)
 def test_lightning_parallel_module_unsqueeze_scalar():
     """ Test that LightningParallelModule takes care of un-squeezeing 0-dim tensors. """
 
@@ -132,8 +133,8 @@ def test_python_scalar_to_tensor(inp, expected):
     assert torch.all(python_scalar_to_tensor(inp).eq(expected))
 
 
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_lightning_parallel_module_python_scalar_conversion(device):
     """ Test that LightningParallelModule can convert Python scalars to tensors. """
 

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import platform
 from unittest import mock
 from unittest.mock import patch
 
@@ -30,6 +29,7 @@ from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def test_fit_train_loader_only(tmpdir):
@@ -599,7 +599,7 @@ def test_error_on_zero_len_dataloader(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 @patch('pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count', return_value=4)
 def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
@@ -645,7 +645,7 @@ def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
         trainer.test(**test_options)
 
 
-@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 @patch('pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count', return_value=4)
 def test_warning_with_few_workers_multi_loader(mock, tmpdir, ckpt_path):
@@ -726,7 +726,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
         trainer.test(model, test_dataloaders=[dataloader])
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+@RunIf(min_gpus=2)
 def test_dataloader_reinit_for_subclass(tmpdir):
 
     class CustomDataLoader(torch.utils.data.DataLoader):
@@ -807,8 +807,7 @@ class DistribSamplerCallback(Callback):
         assert not test_sampler.shuffle
 
 
-@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+@RunIf(min_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend """
 
@@ -835,8 +834,7 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
         )
 
 
-@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+@RunIf(min_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler_already_attached(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader """
 
@@ -854,7 +852,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     assert trainer.state == TrainerState.FINISHED, "DDP Training failed"
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
+@RunIf(min_gpus=3)
 def test_batch_size_smaller_than_num_gpus(tmpdir):
     # we need at least 3 gpus for this test
     num_gpus = 3

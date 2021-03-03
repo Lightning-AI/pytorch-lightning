@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import random
-import sys
 from pathlib import Path
 
 import pytest
@@ -26,7 +25,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringDataModule, BoringModel
-from tests.helpers.skipif import SkipIf
+from tests.helpers.runif import RunIf
 
 
 def _setup_ddp(rank, worldsize):
@@ -49,7 +48,7 @@ def _ddp_test_fn(rank, worldsize, result_cls: Result):
 
 
 @pytest.mark.parametrize("result_cls", [Result])
-@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+@RunIf(skip_windows=True)
 def test_result_reduce_ddp(result_cls):
     """Make sure result logging works with DDP"""
     tutils.reset_seed()
@@ -72,7 +71,7 @@ def test_result_reduce_ddp(result_cls):
         pytest.param(5, False, 0, id='nested_list_predictions'),
         pytest.param(6, False, 0, id='dict_list_predictions'),
         pytest.param(7, True, 0, id='write_dict_predictions'),
-        pytest.param(0, True, 1, id='full_loop_single_gpu', marks=SkipIf(min_gpus=1))
+        pytest.param(0, True, 1, id='full_loop_single_gpu', marks=RunIf(min_gpus=1))
     ]
 )
 def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):

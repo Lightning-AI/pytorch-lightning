@@ -28,12 +28,15 @@ from pytorch_lightning.plugins import (
     DDPPlugin,
     DDPShardedPlugin,
     DDPSpawnPlugin,
+    DDPSpawnShardedPlugin,
+    DeepSpeedPlugin,
     PrecisionPlugin,
     SingleDevicePlugin,
 )
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_accelerator_choice_cpu(tmpdir):
@@ -83,7 +86,7 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 @mock.patch.dict(
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",
@@ -119,7 +122,7 @@ def test_accelerator_choice_ddp_slurm():
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
+@RunIf(min_gpus=1)
 @mock.patch.dict(
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",
@@ -157,7 +160,7 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
+@RunIf(min_gpus=1)
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2", "LOCAL_RANK": "10", "NODE_RANK": "0"})
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp_te(device_count_mock):
@@ -185,7 +188,7 @@ def test_accelerator_choice_ddp_te(device_count_mock):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
+@RunIf(min_gpus=1)
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2", "LOCAL_RANK": "10", "NODE_RANK": "0"})
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp2_te(device_count_mock):
@@ -414,3 +417,22 @@ def test_plugin_accelerator_choice(accelerator, plugin):
 
     trainer = Trainer(plugins=plugin, num_processes=2)
     assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
+
+
+@pytest.mark.parametrize(["accelerator", "plugin"], [
+    ('ddp', DDPPlugin),
+    ('ddp_spawn', DDPSpawnPlugin),
+    ('ddp_sharded', DDPShardedPlugin),
+    ('ddp_sharded_spawn', DDPSpawnShardedPlugin),
+    pytest.param('deepspeed', DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+])
+@mock.patch('torch.cuda.is_available', return_value=True)
+@mock.patch('torch.cuda.device_count', return_value=2)
+def test_accelerator_choice_multi_node_gpu(mock_is_available, mock_device_count, accelerator, plugin, tmpdir):
+    trainer = Trainer(
+        accelerator=accelerator,
+        default_root_dir=tmpdir,
+        num_nodes=2,
+        gpus=2,
+    )
+    assert isinstance(trainer.training_type_plugin, plugin)
