@@ -80,7 +80,7 @@ class LightningLoggerBase(ABC):
         Connect trainer to logger
 
         Args:
-            trainer: lightning Trainer
+            trainer: the trainer instance to connect to
         """
         pass
 
