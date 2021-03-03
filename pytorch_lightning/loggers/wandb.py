@@ -19,6 +19,7 @@ import os
 import re
 import numbers
 from argparse import Namespace
+from pathlib import Path
 from typing import Any, Dict, Optional, Union, TYPE_CHECKING
 
 import torch.nn as nn
@@ -222,14 +223,23 @@ class WandbLogger(LightningLoggerBase):
         if self._log_model and self._trainer is not None and self._trainer.checkpoint_callback is not None:
             # use run name and ensure it's a valid Artifact name
             artifact_name = re.sub(r"[^a-zA-Z0-9_\.\-]", "", self.experiment.name)
-            # gather interesting metadata
+            # gather summary metrics
             metadata = {
                 k: v
                 for k, v in dict(self.experiment.summary).items()
                 if isinstance(v, numbers.Number) and not k.startswith("_")
             }
-            metadata['ModelCheckpoint'] = {k: v for k, v in vars(
-                self._trainer.checkpoint_callback).items() if not callable(v)}
+            # add interesting "ModelCheckpoint" data (mainly non-default values)
+            metadata['ModelCheckpoint'] = {k: getattr(self._trainer.checkpoint_callback, k) for k, ignore_val in [
+                ('monitor', ''), ('mode', ''),  # save also default values
+                ('current_score', None), ('best_model_score', None), ('best_model_path', ''), ('last_model_path', ''),
+                ('save_last', None), ('save_top_k', None), ('save_weights_only', False), ('period', 1),
+                ('_last_global_step_saved', 0)]
+                if getattr(self._trainer.checkpoint_callback, k, ignore_val) != ignore_val}
+            if getattr(self._trainer.checkpoint_callback, 'best_k_models', None):
+                # keep only filename
+                metadata['ModelCheckpoint']['best_k_models'] = {
+                    Path(k).name: v for k, v in self._trainer.checkpoint_callback.best_k_models.items()}
             artifact = wandb.Artifact(name=f"run-{artifact_name}", type="model", metadata=metadata)
             # add relevant checkpoints
             for checkpoint in set([
