@@ -411,7 +411,7 @@ def test_different_batch_types_for_sizing(tmpdir):
     assert generated == expected
 
 
-def test_validation_step_with_string_data_logging():
+def test_validation_step_with_string_data_logging(tmpdir):
 
     class TestModel(BoringModel):
 
