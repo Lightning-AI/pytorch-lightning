@@ -283,7 +283,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._close_logger(trainer)
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
-    def start_testing(self, trainer) -> None:
+    def start_evaluating(self, trainer) -> None:
         self._close_logger(trainer)
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 

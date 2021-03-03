@@ -456,16 +456,16 @@ class Trainer(
         #                                |                                  ||
         #                         trainer.dispatch                          ||  LIGHTNING
         #                                |                                  ||
-        #    start_training or start_testing or start_predicting call       ||  FLOW
+        #    start_training or start_evaluating or start_predicting call    ||  FLOW
         #                        from `accelerator`                         ||
         #                                |                                  ||  DIRECTION
-        #             run_train or run_test or run_predict call             ||
+        #             run_train or run_evaluate or run_predict call         ||
         #                           from `trainer`                          ||
         #                                |                                  ||
         #                             results                               \/
         # This is used to guide readers to the core loops: train, test, predict.
         # `run_predict` is the simplest to understand, use `Go to Definition` to read it :)
-        # Search for `start_training` or `start_testing` or `start_predicting` in
+        # Search for `start_training` or `start_evaluating` or `start_predicting` in
         # `pytorch_lightning/plugins/training_type` folder to find accelerator dispatch functions.
 
         # ----------------------------
@@ -477,7 +477,7 @@ class Trainer(
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self.pre_dispatch()
 
-        # dispatch `start_training` or `start_testing` or `start_predicting`
+        # dispatch `start_training` or `start_evaluating` or `start_predicting`
         self.dispatch()
 
         # plugin will finalized fitting (e.g. ddp_spawn will load trained model)

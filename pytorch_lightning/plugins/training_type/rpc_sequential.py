@@ -333,9 +333,9 @@ class RPCSequentialPlugin(RPCPlugin):
         if self.main_rpc_process:
             super().start_training(trainer)
 
-    def start_testing(self, trainer) -> None:
+    def start_evaluating(self, trainer) -> None:
         if self.main_rpc_process:
-            super().start_testing(trainer)
+            super().start_evaluating(trainer)
 
 
 class LightningPipeModule(nn.Module):
