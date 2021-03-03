@@ -44,4 +44,7 @@ class TPUAccelerator(Accelerator):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        return xm.all_gather(tensor, group=group, sync_grads=sync_grads)
+        # todo: Add support for backward with all_gather
+        if torch.distributed.is_initialized():
+            return xm.all_gather(tensor, group=group, sync_grads=sync_grads)
+        return tensor
