@@ -83,10 +83,8 @@ Here is the same example as above using a ``closure``.
             self.G = Generator()
             self.D = Discriminator()
 
-        @property
-        def automatic_optimization(self):
             # Important: This property activate ``manual optimization`` for this model
-            return False
+            self.automatic_optimization = False
 
         def generator_loss(self, d_z: Tensor) -> Tensor:
             # the closer ``d_z`` is from 1,
