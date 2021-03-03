@@ -14,6 +14,7 @@
 import os
 from copy import deepcopy
 from pprint import pprint
+from weakref import proxy
 from typing import Dict, Iterable, Optional, Union
 
 import torch
@@ -161,7 +162,7 @@ class LoggerConnector:
 
         # connect trainer to logger
         if hasattr(self.trainer.logger, 'connect'):
-            self.trainer.logger.connect(self.trainer)
+            self.trainer.logger.connect(proxy(self.trainer))
 
     def cache_training_step_metrics(self, opt_closure_result):
         """

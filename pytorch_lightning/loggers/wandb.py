@@ -151,7 +151,7 @@ class WandbLogger(LightningLoggerBase):
 
     def connect(self, trainer: 'Trainer') -> None:
         if trainer is not None:
-            self._trainer = proxy(trainer)
+            self._trainer = trainer
 
     @property
     @rank_zero_experiment
