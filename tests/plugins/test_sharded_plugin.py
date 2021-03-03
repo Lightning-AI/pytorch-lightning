@@ -1,8 +1,8 @@
 import os
+from unittest import mock
 
 import pytest
 import torch
-
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
@@ -12,7 +12,7 @@ from tests.helpers.runif import RunIf
 
 
 @RunIf(fairscale=True)
-@pytest.mark.parametrize(["accelerator"], [("ddp_sharded", ), ("ddp_sharded_spawn", )])
+@pytest.mark.parametrize(["accelerator"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
 def test_sharded_ddp_choice(tmpdir, accelerator):
     """
         Test to ensure that plugin is correctly chosen
@@ -57,7 +57,7 @@ def test_invalid_apex_sharded(tmpdir):
 
 
 @RunIf(min_gpus=2, amp_native=True, fairscale=True)
-@pytest.mark.parametrize(["accelerator"], [("ddp_sharded", ), ("ddp_sharded_spawn", )])
+@pytest.mark.parametrize(["accelerator"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
 def test_ddp_choice_sharded_amp(tmpdir, accelerator):
     """
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded
@@ -269,3 +269,25 @@ def test_ddp_sharded_plugin_test_multigpu(tmpdir):
     )
 
     trainer.test(model)
+
+
+@pytest.mark.parametrize("clip_val", [0, 10])
+@RunIf(min_gpus=1, skip_windows=True, amp_native=True, fairscale=True)
+@mock.patch('fairscale.optim.oss.OSS.clip_grad_norm')
+def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir):
+    """
+    Ensure that clip gradients is only called if the value is greater than 0.
+    """
+    model = BoringModel()
+    trainer = Trainer(
+        accelerator='ddp_sharded',
+        gpus=1,
+        precision=16,
+        fast_dev_run=True,
+        gradient_clip_val=clip_val
+    )
+    trainer.fit(model)
+    if clip_val > 0:
+        mock_oss_clip_grad_norm.assert_called()
+    else:
+        mock_oss_clip_grad_norm.assert_not_called()
