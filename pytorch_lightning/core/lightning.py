@@ -16,8 +16,8 @@
 import collections
 import copy
 import inspect
+import logging
 import os
-import re
 import tempfile
 import uuid
 from abc import ABC
@@ -31,7 +31,6 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -43,6 +42,11 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.states import RunningStage
+
+log = logging.getLogger(__name__)
 
 
 class LightningModule(
@@ -219,6 +223,7 @@ class LightningModule(
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        add_dataloader_idx: bool = True,
     ):
         """
         Log a key, value
@@ -253,7 +258,10 @@ class LightningModule(
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
-            sync_dist_group: the ddp group
+            sync_dist_group: the ddp group to sync across
+            add_dataloader_idx: if True, appends the index of the current dataloader to
+                the name (when using multiple). If False, user needs to give unique names for
+                each dataloader to not mix values
         """
         if self._results is not None:
             # in any epoch end can't log step metrics (only epoch metric)
@@ -285,6 +293,9 @@ class LightningModule(
 
             training_type_plugin = self.trainer.training_type_plugin
 
+            # Determine if dataloader index should be added
+            dataloader_idx = self._current_dataloader_idx if add_dataloader_idx else None
+
             self._results.log(
                 name,
                 value,
@@ -300,7 +311,7 @@ class LightningModule(
                 sync_dist_op,
                 sync_dist_group,
                 training_type_plugin.reduce,
-                self._current_dataloader_idx,
+                dataloader_idx,
                 self.device,
             )
 
@@ -318,6 +329,7 @@ class LightningModule(
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        add_dataloader_idx: bool = True,
     ):
         """
         Log a dictonary of values at once
@@ -339,7 +351,10 @@ class LightningModule(
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
-            sync_dist_group: the ddp group:
+            sync_dist_group: the ddp group sync across
+            add_dataloader_idx: if True, appends the index of the current dataloader to
+                the name (when using multiple). If False, user needs to give unique names for
+                each dataloader to not mix values
         """
         for k, v in dictionary.items():
             self.log(
@@ -356,6 +371,7 @@ class LightningModule(
                 sync_dist_op=sync_dist_op,
                 tbptt_pad_token=tbptt_pad_token,
                 tbptt_reduce_fx=tbptt_reduce_fx,
+                add_dataloader_idx=add_dataloader_idx
             )
 
     def write_prediction(
@@ -1205,10 +1221,10 @@ class LightningModule(
         Example::
 
             def training_step(...):
-                (opt_a, opt_b) = self.optimizers()
+                opt_a, opt_b = self.optimizers()
                 loss = ...
                 # automatically applies scaling, etc...
-                self.manual_backward(loss, opt_a)
+                self.manual_backward(loss)
                 opt_a.step()
         """
         if optimizer is not None:
@@ -1798,39 +1814,6 @@ class LightningModule(
             return AttributeDict()
         # prevent any change
         return copy.deepcopy(self._hparams_initial)
-
-    @hparams.setter
-    def hparams(self, hp: Union[dict, Namespace, Any]):
-        # TODO: remove this method in v1.3.0.
-        rank_zero_warn(
-            "The setter for self.hparams in LightningModule is deprecated since v1.1.0 and will be"
-            " removed in v1.3.0. Replace the assignment `self.hparams = hparams` with "
-            " `self.save_hyperparameters()`.", DeprecationWarning
-        )
-        hparams_assignment_name = self.__get_hparams_assignment_variable()
-        self._hparams_name = hparams_assignment_name
-        self._set_hparams(hp)
-        # this resolves case when user does not uses `save_hyperparameters` and do hard assignement in init
-        if not hasattr(self, "_hparams_initial"):
-            self._hparams_initial = copy.deepcopy(self._hparams)
-
-    def __get_hparams_assignment_variable(self):
-        """
-        looks at the code of the class to figure out what the user named self.hparams
-        this only happens when the user explicitly sets self.hparams
-        """
-        try:
-            class_code = inspect.getsource(self.__class__)
-            lines = class_code.split("\n")
-            for line in lines:
-                line = re.sub(r"\s+", "", line, flags=re.UNICODE)
-                if ".hparams=" in line:
-                    return line.split("=")[1]
-        # todo: specify the possible exception
-        except Exception:
-            return "hparams"
-
-        return None
 
     @property
     def model_size(self) -> float:

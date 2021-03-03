@@ -30,7 +30,6 @@ if TYPE_CHECKING:
 
     from pytorch_lightning.trainer.trainer import Trainer
 
-
 _STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
 
 
@@ -225,9 +224,7 @@ class Accelerator(object):
         with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
             return self.training_type_plugin.predict(*args)
 
-    def training_step_end(
-        self, output: _STEP_OUTPUT_TYPE
-    ) -> _STEP_OUTPUT_TYPE:
+    def training_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the training step
 
         Args:
@@ -235,9 +232,7 @@ class Accelerator(object):
         """
         return self.training_type_plugin.training_step_end(output)
 
-    def test_step_end(
-        self, output: _STEP_OUTPUT_TYPE
-    ) -> _STEP_OUTPUT_TYPE:
+    def test_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the test step
 
         Args:
@@ -245,9 +240,7 @@ class Accelerator(object):
         """
         return self.training_type_plugin.test_step_end(output)
 
-    def validation_step_end(
-        self, output: _STEP_OUTPUT_TYPE
-    ) -> _STEP_OUTPUT_TYPE:
+    def validation_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the validation step
 
         Args:
@@ -367,7 +360,7 @@ class Accelerator(object):
         return None
 
     @property
-    def precision(self) -> int:
+    def precision(self) -> Union[str, int]:
         return self.precision_plugin.precision
 
     @property
@@ -401,9 +394,7 @@ class Accelerator(object):
         """
         return self.training_type_plugin.broadcast(obj, src)
 
-    def all_gather(
-        self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
-    ) -> torch.Tensor:
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """
         Function to gather a tensor from several distributed processes.
 

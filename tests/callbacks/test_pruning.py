@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import platform
 from collections import OrderedDict
 from logging import INFO
 from unittest import mock
@@ -27,6 +26,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):
@@ -153,11 +153,9 @@ def test_pruning_callback(
     )
 
 
+@RunIf(special=True)
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
 @pytest.mark.parametrize("use_global_unstructured", [False, True])
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1", reason="test should be run outside of pytest"
-)
 def test_pruning_callback_ddp(tmpdir, use_global_unstructured, parameters_to_prune):
     train_with_pruning_callback(
         tmpdir,
@@ -168,13 +166,12 @@ def test_pruning_callback_ddp(tmpdir, use_global_unstructured, parameters_to_pru
     )
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(min_gpus=2, skip_windows=True)
 def test_pruning_callback_ddp_spawn(tmpdir):
     train_with_pruning_callback(tmpdir, use_global_unstructured=True, accelerator="ddp_spawn", gpus=2)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_pruning_callback_ddp_cpu(tmpdir):
     train_with_pruning_callback(tmpdir, parameters_to_prune=True, accelerator="ddp_cpu", num_processes=2)
 

@@ -281,11 +281,11 @@ class EpochResultStore:
             # attach capture batch_size
             Result.attach_batch_size(self._batch_size, hook_result)
 
-            hook_result.detach()
+            hook_result = hook_result.detach()
             if self.trainer.move_metrics_to_cpu:
-                hook_result.cpu()
+                hook_result = hook_result.cpu()
             elif self.trainer._distrib_type == DistributedType.DP:
-                hook_result.to(torch.device("cuda", self.trainer.root_gpu))
+                hook_result = hook_result.to(torch.device("cuda", self.trainer.root_gpu))
 
             self._internals[fx_name].append(hook_result, info)
 

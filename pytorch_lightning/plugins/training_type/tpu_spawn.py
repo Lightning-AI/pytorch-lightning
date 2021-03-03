@@ -1,9 +1,23 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import io
 import os
 import re
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
+import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -113,7 +127,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._model.to(xm.xla_device())
 
     def barrier(self, name: Optional[str] = None) -> None:
-        rendezvous(f"pl.Trainer.{name}")
+        if torch_distrib.is_initialized():
+            rendezvous(f"pl.Trainer.{name}")
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         # TODO: is there a better way than accessing callback through model -> trainer -> callback?
@@ -131,13 +146,25 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                xm.save(self.lightning_module.state_dict(), last_path)
+                self.save(self.lightning_module.state_dict(), last_path)
 
             if self.global_rank == 0:
                 # todo, pass complete checkpoint as state dictionary
                 self.mp_queue.put(best_model_path)
                 self.mp_queue.put(last_path)
                 self.mp_queue.put(results)
+
+    def save(self, state_dict: Dict, path: str) -> None:
+        """
+        Saving with ``xm.save`` can be unstable and miss the rendez-vous after ``torch.save``.
+        The rendez-vous doesn't affect directly saving.
+        We can ignore the ``RuntimeError`` to reduce friction with TPUs.
+        """
+        try:
+            xm.save(state_dict, path)
+        except RuntimeError as e:
+            if "Failed to meet rendezvous" not in str(e):
+                raise e
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         buffer = io.BytesIO()
@@ -285,4 +312,4 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # dump states as a checkpoint dictionary object
         _checkpoint = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
-        xm.save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)
+        self.save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)
