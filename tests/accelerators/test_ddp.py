@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.plugins import DDPPlugin
 from tests.accelerators import ddp_model, DDPLauncher
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -91,7 +93,6 @@ def test_torch_distributed_backend_env_variables(tmpdir):
     _environ = {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined", "CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}
     with patch.dict(os.environ, _environ), \
          patch('torch.cuda.device_count', return_value=2):
-
         with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
             model = BoringModel()
             trainer = Trainer(
@@ -102,3 +103,30 @@ def test_torch_distributed_backend_env_variables(tmpdir):
                 logger=False,
             )
             trainer.fit(model)
+
+
+@pytest.mark.parametrize('move_to_device_pre_dispatch_enabled', [False, True])
+@mock.patch('pytorch_lightning.plugins.DDPPlugin.model_to_device', autospec=True)
+def test_move_to_device_in_pre_dispatch(mock_model_to_device, move_to_device_pre_dispatch_enabled, tmpdir):
+    """
+    Test if ``call_move_to_device_hook_in_pre_dispatch`` is disabled we do not move to device till later
+    in training.
+    """
+
+    class TestPropertyPlugin(DDPPlugin):
+
+        @property
+        def call_move_to_device_hook_in_pre_dispatch(self) -> bool:
+            return move_to_device_pre_dispatch_enabled
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, accelerator='ddp', plugins=TestPropertyPlugin(), num_processes=1
+    )
+    trainer.fit(model)
+
+    # Check if mocked device was called. Since we're on CPU, model_to_device does nothing anyway.
+    if move_to_device_pre_dispatch_enabled:
+        mock_model_to_device.assert_called()
+    else:
+        mock_model_to_device.assert_not_called()

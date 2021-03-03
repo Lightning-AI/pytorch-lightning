@@ -43,7 +43,6 @@ if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
 
-
 log = logging.getLogger(__name__)
 
 
@@ -253,12 +252,21 @@ class DDPPlugin(ParallelPlugin):
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
-        # move the model to the correct device
-        self.model_to_device()
+        if self.call_move_to_device_hook_in_pre_dispatch:
+            # move the model to the correct device
+            self.model_to_device()
 
         self.configure_ddp()
 
         self.barrier()
+
+    @property
+    def call_move_to_device_hook_in_pre_dispatch(self) -> bool:
+        """
+        Call the ``model_to_device`` function within pre_dispatch if this is set to True.
+        Useful for when plugin would like to call model_to_device at another time, or skip the call.
+        """
+        return True
 
     def post_dispatch(self):
         if "WORLD_SIZE" in os.environ:
