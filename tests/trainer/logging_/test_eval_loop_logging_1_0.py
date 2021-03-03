@@ -110,7 +110,6 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
             return acc
 
         def validation_step(self, batch, batch_idx):
-            self.batch_idx = batch_idx
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
             self.log('c', acc)
