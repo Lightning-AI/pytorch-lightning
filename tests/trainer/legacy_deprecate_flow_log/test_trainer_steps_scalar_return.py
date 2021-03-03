@@ -226,7 +226,7 @@ def test_dpp_reduce_mean_pbar(tmpdir):
 
     trainer = Trainer(
         max_epochs=1,
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=10,
         limit_test_batches=2,
         limit_val_batches=2,
