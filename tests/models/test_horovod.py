@@ -13,7 +13,6 @@
 # limitations under the License.
 import json
 import os
-import platform
 import shlex
 import subprocess
 import sys
@@ -29,10 +28,10 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 if _HOROVOD_AVAILABLE:
     import horovod
@@ -40,14 +39,6 @@ if _HOROVOD_AVAILABLE:
 
 # This script will run the actual test model training in parallel
 TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data', 'horovod', 'train_default_model.py')
-
-try:
-    from horovod.common.util import nccl_built
-    nccl_built()
-except (ImportError, ModuleNotFoundError, AttributeError):
-    _HOROVOD_NCCL_AVAILABLE = False
-finally:
-    _HOROVOD_NCCL_AVAILABLE = True
 
 
 def _run_horovod(trainer_options, on_gpu=False):
@@ -67,7 +58,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     assert exit_code == 0
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
@@ -84,7 +75,7 @@ def test_horovod_cpu(tmpdir):
     _run_horovod(trainer_options)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_horovod_cpu_implicit(tmpdir):
     """Test Horovod without specifying a backend, inferring from env set by `horovodrun`."""
     trainer_options = dict(
@@ -100,9 +91,7 @@ def test_horovod_cpu_implicit(tmpdir):
     _run_horovod(trainer_options)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
 def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
@@ -120,11 +109,8 @@ def test_horovod_multi_gpu(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@pytest.mark.skip(reason="Horovod has a problem with broadcast when using apex?")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
+@pytest.mark.skip(reason="Horovod has a problem with broadcast when using apex?")  # todo
+@RunIf(min_gpus=2, skip_windows=True, amp_apex=True, horovod_nccl=True)
 def test_horovod_apex(tmpdir):
     """Test Horovod with multi-GPU support using apex amp."""
     trainer_options = dict(
@@ -144,11 +130,8 @@ def test_horovod_apex(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@pytest.mark.skip(reason="Skip till Horovod fixes integration with Native torch.cuda.amp")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires torch.cuda.amp")
+@pytest.mark.skip(reason="Skip till Horovod fixes integration with Native torch.cuda.amp")  # todo
+@RunIf(min_gpus=2, skip_windows=True, amp_native=True, horovod_nccl=True)
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
@@ -168,9 +151,7 @@ def test_horovod_amp(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not _HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
-@RunIf(min_gpus=1)
+@RunIf(min_gpus=1, skip_windows=True, horovod_nccl=True)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
 
     class TestTrainingStepModel(BoringModel):
@@ -198,7 +179,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
     tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_horovod_multi_optimizer(tmpdir):
     model = BasicGAN()
 
@@ -232,8 +213,7 @@ def test_horovod_multi_optimizer(tmpdir):
 
 # TODO: unclear Horovod failure...
 @pytest.mark.skip(reason="unclear Horovod failure...")
-@pytest.mark.skipif(not _HOROVOD_AVAILABLE, reason="Horovod is unavailable")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@RunIf(skip_windows=True, horovod=True)
 def test_result_reduce_horovod(tmpdir):
     """Make sure result logging works with Horovod.
 
@@ -283,8 +263,7 @@ def test_result_reduce_horovod(tmpdir):
 
 # TODO: unclear Horovod failure...
 @pytest.mark.skip(reason="unclear Horovod failure...")
-@pytest.mark.skipif(not _HOROVOD_AVAILABLE, reason="Horovod is unavailable")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@RunIf(skip_windows=True, horovod=True)
 def test_accuracy_metric_horovod():
     num_batches = 10
     batch_size = 16
@@ -335,7 +314,7 @@ def test_accuracy_metric_horovod():
     horovod.run(_compute_batch, np=2)
 
 
-# @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+# @RunIf(skip_windows=True)
 # def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
 #     model = BoringModel()
 #     model.configure_optimizers = model.configure_optimizers__multiple_schedulers

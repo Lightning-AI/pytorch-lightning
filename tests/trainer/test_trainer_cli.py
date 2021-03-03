@@ -13,7 +13,6 @@
 # limitations under the License.
 import inspect
 import pickle
-import sys
 from argparse import ArgumentParser, Namespace
 from unittest import mock
 
@@ -22,7 +21,7 @@ import pytest
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import argparse
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 @mock.patch('argparse.ArgumentParser.parse_args')
@@ -188,10 +187,7 @@ def test_argparse_args_parsing_gpus(cli_args, expected_gpu):
     assert trainer.data_parallel_device_ids == expected_gpu
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 7),
-    reason="signature inspection while mocking is not working in Python < 3.7 despite autospec"
-)
+@RunIf(min_python="3.7.0")
 @pytest.mark.parametrize(['cli_args', 'extra_args'], [
     pytest.param({}, {}),
     pytest.param({'logger': False}, {}),

@@ -16,7 +16,7 @@ import torch
 import pytorch_lightning as pl
 import tests.helpers.utils as tutils
 from tests.base import EvalModelTemplate
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 @RunIf(min_gpus=2)

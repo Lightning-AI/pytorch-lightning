@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 
 import pytest
 import torch
@@ -24,7 +23,7 @@ from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.helpers.datamodules import MNISTDataModule
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 from tests.helpers.utils import set_random_master_port
 
 
@@ -71,10 +70,7 @@ class SyncBNModule(LightningModule):
 
 # TODO: Fatal Python error: Bus error
 @pytest.mark.skip(reason="Fatal Python error: Bus error")
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_sync_batchnorm_ddp(tmpdir):
     seed_everything(234)
     set_random_master_port()

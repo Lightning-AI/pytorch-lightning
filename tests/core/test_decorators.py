@@ -16,7 +16,7 @@ import torch
 
 from pytorch_lightning.core.decorators import auto_move_data
 from tests.helpers import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 @RunIf(min_gpus=1)

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import platform
 from unittest import mock
 
 import pytest
@@ -24,7 +23,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_6:
     from pytorch_lightning.callbacks import StochasticWeightAveraging
@@ -115,10 +114,7 @@ def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_proc
     assert trainer.lightning_module == model
 
 
-@RunIf(min_gpus=2, min_torch="1.6.0")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, min_torch="1.6.0", special=True)
 def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp", gpus=2)
 
@@ -128,8 +124,7 @@ def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_spawn", gpus=2)
 
 
-@RunIf(min_torch="1.6.0")
-@pytest.mark.skipif(platform.system() == "Windows", reason="ddp_cpu is not available on Windows")
+@RunIf(min_torch="1.6.0", skip_windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
 

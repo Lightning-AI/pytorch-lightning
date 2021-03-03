@@ -18,7 +18,7 @@ import torch.nn as nn
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from tests.helpers import BoringModel
-from tests.helpers.skipif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class SubSubModule(DeviceDtypeModuleMixin):
