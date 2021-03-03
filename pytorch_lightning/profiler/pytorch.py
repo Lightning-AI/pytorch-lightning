@@ -201,7 +201,6 @@ class LegacyPyTorchProfiler(BaseProfiler):
         super().__init__(output_streams=streaming_out)
 
     def wrap_functions_into_rank_zero_only(self) -> None:
-        # TODO: what's the point of wrapping like this?
         self.start = rank_zero_only(self.start)
         self.stop = rank_zero_only(self.stop)
         self.summary = rank_zero_only(self.summary)
@@ -628,7 +627,7 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.context_names = {}
             self.running_stack = []
             self.profiler = None
-            self.lightning_module = None  # TODO: where is this set?
+            self.lightning_module = None  # set by ProfilerConnector
             self.register = None
 
             self.output_fname = output_filename
