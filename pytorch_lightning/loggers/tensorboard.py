@@ -46,9 +46,9 @@ class TensorBoardLogger(LightningLoggerBase):
     preinstalled.
 
     Example:
-    
+
     .. code-block:: python
-    
+
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import TensorBoardLogger
         logger = TensorBoardLogger("tb_logs", name="my_model")
