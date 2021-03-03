@@ -66,17 +66,17 @@ def test_trainer_state_while_running(tmpdir, extra_params):
         assert not model.called
     else:
         assert model.called == {'train', 'validation'}
-    assert trainer.state is TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED
 
     model = TestModel(TrainerState.FITTING)
     trainer.fit(model)
     assert model.called == {'train', 'validation'} if fdr else {'train', 'sanity', 'validation'}
-    assert trainer.state is TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED
 
     model = TestModel(TrainerState.TESTING)
     trainer.test(model)
     assert model.called == {'test'}
-    assert trainer.state is TrainerState.FINISHED
+    assert trainer.state == TrainerState.FINISHED
 
 
 @pytest.mark.parametrize(
