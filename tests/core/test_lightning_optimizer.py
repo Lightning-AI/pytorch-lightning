@@ -371,8 +371,6 @@ class OptimizerWithHooks(Optimizer):
 
 
 def test_lightning_optimizer_dont_delete_wrapped_optimizer(tmpdir):
-    """
-    """
 
     class TestModel(BoringModel):
 
