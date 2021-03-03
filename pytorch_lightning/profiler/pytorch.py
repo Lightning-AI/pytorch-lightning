@@ -134,6 +134,8 @@ class LegacyPyTorchProfiler(BaseProfiler):
                 # TODO; raise MisconfigurationException
                 pass
 
+        super().__init__()
+
         self.enabled = enabled
         self.record_functions = record_functions or self.RECORD_FUNCTIONS
         self.use_cuda = use_cuda
@@ -148,15 +150,15 @@ class LegacyPyTorchProfiler(BaseProfiler):
         self.export_to_chrome = export_to_chrome
         self.path_to_export_trace = path_to_export_trace
 
-        if export_to_chrome and path_to_export_trace is None:
+        if self.export_to_chrome and self.path_to_export_trace is None:
             rank_zero_warn(
-                "The exported trace would be save locally as `path_to_export_trace` is empty."
+                "The exported trace would be saved locally as `path_to_export_trace` is None."
                 " Note: Each functions will generate its own traced file."
             )
 
         if self.sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
-                f"Found sort_by_key: {sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
+                f"Found sort_by_key: {self.sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
         self.profiled_actions = {}
@@ -166,41 +168,34 @@ class LegacyPyTorchProfiler(BaseProfiler):
 
         self.output_fname = output_filename
         self.output_file = None
+
+        # the profiler can be used outside of lightning
+        # that's why we call `on_train_start` manually
         if local_rank is not None:
             self.on_train_start(local_rank=local_rank)
-            self.on_train_start = super().on_train_start
 
     def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
-        """
-        This function is used by the Trainer to inject local_rank with `DDP`
-        and `TensorBoardLogger` log_dir in the profiler.
-        """
-        self.local_rank = local_rank
+        super().on_train_start(local_rank=local_rank, log_dir=log_dir)
 
         # if the user didn't `path_to_export_trace`,
         # set it as TensorBoardLogger log_dir if exists
-
         if self.path_to_export_trace is None:
             self.path_to_export_trace = log_dir
 
         # when logging to `log.info`, only perform profiling on rank 0
-        if local_rank != 0 and self.output_fname is None:
-            self.wrap_functions_into_rank_zero_only()
+        if local_rank is not None and local_rank > 0 and self.output_fname is None:
+            self._rank_zero_only_wrap()
 
         if self.output_fname:
+            if '.txt' not in self.output_fname:
+                raise MisconfigurationException("`output_filename` should be a `.txt` file.")
             if local_rank is not None:
-                if '.txt' not in self.output_fname:
-                    raise MisconfigurationException("Log file should be .txt file.")
+                self.output_fname = self.output_fname.replace(".txt", f"_{local_rank}.txt")
+            self.output_file = get_filesystem(self.output_fname).open(self.output_fname, "w")
 
-                self.output_fname = self.output_fname.replace(".txt", f"_{self.local_rank}.txt")
+        self.write_streams = [self.output_file.write] if self.output_file else [log.info]
 
-            fs = get_filesystem(self.output_fname)
-            self.output_file = fs.open(self.output_fname, "w")
-
-        streaming_out = [self.output_file.write] if self.output_file else [log.info]
-        super().__init__(output_streams=streaming_out)
-
-    def wrap_functions_into_rank_zero_only(self) -> None:
+    def _rank_zero_only_wrap(self) -> None:
         self.start = rank_zero_only(self.start)
         self.stop = rank_zero_only(self.stop)
         self.summary = rank_zero_only(self.summary)
@@ -211,7 +206,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
             return
 
         if len(self.running_stack) > 0:
-            self._stop(self.running_stack[-1])
+            self._stop()
         self.running_stack.append(action_name)
 
         self.context_names[action_name] = "/".join(self.running_stack)
@@ -258,7 +253,7 @@ class LegacyPyTorchProfiler(BaseProfiler):
             return
 
         if len(self.running_stack) == 0 or self.running_stack[-1] != action_name:
-            raise ValueError(  # pragma: no-cover
+            raise ValueError(
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
         self._stop(triggered_by_stop_function=True)
@@ -287,21 +282,17 @@ class LegacyPyTorchProfiler(BaseProfiler):
                 )
                 function_events.export_chrome_trace(path_to_trace)
 
-            if self.emit_nvtx:
-                return recorded_stats
             data = function_events.key_averages(group_by_input_shapes=self.group_by_input_shapes)
             table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
             recorded_stats[action_name] = table
         return recorded_stats
 
     def summary(self) -> str:
-        if not self.enabled:
+        if not self.enabled or self.emit_nvtx:
             return ""
 
         local_rank = 0 if self.local_rank is None else self.local_rank
         recorded_stats = self._summary(local_rank)
-        if not recorded_stats:
-            return ""
 
         output = ["Profiler Report"]
         for action, stats in recorded_stats.items():
@@ -602,6 +593,8 @@ if _TORCH_GREATER_EQUAL_1_8:
                     f"Found sort_by_key: {sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
                 )
 
+            super().__init__()
+
             self.output_filename = output_filename
             self.enabled = enabled
             self.use_cpu = use_cpu
@@ -635,8 +628,7 @@ if _TORCH_GREATER_EQUAL_1_8:
             self.output_fname = output_filename
             self.output_file = None
             if local_rank is not None:
-                super().on_train_start(local_rank=local_rank)  # TODO: why super()?
-                self.on_train_start = super().on_train_start
+                self.on_train_start(local_rank=local_rank)
 
         def _summary(self, local_rank: int) -> dict:
             self.profiler.__exit__(None, None, None)
@@ -647,8 +639,8 @@ if _TORCH_GREATER_EQUAL_1_8:
             table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
             return {self.START_ACTION: table}
 
-        def on_train_start(self, local_rank: Optional[str] = None, log_dir: Optional[str] = None) -> None:
-            super().on_train_start(local_rank=local_rank, log_dir=log_dir)  # TODO: will this call the correct __init__?
+        def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
+            super().on_train_start(local_rank=local_rank, log_dir=log_dir)
             if self.record_module_names and self.lightning_module is not None:
                 self.register = RegisterRecordFunction(self.lightning_module)
                 self.register.__enter__()
