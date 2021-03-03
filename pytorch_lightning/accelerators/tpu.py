@@ -31,14 +31,10 @@ class TPUAccelerator(Accelerator):
             raise MisconfigurationException("TPUs only support a single tpu core or tpu spawn training.")
         return super().setup(trainer, model)
 
-    def run_optimizer_step(
-        self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
-    ) -> None:
-        xm.optimizer_step(optimizer, optimizer_args={'closure': lambda_closure, **kwargs})
+    def run_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs):
+        xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
 
-    def all_gather(
-        self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
-    ) -> torch.Tensor:
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """
         Function to gather a tensor from several distributed processes
         Args:
@@ -48,4 +44,7 @@ class TPUAccelerator(Accelerator):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        return xm.all_gather(tensor, group=group, sync_grads=sync_grads)
+        # todo: Add support for backward with all_gather
+        if torch.distributed.is_initialized():
+            return xm.all_gather(tensor, group=group, sync_grads=sync_grads)
+        return tensor

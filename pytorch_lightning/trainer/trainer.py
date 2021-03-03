@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Trainer to automate the training."""
+import logging
 import warnings
 from itertools import count
 from pathlib import Path
@@ -20,7 +21,6 @@ from typing import Dict, Iterable, List, Optional, Union
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -56,13 +56,14 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
+log = logging.getLogger(__name__)
 # warnings to ignore in trainer
 warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, '
@@ -736,9 +737,9 @@ class Trainer(
     def track_output_for_epoch_end(self, outputs, output):
         if output is not None:
             if isinstance(output, Result):
-                output.detach()
+                output = output.detach()
                 if self.move_metrics_to_cpu:
-                    output.cpu()
+                    output = output.cpu()
             elif isinstance(output, dict):
                 output = recursive_detach(output, to_cpu=self.move_metrics_to_cpu)
             elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:
@@ -911,8 +912,8 @@ class Trainer(
                     f'specify a path for a checkpoint .test(ckpt_path=PATH)'
                 )
                 return {}
-            if not self._device_type == DeviceType.TPU:
-                self.accelerator.barrier()
+
+            self.training_type_plugin.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])

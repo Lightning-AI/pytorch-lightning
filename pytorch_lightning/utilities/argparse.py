@@ -17,7 +17,7 @@ from argparse import ArgumentParser, Namespace
 from contextlib import suppress
 from typing import Any, Dict, List, Tuple, Union
 
-from pytorch_lightning.utilities import parsing
+from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_str
 
 
 def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
@@ -175,9 +175,9 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
             arg_kwargs.update(nargs="?", const=True)
             # if the only arg type is bool
             if len(arg_types) == 1:
-                use_type = parsing.str_to_bool
+                use_type = str_to_bool
             elif str in arg_types:
-                use_type = parsing.str_to_bool_or_str
+                use_type = str_to_bool_or_str
             else:
                 # filter out the bool as we need to use more general
                 use_type = [at for at in arg_types if at is not bool][0]

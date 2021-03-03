@@ -16,6 +16,7 @@ TensorBoard Logger
 ------------------
 """
 
+import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
@@ -24,12 +25,13 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+
+log = logging.getLogger(__name__)
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf

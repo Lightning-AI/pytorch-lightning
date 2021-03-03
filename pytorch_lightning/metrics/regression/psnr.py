@@ -51,6 +51,10 @@ class PSNR(Metric):
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
 
+    Raises:
+        ValueError:
+            If ``dim`` is not ``None`` and ``data_range`` is not given.
+
     Example:
 
         >>> from pytorch_lightning.metrics import PSNR

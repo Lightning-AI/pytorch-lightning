@@ -9,9 +9,9 @@ from torch.optim import Optimizer
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _DEEPSPEED_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_deepspeed_lightning_module(tmpdir):
@@ -31,7 +31,7 @@ def test_deepspeed_lightning_module(tmpdir):
     assert model.dtype == torch.double
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+@RunIf(min_gpus=1)
 def test_deepspeed_lightning_module_precision(tmpdir):
     """
         Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision 16.
@@ -80,7 +80,7 @@ def deepspeed_zero_config(deepspeed_config):
     return {**deepspeed_config, 'zero_allow_untested_optimizer': True, 'zero_optimization': {'stage': 2}}
 
 
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+@RunIf(deepspeed=True)
 @pytest.mark.parametrize("input", ("deepspeed", DeepSpeedPlugin))
 def test_deepspeed_plugin_string(tmpdir, input):
     """
@@ -97,7 +97,7 @@ def test_deepspeed_plugin_string(tmpdir, input):
     assert trainer.accelerator.training_type_plugin.parallel_devices == [torch.device('cpu')]
 
 
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+@RunIf(deepspeed=True)
 def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
     """
         Test to ensure that the plugin can be passed via a string with an environment variable.
@@ -119,14 +119,13 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
     assert plugin.config == deepspeed_config
 
 
+@RunIf(amp_native=True, deepspeed=True)
 @pytest.mark.parametrize(
     "amp_backend", [
-        pytest.param("native", marks=pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")),
-        pytest.param("apex", marks=pytest.mark.skipif(not _APEX_AVAILABLE, reason="Requires Apex")),
+        pytest.param("native", marks=RunIf(amp_native=True)),
+        pytest.param("apex", marks=RunIf(amp_apex=True)),
     ]
 )
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
 def test_deepspeed_precision_choice(amp_backend, tmpdir):
     """
         Test to ensure precision plugin is also correctly chosen.
@@ -142,7 +141,7 @@ def test_deepspeed_precision_choice(amp_backend, tmpdir):
     assert trainer.accelerator.precision_plugin.precision == 16
 
 
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+@RunIf(deepspeed=True)
 def test_deepspeed_with_invalid_config_path(tmpdir):
     """
         Test to ensure if we pass an invalid config path we throw an exception.
@@ -154,7 +153,7 @@ def test_deepspeed_with_invalid_config_path(tmpdir):
         DeepSpeedPlugin(config='invalid_path.json')
 
 
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+@RunIf(deepspeed=True)
 def test_deepspeed_with_env_path(tmpdir, monkeypatch, deepspeed_config):
     """
         Test to ensure if we pass an env variable, we load the config from the path.
@@ -167,7 +166,7 @@ def test_deepspeed_with_env_path(tmpdir, monkeypatch, deepspeed_config):
     assert plugin.config == deepspeed_config
 
 
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+@RunIf(deepspeed=True)
 def test_deepspeed_defaults(tmpdir):
     """
     Ensure that defaults are correctly set as a config for DeepSpeed if no arguments are passed.
@@ -177,7 +176,7 @@ def test_deepspeed_defaults(tmpdir):
     assert isinstance(plugin.config["zero_optimization"], dict)
 
 
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+@RunIf(deepspeed=True)
 def test_invalid_deepspeed_defaults_no_precision(tmpdir):
     """
         Test to ensure that using defaults, if precision is not set to 16, we throw an exception.
@@ -194,8 +193,7 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+@RunIf(min_gpus=1, deepspeed=True)
 def test_warn_deepspeed_override_backward(tmpdir):
     """
         Test to ensure that if the backward hook in the LightningModule is overridden, we throw a warning.
@@ -212,8 +210,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+@RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_run_configure_optimizers(tmpdir):
     """
         Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
@@ -245,8 +242,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
+@RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     """
         Test to ensure deepspeed works correctly when passed a DeepSpeed config object including optimizers/schedulers
@@ -280,8 +276,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+@RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_custom_precision_params(tmpdir):
     """
         Ensure if we modify the FP16 parameters via the DeepSpeedPlugin, the deepspeed config contains these changes.
@@ -311,8 +306,7 @@ def test_deepspeed_custom_precision_params(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+@RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
     """
         Ensure if we use a config and turn off cpu_offload, that this is set to False within the config.
@@ -332,12 +326,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True, deepspeed=True)
 def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     """
         Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.

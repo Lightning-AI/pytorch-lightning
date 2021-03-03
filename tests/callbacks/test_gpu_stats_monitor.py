@@ -24,9 +24,10 @@ from pytorch_lightning.loggers.csv_logs import ExperimentWriter
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_gpu_stats_monitor(tmpdir):
     """
     Test GPU stats are logged using a logger.
@@ -76,7 +77,7 @@ def test_gpu_stats_monitor_cpu_machine(tmpdir):
         GPUStatsMonitor()
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_gpu_stats_monitor_no_logger(tmpdir):
     """
     Test GPUStatsMonitor with no logger in Trainer.
@@ -96,7 +97,7 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
     """
     Test GPUStatsMonitor raises a warning when not training on GPU device.
