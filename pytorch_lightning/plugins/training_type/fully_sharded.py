@@ -22,7 +22,7 @@ from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
-    from fairscale.nn import enable_wrap
+    from fairscale.nn import auto_wrap, enable_wrap, wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
     from pytorch_lightning.overrides.fairscale import (
@@ -42,6 +42,9 @@ class FullyShardedPlugin(DDPPlugin):
         fp32_reduce_scatter: Optional[bool] = None,
         compute_dtype: Optional[torch.dtype] = None,
         bucket_cap_mb: int = 25,
+        automatic_module_wrap: bool = False,
+        min_num_params: int = 1e8,
+        activation_checkpoint: bool = False,
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
@@ -112,6 +115,9 @@ class FullyShardedPlugin(DDPPlugin):
         self.fp32_reduce_scatter = fp32_reduce_scatter
         self.compute_dtype = compute_dtype
         self.bucket_cap_mb = bucket_cap_mb
+        self.automatic_module_wrap = automatic_module_wrap
+        self.min_num_params = min_num_params
+        self.activation_checkpoint = activation_checkpoint
         self._process_group = None
 
     @property
@@ -128,18 +134,6 @@ class FullyShardedPlugin(DDPPlugin):
             torch.cuda.set_device(self.root_device)
 
         with enable_wrap(
-            cpu_offload=self.cpu_offload,
-            flatten_parameters=self.flatten_parameters,
-            move_grads_to_cpu=self.move_grads_to_cpu,
-            mixed_precision=precision == "mixed",
-            process_group=self.process_group
-        ):
-            # todo: this should somehow be incorporated as a general hook.
-            # currently this also means you have to use fully sharded to load the model as well.
-            self.lightning_module.trainer.call_hook("on_distributed_model_setup")
-
-        self.model = FullyShardedDataParallel(
-            LightningFullyShardedDataModule(self.model),
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
@@ -149,8 +143,26 @@ class FullyShardedPlugin(DDPPlugin):
             fp32_reduce_scatter=self.fp32_reduce_scatter,
             compute_dtype=self.compute_dtype,
             bucket_cap_mb=self.bucket_cap_mb,
-        )
+        ):
+            # Allow user to manually wrap the lightning modules, and any internal modules
+            # todo: this should somehow be incorporated as a general hook.
+            # currently this also means you have to use fully sharded to load the model as well.
+            self.lightning_module.trainer.call_hook("on_distributed_model_setup")
+            if self.automatic_module_wrap:
+                self.model = auto_wrap(
+                    LightningFullyShardedDataModule(self.model),
+                    min_num_params=self.min_num_params,
+                    activation_checkpoint=self.activation_checkpoint
+                )
+                if not isinstance(self.model, FullyShardedDataParallel):
+                    self.model = wrap(self.model, activation_checkpoint=self.activation_checkpoint)
+            else:
+                self.model = wrap(
+                    LightningFullyShardedDataModule(self.model), activation_checkpoint=self.activation_checkpoint
+                )
+
         if not self.cpu_offload:
+            # When using CPU Offload, FSDP will manage the CUDA movement for us
             super().model_to_device()
         # setup optimizers after fully sharded has wrapped the lightning module
         self.lightning_module.trainer.accelerator.setup_optimizers(self.lightning_module.trainer)

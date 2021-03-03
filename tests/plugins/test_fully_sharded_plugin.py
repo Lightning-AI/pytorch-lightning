@@ -5,7 +5,6 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import FullyShardedNativeMixedPrecisionPlugin, FullyShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -16,29 +15,16 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import auto_wrap, FullyShardedDataParallel
 
 
-@pytest.mark.parametrize(["plugin"], [("ddp_fully_sharded", )])
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
-def test_sharded_ddp_choice(tmpdir, plugin):
+def test_sharded_ddp_choice(tmpdir):
     """
         Test to ensure that plugin is correctly chosen
     """
-
-    class CB(Callback):
-
-        def on_fit_start(self, trainer, pl_module):
-            if plugin == 'ddp_fully_sharded':
-                assert isinstance(trainer.accelerator.training_type_plugin, FullyShardedPlugin)
-            raise SystemExit()
-
-    model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        plugins=plugin,
-        callbacks=[CB()],
+        plugins='ddp_fully_sharded',
     )
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    assert isinstance(trainer.accelerator.training_type_plugin, FullyShardedPlugin)
 
 
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
@@ -60,36 +46,24 @@ def test_invalid_apex_sharded(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.parametrize(["plugin"], [("ddp_fully_sharded", )])
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch('torch.cuda.device_count', return_value=1)
 @mock.patch('torch.cuda.is_available', return_value=True)
 @RunIf(amp_native=True)
-def test_ddp_choice_sharded_amp(device_count_mock, mock_cuda_available, plugin, tmpdir):
+def test_ddp_choice_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded
     """
-
-    class CB(Callback):
-
-        def on_fit_start(self, trainer, pl_module):
-            if plugin == 'ddp_fully_sharded':
-                assert isinstance(trainer.accelerator.training_type_plugin, FullyShardedPlugin)
-            assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
-            raise SystemExit()
-
-    model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
         gpus=1,
         precision=16,
-        plugins=plugin,
-        callbacks=[CB()],
+        plugins='ddp_fully_sharded',
     )
 
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    assert isinstance(trainer.accelerator.training_type_plugin, FullyShardedPlugin)
+    assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
 
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
@@ -98,7 +72,13 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly when using a single GPU.
     """
-    model = BoringModel()
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.accelerator_model.parameters(), lr=0.1)
+
+    model = TestModel()
     trainer = Trainer(
         gpus=1,
         plugins='ddp_fully_sharded',
@@ -111,27 +91,32 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     _assert_save_equality(tmpdir, trainer)
 
 
+@pytest.mark.parametrize('automatic_module_wrap', [True, False])
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
 @RunIf(min_gpus=1, skip_windows=True)
-def test_fully_sharded_plugin_checkpoint_autowrap(tmpdir):
+def test_fully_sharded_plugin_checkpoint_manual_autowrap(automatic_module_wrap, tmpdir):
     """
-        Test to ensure that checkpoint is saved correctly when using auto_wrap.
+        Test to ensure that checkpoint is saved correctly when using automatic, and manual auto_wrap.
     """
 
     class TestModel(BoringModel):
 
         def on_distributed_model_setup(self) -> None:
-            self.layer = auto_wrap(self.layer, min_num_params=1)
+            if not automatic_module_wrap:
+                self.layer = auto_wrap(self.layer, min_num_params=1)
 
         def on_train_start(self) -> None:
             assert isinstance(self.layer, FullyShardedDataParallel)
             assert isinstance(self.accelerator_model, FullyShardedDataParallel)
 
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.accelerator_model.parameters(), lr=0.1)
+
     model = TestModel()
 
     trainer = Trainer(
         gpus=1,
-        plugins='ddp_fully_sharded',
+        plugins=FullyShardedPlugin(automatic_module_wrap=automatic_module_wrap, min_num_params=1),
         fast_dev_run=True,
         precision=16,
     )
@@ -150,7 +135,13 @@ def test_fully_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly when using multiple GPUs
     """
-    model = BoringModel()
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.accelerator_model.parameters(), lr=0.1)
+
+    model = TestModel()
     trainer = Trainer(
         gpus=2,
         plugins='fully_sharded',
