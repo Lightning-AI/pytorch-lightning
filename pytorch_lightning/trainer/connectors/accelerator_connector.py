@@ -496,7 +496,7 @@ class AcceleratorConnector(object):
                 # define the max CPU available
                 self.num_processes = os.cpu_count()
         # special case with TPUs
-        elif self.distributed_backend == 'tpu':
+        elif self.distributed_backend == 'tpu' or self.tpu_cores is not None:
             self._device_type = DeviceType.TPU
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)

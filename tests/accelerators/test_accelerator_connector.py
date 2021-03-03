@@ -34,7 +34,6 @@ from pytorch_lightning.plugins import (
     SingleDevicePlugin,
 )
 from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
-from pytorch_lightning.utilities import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -425,11 +424,7 @@ def test_plugin_accelerator_choice(accelerator, plugin):
     ('ddp_spawn', DDPSpawnPlugin),
     ('ddp_sharded', DDPShardedPlugin),
     ('ddp_sharded_spawn', DDPSpawnShardedPlugin),
-    pytest.param(
-        'deepspeed',
-        DeepSpeedPlugin,
-        marks=pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-    ),
+    pytest.param('deepspeed', DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
 ])
 @mock.patch('torch.cuda.is_available', return_value=True)
 @mock.patch('torch.cuda.device_count', return_value=2)
