@@ -118,6 +118,13 @@ class PyTorchProfiler(BaseProfiler):
 
             local_rank: When running in distributed setting, local_rank is used for each process
                 to write to their own file if `output_fname` is provided.
+
+        Raises:
+            MisconfigurationException:
+                If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``, or
+                if log file is not a ``.txt`` file.
+            ValueError:
+                If you attempt to stop recording an action which was never started.
         """
 
         self.profiled_actions = {}

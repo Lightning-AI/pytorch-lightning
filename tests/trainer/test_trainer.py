@@ -1550,11 +1550,7 @@ def test_pytorch_profiler_nested(tmpdir):
         assert pa[n] == expected_[n]
 
 
-@pytest.mark.skip(reason="This tests need to be run with nvprof")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires a GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=1, special=True)
 def test_pytorch_profiler_nested_emit_nvtx():
     """
     This test check emit_nvtx is correctly supported
