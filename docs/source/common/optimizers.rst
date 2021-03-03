@@ -21,9 +21,20 @@ Manual optimization
 For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable
 to manually manage the optimization process. To do so, do the following:
 
-* Override your LightningModule ``automatic_optimization`` property to return ``False``
+* Set the ``automatic_optimization`` property to ``False`` in your ``LightningModule`` ``__init__`` function
 * Drop or ignore the optimizer_idx argument
 * Use ``self.manual_backward(loss)`` instead of ``loss.backward()``.
+
+.. testcode:: python
+
+    from pytorch_lightning import LightningModule
+
+    class MyModel(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            # Important: This property activate ``manual optimization`` for your model
+            self.automatic_optimization = False
 
 .. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with ``optimizer.zero_grad()``, gradient accumulation, model toggling, etc..
 
