@@ -51,7 +51,7 @@ to manually manage the optimization process. To do so, do the following:
 
 Here is the same example as above using a ``closure``.
 
-.. code-block:: python
+.. testcode:: python
 
     def training_step(batch, batch_idx, optimizer_idx):
         opt = self.optimizers()
@@ -70,7 +70,7 @@ Here is the same example as above using a ``closure``.
 .. tip:: Be careful where you call ``zero_grad`` or your model won't converge. It is good pratice to call ``zero_grad`` before ``manual_backward``.
 
 
-.. code-block:: python
+.. testcode:: python
 
     import torch
     from pytorch_lightning import LightningModule
@@ -80,8 +80,8 @@ Here is the same example as above using a ``closure``.
 
         def __init__(self):
             super().__init__()
-            self.G = Generator(...)
-            self.D = Discriminator(...)
+            self.G = Generator()
+            self.D = Discriminator()
 
         @property
         def automatic_optimization(self):
@@ -91,13 +91,13 @@ Here is the same example as above using a ``closure``.
         def generator_loss(self, d_z: Tensor) -> Tensor:
             # the closer ``d_z`` is from 1,
             # the better the generator is able to fool the discriminator
-            return -1 * tr.log(d_z).mean()
+            return -1 * torch.log(d_z).mean()
 
         def discriminator_loss(self, d_x: Tensor, d_z: Tensor) -> Tensor:
             # the closer is ``d_x`` from 1 and ``dz`` from 0,
             # the better the discriminator is able to distinguish
             # true data from generated ones
-            return -1 * (tr.log(d_x).mean() + tr.log(1 - d_z).mean())
+            return -1 * (torch.log(d_x).mean() + torch.log(1 - d_z).mean())
 
         def sample_z(self, n) -> Tensor:
             sample = self._Z.sample((n,))
@@ -167,7 +167,7 @@ Setting ``sync_grad`` to ``False`` will block this synchronization and improve y
 Here is an example for advanced use-case.
 
 
-.. code-block:: python
+.. testcode:: python
 
 
     # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
