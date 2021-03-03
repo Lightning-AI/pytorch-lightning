@@ -73,8 +73,8 @@ Here is the same example as above using a ``closure``.
 .. testcode:: python
 
     import torch
+    from torch import Tensor
     from pytorch_lightning import LightningModule
-    from torch.utils.data import Dataset
 
     class SimpleGAN(LightningModule):
 
