@@ -222,7 +222,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             last_path = None
             # TODO: is there a better way than accessing trainer through model -> trainer?
             if (
-                self.lightning_module.trainer.state is TrainerState.FITTING
+                self.lightning_module.trainer.state == TrainerState.FITTING
                 and best_model_path is not None
                 and len(best_model_path) > 0
             ):
@@ -242,7 +242,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # todo, pass also best score
 
         # load last weights
-        if last_path is not None and self.lightning_module.trainer.state is TrainerState.FITTING:
+        if last_path is not None and self.lightning_module.trainer.state == TrainerState.FITTING:
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             self.lightning_module.load_state_dict(ckpt)
 

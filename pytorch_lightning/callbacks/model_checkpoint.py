@@ -216,7 +216,7 @@ class ModelCheckpoint(Callback):
         from pytorch_lightning.trainer.states import TrainerState
         if (
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
-            or trainer.state is not TrainerState.FITTING  # don't save anything during non-fit
+            or trainer.state != TrainerState.FITTING  # don't save anything during non-fit
             or trainer.sanity_checking  # don't save anything during sanity check
             or self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved

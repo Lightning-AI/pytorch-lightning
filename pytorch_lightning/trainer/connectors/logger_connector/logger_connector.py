@@ -299,7 +299,7 @@ class LoggerConnector:
 
         # log results of evaluation
         if (
-            self.trainer.state is not TrainerState.FITTING
+            self.trainer.state != TrainerState.FITTING
             and self.trainer.evaluating
             and self.trainer.is_global_zero
             and self.trainer.verbose_evaluate

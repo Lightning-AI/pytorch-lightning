@@ -309,7 +309,7 @@ class EpochResultStore:
         callback_metrics = {}
         batch_pbar_metrics = {}
         batch_log_metrics = {}
-        is_train = self._stage is RunningStage.TRAINING
+        is_train = self._stage == RunningStage.TRAINING
 
         if not self._has_batch_loop_finished:
             # get pbar

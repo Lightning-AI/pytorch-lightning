@@ -141,7 +141,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             last_path = None
             # TODO: is there a better way than accessing trainer through model -> trainer?
             if (
-                self.lightning_module.trainer.state is TrainerState.FITTING
+                self.lightning_module.trainer.state == TrainerState.FITTING
                 and best_model_path is not None
                 and len(best_model_path) > 0
             ):
@@ -246,7 +246,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo, pass also bets score
 
         # load last weights
-        if last_path and model.trainer.state is not TrainerState.FITTING:
+        if last_path and model.trainer.state != TrainerState.FITTING:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
@@ -259,7 +259,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         model = self.lightning_module
 
         # load weights if not interrupted
-        if on_colab_kaggle() and model.trainer.state is TrainerState.FITTING:
+        if on_colab_kaggle() and model.trainer.state == TrainerState.FITTING:
             self.load_spawn_weights(model)
 
         self._model = model

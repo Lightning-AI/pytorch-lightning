@@ -138,7 +138,7 @@ class EarlyStopping(Callback):
 
     def on_validation_end(self, trainer, pl_module):
         from pytorch_lightning.trainer.states import TrainerState
-        if trainer.state is not TrainerState.FITTING or trainer.sanity_checking:
+        if trainer.state != TrainerState.FITTING or trainer.sanity_checking:
             return
 
         self._run_early_stopping_check(trainer)

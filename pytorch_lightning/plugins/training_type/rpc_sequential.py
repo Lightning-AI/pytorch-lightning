@@ -208,7 +208,7 @@ class RPCSequentialPlugin(RPCPlugin):
         Returns: Whether to skip initialization
 
         """
-        return torch_distrib.is_initialized() and self.lightning_module.trainer.state is not TrainerState.FITTING
+        return torch_distrib.is_initialized() and self.lightning_module.trainer.state != TainerState.FITTING
 
     def init_model_parallel_groups(self):
         num_model_parallel = 1  # TODO currently no support for vertical model parallel
@@ -231,7 +231,7 @@ class RPCSequentialPlugin(RPCPlugin):
         return self.world_size
 
     def handle_transferred_pipe_module(self) -> None:
-        if self.lightning_module.trainer.state is TrainerState.FITTING:
+        if self.lightning_module.trainer.state == TrainerState.FITTING:
             torch_distrib.barrier()  # Ensure we await main process initialization
             # Add trainer/configure_optimizers to the pipe model for access in all worker processes
             rpc_pipe.PipeModel.trainer = self.lightning_module.trainer
@@ -243,7 +243,7 @@ class RPCSequentialPlugin(RPCPlugin):
         # Create pipe_module
         model = self.lightning_module
         self._find_and_init_pipe_module(model)
-        if self.lightning_module.trainer.state is TrainerState.FITTING:
+        if self.lightning_module.trainer.state == TrainerState.FITTING:
             torch_distrib.barrier()  # Ensure we join main process initialization
             model.sequential_module.foreach_worker(register_optimizers, include_self=True)
 

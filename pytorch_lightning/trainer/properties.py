@@ -175,7 +175,7 @@ class TrainerProperties(ABC):
 
     @property
     def interrupted(self) -> bool:
-        return self._state is TrainerState.INTERRUPTED
+        return self._state == TrainerState.INTERRUPTED
 
     @property
     def is_global_zero(self) -> bool:
@@ -423,7 +423,7 @@ class TrainerProperties(ABC):
 
     @property
     def training(self) -> bool:
-        return self._running_stage is RunningStage.TRAINING
+        return self._running_stage == RunningStage.TRAINING
 
     @training.setter
     def training(self, val: bool) -> None:
@@ -434,7 +434,7 @@ class TrainerProperties(ABC):
 
     @property
     def testing(self) -> bool:
-        return self._running_stage is RunningStage.TESTING
+        return self._running_stage == RunningStage.TESTING
 
     @testing.setter
     def testing(self, val: bool) -> None:
@@ -445,7 +445,7 @@ class TrainerProperties(ABC):
 
     @property
     def predicting(self) -> bool:
-        return self._running_stage is RunningStage.PREDICTING
+        return self._running_stage == RunningStage.PREDICTING
 
     @predicting.setter
     def predicting(self, val: bool) -> None:
@@ -456,7 +456,7 @@ class TrainerProperties(ABC):
 
     @property
     def tuning(self) -> bool:
-        return self._running_stage is RunningStage.TUNING
+        return self._running_stage == RunningStage.TUNING
 
     @tuning.setter
     def tuning(self, val: bool) -> None:
@@ -467,7 +467,7 @@ class TrainerProperties(ABC):
 
     @property
     def validating(self) -> bool:
-        return self._running_stage is RunningStage.VALIDATING
+        return self._running_stage == RunningStage.VALIDATING
 
     @validating.setter
     def validating(self, val: bool) -> None:
@@ -482,7 +482,7 @@ class TrainerProperties(ABC):
 
     @property
     def sanity_checking(self) -> bool:
-        return self._running_stage is RunningStage.SANITY_CHECKING
+        return self._running_stage == RunningStage.SANITY_CHECKING
 
     @sanity_checking.setter
     def sanity_checking(self, val: bool) -> None:
