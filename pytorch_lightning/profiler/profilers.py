@@ -36,15 +36,10 @@ class BaseProfiler(ABC):
     """
 
     def __init__(self, output_streams: Optional[Union[list, tuple]] = None):
-        """
-        Args:
-            output_streams: callable
-        """
-        if output_streams:
-            if not isinstance(output_streams, (list, tuple)):
-                output_streams = [output_streams]
-        else:
+        if not output_streams:
             output_streams = []
+        if not isinstance(output_streams, (list, tuple)):
+            output_streams = [output_streams]
         self.write_streams = output_streams
 
     @abstractmethod
@@ -95,7 +90,7 @@ class BaseProfiler(ABC):
     def summary(self) -> str:
         """Create profiler summary in text format."""
 
-    def on_train_start(self, local_rank: Optional[int] = None, log_dir: str = None):
+    def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None):
         """
         This function is used by the Trainer to inject local_rank with `DDP`
         and `TensorBoardLogger` log_dir in the profiler.
