@@ -11,13 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
 import pickle
+from typing import Any
+
 import torch
 from torch.distributed.distributed_c10d import (
-    get_rank, _rank_not_in_group, get_backend, 
-    Backend, broadcast, GroupMember
+    _rank_not_in_group,
+    Backend,
+    broadcast,
+    get_backend,
+    get_rank,
+    GroupMember,
 )
+
 
 # Taken from https://github.com/pytorch/pytorch/blob/1.7/torch/distributed/distributed_c10d.py#L1164
 def _object_to_tensor(obj):
@@ -36,57 +42,10 @@ def _tensor_to_object(tensor, tensor_size):
 
 
 # Taken from https://github.com/pytorch/pytorch/blob/1.7/torch/distributed/distributed_c10d.py#L1327
-def broadcast_object_list(object_list, src=0, group=None):
-    """
-    Broadcasts picklable objects in ``object_list`` to the whole group. Similar
-    to :func:`broadcast`, but Python objects can be passed in.
-    Note that all objects in ``object_list`` must be picklable in order to be
-    broadcasted.
-
-    Args:
-        object_list (List[Any]): List of input objects to broadcast.
-            Each object must be picklable. Only objects on the ``src`` rank will
-            be broadcast, but each rank must provide lists of equal sizes.
-        src (int): Source rank from which to broadcast ``object_list``.
-        group: (ProcessGroup, optional): The process group to work on. If None,
-            the default process group will be used. Default is ``None``.
-
-    Returns:
-        ``None``. If rank is part of the group, ``object_list`` will contain the
-        broadcasted objects from ``src`` rank.
-
-    .. note:: For NCCL-based processed groups, internal tensor representations
-        of objects must be moved to the GPU device before communication takes
-        place. In this case, the device used is given by
-        ``torch.cuda.current_device()`` and it is the user's responsiblity to
-        ensure that this is set so that each rank has an individual GPU, via
-        ``torch.cuda.set_device()``.
-
-    .. note:: Note that this API differs slightly from the :func:`all_gather`
-        collective since it does not provide an ``async_op`` handle and thus
-        will be a blocking call.
-
-    .. warning::
-        :func:`broadcast_object_list` uses ``pickle`` module implicitly, which
-        is known to be insecure. It is possible to construct malicious pickle
-        data which will execute arbitrary code during unpickling. Only call this
-        function with data you trust.
-
-    Example::
-        >>> # Note: Process group initialization omitted on each rank.
-        >>> import torch.distributed as dist
-        >>> if dist.get_rank() == 0:
-        >>>     # Assumes world_size of 3.
-        >>>     objects = ["foo", 12, {1: 2}] # any picklable object
-        >>> else:
-        >>>     objects = [None, None, None]
-        >>> dist.broadcast_object_list(objects, src=0)
-        >>> broadcast_objects
-        ['foo', 12, {1: 2}]
-    """
+def _broadcast_object_list(object_list, src=0, group=None):
     if _rank_not_in_group(group):
         return
-        
+
     my_rank = get_rank()
     # Serialize object_list elements to tensors on src rank.
     if my_rank == src:
@@ -122,30 +81,30 @@ def broadcast_object_list(object_list, src=0, group=None):
     offset = 0
     if my_rank != src:
         for i, obj_size in enumerate(object_sizes_tensor):
-            obj_view = object_tensor[offset : offset + obj_size]
+            obj_view = object_tensor[offset:offset + obj_size]
             obj_view = obj_view.type(torch.ByteTensor)  # type: ignore[call-overload]
             offset += obj_size
             object_list[i] = _tensor_to_object(obj_view, obj_size)
 
 
 class LightningDistributed:
-    
+
     def __init__(self, rank=None, device=None):
         self.rank = rank
         self.device = device
-    
+
     def broadcast(self, obj: Any, group=None):
         is_list = isinstance(obj, list)
-        
+
         if not is_list:
             obj = [obj]
-        
+
         if self.rank != 0:
             obj = [None for _ in range(len(obj))]
-        
-        broadcast_object_list(obj, 0, group=group or GroupMember.WORLD)
-        
+
+        _broadcast_object_list(obj, 0, group=group or GroupMember.WORLD)
+
         if not is_list:
             obj = obj[0]
-        
+
         return obj
