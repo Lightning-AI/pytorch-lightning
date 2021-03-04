@@ -7,7 +7,6 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
   pull_request:
     branches: [master, "release/*"]
 
-
 jobs:
   pytest:
 

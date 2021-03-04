@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6]
+        python-version: [3.6, 3.7]
         xla-version: [1.6, 1.7]
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
@@ -45,22 +45,17 @@ jobs:
         project_id: ${{ secrets.GKE_PROJECT }}
         export_default_credentials: true
 
-    - name: Checkout Pytorch Lightning
-      uses: actions/checkout@v2
-      with:
-        repository: PyTorchLightning/pytorch-lightning
-        ref: ${{ github.event.base_ref }}
-
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Get Current PR Number
+    - name: Get Current PR & SHA Number
       id: vars
       shell: bash
       run: |
         echo ::set-output name=PR_NUMBER::$(git ls-remote origin "pull/*/head" | grep -F -f <(git rev-parse HEAD) | awk -F'/' '{print $3}')
+        echo "::set-output name=SHA::$(git rev-parse --short HEAD)"
 
     - name: Install Go
       uses: actions/setup-go@v2
@@ -91,12 +86,22 @@ jobs:
         gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
       shell: bash
 
+    - name: Update jsonnet file
+      run: |-
+        fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet'
+        tt = open(fname).read()
+        tt = tt.replace('{PYTORCH_VERSION}', '$XLA_VER')
+        tt = tt.replace('{PYTHON_VERSION}', '$PYTHON_VER')
+        tt = tt.replace('{PR_NUMBER}', '${{ steps.vars.outputs.PR_NUMBER }}')
+        tt = tt.replace('{SHA}', '${{ steps.vars.outputs.SHA }}')
+        open(fname, 'w').write(ttt)
+      shell: python
+
     - name: Deploy the job on the kubernetes cluster
       env:
         XLA_VER: ${{ matrix.xla-version }}
         PYTHON_VER: ${{ matrix.xla-version }}
       run: |-
-        python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; ttt = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER').replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '${{ steps.vars.outputs.PR_NUMBER }}') ; open(fname, 'w').write(ttt)"
         cat dockers/tpu-tests/tpu_test_cases.jsonnet
         job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -) && \
         job_name=${job_name#job.batch/} && \
