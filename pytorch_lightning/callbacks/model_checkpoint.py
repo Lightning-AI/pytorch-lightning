@@ -236,7 +236,7 @@ class ModelCheckpoint(Callback):
         # here we call each mode sequentially
         # Mode 1: save all checkpoints OR only the top k
         if self.save_top_k:
-            self._save_top_k_checkpoints(trainer, pl_module, monitor_candidates)
+            self._save_top_k_checkpoints(trainer, monitor_candidates)
 
         # Mode 2: save the last checkpoint
         self._save_last_checkpoint(trainer, monitor_candidates)
@@ -400,7 +400,6 @@ class ModelCheckpoint(Callback):
         The base path gets extended with logger name and version (if these are available)
         and subfolder "checkpoints".
         """
-        # Todo: required argument `pl_module` is not used
         if self.dirpath is not None:
             return  # short circuit
 
@@ -517,7 +516,7 @@ class ModelCheckpoint(Callback):
         if self.monitor is None:
             self.best_model_path = self.last_model_path
 
-    def _save_top_k_checkpoints(self, trainer, pl_module, metrics):
+    def _save_top_k_checkpoints(self, trainer, metrics):
         current = metrics.get(self.monitor)
         epoch = metrics.get("epoch")
         step = metrics.get("step")
@@ -531,7 +530,7 @@ class ModelCheckpoint(Callback):
             current = trainer.training_type_plugin.reduce(current, reduce_op="mean")
 
         if self.check_monitor_top_k(current):
-            self._update_best_and_save(current, epoch, step, trainer, pl_module, metrics)
+            self._update_best_and_save(current, epoch, step, trainer, metrics)
         elif self.monitor is not None and self.verbose:
             rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
@@ -539,7 +538,7 @@ class ModelCheckpoint(Callback):
         return self.monitor in metrics or len(metrics) == 0
 
     def _update_best_and_save(
-        self, current: torch.Tensor, epoch: int, step: int, trainer, pl_module, ckpt_name_metrics
+        self, current: torch.Tensor, epoch: int, step: int, trainer, ckpt_name_metrics
     ):
         k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
 
