@@ -30,6 +30,7 @@ from pytorch_lightning.utilities import rank_zero_only
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
+    from weakref import ReferenceType
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -75,7 +76,7 @@ class LightningLoggerBase(ABC):
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
 
-    def connect(self, trainer: 'Trainer') -> None:
+    def connect(self, trainer: 'ReferenceType[Trainer]') -> None:
         """
         Connect trainer to logger
 
@@ -368,7 +369,7 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
 
-    def connect(self, trainer: 'Trainer') -> None:
+    def connect(self, trainer: 'ReferenceType[Trainer]') -> None:
         for logger in self._logger_iterable:
             logger.connect(trainer)
 

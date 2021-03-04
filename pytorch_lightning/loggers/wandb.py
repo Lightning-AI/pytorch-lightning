@@ -30,6 +30,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
+    from weakref import ReferenceType
 
 warning_cache = WarningCache()
 
@@ -145,9 +146,8 @@ class WandbLogger(LightningLoggerBase):
         state['_experiment'] = None
         return state
 
-    def connect(self, trainer: 'Trainer') -> None:
-        if trainer is not None:
-            self._trainer = trainer
+    def connect(self, trainer: 'ReferenceType[Trainer]') -> None:
+        self._trainer = trainer
 
     @property
     @rank_zero_experiment

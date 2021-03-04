@@ -144,7 +144,6 @@ class LoggerConnector:
         return should_log_every_n_steps or self.trainer.should_stop
 
     def configure_logger(self, logger):
-        # connect logger to trainer
         if logger is True:
             version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
 
