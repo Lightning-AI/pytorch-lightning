@@ -115,7 +115,7 @@ Test/Val dataloaders
 --------------------
 For validation and test dataloaders, lightning also gives you the additional
 option of passing multiple dataloaders back from each call. You can choose to pass
-the batches sequentially or simultaneously, as isdone for the training step.
+the batches sequentially or simultaneously, as is done for the training step.
 The default mode for validation and test dataloaders is sequential.
 
 See the following for more details for the default sequential option:
