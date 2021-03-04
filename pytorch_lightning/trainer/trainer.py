@@ -510,10 +510,10 @@ class Trainer(
         return self.accelerator.results or 1
 
     def pre_dispatch(self):
-        self.accelerator.pre_dispatch()
+        self.accelerator.pre_dispatch(self)
 
     def post_dispatch(self):
-        self.accelerator.post_dispatch()
+        self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
 
     def dispatch(self):
