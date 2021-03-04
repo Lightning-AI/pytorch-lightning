@@ -21,7 +21,6 @@ Core Maintainers
 - Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)
 - Peter Yu (`yukw777 <https://github.com/yukw777>`_)
 - Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
-- Lezwon Castelino (`lezwon <https://github.com/lezwon>`_)
 - Jeff Yang (`ydcjeff <https://github.com/ydcjeff>`_)
 - Roger Shieh (`s-rog <https://github.com/s-rog>`_)
 - Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
