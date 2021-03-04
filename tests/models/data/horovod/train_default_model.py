@@ -21,6 +21,8 @@ import json
 import os
 import sys
 
+import torch
+
 # this is needed because Conda does not use `PYTHONPATH` env var while pip and virtualenv do
 PYTHONPATH = os.getenv('PYTHONPATH', '')
 if ':' in PYTHONPATH:
@@ -53,11 +55,10 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     trainer_options.update(callbacks=[ModelCheckpoint(dirpath=ckpt_path)])
 
     class TestModel(BoringModel):
-        
+
         def training_epoch_end(self, outputs) -> None:
             res = self.trainer.training_type_plugin.reduce(torch.tensor(1., device=self.device))
             assert res.sum() == self.trainer.accelerator.world_size
-
 
     model = TestModel()
     trainer = Trainer(**trainer_options)

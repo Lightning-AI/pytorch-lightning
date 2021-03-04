@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, List, Optional, Union, Callable
+from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -159,7 +159,9 @@ class HorovodPlugin(ParallelPlugin):
         hvd.join()
         return hvd.allreduce(tensor, op=reduce_op)
 
-    def all_gather(self, result: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(
+        self, result: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False
+    ) -> torch.Tensor:
         if group is not None and group != torch.distributed.group.WORLD:
             raise ValueError(
                 "Horovod does not support allgather using a subcommunicator at this time. "

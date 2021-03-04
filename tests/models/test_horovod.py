@@ -23,6 +23,7 @@ import pytest
 import torch
 from sklearn.metrics import accuracy_score
 from torch import optim
+
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
@@ -30,10 +31,10 @@ from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
+from tests import _PROJECT_ROOT
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
 from tests.helpers.runif import RunIf
-from tests import _PROJECT_ROOT
 
 if _HOROVOD_AVAILABLE:
     import horovod
@@ -41,6 +42,7 @@ if _HOROVOD_AVAILABLE:
 
 # This script will run the actual test model training in parallel
 TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data', 'horovod', 'train_default_model.py')
+
 
 def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
@@ -50,12 +52,8 @@ def _run_horovod(trainer_options, on_gpu=False):
     tutils.reset_seed()
     append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
     cmdline = [
-        'horovodrun', 
-        '-np',
-        str(num_processes),
-        sys.executable,
-        '-m',
-        'coverage', 'run', '--source', 'pytorch_lightning', append,
+        'horovodrun', '-np',
+        str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,
         TEST_SCRIPT, '--trainer-options',
         shlex.quote(json.dumps(trainer_options))
     ]
@@ -117,7 +115,7 @@ def test_horovod_multi_gpu(tmpdir):
 
 
 # https://discuss.pytorch.org/t/torch-cuda-amp-vs-nvidia-apex/74994
-# Check with (tgaddair) on Horovod issues if this feature is needed 
+# Check with (tgaddair) on Horovod issues if this feature is needed
 @pytest.mark.skip(reason="Horovod currently doesn't work with Apex")  # todo
 @RunIf(min_gpus=2, skip_windows=True, amp_apex=True, horovod_nccl=True)
 def test_horovod_apex(tmpdir):
@@ -158,6 +156,7 @@ def test_horovod_amp(tmpdir):
     )
     _run_horovod(trainer_options, on_gpu=True)
 
+
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
 def test_horovod_gather(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
@@ -174,6 +173,7 @@ def test_horovod_gather(tmpdir):
         accelerator='horovod',
     )
     _run_horovod(trainer_options, on_gpu=True)
+
 
 @RunIf(min_gpus=1, skip_windows=True, horovod_nccl=True)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
@@ -336,6 +336,7 @@ def test_accuracy_metric_horovod():
 
 @RunIf(skip_windows=True)
 def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
+
     class TestModel(BoringModel):
 
         def training_step(self, batch, batch_idx, optimizer_idx):
