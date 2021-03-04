@@ -78,8 +78,12 @@ class TrainingTypePlugin(Plugin, ABC):
         """Broadcasts an object to all processes"""
 
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        """Reduce the early stopping decision across all possibly spawned processes"""
+        """Reduce the early stopping decision across all processes"""
         return should_stop
+
+    def reduce_model_checkpoint_decision(self, should_update_best_and_save: bool) -> bool:
+        """Reduce the model checkpoint decision across all processes"""
+        return should_update_best_and_save
 
     def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run before precision plugin executes backward"""

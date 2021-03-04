@@ -925,3 +925,71 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     }
     assert set(trainer.callback_metrics) == expected_callback_metrics
     assert set(results[0]) == {'test_loss', 'debug_epoch'}
+
+
+@mock.patch("pytorch_lightning.trainer.connectors.logger_connector.logger_connector.LoggerConnector.log_metrics")
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+def test_validation_step_log_ddp(mock_log_metrics, tmpdir):
+    """
+    This tests make sure we properly log_metrics to loggers
+    """
+
+    class ExtendedModel(BoringModel):
+
+        val_losses = []
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('train_loss', loss)
+            return {"loss": loss}
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.val_losses.append(loss)
+            self.log('valid_loss_0', loss, on_step=True, on_epoch=True)
+            self.log('valid_loss_1', loss, on_step=False, on_epoch=True)
+            self.log('valid_loss_2', loss, on_step=True, on_epoch=False)
+            self.log('valid_loss_3', loss, on_step=False, on_epoch=False)
+            self.log('valid_loss_4', loss.clone(), on_step=False, on_epoch=True, sync_dist=True)
+            return {"val_loss": loss}
+
+        def test_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('test_loss', loss)
+            return {"y": loss}
+
+    model = ExtendedModel()
+    model.validation_epoch_end = None
+
+    # Initialize a trainer
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=TensorBoardLogger(tmpdir),
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=2,
+        accelerator="ddp",
+        gpus=2,
+        progress_bar_refresh_rate=1,
+    )
+
+    # Train the model ⚡
+    trainer.fit(model)
+
+    def get_metrics(mock_call):
+        if isinstance(mock_call.kwargs, dict):
+            return mock_call.kwargs
+        else:
+            return mock_call[1][0]
+
+    # hp_metric + 2 steps + epoch + 2 steps + epoch
+    expected_num_calls = 1 + 2 + 1 + 2
+
+    assert len(mock_log_metrics.mock_calls) == expected_num_calls
+
+    for mock_call in mock_log_metrics.mock_calls:
+        metric = get_metrics(mock_call)

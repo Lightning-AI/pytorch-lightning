@@ -77,11 +77,17 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    def reduce_decision(self, decision: bool) -> bool:
+        decision = torch.tensor(int(decision), device=self.lightning_module.device)
+        decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
+        decision = bool(decision == self.world_size)
+        return decision
+
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        should_stop = torch.tensor(int(should_stop), device=self.lightning_module.device)
-        should_stop = self.reduce(should_stop, reduce_op=ReduceOp.SUM)
-        should_stop = bool(should_stop == self.world_size)
-        return should_stop
+        return self.reduce_decision(should_stop)
+
+    def reduce_model_checkpoint_decision(self, should_update_best_and_save: bool) -> bool:
+        return self.reduce_decision(should_update_best_and_save)
 
     @property
     def torch_distributed_backend(self):

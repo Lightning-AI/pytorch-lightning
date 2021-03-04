@@ -11,14 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytorch_lightning as pl
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple
-
+from typing import Any, Callable, Dict, List, Optional, Tuple
+from weakref import proxy
 import torch
-
+import logging
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DistributedType, LightningEnum
+from pytorch_lightning.utilities.warnings import WarningCache
+
+log = logging.getLogger(__name__)
+
+
+class MetricWarningCache(WarningCache):
+    def __init__(self):
+        super().__init__()
+        self.warned_metrics = []
+
+
+warning_cache = MetricWarningCache()
 
 
 class ResultStoreType(LightningEnum):
@@ -50,8 +63,9 @@ class HookResultStore:
     Those data structures enables us to reduce properly Result object when batch loop is finished.
     """
 
-    def __init__(self, fx_name):
+    def __init__(self, fx_name: str, all_gather_fn: Callable) -> None:
         self._fx_name = fx_name
+        self._all_gather_fn = all_gather_fn
         self._internals = {}
         self._internals_reduced = {}
         self._internal_type = None
@@ -104,8 +118,24 @@ class HookResultStore:
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
         if not isinstance(opt_metric, Result):
             raise Exception("The provided opt_metric should be a Result Object. Something is wrong")
+
         func = getattr(opt_metric, func_name)
         metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
+        
+        if torch.distributed.is_initialized():
+            device = self._all_gather_fn.__self__.device
+            for non_metric_key in opt_metric.get_non_metrics_keys():
+                if non_metric_key in metrics_to_log and non_metric_key not in warning_cache.warned_metrics:
+                    metric = self._all_gather_fn(metrics_to_log[non_metric_key].to(device))
+                    if any(metric[0] != m for m in metric[1:]):
+                        warning_cache.warn(
+                            f"The value associated to the key {non_metric_key}: {metric.cpu().tolist()} "
+                            "doesn't appear to be the same accross all processes"
+                            "HINT: One could either do: self.log(..., sync_dist=True, sync_fn=torch.mean) to force mean reduction "
+                            "across processes which can be unaccurate or implement a ``pytorch_lightning.metrics.Metric``"
+                        )
+                    warning_cache.warned_metrics.append(non_metric_key)
+
         results.append(metrics_to_log)
 
     def get_epoch_from_func_name(self, func_name, *args, **kwargs) -> List[Dict]:
@@ -222,8 +252,8 @@ class EpochResultStore:
     ```
     """
 
-    def __init__(self, trainer, stage):
-        self.trainer = trainer
+    def __init__(self, trainer: 'pl.Trainer', stage: RunningStage):
+        self.trainer = proxy(trainer)
         self._stage = stage
         self.reset()
 
@@ -276,7 +306,8 @@ class EpochResultStore:
             info = self.info
             fx_name = info["fx_name"]
 
-            self._internals.setdefault(fx_name, HookResultStore(fx_name))
+            all_gather_fn = self.trainer.lightning_module.all_gather
+            self._internals.setdefault(fx_name, HookResultStore(fx_name, all_gather_fn))
 
             # attach capture batch_size
             Result.attach_batch_size(self._batch_size, hook_result)

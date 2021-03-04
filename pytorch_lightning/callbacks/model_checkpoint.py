@@ -306,7 +306,7 @@ class ModelCheckpoint(Callback):
         else:
             raise ValueError(".save_function() not set")
 
-    def check_monitor_top_k(self, current) -> bool:
+    def check_monitor_top_k(self, trainer, current: Optional[torch.Tensor]) -> bool:
         if current is None:
             return False
 
@@ -326,7 +326,9 @@ class ModelCheckpoint(Callback):
             current = torch.tensor(current)
 
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
-        return monitor_op(current, self.best_k_models[self.kth_best_model_path]).item()
+        should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
+        should_update_best_and_save = trainer.training_type_plugin.reduce_model_checkpoint_decision(should_update_best_and_save)
+        return should_update_best_and_save
 
     @classmethod
     def _format_checkpoint_name(
@@ -523,15 +525,7 @@ class ModelCheckpoint(Callback):
         epoch = metrics.get("epoch")
         step = metrics.get("step")
 
-        # when `val_loss` is being logged and no ModelCheckpoint is being provided
-        # `val_loss` will be selected for monitor and need to be reduced to
-        # prevent processes divergence
-        # TODO: Move this logic to logger_connector. This also needs to be fixed for any
-        # other monitor logged value which aren't produced from a Metric.
-        if self.monitor == "val_loss":
-            current = trainer.training_type_plugin.reduce(current, reduce_op="mean")
-
-        if self.check_monitor_top_k(current):
+        if self.check_monitor_top_k(trainer, current):
             self._update_best_and_save(current, epoch, step, trainer, pl_module, metrics)
         elif self.monitor is not None and self.verbose:
             rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
@@ -596,5 +590,5 @@ class ModelCheckpoint(Callback):
         the internal state to diverge between ranks.
         """
         exists = self._fs.exists(filepath)
-        exists = trainer.training_type_plugin.broadcast(exists)
-        return exists
+        exists = trainer.lightning_module.all_gather(exists)
+        return bool(exists[0])
