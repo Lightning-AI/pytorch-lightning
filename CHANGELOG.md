@@ -101,6 +101,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed error thrown when using valid distributed mode in multi node ([#6297](https://github.com/PyTorchLightning/pytorch-lightning/pull/6297)
 
 
+- Fixed `ModelCheckpoint` file_exists using all_gather + add warnings with DDP when non-metrics aren't reduced ([#6345](https://github.com/PyTorchLightning/pytorch-lightning/pull/6345))
+
+
 ## [1.2.1] - 2021-02-23
 
 ### Fixed
