@@ -7,4 +7,5 @@ torchtext>=0.5, <0.7  # TODO: temporary fix fix for compatibility
 onnx>=1.7.0
 onnxruntime>=1.3.0
 hydra-core>=1.0
+git+git://github.com/tudorcebere/PySyft@tudor_lightning#egg=syft
 https://github.com/PyTorchLightning/fairscale/archive/pl_1.2.0.zip
