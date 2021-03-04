@@ -14,7 +14,6 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from weakref import proxy
 from typing import Dict, Iterable, Optional, Union
 
 import torch
