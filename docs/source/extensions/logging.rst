@@ -310,7 +310,8 @@ in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.util
         def validation_step(self, batch, batch_idx):
             self.log("hp/metric_1", some_scalar_1)
             self.log("hp/metric_2", some_scalar_2)
-        
+
+    In the example, using `hp/` as a prefix allows for the metrics to be grouped under "hp" in the tensorboard scalar tab where you can collapse them.
 
 ----------
 
