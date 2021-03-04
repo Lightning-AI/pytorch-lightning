@@ -113,15 +113,13 @@ def test_move_to_device_in_pre_dispatch(mock_model_to_device, tmpdir, move_to_de
     in training.
     """
 
-    with mock.patch(f'pytorch_lightning.plugins.DDPPlugin.call_move_to_device_hook_in_pre_dispatch',
-                    move_to_device_pre_dispatch_enabled):
+    with mock.patch(
+        f'pytorch_lightning.plugins.DDPPlugin.call_move_to_device_hook_in_pre_dispatch',
+        move_to_device_pre_dispatch_enabled
+    ):
         model = BoringModel()
         trainer = Trainer(
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
-            accelerator='ddp',
-            plugins=DDPPlugin(),
-            num_processes=1
+            default_root_dir=tmpdir, fast_dev_run=True, accelerator='ddp', plugins=DDPPlugin(), num_processes=1
         )
         trainer.fit(model)
 
