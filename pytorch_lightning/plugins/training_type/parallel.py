@@ -15,7 +15,7 @@ import io
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import List, Optional
+from typing import List, Optional, Any
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
@@ -24,7 +24,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
-from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp, sync_ddp_if_available
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
@@ -76,6 +76,10 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
+
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        """Perform a all_gather on all processes """
+        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_decision(self, decision: bool) -> bool:
         decision = torch.tensor(int(decision), device=self.lightning_module.device)
@@ -131,7 +135,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
         data_tensor = torch.tensor(data).to(self.root_device, dtype=torch.float)
-        data = all_gather_ddp_if_available(data_tensor)
+        data = self.all_gather(data_tensor)
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
         return obj

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Union
+from typing import Any, Union, Optional
 
 import torch
 
@@ -45,6 +45,10 @@ class SingleDevicePlugin(TrainingTypePlugin):
         Return:
             the unmodified input as reduction is not needed for single process operation
         """
+        return tensor
+
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        """Perform a all_gather on all processes """
         return tensor
 
     @property

@@ -77,6 +77,10 @@ class TrainingTypePlugin(Plugin, ABC):
     def broadcast(self, obj: object, src: int = 0) -> object:
         """Broadcasts an object to all processes"""
 
+    @abstractmethod
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        """Perform a all_gather on all processes """
+
     def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
         """Reduce the early stopping decision across all processes"""
         return should_stop

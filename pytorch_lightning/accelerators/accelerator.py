@@ -404,7 +404,7 @@ class Accelerator(object):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+        return self.training_type_plugin.all_gather(tensor, group=group, sync_grads=sync_grads)
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Wraps the dataloader if necessary

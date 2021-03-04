@@ -45,6 +45,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             return model, optimizers, lr_schedulers
         model, optimizers = self.configure_apex(amp, model, list(optimizers), self.amp_level)
         self.reinit_scheduler_properties(optimizers, lr_schedulers)
+        for opt in optimizers:
+            opt.zero_grad()
         return model, optimizers, lr_schedulers
 
     def backward(
@@ -167,7 +169,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         if not pl_module.automatic_optimization:
             pl_module.trainer.call_hook("on_after_backward")
-
+        
         optimizer.step(**kwargs)
-
         return False

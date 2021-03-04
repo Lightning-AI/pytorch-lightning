@@ -16,12 +16,13 @@ import os
 import shlex
 import subprocess
 import sys
+from unittest.mock import patch
 
 import numpy as np
 import pytest
 import torch
 from sklearn.metrics import accuracy_score
-
+from torch import optim
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
@@ -32,6 +33,7 @@ from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
 from tests.helpers.runif import RunIf
+from tests import _PROJECT_ROOT
 
 if _HOROVOD_AVAILABLE:
     import horovod
@@ -40,20 +42,30 @@ if _HOROVOD_AVAILABLE:
 # This script will run the actual test model training in parallel
 TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data', 'horovod', 'train_default_model.py')
 
-
 def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
     num_processes = trainer_options.get('gpus', 2)
     # for Horovod, we interpret `gpus` to be set per worker
     trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
+    append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
+    print(_PROJECT_ROOT, append)
     cmdline = [
-        'horovodrun', '-np',
-        str(num_processes), sys.executable, TEST_SCRIPT, '--trainer-options',
+        'horovodrun', 
+        '-np',
+        str(num_processes),
+        sys.executable,
+        '-m',
+        'coverage', 'run', '--source', 'pytorch_lightning', append,
+        TEST_SCRIPT, '--trainer-options',
         shlex.quote(json.dumps(trainer_options))
     ]
     if on_gpu:
         cmdline += ['--on-gpu']
+    env_cmd = ""
+    for k, v in os.environ.items():
+        env_cmd += f"{k}={v} "
+    print(env_cmd + ' '.join(cmdline))
     exit_code = subprocess.call(' '.join(cmdline), shell=True, env=os.environ.copy())
     assert exit_code == 0
 
@@ -109,7 +121,9 @@ def test_horovod_multi_gpu(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@pytest.mark.skip(reason="Horovod has a problem with broadcast when using apex?")  # todo
+# https://discuss.pytorch.org/t/torch-cuda-amp-vs-nvidia-apex/74994
+# Check with (tgaddair) on Horovod issues if this feature is needed 
+@pytest.mark.skip(reason="Horovod currently doesn't work with Apex")  # todo
 @RunIf(min_gpus=2, skip_windows=True, amp_apex=True, horovod_nccl=True)
 def test_horovod_apex(tmpdir):
     """Test Horovod with multi-GPU support using apex amp."""
@@ -130,7 +144,6 @@ def test_horovod_apex(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@pytest.mark.skip(reason="Skip till Horovod fixes integration with Native torch.cuda.amp")  # todo
 @RunIf(min_gpus=2, skip_windows=True, amp_native=True, horovod_nccl=True)
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
@@ -150,6 +163,22 @@ def test_horovod_amp(tmpdir):
     )
     _run_horovod(trainer_options, on_gpu=True)
 
+@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
+def test_horovod_gather(tmpdir):
+    """Test Horovod with multi-GPU support using native amp."""
+    trainer_options = dict(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        gpus=2,
+        deterministic=True,
+        accelerator='horovod',
+    )
+    _run_horovod(trainer_options, on_gpu=True)
 
 @RunIf(min_gpus=1, skip_windows=True, horovod_nccl=True)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
@@ -211,8 +240,6 @@ def test_horovod_multi_optimizer(tmpdir):
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
 
 
-# TODO: unclear Horovod failure...
-@pytest.mark.skip(reason="unclear Horovod failure...")
 @RunIf(skip_windows=True, horovod=True)
 def test_result_reduce_horovod(tmpdir):
     """Make sure result logging works with Horovod.
@@ -261,8 +288,6 @@ def test_result_reduce_horovod(tmpdir):
     horovod.run(hvd_test_fn, np=2)
 
 
-# TODO: unclear Horovod failure...
-@pytest.mark.skip(reason="unclear Horovod failure...")
 @RunIf(skip_windows=True, horovod=True)
 def test_accuracy_metric_horovod():
     num_batches = 10
@@ -289,7 +314,7 @@ def test_accuracy_metric_horovod():
         metric = Accuracy(
             compute_on_step=True,
             dist_sync_on_step=True,
-            dist_sync_fn=trainer.training_type_plugin.gather_all_tensors,
+            dist_sync_fn=trainer.training_type_plugin.all_gather,
             threshold=threshold
         )
 
@@ -314,33 +339,45 @@ def test_accuracy_metric_horovod():
     horovod.run(_compute_batch, np=2)
 
 
-# @RunIf(skip_windows=True)
-# def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
-#     model = BoringModel()
-#     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
-#
-#     num_workers = 8
-#     init_lr = hparams.get('learning_rate') * num_workers
-#
-#     with patch('pytorch_lightning.accelerators.legacy.horovod_backend.hvd.size') as mock_hvd_size:
-#         mock_hvd_size.return_value = 8
-#
-#         # fit model
-#         trainer = Trainer(
-#             default_root_dir=tmpdir,
-#             max_epochs=1,
-#             limit_val_batches=0.5,
-#             limit_train_batches=0.2,
-#             distributed_backend='horovod'
-#         )
-#         results = trainer.fit(model)
-#         assert results == 1
-#
-#     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups][0]
-#     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups][0]
-#
-#     # Called ones after end of epoch with gamma=0.1
-#     assert pytest.approx(init_lr * 0.1) == adjusted_lr1
-#
-#     # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times with gamma=0.1
-#     assert pytest.approx(init_lr * 0.1) == adjusted_lr2
+@RunIf(skip_windows=True)
+def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers(self):
+            optimizer1 = optim.Adam(self.parameters(), lr=0.1)
+            optimizer2 = optim.Adam(self.parameters(), lr=0.1)
+            lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
+            lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
+            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
+
+    model = TestModel()
+    model.training_epoch_end = None
+
+    num_workers = 8
+    init_lr = 0.1 * num_workers
+
+    with patch('horovod.torch.size') as mock_hvd_size:
+        mock_hvd_size.return_value = 8
+
+        # fit model
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_val_batches=0.5,
+            limit_train_batches=0.2,
+            distributed_backend='horovod'
+        )
+        results = trainer.fit(model)
+        assert results == 1
+
+    adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups][0]
+    adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups][0]
+
+    # Called ones after end of epoch with gamma=0.1
+    assert pytest.approx(init_lr * 0.1) == adjusted_lr1
+
+    # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times with gamma=0.1
+    assert pytest.approx(init_lr * 0.1) == adjusted_lr2

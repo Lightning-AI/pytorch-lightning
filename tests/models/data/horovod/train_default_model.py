@@ -52,8 +52,14 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     ckpt_path = trainer_options['weights_save_path']
     trainer_options.update(callbacks=[ModelCheckpoint(dirpath=ckpt_path)])
 
-    model = BoringModel()
+    class TestModel(BoringModel):
+        
+        def training_epoch_end(self, outputs) -> None:
+            res = self.trainer.training_type_plugin.reduce(torch.tensor(1., device=self.device))
+            assert res.sum() == self.trainer.accelerator.world_size
 
+
+    model = TestModel()
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
