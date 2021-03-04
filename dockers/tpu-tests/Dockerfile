@@ -29,9 +29,6 @@ RUN cd pytorch-lightning && \
     unzip -o legacy/checkpoints.zip -d legacy/ && \
     ls -l legacy/checkpoints/
 
-# todo: torchtext
-RUN pip install torchtext==0.6.0 -U
-
 # If using this image for tests, intall more dependencies and don"t delete the source code where the tests live.
 RUN \
     # Install pytorch-lightning at the current PR, plus dependencies.
