@@ -28,7 +28,7 @@ Gradient Clipping
 -----------------
 Gradient clipping may be enabled to avoid exploding gradients. By default, this will `clip the gradient norm
 <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ computed over all model parameters together.
-If gradient_clip_algorithm option is set to 'value', which is 'norm' by default, this will
+If ``gradient_clip_algorithm`` option is set to ``value``, which is ``norm`` by default, this will
 `clip the gradient value <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value_>`_ for each parameter instead.
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
