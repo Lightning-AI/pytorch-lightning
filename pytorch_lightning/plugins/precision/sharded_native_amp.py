@@ -31,10 +31,6 @@ class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
     def __init__(self) -> None:
         super().__init__()
         self.scaler = ShardedGradScaler()
-        self.clip_grad_funcs = {  # declaration for adapt overrided function.
-            GradClipAlgorithmType.VALUE: super().clip_grad_by_value,
-            GradClipAlgorithmType.NORM: self.clip_grad_by_norm,
-        }
 
     def clip_grad_by_norm(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
         """ Overrided function. Clip gradients by norm. """
