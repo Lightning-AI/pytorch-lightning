@@ -20,8 +20,7 @@ jobs:
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     # TODO: the macOS is taking too long, probably caching did not work...
-    # todo: building own onnxruntime takes very long...
-    timeout-minutes: 75
+    timeout-minutes: 40
 
     steps:
     - uses: actions/checkout@v2
@@ -54,8 +53,11 @@ jobs:
     - name: Adjust minimal for Python 3.9
       if: matrix.requires == 'minimal' && matrix.python-version == 3.9
       run: |
-        python -c "import re ; fname='requirements.txt' ; req = re.sub(r'torch>=[\d\.]+', 'torch>=1.7.1', open(fname).read()) ; open(fname, 'w').write(req)"
-      shell: bash
+        import re
+        fname='requirements.txt'
+        req = re.sub(r'torch>=[\d\.]+', 'torch>=1.7.1', open(fname).read())
+        open(fname, 'w').write(req)"
+      shell: python
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
@@ -101,15 +103,6 @@ jobs:
         ls -l .
         unzip -o checkpoints.zip
         ls -l checkpoints/
-
-    - name: Build from source for Python 3.9
-      if: matrix.python-version == 3.9
-      run: |
-        pip install "pip>=21.0" -U  # needed for later instalation onnxruntime
-        python -c "import re ; fname='requirements/extra.txt' ; req = re.sub(r'onnx>=[\d\.]+', '', open(fname).read()) ; open(fname, 'w').write(req)"
-        python -c "import re ; fname='requirements/extra.txt' ; req = re.sub(r'onnxruntime>=[\d\.]+', '', open(fname).read()) ; open(fname, 'w').write(req)"
-        bash requirements/install_ONNX.sh
-      shell: bash
 
     - name: Install dependencies
       env:
