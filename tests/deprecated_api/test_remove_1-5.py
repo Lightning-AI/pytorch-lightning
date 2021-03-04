@@ -19,6 +19,7 @@ import pytest
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.profiler import PyTorchProfiler
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
 
@@ -68,3 +69,8 @@ def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
     trainer.callbacks = [NewSignature(), ValidSignature1(), ValidSignature2()]
     with no_warning_call(DeprecationWarning):
         trainer.save_checkpoint(filepath)
+
+
+def test_v1_5_0_legacy_profiler_argument():
+    with pytest.deprecated_call(match="renamed to `record_functions` in v1.3"):
+        PyTorchProfiler(profiled_functions=[])

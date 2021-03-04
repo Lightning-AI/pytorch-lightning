@@ -749,7 +749,7 @@ class TrainLoop:
 
                 # backward pass
                 if result is not None:
-                    with self.trainer.profiler.profile("model_backward"):
+                    with self.trainer.profiler.profile("backward"):
                         self.backward(result, optimizer, opt_idx)
 
                     # hook - call this hook only

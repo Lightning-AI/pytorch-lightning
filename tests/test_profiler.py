@@ -14,12 +14,19 @@
 import logging
 import os
 import time
+from distutils.version import LooseVersion
 from pathlib import Path
 
 import numpy as np
 import pytest
+import torch
 
-from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
+from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
@@ -41,12 +48,6 @@ def _sleep_generator(durations):
 @pytest.fixture
 def simple_profiler():
     profiler = SimpleProfiler()
-    return profiler
-
-
-@pytest.fixture
-def advanced_profiler(tmpdir):
-    profiler = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
     return profiler
 
 
@@ -114,6 +115,12 @@ def test_simple_profiler_value_errors(simple_profiler):
         simple_profiler.start(action)
 
     simple_profiler.stop(action)
+
+
+@pytest.fixture
+def advanced_profiler(tmpdir):
+    profiler = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
+    return profiler
 
 
 @pytest.mark.parametrize(["action", "expected"], [
@@ -187,3 +194,144 @@ def test_advanced_profiler_value_errors(advanced_profiler):
 
     advanced_profiler.start(action)
     advanced_profiler.stop(action)
+
+
+@pytest.fixture
+def pytorch_profiler(tmpdir):
+    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
+    return profiler
+
+
+def test_pytorch_profiler_describe(pytorch_profiler):
+    """Ensure the profiler won't fail when reporting the summary."""
+    with pytorch_profiler.profile("test_step"):
+        pass
+
+    # log to stdout and print to file
+    pytorch_profiler.describe()
+    data = Path(pytorch_profiler.output_fname).read_text()
+    assert len(data) > 0
+
+
+def test_pytorch_profiler_value_errors(pytorch_profiler):
+    """Ensure errors are raised where expected."""
+
+    action = "test_step"
+    with pytest.raises(ValueError):
+        pytorch_profiler.stop(action)
+
+    pytorch_profiler.start(action)
+    pytorch_profiler.stop(action)
+
+    with pytest.raises(MisconfigurationException, match="profiled_functions` and `PyTorchProfiler.record"):
+        PyTorchProfiler(profiled_functions=[], record_functions=[])
+
+
+@RunIf(min_gpus=2, special=True)
+def test_pytorch_profiler_trainer_ddp(tmpdir):
+    """Ensure that the profiler can be given to the training and default step are properly recorded. """
+
+    output_filename = os.path.join(tmpdir, "profiler.txt")
+
+    profiler = PyTorchProfiler(output_filename=output_filename)
+
+    model = BoringModel()
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=6,
+        limit_val_batches=6,
+        profiler=profiler,
+        accelerator="ddp",
+        gpus=2,
+        logger=TensorBoardLogger(tmpdir)
+    )
+    trainer.fit(model)
+
+    assert len(profiler.summary()) > 0
+    profiler.describe()
+    data = Path(profiler.output_fname).read_text()
+    assert len(data) > 0
+
+
+@pytest.mark.parametrize("use_output_filename", [True])
+def test_pytorch_profiler_trainer(tmpdir, use_output_filename):
+    """Ensure that the profiler can be given to the training and default step are properly recorded. """
+
+    if use_output_filename:
+        output_filename = os.path.join(tmpdir, "profiler.txt")
+    else:
+        output_filename = None
+
+    profiler = PyTorchProfiler(output_filename=output_filename)
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        profiler=profiler,
+    )
+    trainer.fit(model)
+
+    enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
+
+    if enabled:
+        assert len(profiler.summary()) > 0
+        expected = {'validation_step', 'training_step_and_backward', 'training_step', 'backward'}
+        assert set(profiler.profiled_actions.keys()) == expected
+    else:
+        assert profiler.summary() is None
+        assert set(profiler.profiled_actions.keys()) == set()
+
+    if use_output_filename:
+        profiler.describe()
+        data = Path(profiler.output_fname).read_text()
+        assert len(data) > 0
+
+
+def test_pytorch_profiler_nested(tmpdir):
+    """Ensure that the profiler handles nested context"""
+
+    pytorch_profiler = PyTorchProfiler(
+        record_functions=["a", "b", "c"],
+        use_cuda=torch.cuda.is_available(),
+        output_filename=os.path.join(tmpdir, "profiler.txt")
+    )
+
+    with pytorch_profiler.profile("a"):
+        a = torch.ones(42)
+        with pytorch_profiler.profile("b"):
+            b = torch.zeros(42)
+        with pytorch_profiler.profile("c"):
+            _ = a + b
+
+    pa = pytorch_profiler.profiled_actions
+
+    # From PyTorch 1.8.0, less operation are being traced.
+    if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
+        expected_ = {
+            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'add'],
+            'b': ['zeros', 'empty', 'zero_'],
+            'c': ['add'],
+        }
+    # From PyTorch 1.6.0, more operation are being traced.
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        expected_ = {
+            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty'],
+            'b': ['zeros', 'empty', 'zero_', 'fill_'],
+            'c': ['add', 'empty'],
+        }
+    else:
+        expected_ = {
+            'a': ['add'],
+            'b': [],
+            'c': ['add'],
+        }
+
+    for n in ('a', 'b', 'c'):
+        pa[n] = [e.name for e in pa[n]]
+        if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
+            pa[n] = [e.replace("aten::", "") for e in pa[n]]
+        assert pa[n] == expected_[n]

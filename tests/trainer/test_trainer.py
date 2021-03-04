@@ -17,7 +17,6 @@ import pickle
 import sys
 from argparse import Namespace
 from copy import deepcopy
-from distutils.version import LooseVersion
 from pathlib import Path
 from unittest.mock import ANY, call, patch
 
@@ -41,12 +40,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
-
-
-@pytest.fixture
-def pytorch_profiler(tmpdir):
-    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
-    return profiler
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1446,108 +1439,6 @@ def test_trainer_predict_1_gpu(tmpdir):
 @RunIf(skip_windows=True, special=True)
 def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
-
-
-def test_pytorch_profiler_describe(pytorch_profiler):
-    """Ensure the profiler won't fail when reporting the summary."""
-    with pytorch_profiler.profile("test_step"):
-        pass
-
-    # log to stdout and print to file
-    pytorch_profiler.describe()
-    data = Path(pytorch_profiler.output_fname).read_text()
-    assert len(data) > 0
-
-
-def test_pytorch_profiler_value_errors(pytorch_profiler):
-    """Ensure errors are raised where expected."""
-
-    action = "test_step"
-    with pytest.raises(ValueError):
-        pytorch_profiler.stop(action)
-
-    pytorch_profiler.start(action)
-    pytorch_profiler.stop(action)
-
-
-@RunIf(min_gpus=2, special=True)
-@pytest.mark.parametrize("use_output_filename", [False, True])
-def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
-    """Ensure that the profiler can be given to the training and default step are properly recorded. """
-
-    if use_output_filename:
-        output_filename = os.path.join(tmpdir, "profiler.txt")
-    else:
-        output_filename = None
-
-    profiler = PyTorchProfiler(output_filename=output_filename)
-
-    model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        profiler=profiler,
-        accelerator="ddp",
-        gpus=2,
-    )
-    trainer.fit(model)
-
-    enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
-
-    if enabled:
-        assert len(profiler.summary()) > 0
-        assert set(profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
-    else:
-        assert profiler.summary() is None
-        assert set(profiler.profiled_actions.keys()) == set()
-
-    if use_output_filename:
-        profiler.describe()
-        data = Path(profiler.output_fname).read_text()
-        assert len(data) > 0
-
-
-def test_pytorch_profiler_nested(tmpdir):
-    """Ensure that the profiler handles nested context"""
-
-    pytorch_profiler = PyTorchProfiler(
-        profiled_functions=["a", "b", "c"], use_cuda=False, output_filename=os.path.join(tmpdir, "profiler.txt")
-    )
-
-    with pytorch_profiler.profile("a"):
-        a = torch.ones(42)
-        with pytorch_profiler.profile("b"):
-            b = torch.zeros(42)
-        with pytorch_profiler.profile("c"):
-            _ = a + b
-
-    pa = pytorch_profiler.profiled_actions
-
-    # From PyTorch 1.8.0, less operation are being traced.
-    if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
-        expected_ = {
-            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'add'],
-            'b': ['zeros', 'empty', 'zero_'],
-            'c': ['add'],
-        }
-    # From PyTorch 1.6.0, more operation are being traced.
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        expected_ = {
-            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty'],
-            'b': ['zeros', 'empty', 'zero_', 'fill_'],
-            'c': ['add', 'empty'],
-        }
-    else:
-        expected_ = {
-            'a': ['add'],
-            'b': [],
-            'c': ['add'],
-        }
-
-    for n in ('a', 'b', 'c'):
-        pa[n] = [e.name for e in pa[n]]
-        if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
-            pa[n] = [e.replace("aten::", "") for e in pa[n]]
-        assert pa[n] == expected_[n]
 
 
 @pytest.mark.parametrize(
