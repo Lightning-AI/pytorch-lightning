@@ -24,8 +24,7 @@ class TPUAccelerator(Accelerator):
         """
         Raises:
             MisconfigurationException:
-                If amp is used with tpu, or
-                if TPUs are not using single TPU core or TPU spawn training.
+                If AMP is used with TPU, or if TPUs are not using a single TPU core or TPU spawn training.
         """
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException(

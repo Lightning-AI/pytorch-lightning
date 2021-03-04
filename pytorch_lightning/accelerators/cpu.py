@@ -15,8 +15,7 @@ class CPUAccelerator(Accelerator):
         """
         Raises:
             MisconfigurationException:
-                If amp is used with cpu, or
-                if the selected device is not CPU.
+                If AMP is used with CPU, or if the selected device is not CPU.
         """
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException("amp + cpu is not supported. Please use a GPU option")
