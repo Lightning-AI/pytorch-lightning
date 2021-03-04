@@ -451,7 +451,6 @@ if _TORCH_GREATER_EQUAL_1_8:
             self._training_step_and_backward_reached_end = False
             self._validation_step_reached_end = False
             # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
-            self._none_action = None
             self._current_action = None
 
         @property
