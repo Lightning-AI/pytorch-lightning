@@ -241,6 +241,10 @@ class ModelCheckpoint(Callback):
         # Mode 2: save the last checkpoint
         self._save_last_checkpoint(trainer, monitor_candidates)
 
+        # notify loggers
+        if trainer.logger and hasattr(trainer.logger, 'after_save_checkpoint'):
+            trainer.logger.after_save_checkpoint(self)
+
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
             raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')

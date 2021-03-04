@@ -29,8 +29,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
 if TYPE_CHECKING:
-    from pytorch_lightning.trainer.trainer import Trainer
-    from weakref import ReferenceType
+    from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 warning_cache = WarningCache()
 
@@ -63,6 +62,13 @@ class WandbLogger(LightningLoggerBase):
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong.
         log_model: Save checkpoints as W&B artifacts.
+            if ``log_model == 'all'`` or
+            :paramref:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint.save_top_k` == -1,
+            all checkpoints are saved during training.
+            if ``log_model == True``, checkpoints are saved at the end of training based on
+            :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` parameters
+            (last checkpoint by default).
+            if ``log_model == False`` (Default), no checkpoint is saved.
         prefix: A string to put at the beginning of metric keys.
         experiment: WandB experiment object. Automatically set when creating a run.
         \**kwargs: Additional arguments like `entity`, `group`, `tags`, etc. used by
@@ -132,11 +138,11 @@ class WandbLogger(LightningLoggerBase):
         self._anonymous = 'allow' if anonymous else None
         self._project = project
         self._log_model = log_model
-        self._logged_model_time = {}
         self._prefix = prefix
         self._experiment = experiment
         self._kwargs = kwargs
-        self._trainer = None
+        self._logged_model_time = {}
+        self._checkpoint_callback = None
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -146,9 +152,6 @@ class WandbLogger(LightningLoggerBase):
         # cannot be pickled
         state['_experiment'] = None
         return state
-
-    def connect(self, trainer: 'ReferenceType[Trainer]') -> None:
-        self._trainer = trainer
 
     @property
     @rank_zero_experiment
@@ -218,32 +221,43 @@ class WandbLogger(LightningLoggerBase):
         return self._experiment.id if self._experiment else self._id
 
     @rank_zero_only
-    def finalize(self, status: str) -> None:
-        # save checkpoints as artifacts
-        if self._log_model and self._trainer is not None and self._trainer.checkpoint_callback is not None:
-            # use run name and ensure it's a valid Artifact name
-            artifact_name = re.sub(r"[^a-zA-Z0-9_\.\-]", "", self.experiment.name)
-            # get checkpoints to be saved with associated score
-            checkpoints = {
-                self._trainer.checkpoint_callback.last_model_path: self._trainer.checkpoint_callback.current_score,
-                self._trainer.checkpoint_callback.best_model_path: self._trainer.checkpoint_callback.best_model_score,
-                **self._trainer.checkpoint_callback.best_k_models}
-            checkpoints = sorted([(Path(p).stat().st_mtime, p, s)
-                                  for p, s in checkpoints.items() if Path(p).is_file()])
-            checkpoints = [c for c in checkpoints
-                           if c[1] not in self._logged_model_time.keys() or self._logged_model_time[c[1]] < c[0]]
+    def after_save_checkpoint(self, checkpoint_callback: 'ModelCheckpoint') -> None:
+        # log checkpoints as artifacts
+        if self._log_model == 'all' or checkpoint_callback.save_top_k == -1:
+            self._scan_and_log_checkpoints(checkpoint_callback)
+        elif self._log_model is True:
+            self._checkpoint_callback = checkpoint_callback
 
-            # log iteratively all new checkpoints
-            for t, p, s in checkpoints:
-                metadata = {'score': s, 'original_filename': Path(p).name,
-                            'ModelCheckpoint': {k: getattr(self._trainer.checkpoint_callback, k) for k in [
-                                'monitor', 'mode', 'save_last', 'save_top_k', 'save_weights_only', 'period'
-                            ]}}
-                artifact = wandb.Artifact(name=f"run-{artifact_name}", type="model", metadata=metadata)
-                artifact.add_file(p, name='model.ckpt')
-                self.experiment.log_artifact(
-                    artifact,
-                    aliases=["latest", "best"] if p == self._trainer.checkpoint_callback.best_model_path
-                    else ["latest"])
-                # remember logged models
-                self._logged_model_time[p] = t
+    @rank_zero_only
+    def finalize(self, status: str) -> None:
+        # log checkpoints as artifacts
+        if self._checkpoint_callback:
+            self._scan_and_log_checkpoints(self._checkpoint_callback)
+
+    def _scan_and_log_checkpoints(self, checkpoint_callback: 'ModelCheckpoint') -> None:
+        # use run name and ensure it's a valid Artifact name
+        artifact_name = re.sub(r"[^a-zA-Z0-9_\.\-]", "", self.experiment.name)
+        # get checkpoints to be saved with associated score
+        checkpoints = {
+            checkpoint_callback.last_model_path: checkpoint_callback.current_score,
+            checkpoint_callback.best_model_path: checkpoint_callback.best_model_score,
+            **checkpoint_callback.best_k_models}
+        checkpoints = sorted([(Path(p).stat().st_mtime, p, s)
+                              for p, s in checkpoints.items() if Path(p).is_file()])
+        checkpoints = [c for c in checkpoints
+                       if c[1] not in self._logged_model_time.keys() or self._logged_model_time[c[1]] < c[0]]
+
+        # log iteratively all new checkpoints
+        for t, p, s in checkpoints:
+            metadata = {'score': s, 'original_filename': Path(p).name,
+                        'ModelCheckpoint': {k: getattr(checkpoint_callback, k) for k in [
+                            'monitor', 'mode', 'save_last', 'save_top_k', 'save_weights_only', 'period'
+                        ]}}
+            artifact = wandb.Artifact(name=f"run-{artifact_name}", type="model", metadata=metadata)
+            artifact.add_file(p, name='model.ckpt')
+            self.experiment.log_artifact(
+                artifact,
+                aliases=["latest", "best"] if p == checkpoint_callback.best_model_path
+                else ["latest"])
+            # remember logged models
+            self._logged_model_time[p] = t

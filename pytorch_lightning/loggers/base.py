@@ -29,8 +29,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_only
 
 if TYPE_CHECKING:
-    from pytorch_lightning.trainer.trainer import Trainer
-    from weakref import ReferenceType
+    from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -76,12 +75,12 @@ class LightningLoggerBase(ABC):
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
 
-    def connect(self, trainer: 'ReferenceType[Trainer]') -> None:
+    def after_save_checkpoint(self, checkpoint_callback: 'ModelCheckpoint') -> None:
         """
-        Connect trainer to logger
+        Called after model checkpoint callback saves a new checkpoint
 
         Args:
-            trainer: the trainer instance to connect to
+            model_checkpoint: the model checkpoint callback instance
         """
         pass
 
@@ -369,9 +368,9 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
 
-    def connect(self, trainer: 'ReferenceType[Trainer]') -> None:
+    def after_save_checkpoint(self, checkpoint_callback: 'ModelCheckpoint') -> None:
         for logger in self._logger_iterable:
-            logger.connect(trainer)
+            logger.after_save_checkpoint(checkpoint_callback)
 
     def update_agg_funcs(
         self,

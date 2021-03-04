@@ -158,10 +158,6 @@ class LoggerConnector:
             else:
                 self.trainer.logger = logger
 
-        # connect trainer to logger
-        if hasattr(self.trainer.logger, 'connect'):
-            self.trainer.logger.connect(proxy(self.trainer))
-
     def cache_training_step_metrics(self, opt_closure_result):
         """
         This function is responsible to update
