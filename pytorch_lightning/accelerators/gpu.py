@@ -17,6 +17,11 @@ _log = logging.getLogger(__name__)
 class GPUAccelerator(Accelerator):
 
     def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
+        """
+        Raises:
+            MisconfigurationException:
+                If the selected device is not GPU.
+        """
         if "cuda" not in str(self.root_device):
             raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
         self.set_nvidia_flags()

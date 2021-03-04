@@ -1,4 +1,5 @@
 import os
+from unittest import mock
 
 import pytest
 import torch
@@ -9,6 +10,22 @@ from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
+
+
+@pytest.mark.parametrize("clip_val", [0, 10])
+@RunIf(min_gpus=1, skip_windows=True, amp_native=True, fairscale=True)
+@mock.patch('fairscale.optim.oss.OSS.clip_grad_norm')
+def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir):
+    """
+    Ensure that clip gradients is only called if the value is greater than 0.
+    """
+    model = BoringModel()
+    trainer = Trainer(accelerator='ddp_sharded', gpus=1, precision=16, fast_dev_run=True, gradient_clip_val=clip_val)
+    trainer.fit(model)
+    if clip_val > 0:
+        mock_oss_clip_grad_norm.assert_called()
+    else:
+        mock_oss_clip_grad_norm.assert_not_called()
 
 
 @RunIf(fairscale=True)
