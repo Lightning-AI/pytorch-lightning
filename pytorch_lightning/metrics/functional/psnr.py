@@ -86,7 +86,7 @@ def psnr(
 
     Raises:
         ValueError:
-            If ``dim`` is not None and ``data_range`` is not provided.
+            If ``dim`` is not ``None`` and ``data_range`` is not provided.
 
     Example:
         >>> from pytorch_lightning.metrics.functional import psnr

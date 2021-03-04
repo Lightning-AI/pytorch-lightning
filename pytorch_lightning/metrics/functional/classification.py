@@ -80,7 +80,6 @@ def stat_scores_multiple_classes(
     Raises:
         ValueError:
             If ``reduction`` is not one of ``"none"``, ``"sum"`` or ``"elementwise_mean"``.
-
     """
 
     rank_zero_warn(
