@@ -25,6 +25,7 @@ from pytorch_lightning.plugins import DDPSpawnShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 from tests.accelerators import DDPLauncher
 from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
@@ -115,11 +116,7 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
     )
 
 
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RUNIF(special=True, fairscale=True, min_gpus=2)
 @DDPLauncher.run("--accelerator ddp --gpus 2  --precision 16")
 def test_ddp_sharded_plugin_clip_gradients(tmpdir, args=None):
     plugin_parity_test(
