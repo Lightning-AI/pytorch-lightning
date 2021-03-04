@@ -116,7 +116,7 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
     )
 
 
-@RUNIF(special=True, fairscale=True, min_gpus=2)
+@RunIf(special=True, fairscale=True, min_gpus=2)
 @DDPLauncher.run("--accelerator ddp --gpus 2  --precision 16")
 def test_ddp_sharded_plugin_clip_gradients(tmpdir, args=None):
     plugin_parity_test(
@@ -292,6 +292,8 @@ def plugin_parity_test(
         gpus=gpus,
         precision=precision,
         accelerator='ddp_spawn',
+        gradient_clip_val=gradient_clip_val,
+        gradient_clip_algorithm=gradient_clip_algorithm,
     )
 
     max_memory_ddp, ddp_time = record_ddp_fit_model_stats(trainer=trainer, model=ddp_model, use_cuda=use_cuda)
@@ -306,6 +308,8 @@ def plugin_parity_test(
         gpus=gpus,
         precision=precision,
         accelerator='ddp_sharded_spawn',
+        gradient_clip_val=gradient_clip_val,
+        gradient_clip_algorithm=gradient_clip_algorithm,
     )
     assert isinstance(trainer.training_type_plugin, DDPSpawnShardedPlugin)
 

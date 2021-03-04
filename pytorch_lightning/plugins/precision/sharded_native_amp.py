@@ -14,7 +14,7 @@
 from typing import cast, TYPE_CHECKING, Union
 
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE, GradClipAlgorithmType
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
 
 if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS

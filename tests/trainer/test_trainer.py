@@ -958,8 +958,7 @@ def test_gradient_clipping_fp16(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@RunIf(min_gpus=1, amp_native=True)
 def test_gradient_clipping_by_value_fp16(tmpdir):
     """
     Test gradient clipping by value with fp16
