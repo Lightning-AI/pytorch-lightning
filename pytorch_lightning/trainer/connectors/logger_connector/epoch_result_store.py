@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytorch_lightning as pl
+import logging
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from weakref import proxy
+
 import torch
-import logging
+
+import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DistributedType, LightningEnum
@@ -26,6 +28,7 @@ log = logging.getLogger(__name__)
 
 
 class MetricWarningCache(WarningCache):
+
     def __init__(self):
         super().__init__()
         self.warned_metrics = []
@@ -121,7 +124,7 @@ class HookResultStore:
 
         func = getattr(opt_metric, func_name)
         metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
-        
+
         if torch.distributed.is_initialized():
             device = self._all_gather_fn.__self__.device
             for non_metric_key in opt_metric.get_non_metrics_keys():
@@ -130,9 +133,10 @@ class HookResultStore:
                     if any(metric[0] != m for m in metric[1:]):
                         warning_cache.warn(
                             f"The value associated to the key {non_metric_key}: {metric.cpu().tolist()} "
-                            "doesn't appear to be the same accross all processes"
-                            "HINT: One could either do: self.log(..., sync_dist=True, sync_fn=torch.mean) to force mean reduction "
-                            "across processes which can be unaccurate or implement a ``pytorch_lightning.metrics.Metric``"
+                            "doesn't appear to be the same accross all processes. "
+                            "HINT: One could either do: self.log(..., sync_dist=True, sync_fn=torch.mean)"
+                            " to force mean reduction across processes which can be unaccurate or implement"
+                            " a ``pytorch_lightning.metrics.Metric``"
                         )
                     warning_cache.warned_metrics.append(non_metric_key)
 
