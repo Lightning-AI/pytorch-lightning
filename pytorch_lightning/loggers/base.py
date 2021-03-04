@@ -20,16 +20,14 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
 from typing import (Any, Callable, Dict, Iterable, List, Mapping, MutableMapping,
-                    Optional, Sequence, Tuple, Union, TYPE_CHECKING)
+                    Optional, Sequence, Tuple, Union)
 
 import numpy as np
 import torch
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_only
-
-if TYPE_CHECKING:
-    from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -75,7 +73,7 @@ class LightningLoggerBase(ABC):
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
 
-    def after_save_checkpoint(self, checkpoint_callback: 'ModelCheckpoint') -> None:
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         """
         Called after model checkpoint callback saves a new checkpoint
 
@@ -368,7 +366,7 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
 
-    def after_save_checkpoint(self, checkpoint_callback: 'ModelCheckpoint') -> None:
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         for logger in self._logger_iterable:
             logger.after_save_checkpoint(checkpoint_callback)
 

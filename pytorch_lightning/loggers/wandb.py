@@ -19,7 +19,7 @@ import os
 import re
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, Optional, Union
 
 import torch.nn as nn
 
@@ -27,9 +27,7 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
-
-if TYPE_CHECKING:
-    from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 warning_cache = WarningCache()
 
@@ -221,7 +219,7 @@ class WandbLogger(LightningLoggerBase):
         return self._experiment.id if self._experiment else self._id
 
     @rank_zero_only
-    def after_save_checkpoint(self, checkpoint_callback: 'ModelCheckpoint') -> None:
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         # log checkpoints as artifacts
         if self._log_model == 'all' or checkpoint_callback.save_top_k == -1:
             self._scan_and_log_checkpoints(checkpoint_callback)
@@ -234,7 +232,7 @@ class WandbLogger(LightningLoggerBase):
         if self._checkpoint_callback:
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
-    def _scan_and_log_checkpoints(self, checkpoint_callback: 'ModelCheckpoint') -> None:
+    def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
         # use run name and ensure it's a valid Artifact name
         artifact_name = re.sub(r"[^a-zA-Z0-9_\.\-]", "", self.experiment.name)
         # get checkpoints to be saved with associated score
