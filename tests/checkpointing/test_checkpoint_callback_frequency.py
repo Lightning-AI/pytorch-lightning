@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from pytorch_lightning.core.lightning import LightningModule
 from unittest import mock
 
 import pytest
@@ -112,20 +111,13 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
         def training_step(self, batch, batch_idx):
             local_rank = int(os.getenv("LOCAL_RANK"))
             self.log('my_loss', batch_idx * (1 + local_rank), on_epoch=True)
-
             return super().training_step(batch, batch_idx)
 
         def training_epoch_end(self, outputs) -> None:
-            #data = torch.tensor(100)
             data = str(self.global_rank)
-            print("before broadcast", self.global_rank, data)
             out = self.trainer.training_type_plugin.broadcast(str(data))
-            # data should remain same
             assert data == str(self.global_rank)
-            # out is the broadcast result from rank 0
             assert out == "0"
-            print(self.global_rank, data, out)
-
 
     model = TestModel()
     trainer = Trainer(
