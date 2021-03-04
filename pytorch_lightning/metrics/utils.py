@@ -285,6 +285,7 @@ def _stable_1d_sort(x: torch, N: int = 2049):
     n = x.numel()
     if N - n > 0:
         x_max = x.max()
-        x_pad = torch.cat([x, (x_max + 1) * torch.ones(2049 - n, dtype=x.dtype, device=x.device)], 0)
-    x_sort = x_pad.sort()
-    return x_sort.values[:n], x_sort.indices[:n]
+        x = torch.cat([x, (x_max + 1) * torch.ones(N - n, dtype=x.dtype, device=x.device)], 0)
+    x_sort = x.sort()
+    i = min(N, n)
+    return x_sort.values[:i], x_sort.indices[:i]
