@@ -132,6 +132,7 @@ class WandbLogger(LightningLoggerBase):
         self._anonymous = 'allow' if anonymous else None
         self._project = project
         self._log_model = log_model
+        self._logged_model_time = {}
         self._prefix = prefix
         self._experiment = experiment
         self._kwargs = kwargs
@@ -227,11 +228,13 @@ class WandbLogger(LightningLoggerBase):
                 self._trainer.checkpoint_callback.last_model_path: self._trainer.checkpoint_callback.current_score,
                 self._trainer.checkpoint_callback.best_model_path: self._trainer.checkpoint_callback.best_model_score,
                 **self._trainer.checkpoint_callback.best_k_models}
-            checkpoints.pop('', None)
-            ordered_checkpoints = sorted([(Path(p).stat().st_mtime, p, s)
-                                          for p, s in checkpoints.items() if Path(p).is_file()])
-            # log iteratively all checkpoints
-            for _, p, s in ordered_checkpoints:
+            checkpoints = sorted([(Path(p).stat().st_mtime, p, s)
+                                  for p, s in checkpoints.items() if Path(p).is_file()])
+            checkpoints = [c for c in checkpoints
+                           if c[1] not in self._logged_models.keys() or self._logged_models[c[1]] < c[0]]
+
+            # log iteratively all new checkpoints
+            for t, p, s in checkpoints:
                 metadata = {'score': s, 'original_filename': Path(p).name,
                             'ModelCheckpoint': {k: getattr(self._trainer.checkpoint_callback, k) for k in [
                                 'monitor', 'mode', 'save_last', 'save_top_k', 'save_weights_only', 'period'
@@ -242,3 +245,5 @@ class WandbLogger(LightningLoggerBase):
                     artifact,
                     aliases=["latest", "best"] if p == self._trainer.checkpoint_callback.best_model_path
                     else ["latest"])
+                # remember logged models
+                self._logged_model_time[p] = t
