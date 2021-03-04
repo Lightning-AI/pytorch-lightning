@@ -98,6 +98,12 @@ class DeviceType(LightningEnum):
 
 class GradClipAlgorithmType(LightningEnum):
     """ Define gradient_clip_algorithm types - training-tricks.
+    NORM type means "clipping gradients by norm". This computed over all model parameters together.
+    VALUE tpye means "clipping gradients by value". This will clip the gradient value for each parameter.
+    
+    References:
+        clip_by_norm: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm
+        clip_by_value: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value
     """
     VALUE = 'value'
     NORM = 'norm'
