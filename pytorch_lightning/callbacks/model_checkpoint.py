@@ -23,6 +23,7 @@ import os
 import re
 from copy import deepcopy
 from pathlib import Path
+from weakref import proxy
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
@@ -243,7 +244,7 @@ class ModelCheckpoint(Callback):
 
         # notify loggers
         if trainer.logger and hasattr(trainer.logger, 'after_save_checkpoint'):
-            trainer.logger.after_save_checkpoint(self)
+            trainer.logger.after_save_checkpoint(proxy(self))
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
