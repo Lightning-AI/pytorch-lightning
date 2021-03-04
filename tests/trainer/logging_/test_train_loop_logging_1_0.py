@@ -411,7 +411,7 @@ def test_different_batch_types_for_sizing(tmpdir):
     assert generated == expected
 
 
-def test_validation_step_with_string_data_logging():
+def test_validation_step_with_string_data_logging(tmpdir):
 
     class TestModel(BoringModel):
 
@@ -436,7 +436,7 @@ def test_validation_step_with_string_data_logging():
     # model
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
@@ -491,7 +491,7 @@ def test_nested_datasouce_batch(tmpdir):
     # model
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
@@ -732,10 +732,7 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     assert trainer.logged_metrics['bar'] == fake_result
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with ddp

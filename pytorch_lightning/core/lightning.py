@@ -19,12 +19,13 @@ import inspect
 import logging
 import os
 import tempfile
+import types
 import uuid
 from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -226,6 +227,7 @@ class LightningModule(
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        add_dataloader_idx: bool = True,
     ):
         """
         Log a key, value
@@ -260,7 +262,10 @@ class LightningModule(
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
-            sync_dist_group: the ddp group
+            sync_dist_group: the ddp group to sync across
+            add_dataloader_idx: if True, appends the index of the current dataloader to
+                the name (when using multiple). If False, user needs to give unique names for
+                each dataloader to not mix values
         """
         if self._results is not None:
             # in any epoch end can't log step metrics (only epoch metric)
@@ -292,6 +297,9 @@ class LightningModule(
 
             training_type_plugin = self.trainer.training_type_plugin
 
+            # Determine if dataloader index should be added
+            dataloader_idx = self._current_dataloader_idx if add_dataloader_idx else None
+
             self._results.log(
                 name,
                 value,
@@ -307,7 +315,7 @@ class LightningModule(
                 sync_dist_op,
                 sync_dist_group,
                 training_type_plugin.reduce,
-                self._current_dataloader_idx,
+                dataloader_idx,
                 self.device,
             )
 
@@ -325,6 +333,7 @@ class LightningModule(
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        add_dataloader_idx: bool = True,
     ):
         """
         Log a dictonary of values at once
@@ -346,7 +355,10 @@ class LightningModule(
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
-            sync_dist_group: the ddp group:
+            sync_dist_group: the ddp group sync across
+            add_dataloader_idx: if True, appends the index of the current dataloader to
+                the name (when using multiple). If False, user needs to give unique names for
+                each dataloader to not mix values
         """
         for k, v in dictionary.items():
             self.log(
@@ -363,6 +375,7 @@ class LightningModule(
                 sync_dist_op=sync_dist_op,
                 tbptt_pad_token=tbptt_pad_token,
                 tbptt_reduce_fx=tbptt_reduce_fx,
+                add_dataloader_idx=add_dataloader_idx
             )
 
     def write_prediction(
@@ -1579,55 +1592,84 @@ class LightningModule(
             parents_arguments.update(args)
         return self_arguments, parents_arguments
 
-    def save_hyperparameters(self, *args, frame=None) -> None:
-        """Save all model arguments.
+    def save_hyperparameters(
+        self,
+        *args,
+        ignore: Optional[Union[Sequence[str], str]] = None,
+        frame: Optional[types.FrameType] = None
+    ) -> None:
+        """Save model arguments to ``hparams`` attribute.
 
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
-             or string names or arguments from class `__init__`
+                or string names or arguments from class ``__init__``
+            ignore: an argument name or a list of argument names from
+                class ``__init__`` to be ignored
+            frame: a frame object. Default is None
 
-        >>> class ManuallyArgsModel(LightningModule):
-        ...     def __init__(self, arg1, arg2, arg3):
-        ...         super().__init__()
-        ...         # manually assign arguments
-        ...         self.save_hyperparameters('arg1', 'arg3')
-        ...     def forward(self, *args, **kwargs):
-        ...         ...
-        >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-        >>> model.hparams
-        "arg1": 1
-        "arg3": 3.14
+        Example::
+            >>> class ManuallyArgsModel(LightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # manually assign arguments
+            ...         self.save_hyperparameters('arg1', 'arg3')
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg3": 3.14
 
-        >>> class AutomaticArgsModel(LightningModule):
-        ...     def __init__(self, arg1, arg2, arg3):
-        ...         super().__init__()
-        ...         # equivalent automatic
-        ...         self.save_hyperparameters()
-        ...     def forward(self, *args, **kwargs):
-        ...         ...
-        >>> model = AutomaticArgsModel(1, 'abc', 3.14)
-        >>> model.hparams
-        "arg1": 1
-        "arg2": abc
-        "arg3": 3.14
+            >>> class AutomaticArgsModel(LightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # equivalent automatic
+            ...         self.save_hyperparameters()
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = AutomaticArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg2": abc
+            "arg3": 3.14
 
-        >>> class SingleArgModel(LightningModule):
-        ...     def __init__(self, params):
-        ...         super().__init__()
-        ...         # manually assign single argument
-        ...         self.save_hyperparameters(params)
-        ...     def forward(self, *args, **kwargs):
-        ...         ...
-        >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
-        >>> model.hparams
-        "p1": 1
-        "p2": abc
-        "p3": 3.14
+            >>> class SingleArgModel(LightningModule):
+            ...     def __init__(self, params):
+            ...         super().__init__()
+            ...         # manually assign single argument
+            ...         self.save_hyperparameters(params)
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
+            >>> model.hparams
+            "p1": 1
+            "p2": abc
+            "p3": 3.14
+
+            >>> class ManuallyArgsModel(LightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # pass argument(s) to ignore as a string or in a list
+            ...         self.save_hyperparameters(ignore='arg2')
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg3": 3.14
         """
         if not frame:
             frame = inspect.currentframe().f_back
         init_args = get_init_args(frame)
         assert init_args, "failed to inspect the self init"
+
+        if ignore is not None:
+            if isinstance(ignore, str):
+                ignore = [ignore]
+            if isinstance(ignore, (list, tuple)):
+                ignore = [arg for arg in ignore if isinstance(arg, str)]
+            init_args = {k: v for k, v in init_args.items() if k not in ignore}
+
         if not args:
             # take all arguments
             hp = init_args

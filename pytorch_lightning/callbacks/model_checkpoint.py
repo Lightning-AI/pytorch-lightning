@@ -239,7 +239,7 @@ class ModelCheckpoint(Callback):
             self._save_top_k_checkpoints(trainer, pl_module, monitor_candidates)
 
         # Mode 2: save the last checkpoint
-        self._save_last_checkpoint(trainer, pl_module, monitor_candidates)
+        self._save_last_checkpoint(trainer, monitor_candidates)
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
@@ -291,8 +291,7 @@ class ModelCheckpoint(Callback):
             self._fs.rm(filepath)
             log.debug(f"Removed checkpoint: {filepath}")
 
-    def _save_model(self, filepath: str, trainer, pl_module):
-        # Todo: required argument `pl_module` is not used
+    def _save_model(self, filepath: str, trainer):
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
@@ -481,7 +480,7 @@ class ModelCheckpoint(Callback):
         monitor_candidates.update(step=trainer.global_step, epoch=trainer.current_epoch)
         return monitor_candidates
 
-    def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics):
+    def _save_last_checkpoint(self, trainer, ckpt_name_metrics):
         should_save_last = self.monitor is None or self.save_last
         if not should_save_last:
             return
@@ -505,9 +504,9 @@ class ModelCheckpoint(Callback):
 
         if trainer.training_type_plugin.rpc_enabled:
             # RPCPlugin manages saving all model states
-            trainer.training_type_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
+            trainer.training_type_plugin.rpc_save_model(self._save_model, last_filepath, trainer)
         else:
-            self._save_model(last_filepath, trainer, pl_module)
+            self._save_model(last_filepath, trainer)
         if (
             self.last_model_path and self.last_model_path != last_filepath
             and (self.save_top_k != -1 or self.save_last) and trainer.is_global_zero
@@ -574,7 +573,7 @@ class ModelCheckpoint(Callback):
                 f"Epoch {epoch:d}, global step {step:d}: {self.monitor} reached {current:0.5f}"
                 f' (best {self.best_model_score:0.5f}), saving model to "{filepath}" as top {k}'
             )
-        self._save_model(filepath, trainer, pl_module)
+        self._save_model(filepath, trainer)
 
         if del_filepath is not None and filepath != del_filepath:
             self._del_model(del_filepath)

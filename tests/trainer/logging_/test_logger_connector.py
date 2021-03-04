@@ -471,3 +471,39 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
     )
     with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the .* 'loss'"):
         trainer.fit(model)
+
+
+@pytest.mark.parametrize("add_dataloader_idx", [False, True])
+def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
+    """ test that auto_add_dataloader_idx argument works """
+
+    class TestModel(BoringModel):
+
+        def val_dataloader(self):
+            dl = super().val_dataloader()
+            return [dl, dl]
+
+        def validation_step(self, *args, **kwargs):
+            output = super().validation_step(*args[:-1], **kwargs)
+            if add_dataloader_idx:
+                name = "val_loss"
+            else:
+                name = f"val_loss_custom_naming_{args[-1]}"
+
+            self.log(name, output["x"], add_dataloader_idx=add_dataloader_idx)
+            return output
+
+    model = TestModel()
+    model.validation_epoch_end = None
+
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=5)
+    trainer.fit(model)
+    logged = trainer.logged_metrics
+
+    # Check that the correct keys exist
+    if add_dataloader_idx:
+        assert 'val_loss/dataloader_idx_0' in logged
+        assert 'val_loss/dataloader_idx_1' in logged
+    else:
+        assert 'val_loss_custom_naming_0' in logged
+        assert 'val_loss_custom_naming_1' in logged
