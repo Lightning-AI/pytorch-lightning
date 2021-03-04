@@ -54,6 +54,9 @@ class DataParallelPlugin(ParallelPlugin):
 
             tensor = apply_to_collection(tensor, torch.Tensor, _reduce)
 
+        elif isinstance(tensor, dict):
+            tensor = apply_to_collection(tensor, torch.Tensor, torch.mean)
+
         return tensor
 
     @property

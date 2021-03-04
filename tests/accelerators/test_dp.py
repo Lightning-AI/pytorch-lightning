@@ -143,6 +143,6 @@ def test_dp_training_step_dict(tmpdir):
         limit_train_batches=2,
         limit_val_batches=0,
         gpus=2,
-        plugins='dp',
+        accelerator='dp',
     )
     trainer.fit(model)

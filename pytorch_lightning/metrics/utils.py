@@ -60,6 +60,11 @@ def _input_format_classification_one_hot(
         threshold: float used for thresholding multilabel input
         multilabel: boolean flag indicating if input is multilabel
 
+    Raises:
+        ValueError:
+            If ``preds`` and ``target`` don't have the same number of dimensions
+            or one additional dimension for ``preds``.
+
     Returns:
         preds: one hot tensor of shape [num_classes, -1] with predicted labels
         target: one hot tensors of shape [num_classes, -1] with true labels
@@ -247,6 +252,9 @@ def class_reduce(
             - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'`` or ``None``: returns calculated metric per class
 
+    Raises:
+        ValueError:
+            If ``class_reduction`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"none"`` or ``None``.
     """
     valid_reduction = ("micro", "macro", "weighted", "none", None)
     if class_reduction == "micro":
@@ -279,12 +287,17 @@ def _stable_1d_sort(x: torch, N: int = 2049):
     if number of elements are larger than 2048. This function pads the tensors,
     makes the sort and returns the sorted array (with the padding removed)
     See this discussion: https://discuss.pytorch.org/t/is-torch-sort-stable/20714
+
+    Raises:
+        ValueError:
+            If dim of ``x`` is greater than 1 since stable sort works with only 1d tensors.
     """
     if x.ndim > 1:
         raise ValueError('Stable sort only works on 1d tensors')
     n = x.numel()
     if N - n > 0:
         x_max = x.max()
-        x_pad = torch.cat([x, (x_max + 1) * torch.ones(2049 - n, dtype=x.dtype, device=x.device)], 0)
-    x_sort = x_pad.sort()
-    return x_sort.values[:n], x_sort.indices[:n]
+        x = torch.cat([x, (x_max + 1) * torch.ones(N - n, dtype=x.dtype, device=x.device)], 0)
+    x_sort = x.sort()
+    i = min(N, n)
+    return x_sort.values[:i], x_sort.indices[:i]
