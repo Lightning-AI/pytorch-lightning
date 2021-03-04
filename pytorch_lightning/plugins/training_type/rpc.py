@@ -63,7 +63,7 @@ class RPCPlugin(DDPPlugin):
         rpc._set_rpc_timeout(self.rpc_timeout_sec)
         self._is_rpc_initialized = True
 
-    def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
+    def rpc_save_model(self, save_model_fn, last_filepath, trainer) -> None:
         """
         Override to save model to disk.
         This is required as the main process will be required to handle aggregating model states from RPC processes.
@@ -72,7 +72,6 @@ class RPCPlugin(DDPPlugin):
             save_model_fn: The saving function to save final model.
             last_filepath: The filepath to save the model to.
             trainer: The trainer object.
-            pl_module: The LightningModule.
         """
         raise NotImplementedError
 

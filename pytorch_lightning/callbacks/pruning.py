@@ -16,19 +16,21 @@ ModelPruning
 ^^^^^^^^^^^^
 """
 import inspect
+import logging
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union, Dict
 
 import torch
 import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_debug
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+log = logging.getLogger(__name__)
 
 _PYTORCH_PRUNING_FUNCTIONS = {
     "ln_structured": pytorch_prune.ln_structured,
@@ -246,14 +248,18 @@ class ModelPruning(Callback):
     def _wrap_pruning_fn(pruning_fn, **kwargs):
         return partial(pruning_fn, **kwargs)
 
-    def make_pruning_permanent(self):
-        """ Makes ``parameters_to_prune`` current pruning permanent. """
-        for module, param_name in self._parameters_to_prune:
-            try:
-                pytorch_prune.remove(module, param_name)
-            except ValueError:
-                # pruning already made permanent
-                pass
+    def make_pruning_permanent(self, pl_module: LightningModule):
+        """
+        Removes pruning buffers from any pruned modules
+
+        Adapted from https://github.com/pytorch/pytorch/blob/1.7.1/torch/nn/utils/prune.py#L1176-L1180
+        """
+        for _, module in pl_module.named_modules():
+            for k in list(module._forward_pre_hooks):
+                hook = module._forward_pre_hooks[k]
+                if isinstance(hook, pytorch_prune.BasePruningMethod):
+                    hook.remove(module)
+                    del module._forward_pre_hooks[k]
 
     def _restore_original_weights(self, module: nn.Module, orig_module: nn.Module, tensor_name: str):
         trained = getattr(module, tensor_name)
@@ -351,7 +357,7 @@ class ModelPruning(Callback):
                     f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )
 
-    def on_before_accelerator_backend_setup(self, trainer, pl_module):
+    def on_before_accelerator_backend_setup(self, trainer, pl_module: LightningModule):
         parameters_to_prune = self.sanitize_parameters_to_prune(
             pl_module, self._parameters_to_prune, parameter_names=self._parameter_names
         )
@@ -367,7 +373,7 @@ class ModelPruning(Callback):
                 self._original_layers.setdefault(id_, {"data": deepcopy(module), "names": []})
                 self._original_layers[id_]["names"].append((i, name))
 
-    def on_train_epoch_end(self, trainer, pl_module, *args):
+    def on_train_epoch_end(self, trainer, pl_module: LightningModule, outputs):
         current_epoch = trainer.current_epoch
         prune = self._apply_pruning(current_epoch) if isinstance(self._apply_pruning, Callable) else self._apply_pruning
         amount = self.amount(current_epoch) if isinstance(self.amount, Callable) else self.amount
@@ -381,13 +387,20 @@ class ModelPruning(Callback):
         ):
             self.apply_lottery_ticket_hypothesis()
 
-    def on_train_end(self, *args):
+    def on_train_end(self, trainer, pl_module: LightningModule):
         if self._make_pruning_permanent:
-            self.make_pruning_permanent()
+            rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint.")
+            self.make_pruning_permanent(pl_module)
 
-    def on_save_checkpoint(self, *args):
+    def on_save_checkpoint(self, trainer, pl_module: LightningModule, checkpoint: Dict[str, Any]):
         if self._make_pruning_permanent:
-            self.make_pruning_permanent()
+            rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint.")
+            prev_device = pl_module.device
+            # prune a copy so training can continue with the same buffers
+            copy = deepcopy(pl_module.to("cpu"))
+            self.make_pruning_permanent(copy)
+            checkpoint["state_dict"] = copy.state_dict()
+            pl_module.to(prev_device)
 
     @staticmethod
     def sanitize_parameters_to_prune(

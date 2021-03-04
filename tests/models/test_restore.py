@@ -30,6 +30,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 
@@ -83,6 +84,28 @@ class GenericParentValTestLossBoringModel(Generic[T], ValTestLossBoringModel):
 
 class GenericValTestLossBoringModel(GenericParentValTestLossBoringModel[int]):
     pass
+
+
+class CustomClassificationModelDP(ClassificationModel):
+
+    def _step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        return {'logits': logits, 'y': y}
+
+    def training_step(self, batch, batch_idx):
+        out = self._step(batch, batch_idx)
+        loss = F.cross_entropy(out['logits'], out['y'])
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx)
+
+    def test_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx)
+
+    def validation_step_end(self, outputs):
+        self.log('val_acc', self.valid_acc(outputs['logits'], outputs['y']))
 
 
 def test_model_properties_resume_from_checkpoint(tmpdir):
@@ -144,10 +167,7 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
-            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[
-                checkpoint,
-                callback_capture,
-            ]
+            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[checkpoint, callback_capture]
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None
@@ -192,33 +212,11 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
     trainer.fit(model, datamodule=dm)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
 
     tutils.set_random_master_port()
-
-    class CustomClassificationModelDP(ClassificationModel):
-
-        def _step(self, batch, batch_idx):
-            x, y = batch
-            logits = self(x)
-            return {'logits': logits, 'y': y}
-
-        def training_step(self, batch, batch_idx):
-            _, y = batch
-            out = self._step(batch, batch_idx)
-            loss = F.cross_entropy(out['logits'], y)
-            return loss
-
-        def validation_step(self, batch, batch_idx):
-            return self._step(batch, batch_idx)
-
-        def test_step(self, batch, batch_idx):
-            return self._step(batch, batch_idx)
-
-        def validation_step_end(self, outputs):
-            self.log('val_acc', self.valid_acc(outputs['logits'], outputs['y']))
 
     dm = ClassifDataModule()
     model = CustomClassificationModelDP(lr=0.1)
@@ -259,10 +257,10 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(pretrained_model, dataloader)
+        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     """Verify `test()` on pretrained model."""
     tutils.set_random_master_port()
@@ -307,7 +305,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(pretrained_model, dataloader, min_acc=0.1)
+        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader, min_acc=0.1)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -395,10 +393,11 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     new_trainer.test(pretrained_model)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
-    model = BoringModel()
+    model = CustomClassificationModelDP(lr=0.1)
+    dm = ClassifDataModule()
 
     trainer_options = dict(max_epochs=1, gpus=2, accelerator='dp', default_root_dir=tmpdir)
 
@@ -416,7 +415,7 @@ def test_dp_resume(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.is_slurm_managing_tasks = True
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
     # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
     real_global_epoch = trainer.current_epoch + 1
@@ -439,7 +438,7 @@ def test_dp_resume(tmpdir):
     trainer_options['max_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
 
-    class CustomModel(BoringModel):
+    class CustomModel(CustomClassificationModelDP):
 
         def __init__(self):
             super().__init__()
@@ -451,19 +450,17 @@ def test_dp_resume(tmpdir):
 
             # if model and state loaded correctly, predictions will be good even though we
             # haven't trained with the new loaded model
-            dp_model = new_trainer.model
-            dp_model.eval()
-            dp_model.module.module.running_stage = RunningStage.EVALUATING
+            new_trainer._running_stage = RunningStage.EVALUATING
 
             dataloader = self.train_dataloader()
-            tpipes.run_prediction(self.trainer.lightning_module, dataloader)
+            tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
             self.on_train_start_called = True
 
     # new model
     model = CustomModel()
 
     # fit new model which should load hpc weights
-    new_trainer.fit(model)
+    new_trainer.fit(model, datamodule=dm)
     assert model.on_train_start_called
 
     # test freeze on gpu
