@@ -231,7 +231,7 @@ class WandbLogger(LightningLoggerBase):
             checkpoints = sorted([(Path(p).stat().st_mtime, p, s)
                                   for p, s in checkpoints.items() if Path(p).is_file()])
             checkpoints = [c for c in checkpoints
-                           if c[1] not in self._logged_models.keys() or self._logged_models[c[1]] < c[0]]
+                           if c[1] not in self._logged_model_time.keys() or self._logged_model_time[c[1]] < c[0]]
 
             # log iteratively all new checkpoints
             for t, p, s in checkpoints:
