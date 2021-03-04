@@ -239,7 +239,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
