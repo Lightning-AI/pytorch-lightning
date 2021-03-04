@@ -34,4 +34,4 @@ python ${DEFAULTS} tests/trainer/test_data_loading.py::test_replace_distrubuted_
 python ${DEFAULTS} tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model
 
 nvprof --profile-from-start off -o trace_name.prof -- python ${DEFAULTS} tests/trainer/test_trainer.py::test_pytorch_profiler_nested_emit_nvtx
-python -c "import torch; assert len(torch.autograd.profiler.load_nvprof('./trace_name.prof')) > 0"
+python -c "import torch; assert len(torch.autograd.profiler.load_nvprof('/__w/1/s/trace_name.prof')) > 0"
