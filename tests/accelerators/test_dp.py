@@ -128,14 +128,10 @@ def test_dp_test(tmpdir):
 @RunIf(min_gpus=2)
 def test_dp_training_step_dict(tmpdir):
     """
-    This test verify dp properly reduce dictionaries  
+    This test verify dp properly reduce dictionaries
     """
-    class TestModel(BoringModel):
 
-        def training_step(self, batch, batch_idx):
-            return super().training_step(batch, batch_idx)
-
-    model = TestModel()
+    model = BoringModel()
     model.training_step_end = None
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
