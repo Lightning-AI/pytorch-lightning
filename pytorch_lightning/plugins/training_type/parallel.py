@@ -15,7 +15,7 @@ import io
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
@@ -24,7 +24,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
-from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
