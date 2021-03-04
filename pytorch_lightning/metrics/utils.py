@@ -62,8 +62,8 @@ def _input_format_classification_one_hot(
 
     Raises:
         ValueError:
-            If preds and target don't have the same number of dimensions
-            or one additional dimension for preds.
+            If ``preds`` and ``target`` don't have the same number of dimensions
+            or one additional dimension for ``preds``.
 
     Returns:
         preds: one hot tensor of shape [num_classes, -1] with predicted labels
