@@ -222,7 +222,7 @@ class WandbLogger(LightningLoggerBase):
     @rank_zero_only
     def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
         # log checkpoints as artifacts
-        if self._log_model == 'all' or checkpoint_callback.save_top_k == -1:
+        if self._log_model == 'all' or self._log_model is True and checkpoint_callback.save_top_k == -1:
             self._scan_and_log_checkpoints(checkpoint_callback)
         elif self._log_model is True:
             self._checkpoint_callback = checkpoint_callback
