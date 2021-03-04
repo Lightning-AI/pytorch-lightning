@@ -105,46 +105,23 @@ def test_torch_distributed_backend_env_variables(tmpdir):
             trainer.fit(model)
 
 
-@pytest.mark.parametrize('move_to_device_pre_dispatch_enabled', [False, True])
-@mock.patch('pytorch_lightning.plugins.DDPPlugin.model_to_device', autospec=True)
-def test_move_to_device_in_pre_dispatch(mock_model_to_device, move_to_device_pre_dispatch_enabled, tmpdir):
+@pytest.mark.parametrize('move_to_device_pre_dispatch_enabled', [True, False])
+@mock.patch('pytorch_lightning.plugins.DDPPlugin.model_to_device')
+def test_move_to_device_in_pre_dispatch(mock_model_to_device, tmpdir, move_to_device_pre_dispatch_enabled):
     """
     Test if ``call_move_to_device_hook_in_pre_dispatch`` is disabled we do not move to device till later
     in training.
     """
 
-    class TestPropertyPlugin(DDPPlugin):
-
-        @property
-        def call_move_to_device_hook_in_pre_dispatch(self) -> bool:
-            return move_to_device_pre_dispatch_enabled
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, accelerator='ddp', plugins=TestPropertyPlugin(), num_processes=1
-    )
-    trainer.fit(model)
-
-    # Check if mocked device was called. Since we're on CPU, model_to_device does nothing anyway.
-    if move_to_device_pre_dispatch_enabled:
-        mock_model_to_device.assert_called()
-    else:
-        mock_model_to_device.assert_not_called()
-
-
-@pytest.mark.parametrize('move_to_device_pre_dispatch_enabled', [False, True])
-@mock.patch('pytorch_lightning.plugins.DDPSpawnPlugin.model_to_device', autospec=True)
-def test_move_to_device_in_pre_dispatch(mock_model_to_device, move_to_device_pre_dispatch_enabled, tmpdir):
-    """
-    Test if ``call_move_to_device_hook_in_pre_dispatch`` is disabled we do not move to device till later
-    in training.
-    """
-
-    with mock.patch('pytorch_lightning.plugins.DDPSpawnPlugin.call_move_to_device_hook_in_pre_dispatch',
+    with mock.patch(f'pytorch_lightning.plugins.DDPPlugin.call_move_to_device_hook_in_pre_dispatch',
                     move_to_device_pre_dispatch_enabled):
         model = BoringModel()
         trainer = Trainer(
-            default_root_dir=tmpdir, fast_dev_run=True, accelerator='ddp_spawn', num_processes=1
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
+            accelerator='ddp',
+            plugins=DDPPlugin(),
+            num_processes=1
         )
         trainer.fit(model)
 
