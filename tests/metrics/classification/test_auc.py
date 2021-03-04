@@ -61,4 +61,4 @@ class TestAUC(MetricTester):
 ])
 def test_auc(x, y, expected):
     # Test Area Under Curve (AUC) computation
-    assert auc(torch.tensor(x), torch.tensor(y)) == expected
+    assert auc(torch.tensor(x), torch.tensor(y), reorder=True) == expected

@@ -411,7 +411,7 @@ def test_different_batch_types_for_sizing(tmpdir):
     assert generated == expected
 
 
-def test_validation_step_with_string_data_logging():
+def test_validation_step_with_string_data_logging(tmpdir):
 
     class TestModel(BoringModel):
 
@@ -436,7 +436,7 @@ def test_validation_step_with_string_data_logging():
     # model
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
@@ -491,7 +491,7 @@ def test_nested_datasouce_batch(tmpdir):
     # model
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,

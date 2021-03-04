@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union, Dict
 
 import torch
 from torch.nn import Module
@@ -153,7 +153,7 @@ class TrainingTypePlugin(Plugin, ABC):
     def test_step_end(self, output):
         return output
 
-    def on_save(self, checkpoint: dict) -> dict:
+    def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
         return checkpoint
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:

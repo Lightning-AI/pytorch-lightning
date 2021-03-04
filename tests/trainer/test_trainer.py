@@ -472,7 +472,11 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         state = pl_load(ckpt)
 
         # Resume training
-        new_trainer = Trainer(resume_from_checkpoint=ckpt, max_epochs=2)
+        new_trainer = Trainer(
+            default_root_dir=tmpdir,
+            resume_from_checkpoint=ckpt,
+            max_epochs=2,
+        )
         new_trainer.fit(next_model)
         assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
         assert next_model.num_on_load_checkpoint_called == 1
