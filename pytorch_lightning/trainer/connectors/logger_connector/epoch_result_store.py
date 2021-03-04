@@ -23,6 +23,7 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DistributedType, LightningEnum
 from pytorch_lightning.utilities.warnings import WarningCache
+from torch.distributed.distributed_c10d import GroupMember
 
 log = logging.getLogger(__name__)
 
@@ -125,7 +126,7 @@ class HookResultStore:
         func = getattr(opt_metric, func_name)
         metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
 
-        if torch.distributed.is_initialized():
+        if torch.distributed.is_initialized() and GroupMember.WORLD.size() > 1:
             for non_metric_key in opt_metric.get_non_metrics_keys():
                 if non_metric_key in metrics_to_log and non_metric_key not in warning_cache.warned_metrics:
                     metric = self._all_gather_fn(metrics_to_log[non_metric_key])
