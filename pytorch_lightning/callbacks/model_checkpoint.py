@@ -595,7 +595,7 @@ class ModelCheckpoint(Callback):
         """
         exists = self._fs.exists(filepath)
         exists = trainer.lightning_module.all_gather(exists)
-        if exists.dim() == 0:
+        if isinstance(exists, torch.Tensor) and exists.dim() == 0:
             exists = exists.item()
         else:
             exists = exists[0].item()
