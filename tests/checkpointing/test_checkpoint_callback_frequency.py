@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from pytorch_lightning.core.lightning import LightningModule
 from unittest import mock
 
 import pytest
@@ -103,7 +104,7 @@ def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
 @mock.patch('torch.save')
 @RunIf(special=True, min_gpus=2)
-@pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1), (2, 2, 0.3, 5)])
+@pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1)])
 def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     class TestModel(BoringModel):
@@ -111,7 +112,19 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
         def training_step(self, batch, batch_idx):
             local_rank = int(os.getenv("LOCAL_RANK"))
             self.log('my_loss', batch_idx * (1 + local_rank), on_epoch=True)
+
             return super().training_step(batch, batch_idx)
+
+        def assert_broadcast(self, obj):
+            _obj = self.trainer.accelerator.broadcast(obj)
+            if os.getenv("LOCAL_RANK") == "1":
+                assert _obj == obj 
+
+        def training_epoch_end(self, outputs) -> None:
+            rank = os.getenv("LOCAL_RANK", '0')
+            self.assert_broadcast(rank)
+            #self.assert_broadcast(True, True)
+
 
     model = TestModel()
     trainer = Trainer(
