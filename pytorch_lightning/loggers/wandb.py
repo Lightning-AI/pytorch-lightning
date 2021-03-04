@@ -17,7 +17,6 @@ Weights and Biases Logger
 """
 import os
 import re
-import numbers
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, TYPE_CHECKING
@@ -223,29 +222,23 @@ class WandbLogger(LightningLoggerBase):
         if self._log_model and self._trainer is not None and self._trainer.checkpoint_callback is not None:
             # use run name and ensure it's a valid Artifact name
             artifact_name = re.sub(r"[^a-zA-Z0-9_\.\-]", "", self.experiment.name)
-            # gather summary metrics
-            metadata = {
-                k: v
-                for k, v in dict(self.experiment.summary).items()
-                if isinstance(v, numbers.Number) and not k.startswith("_")
-            }
-            # add interesting "ModelCheckpoint" data (mainly non-default values)
-            metadata['ModelCheckpoint'] = {k: getattr(self._trainer.checkpoint_callback, k) for k, ignore_val in [
-                ('monitor', ''), ('mode', ''),  # save also default values
-                ('current_score', None), ('best_model_score', None), ('best_model_path', ''), ('last_model_path', ''),
-                ('save_last', None), ('save_top_k', None), ('save_weights_only', False), ('period', 1),
-                ('_last_global_step_saved', 0)]
-                if getattr(self._trainer.checkpoint_callback, k, ignore_val) != ignore_val}
-            if getattr(self._trainer.checkpoint_callback, 'best_k_models', None):
-                # keep only filename
-                metadata['ModelCheckpoint']['best_k_models'] = {
-                    Path(k).name: v for k, v in self._trainer.checkpoint_callback.best_k_models.items()}
-            artifact = wandb.Artifact(name=f"run-{artifact_name}", type="model", metadata=metadata)
-            # add relevant checkpoints
-            for checkpoint in set([
-                self._trainer.checkpoint_callback.best_model_path,
-                self._trainer.checkpoint_callback.last_model_path,
-                *self._trainer.checkpoint_callback.best_k_models.keys()
-            ]) - {''}:
-                artifact.add_file(checkpoint)
-            self.experiment.log_artifact(artifact)
+            # get checkpoints to be saved with associated score
+            checkpoints = {
+                self._trainer.checkpoint_callback.last_model_path: self._trainer.checkpoint_callback.current_score,
+                self._trainer.checkpoint_callback.best_model_path: self._trainer.checkpoint_callback.best_model_score,
+                **self._trainer.checkpoint_callback.best_k_models}
+            checkpoints.pop('', None)
+            ordered_checkpoints = sorted([(Path(p).stat().st_mtime, p, s)
+                                          for p, s in checkpoints.items() if Path(p).is_file()])
+            # log iteratively all checkpoints
+            for _, p, s in ordered_checkpoints:
+                metadata = {'score': s, 'original_filename': Path(p).name,
+                            'ModelCheckpoint': {k: getattr(self._trainer.checkpoint_callback, k) for k in [
+                                'monitor', 'mode', 'save_last', 'save_top_k', 'save_weights_only', 'period'
+                            ]}}
+                artifact = wandb.Artifact(name=f"run-{artifact_name}", type="model", metadata=metadata)
+                artifact.add_file(p, name='model.ckpt')
+                self.experiment.log_artifact(
+                    artifact,
+                    aliases=["latest", "best"] if p == self._trainer.checkpoint_callback.best_model_path
+                    else ["latest"])
