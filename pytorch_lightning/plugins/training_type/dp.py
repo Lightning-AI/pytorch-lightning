@@ -47,11 +47,11 @@ class DataParallelPlugin(ParallelPlugin):
         if isinstance(tensor, Result):
             tensor.dp_reduce()
 
-        elif isinstance(tensor, torch.Tensor):
-            tensor = tensor.mean()
+        else:
+            def _reduce(tensor: torch.Tensor):
+                return tensor.float().mean()
 
-        elif isinstance(tensor, dict):
-            tensor = apply_to_collection(tensor, torch.Tensor, torch.mean)
+            tensor = apply_to_collection(tensor, torch.Tensor, _reduce)
 
         return tensor
 
