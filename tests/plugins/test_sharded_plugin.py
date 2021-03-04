@@ -1,5 +1,6 @@
 import os
 import platform
+from unittest import mock
 
 import pytest
 import torch
@@ -12,6 +13,25 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
+@pytest.mark.parametrize("clip_val", [0, 10])
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
+@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
+@mock.patch('fairscale.optim.oss.OSS.clip_grad_norm')
+def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir):
+    """
+    Ensure that clip gradients is only called if the value is greater than 0.
+    """
+    model = BoringModel()
+    trainer = Trainer(accelerator='ddp_sharded', gpus=1, precision=16, fast_dev_run=True, gradient_clip_val=clip_val)
+    trainer.fit(model)
+    if clip_val > 0:
+        mock_oss_clip_grad_norm.assert_called()
+    else:
+        mock_oss_clip_grad_norm.assert_not_called()
+
+
+@RunIf(fairscale=True)
 @pytest.mark.parametrize(["accelerator"], [("ddp_sharded", ), ("ddp_sharded_spawn", )])
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_sharded_ddp_choice(tmpdir, accelerator):
