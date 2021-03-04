@@ -101,6 +101,19 @@ class StatScores(Metric):
             Callback that performs the allgather operation on the metric state. When ``None``, DDP
             will be used to perform the allgather.
 
+    Raises:
+        ValueError:
+            If ``threshold`` is not a ``float`` between ``0`` and ``1``.
+        ValueError:
+            If ``reduce`` is none of ``"micro"``, ``"macro"`` or ``"samples"``.
+        ValueError:
+            If ``mdmc_reduce`` is none of ``None``, ``"samplewise"``, ``"global"``.
+        ValueError:
+            If ``reduce`` is set to ``"macro"`` and ``num_classes`` is not provided.
+        ValueError:
+            If ``num_classes`` is set
+            and ``ignore_index`` is not in the range ``0`` <= ``ignore_index`` < ``num_classes``.
+
     Example:
 
         >>> from pytorch_lightning.metrics.classification import StatScores

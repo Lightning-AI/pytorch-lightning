@@ -12,6 +12,11 @@ if TYPE_CHECKING:
 class CPUAccelerator(Accelerator):
 
     def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
+        """
+        Raises:
+            MisconfigurationException:
+                If AMP is used with CPU, or if the selected device is not CPU.
+        """
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException("amp + cpu is not supported. Please use a GPU option")
 
