@@ -104,7 +104,7 @@ def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
 @mock.patch('torch.save')
 @RunIf(special=True, min_gpus=2)
-@pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1)])
+@pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1), (2, 2, 0.3, 5)])
 def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     class TestModel(BoringModel):
@@ -115,15 +115,16 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
             return super().training_step(batch, batch_idx)
 
-        def assert_broadcast(self, obj):
-            _obj = self.trainer.accelerator.broadcast(obj)
-            if os.getenv("LOCAL_RANK") == "1":
-                assert _obj == obj 
-
         def training_epoch_end(self, outputs) -> None:
-            rank = os.getenv("LOCAL_RANK", '0')
-            self.assert_broadcast(rank)
-            #self.assert_broadcast(True, True)
+            #data = torch.tensor(100)
+            data = str(self.global_rank)
+            print("before broadcast", self.global_rank, data)
+            out = self.trainer.training_type_plugin.broadcast(str(data))
+            # data should remain same
+            assert data == str(self.global_rank)
+            # out is the broadcast result from rank 0
+            assert out == "0"
+            print(self.global_rank, data, out)
 
 
     model = TestModel()

@@ -594,9 +594,4 @@ class ModelCheckpoint(Callback):
         the internal state to diverge between ranks.
         """
         exists = self._fs.exists(filepath)
-        exists = trainer.lightning_module.all_gather(exists)
-        if isinstance(exists, torch.Tensor) and exists.dim() == 0:
-            exists = exists.item()
-        else:
-            exists = exists[0].item()
-        return bool(exists)
+        return trainer.training_type_plugin.broadcast(exists)
