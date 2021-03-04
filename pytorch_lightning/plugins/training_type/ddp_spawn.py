@@ -59,7 +59,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.sync_batchnorm = sync_batchnorm
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
-        self.num_processes = len(parallel_devices)
+        self.num_processes = len(parallel_devices) if parallel_devices is not None else parallel_devices
         self.node_rank = 0
         self.mp_queue = None
 
@@ -151,8 +151,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
-        # move the model to the correct device
-        self.model_to_device()
+        if self.call_move_to_device_hook_in_pre_dispatch:
+            # move the model to the correct device
+            self.model_to_device()
 
         self.configure_ddp()
 
@@ -290,3 +291,11 @@ class DDPSpawnPlugin(ParallelPlugin):
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
+
+    @property
+    def call_move_to_device_hook_in_pre_dispatch(self) -> bool:
+        """
+        Call the ``model_to_device`` function within pre_dispatch if this is set to True.
+        Useful for when plugin would like to call model_to_device at another time, or skip the call.
+        """
+        return True

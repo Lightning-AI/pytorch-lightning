@@ -260,14 +260,6 @@ class DDPPlugin(ParallelPlugin):
 
         self.barrier()
 
-    @property
-    def call_move_to_device_hook_in_pre_dispatch(self) -> bool:
-        """
-        Call the ``model_to_device`` function within pre_dispatch if this is set to True.
-        Useful for when plugin would like to call model_to_device at another time, or skip the call.
-        """
-        return True
-
     def post_dispatch(self):
         if "WORLD_SIZE" in os.environ:
             del os.environ["WORLD_SIZE"]
@@ -321,3 +313,11 @@ class DDPPlugin(ParallelPlugin):
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
+
+    @property
+    def call_move_to_device_hook_in_pre_dispatch(self) -> bool:
+        """
+        Call the ``model_to_device`` function within pre_dispatch if this is set to True.
+        Useful for when plugin would like to call model_to_device at another time, or skip the call.
+        """
+        return True

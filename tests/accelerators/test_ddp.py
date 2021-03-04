@@ -19,7 +19,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPPlugin
+from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin
 from tests.accelerators import ddp_model, DDPLauncher
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -130,3 +130,26 @@ def test_move_to_device_in_pre_dispatch(mock_model_to_device, move_to_device_pre
         mock_model_to_device.assert_called()
     else:
         mock_model_to_device.assert_not_called()
+
+
+@pytest.mark.parametrize('move_to_device_pre_dispatch_enabled', [False, True])
+@mock.patch('pytorch_lightning.plugins.DDPSpawnPlugin.model_to_device', autospec=True)
+def test_move_to_device_in_pre_dispatch(mock_model_to_device, move_to_device_pre_dispatch_enabled, tmpdir):
+    """
+    Test if ``call_move_to_device_hook_in_pre_dispatch`` is disabled we do not move to device till later
+    in training.
+    """
+
+    with mock.patch('pytorch_lightning.plugins.DDPSpawnPlugin.call_move_to_device_hook_in_pre_dispatch',
+                    move_to_device_pre_dispatch_enabled):
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmpdir, fast_dev_run=True, accelerator='ddp_spawn', num_processes=1
+        )
+        trainer.fit(model)
+
+        # Check if mocked device was called. Since we're on CPU, model_to_device does nothing anyway.
+        if move_to_device_pre_dispatch_enabled:
+            mock_model_to_device.assert_called()
+        else:
+            mock_model_to_device.assert_not_called()
