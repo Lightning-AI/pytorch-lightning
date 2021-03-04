@@ -49,7 +49,6 @@ def _run_horovod(trainer_options, on_gpu=False):
     trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
     append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
-    print(_PROJECT_ROOT, append)
     cmdline = [
         'horovodrun', 
         '-np',
@@ -62,10 +61,6 @@ def _run_horovod(trainer_options, on_gpu=False):
     ]
     if on_gpu:
         cmdline += ['--on-gpu']
-    env_cmd = ""
-    for k, v in os.environ.items():
-        env_cmd += f"{k}={v} "
-    print(env_cmd + ' '.join(cmdline))
     exit_code = subprocess.call(' '.join(cmdline), shell=True, env=os.environ.copy())
     assert exit_code == 0
 

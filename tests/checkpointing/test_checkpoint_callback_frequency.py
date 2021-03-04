@@ -108,10 +108,6 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     class TestModel(BoringModel):
 
-        def __init__(self):
-            super().__init__()
-            self.last_coeff = 10.0
-
         def training_step(self, batch, batch_idx):
             local_rank = int(os.getenv("LOCAL_RANK"))
             self.log('my_loss', batch_idx * (1 + local_rank), on_epoch=True)
