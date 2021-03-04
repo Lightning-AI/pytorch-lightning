@@ -74,7 +74,7 @@ class LightningLoggerBase(ABC):
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
 
-    def after_save_checkpoint(self, checkpoint_callback: ReferenceType[ModelCheckpoint]) -> None:
+    def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
         """
         Called after model checkpoint callback saves a new checkpoint
 
@@ -367,7 +367,7 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
 
-    def after_save_checkpoint(self, checkpoint_callback: ReferenceType[ModelCheckpoint]) -> None:
+    def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
         for logger in self._logger_iterable:
             logger.after_save_checkpoint(checkpoint_callback)
 
