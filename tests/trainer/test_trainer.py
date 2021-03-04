@@ -1555,7 +1555,7 @@ def test_pytorch_profiler_nested(tmpdir):
 
 
 @RunIf(min_gpus=1, special=True)
-def test_pytorch_profiler_nested_emit_nvtx():
+def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     """
     This test check emit_nvtx is correctly supported
     """
