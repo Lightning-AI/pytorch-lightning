@@ -22,7 +22,6 @@ For advanced research topics like reinforcement learning, sparse coding, or GAN 
 to manually manage the optimization process. To do so, do the following:
 
 * Set the ``automatic_optimization`` property to ``False`` in your ``LightningModule`` ``__init__`` function
-* Drop or ignore the optimizer_idx argument
 * Use ``self.manual_backward(loss)`` instead of ``loss.backward()``.
 
 .. testcode:: python
@@ -36,6 +35,18 @@ to manually manage the optimization process. To do so, do the following:
             # Important: This property activate ``manual optimization`` for your model
             self.automatic_optimization = False
 
+.. testcode:: python
+
+    from pytorch_lightning import LightningModule
+
+    class MyModel(LightningModule):
+
+        def training_step(batch, batch_idx):
+            opt = self.optimizers()
+            loss = self.compute_loss(batch)
+            self.manual_backward(loss)
+
+
 .. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with ``optimizer.zero_grad()``, gradient accumulation, model toggling, etc..
 
 .. warning:: Before 1.2, ``optimzer.step`` was calling ``optimizer.zero_grad()`` internally. From 1.2, it is left to the users expertize.
@@ -46,7 +57,7 @@ to manually manage the optimization process. To do so, do the following:
 
 .. code-block:: python
 
-    def training_step(batch, batch_idx, optimizer_idx):
+    def training_step(batch, batch_idx):
         opt = self.optimizers()
 
         loss = self.compute_loss(batch)
@@ -64,7 +75,7 @@ Here is the same example as above using a ``closure``.
 
 .. testcode:: python
 
-    def training_step(batch, batch_idx, optimizer_idx):
+    def training_step(batch, batch_idx):
         opt = self.optimizers()
 
         def forward_and_backward():
@@ -116,7 +127,7 @@ Here is the same example as above using a ``closure``.
             z = self.sample_z(n)
             return self.G(z)
 
-        def training_step(self, batch, batch_idx, optimizer_idx, *args):
+        def training_step(self, batch, batch_idx):
             # Implementation follows https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
             g_opt, d_opt = self.optimizers()
 
@@ -185,7 +196,7 @@ Here is an example for advanced use-case.
 
         ...
 
-        def training_step(self, batch, batch_idx, optimizer_idx, *args):
+        def training_step(self, batch, batch_idx):
             # Implementation follows https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
             g_opt, d_opt = self.optimizers()
 
