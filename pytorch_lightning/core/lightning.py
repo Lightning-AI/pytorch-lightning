@@ -38,7 +38,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
+from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors, move_data_to_device
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
