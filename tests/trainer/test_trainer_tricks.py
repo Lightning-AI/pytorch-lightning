@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
@@ -34,7 +34,12 @@ def test_num_training_batches(tmpdir):
     """
     # when we have fewer batches in the dataloader we should use those instead of the limit
     model = EvalModelTemplate()
-    trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1)
+    trainer = Trainer(
+        limit_val_batches=100,
+        limit_train_batches=100,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 10
@@ -45,7 +50,12 @@ def test_num_training_batches(tmpdir):
 
     # when we have more batches in the dataloader we should limit them
     model = EvalModelTemplate()
-    trainer = Trainer(limit_val_batches=7, limit_train_batches=7, max_epochs=1)
+    trainer = Trainer(
+        limit_val_batches=7,
+        limit_train_batches=7,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 10
@@ -342,8 +352,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         trainer.tune(model, **fit_options)
 
 
-@RunIf(min_gpus=1)
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@RunIf(min_gpus=1, amp_native=True)
 def test_auto_scale_batch_size_with_amp(tmpdir):
     model = EvalModelTemplate()
     batch_size_before = model.batch_size

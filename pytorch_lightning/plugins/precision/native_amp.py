@@ -18,7 +18,7 @@ import torch
 from torch.optim import LBFGS
 
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
@@ -30,6 +30,12 @@ if TYPE_CHECKING:
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def __init__(self) -> None:
+        if not _NATIVE_AMP_AVAILABLE:
+            raise MisconfigurationException(
+                "You have asked for native AMP but your PyTorch version does not support it."
+                " Consider upgrading with `pip install torch>=1.6`."
+            )
+
         self.backend = AMPType.NATIVE
         self.scaler = torch.cuda.amp.GradScaler()
 

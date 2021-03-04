@@ -17,7 +17,6 @@ import torch.nn as nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import ParityModuleRNN
@@ -292,8 +291,7 @@ def test_empty_model_size(mode):
     assert 0.0 == summary.model_size
 
 
-@RunIf(min_gpus=1)
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@RunIf(min_gpus=1, amp_native=True)
 @pytest.mark.parametrize(
     'precision', [
         pytest.param(16, marks=pytest.mark.skip(reason="no longer valid, because 16 can mean mixed precision")),

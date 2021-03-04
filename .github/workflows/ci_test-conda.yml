@@ -30,13 +30,6 @@ jobs:
         pip install --requirement requirements/devel.txt --upgrade-strategy only-if-needed
         pip list
 
-    - name: Cache datasets
-      # todo this probably does not work with docker images, rather cache dockers
-      uses: actions/cache@v2
-      with:
-        path: Datasets
-        key: pl-dataset
-
     - name: Pull checkpoints from S3
       # todo: consider adding coma caching, but ATM all models have less then 100KB
       run: |
@@ -45,6 +38,12 @@ jobs:
         curl https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip --output checkpoints.zip
         unzip -o checkpoints.zip
         ls -l checkpoints/
+
+    # todo: require proper fix in docker image
+    - name: Hotfix dependency
+      run: |
+        pip install torchtext==0.6.0 -U
+      shell: bash
 
     - name: Tests
       run: |

@@ -14,7 +14,6 @@
 import os
 from collections import OrderedDict
 from logging import INFO
-from unittest import mock
 
 import pytest
 import torch
@@ -23,7 +22,7 @@ from torch import nn
 from torch.nn import Sequential
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelPruning
+from pytorch_lightning.callbacks import ModelPruning, ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -41,6 +40,10 @@ class TestModel(BoringModel):
                 ("mlp_3", nn.Linear(32, 2)),
             ])
         )
+
+    def training_step(self, batch, batch_idx):
+        self.log("test", -batch_idx)
+        return super().training_step(batch, batch_idx)
 
 
 class TestPruningMethod(pytorch_prune.BasePruningMethod):
@@ -153,11 +156,9 @@ def test_pruning_callback(
     )
 
 
+@RunIf(special=True)
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
 @pytest.mark.parametrize("use_global_unstructured", [False, True])
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1", reason="test should be run outside of pytest"
-)
 def test_pruning_callback_ddp(tmpdir, use_global_unstructured, parameters_to_prune):
     train_with_pruning_callback(
         tmpdir,
@@ -218,7 +219,6 @@ def test_pruning_lth_callable(tmpdir, resample_parameters):
 
 
 @pytest.mark.parametrize("make_pruning_permanent", (False, True))
-@mock.patch.dict(os.environ, {}, clear=True)
 def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
     seed_everything(0)
     model = TestModel()
@@ -243,8 +243,9 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
     with caplog.at_level(INFO):
         trainer.fit(model)
 
-    actual = [m.strip() for m in caplog.messages[-9:]]
-    expected = [
+    actual = [m.strip() for m in caplog.messages]
+    actual = [m for m in actual if m.startswith("Applied")]
+    assert actual == [
         "Applied `L1Unstructured`. Pruned: 0/1122 (0.00%) -> 544/1122 (48.48%)",
         "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 506 (49.41%)",  # noqa: E501
         "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 38 (59.38%)",  # noqa: E501
@@ -255,7 +256,6 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
         "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 633 (61.82%) -> 828 (80.86%)",  # noqa: E501
         "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 47 (73.44%) -> 56 (87.50%)",  # noqa: E501
     ]
-    assert actual == expected
 
     filepath = str(tmpdir / "foo.ckpt")
     trainer.save_checkpoint(filepath)
@@ -263,3 +263,46 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
     model.load_from_checkpoint(filepath, strict=False)
     has_pruning = hasattr(model.layer.mlp_1, "weight_orig")
     assert not has_pruning if make_pruning_permanent else has_pruning
+
+
+def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog):
+    """
+    When a model is saved multiple times and make_permanent=True, we need to
+    make sure a copy is pruned and not the trained model if we want to continue
+    with the same pruning buffers.
+    """
+    seed_everything(0)
+
+    class TestPruning(ModelPruning):
+        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+            super().on_save_checkpoint(trainer, pl_module, checkpoint)
+            assert "layer.mlp_3.weight_orig" not in checkpoint["state_dict"]
+            assert hasattr(pl_module.layer.mlp_3, "weight_orig")
+
+    model = TestModel()
+    pruning_callback = TestPruning(
+        "random_unstructured",
+        parameters_to_prune=[(model.layer.mlp_3, "weight")],
+        verbose=1,
+        make_pruning_permanent=True
+    )
+    ckpt_callback = ModelCheckpoint(monitor="test", save_top_k=2, save_last=True)
+    trainer = Trainer(callbacks=[pruning_callback, ckpt_callback], max_epochs=3, progress_bar_refresh_rate=0)
+    with caplog.at_level(INFO):
+        trainer.fit(model)
+
+    actual = [m.strip() for m in caplog.messages]
+    actual = [m for m in actual if m.startswith("Applied")]
+    assert actual == [
+        "Applied `RandomUnstructured`. Pruned: 0/66 (0.00%) -> 32/66 (48.48%)",
+        "Applied `RandomUnstructured`. Pruned: 32/66 (48.48%) -> 48/66 (72.73%)",
+        "Applied `RandomUnstructured`. Pruned: 48/66 (72.73%) -> 56/66 (84.85%)",
+    ]
+
+    # removed on_train_end
+    assert not hasattr(model.layer.mlp_3, "weight_orig")
+
+    model.load_from_checkpoint(trainer.checkpoint_callback.kth_best_model_path)
+    assert not hasattr(model.layer.mlp_3, "weight_orig")
+    model.load_from_checkpoint(trainer.checkpoint_callback.last_model_path)
+    assert not hasattr(model.layer.mlp_3, "weight_orig")

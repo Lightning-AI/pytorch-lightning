@@ -36,7 +36,6 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -473,7 +472,11 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         state = pl_load(ckpt)
 
         # Resume training
-        new_trainer = Trainer(resume_from_checkpoint=ckpt, max_epochs=2)
+        new_trainer = Trainer(
+            default_root_dir=tmpdir,
+            resume_from_checkpoint=ckpt,
+            max_epochs=2,
+        )
         new_trainer.fit(next_model)
         assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
         assert next_model.num_on_load_checkpoint_called == 1
@@ -881,8 +884,7 @@ def test_gradient_clipping(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@RunIf(min_gpus=1, amp_native=True)
 def test_gradient_clipping_fp16(tmpdir):
     """
     Test gradient clipping with fp16
@@ -1424,43 +1426,28 @@ def test_trainer_predict_cpu(tmpdir, datamodule):
     predict(tmpdir, None, None, 1, datamodule=datamodule)
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize('num_gpus', [1, 2])
 def test_trainer_predict_dp(tmpdir, num_gpus):
     predict(tmpdir, "dp", num_gpus, None)
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_trainer_predict_ddp(tmpdir):
     predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
 
 
-@RunIf(min_gpus=2, skip_windows=True)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, skip_windows=True, special=True)
 def test_trainer_predict_ddp_spawn(tmpdir):
     predict(tmpdir, "ddp_spawn", 2, None)
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, None, 1, None)
 
 
-@RunIf(skip_windows=True)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(skip_windows=True, special=True)
 def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
 
@@ -1487,10 +1474,7 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
     pytorch_profiler.stop(action)
 
 
-@RunIf(min_gpus=2)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize("use_output_filename", [False, True])
 def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """

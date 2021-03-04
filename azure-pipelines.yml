@@ -71,6 +71,11 @@ jobs:
         python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
       displayName: 'Env details'
 
+    # todo: require proper fix in docker image
+    - bash: |
+        pip install torchtext==0.7 -U
+      displayName: 'HotFix'
+
     - bash: |
         wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
         unzip -o legacy/checkpoints.zip -d legacy/
@@ -92,11 +97,13 @@ jobs:
       displayName: 'Statistics'
 
     - bash: |
-        python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
-      displayName: 'Testing: extended'
+        python -m pytest benchmarks -v --maxfail=2 --durations=0
+      displayName: 'Testing: benchmarks'
 
-    - bash: |
-        python setup.py install --user --quiet
-        bash pl_examples/run_ddp-example.sh
-        pip uninstall -y pytorch-lightning
-      displayName: 'Examples'
+    # todo: put this back just when TorchVision can download datasets
+    #- bash: |
+    #    python -m pytest pl_examples -v --maxfail=2 --durations=0
+    #    python setup.py install --user --quiet
+    #    bash pl_examples/run_ddp-example.sh
+    #    pip uninstall -y pytorch-lightning
+    #  displayName: 'Examples'
