@@ -57,7 +57,7 @@ class CustomRPCPlugin(RPCPlugin):
         self.rpc_save_model_count = 0
         self.worker_optimizer_step_count = 0
 
-    def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
+    def rpc_save_model(self, save_model_fn, last_filepath, trainer) -> None:
         self.rpc_save_model_count += 1
 
     def barrier(self, name: Optional[str] = None) -> None:
