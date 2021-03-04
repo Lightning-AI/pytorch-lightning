@@ -65,7 +65,7 @@ dataloaders).
 
 However, with lightning you can also return multiple loaders and lightning will take care of batch combination.
 
-For more details please have a look at :attr:`~pytorch_lightning.trainer.trainer.Trainer.params.multiple_trainloader_mode`
+For more details please have a look at :paramref:`~pytorch_lightning.trainer.trainer.Trainer.multiple_trainloader_mode`
 
 .. testcode::
 
