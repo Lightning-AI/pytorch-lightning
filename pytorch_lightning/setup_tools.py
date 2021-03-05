@@ -35,6 +35,8 @@ def _load_requirements(path_dir: str, file_name: str = 'requirements.txt', comme
         # skip directly installed dependencies
         if ln.startswith('http'):
             continue
+        if ln.startswith('git'):
+            continue
         if ln:  # if requirement is not empty
             reqs.append(ln)
     return reqs
