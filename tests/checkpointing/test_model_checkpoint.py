@@ -668,7 +668,7 @@ def test_ckpt_every_n_batches(tmpdir):
     )
 
     trainer.fit(model)
-    expected=[f"step={i}.ckpt" for i in range(15, 128, every_n_batches)]
+    expected = [f"step={i}.ckpt" for i in range(15, 128, every_n_batches)]
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
