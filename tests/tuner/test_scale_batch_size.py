@@ -8,25 +8,29 @@ from torch.utils.data import DataLoader
 
 class BatchSizeDataModule(BoringDataModule):
 
-    def __init__(self, batch_size=2):
+    def __init__(self, batch_size=None):
         super().__init__()
-        self.batch_size = batch_size
+        if batch_size is not None:
+            self.batch_size = batch_size
 
     def train_dataloader(self):
-        return DataLoader(self.random_train, batch_size=self.batch_size)
+        return DataLoader(self.random_train, batch_size=getattr(self, "batch_size", 1))
 
 
 class BatchSizeModel(BoringModel):
 
-    def __init__(self, batch_size=2):
+    def __init__(self, batch_size=None):
         super().__init__()
-        self.save_hyperparameters()
+        if batch_size is not None:
+            self.batch_size = batch_size
 
 
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize("model,datamodule", [
     (BatchSizeModel(2), None),
-    (BatchSizeModel(2), BatchSizeDataModule(2))
+    (BatchSizeModel(2), BatchSizeDataModule(2)),
+    (BatchSizeModel(2), BatchSizeDataModule(None)),
+    (BatchSizeModel(None), BatchSizeDataModule(2)),
 ])
 def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model, datamodule):
     """ Test the tuner method `Tuner.scale_batch_size` with a datamodule. """
@@ -46,6 +50,7 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model, datamod
         datamodule=datamodule
     )
     assert new_batch_size == 16
-    assert model.hparams.batch_size == 16
-    if datamodule is not None:
+    if hasattr(model, "batch_size"):
+        assert model.batch_size == 16
+    if datamodule is not None and hasattr(datamodule, "batch_size"):
         assert datamodule.batch_size == 16
