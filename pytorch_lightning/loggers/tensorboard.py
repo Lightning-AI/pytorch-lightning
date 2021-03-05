@@ -78,10 +78,10 @@ class TensorBoardLogger(LightningLoggerBase):
         save_dir: str,
         name: Optional[str] = "default",
         version: Optional[Union[int, str]] = None,
-        sub_dir: Optional[str] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
         prefix: str = '',
+        sub_dir: Optional[str] = None,
         **kwargs
     ):
         super().__init__()
