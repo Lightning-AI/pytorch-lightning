@@ -22,7 +22,7 @@ from typing import Any, Optional, Union
 import torch
 from torch.distributed.distributed_c10d import _rank_not_in_group, Backend, broadcast, get_backend, get_rank
 
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_6
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 
 log = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ def _broadcast_object_list(object_list, src=0, group=None):
             object_list[i] = _tensor_to_object(obj_view, obj_size)
 
 
-if _TORCH_GREATER_EQUAL_1_6:
+if _TORCH_GREATER_EQUAL_1_7:
     from torch.distributed.distributed_c10d import broadcast_object_list
 else:
     broadcast_object_list = _broadcast_object_list
