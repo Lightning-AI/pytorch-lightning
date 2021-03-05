@@ -303,6 +303,12 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
     assert not os.path.isfile(os.path.join(tmpdir, hparams_file))
 
 
+def test_tensorboard_on_save_checkpoint(tmpdir):
+    logger = TensorBoardLogger(save_dir=tmpdir, version='version_0')
+    state = logger.on_save_checkpoint(None, None, None)
+    assert state['version'] == 'version_0'
+
+
 def test_tensorboard_dump_state(tmpdir):
     logger = TensorBoardLogger(save_dir=tmpdir)
     model = BoringModel()
