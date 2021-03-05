@@ -143,7 +143,7 @@ def precision(
             If ``average`` is set but ``num_classes`` is not provided.
         ValueError:
             If ``num_classes`` is set
-            and ``ignore_index`` is not in the range ``0`` <= ``ignore_index`` < ``num_classes``.
+            and ``ignore_index`` is not in the range ``[0, num_classes)``.
 
     Example:
 
@@ -317,7 +317,7 @@ def recall(
             If ``average`` is set but ``num_classes`` is not provided.
         ValueError:
             If ``num_classes`` is set
-            and ``ignore_index`` is not in the range ``0`` <= ``ignore_index`` < ``num_classes``.
+            and ``ignore_index`` is not in the range ``[0, num_classes)``.
 
     Example:
 
