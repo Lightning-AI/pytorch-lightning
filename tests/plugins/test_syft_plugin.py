@@ -16,7 +16,6 @@ if _PYSYFT_AVAILABLE:
 
 @RunIf(syft=True)
 def test_syft(tmpdir):
-    duet = sy.VirtualMachine(name="alice").get_root_client()
     SyModuleProxyType = Union[ModuleType, Module]
 
     # cant use lib_ast during test search time

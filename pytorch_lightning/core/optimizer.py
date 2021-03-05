@@ -19,8 +19,9 @@ from weakref import proxy
 
 from torch.optim import Optimizer
 
-from pytorch_lightning.utilities import _PYSYFT_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import is_syft_initialized
 
 
 def is_lightning_optimizer(optimizer):
@@ -212,7 +213,7 @@ class LightningOptimizer:
                 raise MisconfigurationException("When closure is provided, it should be a function")
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
-        if _PYSYFT_AVAILABLE:
+        if is_syft_initialized():
             # todo (tudorcebere): use plans to execute the closure.  # noqa E265
             closure()
             closure = None

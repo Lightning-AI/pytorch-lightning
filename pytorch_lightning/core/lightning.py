@@ -42,7 +42,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
+from pytorch_lightning.utilities.imports import is_syft_initialized
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
 if TYPE_CHECKING:
@@ -1535,7 +1535,7 @@ class LightningModule(
             Dictionary with the items to be displayed in the progress bar.
         """
         # call .item() only once but store elements without graphs
-        if _PYSYFT_AVAILABLE:
+        if is_syft_initialized():
             running_train_loss = self.trainer.train_loop.running_loss.mean().get(request_block=True, delete_obj=False)
         else:
             running_train_loss = self.trainer.train_loop.running_loss.mean()

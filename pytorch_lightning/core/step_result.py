@@ -23,7 +23,7 @@ from torch import Tensor
 
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
-from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
+from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE, is_syft_initialized
 
 if _PYSYFT_AVAILABLE:
     from syft.core.pointer.pointer import Pointer
@@ -469,7 +469,7 @@ class Result(Dict):
             size = sample.size(0)
         elif isinstance(sample, str):
             return len(sample)
-        elif _PYSYFT_AVAILABLE and isinstance(sample, Pointer):
+        elif is_syft_initialized() and isinstance(sample, Pointer):
             sample = sample.get(request_block=True, delete_obj=False)
             size = Result.unpack_batch_size(sample)
         elif isinstance(sample, dict):

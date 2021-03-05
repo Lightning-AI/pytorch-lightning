@@ -72,3 +72,12 @@ _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
 _XLA_AVAILABLE = _module_available("torch_xla")
 _PYSYFT_AVAILABLE = _module_available("syft")
+
+
+def is_syft_initialized():
+    if _PYSYFT_AVAILABLE:
+        import syft as sy
+        from syft.core.node.vm.client import VirtualMachineClient
+        if "duet" in sy.client_cache and isinstance(sy.client_cache["duet"], VirtualMachineClient):
+            return True
+    return False

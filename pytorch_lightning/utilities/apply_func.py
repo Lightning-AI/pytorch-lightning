@@ -22,7 +22,12 @@ import numpy as np
 import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _module_available, _PYSYFT_AVAILABLE, _TORCHTEXT_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _module_available,
+    _PYSYFT_AVAILABLE,
+    _TORCHTEXT_AVAILABLE,
+    is_syft_initialized,
+)
 
 if _TORCHTEXT_AVAILABLE:
     if _module_available("torchtext.legacy.data"):
@@ -31,6 +36,10 @@ if _TORCHTEXT_AVAILABLE:
         from torchtext.data import Batch
 else:
     Batch = type(None)
+
+if _PYSYFT_AVAILABLE:
+    from syft import client_cache
+    from syft.core.pointer.pointer import Pointer
 
 
 def to_dtype_tensor(value, dtype: torch.dtype = None, device: torch.device = None):
@@ -156,9 +165,7 @@ def move_data_to_device(batch: Any, device: torch.device):
 
         kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
 
-        if _PYSYFT_AVAILABLE:
-            from syft.core.pointer.pointer import Pointer
-            from syft import client_cache
+        if is_syft_initialized():
             if isinstance(data, Pointer):
                 data = data.get(request_block=True, delete_obj=False)
                 data = data.send(client_cache["duet"])

@@ -33,7 +33,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
+from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE, is_syft_initialized
 from pytorch_lightning.utilities.warnings import WarningCache
 
 log = logging.getLogger(__name__)
@@ -305,7 +305,7 @@ class ModelCheckpoint(Callback):
 
         # delegate the saving to the trainer
         if self.save_function is not None:
-            if _PYSYFT_AVAILABLE:
+            if is_syft_initialized():
                 PySyftPlugin.save_function(trainer, filepath, self.save_weights_only)
             else:
                 self.save_function(filepath, self.save_weights_only)

@@ -30,15 +30,15 @@ from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
+from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE, is_syft_initialized
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
 
 if _PYSYFT_AVAILABLE:
-    from syft.core.pointer.pointer import Pointer
     from syft import client_cache
+    from syft.core.pointer.pointer import Pointer
 
 
 class TrainLoop:
@@ -279,7 +279,7 @@ class TrainLoop:
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
     def _check_training_step_output(self, training_step_output):
-        if _PYSYFT_AVAILABLE and isinstance(training_step_output, Pointer):
+        if is_syft_initialized() and isinstance(training_step_output, Pointer):
             training_step_output = training_step_output.get(request_block=True, delete_obj=False)
         if isinstance(training_step_output, torch.Tensor) and not self.automatic_optimization:
             if training_step_output.grad_fn is None:
@@ -353,15 +353,18 @@ class TrainLoop:
         # -----------------------------------------
         # no need for these checks in 1.0.0
         # TODO: remove checks in 1.0.0
-        if _PYSYFT_AVAILABLE and isinstance(training_step_output_for_epoch_end, Pointer):
+        if is_syft_initialized() and isinstance(training_step_output_for_epoch_end, Pointer):
             _training_step_output_for_epoch_end = training_step_output_for_epoch_end.get(
-                request_block=True, delete_obj=False)
+                request_block=True, delete_obj=False
+            )
         else:
             _training_step_output_for_epoch_end = training_step_output_for_epoch_end
 
         is_tensor = isinstance(_training_step_output_for_epoch_end, torch.Tensor)
-        is_1_0_output = is_tensor or ("log" not in _training_step_output_for_epoch_end and "progress_bar" not
-                                      in _training_step_output_for_epoch_end)
+        is_1_0_output = is_tensor or (
+            "log" not in _training_step_output_for_epoch_end
+            and "progress_bar" not in _training_step_output_for_epoch_end
+        )
         if is_1_0_output:
             return self._process_training_step_output_1_0(training_step_output, split_batch)
 
@@ -391,7 +394,7 @@ class TrainLoop:
         loss = None
         hiddens = None
 
-        if _PYSYFT_AVAILABLE and isinstance(training_step_output, Pointer):
+        if is_syft_initialized() and isinstance(training_step_output, Pointer):
             _training_step_output = training_step_output.get(request_block=True, delete_obj=False)
         else:
             _training_step_output = training_step_output
@@ -651,7 +654,7 @@ class TrainLoop:
         splits = self.tbptt_split_batch(batch)
 
         for split_idx, split_batch in enumerate(splits):
-            if _PYSYFT_AVAILABLE:
+            if is_syft_initialized():
                 split_batch = split_batch.get(request_block=True, delete_obj=False).send(client_cache["duet"])
 
             # create an iterable for optimizers and loop over them
