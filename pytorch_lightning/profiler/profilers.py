@@ -132,10 +132,6 @@ class PassThroughProfiler(BaseProfiler):
     This class should be used when you don't want the (small) overhead of profiling.
     The Trainer uses this class by default.
     """
-
-    def __init__(self):
-        super().__init__(output_streams=None)
-
     def start(self, action_name: str) -> None:
         pass
 
