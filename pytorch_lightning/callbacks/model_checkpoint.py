@@ -38,8 +38,6 @@ from pytorch_lightning.utilities.warnings import WarningCache
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
-log = logging.getLogger(__name__)
-
 
 class ModelCheckpoint(Callback):
     r"""
@@ -218,9 +216,11 @@ class ModelCheckpoint(Callback):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
         if self._should_skip_saving_checkpoint(trainer):
+            log.critical("in train batch end, not saving checkpoint after trainer check")
             return
         step = trainer.total_batch_idx
         skip_batch = self.every_n_batches < 1 or ((step + 1) % self.every_n_batches != 0)
+        log.critical(f"in train batch end, every_n_batches={self.every_n_batches}, step={step}, skip_batch? {skip_batch}")
         if skip_batch:
             return
         self.save_checkpoint(trainer, pl_module)
@@ -294,14 +294,6 @@ class ModelCheckpoint(Callback):
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
             raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
-        if self.every_n_epochs < 0:
-            raise MisconfigurationException(
-                f'Invalid value for every_n_epochs={self.every_n_epochs}. Must be non-negative.'
-            )
-        if self.every_n_batches < 0:
-            raise MisconfigurationException(
-                f'Invalid value for every_n_batches={self.every_n_batches}. Must be non-negative.'
-            )
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
             if self.save_top_k not in (None, -1, 0):
