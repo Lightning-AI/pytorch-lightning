@@ -672,7 +672,7 @@ def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir):
         dirpath=tmpdir,
         save_top_k=-1,
         save_last=False,
-    ),
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
