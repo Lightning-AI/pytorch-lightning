@@ -27,6 +27,7 @@ from pytorch_lightning.utilities import (
     _FAIRSCALE_PIPE_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _PYSYFT_AVAILABLE,
     _RPC_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
@@ -68,6 +69,7 @@ class RunIf:
         rpc: bool = False,
         fairscale: bool = False,
         fairscale_pipe: bool = False,
+        syft: bool = False,
         deepspeed: bool = False,
         **kwargs
     ):
@@ -87,6 +89,8 @@ class RunIf:
             special: running in special mode, outside pytest suit
             rpc: requires Remote Procedure Call (RPC)
             fairscale: if `fairscale` module is required to run the test
+            fairscale_pipe: if `fairscale`pipe module is required to run the test
+            syft: if `pysyft` module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
         """
@@ -152,6 +156,10 @@ class RunIf:
         if fairscale_pipe:
             conditions.append(not _FAIRSCALE_PIPE_AVAILABLE)
             reasons.append("Fairscale Pipe")
+
+        if syft:
+            conditions.append(not _PYSYFT_AVAILABLE)
+            reasons.append("PySyft")
 
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)
