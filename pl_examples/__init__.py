@@ -1,4 +1,5 @@
 import os
+from urllib.error import HTTPError
 
 from six.moves import urllib
 
@@ -14,7 +15,15 @@ _PACKAGE_ROOT = os.path.dirname(_EXAMPLES_ROOT)
 _DATASETS_PATH = os.path.join(_PACKAGE_ROOT, 'Datasets')
 
 _TORCHVISION_AVAILABLE = _module_available("torchvision")
+_TORCHVISION_MNIST_AVAILABLE = True
 _DALI_AVAILABLE = _module_available("nvidia.dali")
+
+if _TORCHVISION_AVAILABLE:
+    try:
+        from torchvision.datasets.mnist import MNIST
+        MNIST(_DATASETS_PATH, download=True)
+    except HTTPError:
+        _TORCHVISION_MNIST_AVAILABLE = False
 
 LIGHTNING_LOGO = """
                     ####
