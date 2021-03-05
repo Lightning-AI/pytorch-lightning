@@ -16,7 +16,6 @@ Weights and Biases Logger
 -------------------------
 """
 import os
-import re
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
@@ -235,8 +234,6 @@ class WandbLogger(LightningLoggerBase):
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
     def _scan_and_log_checkpoints(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
-        # use run name and ensure it's a valid Artifact name
-        artifact_name = re.sub(r"[^a-zA-Z0-9_\.\-]", "", self.experiment.name)
         # get checkpoints to be saved with associated score
         checkpoints = {
             checkpoint_callback.last_model_path: checkpoint_callback.current_score,
@@ -253,7 +250,7 @@ class WandbLogger(LightningLoggerBase):
                         'ModelCheckpoint': {k: getattr(checkpoint_callback, k) for k in [
                             'monitor', 'mode', 'save_last', 'save_top_k', 'save_weights_only', 'period'
                         ]}}
-            artifact = wandb.Artifact(name=f"model-{artifact_name}", type="model", metadata=metadata)
+            artifact = wandb.Artifact(name=f"model-{self.experiment.id}", type="model", metadata=metadata)
             artifact.add_file(p, name='model.ckpt')
             self.experiment.log_artifact(
                 artifact,
