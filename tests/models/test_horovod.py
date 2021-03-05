@@ -31,7 +31,6 @@ from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
-from tests import _PROJECT_ROOT
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
 from tests.helpers.runif import RunIf
@@ -50,11 +49,12 @@ def _run_horovod(trainer_options, on_gpu=False):
     # for Horovod, we interpret `gpus` to be set per worker
     trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
-    append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
+    # todo: Find why coverage breaks CI.
+    # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''     # noqa E265
+    # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,   # noqa E265
     cmdline = [
         'horovodrun', '-np',
-        str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,
-        TEST_SCRIPT, '--trainer-options',
+        str(num_processes), sys.executable, TEST_SCRIPT, '--trainer-options', TEST_SCRIPT, '--trainer-options',
         shlex.quote(json.dumps(trainer_options))
     ]
     if on_gpu:
