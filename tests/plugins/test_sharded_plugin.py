@@ -31,7 +31,6 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
         mock_oss_clip_grad_norm.assert_not_called()
 
 
-@RunIf(fairscale=True)
 @pytest.mark.parametrize(["accelerator"], [("ddp_sharded", ), ("ddp_sharded_spawn", )])
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_sharded_ddp_choice(tmpdir, accelerator):
