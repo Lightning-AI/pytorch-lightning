@@ -40,8 +40,8 @@ class LoggerConnector:
         self._logged_metrics = MetricsHolder()
         self._progress_bar_metrics = MetricsHolder(to_float=True)
         self.eval_loop_results = []
-        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in RunningStage}
-        self._cached_results[None] = EpochResultStore(trainer, None)
+        self._cached_results = {stage: EpochResultStore(trainer) for stage in RunningStage}
+        self._cached_results[None] = EpochResultStore(trainer)
         self._callback_hook_validator = CallbackHookNameValidator()
 
     @property

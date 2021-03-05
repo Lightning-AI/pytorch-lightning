@@ -205,7 +205,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         return checkpoint
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
-        # TODO: is there a better way than accessing callback through model -> trainer -> callback?
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
@@ -214,7 +213,6 @@ class DDPSpawnPlugin(ParallelPlugin):
 
             # save the last weights
             last_path = None
-            # TODO: is there a better way than accessing trainer through model -> trainer?
             if (
                 self.lightning_module.trainer.state == TrainerState.FITTING
                 and best_model_path is not None
@@ -229,7 +227,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(results)
 
     def __recover_child_process_weights(self, best_path, last_path):
-        # TODO: is there a better way than accessing callback through model -> trainer -> callback?
         # transfer back the best path to the trainer
         if self.lightning_module.trainer.checkpoint_callback:
             self.lightning_module.trainer.checkpoint_callback.best_model_path = best_path

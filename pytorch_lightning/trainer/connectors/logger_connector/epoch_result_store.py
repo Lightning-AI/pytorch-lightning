@@ -222,9 +222,8 @@ class EpochResultStore:
     ```
     """
 
-    def __init__(self, trainer, stage):
+    def __init__(self, trainer) -> None:
         self.trainer = trainer
-        self._stage = stage
         self.reset()
 
     def __getitem__(self, key: str) -> Any:
@@ -309,7 +308,6 @@ class EpochResultStore:
         callback_metrics = {}
         batch_pbar_metrics = {}
         batch_log_metrics = {}
-        is_train = self._stage == RunningStage.TRAINING
 
         if not self._has_batch_loop_finished:
             # get pbar
@@ -317,8 +315,7 @@ class EpochResultStore:
             logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
             batch_log_metrics = self.get_latest_batch_log_metrics()
 
-            if is_train:
-                # Only log and add to callback epoch step during evaluation, test.
+            if self.trainer.state == TrainerState.FITTING:
                 logger_connector._logged_metrics.update(batch_log_metrics)
                 callback_metrics.update(batch_pbar_metrics)
                 callback_metrics.update(batch_log_metrics)
@@ -341,7 +338,7 @@ class EpochResultStore:
 
         # TODO(carmocca): when we implement flushing the logger connector metrics after
         # the trainer.state changes, this should check trainer.evaluating instead
-        if not is_train and self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
+        if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
             logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         # update callback_metrics
@@ -486,4 +483,4 @@ class EpochResultStore:
         return result
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(stage={self._stage}, internals={self._internals})"
+        return f"{self.__class__.__name__}(internals={self._internals})"
