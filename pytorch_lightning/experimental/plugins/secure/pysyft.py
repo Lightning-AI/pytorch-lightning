@@ -17,7 +17,7 @@ import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins.secure.base import BaseSecurePlugin
+from pytorch_lightning.experimental.plugins.secure.base import BaseSecurePlugin
 from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
 
 

@@ -11,7 +11,7 @@ if _PYSYFT_AVAILABLE:
     import syft as sy
     from syft.ast.module import Module
 
-    from pytorch_lightning.plugins.secure.pysyft import SyLightningModule
+    from pytorch_lightning.experimental.plugins.secure.pysyft import SyLightningModule
 
 
 @RunIf(syft=True)
