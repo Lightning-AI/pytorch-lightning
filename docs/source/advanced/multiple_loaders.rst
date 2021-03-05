@@ -16,6 +16,8 @@ Lightning supports multiple dataloaders in a few ways.
 
 ----------
 
+.. _multiple-training-dataloaders:
+
 Multiple training dataloaders
 -----------------------------
 For training, the usual way to use multiple dataloaders is to create a ``DataLoader`` class
@@ -84,6 +86,27 @@ For more details please have a look at :attr:`~pytorch_lightning.trainer.trainer
             # [batch from loader_a, batch from loader_b]
             loaders = [loader_a, loader_b]
 
+            return loaders
+
+Furthermore, Lightning also supports that nested lists and dicts (or a combination) can
+be returned 
+
+.. testcode::
+
+    class LitModel(LightningModule):
+
+        def train_dataloader(self):
+
+            loader_a = torch.utils.data.DataLoader(range(8), batch_size=4)
+            loader_b = torch.utils.data.DataLoader(range(16), batch_size=4)
+            loader_c = torch.utils.data.DataLoader(range(32), batch_size=4)
+            loader_c = torch.utils.data.DataLoader(range(64), batch_size=4)
+
+            # pass loaders as a nested dict. This will create batches like this:
+            # {'loader_a_b': {'a': batch from loader a, 'b': batch from loader b},
+            #  'loader_c_d': {'c': batch from loader c, 'd': batch from loader d}}
+            loaders = {'loaders_a_b': {'a': loader_a, 'b': loader_b},
+                       'loaders_c_d': {'c': loader_c, 'd': loader_d}}
             return loaders
 
 ----------
