@@ -253,7 +253,7 @@ class WandbLogger(LightningLoggerBase):
                         'ModelCheckpoint': {k: getattr(checkpoint_callback, k) for k in [
                             'monitor', 'mode', 'save_last', 'save_top_k', 'save_weights_only', 'period'
                         ]}}
-            artifact = wandb.Artifact(name=f"run-{artifact_name}", type="model", metadata=metadata)
+            artifact = wandb.Artifact(name=f"model-{artifact_name}", type="model", metadata=metadata)
             artifact.add_file(p, name='model.ckpt')
             self.experiment.log_artifact(
                 artifact,
