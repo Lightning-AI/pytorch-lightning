@@ -12,7 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Dict
 
-# This class is still experimental and its API has to be designed.
+import torch
+from torch.optim import Optimizer
+
+
 class BaseSecurePlugin:
-    pass
+
+    @staticmethod
+    def optimizer_state(optimizer: Optimizer) -> Dict[str, torch.Tensor]:
+        raise NotImplementedError
+
+    @staticmethod
+    def save_function(trainer, filepath: str, save_weights_only: bool) -> None:
+        raise NotImplementedError

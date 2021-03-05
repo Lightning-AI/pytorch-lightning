@@ -2,7 +2,6 @@ from types import ModuleType
 from typing import Any, List, Optional, Union
 
 import torch
-from torch import nn
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
@@ -71,11 +70,13 @@ def test_syft(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_train_batches=4,
-        limit_test_batches=4,
+        limit_train_batches=2,
+        limit_test_batches=2,
     )
 
     trainer.fit(model)
+    trainer.test()
     trainer.test(model)
 
     LiftSyLightningModule.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, module=module)
+    trainer.fit(model)

@@ -29,7 +29,7 @@ class PySyftPlugin(BaseSecurePlugin):
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
         plugins.
         """
-        return {}
+        return optimizer.state_dict().get(request_block=True, delete_obj=False)
 
     @staticmethod
     def save_function(trainer, filepath: str, save_weights_only: bool) -> None:
@@ -39,7 +39,6 @@ class PySyftPlugin(BaseSecurePlugin):
         sy_model.hparams = model_ref.hparams
         sy_model.on_save_checkpoint = model_ref.on_save_checkpoint
         trainer.training_type_plugin.model = sy_model
-        # todo (tudorcebere): Add support for optimizer and scheduler states   # noqa E265
         trainer.accelerator.optimizer_state = PySyftPlugin.optimizer_state
         trainer.save_checkpoint(filepath, save_weights_only)
         trainer.training_type_plugin.model = model_ref
