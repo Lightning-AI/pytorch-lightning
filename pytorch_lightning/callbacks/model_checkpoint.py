@@ -294,11 +294,11 @@ class ModelCheckpoint(Callback):
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
             raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
-        if self.every_n_epochs <= -1:
+        if self.every_n_epochs < 0:
             raise MisconfigurationException(
                 f'Invalid value for every_n_epochs={self.every_n_epochs}. Must be non-negative.'
             )
-        if self.every_n_batches <= -1:
+        if self.every_n_batches < 0:
             raise MisconfigurationException(
                 f'Invalid value for every_n_batches={self.every_n_batches}. Must be non-negative.'
             )
