@@ -115,8 +115,7 @@ class TensorRunningAccum(object):
             else:
                 if is_syft_initialized():
                     return getattr(self.memory[list(range(0, self.current_idx))], how)()
-                else:
-                    return getattr(self.memory[:self.current_idx], how)()
+                return getattr(self.memory[:self.current_idx], how)()
 
 
 class Accumulator(object):

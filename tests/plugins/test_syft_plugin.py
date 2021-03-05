@@ -43,8 +43,7 @@ def test_syft(tmpdir):
             self,
             module: sy.Module,
         ) -> None:
-            super().__init__()
-            self.module = module
+            super().__init__(module)
 
         def training_step(self, batch: SyTensorProxyType, batch_idx: Optional[int]) -> SyTensorProxyType:
             data_ptr = batch

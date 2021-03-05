@@ -351,8 +351,6 @@ class TrainLoop:
         # -----------------------------------------
         # process hybrid (1.0)
         # -----------------------------------------
-        # no need for these checks in 1.0.0
-        # TODO: remove checks in 1.0.0
         if is_syft_initialized() and isinstance(training_step_output_for_epoch_end, Pointer):
             _training_step_output_for_epoch_end = training_step_output_for_epoch_end.get(
                 request_block=True, delete_obj=False

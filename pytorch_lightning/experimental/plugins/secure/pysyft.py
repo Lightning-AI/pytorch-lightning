@@ -58,13 +58,19 @@ if _PYSYFT_AVAILABLE:
 
     class SyLightningModule(LightningModule):
 
-        def __init__(self, download_back: bool = False, run_locally: bool = False) -> None:
+        def __init__(self, module: sy.Module, request_parameters: bool = False, run_locally: bool = False) -> None:
             super().__init__()
+            """
+            This class is used to wrap the ``sy.Module`` and simplify the interface with Pytorch LightningModule
+
+
+            """
             # Those are helpers to easily work with `sy.Module`
+            self.module = module
             self.duet = sy.client_cache["duet"]
             self.remote_torch = sy.client_cache["duet"].torch
             self.local_torch = globals()["torch"]
-            self.download_back = download_back
+            self.request_parameters = request_parameters
             self.run_locally = run_locally
 
         def setup(self, stage_name: str):
@@ -73,10 +79,8 @@ if _PYSYFT_AVAILABLE:
             self.send_model()
 
         def is_remote(self) -> bool:
-            # Training / Evaluation is done remotely and Testing is done locally unless run_locally is True
-            if self.run_locally or (not self.trainer.training and self.trainer.evaluation_loop.testing):
-                return False
-            return True
+            # Training / Evaluating is done remotely and Testing is done locally unless run_locally is True
+            return not self.run_locally and not self.trainer.testing
 
         @property
         def torch(self) -> SyModuleProxyType:
@@ -87,15 +91,14 @@ if _PYSYFT_AVAILABLE:
             if self.is_remote():
                 return self.remote_model
             else:
-                if self.download_back:
+                if self.request_parameters:
                     return self.get_model()
-                else:
-                    return self.module
+                return self.module
 
         def send_model(self) -> None:
             self.remote_model = self.module.send(self.duet)
 
-        def get_model(self) -> type(Module):  # type: ignore
+        def get_model(self) -> Module:  # type: ignore
             return self.remote_model.get(request_block=True)
 
         def parameters(self) -> Generator:
@@ -111,7 +114,7 @@ if _PYSYFT_AVAILABLE:
             return self.model(x)
 
         def on_train_start(self) -> None:
-            self.download_back = False
+            self.request_parameters = False
 
         def on_test_start(self) -> None:
-            self.download_back = True
+            self.request_parameters = True
