@@ -1554,6 +1554,22 @@ def test_pytorch_profiler_nested(tmpdir):
         assert pa[n] == expected_[n]
 
 
+@RunIf(min_gpus=1, special=True)
+def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
+    """
+    This test check emit_nvtx is correctly supported
+    """
+    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
+
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        profiler=profiler,
+        gpus=1,
+    )
+    trainer.fit(model)
+
+
 @pytest.mark.parametrize(
     ["limit_train_batches", "global_step", "num_training_batches", "current_epoch", "should_train"],
     [(0.2, 0, 0, 0, False), (0.5, 10, 2, 4, True)],
