@@ -176,3 +176,22 @@ def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir, monkeypatch):
 
     with pytest.raises(MisconfigurationException, match=r'Overriding `on_after_batch_transfer` is not .* in DP'):
         trainer.fit(model)
+
+
+@RunIf(min_gpus=2)
+def test_dp_training_step_dict(tmpdir):
+    """
+    This test verify dp properly reduce dictionaries
+    """
+
+    model = BoringModel()
+    model.training_step_end = None
+    trainer = pl.Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        gpus=2,
+        accelerator='dp',
+    )
+    trainer.fit(model)
