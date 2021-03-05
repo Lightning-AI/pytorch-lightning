@@ -98,7 +98,7 @@ def test_invalid_weights_summmary():
 
 
 @pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
-def test_empty_model_summary_shapes(mode):
+def test_empty_model_summary_shapes(mode: ModelSummary):
     """ Test that the summary works for models that have no submodules. """
     model = EmptyModule()
     summary = model.summarize(mode=mode)
