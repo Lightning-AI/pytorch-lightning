@@ -128,9 +128,6 @@ class Tuner:
         datamodule: Optional[LightningDataModule] = None,
         update_attr: bool = False,
     ):
-        self.trainer.model_connector.copy_trainer_model_properties(model)
-        self.trainer.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
-        self.trainer.data_connector.prepare_data(model)
         return lr_find(
             self.trainer,
             model,
