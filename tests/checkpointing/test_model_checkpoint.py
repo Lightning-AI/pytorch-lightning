@@ -673,7 +673,7 @@ def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir, every_n_epochs):
     trainer.fit(model)
     expected_steps_for_ckpt = [
         i for i in range(epoch_step_length * max_epochs)
-        if (i % every_n_batches) == 0 or (i * epoch_step_length % every_n_epochs == 0)
+        if ((i+1) % every_n_batches) == 0 or (i+1) % (every_n_epochs * epoch_step_length) == 0)
     ]
     expected_ckpt_files = [f"step={step}.ckpt" for step in expected_steps_for_ckpt]
     assert set(os.listdir(tmpdir)) == set(expected_ckpt_files)
