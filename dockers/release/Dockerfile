@@ -27,7 +27,7 @@ COPY ./ ./pytorch-lightning/
 RUN \
     # Disable cache
     #conda install "pip>20.1" && \
-    if [ -n $LIGHTNING_VERSION ] ; then \
+    if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
         wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
         unzip ${LIGHTNING_VERSION}.zip ; \
