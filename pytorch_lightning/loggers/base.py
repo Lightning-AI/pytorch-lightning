@@ -20,8 +20,7 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
 from weakref import ReferenceType
-from typing import (Any, Callable, Dict, Iterable, List, Mapping, MutableMapping,
-                    Optional, Sequence, Tuple, Union)
+from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
