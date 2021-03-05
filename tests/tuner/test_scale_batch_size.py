@@ -2,6 +2,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.tuner.tuning import Tuner
 from tests.helpers import BoringModel, BoringDataModule
+from tests.helpers.runif import RunIf
 from torch.utils.data import DataLoader
 
 
@@ -22,7 +23,7 @@ class BatchSizeModel(BoringModel):
         self.save_hyperparameters()
 
 
-# @RunIf()
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize("model,datamodule", [
     (BatchSizeModel(2), None),
     (BatchSizeModel(2), BatchSizeDataModule(2))
