@@ -35,8 +35,7 @@ RUN \
         rm *.zip ; \
     fi && \
     pip install ./pytorch-lightning["extra"] --no-cache-dir && \
-    rm -rf pytorch-lightning && \
-
+    rm -rf pytorch-lightning
 
 RUN python --version && \
     pip --version && \
