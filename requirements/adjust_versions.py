@@ -1,6 +1,4 @@
-# stdlib
 import os
-import platform
 import re
 import sys
 from typing import Any, Dict
@@ -18,8 +16,12 @@ VERSIONS_LUT: Dict[str, Dict[str, Any]] = {
 
 
 def find_latest(ver: str, versions_all: list):
+    # drop all except semantic version
+    ver = re.search(r'([\.\d]+)', ver).groups()[0]
+    # find candidates, by starting version pattern
     options = [v for v in versions_all if v.startswith(ver)]
     assert options, f"missing {ver} among {versions_all}"
+    # take the last one...
     return sorted(options)[-1]
 
 
