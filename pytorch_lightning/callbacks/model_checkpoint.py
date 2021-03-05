@@ -302,9 +302,9 @@ class ModelCheckpoint(Callback):
 
         # delegate the saving to the trainer
         if self.save_function is not None:
-            # Todo (tudorcebere): Add support for saving the model   # noqa E265
             if _PYSYFT_AVAILABLE:
-                pass
+                from pytorch_lightning.plugins.secure.pysyft import PySyftPlugin
+                PySyftPlugin.save_function(trainer, filepath, self.save_weights_only)
             else:
                 self.save_function(filepath, self.save_weights_only)
         else:
