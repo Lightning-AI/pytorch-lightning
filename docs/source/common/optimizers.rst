@@ -108,17 +108,6 @@ Here is the same example as above using a ``closure``.
             # Important: This property activate ``manual optimization`` for this model
             self.automatic_optimization = False
 
-        def generator_loss(self, d_z: Tensor) -> Tensor:
-            # the closer ``d_z`` is from 1,
-            # the better the generator is able to fool the discriminator
-            return -1 * torch.log(d_z).mean()
-
-        def discriminator_loss(self, d_x: Tensor, d_z: Tensor) -> Tensor:
-            # the closer is ``d_x`` from 1 and ``d_z`` from 0,
-            # the better the discriminator is able to distinguish
-            # true data from generated ones
-            return -1 * (torch.log(d_x).mean() + torch.log(1 - d_z).mean())
-
         def sample_z(self, n) -> Tensor:
             sample = self._Z.sample((n,))
             return sample
