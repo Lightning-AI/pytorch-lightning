@@ -58,7 +58,7 @@ class TensorBoardLogger(LightningLoggerBase):
             If it is a string then it is used as the run-specific subdirectory name,
             otherwise ``'version_${version}'`` is used.
         sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
-            then logs are saved in ``/save_dir/version/``. Defaults to ``None`` in which
+            then logs are saved in ``/save_dir/version/sub_dir/``. Defaults to ``None`` in which
             logs are saved in ``/save_dir/version/``.
         log_graph: Adds the computational graph to tensorboard. This requires that
             the user has defined the `self.example_input_array` attribute in their
