@@ -1,4 +1,5 @@
 # stdlib
+import os
 import platform
 import re
 import sys
@@ -29,11 +30,9 @@ def main(path_req: str, torch_version: str = None) -> None:
     dep_versions = VERSIONS_LUT.get(torch_version, VERSIONS_NONE)
     dep_versions["torch"] = torch_version
     for lib in dep_versions:
-        if not dep_versions[lib]:
-            continue
         version = dep_versions[lib]
         replace = f"{lib}=={version}\n"
-        req = re.sub(rf"{lib}[>=]*[\d\.]*\n", replace, req)
+        req = re.sub(rf"{lib}[>=]*[\d\.]*{os.linesep}", replace, req)
 
     with open(path_req, "w") as fp:
         fp.write(req)
