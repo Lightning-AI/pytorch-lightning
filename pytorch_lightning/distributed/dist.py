@@ -13,7 +13,8 @@
 # limitations under the License.
 from typing import Any
 
-from pytorch_lightning.utilities.distributed import broadcast_object_list, group
+from pytorch_lightning.utilities.distributed import broadcast_object_list
+from pytorch_lightning.utilities.distributed import group as _group
 
 
 class LightningDistributed:
@@ -22,7 +23,7 @@ class LightningDistributed:
         self.rank = rank
         self.device = device
 
-    def broadcast(self, obj: Any, group=group.WORLD):
+    def broadcast(self, obj: Any, group=_group.WORLD):
         is_list = isinstance(obj, list)
 
         if not is_list:
@@ -31,7 +32,7 @@ class LightningDistributed:
         if self.rank != 0:
             obj = [None for _ in range(len(obj))]
 
-        broadcast_object_list(obj, 0, group=group or group.WORLD)
+        broadcast_object_list(obj, 0, group=group or _group.WORLD)
 
         if not is_list:
             obj = obj[0]
