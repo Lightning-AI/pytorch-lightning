@@ -14,17 +14,15 @@
 
 import logging
 import os
+import pickle
 import warnings
 from functools import wraps
 from typing import Any, Optional, Union
-import pickle
 
 import torch
 from torch.distributed.distributed_c10d import _rank_not_in_group, Backend, broadcast, get_backend, get_rank
 
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
-
-import torch
 
 log = logging.getLogger(__name__)
 
@@ -93,9 +91,9 @@ def _broadcast_object_list(object_list, src=0, group=None):
 
     if is_nccl_backend:
         object_tensor = object_tensor.to(current_device)
-    
+
     broadcast(object_tensor, src=src, group=group)
-    
+
     # Deserialize objects using their stored sizes.
     offset = 0
     if my_rank != src:
