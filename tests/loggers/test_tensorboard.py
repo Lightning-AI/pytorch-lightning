@@ -308,13 +308,12 @@ def test_tensorboard_dump_state(tmpdir):
     model = BoringModel()
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
     trainer.fit(model)
-    
+
     filepath = str(tmpdir / 'checkpoints' / 'last.ckpt')
     trainer.save_checkpoint(filepath=filepath)
-    
+
     ckpt = torch.load(filepath)
     assert 'logger' in ckpt
     assert type(logger) in ckpt['logger']
     assert 'version' in ckpt['logger'][type(logger)]
     assert ckpt['logger'][type(logger)]['version'] == logger.version
- 

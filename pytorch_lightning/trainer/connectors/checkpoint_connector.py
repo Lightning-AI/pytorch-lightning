@@ -21,6 +21,7 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _OMEGACONF_AVAILABLE,
@@ -33,7 +34,6 @@ from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
-from pytorch_lightning.loggers.base import LoggerCollection
 
 if _APEX_AVAILABLE:
     from apex import amp
@@ -284,14 +284,15 @@ class CheckpointConnector:
         if not weights_only:
             # dump callbacks
             checkpoint['callbacks'] = self.trainer.on_save_checkpoint(checkpoint)
-            
+
             # dump all loggers
             checkpoint['logger'] = {}
             if self.trainer.logger:
                 if isinstance(self.trainer.logger, LoggerCollection):
                     checkpoint['logger'] = self.trainer.logger.on_save_checkpoint(self.trainer, model, checkpoint)
                 else:
-                    checkpoint['logger'][type(self.trainer.logger)] = self.trainer.logger.on_save_checkpoint(self.trainer, model, checkpoint)
+                    checkpoint['logger'][type(self.trainer.logger)
+                                         ] = self.trainer.logger.on_save_checkpoint(self.trainer, model, checkpoint)
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):

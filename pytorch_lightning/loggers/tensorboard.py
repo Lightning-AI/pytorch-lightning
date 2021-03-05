@@ -276,8 +276,6 @@ class TensorBoardLogger(LightningLoggerBase):
         state = self.__dict__.copy()
         state["_experiment"] = None
         return state
-    
+
     def on_save_checkpoint(self, trainer, pl_module: LightningModule, checkpoint: Dict[str, Any]) -> dict:
-        return {
-            "version": self._version
-        }
+        return {"version": self._version}
